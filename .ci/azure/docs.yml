@@ -5,32 +5,32 @@ jobs:
     pool:
       vmImage: ubuntu-latest
     variables:
-      python.version: '3.8'
+      python.version: "3.8"
     timeoutInMinutes: 240
     steps:
-        # Checkout simpeg repo.
-        # Sync tags and disable shallow depth to get the SimPEG version.
-        - checkout: self
-          fetchDepth: 0
-          fetchTags: true
-          displayName: Checkout repository (including tags)
+      # Checkout simpeg repo.
+      # Sync tags and disable shallow depth to get the SimPEG version.
+      - checkout: self
+        fetchDepth: 0
+        fetchTags: true
+        displayName: Checkout repository (including tags)
 
-        - bash: echo "##vso[task.prependpath]$CONDA/bin"
-          displayName: Add conda to PATH
+      - bash: echo "##vso[task.prependpath]$CONDA/bin"
+        displayName: Add conda to PATH
 
-        - bash: .ci/azure/setup_env.sh
-          displayName: Setup SimPEG environment
+      - bash: .ci/azure/setup_env.sh
+        displayName: Setup SimPEG environment
 
-        - bash: |
-            source activate simpeg-test
-            make -C docs html
-          displayName: Building documentation
+      - bash: |
+          source activate simpeg-test
+          make -C docs html
+        displayName: Building documentation
 
-        - task: PublishPipelineArtifact@1
-          inputs:
-            targetPath: $(Build.SourcesDirectory)/docs/_build/html
-            artifactName: built-docs
-          displayName: 'Upload docs as artifact'
+      - task: PublishPipelineArtifact@1
+        inputs:
+          targetPath: $(Build.SourcesDirectory)/docs/_build/html
+          artifactName: built-docs
+        displayName: "Upload docs as artifact"
 
   - job: DeployRelease
     dependsOn: BuildDocs
@@ -39,152 +39,152 @@ jobs:
       vmImage: ubuntu-latest
     timeoutInMinutes: 240
     steps:
-        # Checkout simpeg repo.
-        # Sync tags and disable shallow depth to get the SimPEG version.
-        - checkout: self
-          fetchDepth: 0
-          fetchTags: true
-          displayName: Checkout repository (including tags)
+      # Checkout simpeg repo.
+      # Sync tags and disable shallow depth to get the SimPEG version.
+      - checkout: self
+        fetchDepth: 0
+        fetchTags: true
+        displayName: Checkout repository (including tags)
 
-        - bash: |
-            git config --global user.name ${GH_NAME}
-            git config --global user.email ${GH_EMAIL}
-            git config --list | grep user.
-          displayName: 'Configure git'
-          env:
-            GH_NAME: $(gh.name)
-            GH_EMAIL: $(gh.email)
+      - bash: |
+          git config --global user.name ${GH_NAME}
+          git config --global user.email ${GH_EMAIL}
+          git config --list | grep user.
+        displayName: "Configure git"
+        env:
+          GH_NAME: $(gh.name)
+          GH_EMAIL: $(gh.email)
 
-        - bash: |
-            mkdir -p docs/_build/html
-          displayName: 'Create directory for built docs'
+      - bash: |
+          mkdir -p docs/_build/html
+        displayName: "Create directory for built docs"
 
-        - task: DownloadPipelineArtifact@2
-          inputs:
-            artifact: built-docs
-            targetPath: docs/_build/html
-          displayName: 'Download docs artifact'
+      - task: DownloadPipelineArtifact@2
+        inputs:
+          artifact: built-docs
+          targetPath: docs/_build/html
+        displayName: "Download docs artifact"
 
-        # Upload release build of the docs to gh-pages branch in simpeg/simpeg-doctest
-        - bash: |
-            # Capture version
-            # TODO: we should be able to get the version from the
-            # build.sourceBranch variable
-            version=$(git tag --points-at HEAD)
-            if [ -n "$version" ]; then
-              echo "Version could not be obtained from tag. Exiting."
-              exit 1
-            fi
-            # Capture hash of last commit in simpeg
-            commit=$(git rev-parse --short HEAD)
-            # Clone the repo where we store the documentation
-            git clone -q --branch gh-pages --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
-            cd simpeg-doctest
-            # Move the built docs to a new dev folder
-            cp -r $BUILD_SOURCESDIRECTORY/docs/_build/html "$version"
-            cp $BUILD_SOURCESDIRECTORY/docs/README.md .
-            # Add .nojekyll if missing
-            touch .nojekyll
-            # Update latest symlink
-            rm -f latest
-            ln -s "$version" latest
-            # Commit the new docs.
-            git add "$version" README.md .nojekyll latest
-            message="Azure CI deploy ${version} from ${commit}"
-            echo -e "\nMaking a new commit:"
-            git commit -m "$message"
-            # Make the push quiet just in case there is anything that could
-            # leak sensitive information.
-            echo -e "\nPushing changes to simpeg/simpeg-doctest."
-            git push -fq origin gh-pages 2>&1 >/dev/null
-            echo -e "\nFinished uploading generated files."
-          displayName: Push documentation to simpeg-doctest
-          env:
-            GH_TOKEN: $(gh.token)
+      # Upload release build of the docs to gh-pages branch in simpeg/simpeg-doctest
+      - bash: |
+          # Capture version
+          # TODO: we should be able to get the version from the
+          # build.sourceBranch variable
+          version=$(git tag --points-at HEAD)
+          if [ -n "$version" ]; then
+            echo "Version could not be obtained from tag. Exiting."
+            exit 1
+          fi
+          # Capture hash of last commit in simpeg
+          commit=$(git rev-parse --short HEAD)
+          # Clone the repo where we store the documentation
+          git clone -q --branch gh-pages --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
+          cd simpeg-doctest
+          # Move the built docs to a new dev folder
+          cp -r $BUILD_SOURCESDIRECTORY/docs/_build/html "$version"
+          cp $BUILD_SOURCESDIRECTORY/docs/README.md .
+          # Add .nojekyll if missing
+          touch .nojekyll
+          # Update latest symlink
+          rm -f latest
+          ln -s "$version" latest
+          # Commit the new docs.
+          git add "$version" README.md .nojekyll latest
+          message="Azure CI deploy ${version} from ${commit}"
+          echo -e "\nMaking a new commit:"
+          git commit -m "$message"
+          # Make the push quiet just in case there is anything that could
+          # leak sensitive information.
+          echo -e "\nPushing changes to simpeg/simpeg-doctest."
+          git push -fq origin gh-pages 2>&1 >/dev/null
+          echo -e "\nFinished uploading generated files."
+        displayName: Push documentation to simpeg-doctest
+        env:
+          GH_TOKEN: $(gh.token)
 
   - job: DeployDev
     dependsOn: BuildDocs
-    condition: eq(variables['Build.Reason'], 'Schedule')  # run only scheduled triggers
+    condition: eq(variables['Build.Reason'], 'Schedule') # run only scheduled triggers
     pool:
       vmImage: ubuntu-latest
     timeoutInMinutes: 240
     steps:
-        # Checkout simpeg repo.
-        # Sync tags and disable shallow depth to get the SimPEG version.
-        - checkout: self
-          fetchDepth: 0
-          fetchTags: true
-          displayName: Checkout repository (including tags)
+      # Checkout simpeg repo.
+      # Sync tags and disable shallow depth to get the SimPEG version.
+      - checkout: self
+        fetchDepth: 0
+        fetchTags: true
+        displayName: Checkout repository (including tags)
 
-        - bash: |
-            git config --global user.name ${GH_NAME}
-            git config --global user.email ${GH_EMAIL}
-            git config --list | grep user.
-          displayName: 'Configure git'
-          env:
-            GH_NAME: $(gh.name)
-            GH_EMAIL: $(gh.email)
+      - bash: |
+          git config --global user.name ${GH_NAME}
+          git config --global user.email ${GH_EMAIL}
+          git config --list | grep user.
+        displayName: "Configure git"
+        env:
+          GH_NAME: $(gh.name)
+          GH_EMAIL: $(gh.email)
 
-        - bash: |
-            mkdir -p docs/_build/html
-          displayName: 'Create directory for built docs'
+      - bash: |
+          mkdir -p docs/_build/html
+        displayName: "Create directory for built docs"
 
-        - task: DownloadPipelineArtifact@2
-          inputs:
-            artifact: built-docs
-            targetPath: docs/_build/html
-          displayName: 'Download docs artifact'
+      - task: DownloadPipelineArtifact@2
+        inputs:
+          artifact: built-docs
+          targetPath: docs/_build/html
+        displayName: "Download docs artifact"
 
-        # Upload dev build of the docs to a dev branch in simpeg/simpeg-doctest
-        # and update submodule in the gh-pages branch
-        - bash: |
-            # Push new docs
-            # -------------
-            # Capture hash of last commit in simpeg
-            commit=$(git rev-parse --short HEAD)
-            # Clone the repo where we store the documentation (dev branch)
-            git clone -q --branch dev --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
-            cd simpeg-doctest
-            # Remove all files
-            shopt -s dotglob  # configure bash to include dotfiles in * globs
-            export GLOBIGNORE=".git"  # ignore .git directory in glob
-            git rm -rf * # remove all files
-            # Copy the built docs to the root of the repo
-            cp -r $BUILD_SOURCESDIRECTORY/docs/_build/html/* -t .
-            # Commit the new docs. Amend to avoid having a very large history.
-            git add .
-            message="Azure CI deploy dev from ${commit}"
-            echo -e "\nAmending last commit:"
-            git commit --amend --reset-author -m "$message"
-            # Make the push quiet just in case there is anything that could
-            # leak sensitive information.
-            echo -e "\nPushing changes to simpeg/simpeg-doctest (dev branch)."
-            git push -fq origin dev 2>&1 >/dev/null
-            echo -e "\nFinished uploading doc files."
+      # Upload dev build of the docs to a dev branch in simpeg/simpeg-doctest
+      # and update submodule in the gh-pages branch
+      - bash: |
+          # Push new docs
+          # -------------
+          # Capture hash of last commit in simpeg
+          commit=$(git rev-parse --short HEAD)
+          # Clone the repo where we store the documentation (dev branch)
+          git clone -q --branch dev --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
+          cd simpeg-doctest
+          # Remove all files
+          shopt -s dotglob  # configure bash to include dotfiles in * globs
+          export GLOBIGNORE=".git"  # ignore .git directory in glob
+          git rm -rf * # remove all files
+          # Copy the built docs to the root of the repo
+          cp -r $BUILD_SOURCESDIRECTORY/docs/_build/html/* -t .
+          # Commit the new docs. Amend to avoid having a very large history.
+          git add .
+          message="Azure CI deploy dev from ${commit}"
+          echo -e "\nAmending last commit:"
+          git commit --amend --reset-author -m "$message"
+          # Make the push quiet just in case there is anything that could
+          # leak sensitive information.
+          echo -e "\nPushing changes to simpeg/simpeg-doctest (dev branch)."
+          git push -fq origin dev 2>&1 >/dev/null
+          echo -e "\nFinished uploading doc files."
 
-            # Update submodule
-            # ----------------
-            # Need to fetch the gh-pages branch first (because we clone with
-            # shallow depth)
-            git fetch --depth 1 origin gh-pages:gh-pages
-            # Switch to the gh-pages branch
-            git switch gh-pages
-            # Update the dev submodule
-            git submodule update --init --recursive --remote dev
-            # Commit changes
-            git add dev
-            message="Azure CI update dev submodule from ${commit}"
-            echo -e "\nMaking a new commit:"
-            git commit -m "$message"
-            # Make the push quiet just in case there is anything that could
-            # leak sensitive information.
-            echo -e "\nPushing changes to simpeg/simpeg-doctest (gh-pages branch)."
-            git push -q origin gh-pages 2>&1 >/dev/null
-            echo -e "\nFinished updating submodule dev."
+          # Update submodule
+          # ----------------
+          # Need to fetch the gh-pages branch first (because we clone with
+          # shallow depth)
+          git fetch --depth 1 origin gh-pages:gh-pages
+          # Switch to the gh-pages branch
+          git switch gh-pages
+          # Update the dev submodule
+          git submodule update --init --recursive --remote dev
+          # Commit changes
+          git add dev
+          message="Azure CI update dev submodule from ${commit}"
+          echo -e "\nMaking a new commit:"
+          git commit -m "$message"
+          # Make the push quiet just in case there is anything that could
+          # leak sensitive information.
+          echo -e "\nPushing changes to simpeg/simpeg-doctest (gh-pages branch)."
+          git push -q origin gh-pages 2>&1 >/dev/null
+          echo -e "\nFinished updating submodule dev."
 
-            # Unset dotglob
-            shopt -u dotglob
-            export GLOBIGNORE=""
-          displayName: Push documentation to simpeg-doctest (dev branch)
-          env:
-            GH_TOKEN: $(gh.token)
+          # Unset dotglob
+          shopt -u dotglob
+          export GLOBIGNORE=""
+        displayName: Push documentation to simpeg-doctest (dev branch)
+        env:
+          GH_TOKEN: $(gh.token)

@@ -39,7 +39,7 @@ jobs:
         inputs:
           targetPath: $(Build.SourcesDirectory)/dist
           artifactName: pypi-dist
-        displayName: 'Upload dist as artifact'
+        displayName: "Upload dist as artifact"
 
   - job: Deploy
     dependsOn: Build
@@ -53,7 +53,7 @@ jobs:
         inputs:
           artifact: pypi-dist
           targetPath: dist
-        displayName: 'Download dist artifact'
+        displayName: "Download dist artifact"
 
       - task: UsePythonVersion@0
         inputs:

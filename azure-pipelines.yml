@@ -7,64 +7,62 @@
 trigger:
   branches:
     include:
-    - 'main'
+      - "main"
     exclude:
-    - '*no-ci*'
+      - "*no-ci*"
   tags:
     include:
-    - '*'
+      - "*"
 
 pr:
   branches:
     include:
-    - '*'
+      - "*"
     exclude:
-    - '*no-ci*'
+      - "*no-ci*"
 
 schedules:
-- cron: "0 8 * * *" # trigger cron job every day at 08:00 AM GMT
-  displayName: "Scheduled nightly job"
-  branches:
-    include: [ "main" ]
-  always: false # don't run if no changes have been applied since last sucessful run
-  batch: false # dont' run if last pipeline is still in-progress
-
+  - cron: "0 8 * * *" # trigger cron job every day at 08:00 AM GMT
+    displayName: "Scheduled nightly job"
+    branches:
+      include: ["main"]
+    always: false # don't run if no changes have been applied since last sucessful run
+    batch: false # dont' run if last pipeline is still in-progress
 
 # Run stages
 # ----------
 stages:
+  - stage: StyleChecks
+    displayName: "Style Checks"
+    jobs:
+      - template: .ci/azure/style.yml
 
-- stage: StyleChecks
-  displayName: "Style Checks"
-  jobs:
-    - template: .ci/azure/style.yml
+  - stage: Testing
+    dependsOn: StyleChecks
+    jobs:
+      - template: .ci/azure/test.yml
 
-- stage: Testing
-  dependsOn: StyleChecks
-  jobs:
-    - template: .ci/azure/test.yml
+  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  # Keep old docs for now (we can remove them later in favor of Docs)
+  - stage: OldDocs
+    condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
+    dependsOn:
+      - StyleChecks
+      - Testing
+    jobs:
+      - template: .ci/azure/old-docs.yml
+  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Keep old docs for now (we can remove them later in favor of Docs)
-- stage: OldDocs
-  condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
-  dependsOn:
-    - StyleChecks
-    - Testing
-  jobs:
-    - template: .ci/azure/old-docs.yml
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  - stage: Docs
+    dependsOn:
+      - StyleChecks
+      - Testing
+    jobs:
+      - template: .ci/azure/docs.yml
 
-- stage: Docs
-  dependsOn:
-    - StyleChecks
-    - Testing
-  jobs:
-    - template: .ci/azure/docs.yml
-
-- stage: PyPI
-  dependsOn:
-    - StyleChecks
-    - Testing
-  jobs:
-    - template: .ci/azure/pypi.yml
+  - stage: PyPI
+    dependsOn:
+      - StyleChecks
+      - Testing
+    jobs:
+      - template: .ci/azure/pypi.yml

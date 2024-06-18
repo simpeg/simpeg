@@ -4,7 +4,7 @@ jobs:
     pool:
       vmImage: ubuntu-latest
     variables:
-      python.version: '3.8'
+      python.version: "3.8"
     timeoutInMinutes: 240
     steps:
       # Checkout simpeg repo, including tags.
@@ -19,7 +19,7 @@ jobs:
           git config --global user.name ${GH_NAME}
           git config --global user.email ${GH_EMAIL}
           git config --list | grep user.
-        displayName: 'Configure git'
+        displayName: "Configure git"
         env:
           GH_NAME: $(gh.name)
           GH_EMAIL: $(gh.email)
