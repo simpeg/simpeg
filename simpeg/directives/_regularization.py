@@ -286,7 +286,7 @@ class UpdateIRLS(InversionDirective):
 
         # Either use the supplied irls_threshold, or fix base on distribution of
         # model values
-        for reg in self.reg.objfcts:
+        for reg, norms in zip(self.reg.objfcts, self.metrics.input_norms):
             if not isinstance(reg, Sparse):
                 continue
 
@@ -300,21 +300,13 @@ class UpdateIRLS(InversionDirective):
 
                 obj.irls_threshold = threshold
 
-        # Re-assign the norms supplied by user l2 -> lp
-        for reg, norms in zip(self.reg.objfcts, self.metrics.input_norms):
-            if not isinstance(reg, Sparse):
-                continue
             reg.norms = norms
+
+            if self.verbose:
+                print("irls_threshold " + str(reg.objfcts[0].irls_threshold))
 
         # Save l2-model
         self.invProb.l2model = self.invProb.model.copy()
-
-        # Print to screen
-        for reg in self.reg.objfcts:
-            if not isinstance(reg, Sparse):
-                continue
-            if self.verbose:
-                print("irls_threshold " + str(reg.objfcts[0].irls_threshold))
 
     @property
     def beta_schedule(self) -> BetaSchedule:
@@ -380,7 +372,7 @@ class UpdateIRLS(InversionDirective):
                 reg.model = self.invProb.model
                 phim_new += reg(reg.model)
 
-        # Check for maximum number of IRLS cycles1
+        # Check for maximum number of IRLS cycles
         if self.metrics.irls_iteration_count == self.max_irls_iterations:
             if self.verbose:
                 print(
