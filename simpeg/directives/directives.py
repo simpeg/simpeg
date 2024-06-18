@@ -142,7 +142,7 @@ class InversionDirective:
         return self.invProb.opt
 
     @property
-    def reg(self) -> ComboObjectiveFunction:
+    def reg(self) -> BaseObjectiveFunction:
         """Regularization associated with the directive.
 
         Returns
