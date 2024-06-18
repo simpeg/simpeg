@@ -14,11 +14,10 @@ Create environment
 ------------------
 
 To get started developing SimPEG we recommend setting up an environment using
-the ``conda`` package manager that mimics the testing
-environment used for continuous integration testing. Most of the packages that
-we use are available through the ``conda-forge`` project. This will ensure you
-have all of the necessary packages to both develop SimPEG and run tests
-locally. We provide an ``environment_test.yml`` in the base level directory.
+the ``conda`` package manager that includes all odthe packages necessary to
+both develop SimPEG and run tests locally. Most of the packages that
+we use are available through the ``conda-forge`` project.
+We provide an ``environment.yml`` in the base level directory.
 
 To create the environment and install all packages needed to run and write code
 for SimPEG, navigate to the directory where you :ref:`cloned SimPEG's
@@ -26,7 +25,7 @@ repository <working-with-github>` and run:
 
 .. code::
 
-    conda env create -f environment_test.yml
+    conda env create -f environment.yml
 
 .. note::
 
@@ -48,7 +47,7 @@ Once the environment is successfully created, you can *activate* it with
 
 .. code::
 
-    conda activate simpeg-test
+    conda activate simpeg-dev
 
 
 Install SimPEG in developer mode
@@ -56,7 +55,7 @@ Install SimPEG in developer mode
 
 There are many options to install SimPEG into this local environment, we
 recommend using `pip`. After ensuring that all necessary packages from
-`environment_test.yml` are installed, the most robust command you can use,
+`environment.yml` are installed, the most robust command you can use,
 executed from the base level directory would be:
 
 .. code::
@@ -153,7 +152,7 @@ Update your environment
 
 Every once in a while, the minimum versions of the packages in the
 ``environment.yml`` file get updated. After this happens, it's better to update
-the ``simpeg-test`` environment we have created. This way we ensure that we are
+the ``simpeg-dev`` environment we have created. This way we ensure that we are
 checking the style and testing our code using those updated versions.
 
 To update our environment we need to navigate to the directory where you
@@ -161,4 +160,4 @@ To update our environment we need to navigate to the directory where you
 
 .. code::
 
-    conda env update -f environment_test.yml
+    conda env update -f environment.yml

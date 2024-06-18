@@ -247,7 +247,7 @@ class DaskMetaSimulation(MetaSimulation):
             raise ValueError("All mappings must have the same input length")
         if np.any(error_checks == 2):
             raise ValueError(
-                f"Simulations and mappings at indices {np.where(error_checks==2)}"
+                f"Simulations and mappings at indices {np.where(error_checks == 2)}"
                 f" are inconsistent."
             )
 

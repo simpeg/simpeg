@@ -1,4 +1,0 @@
-[run]
-source = simpeg
-omit =
-    */setup.py

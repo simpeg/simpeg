@@ -45,7 +45,7 @@ class BaseSIPSimulation(BaseIPSimulation):
         storeJ=False,
         actinds=None,
         storeInnerProduct=True,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.tau = tau

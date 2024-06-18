@@ -33,11 +33,11 @@ stages:
       displayName: Run style checks with Black
       pool:
         vmImage: ubuntu-latest
-      variables:
-        python.version: '3.8'
       steps:
-        - script: |
-            pip install -r requirements_style.txt
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: "3.11"
+        - bash: .ci/install_style.sh
           displayName: "Install dependencies to run the checks"
         - script: make black
           displayName: "Run black"
@@ -46,11 +46,11 @@ stages:
       displayName: Run (permissive) style checks with flake8
       pool:
         vmImage: ubuntu-latest
-      variables:
-        python.version: '3.8'
       steps:
-        - script: |
-            pip install -r requirements_style.txt
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: "3.11"
+        - bash: .ci/install_style.sh
           displayName: "Install dependencies to run the checks"
         - script: make flake
           displayName: "Run flake8"
@@ -59,19 +59,21 @@ stages:
       displayName: Run style checks with flake8 (allowed to fail)
       pool:
         vmImage: ubuntu-latest
-      variables:
-        python.version: '3.8'
       steps:
-        - script: |
-            pip install -r requirements_style.txt
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: "3.11"
+        - bash: .ci/install_style.sh
           displayName: "Install dependencies to run the checks"
-        - script: FLAKE8_OPTS="--exit-zero" make flake-all
+        - script: make flake-all
           displayName: "Run flake8"
+          env:
+            FLAKE8_OPTS: "--exit-zero"
 
 - stage: Testing
   dependsOn: StyleChecks
   jobs:
-    - template: ./.azure-pipelines/matrix.yml
+    - template: ./.ci/azure/matrix.yml
 
 - stage: Deploy
   dependsOn: Testing
@@ -103,40 +105,15 @@ stages:
             GH_NAME: $(gh.name)
             GH_EMAIL: $(gh.email)
 
-        - script: |
-            wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
-            bash Mambaforge.sh -b -p "${HOME}/conda"
-          displayName: Install mamba
+        - bash: echo "##vso[task.prependpath]$CONDA/bin"
+          displayName: Add conda to PATH
+
+        - bash: .ci/azure/setup_env.sh
+          displayName: Setup SimPEG environment
 
         - script: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            source "${HOME}/conda/etc/profile.d/mamba.sh"
-            cp environment_test.yml environment_test_with_pyversion.yml
-            echo "  - python="$(python.version) >> environment_test_with_pyversion.yml
-            mamba env create -f environment_test_with_pyversion.yml
-            rm environment_test_with_pyversion.yml
-            conda activate simpeg-test
-            pip install pytest-azurepipelines
-            echo "\nList installed packages"
-            conda list
-          displayName: Create Anaconda testing environment
-
-        - script: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
-            pip install -e .
-          displayName: Build package
-
-        - script: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
-            python -c "import simpeg; print(simpeg.__version__)"
-          displayName: Check SimPEG version
-
-        - script: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
-            python setup.py sdist
+            source activate simpeg-test
+            python -m build --no-isolation --skip-dependency-check --sdist .
             twine upload --skip-existing dist/*
           displayName: Deploy source
           env:
@@ -144,9 +121,7 @@ stages:
             TWINE_PASSWORD: $(twine.password)
 
         - script: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
-            export KMP_WARNINGS=0
+            source activate simpeg-test
             cd docs
             make html
             cd ..
@@ -200,40 +175,14 @@ stages:
             GH_NAME: $(gh.name)
             GH_EMAIL: $(gh.email)
 
-        - bash: |
-            wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
-            bash Mambaforge.sh -b -p "${HOME}/conda"
-          displayName: Install mamba
+        - bash: echo "##vso[task.prependpath]$CONDA/bin"
+          displayName: Add conda to PATH
+
+        - bash: .ci/azure/setup_env.sh
+          displayName: Setup SimPEG environment
 
         - bash: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            source "${HOME}/conda/etc/profile.d/mamba.sh"
-            cp environment_test.yml environment_test_with_pyversion.yml
-            echo "  - python="$(python.version) >> environment_test_with_pyversion.yml
-            mamba env create -f environment_test_with_pyversion.yml
-            rm environment_test_with_pyversion.yml
-            conda activate simpeg-test
-            pip install pytest-azurepipelines
-            echo "\nList installed packages"
-            conda list
-          displayName: Create Anaconda testing environment
-
-        - bash: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
-            pip install -e .
-          displayName: Build package
-
-        - script: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
-            python -c "import simpeg; print(simpeg.__version__)"
-          displayName: Check SimPEG version
-
-        - bash: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
-            export KMP_WARNINGS=0
+            source activate simpeg-test
             make -C docs html
           displayName: Building documentation
 
@@ -321,40 +270,14 @@ stages:
             GH_NAME: $(gh.name)
             GH_EMAIL: $(gh.email)
 
-        - bash: |
-            wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
-            bash Mambaforge.sh -b -p "${HOME}/conda"
-          displayName: Install mamba
+        - bash: echo "##vso[task.prependpath]$CONDA/bin"
+          displayName: Add conda to PATH
+
+        - bash: .ci/azure/setup_env.sh
+          displayName: Setup SimPEG environment
 
         - bash: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            source "${HOME}/conda/etc/profile.d/mamba.sh"
-            cp environment_test.yml environment_test_with_pyversion.yml
-            echo "  - python="$(python.version) >> environment_test_with_pyversion.yml
-            mamba env create -f environment_test_with_pyversion.yml
-            rm environment_test_with_pyversion.yml
-            conda activate simpeg-test
-            pip install pytest-azurepipelines
-            echo "\nList installed packages"
-            conda list
-          displayName: Create Anaconda testing environment
-
-        - bash: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
-            pip install -e .
-          displayName: Build package
-
-        - script: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
-            python -c "import simpeg; print(simpeg.__version__)"
-          displayName: Check SimPEG version
-
-        - bash: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
-            export KMP_WARNINGS=0
+            source activate simpeg-test
             make -C docs html
           displayName: Building documentation
 
