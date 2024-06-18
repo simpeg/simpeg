@@ -8,7 +8,6 @@ from typing import Literal
 from .directives import InversionDirective, UpdatePreconditioner, BetaSchedule
 from simpeg.regularization import Sparse, BaseSparse, SmoothnessFirstOrder
 from simpeg.utils import validate_integer, validate_float
-from simpeg.utils.code_utils import deprecate_property
 
 
 @dataclass
@@ -39,11 +38,10 @@ class UpdateIRLS(InversionDirective):
 
     Parameters
     ----------
-
-    beta_search: bool
-        Proceed with a beta search step if the target misfit is outside the tolerance.
-    misfit_tolerance: float
-        Tolerance for the target misfit.
+    beta_schedule: BetaSchedule
+        The beta schedule used by the directive. Defaults to a cooling factor of
+        2.0 and a cooling rate of 1. The cooling schedule is overriden by the
+        IRLS directive once target misfit is reached.
     chifact_start: float
         Starting chi factor for the IRLS iterations.
     chifact_target: float
@@ -54,8 +52,12 @@ class UpdateIRLS(InversionDirective):
         Minimum change in the regularization function to continue the IRLS iterations.
     max_irls_iterations: int
         Maximum number of IRLS iterations.
-    percentile: float
+    misfit_tolerance: float
+        Tolerance for the target misfit.
+    percentile: int
         Percentile of the function values used to determine the initial IRLS threshold.
+    verbose: bool
+        Print information to the screen.
     """
 
     def __init__(
@@ -68,6 +70,7 @@ class UpdateIRLS(InversionDirective):
         max_irls_iterations: int = 20,
         misfit_tolerance: float = 1e-1,
         percentile: int = 100,
+        verbose: bool = True,
         **kwargs,
     ):
         self._metrics: IRLSMetrics | None = None
@@ -80,16 +83,7 @@ class UpdateIRLS(InversionDirective):
         self.misfit_tolerance: float = misfit_tolerance
         self.percentile: int = percentile
 
-        if "silent" in kwargs:
-            warnings.warn(
-                "The `silent` keyword argument is deprecated. "
-                "Use `verbose` instead.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            kwargs["verbose"] = not kwargs.pop("silent")
-
-        super().__init__(**kwargs)
+        super().__init__(verbose=verbose, **kwargs)
 
     @property
     def metrics(self) -> IRLSMetrics:
@@ -129,14 +123,6 @@ class UpdateIRLS(InversionDirective):
     def misfit_tolerance(self, value):
         self._misfit_tolerance = validate_integer("misfit_tolerance", value, min_val=0)
 
-    beta_tol = deprecate_property(
-        misfit_tolerance,
-        "beta_tol",
-        "UpdateIRLS.misfit_tolerance",
-        future_warn=True,
-        removal_version="0.22.0",
-    )
-
     @property
     def percentile(self) -> float:
         """Tolerance on deviation from the target chi factor, as a fractional percent."""
@@ -145,25 +131,6 @@ class UpdateIRLS(InversionDirective):
     @percentile.setter
     def percentile(self, value):
         self._percentile = validate_integer("percentile", value, min_val=0, max_val=100)
-
-    prctile = deprecate_property(
-        percentile,
-        "prctile",
-        "UpdateIRLS.percentile",
-        future_warn=True,
-        removal_version="0.22.0",
-    )
-
-    @property
-    def iterStart(self) -> int:
-        """Iteration number when the IRLS process started."""
-
-        warnings.warn(
-            "The `iterStart` property is deprecated. Use `metrics.start_irls_iter` instead.",
-            stacklevel=2,
-        )
-
-        return self.metrics.start_irls_iter
 
     @property
     def chifact_start(self) -> float:
