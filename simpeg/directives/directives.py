@@ -166,7 +166,7 @@ class InversionDirective:
         self._reg = value
 
     @property
-    def dmisfit(self) -> ComboObjectiveFunction:
+    def dmisfit(self) -> BaseObjectiveFunction:
         """Data misfit associated with the directive.
 
         Returns
