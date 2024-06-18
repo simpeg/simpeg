@@ -32,15 +32,6 @@ jobs:
 
       - script: |
           source activate simpeg-test
-          python -m build --no-isolation --skip-dependency-check --sdist .
-          twine upload --skip-existing dist/*
-        displayName: Deploy source
-        env:
-          TWINE_USERNAME: $(twine.username)
-          TWINE_PASSWORD: $(twine.password)
-
-      - script: |
-          source activate simpeg-test
           cd docs
           make html
           cd ..
