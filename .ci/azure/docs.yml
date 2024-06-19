@@ -65,7 +65,7 @@ jobs:
           targetPath: docs/_build/html
         displayName: "Download docs artifact"
 
-      # Upload release build of the docs to gh-pages branch in simpeg/simpeg-doctest
+      # Upload release build of the docs to gh-pages branch in simpeg/simpeg-docs
       - bash: |
           # Capture version
           # TODO: we should be able to get the version from the
@@ -78,8 +78,8 @@ jobs:
           # Capture hash of last commit in simpeg
           commit=$(git rev-parse --short HEAD)
           # Clone the repo where we store the documentation
-          git clone -q --branch gh-pages --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
-          cd simpeg-doctest
+          git clone -q --branch gh-pages --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-docs.git
+          cd simpeg-docs
           # Move the built docs to a new dev folder
           cp -r $BUILD_SOURCESDIRECTORY/docs/_build/html "$version"
           cp $BUILD_SOURCESDIRECTORY/docs/README.md .
@@ -95,10 +95,10 @@ jobs:
           git commit -m "$message"
           # Make the push quiet just in case there is anything that could
           # leak sensitive information.
-          echo -e "\nPushing changes to simpeg/simpeg-doctest."
+          echo -e "\nPushing changes to simpeg/simpeg-docs."
           git push -fq origin gh-pages 2>&1 >/dev/null
           echo -e "\nFinished uploading generated files."
-        displayName: Push documentation to simpeg-doctest
+        displayName: Push documentation to simpeg-docs
         env:
           GH_TOKEN: $(gh.token)
 
@@ -135,7 +135,7 @@ jobs:
           targetPath: docs/_build/html
         displayName: "Download docs artifact"
 
-      # Upload dev build of the docs to a dev branch in simpeg/simpeg-doctest
+      # Upload dev build of the docs to a dev branch in simpeg/simpeg-docs
       # and update submodule in the gh-pages branch
       - bash: |
           # Push new docs
@@ -143,8 +143,8 @@ jobs:
           # Capture hash of last commit in simpeg
           commit=$(git rev-parse --short HEAD)
           # Clone the repo where we store the documentation (dev branch)
-          git clone -q --branch dev --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-doctest.git
-          cd simpeg-doctest
+          git clone -q --branch dev --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-docs.git
+          cd simpeg-docs
           # Remove all files
           shopt -s dotglob  # configure bash to include dotfiles in * globs
           export GLOBIGNORE=".git"  # ignore .git directory in glob
@@ -158,7 +158,7 @@ jobs:
           git commit --amend --reset-author -m "$message"
           # Make the push quiet just in case there is anything that could
           # leak sensitive information.
-          echo -e "\nPushing changes to simpeg/simpeg-doctest (dev branch)."
+          echo -e "\nPushing changes to simpeg/simpeg-docs (dev branch)."
           git push -fq origin dev 2>&1 >/dev/null
           echo -e "\nFinished uploading doc files."
 
@@ -178,13 +178,13 @@ jobs:
           git commit -m "$message"
           # Make the push quiet just in case there is anything that could
           # leak sensitive information.
-          echo -e "\nPushing changes to simpeg/simpeg-doctest (gh-pages branch)."
+          echo -e "\nPushing changes to simpeg/simpeg-docs (gh-pages branch)."
           git push -q origin gh-pages 2>&1 >/dev/null
           echo -e "\nFinished updating submodule dev."
 
           # Unset dotglob
           shopt -u dotglob
           export GLOBIGNORE=""
-        displayName: Push documentation to simpeg-doctest (dev branch)
+        displayName: Push documentation to simpeg-docs (dev branch)
         env:
           GH_TOKEN: $(gh.token)
