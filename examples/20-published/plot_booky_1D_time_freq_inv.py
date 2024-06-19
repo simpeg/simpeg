@@ -57,11 +57,19 @@ def download_and_unzip_data(
     Download the data from the storage bucket, unzip the tar file, return
     the directory where the data are
     """
+    from pathlib import Path
+
     # download the data
     downloads = utils.download(url)
 
     # directory where the downloaded files are
-    directory = downloads.split(".")[0]
+    fname = Path(downloads)
+    if fname.name.endswith(".tar.gz"):
+        n_chars = len(".tar.gz")
+        subfolder = fname.name[:-n_chars]
+    else:
+        raise TypeError(f"Download file '{fname}' is not a tar.gz archive.")
+    directory = str(fname.parent / subfolder)
 
     # unzip the tarfile
     tar = tarfile.open(downloads, "r")

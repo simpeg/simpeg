@@ -35,17 +35,25 @@ from simpeg.utils.drivers.gravity_driver import GravityDriver_Inv
 def run(plotIt=True, cleanAfterRun=True):
     # Start by downloading files from the remote repository
     # directory where the downloaded files are
+    from pathlib import Path
 
     url = "https://storage.googleapis.com/simpeg/Chile_GRAV_4_Miller/Chile_GRAV_4_Miller.tar.gz"
     downloads = download(url, overwrite=True)
-    basePath = downloads.split(".")[0]
+
+    fname = Path(downloads)
+    if fname.name.endswith(".tar.gz"):
+        n_chars = len(".tar.gz")
+        subfolder = fname.name[:-n_chars]
+    else:
+        raise TypeError(f"Download file '{fname}' is not a tar.gz archive.")
+    basePath = str(fname.parent / subfolder)
 
     # unzip the tarfile
     tar = tarfile.open(downloads, "r")
     tar.extractall()
     tar.close()
 
-    input_file = basePath + os.path.sep + "LdM_input_file.inp"
+    input_file = basePath / "LdM_input_file.inp"
     # %% User input
     # Plotting parameters, max and min densities in g/cc
     vmin = -0.6
