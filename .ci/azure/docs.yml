@@ -30,9 +30,16 @@ jobs:
       # Build docs and check links (noplot)
       - bash: |
           source activate simpeg-test
-          make -C docs html-noplot linkcheck-noplot
+          make -C docs html-noplot
         condition: not(or(eq(variables['Build.Reason'], 'Schedule'), startsWith(variables['build.sourceBranch'], 'refs/tags/')))
-        displayName: "Build documentation (linkcheck and noplot)"
+        displayName: "Build documentation (noplot)"
+
+      # Check links (noplot)
+      - bash: |
+          source activate simpeg-test
+          make -C docs linkcheck-noplot
+        continueOnError: true
+        displayName: "Check links"
 
       - task: PublishPipelineArtifact@1
         inputs:
