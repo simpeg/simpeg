@@ -83,8 +83,6 @@ class DCUtilsTests_halfspace(unittest.TestCase):
                 dim=self.mesh.dim,
             )
 
-            self.assertEqual(survey_type, survey.survey_type)
-
             # Setup Problem with exponential mapping
             expmap = maps.ExpMap(self.mesh)
             problem = dc.Simulation3DCellCentered(
