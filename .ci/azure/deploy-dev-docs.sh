@@ -19,7 +19,7 @@ find . -not -path "./.git/*" -not -path "./.git" -delete
 
 # Copy the built docs to the root of the repo
 shopt -s dotglob # set dotglob to include dotfiles while copying
-cp -r "$BUILD_SOURCESDIRECTORY/docs/_build/html/*" -t .
+cp -r "$BUILD_SOURCESDIRECTORY"/docs/_build/html/* -t .
 shopt -u dotglob
 
 # Add new files
