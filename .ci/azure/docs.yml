@@ -23,7 +23,8 @@ jobs:
 
       - bash: |
           source activate simpeg-test
-          make -C docs html
+          # make -C docs html
+          make -C docs html-noplot  # REMOVE THIS BEFORE MERGING
         displayName: Building documentation
 
       - task: PublishPipelineArtifact@1
