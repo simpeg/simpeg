@@ -152,8 +152,8 @@ class Data(BaseData, DataNSEMPlotMethods):
         """
         if srcType == "primary":
             src = PlanewaveXYPrimary
-        elif srcType == "total":
-            src = Planewave_xy_1DhomotD
+        # elif srcType == "total":
+        #     src = Planewave_xy_1DhomotD
         else:
             raise NotImplementedError("{:s} is not a valid source type for NSEMdata")
 
