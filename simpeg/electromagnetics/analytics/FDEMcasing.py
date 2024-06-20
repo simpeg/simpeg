@@ -120,6 +120,7 @@ def getCasingEphiMagDipole(
     srcloc, obsloc, freq, sigma, a, b, mu=(mu_0, mu_0, mu_0), eps=epsilon_0, moment=1.0
 ):
     mu = np.asarray(mu)
+    omega = 2 * np.pi * freq
     return (
         1j
         * omega(freq)

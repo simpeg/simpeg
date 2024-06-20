@@ -3,9 +3,7 @@ import discretize
 
 from simpeg import maps
 from simpeg.electromagnetics import time_domain as tdem
-from simpeg.electromagnetics import utils
 import numpy as np
-from scipy.interpolate import interp1d
 
 from pymatsolver import Pardiso as Solver
 
@@ -42,10 +40,8 @@ def setUp_TDEM(
     rxtimes = np.logspace(-4, -3, 20)
 
     if waveform.upper() == "RAW":
-        out = utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
-        wavefun = interp1d(prb.times, out)
         t0 = 0.006
-        waveform = tdem.Src.RawWaveform(off_time=t0, waveform_function=wavefun)
+        waveform = tdem.sources.VTEMWaveform(off_time=t0)
         time_steps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
         rxtimes = t0 + rxtimes
 
