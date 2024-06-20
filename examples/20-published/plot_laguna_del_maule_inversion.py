@@ -46,14 +46,14 @@ def run(plotIt=True, cleanAfterRun=True):
         subfolder = fname.name[:-n_chars]
     else:
         raise TypeError(f"Download file '{fname}' is not a tar.gz archive.")
-    basePath = str(fname.parent / subfolder)
+    basePath = fname.parent / subfolder
 
     # unzip the tarfile
     tar = tarfile.open(downloads, "r")
     tar.extractall()
     tar.close()
 
-    input_file = basePath / "LdM_input_file.inp"
+    input_file = str(basePath / "LdM_input_file.inp")
     # %% User input
     # Plotting parameters, max and min densities in g/cc
     vmin = -0.6
