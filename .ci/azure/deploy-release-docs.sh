@@ -6,7 +6,7 @@ set -ex #echo on and exit if any line fails
 
 # Capture simpeg version
 version=$(git tag --points-at HEAD)
-if [ -n "$version" ]; then
+if [[ -z $version ]]; then
 echo "Version could not be obtained from tag. Exiting."
 exit 1
 fi
