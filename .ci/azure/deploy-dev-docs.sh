@@ -4,10 +4,6 @@
 
 set -ex #echo on and exit if any line fails
 
-# Configure dotglob (needed for rm with glob)
-shopt -s dotglob  # configure bash to include dotfiles in * globs
-export GLOBIGNORE=".git"  # ignore .git directory in glob
-
 # ---------------------------
 # Push new docs to dev branch
 # ---------------------------
@@ -18,8 +14,8 @@ commit=$(git rev-parse --short HEAD)
 git clone -q --branch dev --depth 1 "https://${GH_TOKEN}@github.com/simpeg/simpeg-docs.git"
 cd simpeg-docs
 
-# Remove all files
-git rm -rf ./* # remove all files
+# Remove all files (but .git folder)
+find . -not -path "./.git/*" -not -path "./.git" -delete
 
 # Copy the built docs to the root of the repo
 cp -r "$BUILD_SOURCESDIRECTORY/docs/_build/html/*" -t .
@@ -71,9 +67,3 @@ git commit -m "$message"
 echo -e "\nPushing changes to simpeg/simpeg-docs (gh-pages branch)."
 # git push -q origin gh-pages 2>&1 >/dev/null
 echo -e "\nFinished updating submodule dev."
-
-# -------------
-# Unset dotglob
-# -------------
-shopt -u dotglob
-export GLOBIGNORE=""
