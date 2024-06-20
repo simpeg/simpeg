@@ -6,6 +6,7 @@ set -ex #echo on and exit if any line fails
 
 # Capture simpeg version
 version=$(git tag --points-at HEAD)
+version="v0.22.0" # REMOVE THIS BEFORE MERGING
 if [[ -z $version ]]; then
 echo "Version could not be obtained from tag. Exiting."
 exit 1
