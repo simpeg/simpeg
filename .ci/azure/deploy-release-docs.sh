@@ -29,8 +29,14 @@ touch .nojekyll
 rm -f latest
 ln -s "$version" latest
 
-# Commit the new docs.
+# Add new docs and relevant files
 git add "$version" README.md .nojekyll latest
+
+# List files in working directory and show git status
+ls -la
+git status
+
+# Commit the new docs.
 message="Azure CI deploy ${version} from ${commit}"
 echo -e "\nMaking a new commit:"
 git commit -m "$message"

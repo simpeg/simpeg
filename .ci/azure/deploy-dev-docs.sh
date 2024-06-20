@@ -24,8 +24,14 @@ git rm -rf ./* # remove all files
 # Copy the built docs to the root of the repo
 cp -r "$BUILD_SOURCESDIRECTORY/docs/_build/html/*" -t .
 
-# Commit the new docs. Amend to avoid having a very large history.
+# Add new files
 git add .
+
+# List files in working directory and show git status
+ls -la
+git status
+
+# Commit the new docs. Amend to avoid having a very large history.
 message="Azure CI deploy dev from ${commit}"
 echo -e "\nAmending last commit:"
 git commit --amend --reset-author -m "$message"
@@ -48,8 +54,14 @@ git switch gh-pages
 # Update the dev submodule
 git submodule update --init --recursive --remote dev
 
-# Commit changes
+# Add updated submodule
 git add dev
+
+# List files in working directory and show git status
+ls -la
+git status
+
+# Commit changes
 message="Azure CI update dev submodule from ${commit}"
 echo -e "\nMaking a new commit:"
 git commit -m "$message"
