@@ -39,7 +39,7 @@ git commit --amend --reset-author -m "$message"
 # Make the push quiet just in case there is anything that could
 # leak sensitive information.
 echo -e "\nPushing changes to simpeg/simpeg-docs (dev branch)."
-git push -fq origin dev 2>&1 >/dev/null
+# git push -fq origin dev 2>&1 >/dev/null
 echo -e "\nFinished uploading doc files."
 
 # ----------------
@@ -69,7 +69,7 @@ git commit -m "$message"
 # Make the push quiet just in case there is anything that could
 # leak sensitive information.
 echo -e "\nPushing changes to simpeg/simpeg-docs (gh-pages branch)."
-git push -q origin gh-pages 2>&1 >/dev/null
+# git push -q origin gh-pages 2>&1 >/dev/null
 echo -e "\nFinished updating submodule dev."
 
 # -------------

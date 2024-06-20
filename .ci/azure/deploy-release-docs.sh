@@ -44,5 +44,5 @@ git commit -m "$message"
 # Make the push quiet just in case there is anything that could
 # leak sensitive information.
 echo -e "\nPushing changes to simpeg/simpeg-docs."
-git push -fq origin gh-pages 2>&1 >/dev/null
+# git push -fq origin gh-pages 2>&1 >/dev/null
 echo -e "\nFinished uploading generated files."
