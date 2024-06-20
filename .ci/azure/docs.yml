@@ -1,7 +1,7 @@
 jobs:
   # Build docs only on scheduled jobs or on a relase
   - job: BuildDocs
-    # condition: or(eq(variables['Build.Reason'], 'Schedule'), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
+    condition: or(eq(variables['Build.Reason'], 'Schedule'), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
     pool:
       vmImage: ubuntu-latest
     variables:
@@ -34,7 +34,7 @@ jobs:
 
   - job: DeployRelease
     dependsOn: BuildDocs
-    # condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
+    condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
     pool:
       vmImage: ubuntu-latest
     timeoutInMinutes: 240
@@ -73,7 +73,7 @@ jobs:
 
   - job: DeployDev
     dependsOn: BuildDocs
-    # condition: eq(variables['Build.Reason'], 'Schedule') # run only scheduled triggers
+    condition: eq(variables['Build.Reason'], 'Schedule') # run only scheduled triggers
     pool:
       vmImage: ubuntu-latest
     timeoutInMinutes: 240
