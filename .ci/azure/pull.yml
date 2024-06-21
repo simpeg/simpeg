@@ -8,7 +8,8 @@ jobs:
 
       - task: DownloadPipelineArtifact@2
         inputs:
-          patterns: "**/file_*"
+          artifact: file_1
+          # patterns: "**/file_*"
 
       - bash: ls -la
         displayName: "List files"
