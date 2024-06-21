@@ -55,12 +55,11 @@ jobs:
             condition: eq('${{ test }}', 'tests/docs -s -v')
 
           - bash: |
-              source activate simpeg-test
               job=${{ os }}_${{ py_vers }}_${{ test }}
               jobhash=$(echo $job | sha256sum | cut -f 1 -d " " | cut -c 1-7)
-              coverage xml --data-file=.coverage -o "coverage-$jobhash.xml"
+              cp coverage.xml "coverage-$jobhash.xml"
               echo "##vso[task.setvariable variable=jobhash]$jobhash"
-            displayName: 'Convert coverage to xml'
+            displayName: 'Rename coverage report'
 
           - task: PublishPipelineArtifact@1
             inputs:
