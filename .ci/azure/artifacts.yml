@@ -15,4 +15,3 @@ jobs:
 
           - publish: "file_${{ number }}"
             displayName: "Publish file"
-            artifact: "file_${{ number }}"
