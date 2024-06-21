@@ -4,8 +4,6 @@ jobs:
       vmImage: 'ubuntu-latest'
     displayName: Upload to Codecov
     steps:
-      - checkout: none
-
       - download: current
         patterns: "**/coverage-*.xml"
 
