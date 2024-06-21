@@ -16,32 +16,6 @@ parameters:
 jobs:
   - ${{ each os in parameters.os }}:
     - ${{ each py_vers in parameters.py_vers }}:
-
-      # -----------------------------------------------------------------------
-      # Create conda environment and cache it for future use
-      - job:
-          displayName: Setup conda environment
-          pool:
-            vmImage: ${{ os }}
-          steps:
-          - bash: echo "##vso[task.prependpath]$CONDA/bin"
-            displayName: Add conda to PATH
-
-          - bash: .ci/azure/setup_env.sh
-            displayName: Setup SimPEG environment
-
-          - bash: |
-              sudo chown -R $(whoami):$(id -ng) $(CONDA_CACHE_DIR)
-            displayName: Fix CONDA_CACHE_DIR directory permissions
-
-          - task: Cache@2
-            displayName: Use cached Anaconda environment
-            inputs:
-              key: 'conda | "${{ os }}" | "${{ py_vers }}"'
-              path: $(CONDA_CACHE_DIR)
-              cacheHitVar: CONDA_CACHE_RESTORED
-      # -----------------------------------------------------------------------
-
       - ${{ each test in parameters.test }}:
         - job:
           displayName: ${{ os }}_${{ py_vers }}_${{ test }}
@@ -63,6 +37,17 @@ jobs:
 
           - bash: echo "##vso[task.prependpath]$CONDA/bin"
             displayName: Add conda to PATH
+
+          - bash: |
+              sudo chown -R $(whoami):$(id -ng) $(CONDA_CACHE_DIR)
+            displayName: Fix CONDA_CACHE_DIR directory permissions
+
+          - task: Cache@2
+            displayName: Use cached Anaconda environment
+            inputs:
+              key: 'conda | "${{ os }}" | "${{ py_vers }}"'
+              path: $(CONDA_CACHE_DIR)
+              cacheHitVar: CONDA_CACHE_RESTORED
 
           - bash: .ci/azure/setup_env.sh
             displayName: Setup SimPEG environment
