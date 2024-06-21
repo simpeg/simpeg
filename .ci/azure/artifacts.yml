@@ -14,7 +14,7 @@ jobs:
             displayName: "Create file"
 
           - bash: |
-              hash=$(echo ${{number}} | sha256sum | cut -d " " -f 1 | cut 1-7)
+              hash=$(echo ${{number}} | sha256sum | cut -d " " -f 1 | cut -c 1-7)
               echo $hash
               echo "##vso[task.setvariable variable=hash]$hash"
             displayName: "File name"
