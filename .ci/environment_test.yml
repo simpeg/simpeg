@@ -39,6 +39,7 @@ dependencies:
 # testing
   - pytest
   - pytest-cov
+  - coverage # to convert reports to xml
 
 # Testing environment doesn't need style checkers
 
