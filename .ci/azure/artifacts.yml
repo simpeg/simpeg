@@ -26,4 +26,4 @@ jobs:
 
           - task: PublishPipelineArtifact@1
             inputs:
-              targetPath: file_${{ number }}
+              targetPath: file_$(hash)
