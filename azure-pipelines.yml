@@ -38,6 +38,12 @@ stages:
     jobs:
       - template: .ci/azure/artifacts.yml
 
+  - stage: Pull
+    dependsOn: Artifacts
+    displayName: "Pull Artifacts"
+    jobs:
+      - template: .ci/azure/pull.yml
+
   - stage: StyleChecks
     displayName: "Style Checks"
     jobs:
