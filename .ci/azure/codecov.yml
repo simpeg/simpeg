@@ -1,7 +1,7 @@
 jobs:
   - job:
     pool:
-      vmImage: 'ubuntu-latest'
+      vmImage: "ubuntu-latest"
     displayName: Upload to Codecov
     steps:
       # Checkout simpeg repo. Codecov needs the repo in the file system for
@@ -14,25 +14,21 @@ jobs:
           patterns: "**/coverage-*.xml"
         displayName: "Download coverage artifacts"
 
-      - bash: ls -la $(Pipeline.Workspace)
-        displayName: "List files"
-
       - bash: ls -la $(Pipeline.Workspace)/**/coverage-*.xml
-        displayName: "List files"
+        displayName: "List downloaded coverage artifacts"
 
-      - bash: cp $(Pipeline.Workspace)/coverage-*/coverage-*.xml .
-        displayName: "Copy files"
-
-      - bash: ls -la
-        displayName: "List files"
+      - bash: |
+          cp $(Pipeline.Workspace)/coverage-*/coverage-*.xml .
+          ls -la
+        displayName: "Copy coverage files"
 
       - script: |
           curl -Os https://uploader.codecov.io/latest/linux/codecov
           chmod +x codecov
-        displayName: "Install codecov"
+        displayName: "Install codecov cli"
 
       - script: |
           for report in coverage-*.xml; do
             ./codecov --verbose upload-process -f "$report"
           done
-        displayName: 'Upload coverage to codecov.io'
+        displayName: "Upload coverage to codecov.io"
