@@ -7,7 +7,6 @@ jobs:
       - checkout: none
 
       - download: current
-        artifact: ""
         patterns: "file_*"
 
       - bash: ls -la
