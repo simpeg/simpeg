@@ -4,6 +4,8 @@ parameters:
 jobs:
   - ${{ each number in parameters.number }}:
       - job:
+        pool:
+          vmImage: 'ubuntu-latest'
         displayName: Push artifact ${{ number }}
         steps:
           - checkout: none
