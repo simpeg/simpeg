@@ -7,9 +7,9 @@ jobs:
       - checkout: none
 
       - download: current
-        artifact:
+        artifact: ""
         patterns: "file_*"
-        path: .
+        targetPath: .
 
       - bash: ls -la
         displayName: "List files"
