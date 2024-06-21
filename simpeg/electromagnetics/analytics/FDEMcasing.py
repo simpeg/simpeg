@@ -123,7 +123,7 @@ def getCasingEphiMagDipole(
     omega = 2 * np.pi * freq
     return (
         1j
-        * omega(freq)
+        * omega
         * mu
         * _getCasingHertzMagDipoleDeriv_r(
             srcloc, obsloc, freq, sigma, a, b, mu, eps, moment
