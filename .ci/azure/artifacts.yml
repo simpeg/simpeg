@@ -27,3 +27,4 @@ jobs:
           - task: PublishPipelineArtifact@1
             inputs:
               targetPath: file_$(hash)
+              artifactName: file_$(hash)
