@@ -4,8 +4,10 @@ jobs:
       vmImage: 'ubuntu-latest'
     displayName: Upload to Codecov
     steps:
-      - download: current
-        patterns: "**/coverage-*.xml"
+      - task: DownloadPipelineArtifact@2
+        inputs:
+          patterns: "**/coverage-*.xml"
+        displayName: "Download coverage artifacts"
 
       - bash: ls -la $(Pipeline.Workspace)
         displayName: "List files"
