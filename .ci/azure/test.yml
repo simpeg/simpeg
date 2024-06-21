@@ -20,7 +20,7 @@ jobs:
       # -----------------------------------------------------------------------
       # Create conda environment and cache it for future use
       - job: SetupEnv${{ py_vers}}${{ os }}
-          displayName: Setup environment for ${{ os }} and Python ${{ py_vers }}
+          displayName: Setup conda environment
           pool:
             vmImage: ${{ os }}
           steps:
