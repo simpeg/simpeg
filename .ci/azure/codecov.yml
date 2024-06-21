@@ -9,26 +9,33 @@ jobs:
       - checkout: self
         displayName: "Checkout repository"
 
+      - task: UsePythonVersion@0
+        displayName: "Setup Python"
+
+      - bash: |
+          pip install coverage
+        displayName: "Install coverage"
+
       - task: DownloadPipelineArtifact@2
         inputs:
-          patterns: "**/coverage-*.xml"
+          patterns: "**/coverage-*"
         displayName: "Download coverage artifacts"
 
-      - bash: ls -la $(Pipeline.Workspace)/**/coverage-*.xml
+      - bash: ls -la $(Pipeline.Workspace)/**/coverage-*
         displayName: "List downloaded coverage artifacts"
 
       - bash: |
-          cp $(Pipeline.Workspace)/coverage-*/coverage-*.xml .
+          coverage combine $(Pipeline.Workspace)/**/coverage-*
           ls -la
-        displayName: "Copy coverage files"
+        displayName: "Combine coverage reports"
+
+      - bash: |
+          coverage xml
+          ls -la
+        displayName: "Convert coverage report to xml"
 
       - script: |
           curl -Os https://uploader.codecov.io/latest/linux/codecov
           chmod +x codecov
-        displayName: "Install codecov cli"
-
-      - script: |
-          for report in coverage-*.xml; do
-            ./codecov --verbose upload-process -f "$report"
-          done
+          ./codecov --verbose upload-process
         displayName: "Upload coverage to codecov.io"
