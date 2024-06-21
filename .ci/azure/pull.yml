@@ -8,6 +8,7 @@ jobs:
       - task: DownloadPipelineArtifact@2
         inputs:
           patterns: file-*
+          targetPath: .
         displayName: "Download docs artifact"
 
       - bash: ls -la
