@@ -3,7 +3,7 @@ parameters:
 
 jobs:
   - ${{ each number in parameters.number }}:
-      - job: push-artifact
+      - job:
         displayName: Push artifact ${{ number }}
         steps:
           - checkout: none
@@ -15,17 +15,3 @@ jobs:
             inputs:
               artifactName: file_${{ number }}
             displayName: "Publish artifact"
-
-  - job:
-    displayName: Download artifacts
-    dependsOn: push-artifact
-    steps:
-      - checkout: none
-
-      - task: DownloadPipelineArtifact@2
-        inputs:
-          patterns: file_*
-        displayName: "Download docs artifact"
-
-      - bash: ls -la
-        displayName: "List files"
