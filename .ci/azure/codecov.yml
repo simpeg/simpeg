@@ -29,6 +29,7 @@ jobs:
 
       - script: |
           for report in coverage-*; do
-            ./codecov upload-process -f "$report"
+            coverage xml --data-file="$report" -o "$report.xml"
+            ./codecov --verbose upload-process -f "$report.xml"
           done
         displayName: 'Upload coverage to codecov.io'
