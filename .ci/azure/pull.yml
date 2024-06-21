@@ -6,8 +6,9 @@ jobs:
     steps:
       - checkout: none
 
-      - download: current
-        patterns: "file_*"
+      - task: DownloadPipelineArtifact@2
+        inputs:
+          patterns: "**/file_*"
 
       - bash: ls -la
         displayName: "List files"
