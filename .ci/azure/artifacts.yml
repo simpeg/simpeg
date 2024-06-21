@@ -3,7 +3,7 @@ parameters:
 
 jobs:
   - ${{ each number in parameters.number }}:
-      - job: job-${{ number }}
+      - job: push-artifact
         displayName: Push artifact ${{ number }}
         steps:
           - checkout: none
@@ -18,9 +18,7 @@ jobs:
 
   - job:
     displayName: Download artifacts
-    dependsOn:
-      - ${{ each number in parameters.number }}:
-        - job-${{ number }}
+    dependsOn: push-artifact
     steps:
       - checkout: none
 
