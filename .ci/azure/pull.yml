@@ -6,10 +6,19 @@ jobs:
     steps:
       - checkout: none
 
-      - task: DownloadPipelineArtifact@2
-        inputs:
-          artifact: file_1
-          # patterns: "**/file_*"
+      # - task: DownloadPipelineArtifact@2
+      #   inputs:
+      #     artifact: file_1
+      #     # patterns: "**/file_*"
+
+      - download: current
+        artifact: file_1
 
       - bash: ls -la
+        displayName: "List files"
+
+      - bash: ls -la $(Pipeline.Workspace)
+        displayName: "List files"
+
+      - bash: ls -la $(Pipeline.Workspace)/file_1
         displayName: "List files"
