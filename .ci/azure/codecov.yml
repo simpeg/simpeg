@@ -11,10 +11,10 @@ jobs:
 
       - task: DownloadPipelineArtifact@2
         inputs:
-          patterns: "**/coverage-*.xml"
+          patterns: "coverage-*/coverage-*.xml"
         displayName: "Download coverage artifacts"
 
-      - bash: ls -la $(Pipeline.Workspace)/**/coverage-*.xml
+      - bash: ls -la $(Pipeline.Workspace)/coverage-*/coverage-*.xml
         displayName: "List downloaded coverage artifacts"
 
       - bash: |
