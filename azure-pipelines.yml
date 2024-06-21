@@ -33,10 +33,16 @@ schedules:
 # Run stages
 # ----------
 stages:
-  - stage: Experiment
-    displayName: "Experiment"
+  - stage: PushArtifacts
+    displayName: "Push artifacts"
     jobs:
-      - template: .ci/azure/sandbox.yml
+      - template: .ci/azure/push.yml
+
+  - stage: PullArtifacts
+    dependsOn: PushArtifacts
+    displayName: "Pull artifacts"
+    jobs:
+      - template: .ci/azure/pull.yml
 
   - stage: StyleChecks
     displayName: "Style Checks"

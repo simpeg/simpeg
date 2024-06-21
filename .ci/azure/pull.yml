@@ -1,0 +1,14 @@
+jobs:
+  - job:
+    displayName: Download artifacts
+    dependsOn:
+    steps:
+      - checkout: none
+
+      - task: DownloadPipelineArtifact@2
+        inputs:
+          patterns: file-*
+        displayName: "Download docs artifact"
+
+      - bash: ls -la
+        displayName: "List files"
