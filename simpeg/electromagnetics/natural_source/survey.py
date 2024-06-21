@@ -141,9 +141,11 @@ class Data(BaseData, DataNSEMPlotMethods):
         Parameters
         ----------
         recArray : numpy.ndarray
-            Record array with the data. Has to have ('freq','x','y','z') columns and some ('zxx','zxy','zyx','zyy','tzx','tzy')
-        srcType : str, default: "primary"
-            The type of simpeg.EM.NSEM.SrcNSEM to be used. Either "primary" or "total"
+            Record array with the data. Has to have ('freq','x','y','z')
+            columns and some ('zxx','zxy','zyx','zyy','tzx','tzy').
+        srcType : {"primary"}
+            The type of simpeg.EM.NSEM.SrcNSEM to be used. It currently accepts
+            only ``"primary"``.
 
         Returns
         -------
@@ -152,10 +154,13 @@ class Data(BaseData, DataNSEMPlotMethods):
         """
         if srcType == "primary":
             src = PlanewaveXYPrimary
+        # TODO: implement total field formulation
         # elif srcType == "total":
         #     src = Planewave_xy_1DhomotD
         else:
-            raise NotImplementedError("{:s} is not a valid source type for NSEMdata")
+            raise NotImplementedError(
+                f"Invalid srcType '{srcType}'. " "Only 'primary' is supported."
+            )
 
         # Find all the frequencies in recArray
         uniFreq = np.unique(recArray["freq"].copy())
