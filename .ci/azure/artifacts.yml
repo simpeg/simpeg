@@ -20,7 +20,7 @@ jobs:
     displayName: Download artifacts
     dependsOn:
       - ${{ each number in parameters.number }}:
-        - job: job-${{ number }}
+        - job-${{ number }}
     steps:
       - checkout: none
 
