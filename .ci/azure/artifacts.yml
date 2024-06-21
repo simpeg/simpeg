@@ -15,4 +15,4 @@ jobs:
 
           - publish: "file_${{ number }}"
             displayName: "Publish file"
-            artifact: "artifact-name"
+            artifact: "artifact-name-$(Build.BuildNumber)"
