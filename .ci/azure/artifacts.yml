@@ -13,5 +13,6 @@ jobs:
           - bash: echo "${{ number }}" >> file_${{ number }}
             displayName: "Create file"
 
-          - publish: "file_${{ number }}"
-            displayName: "Publish file"
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: file_*
