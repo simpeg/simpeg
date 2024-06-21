@@ -57,12 +57,12 @@ jobs:
           - bash: |
               job=${{ os }}_${{ py_vers }}_${{ test }}
               jobhash=$(echo $job | sha256sum | cut -f 1 -d " " | cut -c 1-7)
-              cp .coverage coverage-$jobhash
+              coverage xml --data-file=.coverage -o "coverage-$jobhash.xml"
               echo "##vso[task.setvariable variable=jobhash]$jobhash"
-            displayName: 'Rename coverage report'
+            displayName: 'Convert coverage to xml'
 
           - task: PublishPipelineArtifact@1
             inputs:
-              targetPath: $(Build.SourcesDirectory)/coverage-$(jobhash)
+              targetPath: $(Build.SourcesDirectory)/coverage-$(jobhash).xml
               artifactName: coverage-$(jobhash)
             displayName: 'Publish coverage artifact'

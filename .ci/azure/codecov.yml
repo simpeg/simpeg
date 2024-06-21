@@ -7,20 +7,19 @@ jobs:
       - checkout: none
 
       - download: current
-        patterns: "**/coverage-*"
+        patterns: "**/coverage-*.xml"
 
       - bash: ls -la $(Pipeline.Workspace)
         displayName: "List files"
 
-      - bash: ls -la $(Pipeline.Workspace)/**/coverage-*
+      - bash: ls -la $(Pipeline.Workspace)/**/coverage-*.xml
         displayName: "List files"
 
-      - bash: cp $(Pipeline.Workspace)/coverage-*/coverage-* .
+      - bash: cp $(Pipeline.Workspace)/coverage-*/coverage-*.xml .
         displayName: "Copy files"
 
       - bash: ls -la
         displayName: "List files"
-
 
       - script: |
           curl -Os https://uploader.codecov.io/latest/linux/codecov
@@ -28,8 +27,7 @@ jobs:
         displayName: "Install codecov"
 
       - script: |
-          for report in coverage-*; do
-            coverage xml --data-file="$report" -o "$report.xml"
-            ./codecov --verbose upload-process -f "$report.xml"
+          for report in coverage-*.xml; do
+            ./codecov --verbose upload-process -f "$report"
           done
         displayName: 'Upload coverage to codecov.io'
