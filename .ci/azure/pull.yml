@@ -9,7 +9,6 @@ jobs:
       - download: current
         artifact: ""
         patterns: "file_*"
-        targetPath: .
 
       - bash: ls -la
         displayName: "List files"
