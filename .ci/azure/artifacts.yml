@@ -16,4 +16,5 @@ jobs:
           - task: PublishPipelineArtifact@1
             inputs:
               artifactName: file_${{ number }}
+              targetPath: "file_${{ number }}"
             displayName: "Publish artifact"
