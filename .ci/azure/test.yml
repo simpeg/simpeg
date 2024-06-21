@@ -13,9 +13,6 @@ parameters:
          'tests/dask', # This must be ran on it's own to avoid modifying the code from any other tests.
          ]
 
-variables:
-  CONDA_CACHE_DIR: /usr/share/miniconda/envs
-
 jobs:
   - ${{ each os in parameters.os }}:
     - ${{ each py_vers in parameters.py_vers }}:
