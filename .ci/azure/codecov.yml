@@ -15,7 +15,7 @@ jobs:
       - bash: ls -la $(Pipeline.Workspace)/**/coverage-*
         displayName: "List files"
 
-      - bash: cp $(Pipeline.Workspace)/file_*/coverage-* .
+      - bash: cp $(Pipeline.Workspace)/coverage-*/coverage-* .
         displayName: "Copy files"
 
       - bash: ls -la
