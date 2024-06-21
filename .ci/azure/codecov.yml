@@ -4,6 +4,11 @@ jobs:
       vmImage: 'ubuntu-latest'
     displayName: Upload to Codecov
     steps:
+      # Checkout simpeg repo. Codecov needs the repo in the file system for
+      # uploading coverage reports.
+      - checkout: self
+        displayName: "Checkout repository"
+
       - task: DownloadPipelineArtifact@2
         inputs:
           patterns: "**/coverage-*.xml"
