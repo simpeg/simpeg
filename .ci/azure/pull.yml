@@ -12,7 +12,7 @@ jobs:
       #     # patterns: "**/file_*"
 
       - download: current
-        artifact: file_1
+        pattern: "**/file_*"
 
       - bash: ls -la
         displayName: "List files"
@@ -21,4 +21,7 @@ jobs:
         displayName: "List files"
 
       - bash: ls -la $(Pipeline.Workspace)/file_1
+        displayName: "List files"
+
+      - bash: ls -la $(Pipeline.Workspace)/file_2
         displayName: "List files"
