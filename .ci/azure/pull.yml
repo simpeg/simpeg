@@ -12,7 +12,7 @@ jobs:
       #     # patterns: "**/file_*"
 
       - download: current
-        pattern: "**/file_*"
+        patterns: "**/file_*"
 
       - bash: ls -la
         displayName: "List files"
