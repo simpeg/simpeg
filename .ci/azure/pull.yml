@@ -14,14 +14,14 @@ jobs:
       - download: current
         patterns: "**/file_*"
 
-      - bash: ls -la
-        displayName: "List files"
-
       - bash: ls -la $(Pipeline.Workspace)
         displayName: "List files"
 
-      - bash: ls -la $(Pipeline.Workspace)/file_1
+      - bash: ls -la $(Pipeline.Workspace)/**/file_*
         displayName: "List files"
 
-      - bash: ls -la $(Pipeline.Workspace)/file_2
+      - bash: cp $(Pipeline.Workspace)/file_*/file_* .
+        displayName: "Copy files"
+
+      - bash: ls -la
         displayName: "List files"
