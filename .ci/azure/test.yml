@@ -80,11 +80,11 @@ jobs:
           - bash: echo "##vso[task.prependpath]$CONDA/bin"
             displayName: Add conda to PATH
 
-         - task: DownloadPipelineArtifact@2
-           inputs:
-             artifact: environment-${{ os }}-${{ py_ver }}
-             path: $CONDA
-           displayName: "Download conda environment artifact"
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              artifact: environment-${{ os }}-${{ py_ver }}
+              path: $CONDA
+            displayName: "Download conda environment artifact"
 
           - bash : ls -la $CONDA
 
