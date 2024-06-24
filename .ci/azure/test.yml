@@ -16,7 +16,8 @@ parameters:
 jobs:
   - ${{ each os in parameters.os }}:
     - ${{ each py_vers in parameters.py_vers }}:
-      - job:
+      - job: ${{ os }}_${{ py_vers }}
+        displayName: "Cache conda environment"
         pool:
           vmImage: ${{ os }}
         steps:
@@ -25,6 +26,7 @@ jobs:
       - ${{ each test in parameters.test }}:
         - job:
           displayName: ${{ os }}_${{ py_vers }}_${{ test }}
+          dependsOn: ${{ os }}_${{ py_vers }}
           pool:
             vmImage: ${{ os }}
           timeoutInMinutes: 120
