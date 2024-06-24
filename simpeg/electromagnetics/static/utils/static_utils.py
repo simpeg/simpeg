@@ -358,7 +358,7 @@ def convert_survey_3d_to_2d_lines(
         Defines the corresponding line ID for each datum
     data_type : {'volt', 'apparent_resistivity', 'apparent_conductivity', 'apparent_chargeability'}
         Data type for the survey.
-    output_indexing : bool, default=``False``
+    output_indexing : bool, default=False, optional
         If ``True`` output a list of indexing arrays that map from the original 3D
         data to each 2D survey line.
 
@@ -366,10 +366,26 @@ def convert_survey_3d_to_2d_lines(
     -------
     survey_list : list of simpeg.electromagnetics.static.resistivity.Survey
         A list of 2D survey objects
-    out_indices_list : list of numpy.ndarray
+    out_indices_list : list of numpy.ndarray, optional
         A list of indexing arrays that map from the original 3D data to each 2D
-        survey line.
+        survey line. Will be returned only if ``output_indexing`` is set to
+        True.
     """
+    # Check if the survey is 3D
+    if (ndims := survey.locations_a.shape[1]) != 3:
+        raise ValueError(f"Invalid {ndims}D 'survey'. It should be a 3D survey.")
+    # Checks on the passed lineID array
+    if (ndims := lineID.ndim) != 1:
+        raise ValueError(
+            f"Invalid 'lineID' array with '{ndims}' dimensions. "
+            "It should be a 1D array."
+        )
+    if (size := lineID.size) != survey.nD:
+        raise ValueError(
+            f"Invalid 'lineID' array with '{size}' elements. "
+            "It should have the same number of elements as data "
+            f"in the survey ('{survey.nD}')."
+        )
 
     # Find all unique line id
     unique_lineID = np.unique(lineID)
@@ -1245,7 +1261,7 @@ def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
             srcClass = dc.Src.Dipole([rxClass], (endl[0, :]), (endl[1, :]))
         SrcList.append(srcClass)
 
-    survey = dc.Survey(SrcList, survey_type=survey_type)
+    survey = dc.Survey(SrcList)
     return survey
 
 

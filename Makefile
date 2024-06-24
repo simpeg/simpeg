@@ -1,6 +1,6 @@
 STYLE_CHECK_FILES = simpeg examples tutorials tests
 
-.PHONY: help build coverage lint graphs tests docs check black flake
+.PHONY: help docs check black flake
 
 help:
 	@echo "Commands:"
@@ -10,22 +10,6 @@ help:
 	@echo "  flake       checks code style with flake8"
 	@echo "  flake-all   checks code style with flake8 (full set of rules)"
 	@echo ""
-
-build:
-	python setup.py build_ext --inplace
-
-coverage:
-	nosetests --logging-level=INFO --with-coverage --cover-package=simpeg --cover-html
-	open cover/index.html
-
-lint:
-	pylint --output-format=html simpeg> pylint.html
-
-graphs:
-	pyreverse -my -A -o pdf -p simpeg simpeg/**.py simpeg/**/**.py
-
-tests:
-	nosetests --logging-level=INFO
 
 docs:
 	cd docs;make html

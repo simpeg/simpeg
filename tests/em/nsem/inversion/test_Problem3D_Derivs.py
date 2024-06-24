@@ -2,7 +2,7 @@
 import pytest
 import unittest
 import numpy as np
-from simpeg import tests, mkvc
+from simpeg import tests
 from simpeg.electromagnetics import natural_source as nsem
 from scipy.constants import mu_0
 
@@ -90,36 +90,6 @@ def DerivJvecTest(inputSetup, comp="All", freq=False, expMap=True):
 
     np.random.seed(1983)  # use seed for check_derivative
     return tests.check_derivative(fun, m, num=3, plotIt=False, eps=FLR)
-
-
-def DerivProjfieldsTest(inputSetup, comp="All", freq=False):
-    survey, simulation = nsem.utils.test_utils.setupSimpegNSEM_ePrimSec(
-        inputSetup, comp, freq
-    )
-    print("Derivative test of data projection for eFormulation primary/secondary\n")
-    # simulation.mapping = Maps.ExpMap(simulation.mesh)
-    # Initate things for the derivs Test
-    src = survey.source_list[0]
-    rng = np.random.default_rng(seed=42)
-    u0x = rng.normal(size=survey.mesh.nE) + rng.normal(size=survey.mesh.nE) * 1j
-    u0y = rng.normal(size=survey.mesh.nE) + rng.normal(size=survey.mesh.nE) * 1j
-    u0 = np.vstack((mkvc(u0x, 2), mkvc(u0y, 2)))
-    f0 = simulation.fieldsPair(survey.mesh, survey)
-    # u0 = np.hstack((mkvc(u0_px,2),mkvc(u0_py,2)))
-    f0[src, "e_pxSolution"] = u0[: len(u0) / 2]  # u0x
-    f0[src, "e_pySolution"] = u0[len(u0) / 2 : :]  # u0y
-
-    def fun(u):
-        f = simulation.fieldsPair(survey.mesh, survey)
-        f[src, "e_pxSolution"] = u[: len(u) / 2]
-        f[src, "e_pySolution"] = u[len(u) / 2 : :]
-        return (
-            rx.eval(src, survey.mesh, f),
-            lambda t: rx.evalDeriv(src, survey.mesh, f0, mkvc(t, 2)),
-        )
-
-    np.random.seed(1983)  # use seed for check_derivative
-    return tests.check_derivative(fun, u0, num=3, plotIt=False, eps=FLR)
 
 
 class NSEM_DerivTests(unittest.TestCase):
