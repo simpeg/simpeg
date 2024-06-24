@@ -16,12 +16,46 @@ parameters:
 jobs:
   - ${{ each os in parameters.os }}:
     - ${{ each py_vers in parameters.py_vers }}:
+
+      # -----------------------------------------------------------------------
+      # Create conda environment
       - job: ${{ replace(os, '-', '_') }}_${{ replace(py_vers, '.', '') }}
         displayName: "Cache conda environment"
         pool:
           vmImage: ${{ os }}
+        variables:
+          python.version: ${{ py_vers }}
         steps:
           - bash: echo "Trying new job here"
+
+          # Checkout simpeg repo to get the environment file.
+          - checkout: self
+
+          - bash: echo "##vso[task.prependpath]$CONDA/bin"
+            displayName: Add conda to PATH
+
+          - bash: .ci/azure/setup_env.sh
+            displayName: "Setup SimPEG environment"
+
+          - bash: |
+              echo "echo $CONDA"
+              echo $CONDA
+              echo "ls $CONDA"
+              ls $CONDA
+
+          - bash : |
+              envname=$(grep -e "^name:" .ci/environment_test.yml | cut -f 2 -d ":" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+              echo $envname
+              echo "##vso[task.setvariable variable=envname]$envname"
+            displayName: "Get name of environment"
+
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: $CONDA/$(envname)
+              artifactName: environment-${{ os }}-${{ py_ver }}
+            displayName: "Upload conda environment as artifact"
+
+      # -----------------------------------------------------------------------
 
       - ${{ each test in parameters.test }}:
         - job:
@@ -46,20 +80,13 @@ jobs:
           - bash: echo "##vso[task.prependpath]$CONDA/bin"
             displayName: Add conda to PATH
 
-          - bash: |
-              sudo chown -R $(whoami):$(id -ng) $(CONDA_CACHE_DIR)
-            displayName: Fix CONDA_CACHE_DIR directory permissions
+         - task: DownloadPipelineArtifact@2
+           inputs:
+             artifact: environment-${{ os }}-${{ py_ver }}
+             path: $CONDA
+           displayName: "Download conda environment artifact"
 
-          - task: Cache@2
-            displayName: Use cached Anaconda environment
-            inputs:
-              key: 'conda | "${{ os }}" | "${{ py_vers }}"'
-              path: $(CONDA_CACHE_DIR)
-              cacheHitVar: CONDA_CACHE_RESTORED
-
-          - bash: .ci/azure/setup_env.sh
-            displayName: Setup SimPEG environment
-            condition: eq(variables.CONDA_CACHE_RESTORED, 'false')
+          - bash : ls -la $CONDA
 
           - bash: .ci/azure/run_tests_with_coverage.sh
             displayName: 'Testing ${{ test }}'
