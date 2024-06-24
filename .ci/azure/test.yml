@@ -93,10 +93,13 @@ jobs:
               path: $(CONDA)/envs/simpeg-test/
             displayName: "Download conda environment artifact"
 
-          - bash :
-              echo "ls -la $CONDA/envs"
+          - bash: |
+              sudo chown -R $(whoami):$(id -ng) "$CONDA/envs"
+            displayName: Fix conda directory permissions
+
+          - bash: |
+              set -x
               ls -la $CONDA/envs
-              echo "ls -la $CONDA/envs/simpeg-test"
               ls -la $CONDA/envs/simpeg-test
 
           - bash: .ci/azure/run_tests_with_coverage.sh
