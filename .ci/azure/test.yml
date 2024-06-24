@@ -84,7 +84,7 @@ jobs:
 
           - bash: |
               echo "$(envname)"
-              mkdir "$CONDA"/envs/simpeg-test"
+              mkdir "$CONDA"/envs/simpeg-test
             displayName: "Create directory for environment"
 
           - task: DownloadPipelineArtifact@2
