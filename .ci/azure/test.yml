@@ -26,7 +26,7 @@ jobs:
       - ${{ each test in parameters.test }}:
         - job:
           displayName: ${{ os }}_${{ py_vers }}_${{ test }}
-          dependsOn: ${{ os }}_${{ py_vers }}
+          dependsOn: ${{ replace(os, '-', '_') }}_${{ replace(py_vers, '.', '') }}
           pool:
             vmImage: ${{ os }}
           timeoutInMinutes: 120
