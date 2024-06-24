@@ -16,7 +16,7 @@ parameters:
 jobs:
   - ${{ each os in parameters.os }}:
     - ${{ each py_vers in parameters.py_vers }}:
-      - job: ${{ os }}_${{ py_vers }}
+      - job: ${{ replace(os, "-", "_") }}_${{ replace(py_vers, '.', '') }}
         displayName: "Cache conda environment"
         pool:
           vmImage: ${{ os }}
