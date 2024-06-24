@@ -1,144 +1,57 @@
+# =============================================
+# Configure Azure Pipelines for automated tasks
+# =============================================
+
+# Define triggers for runs in CI
+# ------------------------------
 trigger:
   branches:
     include:
-    - 'main'
+      - "main"
     exclude:
-    - '*no-ci*'
+      - "*no-ci*"
   tags:
     include:
-    - '*'
+      - "*"
 
 pr:
   branches:
     include:
-    - '*'
+      - "*"
     exclude:
-    - '*no-ci*'
+      - "*no-ci*"
+
+schedules:
+  - cron: "0 8 * * *" # trigger cron job every day at 08:00 AM GMT
+    displayName: "Scheduled nightly job"
+    branches:
+      include: ["main"]
+    always: false # don't run if no changes have been applied since last sucessful run
+    batch: false # dont' run if last pipeline is still in-progress
+
+# Run stages
+# ----------
 stages:
+  - stage: StyleChecks
+    displayName: "Style Checks"
+    jobs:
+      - template: .ci/azure/style.yml
 
-- stage: StyleChecks
-  displayName: "Style Checks"
-  jobs:
-    - job:
-      displayName: Run style checks with Black
-      pool:
-        vmImage: ubuntu-latest
-      variables:
-        python.version: '3.8'
-      steps:
-        - script: |
-            pip install -r requirements_style.txt
-          displayName: "Install dependencies to run the checks"
-        - script: make black
-          displayName: "Run black"
+  - stage: Testing
+    dependsOn: StyleChecks
+    jobs:
+      - template: .ci/azure/test.yml
 
-    - job:
-      displayName: Run (permissive) style checks with flake8
-      pool:
-        vmImage: ubuntu-latest
-      variables:
-        python.version: '3.8'
-      steps:
-        - script: |
-            pip install -r requirements_style.txt
-          displayName: "Install dependencies to run the checks"
-        - script: make flake
-          displayName: "Run flake8"
+  - stage: Docs
+    dependsOn:
+      - StyleChecks
+      - Testing
+    jobs:
+      - template: .ci/azure/docs.yml
 
-    - job:
-      displayName: Run style checks with flake8 (allowed to fail)
-      pool:
-        vmImage: ubuntu-latest
-      variables:
-        python.version: '3.8'
-      steps:
-        - script: |
-            pip install -r requirements_style.txt
-          displayName: "Install dependencies to run the checks"
-        - script: FLAKE8_OPTS="--exit-zero" make flake-all
-          displayName: "Run flake8"
-
-- stage: Testing
-  dependsOn: StyleChecks
-  jobs:
-    - template: ./.azure-pipelines/matrix.yml
-
-- stage: Deploy
-  dependsOn: Testing
-  condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
-  jobs:
-    - job:
-      displayName: Deploy Docs and source
-      pool:
-        vmImage: ubuntu-latest
-      variables:
-        python.version: '3.8'
-      timeoutInMinutes: 240
-      steps:
-        - script: |
-            git config --global user.name ${GH_NAME}
-            git config --global user.email ${GH_EMAIL}
-            git config --list | grep user.
-          displayName: 'Configure git'
-          env:
-            GH_NAME: $(gh.name)
-            GH_EMAIL: $(gh.email)
-
-        - script: |
-            wget -O Mambaforge.sh  "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
-            bash Mambaforge.sh -b -p "${HOME}/conda"
-          displayName: Install mamba
-
-        - script: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            source "${HOME}/conda/etc/profile.d/mamba.sh"
-            cp environment_test.yml environment_test_with_pyversion.yml
-            echo "  - python="$(python.version) >> environment_test_with_pyversion.yml
-            mamba env create -f environment_test_with_pyversion.yml
-            rm environment_test_with_pyversion.yml
-            conda activate simpeg-test
-            pip install pytest-azurepipelines
-          displayName: Create Anaconda testing environment
-
-        - script: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
-            pip install -e .
-          displayName: Build package
-
-        - script: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
-            python setup.py sdist
-            twine upload --skip-existing dist/*
-          displayName: Deploy source
-          env:
-            TWINE_USERNAME: $(twine.username)
-            TWINE_PASSWORD: $(twine.password)
-
-        - script: |
-            source "${HOME}/conda/etc/profile.d/conda.sh"
-            conda activate simpeg-test
-            export KMP_WARNINGS=0
-            cd docs
-            make html
-            cd ..
-          displayName: Building documentation
-
-        # upload documentation to simpeg-docs gh-pages on tags
-        - script: |
-            git clone --depth 1 https://${GH_TOKEN}@github.com/simpeg/simpeg-docs.git
-            cd simpeg-docs
-            git gc --prune=now
-            git remote prune origin
-            rm -rf *
-            cp -r $BUILD_SOURCESDIRECTORY/docs/_build/html/* .
-            cp $BUILD_SOURCESDIRECTORY/docs/README.md .
-            touch .nojekyll
-            echo "docs.simpeg.xyz" >> CNAME
-            git add .
-            git commit -am "Azure CI commit ref $(Build.SourceVersion)"
-            git push
-          displayName: Push documentation to simpeg-docs
-          env:
-            GH_TOKEN: $(gh.token)
+  - stage: PyPI
+    dependsOn:
+      - StyleChecks
+      - Testing
+    jobs:
+      - template: .ci/azure/pypi.yml

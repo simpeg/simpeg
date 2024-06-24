@@ -46,7 +46,7 @@ class JTVTensor2D(unittest.TestCase):
         """
         jtv = self.jtv
         self.assertTrue(jtv._test_deriv(self.x0))
-        self.assertTrue(jtv._test_deriv2(self.x0, expectedOrder=2))
+        self.assertTrue(jtv._test_deriv2(self.x0, random_seed=42, expectedOrder=2))
 
     def test_deriv2_no_arg(self):
         m = self.x0
@@ -96,7 +96,7 @@ class JTVTensor3D(unittest.TestCase):
         """
         jtv = self.jtv
         self.assertTrue(jtv._test_deriv(self.x0))
-        self.assertTrue(jtv._test_deriv2(self.x0, expectedOrder=2))
+        self.assertTrue(jtv._test_deriv2(self.x0, random_seed=42, expectedOrder=2))
 
     def test_deriv2_no_arg(self):
         m = self.x0
@@ -143,7 +143,7 @@ class JTVTree2D(unittest.TestCase):
         """
         jtv = self.jtv
         self.assertTrue(jtv._test_deriv(self.x0))
-        self.assertTrue(jtv._test_deriv2(self.x0, expectedOrder=2))
+        self.assertTrue(jtv._test_deriv2(self.x0, random_seed=42, expectedOrder=2))
 
     def test_deriv2_no_arg(self):
         m = self.x0
@@ -192,7 +192,7 @@ class JTVTree3D(unittest.TestCase):
         """
         jtv = self.jtv
         self.assertTrue(jtv._test_deriv(self.x0))
-        self.assertTrue(jtv._test_deriv2(self.x0, expectedOrder=2))
+        self.assertTrue(jtv._test_deriv2(self.x0, random_seed=42, expectedOrder=2))
 
     def test_deriv2_no_arg(self):
         m = self.x0

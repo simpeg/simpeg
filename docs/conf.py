@@ -16,6 +16,7 @@ import os
 from sphinx_gallery.sorting import FileNameSortKey
 import glob
 import simpeg
+from packaging.version import parse
 import plotly.io as pio
 from importlib.metadata import version
 
@@ -47,7 +48,6 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx_gallery.gen_gallery",
     "sphinx.ext.todo",
-    "sphinx.ext.linkcode",
     "matplotlib.sphinxext.plot_directive",
 ]
 
@@ -135,17 +135,24 @@ pygments_style = "sphinx"
 # edit_on_github_branch = "main/docs"
 # check_meta = False
 
-# source code links
+
+# -----------------
+# Source code links
+# -----------------
+# Function inspired in matplotlib's configuration
+
 link_github = True
-# You can build old with link_github = False
 
 if link_github:
     import inspect
-    from os.path import relpath, dirname
+    from packaging.version import parse
 
     extensions.append("sphinx.ext.linkcode")
 
     def linkcode_resolve(domain, info):
+        """
+        Determine the URL corresponding to Python object
+        """
         if domain != "py":
             return None
 
@@ -160,43 +167,44 @@ if link_github:
         for part in fullname.split("."):
             try:
                 obj = getattr(obj, part)
-            except Exception:
+            except AttributeError:
                 return None
 
-        try:
-            unwrap = inspect.unwrap
-        except AttributeError:
-            pass
-        else:
-            obj = unwrap(obj)
-
+        if inspect.isfunction(obj):
+            obj = inspect.unwrap(obj)
         try:
             fn = inspect.getsourcefile(obj)
-        except Exception:
+        except TypeError:
             fn = None
+        if not fn or fn.endswith("__init__.py"):
+            try:
+                fn = inspect.getsourcefile(sys.modules[obj.__module__])
+            except (TypeError, AttributeError, KeyError):
+                fn = None
         if not fn:
             return None
 
         try:
             source, lineno = inspect.getsourcelines(obj)
-        except Exception:
+        except (OSError, TypeError):
             lineno = None
 
         if lineno:
-            linespec = "#L%d-L%d" % (lineno, lineno + len(source) - 1)
+            linespec = f"#L{lineno:d}-L{lineno + len(source) - 1:d}"
         else:
             linespec = ""
 
         try:
-            fn = relpath(fn, start=dirname(simpeg.__file__))
+            fn = os.path.relpath(fn, start=os.path.dirname(simpeg.__file__))
         except ValueError:
             return None
 
-        return f"https://github.com/simpeg/simpeg/blob/main/simpeg/{fn}{linespec}"
+        simpeg_version = parse(simpeg.__version__)
+        tag = "main" if simpeg_version.is_devrelease else f"v{simpeg_version.public}"
+        return f"https://github.com/simpeg/simpeg/blob/{tag}/simpeg/{fn}{linespec}"
 
 else:
     extensions.append("sphinx.ext.viewcode")
-
 
 # Make numpydoc to generate plots for example sections
 numpydoc_use_plots = True
@@ -237,62 +245,72 @@ external_links = [
     dict(name="Contact", url="https://mattermost.softwareunderground.org/simpeg"),
 ]
 
-try:
-    import pydata_sphinx_theme
+# Define SimPEG version for the version switcher
+simpeg_version = parse(simpeg.__version__)
+if simpeg_version.is_devrelease:
+    switcher_version = "dev"
+else:
+    switcher_version = f"v{simpeg_version.public}"
 
-    html_theme = "pydata_sphinx_theme"
+# Use Pydata Sphinx theme
+html_theme = "pydata_sphinx_theme"
 
-    # If false, no module index is generated.
-    html_use_modindex = True
+# If false, no module index is generated.
+html_use_modindex = True
 
-    html_theme_options = {
-        "external_links": external_links,
-        "icon_links": [
-            {
-                "name": "GitHub",
-                "url": "https://github.com/simpeg/simpeg",
-                "icon": "fab fa-github",
-            },
-            {
-                "name": "Mattermost",
-                "url": "https://mattermost.softwareunderground.org/simpeg",
-                "icon": "fas fa-comment",
-            },
-            {
-                "name": "Discourse",
-                "url": "https://simpeg.discourse.group/",
-                "icon": "fab fa-discourse",
-            },
-            {
-                "name": "Youtube",
-                "url": "https://www.youtube.com/c/geoscixyz",
-                "icon": "fab fa-youtube",
-            },
-        ],
-        "use_edit_page_button": False,
-        "collapse_navigation": True,
-        "analytics": {
-            "plausible_analytics_domain": "docs.simpeg.xyz",
-            "plausible_analytics_url": "https://plausible.io/js/script.js",
+html_theme_options = {
+    "external_links": external_links,
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/simpeg/simpeg",
+            "icon": "fab fa-github",
         },
-        "navbar_align": "left",  # make elements closer to logo on the left
-    }
-    html_logo = "images/simpeg-logo.png"
+        {
+            "name": "Mattermost",
+            "url": "https://mattermost.softwareunderground.org/simpeg",
+            "icon": "fas fa-comment",
+        },
+        {
+            "name": "Discourse",
+            "url": "https://simpeg.discourse.group/",
+            "icon": "fab fa-discourse",
+        },
+        {
+            "name": "Youtube",
+            "url": "https://www.youtube.com/c/geoscixyz",
+            "icon": "fab fa-youtube",
+        },
+    ],
+    "use_edit_page_button": False,
+    "collapse_navigation": True,
+    "analytics": {
+        "plausible_analytics_domain": "docs.simpeg.xyz",
+        "plausible_analytics_url": "https://plausible.io/js/script.js",
+    },
+    "navbar_align": "left",  # make elements closer to logo on the left
+    "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
+    # Configure version switcher
+    "switcher": {
+        "version_match": switcher_version,
+        "json_url": "https://docs.simpeg.xyz/latest/_static/versions.json",
+    },
+}
 
-    html_static_path = ["_static"]
+html_logo = "images/simpeg-logo.png"
 
-    html_css_files = [
-        "css/custom.css",
-    ]
+html_static_path = ["_static"]
 
-    html_context = {
-        "github_user": "simpeg",
-        "github_repo": "simpeg",
-        "github_version": "main",
-        "doc_path": "docs",
-    }
-except Exception:
-    html_theme = "default"
+html_css_files = [
+    "css/custom.css",
+]
+
+html_context = {
+    "github_user": "simpeg",
+    "github_repo": "simpeg",
+    "github_version": "main",
+    "doc_path": "docs",
+}
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -449,14 +467,8 @@ tut_gallery_dirs = ["content/tutorials/" + os.path.basename(f) for f in tutorial
 
 # Scaping images to generate on website
 from plotly.io._sg_scraper import plotly_sg_scraper
-import pyvista
 
-# Make sure off screen is set to true when building locally
-pyvista.OFF_SCREEN = True
-# necessary when building the sphinx gallery
-pyvista.BUILDING_GALLERY = True
-
-image_scrapers = ("matplotlib", plotly_sg_scraper, pyvista.Scraper())
+image_scrapers = ("matplotlib", plotly_sg_scraper)
 
 # Sphinx Gallery
 sphinx_gallery_conf = {
@@ -487,6 +499,8 @@ sphinx_gallery_conf = {
 
 autodoc_member_order = "bysource"
 
+# Don't show type hints in signatures
+autodoc_typehints = "none"
 
 # def supress_nonlocal_image_warn():
 #     import sphinx.environment
