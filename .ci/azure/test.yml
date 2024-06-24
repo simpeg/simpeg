@@ -52,7 +52,7 @@ jobs:
           - task: PublishPipelineArtifact@1
             inputs:
               targetPath: $CONDA/$(envname)
-              artifactName: environment-${{ os }}-${{ py_ver }}
+              artifactName: environment-${{ os }}-${{ py_vers }}
             displayName: "Upload conda environment as artifact"
 
       # -----------------------------------------------------------------------
@@ -82,7 +82,7 @@ jobs:
 
           - task: DownloadPipelineArtifact@2
             inputs:
-              artifact: environment-${{ os }}-${{ py_ver }}
+              artifact: environment-${{ os }}-${{ py_vers }}
               path: $CONDA
             displayName: "Download conda environment artifact"
 
