@@ -13,8 +13,6 @@ class VRM_fwd_tests(unittest.TestCase):
     seed = 518936
 
     def test_predict_dipolar(self):
-        np.random.seed(self.seed)
-
         h = [0.05, 0.05]
         meshObj = discretize.TensorMesh((h, h, h), x0="CCC")
 
@@ -26,8 +24,9 @@ class VRM_fwd_tests(unittest.TestCase):
         times = np.logspace(-4, -2, 3)
         waveObj = vrm.waveforms.SquarePulse(delt=0.02)
 
-        phi = np.random.uniform(-np.pi, np.pi)
-        psi = np.random.uniform(-np.pi, np.pi)
+        rng = np.random.default_rng(seed=self.seed)
+        phi = rng.uniform(low=-np.pi, high=np.pi)
+        psi = rng.uniform(low=-np.pi, high=np.pi)
         R = 2.0
         loc_rx = (
             R * np.c_[np.sin(phi) * np.cos(psi), np.sin(phi) * np.sin(psi), np.cos(phi)]
@@ -43,8 +42,9 @@ class VRM_fwd_tests(unittest.TestCase):
             vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="z")
         )
 
-        alpha = np.random.uniform(0, np.pi)
-        beta = np.random.uniform(-np.pi, np.pi)
+        rng = np.random.default_rng(seed=self.seed)
+        alpha = rng.uniform(low=0, high=np.pi)
+        beta = rng.uniform(low=-np.pi, high=np.pi)
         loc_tx = [0.0, 0.0, 0.0]
         Src = vrm.sources.CircLoop(
             receiver_list, loc_tx, 25.0, np.r_[alpha, beta], 1.0, waveObj
@@ -94,8 +94,6 @@ class VRM_fwd_tests(unittest.TestCase):
         computed.
         """
 
-        np.random.seed(self.seed)
-
         h = [0.5, 0.5]
         meshObj = discretize.TensorMesh((h, h, h), x0="CCC")
 
@@ -107,8 +105,9 @@ class VRM_fwd_tests(unittest.TestCase):
         times = np.logspace(-4, -2, 3)
         waveObj = vrm.waveforms.SquarePulse(delt=0.02)
 
-        phi = np.random.uniform(-np.pi, np.pi)
-        psi = np.random.uniform(-np.pi, np.pi)
+        rng = np.random.default_rng(seed=self.seed)
+        phi = rng.uniform(low=-np.pi, high=np.pi)
+        psi = rng.uniform(low=-np.pi, high=np.pi)
         Rrx = 3.0
         loc_rx = (
             Rrx
@@ -125,8 +124,9 @@ class VRM_fwd_tests(unittest.TestCase):
             vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="z")
         )
 
-        alpha = np.random.uniform(0, np.pi)
-        beta = np.random.uniform(-np.pi, np.pi)
+        rng = np.random.default_rng(seed=self.seed)
+        alpha = rng.uniform(low=0, high=np.pi)
+        beta = rng.uniform(low=-np.pi, high=np.pi)
         Rtx = 4.0
         loc_tx = (
             Rtx
@@ -424,8 +424,6 @@ class VRM_fwd_tests(unittest.TestCase):
         are correct.
         """
 
-        np.random.seed(self.seed)
-
         h1 = [0.25, 0.25]
         meshObj_Tensor = discretize.TensorMesh((h1, h1, h1), x0="CCN")
 
@@ -439,8 +437,9 @@ class VRM_fwd_tests(unittest.TestCase):
         times = np.array([1e-3])
         waveObj = vrm.waveforms.SquarePulse(delt=0.02)
 
-        phi = np.random.uniform(-np.pi, np.pi)
-        psi = np.random.uniform(-np.pi, np.pi)
+        rng = np.random.default_rng(seed=self.seed)
+        phi = rng.uniform(low=-np.pi, high=np.pi)
+        psi = rng.uniform(low=-np.pi, high=np.pi)
         R = 5.0
         loc_rx = (
             R * np.c_[np.sin(phi) * np.cos(psi), np.sin(phi) * np.sin(psi), np.cos(phi)]
