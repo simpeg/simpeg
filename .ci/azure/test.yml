@@ -95,12 +95,14 @@ jobs:
 
           - bash: |
               sudo chown -R $(whoami):$(id -ng) "$CONDA/envs"
+              sudo chmod +x "$CONDA"/envs/simpeg-test/bin/*
             displayName: Fix conda directory permissions
 
           - bash: |
               set -x
               ls -la $CONDA/envs
               ls -la $CONDA/envs/simpeg-test
+              ls -la $CONDA/envs/simpeg-test/bin
 
           - bash: .ci/azure/run_tests_with_coverage.sh
             displayName: 'Testing ${{ test }}'
