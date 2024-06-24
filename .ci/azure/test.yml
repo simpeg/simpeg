@@ -53,6 +53,7 @@ jobs:
 
           - bash: |
               job="${{ os }}_${{ py_vers }}_${{ test }}"
+              echo "job: $job"
               jobhash=$(echo $job | sha256sum | cut -f 1 -d " " | cut -c 1-7)
               cp coverage.xml "coverage-$jobhash.xml"
               echo "##vso[task.setvariable variable=jobhash]$jobhash"
