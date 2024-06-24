@@ -16,8 +16,14 @@ parameters:
 jobs:
   - ${{ each os in parameters.os }}:
     - ${{ each py_vers in parameters.py_vers }}:
+      - job:
+        pool:
+          vmImage: ${{ os }}
+        steps:
+          - bash: echo "Trying new job here"
+
       - ${{ each test in parameters.test }}:
-        - job: ${{ os }}_${{ py_vers }}
+        - job:
           displayName: ${{ os }}_${{ py_vers }}_${{ test }}
           pool:
             vmImage: ${{ os }}
