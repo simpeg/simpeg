@@ -52,7 +52,7 @@ jobs:
             condition: eq('${{ test }}', 'tests/docs -s -v')
 
           - bash: |
-              job=${{ os }}_${{ py_vers }}_${{ test }}
+              job="${{ os }}_${{ py_vers }}_${{ test }}"
               jobhash=$(echo $job | sha256sum | cut -f 1 -d " " | cut -c 1-7)
               cp coverage.xml "coverage-$jobhash.xml"
               echo "##vso[task.setvariable variable=jobhash]$jobhash"
