@@ -42,6 +42,8 @@ jobs:
               echo $CONDA
               echo "ls $CONDA"
               ls $CONDA
+              echo "ls $CONDA/envs"
+              ls $CONDA/envs
 
           - bash : |
               envname=$(grep -e "^name:" .ci/environment_test.yml | cut -f 2 -d ":" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
@@ -51,7 +53,7 @@ jobs:
 
           - task: PublishPipelineArtifact@1
             inputs:
-              targetPath: $CONDA/$(envname)
+              targetPath: $CONDA/envs/$(envname)
               artifactName: environment-${{ os }}-${{ py_vers }}
             displayName: "Upload conda environment as artifact"
 
@@ -83,10 +85,10 @@ jobs:
           - task: DownloadPipelineArtifact@2
             inputs:
               artifact: environment-${{ os }}-${{ py_vers }}
-              path: $CONDA
+              path: $CONDA/envs/
             displayName: "Download conda environment artifact"
 
-          - bash : ls -la $CONDA
+          - bash : ls -la $CONDA/envs
 
           - bash: .ci/azure/run_tests_with_coverage.sh
             displayName: 'Testing ${{ test }}'
