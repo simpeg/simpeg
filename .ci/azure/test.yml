@@ -53,7 +53,7 @@ jobs:
 
           - task: PublishPipelineArtifact@1
             inputs:
-              targetPath: ${{ CONDA }}/envs/$(envname)
+              targetPath: $(CONDA)/envs/$(envname)
               artifactName: environment-${{ os }}-${{ py_vers }}
             displayName: "Upload conda environment as artifact"
 
@@ -85,7 +85,7 @@ jobs:
           - task: DownloadPipelineArtifact@2
             inputs:
               artifact: environment-${{ os }}-${{ py_vers }}
-              path: ${{ CONDA }}/envs/
+              path: $(CONDA)/envs/
             displayName: "Download conda environment artifact"
 
           - bash : ls -la $CONDA/envs
