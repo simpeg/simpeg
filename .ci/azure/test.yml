@@ -82,13 +82,22 @@ jobs:
           - bash: echo "##vso[task.prependpath]$CONDA/bin"
             displayName: Add conda to PATH
 
+          - bash: |
+              echo "$(envname)"
+              mkdir "$CONDA"/envs/simpeg-test"
+            displayName: "Create directory for environment"
+
           - task: DownloadPipelineArtifact@2
             inputs:
               artifact: environment-${{ os }}-${{ py_vers }}
-              path: $(CONDA)/envs/
+              path: $(CONDA)/envs/simpeg-test/
             displayName: "Download conda environment artifact"
 
-          - bash : ls -la $CONDA/envs
+          - bash :
+              echo "ls -la $CONDA/envs"
+              ls -la $CONDA/envs
+              echo "ls -la $CONDA/envs/simpeg-test"
+              ls -la $CONDA/envs/simpeg-test
 
           - bash: .ci/azure/run_tests_with_coverage.sh
             displayName: 'Testing ${{ test }}'
