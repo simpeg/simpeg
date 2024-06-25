@@ -28,9 +28,7 @@ assignees: ""
   grep -Eo "@[[:alnum:]-]+" notes.rst | sort -u | sed -E 's/^/* /'
   ```
   Paste the list into the file under a new `Contributors` category.
-- [ ] Check if every contributor that participated in the release is in the
-  list. Generate a list of authors and co-authors from the git log with (update
-  the `last_release`):
+- [ ] Check if every contributor that participated in the release is in the list. Generate a list of authors and co-authors from the git log with (update the `last_release`):
   ```bash
   export last_release="v0.20.0"
   git shortlog HEAD...$last_release -sne > contributors
@@ -43,12 +41,10 @@ assignees: ""
   ```
 - [ ] Copy the content of `notes.rst` to a new file
   `docs/content/release/<version>-notes.rst`.
-- [ ] Edit the release notes file, following the template below and the
-  previous release notes.
+- [ ] Edit the release notes file, following the template below and the previous release notes.
 - [ ] Add the new release notes to the list in `docs/content/release/index.rst`.
 - [ ] **Open a PR** with the new release notes.
-- [ ] Manually view the built documentation by downloading the Azure `html_doc`
-  artifact and check for formatting and errors.
+- [ ] Manually view the built documentation by downloading the Azure `html_doc` artifact and check for formatting and errors.
 
 
 <details>
@@ -115,12 +111,9 @@ Pull Requests
 Edit the `docs/_static/versions.json` file and:
 
 - [ ] Add an entry for the new version.
-- [ ] Move the line with `"name":` to the new entry (so the new version is set
-  as the _latest_ one).
+- [ ] Move the line with `"name":` to the new entry (so the new version is set as the _latest_ one).
 - [ ] Update the version number in the `"name":` line.
-- [ ] Run `cat docs/_static/versions.json | python -m json.tool > /dev/null` to
-  check if the syntax of the JSON file is correct. If no errors are prompted,
-  then your file is OK.
+- [ ] Run `cat docs/_static/versions.json | python -m json.tool > /dev/null` to check if the syntax of the JSON file is correct. If no errors are prompted, then your file is OK.
 - [ ] Double-check the changes.
 - [ ] Commit the changes to the same branch.
 
@@ -138,30 +131,21 @@ Edit the `docs/_static/versions.json` file and:
 
 ## Extra tasks
 
-After publishing the release, Azure will automatically push the new version to
-PyPI, and build and deploy the docs. You can check the progress of these tasks
-in: https://dev.azure.com/simpeg/simpeg/_build
+After publishing the release, Azure will automatically push the new version to PyPI, and build and deploy the docs. You can check the progress of these tasks in: https://dev.azure.com/simpeg/simpeg/_build
 
 After they finish:
 
 - [ ] Check the new version is available in PyPI: https://pypi.org/project/SimPEG/
 - [ ] Check the new documentation is online: https://docs.simpeg.xyz
 
-For the new version to be available in conda-forge, we need to update the
-[conda-forge/simpeg-feedstock](https://github.com/conda-forge/simpeg-feedstock)
-repository. Within the same day of the release a new PR will be automatically
-open in that repository. So:
+For the new version to be available in conda-forge, we need to update the [conda-forge/simpeg-feedstock](https://github.com/conda-forge/simpeg-feedstock) repository. Within the same day of the release a new PR will be automatically open in that repository. So:
 
 - [ ] Follow the steps provided in the checklist in that PR and merge it.
 - [ ] Make sure the new version is available through conda-forge: https://anaconda.org/conda-forge/simpeg
 
-Lastly, we would need to update the SimPEG version used in
-[`simpeg/user-tutorials`](https://github.com/simpeg/user-tutorials) and rerun
-its notebooks:
+Lastly, we would need to update the SimPEG version used in [`simpeg/user-tutorials`](https://github.com/simpeg/user-tutorials) and rerun its notebooks:
 
-- [ ] Open issue in
-  [`simpeg/user-tutorials`](https://github.com/simpeg/user-tutorials) for
-  rerunning the notebooks using the new released version of SimPEG
+- [ ] Open issue in [`simpeg/user-tutorials`](https://github.com/simpeg/user-tutorials) for rerunning the notebooks using the new released version of SimPEG
 
 Finally:
 
