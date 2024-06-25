@@ -37,8 +37,7 @@ assignees: ""
   ```bash
   sed -Ei 's/@([[:alnum:]-]+)/`@\1 <https:\/\/github.com\/\1>`__/' notes.rst
   ```
-- [ ] Copy the content of `notes.rst` to a new file
-  `docs/content/release/<version>-notes.rst`.
+- [ ] Copy the content of `notes.rst` to a new file `docs/content/release/<version>-notes.rst`.
 - [ ] Edit the release notes file, following the template below and the previous release notes.
 - [ ] Add the new release notes to the list in `docs/content/release/index.rst`.
 - [ ] **Open a PR** with the new release notes.
@@ -121,19 +120,19 @@ Edit the `docs/_static/versions.json` file and:
 
 ## Make the new release
 
-- [ ] Draft a new GitHub Release
+- [ ] Draft a new GitHub Release.
 - [ ] Create a new tag for it (the version number with a leading `v`).
-- [ ] Target the release on `main` or on a particular commit from `main`
+- [ ] Target the release on `main` or on a particular commit from `main`.
 - [ ] Generate release notes automatically.
-- [ ] Publish the release
+- [ ] Publish the release.
 
 ## Extra tasks
 
-After publishing the release, Azure will automatically push the new version to PyPI, and build and deploy the docs. You can check the progress of these tasks in: https://dev.azure.com/simpeg/simpeg/_build
+After publishing the release, Azure will automatically push the new version to PyPI, and build and deploy the docs. You can check the progress of these tasks in: https://dev.azure.com/simpeg/simpeg/_build .
 
 After they finish:
 
-- [ ] Check the new version is available in PyPI: https://pypi.org/project/SimPEG/
+- [ ] Check the new version is available in PyPI: https://pypi.org/project/SimPEG/ .
 - [ ] Check the new documentation is online: https://docs.simpeg.xyz
 
 For the new version to be available in conda-forge, we need to update the [conda-forge/simpeg-feedstock](https://github.com/conda-forge/simpeg-feedstock) repository. Within the same day of the release a new PR will be automatically open in that repository. So:
@@ -143,8 +142,8 @@ For the new version to be available in conda-forge, we need to update the [conda
 
 Lastly, we would need to update the SimPEG version used in [`simpeg/user-tutorials`](https://github.com/simpeg/user-tutorials) and rerun its notebooks:
 
-- [ ] Open issue in [`simpeg/user-tutorials`](https://github.com/simpeg/user-tutorials) for rerunning the notebooks using the new released version of SimPEG
+- [ ] Open issue in [`simpeg/user-tutorials`](https://github.com/simpeg/user-tutorials) for rerunning the notebooks using the new released version of SimPEG.
 
 Finally:
 
-- [ ] Close this issue
+- [ ] Close this issue.
