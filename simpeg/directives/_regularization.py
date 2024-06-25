@@ -59,8 +59,8 @@ class UpdateIRLS(BetaSchedule):
 
     def __init__(
         self,
-        coolingRate: int = 1,
-        coolingFactor: float = 2.0,
+        cooling_rate: int = 1,
+        cooling_factor: float = 2.0,
         chifact_start: float = 1.0,
         chifact_target: float = 1.0,
         irls_cooling_factor: float = 1.2,
