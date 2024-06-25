@@ -417,7 +417,7 @@ class SphericalDomain(InversionDirective):
         max_p = []
         for reg in self.reg.objfcts[0].objfcts:
             f_m = abs(reg.f_m(self.invProb.model))
-            max_p += [np.max(f_m)]
+            max_p.append(np.max(f_m))
 
         max_p = max(max_p)
 
