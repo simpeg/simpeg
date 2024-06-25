@@ -382,7 +382,8 @@ class UpdateIRLS(BetaSchedule):
             )
             < self.misfit_tolerance
         ):
-            print("Minimum decrease in regularization." + "End of IRLS")
+            if self.verbose:
+                print("Minimum decrease in regularization." + "End of IRLS")
             return True
 
         self.metrics.f_old = phim_new
