@@ -366,7 +366,7 @@ class UpdateIRLS(BetaSchedule):
             if self.verbose:
                 print(
                     "Reach maximum number of IRLS cycles:"
-                    + " {0:d}".format(self.max_irls_iterations)
+                    + f" {self.max_irls_iterations:d}"
                 )
             return True
 
