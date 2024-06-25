@@ -173,8 +173,8 @@ class UpdateIRLS(BetaSchedule):
 
         Parameters
         ----------
-
-        chi_factor: Chi factor to compute the target misfit from.
+        chi_factor : float
+            Chi factor to compute the target misfit from.
         """
         value = 0
         if isinstance(self.survey, list):
