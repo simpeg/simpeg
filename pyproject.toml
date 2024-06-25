@@ -97,6 +97,7 @@ include = ["simpeg*"]
 
 [tool.setuptools_scm]
 version_file = "simpeg/version.py"
+local_scheme = "node-and-date"
 
 [tool.coverage.run]
 branch = true
@@ -212,8 +213,6 @@ ignore = [
     'D419',
     # module level import not at top of file
     'E402',
-    # undefined name %r
-    'F821',
     # Block quote ends without a blank line; unexpected unindent.
     'RST201',
     # Definition list ends without a blank line; unexpected unindent.

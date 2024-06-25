@@ -102,7 +102,7 @@ source_list = generate_dcip_sources_line(
 )
 
 # Define survey
-survey = dc.survey.Survey(source_list, survey_type=survey_type)
+survey = dc.survey.Survey(source_list)
 
 ###############################################################
 # Create Tree Mesh

@@ -293,7 +293,7 @@ html_theme_options = {
     # Configure version switcher
     "switcher": {
         "version_match": switcher_version,
-        "json_url": "https://doctest.simpeg.xyz/latest/_static/versions.json",
+        "json_url": "https://docs.simpeg.xyz/latest/_static/versions.json",
     },
 }
 
