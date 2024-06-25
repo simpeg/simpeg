@@ -221,9 +221,7 @@ class UpdateIRLS(BetaSchedule):
             input_norms += [reg.norms]
             reg.norms = [2.0 for _ in reg.objfcts]
 
-        self._metrics = IRLSMetrics(
-            input_norms=input_norms,
-        )
+        self._metrics = IRLSMetrics(input_norms=input_norms)
 
     def endIter(self):
         """
