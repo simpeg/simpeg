@@ -681,7 +681,7 @@ class Fields3DPrimarySecondary(Fields):
         # Primary does not depend on u
         return np.array(
             self._b_pyDeriv_u(src, du_dm_v, adjoint)
-            + self._b_pyDeriv_m(src, v, adjoint),
+            + self._b_pyDeriv_m(src, du_dm_v, adjoint),
             complex,
         )
 
