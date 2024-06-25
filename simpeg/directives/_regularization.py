@@ -335,7 +335,8 @@ class UpdateIRLS(BetaSchedule):
             d for d in directive_list if isinstance(d, BetaSchedule) and d != self
         ]
 
-        assert len(beta_schedule) == 0, (
+        if not beta_schedule:
+            raise TypeError(
             "Beta scheduling is handled by the `UpdateIRLS` directive."
             "Remove the redundant `BetaSchedule` from your list of directives.",
         )
