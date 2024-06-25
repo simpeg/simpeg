@@ -1,9 +1,7 @@
 from ...utils.code_utils import (
-    deprecate_class,
     validate_string,
     validate_ndarray_with_shape,
 )
-import warnings
 import numpy as np
 from scipy.constants import mu_0
 from ...survey import BaseRx
