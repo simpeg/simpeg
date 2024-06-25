@@ -1328,6 +1328,50 @@ class PointNaturalSource(BaseRx):
         """
         return self._locations_h
 
+    def getP(self, mesh, projected_grid, field="e"):
+        """Projection matrices for all components collected by the receivers
+
+        Note projection matrices are stored as a dictionary listed by meshes.
+
+        Parameters
+        ----------
+        mesh : discretize.base.BaseMesh
+            The mesh on which the discrete set of equations is solved
+        projected_grid : str
+            Define what part of the mesh (i.e. edges, faces, centers, nodes) to
+            project from. Must be one of::
+
+                'Ex', 'edges_x'           -> x-component of field defined on x edges
+                'Ey', 'edges_y'           -> y-component of field defined on y edges
+                'Ez', 'edges_z'           -> z-component of field defined on z edges
+                'Fx', 'faces_x'           -> x-component of field defined on x faces
+                'Fy', 'faces_y'           -> y-component of field defined on y faces
+                'Fz', 'faces_z'           -> z-component of field defined on z faces
+                'N', 'nodes'              -> scalar field defined on nodes
+                'CC', 'cell_centers'      -> scalar field defined on cell centers
+                'CCVx', 'cell_centers_x'  -> x-component of vector field defined on cell centers
+                'CCVy', 'cell_centers_y'  -> y-component of vector field defined on cell centers
+                'CCVz', 'cell_centers_z'  -> z-component of vector field defined on cell centers
+
+        field : str, default = "e"
+            Whether to project electric or magnetic fields from mesh.
+            Choose "e" or "h"
+        """
+        if mesh.dim < 3:
+            return super().getP(mesh, projected_grid)
+
+        if (mesh, projected_grid) in self._Ps:
+            return self._Ps[(mesh, projected_grid, field)]
+
+        if field == "e":
+            locs = self.locations_e
+        else:
+            locs = self.locations_h
+        P = mesh.get_interpolation_matrix(locs, projected_grid)
+        if self.storeProjections:
+            self._Ps[(mesh, projected_grid, field)] = P
+        return P
+
     def _eval_impedance(self, src, mesh, f):
         if mesh.dim < 3 and self.orientation in ["xx", "yy"]:
             return 0.0
@@ -1335,12 +1379,12 @@ class PointNaturalSource(BaseRx):
         h = f[src, "h"]
         if mesh.dim == 3:
             if self.orientation[0] == "x":
-                e = _getP(self, mesh, "Ex", "e") @ e
+                e = self.getP(mesh, "Ex", "e") @ e
             else:
-                e = _getP(self, mesh, "Ey", "e") @ e
+                e = self.getP(mesh, "Ey", "e") @ e
 
-            hx = _getP(self, mesh, "Fx", "h") @ h
-            hy = _getP(self, mesh, "Fy", "h") @ h
+            hx = self.getP(mesh, "Fx", "h") @ h
+            hy = self.getP(mesh, "Fy", "h") @ h
             if self.orientation[1] == "x":
                 h = hy
             else:
@@ -1352,15 +1396,15 @@ class PointNaturalSource(BaseRx):
             if mesh.dim == 1:
                 e_loc = f.aliasFields["e"][1]
                 h_loc = f.aliasFields["h"][1]
-                PE = _getP(self, mesh, e_loc)
-                PH = _getP(self, mesh, h_loc)
+                PE = self.getP(mesh, e_loc)
+                PH = self.getP(mesh, h_loc)
             elif mesh.dim == 2:
                 if self.orientation == "xy":
-                    PE = _getP(self, mesh, "Ex")
-                    PH = _getP(self, mesh, "CC")
+                    PE = self.getP(mesh, "Ex")
+                    PH = self.getP(mesh, "CC")
                 elif self.orientation == "yx":
-                    PE = _getP(self, mesh, "CC")
-                    PH = _getP(self, mesh, "Ex")
+                    PE = self.getP(mesh, "CC")
+                    PH = self.getP(mesh, "Ex")
             top = PE @ e[:, 0]
             bot = PH @ h[:, 0]
 
@@ -1380,14 +1424,14 @@ class PointNaturalSource(BaseRx):
         h = f[src, "h"]
         if mesh.dim == 3:
             if self.orientation[0] == "x":
-                Pe = _getP(self, mesh, "Ex", "e")
+                Pe = self.getP(mesh, "Ex", "e")
                 e = Pe @ e
             else:
-                Pe = _getP(self, mesh, "Ey", "e")
+                Pe = self.getP(mesh, "Ey", "e")
                 e = Pe @ e
 
-            Phx = _getP(self, mesh, "Fx", "h")
-            Phy = _getP(self, mesh, "Fy", "h")
+            Phx = self.getP(mesh, "Fx", "h")
+            Phy = self.getP(mesh, "Fy", "h")
             hx = Phx @ h
             hy = Phy @ h
             if self.orientation[1] == "x":
@@ -1402,15 +1446,15 @@ class PointNaturalSource(BaseRx):
             if mesh.dim == 1:
                 e_loc = f.aliasFields["e"][1]
                 h_loc = f.aliasFields["h"][1]
-                PE = _getP(self, mesh, e_loc)
-                PH = _getP(self, mesh, h_loc)
+                PE = self.getP(mesh, e_loc)
+                PH = self.getP(mesh, h_loc)
             elif mesh.dim == 2:
                 if self.orientation == "xy":
-                    PE = _getP(self, mesh, "Ex")
-                    PH = _getP(self, mesh, "CC")
+                    PE = self.getP(mesh, "Ex")
+                    PH = self.getP(mesh, "CC")
                 elif self.orientation == "yx":
-                    PE = _getP(self, mesh, "CC")
-                    PH = _getP(self, mesh, "Ex")
+                    PE = self.getP(mesh, "CC")
+                    PH = self.getP(mesh, "Ex")
 
             top = PE @ e[:, 0]
             bot = PH @ h[:, 0]
@@ -1637,9 +1681,9 @@ class Point3DTipper(PointNaturalSource):
         # will grab both primary and secondary and sum them!
         h = f[src, "h"]
 
-        hx = _getP(self, mesh, "Fx", "h") @ h
-        hy = _getP(self, mesh, "Fy", "h") @ h
-        hz = _getP(self, mesh, "Fz", "h") @ h
+        hx = self.getP(mesh, "Fx", "h") @ h
+        hy = self.getP(mesh, "Fy", "h") @ h
+        hz = self.getP(mesh, "Fz", "h") @ h
 
         if self.orientation[1] == "x":
             h = -hy
@@ -1654,9 +1698,9 @@ class Point3DTipper(PointNaturalSource):
         # will grab both primary and secondary and sum them!
         h = f[src, "h"]
 
-        Phx = _getP(self, mesh, "Fx", "h")
-        Phy = _getP(self, mesh, "Fy", "h")
-        Phz = _getP(self, mesh, "Fz", "h")
+        Phx = self.getP(mesh, "Fx", "h")
+        Phy = self.getP(mesh, "Fy", "h")
+        Phz = self.getP(mesh, "Fz", "h")
         hx = Phx @ h
         hy = Phy @ h
         hz = Phz @ h
