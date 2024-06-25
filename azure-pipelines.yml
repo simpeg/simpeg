@@ -42,17 +42,6 @@ stages:
     jobs:
       - template: .ci/azure/test.yml
 
-  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  # Keep old docs for now (we can remove them later in favor of Docs)
-  - stage: OldDocs
-    condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
-    dependsOn:
-      - StyleChecks
-      - Testing
-    jobs:
-      - template: .ci/azure/old-docs.yml
-  # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
   - stage: Docs
     dependsOn:
       - StyleChecks
