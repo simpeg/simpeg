@@ -991,10 +991,6 @@ class Tipper(BaseRx):
     locations_bs : (n_loc, n_dim) numpy.ndarray, optional
         Locations for remote horizontal magnetic field measurements (e.g. base station).
         Must be same shape as `locations`.
-    locations_e : (n_loc, n_dim) numpy.ndarray, optional
-        Deprecated property. To be removed in simpeg 0.23.0.
-    locations_h : (n_loc, n_dim) numpy.ndarray, optional
-        Deprecated property. To be removed in simpeg 0.23.0.
     return_complex : bool, optional
         If ``True`` the complex impedance is evaluation, and the `component` input
         argument is ignored. Do not use for inversion!
@@ -1006,8 +1002,6 @@ class Tipper(BaseRx):
         orientation="zx",
         component="real",
         locations_bs=None,
-        locations_e=None,
-        locations_h=None,
         return_complex=False,
     ):
         self.orientation = orientation
@@ -1043,17 +1037,6 @@ class Tipper(BaseRx):
                 raise ValueError("locations need to be either a list or numpy array")
 
         super().__init__(locations)
-
-        if (locations_e is not None) or (locations_h is not None):
-            warnings.warn(
-                (
-                    "'locations_e' and 'locations_h' are deprecated properties that are unused by the Tipper class.",
-                    "Receiver locations are set using 'locations' (and 'locations_bs').",
-                    "These properties will be removed in simpeg v.0.23.0.",
-                ),
-                FutureWarning,
-                stacklevel=2,
-            )
 
     @property
     def locations_bs(self):
@@ -1209,10 +1192,23 @@ class Tipper(BaseRx):
         return getattr(imp_deriv, self.component)
 
 
-@deprecate_class(removal_version="0.23.0", error=False)
-class PointNaturalSource(Impedance):
-    """This class is deprecated and will be removed in simpeg v0.23.0.
-    Please use :class:`.Impedance`."""
+class PointNaturalSource(BaseRx):
+    """Point receiver class for magnetotelluric simulations.
+
+    This class is deprecated and will be removed in SimPEG v0.23.0.
+    Please use :class:`.natural_source.receivers.Impedance`.
+    Assumes that the data locations are standard xyz coordinates;
+    i.e. (x,y,z) is (Easting, Northing, up).
+
+    Parameters
+    ----------
+    locations : (n_loc, n_dim) numpy.ndarray
+        Receiver locations.
+    orientation : {'xx', 'xy', 'yx', 'yy'}
+        MT receiver orientation.
+    component : {'real', 'imag', 'apparent_resistivity', 'phase'}
+        MT data type.
+    """
 
     def __init__(
         self,
@@ -1222,19 +1218,384 @@ class PointNaturalSource(Impedance):
         locations_e=None,
         locations_h=None,
     ):
-        super().__init__(
-            locations=locations,
-            orientation=orientation,
-            component=component,
-            locations_e=locations_e,
-            locations_h=locations_h,
+        FutureWarning(
+            "PointNaturalSource will be removed in SimPEG v0.23.0. Please use the Impedance class."
+        )
+
+        self.orientation = orientation
+        self.component = component
+
+        # check if locations_e or h have been provided
+        if (locations_e is not None) and (locations_h is not None):
+            # check that locations are same size
+            if locations_e.size == locations_h.size:
+                self._locations_e = locations_e
+                self._locations_h = locations_h
+            else:
+                raise Exception("location h needs to be same size as location e")
+
+            locations = np.hstack([locations_e, locations_h])
+        elif locations is not None:
+            # check shape of locations
+            if isinstance(locations, list):
+                if len(locations) == 2:
+                    self._locations_e = locations[0]
+                    self._locations_h = locations[1]
+                elif len(locations) == 1:
+                    self._locations_e = locations[0]
+                    self._locations_h = locations[0]
+                else:
+                    raise Exception("incorrect size of list, must be length of 1 or 2")
+                locations = locations[0]
+            elif isinstance(locations, np.ndarray):
+                self._locations_e = locations
+                self._locations_h = locations
+            else:
+                raise Exception("locations need to be either a list or numpy array")
+        else:
+            locations = np.array([[0.0]])
+        super().__init__(locations)
+
+    @property
+    def component(self):
+        """Data type; i.e. "real", "imag", "apparent_resistivity", "phase"
+
+        Returns
+        -------
+        str
+            Data type; i.e. "real", "imag", "apparent_resistivity", "phase"
+        """
+        return self._component
+
+    @component.setter
+    def component(self, var):
+        self._component = validate_string(
+            "component",
+            var,
+            [
+                ("real", "re", "in-phase", "in phase"),
+                ("imag", "imaginary", "im", "out-of-phase", "out of phase"),
+                (
+                    "apparent_resistivity",
+                    "apparent resistivity",
+                    "appresistivity",
+                    "apparentresistivity",
+                    "apparent-resistivity",
+                    "apparent_resistivity",
+                    "appres",
+                    "app_res",
+                    "rho",
+                    "rhoa",
+                ),
+                ("phase", "phi"),
+            ],
+        )
+
+    @property
+    def orientation(self):
+        """Orientation of the receiver.
+
+        Returns
+        -------
+        str
+            Orientation of the receiver. One of {'xx', 'xy', 'yx', 'yy'}
+        """
+        return self._orientation
+
+    @orientation.setter
+    def orientation(self, var):
+        self._orientation = validate_string(
+            "orientation", var, string_list=("xx", "xy", "yx", "yy")
+        )
+
+    @property
+    def locations_e(self):
+        """Electric field measurement locations
+
+        Returns
+        -------
+        numpy.ndarray
+            Location where the electric field is measured for all receiver data
+        """
+        return self._locations_e
+
+    @property
+    def locations_h(self):
+        """Magnetic field measurement locations
+
+        Returns
+        -------
+        numpy.ndarray
+            Location where the magnetic field is measured for all receiver data
+        """
+        return self._locations_h
+
+    def _eval_impedance(self, src, mesh, f):
+        if mesh.dim < 3 and self.orientation in ["xx", "yy"]:
+            return 0.0
+        e = f[src, "e"]
+        h = f[src, "h"]
+        if mesh.dim == 3:
+            if self.orientation[0] == "x":
+                e = _getP(self, mesh, "Ex", "e") @ e
+            else:
+                e = _getP(self, mesh, "Ey", "e") @ e
+
+            hx = _getP(self, mesh, "Fx", "h") @ h
+            hy = _getP(self, mesh, "Fy", "h") @ h
+            if self.orientation[1] == "x":
+                h = hy
+            else:
+                h = -hx
+
+            top = e[:, 0] * h[:, 1] - e[:, 1] * h[:, 0]
+            bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
+        else:
+            if mesh.dim == 1:
+                e_loc = f.aliasFields["e"][1]
+                h_loc = f.aliasFields["h"][1]
+                PE = _getP(self, mesh, e_loc)
+                PH = _getP(self, mesh, h_loc)
+            elif mesh.dim == 2:
+                if self.orientation == "xy":
+                    PE = _getP(self, mesh, "Ex")
+                    PH = _getP(self, mesh, "CC")
+                elif self.orientation == "yx":
+                    PE = _getP(self, mesh, "CC")
+                    PH = _getP(self, mesh, "Ex")
+            top = PE @ e[:, 0]
+            bot = PH @ h[:, 0]
+
+            # need to negate if 'yx' and fields are xy
+            # and as well if 'xy' and fields are 'yx'
+            if mesh.dim == 1 and self.orientation != f.field_directions:
+                bot = -bot
+        return top / bot
+
+    def _eval_impedance_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
+        if mesh.dim < 3 and self.orientation in ["xx", "yy"]:
+            if adjoint:
+                return 0 * v
+            else:
+                return 0 * du_dm_v
+        e = f[src, "e"]
+        h = f[src, "h"]
+        if mesh.dim == 3:
+            if self.orientation[0] == "x":
+                Pe = _getP(self, mesh, "Ex", "e")
+                e = Pe @ e
+            else:
+                Pe = _getP(self, mesh, "Ey", "e")
+                e = Pe @ e
+
+            Phx = _getP(self, mesh, "Fx", "h")
+            Phy = _getP(self, mesh, "Fy", "h")
+            hx = Phx @ h
+            hy = Phy @ h
+            if self.orientation[1] == "x":
+                h = hy
+            else:
+                h = -hx
+
+            top = e[:, 0] * h[:, 1] - e[:, 1] * h[:, 0]
+            bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
+            imp = top / bot
+        else:
+            if mesh.dim == 1:
+                e_loc = f.aliasFields["e"][1]
+                h_loc = f.aliasFields["h"][1]
+                PE = _getP(self, mesh, e_loc)
+                PH = _getP(self, mesh, h_loc)
+            elif mesh.dim == 2:
+                if self.orientation == "xy":
+                    PE = _getP(self, mesh, "Ex")
+                    PH = _getP(self, mesh, "CC")
+                elif self.orientation == "yx":
+                    PE = _getP(self, mesh, "CC")
+                    PH = _getP(self, mesh, "Ex")
+
+            top = PE @ e[:, 0]
+            bot = PH @ h[:, 0]
+
+            if mesh.dim == 1 and self.orientation != f.field_directions:
+                bot = -bot
+
+            imp = top / bot
+
+        if adjoint:
+            if self.component == "phase":
+                # gradient of arctan2(y, x) is (-y/(x**2 + y**2), x/(x**2 + y**2))
+                v = 180 / np.pi * imp / (imp.real**2 + imp.imag**2) * v
+                # switch real and imaginary, and negate real part of output
+                v = -v.imag - 1j * v.real
+                # imaginary part gets extra (-) due to conjugate transpose
+            elif self.component == "apparent_resistivity":
+                v = 2 * _alpha(src) * imp * v
+                v = v.real - 1j * v.imag
+            elif self.component == "imag":
+                v = -1j * v
+
+            # Work backwards!
+            gtop_v = v / bot
+            gbot_v = -imp * v / bot
+            n_d = self.nD
+
+            if mesh.dim == 3:
+                ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v[..., None]
+                ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v[..., None]
+                ge_v = np.c_[h[:, 1], -h[:, 0]] * gtop_v[..., None]
+                gh_v = np.c_[-e[:, 1], e[:, 0]] * gtop_v[..., None]
+
+                if self.orientation[1] == "x":
+                    ghy_v += gh_v
+                else:
+                    ghx_v -= gh_v
+
+                if v.ndim == 2:
+                    # collapse into a long list of n_d vectors
+                    ghx_v = ghx_v.reshape((n_d, -1))
+                    ghy_v = ghy_v.reshape((n_d, -1))
+                    ge_v = ge_v.reshape((n_d, -1))
+
+                gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v
+                ge_v = Pe.T @ ge_v
+            else:
+                if mesh.dim == 1 and self.orientation != f.field_directions:
+                    gbot_v = -gbot_v
+
+                gh_v = PH.T @ gbot_v
+                ge_v = PE.T @ gtop_v
+
+            gfu_h_v, gfm_h_v = f._hDeriv(src, None, gh_v, adjoint=True)
+            gfu_e_v, gfm_e_v = f._eDeriv(src, None, ge_v, adjoint=True)
+
+            return gfu_h_v + gfu_e_v, gfm_h_v + gfm_e_v
+
+        if mesh.dim == 3:
+            de_v = Pe @ f._eDeriv(src, du_dm_v, v, adjoint=False)
+            dh_v = f._hDeriv(src, du_dm_v, v, adjoint=False)
+            dhx_v = Phx @ dh_v
+            dhy_v = Phy @ dh_v
+            if self.orientation[1] == "x":
+                dh_dm_v = dhy_v
+            else:
+                dh_dm_v = -dhx_v
+
+            dtop_v = (
+                e[:, 0] * dh_dm_v[:, 1]
+                + de_v[:, 0] * h[:, 1]
+                - e[:, 1] * dh_dm_v[:, 0]
+                - de_v[:, 1] * h[:, 0]
+            )
+            dbot_v = (
+                hx[:, 0] * dhy_v[:, 1]
+                + dhx_v[:, 0] * hy[:, 1]
+                - hx[:, 1] * dhy_v[:, 0]
+                - dhx_v[:, 1] * hy[:, 0]
+            )
+            imp_deriv = (bot * dtop_v - top * dbot_v) / (bot * bot)
+        else:
+            de_v = PE @ f._eDeriv(src, du_dm_v, v, adjoint=False)
+            dh_v = PH @ f._hDeriv(src, du_dm_v, v, adjoint=False)
+
+            if mesh.dim == 1 and self.orientation != f.field_directions:
+                dh_v = -dh_v
+
+            imp_deriv = (de_v - imp * dh_v) / bot
+
+        if self.component == "apparent_resistivity":
+            rx_deriv = (
+                2
+                * _alpha(src)
+                * (imp.real * imp_deriv.real + imp.imag * imp_deriv.imag)
+            )
+        elif self.component == "phase":
+            amp2 = imp.imag**2 + imp.real**2
+            deriv_re = -imp.imag / amp2 * imp_deriv.real
+            deriv_im = imp.real / amp2 * imp_deriv.imag
+
+            rx_deriv = (180 / np.pi) * (deriv_re + deriv_im)
+        else:
+            rx_deriv = getattr(imp_deriv, self.component)
+        return rx_deriv
+
+    def eval(self, src, mesh, f, return_complex=False):  # noqa: A003
+        """
+        Project the fields to natural source data.
+
+        Parameters
+        ----------
+        src : simpeg.electromagnetics.frequency_domain.sources.BaseFDEMSrc
+            NSEM source
+        mesh : discretize.TensorMesh mesh
+            Mesh on which the discretize solution is obtained
+        f : simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM
+            NSEM fields object of the source
+        return_complex : bool (optional)
+            Flag for return the complex evaluation
+
+        Returns
+        -------
+        numpy.ndarray
+            Evaluated data for the receiver
+        """
+
+        imp = self._eval_impedance(src, mesh, f)
+        if return_complex:
+            return imp
+        elif self.component == "apparent_resistivity":
+            return _alpha(src) * (imp.real**2 + imp.imag**2)
+        elif self.component == "phase":
+            return 180 / np.pi * (np.arctan2(imp.imag, imp.real))
+        else:
+            return getattr(imp, self.component)
+
+    def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
+        """Derivative of projection with respect to the fields
+
+        Parameters
+        ----------
+        str : simpeg.electromagnetics.frequency_domain.sources.BaseFDEMSrc
+            NSEM source
+        mesh : discretize.TensorMesh
+            Mesh on which the discretize solution is obtained
+        f : simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM
+            NSEM fields object of the source
+        du_dm_v : None,
+            Supply pre-computed derivative?
+        v : numpy.ndarray
+            Vector of size
+        adjoint : bool, default = ``False``
+            If ``True``, compute the adjoint operation
+
+        Returns
+        -------
+        numpy.ndarray
+            Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True)
+            for both polarizations.
+        """
+        return self._eval_impedance_deriv(
+            src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
         )
 
 
-@deprecate_class(removal_version="0.23.0", error=False)
-class Point3DTipper(Tipper):
-    """This class is deprecated and will be removed in simpeg v0.23.0.
-    Please use :class:`.Tipper`."""
+class Point3DTipper(PointNaturalSource):
+    """Point receiver class for Z-axis tipper simulations.
+
+    This class is deprecated and will be removed in SimPEG v0.23.0.
+    Please use :class:`.natural_source.receivers.Tipper`.
+    Assumes that the data locations are standard xyz coordinates;
+    i.e. (x,y,z) is (Easting, Northing, up).
+
+    Parameters
+    ----------
+    locations : (n_loc, n_dim) numpy.ndarray
+        Receiver locations.
+    orientation : str, default = 'zx'
+        NSEM receiver orientation. Must be one of {'zx', 'zy'}
+    component : str, default = 'real'
+        NSEM data type. Choose one of {'real', 'imag', 'apparent_resistivity', 'phase'}
+    """
 
     def __init__(
         self,
@@ -1244,9 +1605,178 @@ class Point3DTipper(Tipper):
         locations_e=None,
         locations_h=None,
     ):
+
+        FutureWarning(
+            "Point3DTipper will be removed in SimPEG v0.23.0. Please use the Tipper class."
+        )
+
         super().__init__(
             locations=locations,
             orientation=orientation,
             component=component,
-            locations_bs=None,
+            locations_e=locations_e,
+            locations_h=locations_h,
         )
+
+    @property
+    def orientation(self):
+        """Orientation of the receiver.
+
+        Returns
+        -------
+        str
+            Orientation of the receiver. One of {'zx', 'zy'}
+        """
+        return self._orientation
+
+    @orientation.setter
+    def orientation(self, var):
+        self._orientation = validate_string(
+            "orientation", var, string_list=("zx", "zy")
+        )
+
+    def _eval_tipper(self, src, mesh, f):
+        # will grab both primary and secondary and sum them!
+        h = f[src, "h"]
+
+        hx = _getP(self, mesh, "Fx", "h") @ h
+        hy = _getP(self, mesh, "Fy", "h") @ h
+        hz = _getP(self, mesh, "Fz", "h") @ h
+
+        if self.orientation[1] == "x":
+            h = -hy
+        else:
+            h = hx
+
+        top = h[:, 0] * hz[:, 1] - h[:, 1] * hz[:, 0]
+        bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
+        return top / bot
+
+    def _eval_tipper_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
+        # will grab both primary and secondary and sum them!
+        h = f[src, "h"]
+
+        Phx = _getP(self, mesh, "Fx", "h")
+        Phy = _getP(self, mesh, "Fy", "h")
+        Phz = _getP(self, mesh, "Fz", "h")
+        hx = Phx @ h
+        hy = Phy @ h
+        hz = Phz @ h
+
+        if self.orientation[1] == "x":
+            h = -hy
+        else:
+            h = hx
+
+        top = h[:, 0] * hz[:, 1] - h[:, 1] * hz[:, 0]
+        bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
+        imp = top / bot
+
+        if adjoint:
+            # Work backwards!
+            gtop_v = (v / bot)[..., None]
+            gbot_v = (-imp * v / bot)[..., None]
+            n_d = self.nD
+
+            ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v
+            ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v
+            ghz_v = np.c_[-h[:, 1], h[:, 0]] * gtop_v
+            gh_v = np.c_[hz[:, 1], -hz[:, 0]] * gtop_v
+
+            if self.orientation[1] == "x":
+                ghy_v -= gh_v
+            else:
+                ghx_v += gh_v
+
+            if v.ndim == 2:
+                # collapse into a long list of n_d vectors
+                ghx_v = ghx_v.reshape((n_d, -1))
+                ghy_v = ghy_v.reshape((n_d, -1))
+                ghz_v = ghz_v.reshape((n_d, -1))
+
+            gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v + Phz.T @ ghz_v
+            return f._hDeriv(src, None, gh_v, adjoint=True)
+
+        dh_v = f._hDeriv(src, du_dm_v, v, adjoint=False)
+        dhx_v = Phx @ dh_v
+        dhy_v = Phy @ dh_v
+        dhz_v = Phz @ dh_v
+        if self.orientation[1] == "x":
+            dh_v = -dhy_v
+        else:
+            dh_v = dhx_v
+
+        dtop_v = (
+            h[:, 0] * dhz_v[:, 1]
+            + dh_v[:, 0] * hz[:, 1]
+            - h[:, 1] * dhz_v[:, 0]
+            - dh_v[:, 1] * hz[:, 0]
+        )
+        dbot_v = (
+            hx[:, 0] * dhy_v[:, 1]
+            + dhx_v[:, 0] * hy[:, 1]
+            - hx[:, 1] * dhy_v[:, 0]
+            - dhx_v[:, 1] * hy[:, 0]
+        )
+
+        return (bot * dtop_v - top * dbot_v) / (bot * bot)
+
+    def eval(self, src, mesh, f, return_complex=False):  # noqa: A003
+        """
+        Project the fields to natural source data.
+
+        Parameters
+        ----------
+        src : simpeg.electromagnetics.frequency_domain.sources.BaseFDEMSrc
+            NSEM source
+        mesh : discretize.TensorMesh mesh
+            Mesh on which the discretize solution is obtained
+        f : simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM
+            NSEM fields object of the source
+        return_complex : bool (optional)
+            Flag for return the complex evaluation
+
+        Returns
+        -------
+        numpy.ndarray
+            Evaluated data for the receiver
+        """
+
+        rx_eval_complex = self._eval_tipper(src, mesh, f)
+
+        return getattr(rx_eval_complex, self.component)
+
+    def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
+        """Derivative of projection with respect to the fields
+
+        Parameters
+        ----------
+        str : simpeg.electromagnetics.frequency_domain.sources.BaseFDEMSrc
+            NSEM source
+        mesh : discretize.TensorMesh
+            Mesh on which the discretize solution is obtained
+        f : simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM
+            NSEM fields object of the source
+        du_dm_v : None,
+            Supply pre-computed derivative?
+        v : numpy.ndarray
+            Vector of size
+        adjoint : bool, default = ``False``
+            If ``True``, compute the adjoint operation
+
+        Returns
+        -------
+        numpy.ndarray
+            Calculated derivative (nD,) (adjoint=False) and (nP,2) (adjoint=True)
+            for both polarizations
+        """
+
+        if adjoint:
+            if self.component == "imag":
+                v = -1j * v
+        imp_deriv = self._eval_tipper_deriv(
+            src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
+        )
+        if adjoint:
+            return imp_deriv
+        return getattr(imp_deriv, self.component)
