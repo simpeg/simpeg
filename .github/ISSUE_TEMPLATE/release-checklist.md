@@ -6,8 +6,6 @@ labels: "maintenance"
 assignees: ""
 ---
 
-<!-- Optional -->
-
 **Target date:** YYYY/MM/DD
 
 ## Generate release notes
