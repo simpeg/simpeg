@@ -1,0 +1,169 @@
+.. _0.22.0_notes:
+
+============================
+SimPEG 0.22.0 Release Notes
+============================
+
+June 26th, 2024
+
+.. contents:: Highlights
+    :depth: 3
+
+Updates
+=======
+
+New features
+------------
+
+
+Documentation
+-------------
+
+..
+    list improvements to documentation
+
+Bugfixes
+--------
+
+..
+    list bugfixes, include link to related PRs
+
+Breaking changes
+----------------
+
+..
+    list breaking changes introduced in this new release, include link to
+    releated PRs
+
+Contributors
+============
+
+This is a combination of contributors and reviewers who've made contributions
+towards this release (in no particular order).
+
+* `@dccowan <https://github.com/dccowan>`__
+* `@jcapriot <https://github.com/jcapriot>`__
+* `@jedman <https://github.com/jedman>`__
+* `@kehrl-kobold <https://github.com/kehrl-kobold>`__
+* `@lheagy <https://github.com/lheagy>`__
+* `@santisoler <https://github.com/santisoler>`__
+* `@williamjsdavis <https://github.com/williamjsdavis>`__
+
+We would like to highlight the contributions made by new contributors:
+
+-  `@kehrl-kobold <https://github.com/kehrl-kobold>`__ made their first contribution in
+   https://github.com/simpeg/simpeg/pull/1390
+-  `@williamjsdavis <https://github.com/williamjsdavis>`__ made their first contribution in
+   https://github.com/simpeg/simpeg/pull/1486
+
+
+Pull Requests
+=============
+
+-  Remove the parameters argument from docstring by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1417
+-  Use reviewdog to annotate PR’s with black and flake8 errors. by
+   `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1424
+-  Safely run reviewdog on ``pull_request_target`` events by `@jcapriot <https://github.com/jcapriot>`__
+   in https://github.com/simpeg/simpeg/pull/1427
+-  Add new Issue template for making a release by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1410
+-  Replace use of ``refine_tree_xyz`` in DCIP tutorials by `@santisoler <https://github.com/santisoler>`__
+   in https://github.com/simpeg/simpeg/pull/1381
+-  Fix rst syntax in release notes for v0.21.0 by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1434
+-  Move to a PEP8 compliant package name. by `@jcapriot <https://github.com/jcapriot>`__ in
+   https://github.com/simpeg/simpeg/pull/1430
+-  Update copyright year in **init**.py by `@lheagy <https://github.com/lheagy>`__ in
+   https://github.com/simpeg/simpeg/pull/1436
+-  Replace SimPEG for simpeg across docstrings by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1438
+-  Lowercase simpeg for generating coverage on Azure by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1443
+-  Rename spontaneous potential to self potential by `@lheagy <https://github.com/lheagy>`__ in
+   https://github.com/simpeg/simpeg/pull/1422
+-  Fix distance calculation in ``convert_survey_3d_to_2d_lines`` by
+   `@kehrl-kobold <https://github.com/kehrl-kobold>`__ in https://github.com/simpeg/simpeg/pull/1390
+-  Replace SimPEG for simpeg in API reference by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1446
+-  Replace SimPEG for simpeg in getting started pages by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1447
+-  Check inputs for converting 3d surveys to 2d lines by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1392
+-  Always use Pydata Sphinx theme for building docs by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1445
+-  Simplify interface of UniformBackgroundField by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1421
+-  Ensure the queue’s are joined when the meta simulation is joined. by
+   `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1464
+-  Add maintenance issue template by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1468
+-  Add instructions to update the environment by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1462
+-  Stop recommending mamba for installing simpeg by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1463
+-  Fix bug on arguments of beta estimator directives by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1460
+-  Improve interface for DC Dipole source by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1393
+-  Use Numpy random number generator in codebase by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1394
+-  Extend docstrings for FDEM and TDEM fields and 3D simulations by
+   `@dccowan <https://github.com/dccowan>`__ in https://github.com/simpeg/simpeg/pull/1414
+-  Magnetic simulation with Choclo as engine by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1321
+-  Fix typos in EM docstrings by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1473
+-  Fix call to private method in GaussianMixtureWithPrior by `@santisoler <https://github.com/santisoler>`__
+   in https://github.com/simpeg/simpeg/pull/1476
+-  Add version switcher to Sphinx docs by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1428
+-  Use random seed on synthetic data in mag tests by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1457
+-  Fix links to source code in documentation pages by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1444
+-  Fix script for new deployment of docs by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1478
+-  Print SimPEG version in the inversion log by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1477
+-  Use Numpy rng in FDEM tests by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1449
+-  Add ``random_seed`` argument to objective fun’s derivative tests by
+   `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1448
+-  Add ``random_seed`` to the ``test`` method of maps by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1465
+-  Use Numpy rng in TDEM tests by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1452
+-  Use random seed in missed objective function tests by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1483
+-  Fix contour colors in gravity plot in User Guide by `@williamjsdavis <https://github.com/williamjsdavis>`__
+   in https://github.com/simpeg/simpeg/pull/1486
+-  Hide type hints from signatures in documentation pages by `@santisoler <https://github.com/santisoler>`__
+   in https://github.com/simpeg/simpeg/pull/1471
+-  Reorganize the maps submodule by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1480
+-  Pyproject.toml by `@jcapriot <https://github.com/jcapriot>`__ in
+   https://github.com/simpeg/simpeg/pull/1482
+-  Use Numpy rng in static EM tests by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1451
+-  Split Azure Pipelines configuration into multiple files by
+   `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1481
+-  Ignore ``survey_type`` argument in DC and SIP surveys by `@santisoler <https://github.com/santisoler>`__
+   in https://github.com/simpeg/simpeg/pull/1458
+-  Update deployment of docs to simpeg-docs by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1490
+-  Change cron time to test new deployment of docs by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1492
+-  Revert “Change cron time to test new deployment of docs (#1492)” by
+   `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1494
+-  Fix F821 flake error: undefined variable by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1487
+-  Use Numpy rng in viscous remanent mag tests by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1453
+-  Use Numpy rng in NSEM tests by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1450
+-  Unwrap lines in release checklist by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1498
+
+**Full Changelog**:
+https://github.com/simpeg/simpeg/compare/v0.21.1…v0.22.0
