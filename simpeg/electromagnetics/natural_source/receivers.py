@@ -13,7 +13,6 @@ def _alpha(src):
     return 1 / (2 * np.pi * mu_0 * src.frequency)
 
 
-# THIS SHOULD BE HIDDEN METHOD
 def _getP(rx, mesh, projected_grid, field="e", is_tipper_bs=False):
     """Projection matrix from discrete field solution to measurement locations.
 
@@ -74,7 +73,7 @@ def _getP(rx, mesh, projected_grid, field="e", is_tipper_bs=False):
         else:
             locs = rx.locations
     else:
-        raise ValueError("Field type {} unrecognized. Use 'e' or 'h'".format(field))
+        raise ValueError("Field type {field} unrecognized. Use 'e' or 'h'")
 
     P = mesh.get_interpolation_matrix(locs, projected_grid)
     if rx.storeProjections:
@@ -1050,9 +1049,9 @@ class Tipper(BaseRx):
                 (
                     "'locations_e' and 'locations_h' are deprecated properties that are unused by the Tipper class.",
                     "Receiver locations are set using 'locations' (and 'locations_bs').",
-                    "These property will be removed in simpeg v.0.23.0.",
+                    "These properties will be removed in simpeg v.0.23.0.",
                 ),
-                DeprecationWarning,
+                FutureWarning,
                 stacklevel=2,
             )
 
