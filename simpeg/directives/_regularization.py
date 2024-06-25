@@ -121,7 +121,7 @@ class UpdateIRLS(BetaSchedule):
 
     @percentile.setter
     def percentile(self, value):
-        self._percentile = validate_integer("percentile", value, min_val=0, max_val=100)
+        self._percentile = validate_float("percentile", value, min_val=0, max_val=100)
 
     @property
     def chifact_start(self) -> float:
