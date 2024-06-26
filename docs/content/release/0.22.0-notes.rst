@@ -12,8 +12,8 @@ June 26th, 2024
 Updates
 =======
 
-SimPEG has been renamed to ``simpeg``
--------------------------------------
+``SimPEG`` has been renamed to ``simpeg``
+-----------------------------------------
 
 SimPEG v0.22.0 comes with a major change that everyone will experience! We are
 excited to announce that we renamed the package from ``SimPEG`` to ``simpeg``,
@@ -25,21 +25,20 @@ Since this version and moving forward we'll import ``simpeg`` as:
 
    import simpeg
 
-or any of its submodules:
+or any of its submodules as:
 
 .. code:: python
 
    from simpeg.potential_fields import magnetics
 
 Although we encourage users to update their code after they update their
-installed SimPEG version, we still support the old:
+installed SimPEG version, we still support the old ``SimPEG``.
+We'll just receive a warning about the deprecation of ``SimPEG`` with
+upper-cases if we try to import it:
 
 .. code:: python
 
    import SimPEG
-
-We'll just receive a warning about the deprecation of ``SimPEG`` with
-upper-cases:
 
 .. code::
 
@@ -48,11 +47,12 @@ upper-cases:
 New features
 ------------
 
-Now we can use a faster and more memory efficient implementation of the
-magnetic simulation
-:class:`~simpeg.potential_fields.magnetics.Simulation3DIntegral`, making use of
-Choclo and Numba. To make use of this functionality you will need to `install
-Choclo <https://www.fatiando.org/choclo/latest/install.html>`__ in addition to
+We have a faster and more memory efficient implementation of the magnetic
+simulation
+:class:`~simpeg.potential_fields.magnetics.Simulation3DIntegral`, built using
+`Choclo <https://www.fatiando.org/choclo>`__ and `Numba <https://numba.pydata.org/>`__.
+In order to use it, you will need to `install Choclo
+<https://www.fatiando.org/choclo/latest/install.html>`__ in addition to
 ``simpeg``. This new implementation is able to forward model TMI and all
 magnetic field components with susceptibility (scalar) or effective
 susceptibility (vector) models.
@@ -60,9 +60,10 @@ susceptibility (vector) models.
 Documentation
 -------------
 
-Since v0.22.0 we host the documentation pages for `latest
+Since v0.22.0, we serve the documentation pages for `latest
 <https://docs.simpeg.xyz/latest>`__ and older versions of SimPEG, along with
-the pages for the `latest development version <https://docs.simpeg.xyz/dev>`__.
+the pages for the `development version <https://docs.simpeg.xyz/dev>`__ (the
+latest version in the ``main`` branch of our GitHub repository).
 The docs now include a version switcher in the top bar that will allow users to
 navigate between the pages for each different version.
 
@@ -82,24 +83,23 @@ and 3D simulations got greatly extended, with more details on the parameters
 for each method, along with more mathematical background for their
 implementations.
 
-We fixed the links to the source code for each class, function and method:
-they now point to the corresponding version in the GitHub repository.
-
-Lastly, we applied general fixes to typos, the contour colors for one of the
-gravity examples, and to the broken links to the source code for each class,
-function and method. These links now point to their corresponding version in
-the GitHub repository.
+Lastly, we fixed typos, the contour colors for one of the gravity examples, and
+the broken links to the source code for each class, function and method.
+These links now point to their corresponding version in the GitHub repository.
 
 Bugfixes
 --------
 
 This release comes with a few bug fixes. We solved an issue with the distance
-calculation in a utility function that converts 3D DC-IP survey locations to 2D
-lines. We fixed a bug on how the arguments passed to the directives that
-estimate the beta parameter where being passed to the parent classes. We
-updated the code in :class:`~simpeg.utils.pgi_utils.GaussianMixtureWithPrior`
-to make it compatible with the latest versions of scikit-learn. And we now make
-sure that the queues are joined when the meta simulation is joined.
+calculation in the
+:func:`~simpeg.electromagnetics.static.utils.convert_survey_3d_to_2d_lines`
+utility function that converts 3D DC-IP survey locations to 2D lines. We fixed
+a bug on how the arguments passed to the directives that estimate the beta
+parameter where being passed to the parent classes. We updated the code in
+:class:`~simpeg.utils.pgi_utils.GaussianMixtureWithPrior` to make it compatible
+with the latest versions of `scikit-learn <https://scikit-learn.org/>`__. And
+we now make sure that the queues are joined when the
+:class:`~simpeg.meta.MetaSimulation` is joined.
 
 Breaking changes
 ----------------
@@ -111,13 +111,12 @@ reflect the nature of the process, as the term being used in the literature.
 General improvements
 --------------------
 
-This release comes with several improvements.
 We improved the interface of the
-:class:`~simpeg.potential_fields.magnetics.UniformBackgroundField` class, and for
-the DC :class:`~simpeg.electromagnetics.static.resistivity.sources.Dipole`
+:class:`~simpeg.potential_fields.magnetics.UniformBackgroundField` class, and
+for the DC :class:`~simpeg.electromagnetics.static.resistivity.sources.Dipole`
 source class.
 
-We moved away from the deprecated Numpy's global random seed and replace them
+We moved away from the deprecated Numpy's global random seeds and replace them
 for the new `random number generator object
 <https://numpy.org/doc/stable/reference/random/generator.html#random-generator>`__
 in the entire SimPEG's code base and in most of its tests. This greatly helps
