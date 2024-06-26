@@ -214,3 +214,4 @@ Pull Requests
 -  Use Numpy rng in viscous remanent mag tests by `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1453
 -  Use Numpy rng in NSEM tests by `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1450
 -  Unwrap lines in release checklist by `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1498
+-  Improve instructions to update versions.json by `@santisoler <https://github.com/santisoler>` in https://github.com/simpeg/simpeg/pull/1500
