@@ -12,6 +12,39 @@ June 26th, 2024
 Updates
 =======
 
+SimPEG has been renamed to ``simpeg``
+-------------------------------------
+
+SimPEG v0.22.0 comes with a major change that everyone will experience! We are
+excited to announce that we renamed the package from ``SimPEG`` to ``simpeg``,
+making it compliant to `PEP8 <https://peps.python.org/pep-0008/>`__.
+
+Since this version and moving forward we'll import ``simpeg`` as:
+
+.. code:: python
+
+   import simpeg
+
+or any of its submodules:
+
+.. code:: python
+
+   from simpeg.potential_fields import magnetics
+
+Although we encourage users to update their code after they update their
+installed SimPEG version, we still support the old:
+
+.. code:: python
+
+   import SimPEG
+
+We'll just receive a warning about the deprecation of ``SimPEG`` with
+upper-cases:
+
+.. code::
+
+   FutureWarning: Importing `SimPEG` is deprecated. please import from `simpeg`.
+
 New features
 ------------
 
@@ -70,42 +103,6 @@ sure that the queues are joined when the meta simulation is joined.
 
 Breaking changes
 ----------------
-
-SimPEG has been renamed
-^^^^^^^^^^^^^^^^^^^^^^^
-
-SimPEG v0.22.0 comes with a major change that everyone will experience! We are
-excited to announce that we renamed the package from ``SimPEG`` to ``simpeg``,
-making it compliant to `PEP8 <https://peps.python.org/pep-0008/>`__.
-
-Since this version and moving forward we'll import ``simpeg`` as:
-
-.. code:: python
-
-   import simpeg
-
-or any of its submodules:
-
-.. code:: python
-
-   from simpeg.potential_fields import magnetics
-
-Although we encourage users to update their code after they update their
-installed SimPEG version, we still support the old:
-
-.. code:: python
-
-   import SimPEG
-
-We'll just receive a warning about the deprecation of ``SimPEG`` with
-uppercases:
-
-.. code::
-
-   FutureWarning: Importing `SimPEG` is deprecated. please import from `simpeg`.
-
-Self potential
-^^^^^^^^^^^^^^
 
 The :mod:`~simpeg.electromagnetics.static.spontaneous_potential` has been
 renamed to :mod:`~simpeg.electromagnetics.static.self_potential` to accurately
