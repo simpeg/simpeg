@@ -6,7 +6,8 @@
     {
         "name": "v0.22.0 (latest)",
         "version": "0.22.0",
-        "url": "https://docs.simpeg.xyz/v0.22.0/"
+        "url": "https://docs.simpeg.xyz/v0.22.0/",
+        "preferred": true
     },
     {
         "name": "v0.21.1",
