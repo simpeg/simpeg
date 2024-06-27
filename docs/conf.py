@@ -250,7 +250,7 @@ simpeg_version = parse(simpeg.__version__)
 if simpeg_version.is_devrelease:
     switcher_version = "dev"
 else:
-    switcher_version = f"v{simpeg_version.public}"
+    switcher_version = simpeg_version.public
 
 # Use Pydata Sphinx theme
 html_theme = "pydata_sphinx_theme"
