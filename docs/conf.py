@@ -295,6 +295,7 @@ html_theme_options = {
         "version_match": switcher_version,
         "json_url": "https://docs.simpeg.xyz/latest/_static/versions.json",
     },
+    "show_version_warning_banner": True,
 }
 
 html_logo = "images/simpeg-logo.png"
