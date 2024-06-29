@@ -2,6 +2,7 @@ from ...utils.code_utils import (
     validate_string,
     validate_ndarray_with_shape,
 )
+import warnings
 import numpy as np
 from scipy.constants import mu_0
 from ...survey import BaseRx
@@ -1653,8 +1654,10 @@ class Point3DTipper(PointNaturalSource):
         locations_h=None,
     ):
 
-        FutureWarning(
-            "Point3DTipper will be removed in SimPEG v0.23.0. Please use the Tipper class."
+        warnings.warn(
+            "Point3DTipper will be removed in SimPEG v0.24.0. Please use the Impedance class.",
+            FutureWarning,
+            stacklevel=1,
         )
 
         super().__init__(
