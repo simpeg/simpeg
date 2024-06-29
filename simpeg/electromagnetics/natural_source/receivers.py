@@ -71,7 +71,7 @@ def _getP(rx, mesh, projected_grid, field="e", is_tipper_bs=False):
         else:
             locs = rx.locations
     else:
-        raise ValueError("Field type {field} unrecognized. Use 'e' or 'h'")
+        raise ValueError(f"Field type {field} unrecognized. Use 'e' or 'h'")
 
     P = mesh.get_interpolation_matrix(locs, projected_grid)
     if rx.storeProjections:
@@ -306,7 +306,7 @@ class ApparentConductivity(BaseRx):
             Mesh on which the discretize solution is obtained.
         f : simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM
             NSEM fields object for the source.
-        du_dm_v : None,
+        du_dm_v : None, optional
             Supply pre-computed derivative?
         v : numpy.ndarray, optional
             Vector of size
@@ -506,7 +506,7 @@ class Impedance(ApparentConductivity):
             # need to negate if 'yx' and fields are xy
             # and as well if 'xy' and fields are 'yx'
             if mesh.dim == 1 and self.orientation != f.field_directions:
-                bot = -bot
+                bot *= -1
         return top / bot
 
     def _eval_impedance_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
@@ -555,7 +555,7 @@ class Impedance(ApparentConductivity):
             bot = PH @ h[:, 0]
 
             if mesh.dim == 1 and self.orientation != f.field_directions:
-                bot = -bot
+                bot *= -1
 
             imp = top / bot
 
@@ -636,7 +636,7 @@ class Impedance(ApparentConductivity):
             dh_v = PH @ f._hDeriv(src, du_dm_v, v, adjoint=False)
 
             if mesh.dim == 1 and self.orientation != f.field_directions:
-                dh_v = -dh_v
+                dh_v *= -1
 
             imp_deriv = (de_v - imp * dh_v) / bot
 
@@ -711,7 +711,7 @@ class Impedance(ApparentConductivity):
             Mesh on which the discretize solution is obtained.
         f : simpeg.electromagnetics.frequency_domain.fields.FieldsFDEM
             NSEM fields object for the source.
-        du_dm_v : None,
+        du_dm_v : None, optional
             Supply pre-computed derivative?
         v : numpy.ndarray, optional
             Vector of size
@@ -1193,8 +1193,10 @@ class Tipper(BaseRx):
 class PointNaturalSource(BaseRx):
     """Point receiver class for magnetotelluric simulations.
 
-    This class is deprecated and will be removed in SimPEG v0.23.0.
-    Please use :class:`.natural_source.receivers.Impedance`.
+    .. warning::
+        This class is deprecated and will be removed in SimPEG v0.23.0.
+        Please use :class:`.natural_source.receivers.Impedance`.
+
     Assumes that the data locations are standard xyz coordinates;
     i.e. (x,y,z) is (Easting, Northing, up).
 
@@ -1216,10 +1218,11 @@ class PointNaturalSource(BaseRx):
         locations_e=None,
         locations_h=None,
     ):
-        FutureWarning(
-            "PointNaturalSource will be removed in SimPEG v0.23.0. Please use the Impedance class."
+        warnings.warn(
+            "PointNaturalSource will be removed in SimPEG v0.24.0. Please use the Impedance class.",
+            FutureWarning,
+            stacklevel=1,
         )
-
         self.orientation = orientation
         self.component = component
 
@@ -1624,8 +1627,10 @@ class PointNaturalSource(BaseRx):
 class Point3DTipper(PointNaturalSource):
     """Point receiver class for Z-axis tipper simulations.
 
-    This class is deprecated and will be removed in SimPEG v0.23.0.
-    Please use :class:`.natural_source.receivers.Tipper`.
+    .. warning::
+        This class is deprecated and will be removed in SimPEG v0.24.0.
+        Please use :class:`.natural_source.receivers.Tipper`.
+
     Assumes that the data locations are standard xyz coordinates;
     i.e. (x,y,z) is (Easting, Northing, up).
 
