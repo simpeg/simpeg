@@ -397,5 +397,66 @@ class TestUpdateSensitivityNormalization:
             d_temp.normalization_method = normalization_method
 
 
+class TestSeedProperty:
+    """
+    Test ``seed`` setter methods of directives.
+    """
+
+    directive_classes = (
+        directives.AlphasSmoothEstimate_ByEig,
+        directives.BetaEstimate_ByEig,
+        directives.BetaEstimateMaxDerivative,
+        directives.ScalingMultipleDataMisfits_ByEig,
+    )
+
+    @pytest.mark.parametrize("directive_class", directive_classes)
+    @pytest.mark.parametrize(
+        "seed",
+        (42, np.random.default_rng(seed=1), np.array([1, 2])),
+        ids=("int", "rng", "array"),
+    )
+    def test_valid_seed(self, directive_class, seed):
+        "Test if seed setter works as expected on valid seed arguments."
+        directive = directive_class(seed=seed)
+        assert directive.seed is seed
+
+    @pytest.mark.parametrize("directive_class", directive_classes)
+    @pytest.mark.parametrize("seed", (42.1, np.array([1.0, 2.0])))
+    def test_invalid_seed(self, directive_class, seed):
+        "Test if seed setter works as expected on valid seed arguments."
+        msg = "Unable to initialize the random number generator with "
+        with pytest.raises(TypeError, match=msg):
+            directive_class(seed=seed)
+
+
+class TestBetaEstimatorArguments:
+    """
+    Test if arguments are assigned in beta estimator directives.
+    These tests catch the bug described and fixed in #1460.
+    """
+
+    def test_beta_estimate_by_eig(self):
+        """Test on directives.BetaEstimate_ByEig."""
+        beta0_ratio = 3.0
+        n_pw_iter = 3
+        seed = 42
+        directive = directives.BetaEstimate_ByEig(
+            beta0_ratio=beta0_ratio, n_pw_iter=n_pw_iter, seed=seed
+        )
+        assert directive.beta0_ratio == beta0_ratio
+        assert directive.n_pw_iter == n_pw_iter
+        assert directive.seed == seed
+
+    def test_beta_estimate_max_derivative(self):
+        """Test on directives.BetaEstimateMaxDerivative."""
+        beta0_ratio = 3.0
+        seed = 42
+        directive = directives.BetaEstimateMaxDerivative(
+            beta0_ratio=beta0_ratio, seed=seed
+        )
+        assert directive.beta0_ratio == beta0_ratio
+        assert directive.seed == seed
+
+
 if __name__ == "__main__":
     unittest.main()

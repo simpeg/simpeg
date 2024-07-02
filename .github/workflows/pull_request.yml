@@ -15,7 +15,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies to run the flake8 checks
-        run: pip install -r requirements_style.txt
+        run: .ci/install_style.sh
 
       - name: checkout pull request source
         uses: actions/checkout@v4
@@ -43,7 +43,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies to run the black checks
-        run: pip install -r requirements_style.txt
+        run: .ci/install_style.sh
 
       - name: checkout pull request source
         uses: actions/checkout@v4

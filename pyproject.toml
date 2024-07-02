@@ -1,0 +1,250 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools_scm>=8"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = 'simpeg'
+description = "SimPEG: Simulation and Parameter Estimation in Geophysics"
+readme = 'README.rst'
+requires-python = '>=3.8'
+authors = [
+  {name = 'SimPEG developers', email = 'rowanc1@gmail.com'},
+]
+keywords = [
+    'geophysics', 'inverse problem'
+]
+dependencies = [
+    "numpy>=1.20",
+    "scipy>=1.8",
+    "scikit-learn>=1.2",
+    "pymatsolver>=0.2",
+    "matplotlib",
+    "discretize>=0.10",
+    "geoana>=0.5.0",
+    "empymod>=2.0.0",
+    "pandas",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "Natural Language :: English",
+]
+dynamic = ["version"]
+
+[project.license]
+file = 'LICENSE'
+
+[project.urls]
+Homepage = 'https://simpeg.xyz'
+Documentation = 'https://docs.simpeg.xyz'
+Repository = 'http://github.com/simpeg/simpeg.git'
+
+[project.optional-dependencies]
+dask = ["dask", "zarr", "fsspec>=0.3.3"]
+choclo = ["choclo"]
+reporting = ["scooby"]
+plotting = ["plotly"]
+all = [
+    "simpeg[dask,choclo,plotting,reporting]"
+] # all optional *runtime* dependencies (not related to development)
+style = [
+    "black==24.3.0",
+    "flake8==7.0.0",
+    "flake8-bugbear==23.12.2",
+    "flake8-builtins==2.2.0",
+    "flake8-mutable==1.2.0",
+    "flake8-rst-docstrings==0.3.0",
+    "flake8-docstrings==1.7.0",
+    "flake8-pyproject==1.2.3",
+]
+docs = [
+    "sphinx",
+    "sphinx-gallery>=0.1.13",
+    "sphinxcontrib-apidoc",
+    "pydata-sphinx-theme",
+    "nbsphinx",
+    "numpydoc",
+    "pillow",
+    "sympy",
+    "memory_profiler",
+    "python-kaleido",
+]
+tests = [
+    "simpeg[all,docs]",
+    "pytest",
+    "pytest-cov",
+]
+dev = [
+    "simpeg[all,style,docs,tests]",
+] # the whole kit and caboodle
+
+[tool.setuptools]
+py-modules = ['SimPEG']
+
+[tool.setuptools.packages.find]
+include = ["simpeg*"]
+
+[tool.setuptools_scm]
+version_file = "simpeg/version.py"
+local_scheme = "node-and-date"
+
+[tool.coverage.run]
+branch = true
+source = ["simpeg", "tests", "examples", "tutorials"]
+
+[tool.coverage.report]
+ignore_errors = false
+show_missing = true
+# Regexes for lines to exclude from consideration
+exclude_also = [
+    # Don't complain about missing debug-only code:
+    "def __repr__",
+    "if self\\.debug",
+
+    # Don't complain if tests don't hit defensive assertion code:
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "AbstractMethodError",
+
+    # Don't complain if non-runnable code isn't run:
+    "if 0:",
+    "if __name__ == .__main__.:",
+
+    # Don't complain about abstract methods, they aren't run:
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.coverage.html]
+directory = "coverage_html_report"
+
+[tool.black]
+required-version = '24.3.0'
+target-version = ['py38', 'py39', 'py310', 'py311']
+
+[tool.flake8]
+extend-ignore = [
+    # Default ignores by flake (added here for when ignore gets overwritten)
+    'E121','E123','E126','E226','E24','E704','W503','W504',
+    # Too many leading '#' for block comment
+    'E266',
+    # Line too long (82 > 79 characters)
+    'E501',
+    # Do not use variables named 'I', 'O', or 'l'
+    'E741',
+    # Line break before binary operator (conflicts with black)
+    'W503',
+    # Ignore spaces before a colon (Black handles it)
+    'E203',
+]
+exclude = [
+    '.git',
+    '__pycache__',
+    '.ipynb_checkpoints',
+    'docs/conf.py',
+    'docs/_build/',
+]
+per-file-ignores = [
+    # disable unused-imports errors on __init__.py
+    '__init__.py:F401',
+]
+exclude-from-doctest = [
+    # Don't check style in docstring of test functions
+    'tests',
+]
+ignore = [
+    # assertRaises(Exception): should be considered evil
+    'B017',
+    # Missing docstring in public module
+    'D100',
+    # Missing docstring in public class
+    'D101',
+    # Missing docstring in public method
+    'D102',
+    # Missing docstring in public function
+    'D103',
+    # Missing docstring in public package
+    'D104',
+    # Missing docstring in magic method
+    'D105',
+    # Missing docstring in __init__
+    'D107',
+    # One-line docstring should fit on one line with quotes
+    'D200',
+    # No blank lines allowed before function docstring
+    'D201',
+    # No blank lines allowed after function docstring
+    'D202',
+    # 1 blank line required between summary line and description
+    'D205',
+    # Docstring is over-indented
+    'D208',
+    # Multi-line docstring closing quotes should be on a separate line
+    'D209',
+    # No whitespaces allowed surrounding docstring text
+    'D210',
+    # No blank lines allowed before class docstring
+    'D211',
+    # Use """triple double quotes"""
+    'D300',
+    # First line should end with a period
+    'D400',
+    # First line should be in imperative mood; try rephrasing
+    'D401',
+    # First line should not be the function's "signature"
+    'D402',
+    # First word of the first line should be properly capitalized
+    'D403',
+    # No blank lines allowed between a section header and its content
+    'D412',
+    # Section has no content
+    'D414',
+    # Docstring is empty
+    'D419',
+    # module level import not at top of file
+    'E402',
+    # Block quote ends without a blank line; unexpected unindent.
+    'RST201',
+    # Definition list ends without a blank line; unexpected unindent.
+    'RST203',
+    # Field list ends without a blank line; unexpected unindent.
+    'RST206',
+    # Inline strong start-string without end-string.
+    'RST210',
+    # Title underline too short.
+    'RST212',
+    # Inline emphasis start-string without end-string.
+    'RST213',
+    # Inline interpreted text or phrase reference start-string without end-string.
+    'RST215',
+    # Inline substitution_reference start-string without end-string.
+    'RST219',
+    # Unexpected indentation.
+    'RST301',
+    # Unknown directive type "*".
+    'RST303',
+    # Unknown interpreted text role "*".
+    'RST304',
+    # Error in "*" directive:
+    'RST307',
+    # Previously unseen severe error, not yet assigned a unique code.
+    'RST499',
+]
+
+rst-roles = [
+    'class',
+    'func',
+    'mod',
+    'meth',
+    'ref',
+]

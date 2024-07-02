@@ -11,6 +11,11 @@ from simpeg.utils import mkvc
 from ..simulation import LinearSimulation
 from ..utils import validate_active_indices, validate_integer, validate_string
 
+try:
+    import choclo
+except ImportError:
+    choclo = None
+
 ###############################################################################
 #                                                                             #
 #                             Base Potential Fields Simulation                #
@@ -48,7 +53,14 @@ class BasePFSimulation(LinearSimulation):
     n_processes : None or int, optional
         The number of processes to use in the internal multiprocessing pool for forward
         modeling. The default value of 1 will not use multiprocessing. Any other setting
-        will. `None` implies setting by the number of cpus.
+        will. `None` implies setting by the number of cpus. If engine is
+        ``"choclo"``, then this argument will be ignored.
+    engine : {"geoana", "choclo"}, optional
+       Choose which engine should be used to run the forward model.
+    numba_parallel : bool, optional
+        If True, the simulation will run in parallel. If False, it will
+        run in serial. If ``engine`` is not ``"choclo"`` this argument will be
+        ignored.
 
     Notes
     -----
@@ -74,6 +86,8 @@ class BasePFSimulation(LinearSimulation):
         store_sensitivities="ram",
         n_processes=1,
         sensitivity_dtype=np.float32,
+        engine="geoana",
+        numba_parallel=True,
         **kwargs,
     ):
         # If deprecated property set with kwargs
@@ -89,9 +103,17 @@ class BasePFSimulation(LinearSimulation):
 
         self.store_sensitivities = store_sensitivities
         self.sensitivity_dtype = sensitivity_dtype
+        self.engine = engine
+        self.numba_parallel = numba_parallel
         super().__init__(mesh, **kwargs)
         self.solver = None
         self.n_processes = n_processes
+
+        # Check sensitivity_path when engine is "choclo"
+        self._check_engine_and_sensitivity_path()
+
+        # Check dimensions of the mesh when engine is "choclo"
+        self._check_engine_and_mesh_dimensions()
 
         # Find non-zero cells indices
         if ind_active is None:
@@ -190,6 +212,54 @@ class BasePFSimulation(LinearSimulation):
         self._n_processes = value
 
     @property
+    def engine(self) -> str:
+        """
+        Engine that will be used to run the simulation.
+
+        It can be either ``"geoana"`` or "``choclo``".
+        """
+        return self._engine
+
+    @engine.setter
+    def engine(self, value: str):
+        validate_string(
+            "engine", value, string_list=("geoana", "choclo"), case_sensitive=True
+        )
+        if value == "choclo" and choclo is None:
+            raise ImportError(
+                "The choclo package couldn't be found."
+                "Running a gravity simulation with 'engine=\"choclo\"' needs "
+                "choclo to be installed."
+                "\nTry installing choclo with:"
+                "\n    pip install choclo"
+                "\nor:"
+                "\n    conda install choclo"
+            )
+        self._engine = value
+
+    @property
+    def numba_parallel(self) -> bool:
+        """
+        Run simulation in parallel or single-threaded when using Numba.
+
+        If True, the simulation will run in parallel. If False, it will
+        run in serial.
+
+        .. important::
+
+            If ``engine`` is not ``"choclo"`` this property will be ignored.
+        """
+        return self._numba_parallel
+
+    @numba_parallel.setter
+    def numba_parallel(self, value: bool):
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Invalid 'numba_parallel' value of type {type(value)}. Must be a bool."
+            )
+        self._numba_parallel = value
+
+    @property
     def ind_active(self):
         """Active topography cells.
 
@@ -255,6 +325,71 @@ class BasePFSimulation(LinearSimulation):
             os.makedirs(self.sensitivity_path, exist_ok=True)
             np.save(sens_name, kernel)
         return kernel
+
+    def _check_engine_and_sensitivity_path(self):
+        """
+        Check if sensitivity_path is a file if engine is set to "choclo"
+        """
+        if (
+            self.engine == "choclo"
+            and self.store_sensitivities == "disk"
+            and os.path.isdir(self.sensitivity_path)
+        ):
+            raise ValueError(
+                f"The passed sensitivity_path '{self.sensitivity_path}' is "
+                "a directory. "
+                "When using 'choclo' as the engine, 'senstivity_path' "
+                "should be the path to a new or existing file."
+            )
+
+    def _check_engine_and_mesh_dimensions(self):
+        """
+        Check dimensions of the mesh when using choclo as engine
+        """
+        if self.engine == "choclo" and self.mesh.dim != 3:
+            raise ValueError(
+                f"Invalid mesh with {self.mesh.dim} dimensions. "
+                "Only 3D meshes are supported when using 'choclo' as engine."
+            )
+
+    def _get_active_nodes(self):
+        """
+        Return locations of nodes only for active cells
+
+        Also return an array containing the indices of the "active nodes" for
+        each active cell in the mesh
+        """
+        # Get all nodes in the mesh
+        if isinstance(self.mesh, discretize.TreeMesh):
+            nodes = self.mesh.total_nodes
+        elif isinstance(self.mesh, discretize.TensorMesh):
+            nodes = self.mesh.nodes
+        else:
+            raise TypeError(f"Invalid mesh of type {self.mesh.__class__.__name__}.")
+        # Get original cell_nodes but only for active cells
+        cell_nodes = self.mesh.cell_nodes
+        # If all cells in the mesh are active, return nodes and cell_nodes
+        if self.nC == self.mesh.n_cells:
+            return nodes, cell_nodes
+        # Keep only the cell_nodes for active cells
+        cell_nodes = cell_nodes[self.ind_active]
+        # Get the unique indices of the nodes that belong to every active cell
+        # (these indices correspond to the original `nodes` array)
+        unique_nodes, active_cell_nodes = np.unique(cell_nodes, return_inverse=True)
+        # Select only the nodes that belong to the active cells (active nodes)
+        active_nodes = nodes[unique_nodes]
+        # Reshape indices of active cell nodes for each active cell in the mesh
+        active_cell_nodes = active_cell_nodes.reshape(cell_nodes.shape)
+        return active_nodes, active_cell_nodes
+
+    def _get_components_and_receivers(self):
+        """Generator for receiver locations and their field components."""
+        if not hasattr(self.survey, "source_field"):
+            raise AttributeError(
+                f"The survey '{self.survey}' has no 'source_field' attribute."
+            )
+        for receiver_object in self.survey.source_field.receiver_list:
+            yield receiver_object.components, receiver_object.locations
 
 
 class BaseEquivalentSourceLayerSimulation(BasePFSimulation):

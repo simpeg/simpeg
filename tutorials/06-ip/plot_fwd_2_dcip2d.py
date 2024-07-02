@@ -320,7 +320,7 @@ source_list = generate_dcip_sources_line(
 )
 
 # Define survey
-ip_survey = ip.survey.Survey(source_list, survey_type=survey_type)
+ip_survey = ip.survey.Survey(source_list)
 
 # Drape over discrete topography
 ip_survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
