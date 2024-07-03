@@ -226,16 +226,8 @@ class UpdateIRLS(BetaSchedule):
         """
         Adjust the cooling schedule based on the misfit.
         """
-        if (
-            np.abs(
-                1.0
-                - self.invProb.phi_d / self.misfit_from_chi_factor(self.chifact_target)
-            )
-            > self.misfit_tolerance
-        ):
-            ratio = self.invProb.phi_d / self.misfit_from_chi_factor(
-                self.chifact_target
-            )
+        ratio = self.invProb.phi_d / self.misfit_from_chi_factor(self.chifact_target)
+        if np.abs(1.0 - ratio) > self.misfit_tolerance:
 
             if ratio > 1:
                 ratio = np.mean([2.0, ratio])
