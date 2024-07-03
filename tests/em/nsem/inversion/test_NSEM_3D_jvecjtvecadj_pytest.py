@@ -79,8 +79,7 @@ def get_survey(survey_type, orientations, components, locations, frequencies):
                 rx_list.extend(
                     [
                         nsem.receivers.Impedance(
-                            locations_e=locations,
-                            locations_h=locations,
+                            locations,
                             orientation=orient,
                             component=comp,
                         )
@@ -94,8 +93,7 @@ def get_survey(survey_type, orientations, components, locations, frequencies):
                 rx_list.extend(
                     [
                         nsem.receivers.Tipper(
-                            locations=locations,
-                            locations_bs=locations,
+                            locations,
                             orientation=orient,
                             component=comp,
                         )
@@ -109,8 +107,7 @@ def get_survey(survey_type, orientations, components, locations, frequencies):
                 rx_list.extend(
                     [
                         nsem.receivers.Admittance(
-                            locations_e=locations,
-                            locations_h=locations,
+                            locations,
                             orientation=orient,
                             component=comp,
                         )
@@ -120,13 +117,7 @@ def get_survey(survey_type, orientations, components, locations, frequencies):
 
         # MobileMT is app_cond
         elif survey_type == "apparent_conductivity":
-            rx_list.extend(
-                [
-                    nsem.receivers.ApparentConductivity(
-                        locations_e=locations, locations_h=locations
-                    )
-                ]
-            )
+            rx_list.extend([nsem.receivers.ApparentConductivity(locations)])
 
         source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
 
