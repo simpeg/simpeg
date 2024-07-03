@@ -6,6 +6,7 @@
 [tool.poetry]
 name = "Mira-SimPEG"
 version = "0.21.2.1-alpha.1"
+
 license = "MIT"
 description = "Mira Geoscience fork of SimPEG: Simulation and Parameter Estimation in Geophysics"
 
@@ -37,11 +38,12 @@ packages = [
 exclude = ["tests*", "examples*", "tutorials*"]
 
 include = [
-    "COPYING",
-    "COPYING.LESSER",
-    "LICENSE",
-    "README.rst",
-    "THIRD_PARTY_SOFTWARE.rst",
+    { path = "COPYING", format = ["sdist", "wheel"] },
+    { path = "COPYING.LESSER", format = ["sdist", "wheel"] },
+    { path = "LICENSE", format = ["sdist", "wheel"] },
+    { path = "README.rst", format = ["sdist", "wheel"] },
+    { path = "THIRD_PARTY_SOFTWARE.rst", format = ["sdist", "wheel"] },
+    { path = "docs/**/THIRD_PARTY_SOFTWARE.rst", format = ["sdist", "wheel"] },
 ]
 
 [tool.poetry.dependencies]
