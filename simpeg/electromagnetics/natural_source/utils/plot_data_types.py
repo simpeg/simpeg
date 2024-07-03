@@ -3,7 +3,6 @@ from matplotlib import colors
 from matplotlib import pyplot as plt
 
 
-
 def plotIsoFreqNSimpedance(
     ax,
     freq,
