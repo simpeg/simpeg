@@ -39,6 +39,10 @@ class UpdateIRLS(BetaSchedule):
 
     Parameters
     ----------
+    cooling_rate: int
+        Number of iterations to cool beta.
+    cooling_factor: float
+        Factor to cool beta.
     chifact_start: float
         Starting chi factor for the IRLS iterations.
     chifact_target: float
@@ -67,22 +71,22 @@ class UpdateIRLS(BetaSchedule):
         f_min_change: float = 1e-2,
         max_irls_iterations: int = 20,
         misfit_tolerance: float = 1e-1,
-        percentile: int = 100,
+        percentile: float = 100.0,
         verbose: bool = True,
         **kwargs,
     ):
         self._metrics: IRLSMetrics | None = None
+        self.cooling_rate = cooling_rate
+        self.cooling_factor = cooling_factor
         self.chifact_start: float = chifact_start
         self.chifact_target: float = chifact_target
         self.irls_cooling_factor: float = irls_cooling_factor
         self.f_min_change: float = f_min_change
         self.max_irls_iterations: int = max_irls_iterations
         self.misfit_tolerance: float = misfit_tolerance
-        self.percentile: int = percentile
+        self.percentile: float = percentile
 
         super().__init__(
-            coolingFactor=coolingFactor,
-            coolingRate=coolingRate,
             verbose=verbose,
             **kwargs,
         )
@@ -121,7 +125,9 @@ class UpdateIRLS(BetaSchedule):
 
     @percentile.setter
     def percentile(self, value):
-        self._percentile = validate_float("percentile", value, min_val=0, max_val=100)
+        self._percentile = validate_float(
+            "percentile", value, min_val=0.0, max_val=100.0
+        )
 
     @property
     def chifact_start(self) -> float:
@@ -144,6 +150,36 @@ class UpdateIRLS(BetaSchedule):
         self._chifact_target = validate_float(
             "chifact_target", value, min_val=0, inclusive_min=False
         )
+
+    @property
+    def cooling_factor(self):
+        """Beta is divided by this value every `cooling_rate` iterations.
+
+        Returns
+        -------
+        float
+        """
+        return self._cooling_factor
+
+    @cooling_factor.setter
+    def cooling_factor(self, value):
+        self._cooling_factor = validate_float(
+            "cooling_factor", value, min_val=0.0, inclusive_min=False
+        )
+
+    @property
+    def cooling_rate(self):
+        """Cool after this number of iterations.
+
+        Returns
+        -------
+        int
+        """
+        return self._cooling_rate
+
+    @cooling_rate.setter
+    def cooling_rate(self, value):
+        self._cooling_rate = validate_integer("cooling_rate", value, min_val=1)
 
     @property
     def irls_cooling_factor(self) -> float:
@@ -206,7 +242,7 @@ class UpdateIRLS(BetaSchedule):
             else:
                 ratio = np.mean([0.75, ratio])
 
-            self.coolingFactor = ratio
+            self.cooling_factor = ratio
 
     def initialize(self):
         """
@@ -240,7 +276,7 @@ class UpdateIRLS(BetaSchedule):
         # Only update after GN iterations
         if (
             self.metrics.start_irls_iter is not None
-            and (self.opt.iter - self.metrics.start_irls_iter) % self.coolingRate == 0
+            and (self.opt.iter - self.metrics.start_irls_iter) % self.cooling_rate == 0
         ):
             if self.stopping_criteria():
                 self.opt.stopNextIteration = True
@@ -272,8 +308,8 @@ class UpdateIRLS(BetaSchedule):
             self.invProb.phi_m_last = self.reg(self.invProb.model)
 
         # Repeat beta cooling schedule mechanism
-        if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
-            self.invProb.beta /= self.coolingFactor
+        if self.opt.iter > 0 and self.opt.iter % self.cooling_rate == 0:
+            self.invProb.beta /= self.cooling_factor
 
     def start_irls(self):
         if self.verbose:
@@ -335,11 +371,11 @@ class UpdateIRLS(BetaSchedule):
             d for d in directive_list if isinstance(d, BetaSchedule) and d != self
         ]
 
-        if not beta_schedule:
-            raise TypeError(
-            "Beta scheduling is handled by the `UpdateIRLS` directive."
-            "Remove the redundant `BetaSchedule` from your list of directives.",
-        )
+        if beta_schedule:
+            raise AssertionError(
+                "Beta scheduling is handled by the `UpdateIRLS` directive."
+                "Remove the redundant `BetaSchedule` from your list of directives.",
+            )
 
         spherical_scale = [isinstance(d, SphericalDomain) for d in directive_list]
         if any(spherical_scale):
