@@ -1,10 +1,9 @@
 import pytest
 import numpy as np
-from discretize import TensorMesh
+from discretize import TensorMesh, tests
 from simpeg import (
     maps,
     data_misfit,
-    tests,
 )
 from simpeg.utils import mkvc
 from simpeg.electromagnetics import natural_source as nsem
@@ -231,11 +230,11 @@ class TestDerivatives:
         sim = dmis.simulation
         n_data = sim.survey.nD
 
-        rng = np.random.default_rng(seed=41)
-        v = rng.random(len(m0))
-        w = rng.random(n_data)
-        wtJv = w.dot(sim.Jvec(m0, v))
-        vtJtw = v.dot(sim.Jtvec(m0, w))
-        passed = np.abs(wtJv - vtJtw) < ADJ_TOLERANCE
-        print("Adjoint Test", np.abs(wtJv - vtJtw), passed)
-        assert passed
+        f = sim.fields(m0)
+        tests.assert_isadjoint(
+            lambda u: sim.Jvec(m0, u, f=f),
+            lambda v: sim.Jtvec(m0, v, f=f),
+            m0.shape,
+            (n_data,),
+            rtol=ADJ_TOLERANCE,
+        )
