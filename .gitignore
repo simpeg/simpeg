@@ -83,3 +83,5 @@ tutorials/13-joint_inversion/cross_gradient_data/*
 *.npy
 *.mod
 *.tar.gz
+
+*.idea/
