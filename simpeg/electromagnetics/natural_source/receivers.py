@@ -27,8 +27,14 @@ class BaseNaturalSourceRx(BaseRx):
         Otherwise, they are assumed to be at the same location for a 2D array input.
     """
 
-    def __init__(self, locations, **kwargs):
-        super().__init__(locations=locations, **kwargs)
+    _loc_names = ("First", "Second")
+
+    def __init__(self, locations1, locations2, **kwargs):
+        if "locations" in kwargs:
+            raise TypeError(
+                f"locations is not a valid argument for the {type(self)} class."
+            )
+        super().__init__(locations=(locations1, locations2), **kwargs)
 
     @property
     def locations(self):
@@ -44,8 +50,12 @@ class BaseNaturalSourceRx(BaseRx):
                 f"locations must have two values to unpack, got {len(locs)}"
             )
         # check that they are both numpy arrays and have the same shape.
-        loc0 = validate_ndarray_with_shape("first locations", loc0, shape=("*", "*"))
-        loc1 = validate_ndarray_with_shape("second locations", loc1, shape=loc0.shape)
+        loc0 = validate_ndarray_with_shape(
+            f"{self._loc_names[0]} locations", loc0, shape=("*", "*")
+        )
+        loc1 = validate_ndarray_with_shape(
+            f"{self._loc_names[1]} locations", loc1, shape=loc0.shape
+        )
         self._locations = (loc0, loc1)
         # make sure projection matrices are cleared
         self._Ps = {}
@@ -130,6 +140,8 @@ class Impedance(BaseNaturalSourceRx):
         - 'complex': The complex impedance is returned. Do not use for inversion!
     """
 
+    _loc_names = ("Electric field", "Magnetic field")
+
     def __init__(
         self,
         locations_e,
@@ -140,7 +152,7 @@ class Impedance(BaseNaturalSourceRx):
     ):
         if locations_h is None:
             locations_h = locations_e
-        super().__init__(locations=(locations_e, locations_h), **kwargs)
+        super().__init__(locations1=locations_e, locations2=locations_h, **kwargs)
         self.orientation = orientation
         self.component = component
 
@@ -527,7 +539,7 @@ class Tipper(BaseNaturalSourceRx):
     locations_r : (n_loc, n_dim) array_like
         Locations where the roving magnetic fields are measured.
     locations_b : (n_loc, n_dim) array_like, optional
-        Locations where the reference magnetic fields are measured. Defaults to
+        Locations where the base station magnetic fields are measured. Defaults to
         the same locations as the roving magnetic fields measurements,
         `locations_r`.
     orientation : {'xx', 'yx', 'zx', 'zy', 'yy', 'zy'}
@@ -540,6 +552,8 @@ class Tipper(BaseNaturalSourceRx):
         - 'complex': The complex tipper is returned. Do not use for inversion!
     """
 
+    _loc_names = ("Roving magnetic field", "Base station magnetic field")
+
     def __init__(
         self,
         locations_r,
@@ -550,7 +564,7 @@ class Tipper(BaseNaturalSourceRx):
     ):
         if locations_b is None:
             locations_b = locations_r
-        super().__init__(locations=(locations_r, locations_b), **kwargs)
+        super().__init__(locations1=locations_r, locations2=locations_b, **kwargs)
         self.orientation = orientation
         self.component = component
 
@@ -561,18 +575,18 @@ class Tipper(BaseNaturalSourceRx):
         Returns
         -------
         numpy.ndarray
-            Locations where the roving magnetic field is measured for all receiver data
+            Roving locations where the magnetic field is measured for all receiver data
         """
         return self.locations[0]
 
     @property
     def locations_b(self):
-        """Reference magnetic field measurement locations
+        """Base station magnetic field measurement locations
 
         Returns
         -------
         numpy.ndarray
-            Locations where the reference magnetic field is measured for all receiver data
+            Base station locations where the magnetic field is measured for all receiver data
         """
         return self.locations[1]
 
@@ -967,7 +981,7 @@ class ApparentConductivity(BaseNaturalSourceRx):
     def __init__(self, locations_e, locations_h=None, **kwargs):
         if locations_h is None:
             locations_h = locations_e
-        super().__init__(locations=(locations_e, locations_h), **kwargs)
+        super().__init__(locations1=locations_e, locations2=locations_h, **kwargs)
 
     def _eval_apparent_conductivity(self, src, mesh, f):
         if mesh.dim < 3:
@@ -1166,7 +1180,7 @@ class PointNaturalSource(Impedance):
                 )
             if locations_e is None and locations_h is None:
                 warnings.warn(
-                    "Using the default for locations is deprecated behavoir. Please explicitly set locations. ",
+                    "Using the default for locations is deprecated behavior. Please explicitly set locations. ",
                     FutureWarning,
                     stacklevel=2,
                 )
@@ -1244,6 +1258,12 @@ class Point3DTipper(Tipper):
             warnings.warn(
                 "locations_e and locations_h are unused for this class", stacklevel=2
             )
+        if isinstance(locations, list):
+            if len(locations) < 3:
+                locations = locations[0]
+            else:
+                raise Exception("incorrect size of list, must be length of 1 or 2")
+
         super().__init__(
             locations_r=locations,
             orientation=orientation,
