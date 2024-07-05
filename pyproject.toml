@@ -46,11 +46,17 @@ include = [
 ]
 
 [tool.poetry.dependencies]
+python = "^3.10"
+
 discretize = ">=0.8.0"
 empymod = ">=2.0.0"
 geoana = "*"
-geoh5py = {version = "*", allow-prereleases = true}
-#geoh5py = {url = "http://localhost:8888/geoh5py.tar.gz#sha256="}
+
+geoh5py = {version = ">=0.9.1, <0.11", allow-prereleases = true}
+#geoh5py = {url = "https://github.com/MiraGeoscience/geoh5py/archive/refs/heads/develop.tar.gz"}
+#geoh5py = {git = "https://github.com/MiraGeoscience/geoh5py.git", rev = "develop"}
+#geoh5py = {url = "http://localhost:8888/geoh5py.tar.gz"}
+
 matplotlib = "*"
 numpy = ">=1.20"
 pandas = "*"
