@@ -96,10 +96,6 @@ dask = [
     "zarr",
 ]
 
-[tool.conda-lock]
-platforms = ['win-64', 'osx-64', 'linux-64']
-channels = ['conda-forge', 'defaults']
-
 [tool.black]
 # defaults are just fine
 
