@@ -4,7 +4,7 @@
 #parameter estimation in the context of geophysical applications.
 
 [tool.poetry]
-name = "Mira-SimPEG"
+name = "mira-simpeg"
 version = "0.21.2.1-alpha.1"
 license = "MIT"
 description = "Mira Geoscience fork of SimPEG: Simulation and Parameter Estimation in Geophysics"
