@@ -4,7 +4,7 @@
 #parameter estimation in the context of geophysical applications.
 
 [tool.poetry]
-name = "Mira-SimPEG"
+name = "mira-simpeg"
 version = "0.21.2.1-alpha.1"
 
 license = "MIT"
@@ -47,18 +47,13 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-discretize = ">=0.8.0"
+python = "^3.10"
+
+discretize = ">=0.10.0"
 empymod = ">=2.0.0"
-geoana = "*"
-geoh5py = {version = "*", allow-prereleases = true}
-#geoh5py = {url = "http://localhost:8888/geoh5py.tar.gz#sha256="}
+geoana = ">=0.5.0"
 matplotlib = "*"
 numpy = ">=1.20"
-mkl = "2023.2.0"  # from simpeg
-pydiso = "~0.0.5"  # from simpeg
-tbb = "2021.12.0"
-tzdata = "2023.4"  # through pandas from SimPEG
-intel-openmp = "2023.2.0"  # from simpeg
 pandas = "*"
 pymatsolver = ">=0.2"
 scikit-learn = ">=1.2"
@@ -68,6 +63,13 @@ dask = {version = "*", extras = ["distributed"], optional = true}
 distributed = {version = "*", optional = true}
 fsspec = {version = ">=0.3.3", optional = true}
 zarr = {version = "*", optional = true}
+
+## Pip dependencies from Git repositories
+#----------------------------------------
+geoh5py = {version = ">=0.9.1, <0.11", allow-prereleases = true}
+#geoh5py = {url = "https://github.com/MiraGeoscience/geoh5py/archive/refs/heads/develop.tar.gz"}
+#geoh5py = {git = "https://github.com/MiraGeoscience/geoh5py.git", rev = "develop"}
+#geoh5py = {url = "http://localhost:8888/geoh5py.tar.gz"}
 
 [tool.poetry.group.dev.dependencies]
 black = "*"
@@ -95,10 +97,6 @@ dask = [
     "fsspec",
     "zarr",
 ]
-
-[tool.conda-lock]
-platforms = ['win-64', 'osx-64', 'linux-64']
-channels = ['conda-forge', 'intel']
 
 [tool.black]
 # defaults are just fine
