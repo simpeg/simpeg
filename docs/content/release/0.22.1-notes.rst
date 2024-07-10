@@ -31,3 +31,5 @@ Pull Requests
    https://github.com/simpeg/simpeg/pull/1501
 -  Improve imports in natural source utils by `@santisoler <https://github.com/santisoler>`__ in
    https://github.com/simpeg/simpeg/pull/1503
+-  Deploy to TestPyPI only on nightly builds by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1509
