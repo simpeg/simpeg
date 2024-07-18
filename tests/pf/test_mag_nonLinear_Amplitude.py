@@ -13,7 +13,7 @@ from simpeg import (
 from simpeg.potential_fields import magnetics
 from simpeg import utils
 from simpeg.utils import mkvc
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
+from discretize.utils import mesh_builder_xyz, active_from_xyz
 import unittest
 import shutil
 
@@ -64,9 +64,7 @@ class AmpProblemTest(unittest.TestCase):
         mesh = mesh_builder_xyz(
             rxLoc, h, padding_distance=padDist, depth_core=100, mesh_type="tree"
         )
-        mesh = refine_tree_xyz(
-            mesh, topo, method="surface", octree_levels=[4, 4], finalize=True
-        )
+        mesh.refine_surface(topo, padding_cells_by_level=[4, 4], finalize=True)
 
         # Define an active cells from topo
         actv = active_from_xyz(mesh, topo)
