@@ -24,7 +24,7 @@ else
   conda activate simpeg-test
 fi
 
-pip install --no-deps --editable .
+pip install --no-deps .
 
 echo "Conda Environment:"
 conda list
