@@ -55,7 +55,7 @@ class UpdateIRLS(BetaSchedule):
         Maximum number of IRLS iterations.
     misfit_tolerance: float
         Tolerance for the target misfit.
-    percentile: int
+    percentile: float
         Percentile of the function values used to determine the initial IRLS threshold.
     verbose: bool
         Print information to the screen.
