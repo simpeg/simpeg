@@ -1332,7 +1332,7 @@ class Point3DTipper(Tipper):
                 raise Exception("incorrect size of list, must be length of 1 or 2")
 
         super().__init__(
-            locations_r=locations,
+            locations_h=locations,
             orientation=orientation,
             component=component,
             **kwargs,
