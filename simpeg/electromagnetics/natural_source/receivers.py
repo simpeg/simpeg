@@ -20,20 +20,15 @@ class BaseNaturalSourceRx(BaseRx):
 
     Parameters
     ----------
-    locations : (2) tuple of (n_loc, n_dim) array_like
+    locations1, locations2 : (n_loc, n_dim) array_like
         Locations where the two fields are measured.
-        If it is a 3D array, `locations[0]` are the locations of the first field
-        measurements and `locations[1]` are the locations of the second field measurements.
-        Otherwise, they are assumed to be at the same location for a 2D array input.
+    **kwargs
+        Additional keyword arguments passed to `simpeg.BaseRx`.
     """
 
     _loc_names = ("First", "Second")
 
     def __init__(self, locations1, locations2, **kwargs):
-        if "locations" in kwargs:
-            raise TypeError(
-                f"locations is not a valid argument for the {type(self)} class."
-            )
         super().__init__(locations=(locations1, locations2), **kwargs)
 
     @property
@@ -138,6 +133,8 @@ class Impedance(BaseNaturalSourceRx):
         - 'rho': Apparent resistivity (:math:`\Omega m`)
         - 'phase': Phase angle (degrees)
         - 'complex': The complex impedance is returned. Do not use for inversion!
+    storeProjections : bool
+        Whether to cache to internal projection matrices.
     """
 
     _loc_names = ("Electric field", "Magnetic field")
@@ -148,11 +145,15 @@ class Impedance(BaseNaturalSourceRx):
         locations_h=None,
         orientation="xy",
         component="real",
-        **kwargs,
+        storeProjections=False,
     ):
         if locations_h is None:
             locations_h = locations_e
-        super().__init__(locations1=locations_e, locations2=locations_h, **kwargs)
+        super().__init__(
+            locations1=locations_e,
+            locations2=locations_h,
+            storeProjections=storeProjections,
+        )
         self.orientation = orientation
         self.component = component
 
@@ -536,9 +537,9 @@ class Tipper(BaseNaturalSourceRx):
 
     Parameters
     ----------
-    locations_r : (n_loc, n_dim) array_like
+    locations_h : (n_loc, n_dim) array_like
         Locations where the roving magnetic fields are measured.
-    locations_b : (n_loc, n_dim) array_like, optional
+    locations_base : (n_loc, n_dim) array_like, optional
         Locations where the base station magnetic fields are measured. Defaults to
         the same locations as the roving magnetic fields measurements,
         `locations_r`.
@@ -550,26 +551,32 @@ class Tipper(BaseNaturalSourceRx):
         - 'real': Real component of the tipper (unitless)
         - 'imag': Imaginary component of the tipper (unitless)
         - 'complex': The complex tipper is returned. Do not use for inversion!
+    storeProjections : bool
+        Whether to cache to internal projection matrices.
     """
 
     _loc_names = ("Roving magnetic field", "Base station magnetic field")
 
     def __init__(
         self,
-        locations_r,
-        locations_b=None,
+        locations_h,
+        locations_base=None,
         orientation="zx",
         component="real",
-        **kwargs,
+        storeProjections=False,
     ):
-        if locations_b is None:
-            locations_b = locations_r
-        super().__init__(locations1=locations_r, locations2=locations_b, **kwargs)
+        if locations_base is None:
+            locations_base = locations_h
+        super().__init__(
+            locations1=locations_h,
+            locations2=locations_base,
+            storeProjections=storeProjections,
+        )
         self.orientation = orientation
         self.component = component
 
     @property
-    def locations_r(self):
+    def locations_h(self):
         """Roving magnetic field measurement locations
 
         Returns
@@ -580,7 +587,7 @@ class Tipper(BaseNaturalSourceRx):
         return self.locations[0]
 
     @property
-    def locations_b(self):
+    def locations_base(self):
         """Base station magnetic field measurement locations
 
         Returns
@@ -784,23 +791,28 @@ class Admittance(Impedance):
         - 'real': Real component of the admittance (A/V)
         - 'imag': Imaginary component of the admittance (A/V)
         - 'complex': The complex admittance is returned. Do not use for inversion!
+    storeProjections : bool
+        Whether to cache to internal projection matrices.
     """
 
-    @property
-    def orientation(self):
-        """Admittance receiver orientation.
+    def __init__(
+        self,
+        locations_e,
+        locations_h=None,
+        orientation="xy",
+        component="real",
+        storeProjections=False,
+    ):
+        if locations_h is None:
+            locations_h = locations_e
+        super().__init__(
+            locations1=locations_e,
+            locations2=locations_h,
+            storeProjections=storeProjections,
+        )
+        self.orientation = orientation
+        self.component = component
 
-        Specifies the admittance tensor element :math:`Y_{ij}` corresponding to the data.
-        The data type is specified by the `component` property.
-
-        Returns
-        -------
-        str
-            Admittance receiver orientation. One of {'xx', 'xy', 'yx', 'yy', 'zx', 'zy'}.
-        """
-        return self._orientation
-
-    @orientation.setter
     def orientation(self, var):
         self._orientation = validate_string(
             "orientation", var, string_list=("xx", "xy", "yx", "yy", "zx", "zy")
@@ -976,12 +988,18 @@ class ApparentConductivity(BaseNaturalSourceRx):
     locations_h : (n_loc, n_dim) array_like, optional
         Locations where the magnetic fields are measured. Defaults to the same
         locations as electric field measurements, `locations_e`.
+    storeProjections : bool
+        Whether to cache to internal projection matrices.
     """
 
-    def __init__(self, locations_e, locations_h=None, **kwargs):
+    def __init__(self, locations_e, locations_h=None, storeProjections=False):
         if locations_h is None:
             locations_h = locations_e
-        super().__init__(locations1=locations_e, locations2=locations_h, **kwargs)
+        super().__init__(
+            locations1=locations_e,
+            locations2=locations_h,
+            storeProjections=storeProjections,
+        )
 
     def _eval_apparent_conductivity(self, src, mesh, f):
         if mesh.dim < 3:
@@ -1253,7 +1271,7 @@ class Point3DTipper(Tipper):
         **kwargs,
     ):
         # note locations_e and locations_h never did anything for this class anyways
-        # so can just ignore them here...
+        # so can just issue a warning here...
         if locations_e is not None or locations_h is not None:
             warnings.warn(
                 "locations_e and locations_h are unused for this class", stacklevel=2
