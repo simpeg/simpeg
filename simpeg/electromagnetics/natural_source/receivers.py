@@ -825,6 +825,28 @@ class Admittance(BaseNaturalSourceRx):
         self.component = component
 
     @property
+    def locations_e(self):
+        """Electric field measurement locations
+
+        Returns
+        -------
+        numpy.ndarray
+            Location where the electric field is measured for all receiver data
+        """
+        return self.locations[0]
+
+    @property
+    def locations_h(self):
+        """Magnetic field measurement locations
+
+        Returns
+        -------
+        numpy.ndarray
+            Location where the magnetic field is measured for all receiver data
+        """
+        return self.locations[1]
+
+    @property
     def orientation(self):
         """MT receiver orientation.
 
