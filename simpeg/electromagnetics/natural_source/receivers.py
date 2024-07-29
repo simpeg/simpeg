@@ -33,6 +33,17 @@ class BaseNaturalSourceRx(BaseRx):
 
     @property
     def locations(self):
+        """Locations of the two field measurements.
+
+        Locations where the two fields are measured for the receiver.
+        The name of the field is dependant upon the MT receiver, but
+        for common MT receivers, these would be the electric field
+        and magnetic field measurement locations.
+
+        Returns
+        -------
+        locations1, locations2 : (n_loc, n_dim) numpy.ndarray
+        """
         return self._locations
 
     @locations.setter
