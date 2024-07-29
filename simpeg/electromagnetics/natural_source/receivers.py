@@ -143,7 +143,7 @@ class Impedance(BaseNaturalSourceRx):
         self,
         locations_e,
         locations_h=None,
-        orientation="xy",
+        orientation="xx",
         component="real",
         storeProjections=False,
     ):
@@ -561,7 +561,7 @@ class Tipper(BaseNaturalSourceRx):
         self,
         locations_h,
         locations_base=None,
-        orientation="zx",
+        orientation="xx",
         component="real",
         storeProjections=False,
     ):
@@ -759,7 +759,7 @@ class Tipper(BaseNaturalSourceRx):
         return getattr(imp_deriv, self.component)
 
 
-class Admittance(Impedance):
+class Admittance(BaseNaturalSourceRx):
     r"""Receiver class for data types derived from the 3D admittance tensor.
 
     This class is used to simulate data types that can be derived from the admittance tensor:
@@ -799,7 +799,7 @@ class Admittance(Impedance):
         self,
         locations_e,
         locations_h=None,
-        orientation="xy",
+        orientation="xx",
         component="real",
         storeProjections=False,
     ):
@@ -813,6 +813,22 @@ class Admittance(Impedance):
         self.orientation = orientation
         self.component = component
 
+    @property
+    def orientation(self):
+        """MT receiver orientation.
+
+        Specifies whether the receiver's data correspond to
+        the :math:`Y_{xx}`, :math:`Y_{xy}`, :math:`Y_{yx}`, :math:`Y_{yy}`,
+        :math:`Y_{zx}`, or :math:`Y_{zy}` admittance.
+
+        Returns
+        -------
+        str
+            MT receiver orientation. One of {'xx', 'xy', 'yx', 'yy', 'zx', 'zy'}
+        """
+        return self._orientation
+
+    @orientation.setter
     def orientation(self, var):
         self._orientation = validate_string(
             "orientation", var, string_list=("xx", "xy", "yx", "yy", "zx", "zy")
