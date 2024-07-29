@@ -89,7 +89,37 @@ class BaseNaturalSourceRx(BaseRx):
         return P
 
 
-class Impedance(BaseNaturalSourceRx):
+class _ElectricAndMagneticReceiver(BaseRx):
+    """
+    Intermediate class for MT receivers that measure an electric and magnetic field
+    """
+
+    _loc_names = ("Electric field", "Magnetic field")
+
+    @property
+    def locations_e(self):
+        """Electric field measurement locations
+
+        Returns
+        -------
+        numpy.ndarray
+            Location where the electric field is measured for all receiver data
+        """
+        return self.locations[0]
+
+    @property
+    def locations_h(self):
+        """Magnetic field measurement locations
+
+        Returns
+        -------
+        numpy.ndarray
+            Location where the magnetic field is measured for all receiver data
+        """
+        return self.locations[1]
+
+
+class Impedance(_ElectricAndMagneticReceiver):
     r"""Receiver class for 1D, 2D and 3D impedance data.
 
     This class is used to simulate data types that can be derived from the impedance tensor:
@@ -148,8 +178,6 @@ class Impedance(BaseNaturalSourceRx):
         Whether to cache to internal projection matrices.
     """
 
-    _loc_names = ("Electric field", "Magnetic field")
-
     def __init__(
         self,
         locations_e,
@@ -167,28 +195,6 @@ class Impedance(BaseNaturalSourceRx):
         )
         self.orientation = orientation
         self.component = component
-
-    @property
-    def locations_e(self):
-        """Electric field measurement locations
-
-        Returns
-        -------
-        numpy.ndarray
-            Location where the electric field is measured for all receiver data
-        """
-        return self.locations[0]
-
-    @property
-    def locations_h(self):
-        """Magnetic field measurement locations
-
-        Returns
-        -------
-        numpy.ndarray
-            Location where the magnetic field is measured for all receiver data
-        """
-        return self.locations[1]
 
     @property
     def component(self):
@@ -770,7 +776,7 @@ class Tipper(BaseNaturalSourceRx):
         return getattr(imp_deriv, self.component)
 
 
-class Admittance(BaseNaturalSourceRx):
+class Admittance(_ElectricAndMagneticReceiver):
     r"""Receiver class for data types derived from the 3D admittance tensor.
 
     This class is used to simulate data types that can be derived from the admittance tensor:
@@ -823,28 +829,6 @@ class Admittance(BaseNaturalSourceRx):
         )
         self.orientation = orientation
         self.component = component
-
-    @property
-    def locations_e(self):
-        """Electric field measurement locations
-
-        Returns
-        -------
-        numpy.ndarray
-            Location where the electric field is measured for all receiver data
-        """
-        return self.locations[0]
-
-    @property
-    def locations_h(self):
-        """Magnetic field measurement locations
-
-        Returns
-        -------
-        numpy.ndarray
-            Location where the magnetic field is measured for all receiver data
-        """
-        return self.locations[1]
 
     @property
     def orientation(self):
@@ -1012,7 +996,7 @@ class Admittance(BaseNaturalSourceRx):
         )
 
 
-class ApparentConductivity(BaseNaturalSourceRx):
+class ApparentConductivity(_ElectricAndMagneticReceiver):
     r"""Receiver class for simulating apparent conductivity data (3D problems only).
 
     This class is used to simulate apparent conductivity data, in S/m, as defined by:
