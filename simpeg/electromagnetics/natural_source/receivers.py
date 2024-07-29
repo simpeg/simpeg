@@ -89,7 +89,7 @@ class BaseNaturalSourceRx(BaseRx):
         return P
 
 
-class _ElectricAndMagneticReceiver(BaseRx):
+class _ElectricAndMagneticReceiver(BaseNaturalSourceRx):
     """
     Intermediate class for MT receivers that measure an electric and magnetic field
     """
