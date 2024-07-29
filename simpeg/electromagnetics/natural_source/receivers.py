@@ -72,7 +72,7 @@ class BaseNaturalSourceRx(BaseRx):
 
         return self.locations[0].shape[0]
 
-    def _get_projection_mat(self, mesh, projected_grid, location_id=0):
+    def getP(self, mesh, projected_grid, location_id=0):
         key = (mesh, projected_grid, location_id)
         if key in self._Ps:
             return self._Ps[key]
@@ -250,12 +250,12 @@ class Impedance(BaseNaturalSourceRx):
         h = f[src, "h"]
         if mesh.dim == 3:
             if self.orientation[0] == "x":
-                e = self._get_projection_mat(mesh, "Ex", 0) @ e
+                e = self.getP(mesh, "Ex", 0) @ e
             else:
-                e = self._get_projection_mat(mesh, "Ey", 0) @ e
+                e = self.getP(mesh, "Ey", 0) @ e
 
-            hx = self._get_projection_mat(mesh, "Fx", 1) @ h
-            hy = self._get_projection_mat(mesh, "Fy", 1) @ h
+            hx = self.getP(mesh, "Fx", 1) @ h
+            hy = self.getP(mesh, "Fy", 1) @ h
             if self.orientation[1] == "x":
                 h = hy
             else:
@@ -267,15 +267,15 @@ class Impedance(BaseNaturalSourceRx):
             if mesh.dim == 1:
                 e_loc = f.aliasFields["e"][1]
                 h_loc = f.aliasFields["h"][1]
-                PE = self._get_projection_mat(mesh, e_loc)
-                PH = self._get_projection_mat(mesh, h_loc)
+                PE = self.getP(mesh, e_loc)
+                PH = self.getP(mesh, h_loc)
             elif mesh.dim == 2:
                 if self.orientation == "xy":
-                    PE = self._get_projection_mat(mesh, "Ex")
-                    PH = self._get_projection_mat(mesh, "CC")
+                    PE = self.getP(mesh, "Ex")
+                    PH = self.getP(mesh, "CC")
                 elif self.orientation == "yx":
-                    PE = self._get_projection_mat(mesh, "CC")
-                    PH = self._get_projection_mat(mesh, "Ex")
+                    PE = self.getP(mesh, "CC")
+                    PH = self.getP(mesh, "Ex")
             top = PE @ e[:, 0]
             bot = PH @ h[:, 0]
 
@@ -295,14 +295,14 @@ class Impedance(BaseNaturalSourceRx):
         h = f[src, "h"]
         if mesh.dim == 3:
             if self.orientation[0] == "x":
-                Pe = self._get_projection_mat(mesh, "Ex", 0)
+                Pe = self.getP(mesh, "Ex", 0)
                 e = Pe @ e
             else:
-                Pe = self._get_projection_mat(mesh, "Ey", 0)
+                Pe = self.getP(mesh, "Ey", 0)
                 e = Pe @ e
 
-            Phx = self._get_projection_mat(mesh, "Fx", 1)
-            Phy = self._get_projection_mat(mesh, "Fy", 1)
+            Phx = self.getP(mesh, "Fx", 1)
+            Phy = self.getP(mesh, "Fy", 1)
             hx = Phx @ h
             hy = Phy @ h
             if self.orientation[1] == "x":
@@ -317,15 +317,15 @@ class Impedance(BaseNaturalSourceRx):
             if mesh.dim == 1:
                 e_loc = f.aliasFields["e"][1]
                 h_loc = f.aliasFields["h"][1]
-                PE = self._get_projection_mat(mesh, e_loc)
-                PH = self._get_projection_mat(mesh, h_loc)
+                PE = self.getP(mesh, e_loc)
+                PH = self.getP(mesh, h_loc)
             elif mesh.dim == 2:
                 if self.orientation == "xy":
-                    PE = self._get_projection_mat(mesh, "Ex")
-                    PH = self._get_projection_mat(mesh, "CC")
+                    PE = self.getP(mesh, "Ex")
+                    PH = self.getP(mesh, "CC")
                 elif self.orientation == "yx":
-                    PE = self._get_projection_mat(mesh, "CC")
-                    PH = self._get_projection_mat(mesh, "Ex")
+                    PE = self.getP(mesh, "CC")
+                    PH = self.getP(mesh, "Ex")
 
             top = PE @ e[:, 0]
             bot = PH @ h[:, 0]
@@ -641,9 +641,9 @@ class Tipper(BaseNaturalSourceRx):
         # will grab both primary and secondary and sum them!
         h = f[src, "h"]
 
-        Phx = self._get_projection_mat(mesh, "Fx", 1)
-        Phy = self._get_projection_mat(mesh, "Fy", 1)
-        Pho = self._get_projection_mat(mesh, "F" + self.orientation[0], 0)
+        Phx = self.getP(mesh, "Fx", 1)
+        Phy = self.getP(mesh, "Fy", 1)
+        Pho = self.getP(mesh, "F" + self.orientation[0], 0)
 
         hx = Phx @ h
         hy = Phy @ h
@@ -662,9 +662,9 @@ class Tipper(BaseNaturalSourceRx):
         # will grab both primary and secondary and sum them!
         h = f[src, "h"]
 
-        Phx = self._get_projection_mat(mesh, "Fx", 1)
-        Phy = self._get_projection_mat(mesh, "Fy", 1)
-        Pho = self._get_projection_mat(mesh, "F" + self.orientation[0], 0)
+        Phx = self.getP(mesh, "Fx", 1)
+        Phy = self.getP(mesh, "Fy", 1)
+        Pho = self.getP(mesh, "F" + self.orientation[0], 0)
 
         hx = Phx @ h
         hy = Phy @ h
@@ -844,10 +844,10 @@ class Admittance(Impedance):
         e = f[src, "e"]
         h = f[src, "h"]
 
-        ex = self._get_projection_mat(mesh, "Ex", 0) @ e
-        ey = self._get_projection_mat(mesh, "Ey", 0) @ e
+        ex = self.getP(mesh, "Ex", 0) @ e
+        ey = self.getP(mesh, "Ey", 0) @ e
 
-        h = self._get_projection_mat(mesh, "F" + self.orientation[0], 1) @ h
+        h = self.getP(mesh, "F" + self.orientation[0], 1) @ h
 
         if self.orientation[1] == "x":
             top = h[:, 0] * ey[:, 1] - h[:, 1] * ex[:, 1]
@@ -868,9 +868,9 @@ class Admittance(Impedance):
         e = f[src, "e"]
         h = f[src, "h"]
 
-        Pex = self._get_projection_mat(mesh, "Ex", 0)
-        Pey = self._get_projection_mat(mesh, "Ey", 0)
-        Ph = self._get_projection_mat(mesh, "F" + self.orientation[0], 1)
+        Pex = self.getP(mesh, "Ex", 0)
+        Pey = self.getP(mesh, "Ey", 0)
+        Ph = self.getP(mesh, "F" + self.orientation[0], 1)
 
         ex = Pex @ e
         ey = Pey @ e
@@ -992,11 +992,11 @@ class ApparentConductivity(BaseNaturalSourceRx):
         e = f[src, "e"]
         h = f[src, "h"]
 
-        Pex = self._get_projection_mat(mesh, "Ex", 0)
-        Pey = self._get_projection_mat(mesh, "Ey", 0)
-        Phx = self._get_projection_mat(mesh, "Fx", 1)
-        Phy = self._get_projection_mat(mesh, "Fy", 1)
-        Phz = self._get_projection_mat(mesh, "Fz", 1)
+        Pex = self.getP(mesh, "Ex", 0)
+        Pey = self.getP(mesh, "Ey", 0)
+        Phx = self.getP(mesh, "Fx", 1)
+        Phy = self.getP(mesh, "Fy", 1)
+        Phz = self.getP(mesh, "Fz", 1)
 
         ex = np.sum(Pex @ e, axis=-1)
         ey = np.sum(Pey @ e, axis=-1)
@@ -1021,11 +1021,11 @@ class ApparentConductivity(BaseNaturalSourceRx):
         e = f[src, "e"]
         h = f[src, "h"]
 
-        Pex = self._get_projection_mat(mesh, "Ex", 0)
-        Pey = self._get_projection_mat(mesh, "Ey", 0)
-        Phx = self._get_projection_mat(mesh, "Fx", 1)
-        Phy = self._get_projection_mat(mesh, "Fy", 1)
-        Phz = self._get_projection_mat(mesh, "Fz", 1)
+        Pex = self.getP(mesh, "Ex", 0)
+        Pey = self.getP(mesh, "Ey", 0)
+        Phx = self.getP(mesh, "Fx", 1)
+        Phy = self.getP(mesh, "Fy", 1)
+        Phz = self.getP(mesh, "Fz", 1)
 
         ex = np.sum(Pex @ e, axis=-1)
         ey = np.sum(Pey @ e, axis=-1)
