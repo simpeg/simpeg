@@ -543,7 +543,7 @@ class DataNSEMPlotMethods(object):
         unique_locations = _unique_rows(
             np.concatenate(
                 [
-                    rx.locations
+                    rx.locations[0]
                     for src in self.survey.source_list
                     for rx in src.receiver_list
                 ]
@@ -813,7 +813,7 @@ def _extract_frequency_data(
         # Should be a more specifice Exeption
         raise Exception("To many Receivers of the same type, orientation and component")
 
-    loc_arr = rx.locations
+    loc_arr = rx.locations[0]
     data_arr = data[src, rx]
     if return_uncert:
         std_arr = data.relative_error[src, rx]
@@ -844,7 +844,9 @@ def _extract_location_data(data, location, orientation, component, return_uncert
         else:
             rx = rx_list[0]
 
-        ind_loc = np.sqrt(np.sum((rx.locations[:, :2] - location) ** 2, axis=1)) < 0.1
+        ind_loc = (
+            np.sqrt(np.sum((rx.locations[0][:, :2] - location) ** 2, axis=1)) < 0.1
+        )
         if np.any(ind_loc):
             freq_list.append(src.frequency)
             data_list.append(data[src, rx][ind_loc])
