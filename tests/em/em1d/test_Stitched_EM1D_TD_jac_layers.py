@@ -1,8 +1,8 @@
 from __future__ import print_function
 import unittest
 import numpy as np
-import SimPEG.electromagnetics.time_domain as tdem
-from SimPEG import maps, tests
+import simpeg.electromagnetics.time_domain as tdem
+from simpeg import maps, tests
 from discretize import TensorMesh
 from pymatsolver import PardisoSolver
 

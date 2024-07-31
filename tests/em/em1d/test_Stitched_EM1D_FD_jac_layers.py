@@ -1,9 +1,10 @@
 from __future__ import print_function
 import unittest
 import numpy as np
-import SimPEG.electromagnetics.frequency_domain as fdem
-from SimPEG import maps, tests
+import simpeg.electromagnetics.frequency_domain as fdem
+from simpeg import maps, tests
 from discretize import TensorMesh
+from simpeg.utils import mkvc
 
 np.random.seed(41)
 
