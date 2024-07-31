@@ -8,7 +8,7 @@ from scipy.stats import multivariate_normal
 from simpeg import regularization
 from simpeg.maps import Wires
 from simpeg.utils import WeightedGaussianMixture, mkvc
-from simpeg.solver_utils import get_default_solver
+from simpeg.utils.solver_utils import get_default_solver
 
 Solver = get_default_solver()
 
