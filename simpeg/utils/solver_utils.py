@@ -5,6 +5,50 @@ import warnings
 import inspect
 
 
+from pymatsolver import AvailableSolvers
+
+# The default direct solver priority is:
+# Pardiso (optional, but available on intel systems)
+# Mumps (optional, but available for all systems)
+# Scipy's SuperLU (available for all scipy systems)
+if AvailableSolvers["Pardiso"]:
+    from pymatsolver import Pardiso
+
+    _DEFAULT_SOLVER = Pardiso
+elif AvailableSolvers["Mumps"]:
+    from pymatsolver import Mumps
+
+    _DEFAULT_SOLVER = Mumps
+else:
+    from pymatsolver import SolverLU
+
+    _DEFAULT_SOLVER = SolverLU
+
+
+def get_default_solver():
+    """Return the default solver used by simpeg.
+
+    Returns
+    -------
+    solver class
+    """
+    return _DEFAULT_SOLVER
+
+
+def set_default_solver(solver):
+    """Set the default solver used by simpeg.
+
+    Parameters
+    ----------
+    solver
+        a solver like class used to construct an object
+        that acts os the inverse of a sparse matrix, and
+        supports the `__mul__` operation (at a miniumum).
+    """
+    global _DEFAULT_SOLVER
+    _DEFAULT_SOLVER = solver
+
+
 def _checkAccuracy(A, b, X, accuracyTol):
     nrm = np.linalg.norm(mkvc(A * X - b), np.inf)
     nrm_b = np.linalg.norm(mkvc(b), np.inf)
