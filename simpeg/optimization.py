@@ -30,7 +30,7 @@ __all__ = [
     "IterationPrinters",
 ]
 
-SolverICG = WrapIterative(sp.linalg.cg, checkAccuracy=False)
+SolverICG = WrapIterative(sp.linalg.cg)
 
 
 class StoppingCriteria(object):
