@@ -39,6 +39,15 @@ class directivesValidation(unittest.TestCase):
         with self.assertRaises(AssertionError):
             self.assertTrue(directiveList.validate())
 
+    def test_validation_order_fail(self):
+        spherical_weights = directives.SphericalUnitsWeights()
+        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
+        dList = [IRLS, spherical_weights]
+        directiveList = directives.DirectiveList(*dList)
+
+        with self.assertRaises(AssertionError):
+            self.assertTrue(directiveList.validate())
+
     def test_validation_initial_beta_fail(self):
         beta_1 = directives.BetaEstimateMaxDerivative()
         beta_2 = directives.BetaEstimate_ByEig()
@@ -116,14 +125,14 @@ class ValidationInInversion(unittest.TestCase):
         with self.assertRaises(AssertionError):
             # validation should happen and this will fail
             # (IRLS needs to be before update_Jacobi)
-            inv = inversion.BaseInversion(
+            inversion.BaseInversion(
                 invProb, directiveList=[betaest, update_Jacobi, IRLS]
             )
 
         with self.assertRaises(AssertionError):
             # validation should happen and this will fail
             # (sensitivity_weights needs to be before betaest)
-            inv = inversion.BaseInversion(
+            inversion.BaseInversion(
                 invProb, directiveList=[betaest, sensitivity_weights]
             )
 
@@ -258,14 +267,16 @@ class ValidationInInversion(unittest.TestCase):
 
         # self.test_sensitivity_weighting_subroutine(test_weights, test_directive)
 
-        print("SENSITIVITY WEIGHTING BY AMPLIUTDE AND MAX ALUE TEST PASSED")
+        print("SENSITIVITY WEIGHTING BY AMPLITUDE AND MAX VALUE TEST PASSED")
 
     def test_irls_directive(self):
         input_norms = [0.0, 1.0, 1.0, 1.0]
         reg = regularization.Sparse(self.mesh)
         reg.norms = input_norms
 
-        invProb = inverse_problem.BaseInvProblem(self.dmis, reg, self.opt)
+        other_reg = regularization.WeightedLeastSquares(self.mesh)
+
+        invProb = inverse_problem.BaseInvProblem(self.dmis, reg + other_reg, self.opt)
 
         beta_schedule = directives.BetaSchedule(coolingFactor=3)
 
@@ -275,9 +286,9 @@ class ValidationInInversion(unittest.TestCase):
             chifact_start=100.0,
             chifact_target=1.0,
             irls_cooling_factor=1.2,
-            f_min_change=1e-2,
+            f_min_change=np.inf,
             max_irls_iterations=20,
-            misfit_tolerance=1e-1,
+            misfit_tolerance=1e-0,
             percentile=100,
             verbose=True,
         )
@@ -287,6 +298,12 @@ class ValidationInInversion(unittest.TestCase):
         with self.assertRaises(AssertionError):
             inversion.BaseInversion(
                 invProb, directiveList=[beta_schedule, irls_directive]
+            )
+
+        spherical_weights = directives.SphericalUnitsWeights()
+        with self.assertRaises(AssertionError):
+            inversion.BaseInversion(
+                invProb, directiveList=[irls_directive, spherical_weights]
             )
         invProb.phi_d = 1.0
         self.opt.iter = 3
@@ -301,6 +318,12 @@ class ValidationInInversion(unittest.TestCase):
         irls_directive.endIter()
 
         assert irls_directive.metrics.start_irls_iter == self.opt.iter
+        assert len(reg.objfcts[0]._weights) == 2  # With irls weights
+        assert len(other_reg.objfcts[0]._weights) == 1  # No irls
+        irls_directive.metrics.irls_iteration_count += 1
+        irls_directive.endIter()
+
+        assert self.opt.stopNextIteration
 
     def tearDown(self):
         # Clean up the working directory

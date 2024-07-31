@@ -116,7 +116,7 @@ class UpdateIRLS(BetaSchedule):
 
     @misfit_tolerance.setter
     def misfit_tolerance(self, value):
-        self._misfit_tolerance = validate_integer("misfit_tolerance", value, min_val=0)
+        self._misfit_tolerance = validate_float("misfit_tolerance", value, min_val=0)
 
     @property
     def percentile(self) -> float:
@@ -369,10 +369,10 @@ class UpdateIRLS(BetaSchedule):
                 "Remove the redundant `BetaSchedule` from your list of directives.",
             )
 
-        spherical_scale = [isinstance(d, SphericalDomain) for d in directive_list]
+        spherical_scale = [isinstance(d, SphericalUnitsWeights) for d in directive_list]
         if any(spherical_scale):
             assert spherical_scale.index(True) < self_ind, (
-                "The directive 'SphericalDomain' must be before UpdateIRLS "
+                "The directive 'SphericalUnitsWeights' must be before UpdateIRLS "
                 "in the directiveList"
             )
 
@@ -418,7 +418,7 @@ class UpdateIRLS(BetaSchedule):
         return False
 
 
-class SphericalDomain(InversionDirective):
+class SphericalUnitsWeights(InversionDirective):
     """
     Directive to update the regularization weights to account for spherical
     parameters in radian and SI.
