@@ -10,7 +10,7 @@ import warnings
 
 from discretize.base import BaseMesh
 from discretize import TensorMesh
-from discretize.utils import unpack_widths, sdiag
+from discretize.utils import unpack_widths, sdiag, mkvc
 
 from . import props
 from .typing import RandomSeed
@@ -20,7 +20,6 @@ from .utils import (
     Counter,
     timeIt,
     count,
-    mkvc,
     validate_ndarray_with_shape,
     validate_float,
     validate_type,
@@ -28,10 +27,7 @@ from .utils import (
     validate_integer,
 )
 
-try:
-    from pymatsolver import Pardiso as DefaultSolver
-except ImportError:
-    from .utils.solver_utils import SolverLU as DefaultSolver
+from .utils.solver_utils import get_default_solver
 
 __all__ = ["LinearSimulation", "ExponentialSinusoidSimulation"]
 
@@ -92,7 +88,7 @@ class BaseSimulation(props.HasModel):
         self.mesh = mesh
         self.survey = survey
         if solver is None:
-            solver = DefaultSolver
+            solver = get_default_solver()
         self.solver = solver
         if solver_opts is None:
             solver_opts = {}
