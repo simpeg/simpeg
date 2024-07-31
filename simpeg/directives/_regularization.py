@@ -5,9 +5,15 @@ import warnings
 import numpy as np
 from dataclasses import dataclass
 
+from ..maps import Projection
 from .directives import InversionDirective, UpdatePreconditioner, BetaSchedule
-from simpeg.regularization import Sparse, BaseSparse, SmoothnessFirstOrder
-from simpeg.utils import validate_integer, validate_float
+from ..regularization import (
+    Sparse,
+    BaseSparse,
+    SmoothnessFirstOrder,
+    WeightedLeastSquares,
+)
+from ..utils import validate_integer, validate_float
 
 
 @dataclass
@@ -425,7 +431,46 @@ class SphericalUnitsWeights(InversionDirective):
 
     The scaling applied to the regularization weights is based on the ratio
     between the maximum value of the model and the maximum value of angles (pi).
+
+    Parameters
+    ----------
+    amplitude: Projection
+        Map to the model parameters for the amplitude of the vector
+    angles: list[WeightedLeastSquares]
+        List of WeightedLeastSquares for the angles.
+    verbose: bool
+        Print information to the screen.
     """
+
+    def __init__(
+        self,
+        amplitude: Projection,
+        angles: list[WeightedLeastSquares],
+        verbose: bool = True,
+        **kwargs,
+    ):
+
+        if not isinstance(amplitude, Projection):
+            raise TypeError(
+                "Attribute 'amplitude' must be of type " "'wires.Projection'"
+            )
+
+        self._amplitude = amplitude
+
+        if not isinstance(angles, (list | tuple)) or not all(
+            [isinstance(fun, WeightedLeastSquares) for fun in angles]
+        ):
+            raise TypeError(
+                "Attribute 'angles' must be a list of "
+                "'regularization.WeightedLeastSquares'."
+            )
+
+        self._angles = angles
+
+        super().__init__(
+            verbose=verbose,
+            **kwargs,
+        )
 
     def initialize(self):
         self.update_scaling()
@@ -438,21 +483,12 @@ class SphericalUnitsWeights(InversionDirective):
         Add an 'angle_scale' to the list of weights on the angle regularization for the
         different block of models to account for units of radian and SI.
         """
-        # TODO Need to establish a clearer connection between the regularizations
-        # and the model blocks. There is an assumption here that the first
-        # regularization controls the amplitude.
-        max_p = []
-        for reg in self.reg.objfcts[0].objfcts:
-            f_m = abs(reg.f_m(self.invProb.model))
-            max_p.append(np.max(f_m))
+        amplitude = self._amplitude * self.invProb.model
+        max_p = max(amplitude)
 
-        max_p = max(max_p)
-
-        for reg in self.reg.objfcts:
+        for reg in self._angles:
             for obj in reg.objfcts:
                 if obj.units != "radian":
                     continue
-                # TODO Need to make weights_shapes a public method
-                obj.set_weights(
-                    angle_scale=np.ones(obj._weights_shapes[0]) * max_p / np.pi
-                )
+
+                obj.set_weights(angle_scale=np.ones_like(amplitude) * max_p / np.pi)

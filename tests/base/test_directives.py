@@ -325,6 +325,31 @@ class ValidationInInversion(unittest.TestCase):
 
         assert self.opt.stopNextIteration
 
+    def test_spherical_weights(self):
+        reg = regularization.Sparse(self.mesh)
+        projection = maps.Projection(self.mesh.n_cells, np.arange(self.mesh.n_cells))
+        for obj in reg.objfcts[1:]:
+            obj.units = "radian"
+
+        with pytest.raises(TypeError, match="Attribute 'amplitude' must be of type"):
+            directives.SphericalUnitsWeights(reg, [reg])
+
+        with pytest.raises(TypeError, match="Attribute 'angles' must be a list of"):
+            directives.SphericalUnitsWeights(projection, ["abc"])
+
+        spherical_weights = directives.SphericalUnitsWeights(projection, [reg])
+
+        inv_prob = inverse_problem.BaseInvProblem(self.dmis, reg, self.opt)
+        model = np.abs(np.random.randn(reg.regularization_mesh.nC))
+        inv_prob.model = model
+        inv = inversion.BaseInversion(inv_prob, directiveList=[spherical_weights])
+        spherical_weights.inversion = inv
+
+        spherical_weights.initialize()
+
+        assert "angle_scale" not in reg.objfcts[0]._weights
+        assert reg.objfcts[1]._weights["angle_scale"].max() == model.max()/np.pi
+
     def tearDown(self):
         # Clean up the working directory
         try:
