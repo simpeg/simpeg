@@ -105,7 +105,7 @@ class _ElectricAndMagneticReceiver(BaseNaturalSourceRx):
         numpy.ndarray
             Location where the electric field is measured for all receiver data
         """
-        return self.locations[0]
+        return self._locations[0]
 
     @property
     def locations_h(self):
@@ -116,7 +116,7 @@ class _ElectricAndMagneticReceiver(BaseNaturalSourceRx):
         numpy.ndarray
             Location where the magnetic field is measured for all receiver data
         """
-        return self.locations[1]
+        return self._locations[1]
 
 
 class Impedance(_ElectricAndMagneticReceiver):
@@ -1272,6 +1272,10 @@ class PointNaturalSource(Impedance):
             out = super().eval(src, mesh, f)
         return out
 
+    @property
+    def locations(self):
+        return self._locations[0]
+
 
 @deprecate_class(removal_version="0.24.0", future_warn=True, replace_docstring=False)
 class Point3DTipper(Tipper):
@@ -1331,3 +1335,7 @@ class Point3DTipper(Tipper):
         else:
             out = super().eval(src, mesh, f)
         return out
+
+    @property
+    def locations(self):
+        return self._locations[0]
