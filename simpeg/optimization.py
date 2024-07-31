@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 
-from .utils.solver_utils import WrapIterative, Solver, Diagonal
+from pymatsolver import Solver, Diagonal, SolverCG
 from .utils import (
     call_hooks,
     check_stoppers,
@@ -29,8 +29,6 @@ __all__ = [
     "StoppingCriteria",
     "IterationPrinters",
 ]
-
-SolverICG = WrapIterative(sp.linalg.cg)
 
 
 class StoppingCriteria(object):
@@ -1069,7 +1067,7 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
 
     @timeIt
     def findSearchDirection(self):
-        Hinv = SolverICG(
+        Hinv = SolverCG(
             self.H, M=self.approxHinv, tol=self.tolCG, maxiter=self.maxIterCG
         )
         p = Hinv * (-self.g)
