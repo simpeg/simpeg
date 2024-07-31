@@ -13,7 +13,6 @@ from simpeg import (
 )
 from simpeg.utils import mkvc
 from simpeg.electromagnetics import resistivity as dc
-from pymatsolver import Pardiso
 import shutil
 
 np.random.seed(40)
@@ -132,7 +131,6 @@ class DCProblemTestsCC_fields(unittest.TestCase):
             mesh=mesh,
             survey=self.survey,
             sigmaMap=self.sigma_map,
-            solver=Pardiso,
             bc_type="Dirichlet",
         )
 

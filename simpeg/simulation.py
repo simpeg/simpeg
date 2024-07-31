@@ -87,8 +87,6 @@ class BaseSimulation(props.HasModel):
     ):
         self.mesh = mesh
         self.survey = survey
-        if solver is None:
-            solver = get_default_solver()
         self.solver = solver
         if solver_opts is None:
             solver_opts = {}
@@ -195,6 +193,8 @@ class BaseSimulation(props.HasModel):
 
     @solver.setter
     def solver(self, cls):
+        if cls is None:
+            cls = get_default_solver()
         if cls is not None:
             if not inspect.isclass(cls):
                 raise TypeError(f"solver must be a class, not a {type(cls)}")
@@ -750,11 +750,13 @@ class LinearSimulation(BaseSimulation):
         "The model for a linear problem"
     )
 
+    # linear simulations do not have a solver so set it to `None` here
+    solver = None
+
     def __init__(self, mesh=None, linear_model=None, model_map=None, G=None, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
         self.linear_model = linear_model
         self.model_map = model_map
-        self.solver = None
         if G is not None:
             self.G = G
 

@@ -4,7 +4,6 @@
 # #from simpegPF import BaseMag
 # #import matplotlib.pyplot as plt
 # import discretize
-# from pymatsolver import Pardiso
 # #import simpeg.PF as PF
 # from simpeg import maps, utils
 # from simpeg.potential_fields import magnetics as mag
@@ -49,7 +48,6 @@
 #             M,
 #             survey=self.survey,
 #             muMap=maps.ChiMap(M),
-#             solver=Pardiso,
 #         )
 #         dpre = self.sim.dpred(chi)
 #
