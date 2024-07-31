@@ -34,8 +34,8 @@ class STITCHED_EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
         source_list = []
 
         for i_sounding in range(0, n_sounding):
-            source_location = mkvc(source_locations[i_sounding, :])
-            receiver_location = mkvc(receiver_locations[i_sounding, :])
+            source_location = source_locations[i_sounding, :]
+            receiver_location = receiver_locations[i_sounding, :]
             receiver_list = []
             receiver_list.append(
                 fdem.receivers.PointMagneticFieldSecondary(

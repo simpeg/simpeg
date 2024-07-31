@@ -8,6 +8,7 @@ from ..utils.code_utils import (
     validate_ndarray_with_shape,
     validate_type,
 )
+import multiprocessing
 
 ###############################################################################
 #                                                                             #

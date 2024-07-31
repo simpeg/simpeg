@@ -985,7 +985,7 @@ class BaseTDEMSrc(BaseEMSrc):
         if srcType is not None:
             self.srcType = srcType
 
-        self._i_sounding = i_sounding
+        self.i_sounding = i_sounding
 
     @property
     def waveform(self):

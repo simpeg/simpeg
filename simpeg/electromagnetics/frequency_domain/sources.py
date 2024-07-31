@@ -44,7 +44,7 @@ class BaseFDEMSrc(BaseEMSrc):
     def __init__(self, receiver_list, frequency, location=None, i_sounding=0, **kwargs):
         super().__init__(receiver_list=receiver_list, location=location, **kwargs)
         self.frequency = frequency
-        self._i_sounding = i_sounding
+        self.i_sounding = i_sounding
     @property
     def frequency(self):
         """Source frequency
