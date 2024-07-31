@@ -15,6 +15,7 @@ import scipy.sparse as sp
 from matplotlib.colors import LogNorm
 import warnings
 
+
 def set_mesh_1d(hz, x0=0):
     """
     Creates a 1D Tensor mesh
@@ -29,6 +30,7 @@ def set_mesh_1d(hz, x0=0):
     """
     mesh_1d = TensorMesh([hz], x0=[x0])
     return mesh_1d
+
 
 def get_vertical_discretization(n_layer, minimum_dz, geomtric_factor):
     """
@@ -245,6 +247,7 @@ def LogUniform(f, chi_inf=0.05, del_chi=0.05, tau1=1e-5, tau2=1e-2):
         1 - np.log((1 + 1j * w * tau2) / (1 + 1j * w * tau1)) / np.log(tau2 / tau1)
     )
 
+
 #############################################################
 #       PLOTTING RESTIVITY MODEL
 #############################################################
@@ -258,7 +261,7 @@ class Stitched1DModel:
         line=None,
         time_stamp=None,
         thicknesses=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
 
@@ -516,7 +519,7 @@ class Stitched1DModel:
                 vmax=vmax,
                 norm=norm,
                 shading="auto",
-                **pcolorOpts
+                **pcolorOpts,
             )
 
         if show_colorbar:
