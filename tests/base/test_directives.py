@@ -348,7 +348,7 @@ class ValidationInInversion(unittest.TestCase):
         spherical_weights.initialize()
 
         assert "angle_scale" not in reg.objfcts[0]._weights
-        assert reg.objfcts[1]._weights["angle_scale"].max() == model.max()/np.pi
+        assert reg.objfcts[1]._weights["angle_scale"].max() == model.max() / np.pi
 
     def tearDown(self):
         # Clean up the working directory
