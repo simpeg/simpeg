@@ -5,8 +5,6 @@ import discretize
 from simpeg import maps, tests
 from simpeg.electromagnetics import time_domain as tdem
 
-from pymatsolver import Pardiso as Solver
-
 plotIt = False
 
 testDeriv = True
@@ -46,7 +44,6 @@ def get_prob(mesh, mapping, formulation, **kwargs):
         mesh, sigmaMap=mapping, **kwargs
     )
     prb.time_steps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
-    prb.solver = Solver
     return prb
 
 

@@ -6,7 +6,6 @@ from simpeg import maps, tests
 from simpeg.electromagnetics import time_domain as tdem
 from simpeg.electromagnetics import utils
 from scipy.interpolate import interp1d
-from pymatsolver import Pardiso as Solver
 import pytest
 
 plotIt = False
@@ -47,7 +46,6 @@ def get_prob(mesh, mapping, formulation, **kwargs):
     prb = getattr(tdem, "Simulation3D{}".format(formulation))(
         mesh, sigmaMap=mapping, **kwargs
     )
-    prb.solver = Solver
     return prb
 
 

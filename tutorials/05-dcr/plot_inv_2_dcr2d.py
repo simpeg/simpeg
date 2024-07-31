@@ -48,10 +48,6 @@ from simpeg.electromagnetics.static.utils.static_utils import (
 )
 from simpeg.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import SolverLU as Solver
 
 mpl.rcParams.update({"font.size": 16})
 # sphinx_gallery_thumbnail_number = 4
@@ -262,7 +258,7 @@ starting_conductivity_model = background_conductivity * np.ones(nC)
 
 # Define the problem. Define the cells below topography and the mapping
 simulation = dc.simulation_2d.Simulation2DNodal(
-    mesh, survey=survey, sigmaMap=conductivity_map, solver=Solver, storeJ=True
+    mesh, survey=survey, sigmaMap=conductivity_map, storeJ=True
 )
 
 #######################################################################

@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 
-from .utils.solver_utils import SolverWrapI, Solver, SolverDiag
+from .utils.solver_utils import WrapIterative, Solver, Diagonal
 from .utils import (
     call_hooks,
     check_stoppers,
@@ -30,7 +30,7 @@ __all__ = [
     "IterationPrinters",
 ]
 
-SolverICG = SolverWrapI(sp.linalg.cg, checkAccuracy=False)
+SolverICG = WrapIterative(sp.linalg.cg, checkAccuracy=False)
 
 
 class StoppingCriteria(object):
@@ -950,10 +950,10 @@ class BFGS(Minimize, Remember):
         if getattr(self, "_bfgsH0", None) is None:
             print(
                 """
-                Default solver: SolverDiag is being used in bfgsH0
+                Default solver: Diagonal is being used in bfgsH0
                 """
             )
-            self._bfgsH0 = SolverDiag(sp.identity(self.xc.size))
+            self._bfgsH0 = Diagonal(sp.identity(self.xc.size))
         return self._bfgsH0
 
     @bfgsH0.setter

@@ -6,7 +6,6 @@ import discretize
 from discretize.utils import mkvc
 from simpeg.electromagnetics import natural_source as ns
 import numpy as np
-from pymatsolver import Pardiso as Solver
 from discretize.utils import volume_average
 
 TOLr = 5e-2
@@ -89,7 +88,6 @@ class ComplexResistivityTest(unittest.TestCase):
             survey=survey_ns,
             sigmaPrimary=self.sigma_background,
             sigmaMap=mapping,
-            solver=Solver,
         )
         return sim
 
@@ -131,7 +129,6 @@ class ComplexResistivityTest(unittest.TestCase):
             survey=survey_ns,
             sigmaPrimary=self.sigma_background,
             sigmaMap=mapping,
-            solver=Solver,
         )
         return sim
 
@@ -182,7 +179,6 @@ class ComplexResistivityTest(unittest.TestCase):
             self.mesh,
             survey=survey_ns,
             sigmaMap=mapping,
-            solver=Solver,
         )
         return sim
 
@@ -221,7 +217,6 @@ class ComplexResistivityTest(unittest.TestCase):
             self.mesh,
             survey=survey_ns,
             sigmaMap=mapping,
-            solver=Solver,
         )
         return sim
 

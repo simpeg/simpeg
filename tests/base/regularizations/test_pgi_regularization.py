@@ -3,12 +3,14 @@ import unittest
 
 import discretize
 import numpy as np
-from pymatsolver import SolverLU
 from scipy.stats import multivariate_normal
 
 from simpeg import regularization
 from simpeg.maps import Wires
 from simpeg.utils import WeightedGaussianMixture, mkvc
+from simpeg.solver_utils import get_default_solver
+
+Solver = get_default_solver()
 
 
 class TestPGI(unittest.TestCase):
@@ -104,7 +106,7 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & Full Cov. are ok.")
 
-        Hinv = SolverLU(reg.deriv2(self.model))
+        Hinv = Solver(reg.deriv2(self.model))
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
@@ -209,7 +211,7 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & tied Cov. are ok.")
 
-        Hinv = SolverLU(reg.deriv2(self.model))
+        Hinv = Solver(reg.deriv2(self.model))
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
@@ -312,7 +314,7 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & diag Cov. are ok.")
 
-        Hinv = SolverLU(reg.deriv2(self.model))
+        Hinv = Solver(reg.deriv2(self.model))
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
@@ -415,7 +417,7 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & spherical Cov. are ok.")
 
-        Hinv = SolverLU(reg.deriv2(self.model))
+        Hinv = Solver(reg.deriv2(self.model))
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
