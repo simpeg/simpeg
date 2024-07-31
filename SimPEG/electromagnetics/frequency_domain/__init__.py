@@ -83,7 +83,10 @@ from .simulation import (
     Simulation3DMagneticField,
 )
 from .simulation_1d import Simulation1DLayered
-from .simulation_1d_stitched import Simulation1DLayeredStitched, run_simulation_frequency_domain
+from .simulation_1d_stitched import (
+    Simulation1DLayeredStitched,
+    run_simulation_frequency_domain,
+)
 from .fields import (
     Fields3DElectricField,
     Fields3DMagneticFluxDensity,
