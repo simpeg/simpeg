@@ -115,6 +115,7 @@ from .simulation import (
     Simulation3DCurrentDensity,
 )
 from .simulation_1d import Simulation1DLayered
+from .simulation_1d_stitched import Simulation1DLayeredStitched
 from .fields import (
     Fields3DMagneticFluxDensity,
     Fields3DElectricField,

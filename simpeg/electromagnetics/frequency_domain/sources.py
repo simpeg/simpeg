@@ -32,6 +32,8 @@ class BaseFDEMSrc(BaseEMSrc):
         Source frequency
     location : (dim) numpy.ndarray, default: ``None``
         Source location.
+    i_sounding: numpy.int
+        Source sounding number 
     """
 
     _ePrimary = None
@@ -39,10 +41,10 @@ class BaseFDEMSrc(BaseEMSrc):
     _hPrimary = None
     _jPrimary = None
 
-    def __init__(self, receiver_list, frequency, location=None, **kwargs):
+    def __init__(self, receiver_list, frequency, location=None, i_sounding=0, **kwargs):
         super().__init__(receiver_list=receiver_list, location=location, **kwargs)
         self.frequency = frequency
-
+        self._i_sounding = i_sounding
     @property
     def frequency(self):
         """Source frequency
@@ -58,6 +60,20 @@ class BaseFDEMSrc(BaseEMSrc):
     def frequency(self, freq):
         freq = validate_float("frequency", freq, min_val=0.0)
         self._frequency = freq
+
+    @property
+    def i_sounding(self):
+        """Sounding number for the source
+
+        Returns
+        -------
+        int
+        """
+        return self._i_sounding
+
+    @i_sounding.setter
+    def i_sounding(self, value):
+        self._i_sounding = validate_integer("i_sounding", value, min_val=0)
 
     def bPrimary(self, simulation):
         """Compute primary magnetic flux density
