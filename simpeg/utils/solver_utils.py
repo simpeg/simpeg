@@ -124,17 +124,17 @@ SolverWrapD = deprecate_function(
     WrapDirect,
     old_name="SolverWrapD",
     removal_version="0.24.0",
-    new_name="pymatsolver.WrapDirect",
+    new_location="pymatsolver",
 )
 SolverWrapI = deprecate_function(
     WrapIterative,
     old_name="SolverWrapI",
     removal_version="0.24.0",
-    new_name="pymatsolver.WrapIterative",
+    new_location="pymatsolver",
 )
 SolverDiag = deprecate_function(
     Diagonal,
     old_name="SolverDiag",
     removal_version="0.24.0",
-    new_name="pymatsolver.Diagonal",
+    new_location="pymatsolver",
 )
