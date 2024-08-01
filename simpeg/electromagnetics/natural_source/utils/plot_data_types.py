@@ -1,5 +1,6 @@
-from matplotlib import pyplot as plt, colors
 import numpy as np
+from matplotlib import colors
+from matplotlib import pyplot as plt
 
 
 def plotIsoFreqNSimpedance(

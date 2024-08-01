@@ -250,7 +250,7 @@ simpeg_version = parse(simpeg.__version__)
 if simpeg_version.is_devrelease:
     switcher_version = "dev"
 else:
-    switcher_version = f"v{simpeg_version.public}"
+    switcher_version = simpeg_version.public
 
 # Use Pydata Sphinx theme
 html_theme = "pydata_sphinx_theme"
@@ -293,8 +293,9 @@ html_theme_options = {
     # Configure version switcher
     "switcher": {
         "version_match": switcher_version,
-        "json_url": "https://doctest.simpeg.xyz/latest/_static/versions.json",
+        "json_url": "https://docs.simpeg.xyz/latest/_static/versions.json",
     },
+    "show_version_warning_banner": True,
 }
 
 html_logo = "images/simpeg-logo.png"

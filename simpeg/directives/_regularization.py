@@ -5,9 +5,15 @@ import warnings
 import numpy as np
 from dataclasses import dataclass
 
+from ..maps import Projection
 from .directives import InversionDirective, UpdatePreconditioner, BetaSchedule
-from simpeg.regularization import Sparse, BaseSparse, SmoothnessFirstOrder
-from simpeg.utils import validate_integer, validate_float
+from ..regularization import (
+    Sparse,
+    BaseSparse,
+    SmoothnessFirstOrder,
+    WeightedLeastSquares,
+)
+from ..utils import validate_integer, validate_float
 
 
 @dataclass
@@ -17,11 +23,14 @@ class IRLSMetrics:
 
     Parameters
     ----------
-
-    input_norms: List of norms temporarily stored during the initialization.
-    irls_iteration_count: Number of IRLS iterations.
-    start_irls_iter: Iteration number when the IRLS process started.
-    f_old: Previous value of the regularization function.
+    input_norms : list of floats
+        List of norms temporarily stored during the initialization.
+    irls_iteration_count : int
+        Number of IRLS iterations.
+    start_irls_iter : int or None
+        Iteration number when the IRLS process started.
+    f_old : float
+        Previous value of the regularization function.
     """
 
     input_norms: list[float] = (2.0, 2.0, 2.0, 2.0)
@@ -36,6 +45,10 @@ class UpdateIRLS(BetaSchedule):
 
     Parameters
     ----------
+    cooling_rate: int
+        Number of iterations to cool beta.
+    cooling_factor: float
+        Factor to cool beta.
     chifact_start: float
         Starting chi factor for the IRLS iterations.
     chifact_target: float
@@ -48,7 +61,7 @@ class UpdateIRLS(BetaSchedule):
         Maximum number of IRLS iterations.
     misfit_tolerance: float
         Tolerance for the target misfit.
-    percentile: int
+    percentile: float
         Percentile of the function values used to determine the initial IRLS threshold.
     verbose: bool
         Print information to the screen.
@@ -56,30 +69,30 @@ class UpdateIRLS(BetaSchedule):
 
     def __init__(
         self,
-        coolingRate: int = 1,
-        coolingFactor: float = 2.0,
+        cooling_rate: int = 1,
+        cooling_factor: float = 2.0,
         chifact_start: float = 1.0,
         chifact_target: float = 1.0,
         irls_cooling_factor: float = 1.2,
         f_min_change: float = 1e-2,
         max_irls_iterations: int = 20,
         misfit_tolerance: float = 1e-1,
-        percentile: int = 100,
+        percentile: float = 100.0,
         verbose: bool = True,
         **kwargs,
     ):
         self._metrics: IRLSMetrics | None = None
+        self.cooling_rate = cooling_rate
+        self.cooling_factor = cooling_factor
         self.chifact_start: float = chifact_start
         self.chifact_target: float = chifact_target
         self.irls_cooling_factor: float = irls_cooling_factor
         self.f_min_change: float = f_min_change
         self.max_irls_iterations: int = max_irls_iterations
         self.misfit_tolerance: float = misfit_tolerance
-        self.percentile: int = percentile
+        self.percentile: float = percentile
 
         super().__init__(
-            coolingFactor=coolingFactor,
-            coolingRate=coolingRate,
             verbose=verbose,
             **kwargs,
         )
@@ -109,7 +122,7 @@ class UpdateIRLS(BetaSchedule):
 
     @misfit_tolerance.setter
     def misfit_tolerance(self, value):
-        self._misfit_tolerance = validate_integer("misfit_tolerance", value, min_val=0)
+        self._misfit_tolerance = validate_float("misfit_tolerance", value, min_val=0)
 
     @property
     def percentile(self) -> float:
@@ -118,7 +131,9 @@ class UpdateIRLS(BetaSchedule):
 
     @percentile.setter
     def percentile(self, value):
-        self._percentile = validate_integer("percentile", value, min_val=0, max_val=100)
+        self._percentile = validate_float(
+            "percentile", value, min_val=0.0, max_val=100.0
+        )
 
     @property
     def chifact_start(self) -> float:
@@ -141,6 +156,36 @@ class UpdateIRLS(BetaSchedule):
         self._chifact_target = validate_float(
             "chifact_target", value, min_val=0, inclusive_min=False
         )
+
+    @property
+    def cooling_factor(self):
+        """Beta is divided by this value every `cooling_rate` iterations.
+
+        Returns
+        -------
+        float
+        """
+        return self._cooling_factor
+
+    @cooling_factor.setter
+    def cooling_factor(self, value):
+        self._cooling_factor = validate_float(
+            "cooling_factor", value, min_val=0.0, inclusive_min=False
+        )
+
+    @property
+    def cooling_rate(self):
+        """Cool after this number of iterations.
+
+        Returns
+        -------
+        int
+        """
+        return self._cooling_rate
+
+    @cooling_rate.setter
+    def cooling_rate(self, value):
+        self._cooling_rate = validate_integer("cooling_rate", value, min_val=1)
 
     @property
     def irls_cooling_factor(self) -> float:
@@ -170,8 +215,8 @@ class UpdateIRLS(BetaSchedule):
 
         Parameters
         ----------
-
-        chi_factor: Chi factor to compute the target misfit from.
+        chi_factor : float
+            Chi factor to compute the target misfit from.
         """
         value = 0
         if isinstance(self.survey, list):
@@ -187,23 +232,15 @@ class UpdateIRLS(BetaSchedule):
         """
         Adjust the cooling schedule based on the misfit.
         """
-        if (
-            np.abs(
-                1.0
-                - self.invProb.phi_d / self.misfit_from_chi_factor(self.chifact_target)
-            )
-            > self.misfit_tolerance
-        ):
-            ratio = self.invProb.phi_d / self.misfit_from_chi_factor(
-                self.chifact_target
-            )
+        ratio = self.invProb.phi_d / self.misfit_from_chi_factor(self.chifact_target)
+        if np.abs(1.0 - ratio) > self.misfit_tolerance:
 
             if ratio > 1:
                 ratio = np.mean([2.0, ratio])
             else:
                 ratio = np.mean([0.75, ratio])
 
-            self.coolingFactor = ratio
+            self.cooling_factor = ratio
 
     def initialize(self):
         """
@@ -218,9 +255,7 @@ class UpdateIRLS(BetaSchedule):
             input_norms += [reg.norms]
             reg.norms = [2.0 for _ in reg.objfcts]
 
-        self._metrics = IRLSMetrics(
-            input_norms=input_norms,
-        )
+        self._metrics = IRLSMetrics(input_norms=input_norms)
 
     def endIter(self):
         """
@@ -239,7 +274,7 @@ class UpdateIRLS(BetaSchedule):
         # Only update after GN iterations
         if (
             self.metrics.start_irls_iter is not None
-            and (self.opt.iter - self.metrics.start_irls_iter) % self.coolingRate == 0
+            and (self.opt.iter - self.metrics.start_irls_iter) % self.cooling_rate == 0
         ):
             if self.stopping_criteria():
                 self.opt.stopNextIteration = True
@@ -271,8 +306,8 @@ class UpdateIRLS(BetaSchedule):
             self.invProb.phi_m_last = self.reg(self.invProb.model)
 
         # Repeat beta cooling schedule mechanism
-        if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
-            self.invProb.beta /= self.coolingFactor
+        if self.opt.iter > 0 and self.opt.iter % self.cooling_rate == 0:
+            self.invProb.beta /= self.cooling_factor
 
     def start_irls(self):
         if self.verbose:
@@ -334,15 +369,16 @@ class UpdateIRLS(BetaSchedule):
             d for d in directive_list if isinstance(d, BetaSchedule) and d != self
         ]
 
-        assert len(beta_schedule) == 0, (
-            "Beta scheduling is handled by the `UpdateIRLS` directive."
-            "Remove the redundant `BetaSchedule` from your list of directives.",
-        )
+        if beta_schedule:
+            raise AssertionError(
+                "Beta scheduling is handled by the `UpdateIRLS` directive."
+                "Remove the redundant `BetaSchedule` from your list of directives.",
+            )
 
-        spherical_scale = [isinstance(d, SphericalDomain) for d in directive_list]
+        spherical_scale = [isinstance(d, SphericalUnitsWeights) for d in directive_list]
         if any(spherical_scale):
             assert spherical_scale.index(True) < self_ind, (
-                "The directive 'SphericalDomain' must be before UpdateIRLS "
+                "The directive 'SphericalUnitsWeights' must be before UpdateIRLS "
                 "in the directiveList"
             )
 
@@ -363,7 +399,7 @@ class UpdateIRLS(BetaSchedule):
             if self.verbose:
                 print(
                     "Reach maximum number of IRLS cycles:"
-                    + " {0:d}".format(self.max_irls_iterations)
+                    + f" {self.max_irls_iterations:d}"
                 )
             return True
 
@@ -379,7 +415,8 @@ class UpdateIRLS(BetaSchedule):
             )
             < self.misfit_tolerance
         ):
-            print("Minimum decrease in regularization." + "End of IRLS")
+            if self.verbose:
+                print("Minimum decrease in regularization. End of IRLS")
             return True
 
         self.metrics.f_old = phim_new
@@ -387,14 +424,53 @@ class UpdateIRLS(BetaSchedule):
         return False
 
 
-class SphericalDomain(InversionDirective):
+class SphericalUnitsWeights(InversionDirective):
     """
     Directive to update the regularization weights to account for spherical
     parameters in radian and SI.
 
     The scaling applied to the regularization weights is based on the ratio
     between the maximum value of the model and the maximum value of angles (pi).
+
+    Parameters
+    ----------
+    amplitude: Projection
+        Map to the model parameters for the amplitude of the vector
+    angles: list[WeightedLeastSquares]
+        List of WeightedLeastSquares for the angles.
+    verbose: bool
+        Print information to the screen.
     """
+
+    def __init__(
+        self,
+        amplitude: Projection,
+        angles: list[WeightedLeastSquares],
+        verbose: bool = True,
+        **kwargs,
+    ):
+
+        if not isinstance(amplitude, Projection):
+            raise TypeError(
+                "Attribute 'amplitude' must be of type " "'wires.Projection'"
+            )
+
+        self._amplitude = amplitude
+
+        if not isinstance(angles, (list, tuple)) or not all(
+            [isinstance(fun, WeightedLeastSquares) for fun in angles]
+        ):
+            raise TypeError(
+                "Attribute 'angles' must be a list of "
+                "'regularization.WeightedLeastSquares'."
+            )
+
+        self._angles = angles
+
+        super().__init__(
+            verbose=verbose,
+            **kwargs,
+        )
 
     def initialize(self):
         self.update_scaling()
@@ -407,21 +483,12 @@ class SphericalDomain(InversionDirective):
         Add an 'angle_scale' to the list of weights on the angle regularization for the
         different block of models to account for units of radian and SI.
         """
-        # TODO Need to establish a clearer connection between the regularizations
-        # and the model blocks. There is an assumption here that the first
-        # regularization controls the amplitude.
-        max_p = []
-        for reg in self.reg.objfcts[0].objfcts:
-            f_m = abs(reg.f_m(self.invProb.model))
-            max_p += [np.max(f_m)]
+        amplitude = self._amplitude * self.invProb.model
+        max_p = max(amplitude)
 
-        max_p = np.asarray(max_p).max()
-
-        for reg in self.reg.objfcts:
+        for reg in self._angles:
             for obj in reg.objfcts:
                 if obj.units != "radian":
                     continue
-                # TODO Need to make weights_shapes a public method
-                obj.set_weights(
-                    angle_scale=np.ones(obj._weights_shapes[0]) * max_p / np.pi
-                )
+
+                obj.set_weights(angle_scale=np.ones_like(amplitude) * max_p / np.pi)
