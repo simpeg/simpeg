@@ -39,15 +39,6 @@ class directivesValidation(unittest.TestCase):
         with self.assertRaises(AssertionError):
             self.assertTrue(directiveList.validate())
 
-    def test_validation_order_fail(self):
-        spherical_weights = directives.SphericalUnitsWeights()
-        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
-        dList = [IRLS, spherical_weights]
-        directiveList = directives.DirectiveList(*dList)
-
-        with self.assertRaises(AssertionError):
-            self.assertTrue(directiveList.validate())
-
     def test_validation_initial_beta_fail(self):
         beta_1 = directives.BetaEstimateMaxDerivative()
         beta_2 = directives.BetaEstimate_ByEig()
@@ -273,6 +264,7 @@ class ValidationInInversion(unittest.TestCase):
         input_norms = [0.0, 1.0, 1.0, 1.0]
         reg = regularization.Sparse(self.mesh)
         reg.norms = input_norms
+        projection = maps.Projection(self.mesh.n_cells, np.arange(self.mesh.n_cells))
 
         other_reg = regularization.WeightedLeastSquares(self.mesh)
 
@@ -300,7 +292,7 @@ class ValidationInInversion(unittest.TestCase):
                 invProb, directiveList=[beta_schedule, irls_directive]
             )
 
-        spherical_weights = directives.SphericalUnitsWeights()
+        spherical_weights = directives.SphericalUnitsWeights(projection, [reg])
         with self.assertRaises(AssertionError):
             inversion.BaseInversion(
                 invProb, directiveList=[irls_directive, spherical_weights]

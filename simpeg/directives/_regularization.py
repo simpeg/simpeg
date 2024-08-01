@@ -457,7 +457,7 @@ class SphericalUnitsWeights(InversionDirective):
 
         self._amplitude = amplitude
 
-        if not isinstance(angles, (list | tuple)) or not all(
+        if not isinstance(angles, (list, tuple)) or not all(
             [isinstance(fun, WeightedLeastSquares) for fun in angles]
         ):
             raise TypeError(
