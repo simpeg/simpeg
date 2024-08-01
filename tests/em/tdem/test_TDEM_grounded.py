@@ -6,7 +6,6 @@ import unittest
 import discretize
 from simpeg.electromagnetics import time_domain as tdem
 from simpeg import maps, tests
-from pymatsolver import Pardiso
 
 
 class TestGroundedSourceTDEM_j(unittest.TestCase):
@@ -76,7 +75,6 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
             time_steps=time_steps,
             mu=mu,
             sigmaMap=maps.ExpMap(mesh),
-            solver=Pardiso,
         )
         survey = tdem.Survey([src])
 

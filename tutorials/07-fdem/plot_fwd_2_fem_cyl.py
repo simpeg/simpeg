@@ -34,11 +34,6 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import SolverLU as Solver
-
 write_file = False
 
 # sphinx_gallery_thumbnail_number = 2
@@ -184,7 +179,9 @@ cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 #
 
 simulation = fdem.simulation.Simulation3DMagneticFluxDensity(
-    mesh, survey=survey, sigmaMap=model_map, solver=Solver
+    mesh,
+    survey=survey,
+    sigmaMap=model_map,
 )
 
 ######################################################

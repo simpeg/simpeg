@@ -14,11 +14,6 @@ from simpeg import utils
 import numpy as np
 import matplotlib.pyplot as plt
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import Solver
-
 
 def run(plotIt=True):
     """
@@ -79,7 +74,6 @@ def run(plotIt=True):
     problem = NSEM.Simulation3DPrimarySecondary(
         M,
         survey=survey,
-        solver=Solver,
         sigma=sig,
         sigmaPrimary=sigBG,
         forward_only=True,

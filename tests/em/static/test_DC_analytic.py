@@ -6,11 +6,6 @@ import numpy as np
 from simpeg.electromagnetics import resistivity as dc
 from simpeg.electromagnetics import analytics
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import SolverLU as Solver
-
 
 class DCProblemAnalyticTests(unittest.TestCase):
     def setUp(self):
@@ -55,7 +50,6 @@ class DCProblemAnalyticTests(unittest.TestCase):
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=Solver,
             bc_type="Neumann",
         )
         data = simulation.dpred()
@@ -77,7 +71,6 @@ class DCProblemAnalyticTests(unittest.TestCase):
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=Solver,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -93,7 +86,6 @@ class DCProblemAnalyticTests(unittest.TestCase):
             survey=self.survey,
             sigma=self.sigma,
             bc_type="Mixed",
-            solver=Solver,
         )
         data = simulation.dpred()
 
@@ -116,7 +108,6 @@ class DCProblemAnalyticTests(unittest.TestCase):
             survey=self.survey,
             sigma=self.sigma,
             bc_type="Neumann",
-            solver=Solver,
         )
         data = simulation.dpred()
         err = np.sqrt(
@@ -178,7 +169,6 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
             survey=self.survey,
             sigma=self.sigma,
             bc_type="Dirichlet",
-            solver=Solver,
         )
 
         data = simulation.dpred()
@@ -234,7 +224,6 @@ class DCProblemAnalyticTests_Mixed(unittest.TestCase):
             survey=self.survey,
             sigma=self.sigma,
             bc_type="Mixed",
-            solver=Solver,
         )
         data = simulation.dpred()
         err = np.sqrt(

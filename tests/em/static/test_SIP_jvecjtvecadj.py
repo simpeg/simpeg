@@ -13,11 +13,6 @@ from simpeg import (
 import numpy as np
 from simpeg.electromagnetics import spectral_induced_polarization as sip
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import SolverLU as Solver
-
 
 class SIPProblemTestsCC(unittest.TestCase):
     def setUp(self):
@@ -69,7 +64,6 @@ class SIPProblemTestsCC(unittest.TestCase):
             tauiMap=wires.taui,
             storeJ=False,
         )
-        problem.solver = Solver
         mSynth = np.r_[eta, 1.0 / tau]
         problem.model = mSynth
         dobs = problem.make_synthetic_data(mSynth, add_noise=True)
@@ -169,7 +163,6 @@ class SIPProblemTestsN(unittest.TestCase):
             storeJ=False,
         )
         print(survey.nD)
-        problem.solver = Solver
         mSynth = np.r_[eta, 1.0 / tau]
         print(survey.nD)
         dobs = problem.make_synthetic_data(mSynth, add_noise=True)
@@ -281,7 +274,6 @@ class SIPProblemTestsN_air(unittest.TestCase):
             verbose=False,
         )
 
-        problem.solver = Solver
         mSynth = np.r_[eta[~airind], 1.0 / tau[~airind], c[~airind]]
         dobs = problem.make_synthetic_data(mSynth, add_noise=True)
         # Now set up the problem to do some minimization

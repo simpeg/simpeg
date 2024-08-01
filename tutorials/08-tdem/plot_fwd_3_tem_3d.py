@@ -40,10 +40,6 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import os
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import SolverLU as Solver
 
 save_file = False
 
@@ -284,7 +280,7 @@ time_steps = [(1e-4, 20), (1e-5, 10), (1e-4, 10)]
 #
 
 simulation = tdem.simulation.Simulation3DMagneticFluxDensity(
-    mesh, survey=survey, sigmaMap=model_map, solver=Solver, t0=-0.002
+    mesh, survey=survey, sigmaMap=model_map, t0=-0.002
 )
 
 # Set the time-stepping for the simulation
