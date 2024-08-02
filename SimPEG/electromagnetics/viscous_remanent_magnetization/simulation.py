@@ -767,9 +767,7 @@ class BaseVRMSimulation(BaseSimulation):
             xyzc[refFlag == qq, :] - xyzh[refFlag == qq, :] / 2
         )  # Get bottom southwest corners of cells to be refined
         m = np.shape(xyzc_sub)[0]
-        xyzc_sub = np.kron(
-            xyzc_sub, np.ones((n**3, 1))
-        )  # Kron for n**3 refined cells
+        xyzc_sub = np.kron(xyzc_sub, np.ones((n**3, 1)))  # Kron for n**3 refined cells
         xyzh_sub = np.kron(
             xyzh_sub / n, np.ones((n**3, 1))
         )  # Kron for n**3 refined cells with widths h/n

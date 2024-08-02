@@ -138,15 +138,9 @@ class MagDipole(BaseSrcVRM):
             + m[2] * (xyz[:, 2] - r0[2])
         )
 
-        hx0 = (1 / (4 * np.pi)) * (
-            3 * (xyz[:, 0] - r0[0]) * mdotr / r**5 - m[0] / r**3
-        )
-        hy0 = (1 / (4 * np.pi)) * (
-            3 * (xyz[:, 1] - r0[1]) * mdotr / r**5 - m[1] / r**3
-        )
-        hz0 = (1 / (4 * np.pi)) * (
-            3 * (xyz[:, 2] - r0[2]) * mdotr / r**5 - m[2] / r**3
-        )
+        hx0 = (1 / (4 * np.pi)) * (3 * (xyz[:, 0] - r0[0]) * mdotr / r**5 - m[0] / r**3)
+        hy0 = (1 / (4 * np.pi)) * (3 * (xyz[:, 1] - r0[1]) * mdotr / r**5 - m[1] / r**3)
+        hz0 = (1 / (4 * np.pi)) * (3 * (xyz[:, 2] - r0[2]) * mdotr / r**5 - m[2] / r**3)
 
         return np.c_[hx0, hy0, hz0]
 
@@ -285,8 +279,7 @@ class CircLoop(BaseSrcVRM):
             (x1p / s)
             * (x3p * I / (2 * np.pi * s * np.sqrt(x3p**2 + (a + s) ** 2)))
             * (
-                ((a**2 + x3p**2 + s**2) / (x3p**2 + (s - a) ** 2))
-                * spec.ellipe(k)
+                ((a**2 + x3p**2 + s**2) / (x3p**2 + (s - a) ** 2)) * spec.ellipe(k)
                 - spec.ellipk(k)
             )
         )
@@ -294,8 +287,7 @@ class CircLoop(BaseSrcVRM):
             (x2p / s)
             * (x3p * I / (2 * np.pi * s * np.sqrt(x3p**2 + (a + s) ** 2)))
             * (
-                ((a**2 + x3p**2 + s**2) / (x3p**2 + (s - a) ** 2))
-                * spec.ellipe(k)
+                ((a**2 + x3p**2 + s**2) / (x3p**2 + (s - a) ** 2)) * spec.ellipe(k)
                 - spec.ellipk(k)
             )
         )
