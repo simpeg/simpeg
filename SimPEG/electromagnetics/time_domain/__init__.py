@@ -13,11 +13,11 @@ Simulations
 
   Simulation1DLayered
   Simulation3DMagneticFluxDensity
-  Simulation3DMagneticFluxDensityFaceEdgeConductivity
   Simulation3DElectricField
-  Simulation3DElectricFieldFaceEdgeConductivity
   Simulation3DMagneticField
   Simulation3DCurrentDensity
+  Simulation3DHierarchicalMagneticFluxDensity
+  Simulation3DHierarchicalElectricField
 
 Receivers
 =========
@@ -72,9 +72,7 @@ Fields
   :toctree: generated/
 
   Fields3DMagneticFluxDensity
-  Fields3DMagneticFluxDensityConductance
   Fields3DElectricField
-  Fields3DElectricFieldConductance
   Fields3DMagneticField
   Fields3DCurrentDensity
 
@@ -96,18 +94,16 @@ Base Classes
 
 from .simulation import (
     Simulation3DMagneticFluxDensity,
-    Simulation3DMagneticFluxDensityFaceEdgeConductivity,
     Simulation3DElectricField,
-    Simulation3DElectricFieldFaceEdgeConductivity,
     Simulation3DMagneticField,
     Simulation3DCurrentDensity,
+    Simulation3DHierarchicalElectricField,
+    Simulation3DHierarchicalMagneticFluxDensity,
 )
 from .simulation_1d import Simulation1DLayered
 from .fields import (
     Fields3DMagneticFluxDensity,
-    Fields3DMagneticFluxDensityFaceEdgeConductivity,
     Fields3DElectricField,
-    Fields3DElectricFieldFaceEdgeConductivity,
     Fields3DMagneticField,
     Fields3DCurrentDensity,
 )

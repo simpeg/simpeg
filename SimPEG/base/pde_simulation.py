@@ -421,14 +421,14 @@ def with_surface_property_mass_matrices(property_name):
 
     For a given property, "prop", they will be named:
 
-    * MeProp
-    * MePropDeriv
-    * MePropI
-    * MePropIDeriv
-    * MfProp
-    * MfPropDeriv
-    * MfPropI
-    * MfPropIDeriv
+    * _MeProp
+    * _MePropDeriv
+    * _MePropI
+    * _MePropIDeriv
+    * _MfProp
+    * _MfPropDeriv
+    * _MfPropI
+    * _MfPropIDeriv
     """
 
     def decorator(cls):
@@ -594,10 +594,10 @@ def with_line_property_mass_matrices(property_name):
 
     For a given property, "prop", they will be named:
 
-    * MeProp
-    * MePropDeriv
-    * MePropI
-    * MePropIDeriv
+    * _MeProp
+    * _MePropDeriv
+    * _MePropI
+    * _MePropIDeriv
     """
 
     def decorator(cls):
@@ -832,114 +832,123 @@ class BaseMagneticPDESimulation(BasePDESimulation):
         return toDelete
 
 
-@with_surface_property_mass_matrices("tau")
 @with_line_property_mass_matrices("kappa")
-class BaseFaceEdgeElectricalPDESimulation(BaseElectricalPDESimulation):
-    tau, tauMap, tauDeriv = props.Invertible(
-        "Electrical conductivity times thickness (S); i.e. conductance",
-    )
+class BaseElectricalEdgePropertyPDESimulation(BaseElectricalPDESimulation):
     kappa, kappaMap, kappaDeriv = props.Invertible(
-        "Electrical conductivity times cross-sectional area (Sm)",
+        "Electrical conductivity times thickness on face elements (S).",
+        optional=True,
     )
 
     def __init__(
         self,
         mesh,
-        sigma=1e-8,
-        sigmaMap=None,
-        rho=None,
-        rhoMap=None,
-        tau=0.0,
-        tauMap=None,
-        kappa=0.0,
+        kappa=None,
         kappaMap=None,
         **kwargs,
     ):
         super().__init__(mesh=mesh, **kwargs)
-        self.sigma = sigma
-        self.rho = rho
-        self.sigmaMap = sigmaMap
-        self.rhoMap = rhoMap
-        self.tau = tau
-        self.tauMap = tauMap
         self.kappa = kappa
         self.kappaMap = kappaMap
 
     def __setattr__(self, name, value):
         super().__setattr__(name, value)
-        if name in ["sigma", "rho", "tau", "kappa"]:
-            mat_list = (
-                self._clear_on_sigma_update
-                + self._clear_on_rho_update
-                + self._clear_on_tau_update
-                + self._clear_on_kappa_update
-                + ["__MeSigmaTauKappa", "__MeSigmaTauKappaI"]
-            )
-            for mat in mat_list:
+        if name == "kappa":
+            for mat in self._clear_on_kappa_update:
                 if hasattr(self, mat):
                     delattr(self, mat)
 
     @property
-    def _MeSigmaTauKappa(self):
-        if getattr(self, "__MeSigmaTauKappa", None) is None:
-            M_prop = self.MeSigma + self._MeTau + self._MeKappa
-            setattr(self, "__MeSigmaTauKappa", M_prop)  # noqa: B010
-        return getattr(self, "__MeSigmaTauKappa")  # noqa: B009
+    def deleteTheseOnModelUpdate(self):
+        """
+        items to be deleted if the model for Magnetic Permeability is updated
+        """
+        toDelete = super().deleteTheseOnModelUpdate
+        if self.kappaMap is not None:
+            toDelete = toDelete + self._clear_on_kappa_update
+        return toDelete
+
+
+@with_surface_property_mass_matrices("tau")
+class BaseElectricalFacePropertyPDESimulation(BaseElectricalPDESimulation):
+    tau, tauMap, tauDeriv = props.Invertible(
+        "Electrical conductivity times cross-sectional area on edge elements (Sm).",
+        optional=True,
+    )
+
+    def __init__(
+        self,
+        mesh,
+        tau=None,
+        tauMap=None,
+        **kwargs,
+    ):
+        super().__init__(mesh=mesh, **kwargs)
+        self.tau = tau
+        self.tauMap = tauMap
+
+    def __setattr__(self, name, value):
+        super().__setattr__(name, value)
+        if name == "tau":
+            for mat in self._clear_on_tau_update:
+                if hasattr(self, mat):
+                    delattr(self, mat)
 
     @property
-    def _MeSigmaTauKappaI(self):
-        if getattr(self, "__MeSigmaTauKappaI", None) is None:
-            M_prop = sdinv(self.MeSigma + self._MeTau + self._MeKappa)
-            setattr(self, "__MeSigmaTauKappaI", M_prop)  # noqa: B010
-        return getattr(self, "__MeSigmaTauKappaI")  # noqa: B009
+    def deleteTheseOnModelUpdate(self):
+        """
+        items to be deleted if the model for Magnetic Permeability is updated
+        """
+        toDelete = super().deleteTheseOnModelUpdate
+        if self.tauMap is not None:
+            toDelete = toDelete + self._clear_on_tau_update
+        return toDelete
 
-    def _MeSigmaTauKappaDeriv_sigma(self, u, v=None, adjoint=False):
-        """Only derivative wrt to sigma"""
-        return self.MeSigmaDeriv(u, v, adjoint)
 
-    def _MeSigmaTauKappaDeriv_tau(self, u, v=None, adjoint=False):
-        """Only derivative wrt tau"""
-        return self._MeTauDeriv(u, v, adjoint)
+class BaseHierarchicalElectricalSimulation(
+    BaseElectricalEdgePropertyPDESimulation, BaseElectricalFacePropertyPDESimulation
+):
+    """
+    Base class for all Hierarchical EM simulations.
 
-    def _MeSigmaTauKappaDeriv_kappa(self, u, v=None, adjoint=False):
-        """Only derivative wrt to kappa"""
-        return self._MeKappaDeriv(u, v, adjoint)
+    An electrical simulation can inherit this class and it will replace MeSigma
+    operations with the heirarchical operators.
+    """
 
-    def _MeSigmaTauKappaDeriv(self, u, v=None, adjoint=False):
-        """Only derivative wrt to kappa"""
-        return (
-            self.MeSigmaDeriv(u, v, adjoint)
-            + self._MeTauDeriv(u, v, adjoint)
-            + self._MeKappaDeriv(u, v, adjoint)
-        )
+    _clean_on_h_prop_update = ["__MeSigmaHeirarchical", "__MeSigmaHeirarchicalI"]
 
-    def _MeSigmaTauKappaIDeriv_sigma(self, u, v=None, adjoint=False):
-        """Only derivative wrt to tau"""
-        MI_prop = self._MeSigmaTauKappaI
+    @property
+    def MeSigma(self):
+        if getattr(self, "__MeSigmaHeirarchical", None) is None:
+            M_prop = super().MeSigma
+            if self.tau is not None:
+                M_prop += self._MeTau
+            if self.kappa is not None:
+                M_prop += self._MeKappa
+            self.__MeSigmaHeirarchical = M_prop
+        return self.__MeSigmaHeirarchical
+
+    @property
+    def MeSigmaI(self):
+        if getattr(self, "__MeSigmaHeirarchicalI", None) is None:
+            # This operation will "work" on unstructured meshes and anisotropic properties,
+            # but it won't be correct as it assumes the matrix is diagonal. Should throw an
+            # error higher up though.
+            M_prop = sdinv(self.MeSigma)
+            self.__MeSigmaHeirarchicalI = M_prop
+        return self.__MeSigmaHeirarchicalI
+
+    def MeSigmaDeriv(self, u, v=None, adjoint=False):
+        out = super().MeSigmaDeriv(u, v, adjoint=adjoint)
+        if self.tauMap is not None:
+            out += self._MeKappaDeriv(u, v, adjoint=adjoint)
+        if self.kappaMap is not None:
+            out += self._MeTauDeriv(u, v, adjoint=adjoint)
+        return out
+
+    def MeSigmaIDeriv(self, u, v=None, adjoint=False):
+        MI_prop = self.MeSigmaI
         u = MI_prop @ (MI_prop @ -u)
-        return self.MeSigmaDeriv(u, v, adjoint)
-
-    def _MeSigmaTauKappaIDeriv_tau(self, u, v=None, adjoint=False):
-        """Only derivative wrt to tau"""
-        MI_prop = self._MeSigmaTauKappaI
-        u = MI_prop @ (MI_prop @ -u)
-        return self._MeTauDeriv(u, v, adjoint)
-
-    def _MeSigmaTauKappaIDeriv_kappa(self, u, v=None, adjoint=False):
-        """Only derivative wrt to tau"""
-        MI_prop = self._MeSigmaTauKappaI
-        u = MI_prop @ (MI_prop @ -u)
-        return self._MeKappaDeriv(u, v, adjoint)
-
-    def _MeSigmaTauKappaIDeriv(self, u, v=None, adjoint=False):
-        """Only derivative wrt to kappa"""
-        MI_prop = self._MeSigmaTauKappaI
-        u = MI_prop @ (MI_prop @ -u)
-        return (
-            self.MeSigmaDeriv(u, v, adjoint)
-            + self._MeTauDeriv(u, v, adjoint)
-            + self._MeKappaDeriv(u, v, adjoint)
-        )
+        return self.MeSigmaDeriv(u, v, adjoint=adjoint)
 
     @property
     def deleteTheseOnModelUpdate(self):
@@ -953,12 +962,12 @@ class BaseFaceEdgeElectricalPDESimulation(BaseElectricalPDESimulation):
             or self.tauMap is not None
             or self.kappaMap is not None
         ):
-            toDelete = (
-                toDelete
-                + self._clear_on_sigma_update
-                + self._clear_on_rho_update
-                + self._clear_on_tau_update
-                + self._clear_on_kappa_update
-                + ["__MeSigmaTauKappa", "__MeSigmaTauKappaI"]
-            )
+            toDelete = toDelete + self._clean_on_h_prop_update
         return toDelete
+
+    def __setattr__(self, name, value):
+        super().__setattr__(name, value)
+        if name in ["sigma", "rho", "tau", "kappa"]:
+            for mat in self._clean_on_h_prop_update:
+                if hasattr(self, mat):
+                    delattr(self, mat)

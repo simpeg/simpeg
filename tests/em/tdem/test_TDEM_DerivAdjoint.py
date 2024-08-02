@@ -84,7 +84,7 @@ def get_prob(mesh, formulation, sigma_map, **kwargs):
     return prb
 
 
-def get_face_edge_prob(
+def get_hierarchical_prob(
     mesh, formulation, sigma_map=None, tau_map=None, kappa_map=None, **kwargs
 ):
     prb = getattr(tdem, "Simulation3D{}".format(formulation))(
@@ -111,13 +111,13 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         mesh = get_mesh()
         self.survey = get_survey()
 
-        if "FaceEdgeConductivity" in self.formulation:
+        if "Hierarchical" in self.formulation:
             active_cells = mesh.cell_centers[:, -1] < 0.0
             active_faces = mesh.faces[:, -1] < 0.0
             active_edges = mesh.edges[:, -1] < 0.0
 
             sigma_map, tau_map, kappa_map = get_wire_mappings(mesh)
-            self.prob = get_face_edge_prob(
+            self.prob = get_hierarchical_prob(
                 mesh,
                 self.formulation,
                 sigma_map=sigma_map,
@@ -150,9 +150,9 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         # iteration
         mesh = get_mesh()
         self.surveyfwd = get_survey()
-        if "FaceEdgeConductivity" in self.formulation:
+        if "Hierarchical" in self.formulation:
             sigma_map, tau_map, kappa_map = get_wire_mappings(mesh)
-            self.probfwd = get_face_edge_prob(
+            self.probfwd = get_hierarchical_prob(
                 mesh,
                 self.formulation,
                 sigma_map=sigma_map,
@@ -303,8 +303,8 @@ class DerivAdjoint_E(Base_DerivAdjoint_Test):
         pass
 
 
-class DerivAdjoint_E_FaceEdgeConductivity(Base_DerivAdjoint_Test):
-    formulation = "ElectricFieldFaceEdgeConductivity"
+class DerivAdjoint_HierarchicalE(Base_DerivAdjoint_Test):
+    formulation = "HierarchicalElectricField"
 
     if testDeriv:
 
@@ -412,8 +412,8 @@ class DerivAdjoint_B(Base_DerivAdjoint_Test):
             self.JvecVsJtvecTest("CurrentDensityy")
 
 
-class DerivAdjoint_B_FaceEdgeConductivity(Base_DerivAdjoint_Test):
-    formulation = "MagneticFluxDensityFaceEdgeConductivity"
+class DerivAdjoint_HierarchicalB(Base_DerivAdjoint_Test):
+    formulation = "HierarchicalMagneticFluxDensity"
 
     if testDeriv:
 

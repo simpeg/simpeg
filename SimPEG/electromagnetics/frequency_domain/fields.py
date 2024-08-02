@@ -333,8 +333,16 @@ class Fields3DElectricField(FieldsFDEM):
         self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
         self._MfMui = self.simulation.MfMui
         self._MfMuiDeriv = self.simulation.MfMuiDeriv
-        self._MeI = self.simulation.MeI
-        self._MfI = self.simulation.MfI
+        # Not all meshes support MeI so don't always ask for it.
+        # Should be a better solution than this though...
+        try:
+            self._MeI = self.simulation.MeI
+        except NotImplementedError:
+            self._MeI = None
+        try:
+            self._MfI = self.simulation.MfI
+        except NotImplementedError:
+            self._MfI = None
 
     def _GLoc(self, fieldType):
         if fieldType in ["e", "eSecondary", "ePrimary", "j"]:
@@ -628,67 +636,6 @@ class Fields3DElectricField(FieldsFDEM):
         return (
             self.mesh.aveN2CC * self._charge(eSolution, source_list)
         ) / self.mesh.cell_volumes[:, None]
-
-
-class Fields3DElectricFieldFaceEdgeConductivity(Fields3DElectricField):
-    r"""
-    Fields object for Simulation3DElectricFieldFaceEdgeConductivity.
-
-    In this case, the discrete Ohm's law relationship accounts for volume, face
-    and edge currents. So:
-
-    .. math::
-        \mathbf{M_e \, J} = \left ( \mathbf{M_{e\sigma} + M_{e\tau}
-        + M_{e\kappa}} \right ) \mathbf{e}
-
-    Parameters
-    ----------
-    mesh : discretize.base.BaseMesh
-    survey : SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey
-    """
-
-    def startup(self):
-        self._edgeCurl = self.simulation.mesh.edge_curl
-        self._aveE2CCV = self.simulation.mesh.aveE2CCV
-        self._aveF2CCV = self.simulation.mesh.aveF2CCV
-        self._nC = self.simulation.mesh.nC
-        self.__MeSigmaTauKappa = self.simulation._MeSigmaTauKappa
-        self.__MeSigmaTauKappaDeriv = self.simulation._MeSigmaTauKappaDeriv
-        self._MfMui = self.simulation.MfMui
-        self._MfMuiDeriv = self.simulation.MfMuiDeriv
-        self._MeI = self.simulation.MeI
-        self._MfI = self.simulation.MfI
-
-    def _j(self, eSolution, source_list):
-        # Docstring inherited from parent class
-        return self._MeI * (self.__MeSigmaTauKappa * self._e(eSolution, source_list))
-
-    def _jDeriv_u(self, src, du_dm_v, adjoint=False):
-        # Docstring inherited from parent class
-        if adjoint:
-            return self._eDeriv_u(
-                src, self.__MeSigmaTauKappa.T * (self._MeI.T * du_dm_v), adjoint=adjoint
-            )
-        return self._MeI * (
-            self.__MeSigmaTauKappa * (self._eDeriv_u(src, du_dm_v, adjoint=adjoint))
-        )
-
-    def _jDeriv_m(self, src, v, adjoint=False):
-        # Docstring inherited from parent class
-        e = self[src, "e"]
-
-        if adjoint:
-            return (
-                self.__MeSigmaTauKappaDeriv(e, (self._MeI.T * v), adjoint=adjoint)
-                + self._eDeriv_m(src, (self._MeI.T * v), adjoint=adjoint)
-            ) + src.jPrimaryDeriv(self.simulation, v, adjoint)
-        return (
-            self._MeI
-            * (
-                self._eDeriv_m(src, v, adjoint=adjoint)
-                + self.__MeSigmaTauKappaDeriv(e, v, adjoint=adjoint)
-            )
-        ) + src.jPrimaryDeriv(self.simulation, v, adjoint)
 
 
 class Fields3DMagneticFluxDensity(FieldsFDEM):
@@ -1019,117 +966,6 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         return (
             self.mesh.aveN2CC * self._charge(bSolution, source_list)
         ) / self.mesh.cell_volumes[:, None]
-
-
-class Fields3DMagneticFluxDensityFaceEdgeConductivity(Fields3DMagneticFluxDensity):
-    r"""
-    Fields object for Simulation3DMagneticFluxDensityFaceEdgeConductivity.
-
-    In this case, the discrete Ohm's law relationship accounts for volume, face
-    and edge currents. So:
-
-    .. math::
-        \mathbf{M_e \, J} = \left ( \mathbf{M_{e\sigma} + M_{e\tau}
-        + M_{e\kappa}} \right ) \mathbf{e}
-
-    Parameters
-    ----------
-    mesh : discretize.base.BaseMesh mesh
-    survey : SimPEG.electromagnetics.frequency_domain.SurveyFDEM.Survey
-    """
-
-    def startup(self):
-        self._edgeCurl = self.simulation.mesh.edge_curl
-        self._MfMui = self.simulation.MfMui
-        self._MfMuiDeriv = self.simulation.MfMuiDeriv
-        self.__MeSigmaTauKappa = self.simulation._MeSigmaTauKappa
-        self.__MeSigmaTauKappaI = self.simulation._MeSigmaTauKappaI
-        self.__MeSigmaTauKappaDeriv = self.simulation._MeSigmaTauKappaDeriv
-        self.__MeSigmaTauKappaIDeriv = self.simulation._MeSigmaTauKappaIDeriv
-        self._Me = self.simulation.Me
-        self._aveF2CCV = self.simulation.mesh.aveF2CCV
-        self._aveE2CCV = self.simulation.mesh.aveE2CCV
-        self._sigma = self.simulation.sigma
-        self._mui = self.simulation.mui
-        self._nC = self.simulation.mesh.nC
-        self._MeI = self.simulation.MeI
-        self._MfI = self.simulation.MfI
-
-    def _eSecondary(self, bSolution, source_list):
-        # Docstring inherited from parent class
-
-        e = self._edgeCurl.T * (self._MfMui * bSolution)
-        for i, src in enumerate(source_list):
-            s_e = src.s_e(self.simulation)
-            e[:, i] = e[:, i] - s_e
-
-            if self.simulation.permittivity is not None:
-                MeyhatI = (
-                    self.simulation._get_edge_admittivity_property_matrix(
-                        src.frequency, invert_matrix=True
-                    )
-                    + self.__MeTau
-                    + self.__MeKappa
-                )
-                e[:, i] *= MeyhatI
-
-        if self.simulation.permittivity is None:
-            return self.__MeSigmaTauKappaI * e
-        else:
-            return e
-
-    def _eDeriv_u(self, src, du_dm_v, adjoint=False):
-        # Docstring inherited from parent class
-
-        if not adjoint:
-            return self.__MeSigmaTauKappaI * (
-                self._edgeCurl.T * (self._MfMui * du_dm_v)
-            )
-        return self._MfMui.T * (self._edgeCurl * (self.__MeSigmaTauKappaI.T * du_dm_v))
-
-    def _eDeriv_m(self, src, v, adjoint=False):
-        # Docstring inherited from parent class
-        bSolution = mkvc(self[src, "bSolution"])
-        s_e = src.s_e(self.simulation)
-
-        w = -s_e + self._edgeCurl.T * (self._MfMui * bSolution)
-
-        if adjoint:
-            s_eDeriv = src.s_eDeriv(
-                self.simulation, self.__MeSigmaTauKappaI.T * v, adjoint
-            )
-            return (
-                self.__MeSigmaTauKappaIDeriv(w, v, adjoint)
-                + self._MfMuiDeriv(
-                    bSolution, self._edgeCurl * (self.__MeSigmaTauKappaI.T * v), adjoint
-                )
-                - s_eDeriv
-                + src.ePrimaryDeriv(self.simulation, v, adjoint)
-            )
-        s_eDeriv = src.s_eDeriv(self.simulation, v, adjoint)
-        return (
-            self.__MeSigmaTauKappaIDeriv(w, v)
-            + self.__MeSigmaTauKappaI
-            * (self._edgeCurl.T * self._MfMuiDeriv(bSolution, v))
-            - self.__MeSigmaTauKappaI * s_eDeriv
-            + src.ePrimaryDeriv(self.simulation, v, adjoint)
-        )
-
-    def _j(self, bSolution, source_list):
-        # Docstring inherited from parent class
-
-        if self.simulation.permittivity is None:
-            j = self._edgeCurl.T * (self._MfMui * bSolution)
-
-            for i, src in enumerate(source_list):
-                s_e = src.s_e(self.simulation)
-                j[:, i] = j[:, i] - s_e
-
-            return self._MeI * j
-        else:
-            return self._MeI * (
-                self.__MeSigmaTauKappa * self._e(bSolution, source_list)
-            )
 
 
 class Fields3DCurrentDensity(FieldsFDEM):
