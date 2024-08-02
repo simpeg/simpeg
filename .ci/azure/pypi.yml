@@ -1,0 +1,83 @@
+jobs:
+  - job: Build
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+      # Checkout simpeg repo.
+      # Sync tags and disable shallow depth to get the SimPEG version.
+      - checkout: self
+        fetchDepth: 0
+        fetchTags: true
+        displayName: "Checkout repository (including tags)"
+
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: "3.9"
+        displayName: "Setup Python"
+
+      - bash: |
+          pip install build twine
+        displayName: "Install build dependencies"
+
+      - bash: |
+          # Change setuptools-scm local_scheme to "no-local-version" so the
+          # local part of the version isn't included, making the version string
+          # compatible with Test PyPI. Only do this when building for TestPyPI.
+          sed --in-place 's/node-and-date/no-local-version/g' pyproject.toml
+        condition: not(startsWith(variables['build.sourceBranch'], 'refs/tags/'))
+        displayName: "Configure local_scheme (except on release)"
+
+      - bash: |
+          python -m build --sdist .
+        displayName: "Create source distribution for simpeg"
+
+      - bash: |
+          twine check dist/*
+        displayName: "Check the source distribution"
+
+      - task: PublishPipelineArtifact@1
+        inputs:
+          targetPath: $(Build.SourcesDirectory)/dist
+          artifactName: pypi-dist
+        displayName: "Upload dist as artifact"
+
+  - job: Deploy
+    dependsOn: Build
+    condition: or(startsWith(variables['build.sourceBranch'], 'refs/tags/'), eq(variables['Build.Reason'], 'Schedule'))
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+      - checkout: none
+
+      - task: DownloadPipelineArtifact@2
+        inputs:
+          artifact: pypi-dist
+          targetPath: dist
+        displayName: "Download dist artifact"
+
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: "3.9"
+        displayName: "Setup Python"
+
+      - bash: |
+          pip install twine
+        displayName: "Install twine"
+
+      # Push to TestPyPI (only on push to main)
+      - bash: |
+          twine upload --repository testpypi dist/*
+        displayName: "Upload to TestPyPI"
+        condition: eq(variables['Build.Reason'], 'Schedule')
+        env:
+          TWINE_USERNAME: $(twine.username)
+          TWINE_PASSWORD: $(test.twine.password)
+
+      # Push to PyPI (only on release)
+      - bash: |
+          twine upload --skip-existing dist/*
+        displayName: "Upload to PyPI"
+        condition: startsWith(variables['build.sourceBranch'], 'refs/tags/')
+        env:
+          TWINE_USERNAME: $(twine.username)
+          TWINE_PASSWORD: $(twine.password)

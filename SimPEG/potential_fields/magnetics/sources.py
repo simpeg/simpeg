@@ -1,6 +1,9 @@
+from __future__ import annotations
 from ...survey import BaseSrc
-from simpeg.utils.mat_utils import dip_azimuth2cartesian
-from simpeg.utils.code_utils import deprecate_class, validate_float
+from ...utils.mat_utils import dip_azimuth2cartesian
+from ...utils.code_utils import deprecate_class, validate_float, validate_list_of_types
+
+from .receivers import Point
 
 
 class UniformBackgroundField(BaseSrc):
@@ -11,39 +14,46 @@ class UniformBackgroundField(BaseSrc):
 
     Parameters
     ----------
-    receiver_list : list of simpeg.potential_fields.magnetics.Point
-    amplitude : float, optional
-        amplitude of the inducing backgound field, usually this is in units of nT.
-    inclination : float, optional
-        Dip angle in degrees from the horizon, positive points into the earth.
-    declination : float, optional
+    receiver_list : simpeg.potential_fields.magnetics.Point, list of simpeg.potential_fields.magnetics.Point or None
+        Point magnetic receivers.
+    amplitude : float
+        Amplitude of the inducing background field, usually this is in
+        units of nT.
+    inclination : float
+        Dip angle in degrees from the horizon, positive value into the earth.
+    declination : float
         Azimuthal angle in degrees from north, positive clockwise.
     """
 
     def __init__(
         self,
-        receiver_list=None,
-        amplitude=50000.0,
-        inclination=90.0,
-        declination=0.0,
-        **kwargs,
+        receiver_list: Point | list[Point] | None,
+        amplitude: float,
+        inclination: float,
+        declination: float,
     ):
-        # Raise errors on 'parameters' argument
-        #   The parameters argument was supported in the deprecated SourceField
-        #   class. We would like to raise an error in case the user passes it
-        #   so the class doesn't behave differently than expected.
-        if (key := "parameters") in kwargs:
-            raise TypeError(
-                f"'{key}' property has been removed."
-                "Please pass the amplitude, inclination and declination"
-                " through their own arguments."
-            )
-
         self.amplitude = amplitude
         self.inclination = inclination
         self.declination = declination
+        super().__init__(receiver_list=receiver_list)
 
-        super().__init__(receiver_list=receiver_list, **kwargs)
+    @property
+    def receiver_list(self):
+        """
+        List of receivers associated with the survey.
+
+        Returns
+        -------
+        list of SimPEG.potential_fields.magnetics.Point
+            List of magnetic receivers associated with the survey
+        """
+        return self._receiver_list
+
+    @receiver_list.setter
+    def receiver_list(self, value):
+        self._receiver_list = validate_list_of_types(
+            "receiver_list", value, Point, ensure_unique=True
+        )
 
     @property
     def amplitude(self):

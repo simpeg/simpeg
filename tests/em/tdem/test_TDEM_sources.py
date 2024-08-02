@@ -73,6 +73,7 @@ class TestRampOffWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
+        np.random.seed(10)  # use seed for check_derivative
         assert check_derivative(f, t0, dx=dt, plotIt=False)
 
 
@@ -115,6 +116,7 @@ class TestVTEMWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
+        np.random.seed(10)  # use seed for check_derivative
         assert check_derivative(f, t0, dx=dt, plotIt=False)
 
 
@@ -157,6 +159,7 @@ class TestTrapezoidWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
+        np.random.seed(10)  # use seed for check_derivative
         assert check_derivative(f, t0, dx=dt, plotIt=False)
 
 
@@ -195,6 +198,7 @@ class TestTriangularWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
+        np.random.seed(10)  # use seed for check_derivative
         assert check_derivative(f, t0, dx=dt, plotIt=False)
 
 
@@ -268,6 +272,7 @@ class TestQuarterSineRampOnWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
+        np.random.seed(10)  # use seed for check_derivative
         assert check_derivative(f, t0, dx=dt, plotIt=False)
 
     def test_waveform_without_plateau_derivative(self):
@@ -290,6 +295,7 @@ class TestQuarterSineRampOnWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
+        np.random.seed(10)  # use seed for check_derivative
         assert check_derivative(f, t0, dx=dt, plotIt=False)
 
     def test_waveform_negative_plateau_derivative(self):
@@ -312,6 +318,7 @@ class TestQuarterSineRampOnWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
+        np.random.seed(10)  # use seed for check_derivative
         assert check_derivative(f, t0, dx=dt, plotIt=False)
 
 
@@ -372,6 +379,7 @@ class TestHalfSineWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
+        np.random.seed(10)  # use seed for check_derivative
         assert check_derivative(f, t0, dx=dt, plotIt=False)
 
     def test_waveform_without_plateau_derivative(self):
@@ -392,6 +400,7 @@ class TestHalfSineWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
+        np.random.seed(10)  # use seed for check_derivative
         assert check_derivative(f, t0, dx=dt, plotIt=False)
 
 
@@ -430,6 +439,7 @@ class TestPiecewiseLinearWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
+        np.random.seed(10)  # use seed for check_derivative
         assert check_derivative(f, t0, dx=dt, plotIt=False)
 
 
@@ -520,6 +530,7 @@ class TestExponentialWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
+        np.random.seed(10)  # use seed for check_derivative
         assert check_derivative(f, t0, dx=dt, plotIt=False)
 
 

@@ -133,19 +133,19 @@ class MapTests(unittest.TestCase):
 
     def test_transforms2D(self):
         for M in self.maps2test2D:
-            self.assertTrue(M(self.mesh2).test())
+            self.assertTrue(M(self.mesh2).test(random_seed=42))
 
     def test_transforms2Dvec(self):
         for M in self.maps2test2D:
-            self.assertTrue(M(self.mesh2).test())
+            self.assertTrue(M(self.mesh2).test(random_seed=42))
 
     def test_transforms3D(self):
         for M in self.maps2test3D:
-            self.assertTrue(M(self.mesh3).test())
+            self.assertTrue(M(self.mesh3).test(random_seed=42))
 
     def test_transforms3Dvec(self):
         for M in self.maps2test3D:
-            self.assertTrue(M(self.mesh3).test())
+            self.assertTrue(M(self.mesh3).test(random_seed=42))
 
     def test_invtransforms2D(self):
         for M in self.maps2test2D:
@@ -188,14 +188,14 @@ class MapTests(unittest.TestCase):
     def test_ParametricCasingAndLayer(self):
         mapping = maps.ParametricCasingAndLayer(self.meshCyl)
         m = np.r_[-2.0, 1.0, 6.0, 2.0, -0.1, 0.2, 0.5, 0.2, -0.2, 0.2]
-        self.assertTrue(mapping.test(m))
+        self.assertTrue(mapping.test(m=m))
 
     def test_ParametricBlock2D(self):
         mesh = discretize.TensorMesh([np.ones(30), np.ones(20)], x0=np.array([-15, -5]))
         mapping = maps.ParametricBlock(mesh)
         # val_background,val_block, block_x0, block_dx, block_y0, block_dy
         m = np.r_[-2.0, 1.0, -5, 10, 5, 4]
-        self.assertTrue(mapping.test(m))
+        self.assertTrue(mapping.test(m=m))
 
     def test_transforms_logMap_reciprocalMap(self):
         # Note that log/reciprocal maps can be kinda finicky, so we are being
@@ -237,22 +237,22 @@ class MapTests(unittest.TestCase):
         ]
 
         mapping = maps.LogMap(self.mesh2)
-        self.assertTrue(mapping.test(v2, dx=dv2))
+        self.assertTrue(mapping.test(m=v2, dx=dv2))
         mapping = maps.LogMap(self.mesh3)
-        self.assertTrue(mapping.test(v3, dx=dv3))
+        self.assertTrue(mapping.test(m=v3, dx=dv3))
 
         mapping = maps.ReciprocalMap(self.mesh2)
-        self.assertTrue(mapping.test(v2, dx=dv2))
+        self.assertTrue(mapping.test(m=v2, dx=dv2))
         mapping = maps.ReciprocalMap(self.mesh3)
-        self.assertTrue(mapping.test(v3, dx=dv3))
+        self.assertTrue(mapping.test(m=v3, dx=dv3))
 
     def test_Mesh2MeshMap(self):
         mapping = maps.Mesh2Mesh([self.mesh22, self.mesh2])
-        self.assertTrue(mapping.test())
+        self.assertTrue(mapping.test(random_seed=42))
 
     def test_Mesh2MeshMapVec(self):
         mapping = maps.Mesh2Mesh([self.mesh22, self.mesh2])
-        self.assertTrue(mapping.test())
+        self.assertTrue(mapping.test(random_seed=42))
 
     def test_mapMultiplication(self):
         M = discretize.TensorMesh([2, 3])
@@ -339,7 +339,7 @@ class MapTests(unittest.TestCase):
         ]:
             # m2to3 = maps.Surject2Dto3D(M3, normal='X')
             m = np.arange(m2to3.nP)
-            self.assertTrue(m2to3.test())
+            self.assertTrue(m2to3.test(random_seed=42))
             self.assertTrue(
                 np.all(utils.mkvc((m2to3 * m).reshape(M3.vnC, order="F")[0, :, :]) == m)
             )
@@ -354,7 +354,7 @@ class MapTests(unittest.TestCase):
         ]:
             # m2to3 = maps.Surject2Dto3D(M3, normal='Y')
             m = np.arange(m2to3.nP)
-            self.assertTrue(m2to3.test())
+            self.assertTrue(m2to3.test(random_seed=42))
             self.assertTrue(
                 np.all(utils.mkvc((m2to3 * m).reshape(M3.vnC, order="F")[:, 0, :]) == m)
             )
@@ -369,7 +369,7 @@ class MapTests(unittest.TestCase):
         ]:
             # m2to3 = maps.Surject2Dto3D(M3, normal='Z')
             m = np.arange(m2to3.nP)
-            self.assertTrue(m2to3.test())
+            self.assertTrue(m2to3.test(random_seed=42))
             self.assertTrue(
                 np.all(utils.mkvc((m2to3 * m).reshape(M3.vnC, order="F")[:, :, 0]) == m)
             )
@@ -383,7 +383,7 @@ class MapTests(unittest.TestCase):
         M2 = discretize.TensorMesh([np.ones(10), np.ones(10)], "CN")
         x = M2.cell_centers_x
         mParamSpline = maps.ParametricSplineMap(M2, x, normal="Y", order=1)
-        self.assertTrue(mParamSpline.test())
+        self.assertTrue(mParamSpline.test(random_seed=42))
 
     def test_parametric_block(self):
         M1 = discretize.TensorMesh([np.ones(10)], "C")
@@ -475,8 +475,8 @@ class MapTests(unittest.TestCase):
 
         self.assertTrue(np.all(summap0 * m0 == summap1 * m0))
 
-        self.assertTrue(summap0.test(m0))
-        self.assertTrue(summap1.test(m0))
+        self.assertTrue(summap0.test(m=m0))
+        self.assertTrue(summap1.test(m=m0))
 
     def test_surject_units(self):
         M2 = discretize.TensorMesh([np.ones(10), np.ones(20)], "CC")
@@ -490,7 +490,7 @@ class MapTests(unittest.TestCase):
 
         self.assertTrue(np.all(m1[unit1] == 0))
         self.assertTrue(np.all(m1[unit2] == 1))
-        self.assertTrue(surject_units.test(m0))
+        self.assertTrue(surject_units.test(m=m0))
 
     def test_Projection(self):
         nP = 10
@@ -512,7 +512,7 @@ class MapTests(unittest.TestCase):
             maps.Projection(nP, np.r_[10]) * m
 
         mapping = maps.Projection(nP, np.r_[1, 2, 6, 1, 3, 5, 4, 9, 9, 8, 0])
-        mapping.test()
+        mapping.test(random_seed=42)
 
     def test_Tile(self):
         """
@@ -694,7 +694,7 @@ def test_LinearMapDerivs(A, b):
     y1 = mapping.deriv(m) @ v
     y2 = mapping.deriv(m, v=v)
     np.testing.assert_equal(y1, y2)
-    mapping.test()
+    mapping.test(random_seed=42)
 
 
 def test_LinearMap_errors():

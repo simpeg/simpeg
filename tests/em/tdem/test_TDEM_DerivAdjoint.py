@@ -187,7 +187,6 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
                 src.receiver_list = rxlist
 
     def JvecTest(self, rxcomp):
-        np.random.seed(10)
         self.set_receiver_list(rxcomp)
 
         def derChk(m):
@@ -201,17 +200,18 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
                 prbtype=self.formulation, rxcomp=rxcomp
             )
         )
+        np.random.seed(10)  # use seed for check_derivative
         tests.check_derivative(derChk, self.m, plotIt=False, num=2, eps=1e-20)
 
     def JvecVsJtvecTest(self, rxcomp):
-        np.random.seed(10)
         self.set_receiver_list(rxcomp)
         print(
             "\nAdjoint Testing Jvec, Jtvec prob {}, {}".format(self.formulation, rxcomp)
         )
 
-        m = np.random.rand(self.prob.sigmaMap.nP)
-        d = np.random.randn(self.prob.survey.nD)
+        rng = np.random.default_rng(seed=42)
+        m = rng.uniform(size=self.prob.sigmaMap.nP)
+        d = rng.normal(size=self.prob.survey.nD)
         V1 = d.dot(self.prob.Jvec(self.m, m, f=self.fields))
         V2 = m.dot(self.prob.Jtvec(self.m, d, f=self.fields))
         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.0
@@ -230,8 +230,9 @@ class TDEM_Fields_B_Pieces(Base_DerivAdjoint_Test):
 
         print("\n Testing eDeriv_m Adjoint")
 
-        m = np.random.rand(len(self.m))
-        e = np.random.randn(prb.mesh.nE)
+        rng = np.random.default_rng(seed=42)
+        m = rng.uniform(size=len(self.m))
+        e = rng.normal(size=prb.mesh.nE)
         V1 = e.dot(f._eDeriv_m(1, prb.survey.source_list[0], m))
         V2 = m.dot(f._eDeriv_m(1, prb.survey.source_list[0], e, adjoint=True))
         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.0
@@ -246,8 +247,9 @@ class TDEM_Fields_B_Pieces(Base_DerivAdjoint_Test):
         prb = self.prob
         f = self.fields
 
-        b = np.random.rand(prb.mesh.nF)
-        e = np.random.randn(prb.mesh.nE)
+        rng = np.random.default_rng(seed=42)
+        b = rng.uniform(size=prb.mesh.nF)
+        e = rng.normal(size=prb.mesh.nE)
         V1 = e.dot(f._eDeriv_u(1, prb.survey.source_list[0], b))
         V2 = b.dot(f._eDeriv_u(1, prb.survey.source_list[0], e, adjoint=True))
         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.0
