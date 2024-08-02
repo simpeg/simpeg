@@ -110,6 +110,8 @@ Edit the `docs/_static/versions.json` file and:
 - [ ] Add an entry for the new version (below dev, above the current _latest_).
 - [ ] Make sure to set the new the version number in every field in the new entry.
 - [ ] Mark the new version as the `latest`, and remove `latest` from the previous one.
+- [ ] Set the new version as the `preferred` one.
+- [ ] Remove the `preferred` line from the older version.
 - [ ] Run `cat docs/_static/versions.json | python -m json.tool > /dev/null` to check if the syntax of the JSON file is correct. If no errors are prompted, then your file is OK.
 - [ ] Double-check the changes.
 - [ ] Commit the changes to the same branch.

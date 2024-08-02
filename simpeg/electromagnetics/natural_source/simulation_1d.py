@@ -5,7 +5,7 @@ from ...simulation import BaseSimulation
 from ... import props
 from ...utils import validate_type
 from ..frequency_domain.survey import Survey
-from .receivers import Impedance, PointNaturalSource
+from .receivers import Impedance
 
 
 class Simulation1DRecursive(BaseSimulation):
@@ -86,10 +86,7 @@ class Simulation1DRecursive(BaseSimulation):
             is_valid = np.all(
                 [
                     np.all(
-                        [
-                            type(rx_ii) in (Impedance, PointNaturalSource)
-                            for rx_ii in src_ii.receiver_list
-                        ]
+                        [isinstance(rx_ii, Impedance) for rx_ii in src_ii.receiver_list]
                     )
                     for src_ii in value.source_list
                 ]

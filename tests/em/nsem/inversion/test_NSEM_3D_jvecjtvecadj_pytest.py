@@ -1,10 +1,9 @@
 import pytest
 import numpy as np
-from discretize import TensorMesh
+from discretize import TensorMesh, tests
 from simpeg import (
     maps,
     data_misfit,
-    tests,
 )
 from simpeg.utils import mkvc
 from simpeg.electromagnetics import natural_source as nsem
@@ -89,8 +88,7 @@ def get_survey(
                 rx_list.extend(
                     [
                         nsem.receivers.Impedance(
-                            locations_e=locations,
-                            locations_h=locations,
+                            locations,
                             orientation=orient,
                             component=comp,
                         )
@@ -104,8 +102,7 @@ def get_survey(
                 rx_list.extend(
                     [
                         nsem.receivers.Tipper(
-                            locations=locations,
-                            locations_bs=locations,
+                            locations,
                             orientation=orient,
                             component=comp,
                         )
@@ -119,8 +116,7 @@ def get_survey(
                 rx_list.extend(
                     [
                         nsem.receivers.Admittance(
-                            locations_e=locations,
-                            locations_h=locations,
+                            locations,
                             orientation=orient,
                             component=comp,
                         )
@@ -130,13 +126,7 @@ def get_survey(
 
         # MobileMT is app_cond
         elif survey_type == "apparent_conductivity":
-            rx_list.extend(
-                [
-                    nsem.receivers.ApparentConductivity(
-                        locations_e=locations, locations_h=locations
-                    )
-                ]
-            )
+            rx_list.extend([nsem.receivers.ApparentConductivity(locations)])
 
         if source_type == "primary_secondary":
             source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
@@ -258,14 +248,14 @@ class TestDerivativesPrimarySecondary:
         sim = dmis.simulation
         n_data = sim.survey.nD
 
-        rng = np.random.default_rng(seed=41)
-        v = rng.random(len(m0))
-        w = rng.random(n_data)
-        wtJv = w.dot(sim.Jvec(m0, v))
-        vtJtw = v.dot(sim.Jtvec(m0, w))
-        passed = np.abs(wtJv - vtJtw) < ADJ_TOLERANCE
-        print("Adjoint Test", np.abs(wtJv - vtJtw), passed)
-        assert passed
+        f = sim.fields(m0)
+        tests.assert_isadjoint(
+            lambda u: sim.Jvec(m0, u, f=f),
+            lambda v: sim.Jtvec(m0, v, f=f),
+            m0.shape,
+            (n_data,),
+            rtol=ADJ_TOLERANCE,
+        )
 
 
 # ONLY NEED TO DO 1D FICTITIOUS SOURCE SINCE DERIVATIVE WRT RHS IS 0
@@ -371,11 +361,11 @@ class TestDerivativesFictitiousSource:
         sim = dmis.simulation
         n_data = sim.survey.nD
 
-        rng = np.random.default_rng(seed=41)
-        v = rng.random(len(m0))
-        w = rng.random(n_data)
-        wtJv = w.dot(sim.Jvec(m0, v))
-        vtJtw = v.dot(sim.Jtvec(m0, w))
-        passed = np.abs(wtJv - vtJtw) < ADJ_TOLERANCE
-        print("Adjoint Test", np.abs(wtJv - vtJtw), passed)
-        assert passed
+        f = sim.fields(m0)
+        tests.assert_isadjoint(
+            lambda u: sim.Jvec(m0, u, f=f),
+            lambda v: sim.Jtvec(m0, v, f=f),
+            m0.shape,
+            (n_data,),
+            rtol=ADJ_TOLERANCE,
+        )
