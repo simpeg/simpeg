@@ -16,7 +16,7 @@ def _alpha(src):
 
 class BaseNaturalSourceRx(BaseRx):
     """
-    Base Class for Natural Source receivers
+    Base class for natural source electromagnetic receivers.
 
     Parameters
     ----------
@@ -68,17 +68,54 @@ class BaseNaturalSourceRx(BaseRx):
 
     @property
     def nD(self):
-        """Number of data associated with the receiver
+        """Number of data associated with the receiver object.
 
         Returns
         -------
         int
-            Number of data associated with the receiver
+            Number of data associated with the receiver object.
         """
 
         return self.locations[0].shape[0]
 
     def getP(self, mesh, projected_grid, location_id=0):
+        """Get projection matrix from mesh to specified receiver locations.
+
+        Natural source electromagnetic data may be computed from field measurements
+        at one or two locations. The `getP` method returns the projection matrix from
+        the mesh to the appropriate receiver locations. `location_id=0` is used to
+        project from the mesh to the set of roving receiver locations. `location_id=1`
+        is used when horizontal fields used to compute NSEM data are measured at a
+        base station.
+
+        Parameters
+        ----------
+        mesh : discretize.BaseMesh
+            A discretize mesh.
+        projected_grid : str
+            Define what part of the mesh (i.e. edges, faces, centers, nodes) to
+            project from. Must be one of::
+
+                'Ex', 'edges_x'           -> x-component of field defined on x edges
+                'Ey', 'edges_y'           -> y-component of field defined on y edges
+                'Ez', 'edges_z'           -> z-component of field defined on z edges
+                'Fx', 'faces_x'           -> x-component of field defined on x faces
+                'Fy', 'faces_y'           -> y-component of field defined on y faces
+                'Fz', 'faces_z'           -> z-component of field defined on z faces
+                'N', 'nodes'              -> scalar field defined on nodes
+                'CC', 'cell_centers'      -> scalar field defined on cell centers
+                'CCVx', 'cell_centers_x'  -> x-component of vector field defined on cell centers
+                'CCVy', 'cell_centers_y'  -> y-component of vector field defined on cell centers
+                'CCVz', 'cell_centers_z'  -> z-component of vector field defined on cell centers
+
+        locations_id : int
+            Receiver locations ID. 0 used for roving locations. 1 used for base station locations.
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            P, the interpolation matrix.
+        """
         key = (mesh, projected_grid, location_id)
         if key in self._Ps:
             return self._Ps[key]
@@ -163,11 +200,11 @@ class Impedance(_ElectricAndMagneticReceiver):
         Locations where the magnetic fields are measured. Defaults to the same
         locations as electric field measurements, `locations_e`.
     orientation : {'xx', 'xy', 'yx', 'yy'}
-        MT receiver orientation. Specifies whether the receiver's data correspond to
+        Receiver orientation. Specifies whether the receiver's data correspond to
         the :math:`Z_{xx}`, :math:`Z_{xy}`, :math:`Z_{yx}` or :math:`Z_{yy}` impedance.
         The data type is specified by the `component` input argument.
     component : {'real', 'imag', 'apparent_resistivity', 'phase', 'complex'}
-        MT data type. For the impedance element :math:`Z_{ij}` specified by the `orientation`
+        Data type. For the impedance element :math:`Z_{ij}` specified by the `orientation`
         input argument, the receiver can be set to compute the following:
         - 'real': Real component of the impedance (V/A)
         - 'imag': Imaginary component of the impedance (V/A)
@@ -198,7 +235,7 @@ class Impedance(_ElectricAndMagneticReceiver):
 
     @property
     def component(self):
-        r"""MT data type; i.e. "real", "imag", "apparent_resistivity", "phase"
+        r"""Data type; i.e. "real", "imag", "apparent_resistivity", "phase"
 
         For the impedance element :math:`Z_{ij}`, the `component` property specifies
         whether the data are:
@@ -211,7 +248,7 @@ class Impedance(_ElectricAndMagneticReceiver):
         Returns
         -------
         str
-            MT data type; i.e. "real", "imag", "apparent_resistivity", "phase"
+            Data type; i.e. "real", "imag", "apparent_resistivity", "phase"
         """
         return self._component
 
@@ -242,7 +279,7 @@ class Impedance(_ElectricAndMagneticReceiver):
 
     @property
     def orientation(self):
-        """MT receiver orientation.
+        """Receiver orientation.
 
         Specifies whether the receiver's data correspond to
         the :math:`Z_{xx}`, :math:`Z_{xy}`, :math:`Z_{yx}` or :math:`Z_{yy}` impedance.
@@ -251,7 +288,7 @@ class Impedance(_ElectricAndMagneticReceiver):
         Returns
         -------
         str
-            MT receiver orientation. One of {'xx', 'xy', 'yx', 'yy'}
+            Receiver orientation. One of {'xx', 'xy', 'yx', 'yy'}
         """
         return self._orientation
 
@@ -594,23 +631,23 @@ class Tipper(BaseNaturalSourceRx):
 
     @property
     def locations_h(self):
-        """Roving magnetic field measurement locations
+        """Roving magnetic field measurement locations.
 
         Returns
         -------
         numpy.ndarray
-            Roving locations where the magnetic field is measured for all receiver data
+            Roving locations where the magnetic field is measured for all receiver data.
         """
         return self.locations[0]
 
     @property
     def locations_base(self):
-        """Base station magnetic field measurement locations
+        """Base station magnetic field measurement locations.
 
         Returns
         -------
         numpy.ndarray
-            Base station locations where the magnetic field is measured for all receiver data
+            Base station locations where the horizontal magnetic fields are measured.
         """
         return self.locations[1]
 
@@ -620,9 +657,9 @@ class Tipper(BaseNaturalSourceRx):
 
         For the tipper element :math:`T_{ij}`, the `component` property specifies
         whether the data are:
-        - 'real': Real component of the impedance (V/A)
-        - 'imag': Imaginary component of the impedance (V/A)
-        - 'complex': Complex impedance (V/A)
+        - 'real': Real component of the tipper (unitless)
+        - 'imag': Imaginary component of the tipper (unitless)
+        - 'complex': Complex tipper (unitless)
 
         Returns
         -------
@@ -832,7 +869,7 @@ class Admittance(_ElectricAndMagneticReceiver):
 
     @property
     def orientation(self):
-        """MT receiver orientation.
+        """Receiver orientation.
 
         Specifies whether the receiver's data correspond to
         the :math:`Y_{xx}`, :math:`Y_{xy}`, :math:`Y_{yx}`, :math:`Y_{yy}`,
@@ -841,7 +878,7 @@ class Admittance(_ElectricAndMagneticReceiver):
         Returns
         -------
         str
-            MT receiver orientation. One of {'xx', 'xy', 'yx', 'yy', 'zx', 'zy'}
+            Receiver orientation. One of {'xx', 'xy', 'yx', 'yy', 'zx', 'zy'}
         """
         return self._orientation
 
