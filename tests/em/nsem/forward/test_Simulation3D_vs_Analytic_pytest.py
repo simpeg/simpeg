@@ -69,32 +69,25 @@ def get_survey(locations, frequencies, survey_type, component):
         # MT data types (Zxx, Zxy, Zyx, Zyy)
         if survey_type == "impedance":
             if component == "phase":
-                rx_list = [
-                    nsem.receivers.Impedance(
-                        locations_e=locations,
-                        locations_h=locations,
-                        orientation=ij,
-                        component=component,
-                    )
-                    for ij in ["xy", "yx"]
-                ]  # off-diagonal only!!!
+                orientations = ["xy", "yx"]  # off-diagonal only!!!
             else:
-                rx_list = [
-                    nsem.receivers.Impedance(
-                        locations_e=locations,
-                        locations_h=locations,
-                        orientation=ij,
-                        component=component,
-                    )
-                    for ij in ["xx", "xy", "yx", "yy"]
-                ]
+                orientations = ["xx", "xy", "yx", "yy"]
+            rx_list = [
+                nsem.receivers.Impedance(
+                    locations_e=locations,
+                    locations_h=locations,
+                    orientation=ij,
+                    component=component,
+                )
+                for ij in orientations
+            ]
 
         # ZTEM data types (Txx, Tyx, Tzx, Txy, Tyy, Tzy)
         elif survey_type == "tipper":
             rx_list = [
                 nsem.receivers.Tipper(
-                    locations=locations,
-                    locations_bs=locations,
+                    locations_h=locations,
+                    locations_base=locations,
                     orientation=ij,
                     component=component,
                 )
@@ -114,12 +107,7 @@ def get_survey(locations, frequencies, survey_type, component):
             ]
 
         elif survey_type == "apparent_conductivity":
-            rx_list = [
-                nsem.receivers.ApparentConductivity(
-                    locations_e=locations,
-                    locations_h=locations,
-                )
-            ]
+            rx_list = [nsem.receivers.ApparentConductivity(locations)]
 
         source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
 
