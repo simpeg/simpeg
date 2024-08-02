@@ -1049,7 +1049,7 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
     and
 
     .. math::
-        \big | \vec{H} \big | = \Big [ H_x^2 + H_y^2 + H_z^2 \Big ]^{1/2}
+        \big | \vec{E} \big | = \Big [ E_x^2 + E_y^2 \Big ]^{1/2}
 
     Parameters
     ----------
