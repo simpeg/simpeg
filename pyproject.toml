@@ -53,7 +53,7 @@ file = 'LICENSE'
 [project.urls]
 Homepage = "http://simpeg.xyz/"
 Documentation = "https://docs.simpeg.xyz/"
-Repository = "http://github.com/simpeg/simpeg"
+Repository = "http://github.com/MiraGeoscience/simpeg"
 
 [project.optional-dependencies]
 dask = [
