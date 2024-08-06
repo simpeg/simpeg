@@ -108,7 +108,6 @@ from .directives import (
     SaveModelEveryIteration,
     SaveOutputEveryIteration,
     SaveOutputDictEveryIteration,
-    Update_IRLS,
     UpdatePreconditioner,
     Update_Wj,
     AlphasSmoothEstimate_ByEig,
@@ -116,6 +115,7 @@ from .directives import (
     ScalingMultipleDataMisfits_ByEig,
     JointScalingSchedule,
     UpdateSensitivityWeights,
+    Update_IRLS,
     ProjectSphericalBounds,
 )
 
@@ -124,6 +124,8 @@ from .pgi_directives import (
     PGI_BetaAlphaSchedule,
     PGI_AddMrefInSmooth,
 )
+
+from ._regularization import UpdateIRLS, SphericalUnitsWeights
 
 from .sim_directives import (
     SimilarityMeasureInversionDirective,

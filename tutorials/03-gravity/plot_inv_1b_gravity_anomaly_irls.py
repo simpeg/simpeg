@@ -271,13 +271,12 @@ starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
 
 # Defines the directives for the IRLS regularization. This includes setting
 # the cooling schedule for the trade-off parameter.
-update_IRLS = directives.Update_IRLS(
+update_IRLS = directives.UpdateIRLS(
     f_min_change=1e-4,
     max_irls_iterations=30,
-    coolEpsFact=1.5,
-    beta_tol=1e-2,
+    irls_cooling_factor=1.5,
+    misfit_tolerance=1e-2,
 )
-
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
