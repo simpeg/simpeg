@@ -260,7 +260,9 @@ sensitivity_weights = directives.UpdateSensitivityWeights()
 # Here is where the norms are applied
 # Use a threshold parameter empirically based on the distribution of
 #  model parameters
-IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=2, beta_tol=5e-1)
+IRLS = directives.UpdateIRLS(
+    f_min_change=1e-3, max_irls_iterations=2, misfit_tolerance=5e-1
+)
 
 # Pre-conditioner
 update_Jacobi = directives.UpdatePreconditioner()
@@ -344,16 +346,12 @@ opt.approxHinv = None
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=beta)
 
 # Here is where the norms are applied
-irls = directives.Update_IRLS(
+irls = directives.UpdateIRLS(
     f_min_change=1e-4,
     max_irls_iterations=20,
-    minGNiter=1,
-    beta_tol=0.5,
-    coolingRate=1,
-    coolEps_q=True,
-    sphericalDomain=True,
+    misfit_tolerance=0.5,
 )
-
+scale_spherical = directives.SphericalDomain()
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are updated between each iteration.
 spherical_projection = directives.ProjectSphericalBounds()
@@ -362,7 +360,13 @@ update_Jacobi = directives.UpdatePreconditioner()
 
 inv = inversion.BaseInversion(
     invProb,
-    directiveList=[spherical_projection, irls, sensitivity_weights, update_Jacobi],
+    directiveList=[
+        scale_spherical,
+        spherical_projection,
+        irls,
+        sensitivity_weights,
+        update_Jacobi,
+    ],
 )
 
 mrec_MVI_S = inv.run(m_start)

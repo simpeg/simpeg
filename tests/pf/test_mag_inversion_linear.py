@@ -115,11 +115,17 @@ class MagInvLinProblemTest(unittest.TestCase):
         betaest = directives.BetaEstimate_ByEig()
 
         # Here is where the norms are applied
-        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=1)
+        IRLS = directives.UpdateIRLS(f_min_change=1e-4)
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
         self.inv = inversion.BaseInversion(
-            invProb, directiveList=[IRLS, sensitivity_weights, betaest, update_Jacobi]
+            invProb,
+            directiveList=[
+                IRLS,
+                sensitivity_weights,
+                betaest,
+                update_Jacobi,
+            ],
         )
 
     def test_mag_inverse(self):

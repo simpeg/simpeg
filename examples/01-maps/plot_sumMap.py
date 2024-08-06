@@ -175,7 +175,8 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a threshold parameter empirically based on the distribution of
     #  model parameters
-    IRLS = directives.Update_IRLS(f_min_change=1e-3, minGNiter=1)
+    IRLS = directives.UpdateIRLS(f_min_change=1e-3)
+
     update_Jacobi = directives.UpdatePreconditioner()
     inv = inversion.BaseInversion(invProb, directiveList=[IRLS, betaest, update_Jacobi])
 

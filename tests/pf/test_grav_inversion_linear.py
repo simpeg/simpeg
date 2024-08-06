@@ -104,7 +104,7 @@ def test_gravity_inversion_linear(engine):
 
     # Here is where the norms are applied
     starting_beta = directives.BetaEstimateMaxDerivative(10.0)
-    IRLS = directives.Update_IRLS()
+    IRLS = directives.UpdateIRLS()
     update_Jacobi = directives.UpdatePreconditioner()
     sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
     inv = inversion.BaseInversion(
