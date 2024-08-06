@@ -175,7 +175,7 @@ class UpdateIRLS(BetaSchedule):
 
     @property
     def cooling_rate(self):
-        """Cool after this number of iterations.
+        """Cool beta after this number of iterations.
 
         Returns
         -------
