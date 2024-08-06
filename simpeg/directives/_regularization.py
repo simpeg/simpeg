@@ -309,7 +309,7 @@ class UpdateIRLS(BetaSchedule):
 
             self.invProb.phi_m_last = self.reg(self.invProb.model)
 
-        # Repeat beta cooling schedule mechanism
+        # Apply beta cooling schedule mechanism
         if self.opt.iter > 0 and self.opt.iter % self.cooling_rate == 0:
             self.invProb.beta /= self.cooling_factor
 
