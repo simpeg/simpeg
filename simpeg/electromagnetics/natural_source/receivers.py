@@ -76,7 +76,7 @@ class BaseNaturalSourceRx(BaseRx):
             Number of data associated with the receiver object.
         """
 
-        return self.locations[0].shape[0]
+        return self._locations[0].shape[0]
 
     def getP(self, mesh, projected_grid, location_id=0):
         """Get projection matrix from mesh to specified receiver locations.
