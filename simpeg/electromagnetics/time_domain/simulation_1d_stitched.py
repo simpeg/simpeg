@@ -28,8 +28,8 @@ def run_simulation_time_domain(args):
     :param np.array tau1: np.array(N,) lower time-relaxation constant for magnetic viscosity for a single sounding
     :param np.array tau2: np.array(N,) upper time-relaxation constant for magnetic viscosity for a single sounding
     :param float h: source height for a single sounding
-    :param string output_type: "response", "sensitivity_sigma", "sensitivity_height"
-    :param bool invert_height: boolean switch for inverting for source height
+    :param string output_type: "response", "sensitivity"
+    :param bool is_invert_h: boolean switch for inverting for source height
     :return: response or sensitivities
     """
 
@@ -49,6 +49,8 @@ def run_simulation_time_domain(args):
         output_type,
         return_projection,
         freq_to_time_matricies,
+        hankel_coefficients,
+        is_invert_h,
     ) = args
 
     n_layer = len(thicknesses) + 1
@@ -75,9 +77,14 @@ def run_simulation_time_domain(args):
 
     if return_projection:
         sim.model = model
-        return sim.get_freq_to_time_matricies()
+        if output_type == "hankel":
+            return sim.get_hankel_coefficients()
+        elif output_type == "freq_to_time":
+            return sim.get_freq_to_time_matricies()
 
     sim._set_freq_to_time_matricies(freq_to_time_matricies)
+    if is_invert_h is False:
+        sim._set_hankel_coefficients(hankel_coefficients)
 
     if output_type == "sensitivity":
         J = sim.getJ(model)
@@ -96,8 +103,14 @@ def run_simulation_time_domain(args):
 
 class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
     _simulation_type = "time"
+    _freq_to_time_matricies = []
+    _freq_to_time_matricies_set = False
 
     def input_args(self, i_sounding, output_type="forward"):
+        if self._is_invert_h:
+            hankel_coefficients = []
+        else:
+            hankel_coefficients = self._hankel_coefficients[i_sounding]
         output = (
             self.survey.get_sources_by_sounding_number(i_sounding),
             self.topo[i_sounding, :],
@@ -114,10 +127,12 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
             output_type,
             False,
             self._freq_to_time_matricies[self._inv_index[i_sounding]],
+            hankel_coefficients,
+            self._is_invert_h,
         )
         return output
 
-    def input_args_for_freq_to_time_matricies(self, i_sounding):
+    def input_args_for_coefficients(self, i_sounding, output_type="freq_to_time"):
         output = (
             self.survey.get_sources_by_sounding_number(i_sounding),
             self.topo[i_sounding, :],
@@ -131,22 +146,53 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
             self.tau1_matrix[i_sounding, :],
             self.tau2_matrix[i_sounding, :],
             self.h_vector[i_sounding],
-            "forward",
+            output_type,
             True,
             [],
+            [],
+            self._is_invert_h,
         )
         return output
+
+    def get_hankel_coefficients(self):
+        run_simulation = run_simulation_time_domain
+        if getattr(self, "_hankel_coefficients", None) is None:
+            if self.verbose:
+                print(">> Calculate hankel coefficients")
+            if self.parallel:
+                # This assumes the same # of layers for each of sounding
+                # if self.n_sounding_for_chunk is None:
+                pool = Pool(self.n_cpu)
+                self._hankel_coefficients = pool.map(
+                    run_simulation,
+                    [
+                        self.input_args_for_coefficients(i, output_type="hankel")
+                        for i in range(self.n_sounding)
+                    ],
+                )
+
+                pool.close()
+                pool.join()
+            else:
+                self._hankel_coefficients = [
+                    run_simulation(
+                        self.input_args_for_coefficients(i, output_type="hankel")
+                    )
+                    for i in range(self.n_sounding)
+                ]
+        return self._hankel_coefficients
 
     def get_freq_to_time_matricies(self):
         run_simulation = run_simulation_time_domain
         if self.verbose:
-            print(">> Calculate coefficients")
+            print(">> Calculate freq_to_time matricies")
 
         self._freq_to_time_matricies = [
-            run_simulation(self.input_args_for_freq_to_time_matricies(i))
+            run_simulation(
+                self.input_args_for_coefficients(i, output_type="freq_to_time")
+            )
             for i in self._uniq_index
         ]
-
         self._freq_to_time_matricies_set = True
 
     def forward(self, m):
@@ -161,7 +207,7 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
         # Check when height is not inverted, then store hankel coefficients
         if self._freq_to_time_matricies_set is False:
             self.get_freq_to_time_matricies()
-
+        self.get_hankel_coefficients()
         if self.parallel:
 
             if self.verbose:
@@ -252,3 +298,12 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
                 (self._Jmatrix_height, self.IJHeight), dtype=float
             ).tocsr()
         return self._Jmatrix_height
+
+    @property
+    def deleteTheseOnModelUpdate(self):
+        toDelete = super().deleteTheseOnModelUpdate
+        if self.fix_Jmatrix is False:
+            toDelete += [
+                "_hankel_coefficients",
+            ]
+        return toDelete

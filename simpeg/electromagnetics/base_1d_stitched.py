@@ -26,8 +26,6 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
     """
 
     _formulation = "1D"
-    _freq_to_time_matricies = []
-    _freq_to_time_matricies_set = False
     # Properties for electrical conductivity/resistivity
     sigma, sigmaMap, sigmaDeriv = props.Invertible(
         "Electrical conductivity at infinite frequency (S/m)"
@@ -87,6 +85,10 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         self.muMap = muMap
         self.h = h
         self.hMap = hMap
+        if self.hMap is None:
+            self._is_invert_h = False
+        else:
+            self._is_invert_h = True
         if thicknesses is None:
             thicknesses = np.array([])
         self.thicknesses = thicknesses
@@ -107,6 +109,8 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
 
         # This may need to be extended
         # Purpose of this to calculate the freq-to-time matricies only once
+        # At the moment inputting this is a bit ad-hoc, but not sure where to put it
+        #
         if getattr(self.survey, "_index_waveform", None) is None:
             self.survey._index_waveform = np.ones(self.survey.nSrc, dtype=int)
 
