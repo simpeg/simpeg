@@ -20,6 +20,7 @@ except ImportError:
                 "\n           `conda install -c conda-forge scooby`.\n"
             )
 
+
 try:
     import memory_profiler
 except ImportError:
