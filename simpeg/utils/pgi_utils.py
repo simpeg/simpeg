@@ -3,23 +3,32 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from scipy import linalg
 from scipy.special import logsumexp
-from sklearn.mixture import GaussianMixture
-from sklearn.cluster import KMeans
-from sklearn.utils import check_array
-from sklearn.utils.validation import check_is_fitted
-from sklearn.mixture._gaussian_mixture import (
-    _compute_precision_cholesky,
-    _compute_log_det_cholesky,
-    _estimate_gaussian_covariances_full,
-    _estimate_gaussian_covariances_diag,
-    _estimate_gaussian_covariances_spherical,
-    _check_means,
-    _check_precisions,
-    _check_shape,
-)
-from sklearn.mixture._base import check_random_state, ConvergenceWarning
 import warnings
 from simpeg.maps import IdentityMap
+
+from discretize.utils.code_utils import requires
+
+# sklearn is a soft dependency
+try:
+    import sklearn
+    from sklearn.mixture import GaussianMixture
+    from sklearn.cluster import KMeans
+    from sklearn.utils import check_array
+    from sklearn.utils.validation import check_is_fitted
+    from sklearn.mixture._gaussian_mixture import (
+        _compute_precision_cholesky,
+        _compute_log_det_cholesky,
+        _estimate_gaussian_covariances_full,
+        _estimate_gaussian_covariances_diag,
+        _estimate_gaussian_covariances_spherical,
+        _check_means,
+        _check_precisions,
+        _check_shape,
+    )
+    from sklearn.mixture._base import check_random_state, ConvergenceWarning
+
+except ImportError:
+    sklearn = False
 
 
 ###############################################################################
@@ -31,7 +40,7 @@ from simpeg.maps import IdentityMap
 ###############################################################################
 
 
-class WeightedGaussianMixture(GaussianMixture):
+class WeightedGaussianMixture(GaussianMixture if sklearn else object):
     """
     Weighted Gaussian mixture class
 
@@ -65,6 +74,7 @@ class WeightedGaussianMixture(GaussianMixture):
         Active indexes
     """
 
+    @requires({'sklearn': sklearn})
     def __init__(
         self,
         n_components,
@@ -841,6 +851,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         Shape is (index of the fixed cell, lithology index) fixed_membership:
     """
 
+    @requires({'sklearn': sklearn})
     def __init__(
         self,
         gmmref,
@@ -1236,6 +1247,7 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
         List of mapping describing a nonlinear relationships between physical properties; one per cluster/unit.
     """
 
+    @requires({'sklearn': sklearn})
     def __init__(
         self,
         mesh,
@@ -1546,6 +1558,7 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
 
     """
 
+    @requires({'sklearn': sklearn})
     def __init__(
         self,
         gmmref,
