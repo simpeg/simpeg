@@ -15,11 +15,9 @@ class TestReport(unittest.TestCase):
                 "pymatsolver",
                 "numpy",
                 "scipy",
-                "sklearn",
                 "matplotlib",
                 "empymod",
                 "geoana",
-                "pandas",
             ],
             # Optional packages.
             optional=[
@@ -27,6 +25,8 @@ class TestReport(unittest.TestCase):
                 "pydiso",
                 "numba",
                 "dask",
+                "sklearn",
+                "pandas",
                 "sympy",
                 "IPython",
                 "ipywidgets",

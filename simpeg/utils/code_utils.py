@@ -471,11 +471,9 @@ class Report(ScoobyReport):
             "pymatsolver",
             "numpy",
             "scipy",
-            "sklearn",
             "matplotlib",
             "empymod",
             "geoana",
-            "pandas",
         ]
 
         # Optional packages.
@@ -484,6 +482,8 @@ class Report(ScoobyReport):
             "pydiso",
             "numba",
             "dask",
+            "sklearn",
+            "pandas",
             "sympy",
             "IPython",
             "ipywidgets",
