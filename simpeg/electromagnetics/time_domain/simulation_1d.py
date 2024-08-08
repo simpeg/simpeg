@@ -29,7 +29,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
     def __init__(self, survey=None, time_filter="key_81_CosSin_2009", **kwargs):
         super().__init__(survey=survey, **kwargs)
-        self._coefficients_set = False
+        self._hankel_coefficients_set = False
+        self._freq_to_time_matricies_set = False
         self.time_filter = time_filter
 
     @property
@@ -68,12 +69,10 @@ class Simulation1DLayered(BaseEM1DSimulation):
         elif self._time_filter == "key_601_CosSin_2009":
             self._fftfilt = filters.key_601_CosSin_2009()
 
-    def get_coefficients(self):
-        if self._coefficients_set is False:
-            self._compute_coefficients()
+    def get_hankel_coefficients(self):
+        if self._hankel_coefficients_set is False:
+            self._compute_hankel_coefficients()
         return (
-            self._As,
-            self._frequencies,
             self._lambs,
             self._unique_lambs,
             self._inv_lambs,
@@ -82,22 +81,35 @@ class Simulation1DLayered(BaseEM1DSimulation):
             self._W,
         )
 
-    def _set_coefficients(self, coefficients):
-        self._As = coefficients[0]
-        self._frequencies = coefficients[1]
-        self._lambs = coefficients[2]
-        self._unique_lambs = coefficients[3]
-        self._inv_lambs = coefficients[4]
-        self._C0s = coefficients[5]
-        self._C1s = coefficients[6]
-        self._W = coefficients[7]
-        self._coefficients_set = True
+    def get_freq_to_time_matricies(self):
+        if self._freq_to_time_matricies_set is False:
+            self._compute_freq_to_time_matricies()
+        return (
+            self._As,
+            self._frequencies,
+        )
+
+    def _set_freq_to_time_matricies(self, freq_to_time_matricies):
+        self._As = freq_to_time_matricies[0]
+        self._frequencies = freq_to_time_matricies[1]
+        self._freq_to_time_matricies_set = True
         return
 
-    def _compute_coefficients(self):
-        if self._coefficients_set:
+    def _set_hankel_coefficients(self, hankel_coefficients):
+        self._lambs = hankel_coefficients[0]
+        self._unique_lambs = hankel_coefficients[1]
+        self._inv_lambs = hankel_coefficients[2]
+        self._C0s = hankel_coefficients[3]
+        self._C1s = hankel_coefficients[4]
+        self._W = hankel_coefficients[5]
+        self._hankel_coefficients_set = True
+        return
+
+    def _compute_freq_to_time_matricies(self):
+        if self._freq_to_time_matricies_set:
             return
-        self._compute_hankel_coefficients()
+        # self._compute_hankel_coefficients()
+        # Code you want to profile
         survey = self.survey
 
         t_min = np.infty
@@ -202,7 +214,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
             self._frequencies = omegas / (2 * np.pi)
             self._As = As
-        self._coefficients_set = True
+        self._freq_to_time_matricies_set = True
 
     def dpred(self, m, f=None):
         """
@@ -223,7 +235,10 @@ class Simulation1DLayered(BaseEM1DSimulation):
         """
         self.model = m
 
-        self._compute_coefficients()
+        # self._compute_coefficients()
+        if self._hankel_coefficients_set is False:
+            self._compute_hankel_coefficients()
+        self._compute_freq_to_time_matricies()
 
         C0s = self._C0s
         C1s = self._C1s
@@ -246,7 +261,9 @@ class Simulation1DLayered(BaseEM1DSimulation):
         self.model = m
         if getattr(self, "_J", None) is None:
             self._J = {}
-            self._compute_coefficients()
+            # self._compute_coefficients()
+            self._compute_hankel_coefficients()
+            self._compute_freq_to_time_matricies()
 
             C0s = self._C0s
             C1s = self._C1s

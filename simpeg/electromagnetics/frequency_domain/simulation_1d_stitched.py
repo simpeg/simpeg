@@ -83,6 +83,24 @@ def run_simulation_frequency_domain(args):
 class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
     _simulation_type = "frequency"
 
+    def input_args(self, i_sounding, output_type="forward"):
+        output = (
+            self.survey.get_sources_by_sounding_number(i_sounding),
+            self.topo[i_sounding, :],
+            self.thickness_matrix[i_sounding, :],
+            self.sigma_matrix[i_sounding, :],
+            self.eta_matrix[i_sounding, :],
+            self.tau_matrix[i_sounding, :],
+            self.c_matrix[i_sounding, :],
+            self.chi_matrix[i_sounding, :],
+            self.dchi_matrix[i_sounding, :],
+            self.tau1_matrix[i_sounding, :],
+            self.tau2_matrix[i_sounding, :],
+            self.h_vector[i_sounding],
+            output_type,
+        )
+        return output
+
     def forward(self, m):
         self.model = m
 

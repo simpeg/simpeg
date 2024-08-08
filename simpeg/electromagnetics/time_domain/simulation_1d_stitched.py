@@ -47,8 +47,8 @@ def run_simulation_time_domain(args):
         tau2,
         h,
         output_type,
-        # return_projection,
-        # coefficients
+        return_projection,
+        freq_to_time_matricies,
     ) = args
 
     n_layer = len(thicknesses) + 1
@@ -70,7 +70,15 @@ def run_simulation_time_domain(args):
         topo=topo,
         hankel_filter="key_101_2009",
     )
+
     model = np.r_[sigma, h * np.ones(n_src)]
+
+    if return_projection:
+        sim.model = model
+        return sim.get_freq_to_time_matricies()
+
+    sim._set_freq_to_time_matricies(freq_to_time_matricies)
+
     if output_type == "sensitivity":
         J = sim.getJ(model)
         # we assumed the tx heights in a sounding is fixed
@@ -89,40 +97,75 @@ def run_simulation_time_domain(args):
 class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
     _simulation_type = "time"
 
-    def get_coefficients(self):
-        run_simulation = run_simulation_time_domain
+    def input_args(self, i_sounding, output_type="forward"):
+        output = (
+            self.survey.get_sources_by_sounding_number(i_sounding),
+            self.topo[i_sounding, :],
+            self.thickness_matrix[i_sounding, :],
+            self.sigma_matrix[i_sounding, :],
+            self.eta_matrix[i_sounding, :],
+            self.tau_matrix[i_sounding, :],
+            self.c_matrix[i_sounding, :],
+            self.chi_matrix[i_sounding, :],
+            self.dchi_matrix[i_sounding, :],
+            self.tau1_matrix[i_sounding, :],
+            self.tau2_matrix[i_sounding, :],
+            self.h_vector[i_sounding],
+            output_type,
+            False,
+            self._freq_to_time_matricies[self._inv_index[i_sounding]],
+        )
+        return output
 
+    def input_args_for_freq_to_time_matricies(self, i_sounding):
+        output = (
+            self.survey.get_sources_by_sounding_number(i_sounding),
+            self.topo[i_sounding, :],
+            self.thickness_matrix[i_sounding, :],
+            self.sigma_matrix[i_sounding, :],
+            self.eta_matrix[i_sounding, :],
+            self.tau_matrix[i_sounding, :],
+            self.c_matrix[i_sounding, :],
+            self.chi_matrix[i_sounding, :],
+            self.dchi_matrix[i_sounding, :],
+            self.tau1_matrix[i_sounding, :],
+            self.tau2_matrix[i_sounding, :],
+            self.h_vector[i_sounding],
+            "forward",
+            True,
+            [],
+        )
+        return output
+
+    def get_freq_to_time_matricies(self):
+        run_simulation = run_simulation_time_domain
         if self.verbose:
             print(">> Calculate coefficients")
-        if self.parallel:
-            pool = Pool(self.n_cpu)
-            self._coefficients = pool.map(
-                run_simulation,
-                [self.input_args_for_coeff(i) for i in range(self.n_sounding)],
-            )
-            self._coefficients_set = True
-            pool.close()
-            pool.join()
-        else:
-            self._coefficients = [
-                run_simulation(self.input_args_for_coeff(i))
-                for i in range(self.n_sounding)
-            ]
+
+        self._freq_to_time_matricies = [
+            run_simulation(self.input_args_for_freq_to_time_matricies(i))
+            for i in self._uniq_index
+        ]
+
+        self._freq_to_time_matricies_set = True
 
     def forward(self, m):
         self.model = m
-
-        if self.verbose:
-            print(">> Compute response")
 
         # Set flat topo at zero
         # if self.topo is None:
 
         run_simulation = run_simulation_time_domain
 
+        # TODOs:
+        # Check when height is not inverted, then store hankel coefficients
+        if self._freq_to_time_matricies_set is False:
+            self.get_freq_to_time_matricies()
+
         if self.parallel:
+
             if self.verbose:
-                print("parallel")
+                print(">> Compute response")
             # This assumes the same # of layers for each of sounding
             # if self.n_sounding_for_chunk is None:
             pool = Pool(self.n_cpu)
@@ -152,6 +195,9 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
         if getattr(self, "_J", None) is None:
             if self.verbose:
                 print(">> Compute J")
+
+            if self._freq_to_time_matricies_set is False:
+                self.get_freq_to_time_matricies()
 
             run_simulation = run_simulation_time_domain
 

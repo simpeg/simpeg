@@ -26,7 +26,8 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
     """
 
     _formulation = "1D"
-
+    _freq_to_time_matricies = []
+    _freq_to_time_matricies_set = False
     # Properties for electrical conductivity/resistivity
     sigma, sigmaMap, sigmaDeriv = props.Invertible(
         "Electrical conductivity at infinite frequency (S/m)"
@@ -103,6 +104,15 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
 
         self.parallel = parallel
         self.n_cpu = n_cpu
+
+        # This may need to be extended
+        # Purpose of this to calculate the freq-to-time matricies only once
+        if getattr(self.survey, "_index_waveform", None) is None:
+            self.survey._index_waveform = np.ones(self.survey.nSrc, dtype=int)
+
+        self._uniq_vals, self._uniq_index, self._inv_index = np.unique(
+            self.survey._index_waveform, return_index=True, return_inverse=True
+        )
 
         if self.parallel:
             if self.verbose:
@@ -341,24 +351,6 @@ class BaseStitchedEM1DSimulation(BaseSimulation):
         self._sounding_types_uniq, self._ind_sounding_uniq = np.unique(
             self.survey._sounding_types, return_index=True
         )
-
-    def input_args(self, i_sounding, output_type="forward"):
-        output = (
-            self.survey.get_sources_by_sounding_number(i_sounding),
-            self.topo[i_sounding, :],
-            self.thickness_matrix[i_sounding, :],
-            self.sigma_matrix[i_sounding, :],
-            self.eta_matrix[i_sounding, :],
-            self.tau_matrix[i_sounding, :],
-            self.c_matrix[i_sounding, :],
-            self.chi_matrix[i_sounding, :],
-            self.dchi_matrix[i_sounding, :],
-            self.tau1_matrix[i_sounding, :],
-            self.tau2_matrix[i_sounding, :],
-            self.h_vector[i_sounding],
-            output_type,
-        )
-        return output
 
     def fields(self, m):
         if self.verbose:

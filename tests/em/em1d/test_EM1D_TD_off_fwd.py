@@ -91,7 +91,7 @@ class EM1D_TD_test_failures(unittest.TestCase):
             rx_locs, times, orientation="z", use_source_receiver_offset=False
         )
         src = tdem.sources.LineCurrent([rx], tx_locs)
-        survey = tdem.Survey(src)
+        survey = tdem.Survey([src])
         with self.assertRaises(ValueError):
             tdem.Simulation1DLayered(survey)
 
@@ -103,7 +103,7 @@ class EM1D_TD_test_failures(unittest.TestCase):
             [2.5, 2.5, 0],
         ]
         src = tdem.sources.LineCurrent([rx], tx_locs)
-        survey = tdem.Survey(src)
+        survey = tdem.Survey([src])
         tdem.Simulation1DLayered(survey)
         assert src.n_segments == 4
 
