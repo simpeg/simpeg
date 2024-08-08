@@ -28,6 +28,7 @@ try:
     from sklearn.mixture._base import check_random_state, ConvergenceWarning
 
 except ImportError:
+    GaussianMixture = None
     sklearn = False
 
 
