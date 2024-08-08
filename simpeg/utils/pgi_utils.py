@@ -75,7 +75,7 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
         Active indexes
     """
 
-    @requires({'sklearn': sklearn})
+    @requires({"sklearn": sklearn})
     def __init__(
         self,
         n_components,
@@ -852,7 +852,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         Shape is (index of the fixed cell, lithology index) fixed_membership:
     """
 
-    @requires({'sklearn': sklearn})
+    @requires({"sklearn": sklearn})
     def __init__(
         self,
         gmmref,
@@ -1248,7 +1248,7 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
         List of mapping describing a nonlinear relationships between physical properties; one per cluster/unit.
     """
 
-    @requires({'sklearn': sklearn})
+    @requires({"sklearn": sklearn})
     def __init__(
         self,
         mesh,
@@ -1559,7 +1559,7 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
 
     """
 
-    @requires({'sklearn': sklearn})
+    @requires({"sklearn": sklearn})
     def __init__(
         self,
         gmmref,
