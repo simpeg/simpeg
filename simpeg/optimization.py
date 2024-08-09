@@ -17,7 +17,7 @@ from .utils import (
 
 norm = np.linalg.norm
 
-if int(scipy.__version__.split('.')[1]) >= 12:
+if int(scipy.__version__.split(".")[1]) >= 12:
     sp12p = True
 else:
     sp12p = False
