@@ -1,4 +1,5 @@
 import numpy as np
+import scipy as sp
 import scipy.sparse as sp
 
 from .utils.solver_utils import SolverWrapI, Solver, SolverDiag
@@ -16,6 +17,10 @@ from .utils import (
 
 norm = np.linalg.norm
 
+if int(scipy.__version__.split('.')[1]) >= 12:
+    sp12p = True
+else:
+    sp12p = False
 
 __all__ = [
     "Minimize",
@@ -892,9 +897,11 @@ class ProjectedGradient(Minimize, Remember):
             operator = sp.linalg.LinearOperator(
                 (shape[1], shape[1]), reduceHess, dtype=self.xc.dtype
             )
-            p, info = sp.linalg.cg(
-                operator, -Z.T * self.g, tol=self.tolCG, maxiter=self.maxIterCG
-            )
+            if sp12p:
+                inp = {"rtol": self.tolCG, "maxiter": self.maxIterCG}
+            else:
+                inp = {"tol": self.tolCG, "maxiter": self.maxIterCG}
+            p, info = sp.linalg.cg(operator, -Z.T * self.g, **inp)
             p = Z * p  # bring up to full size
             # aSet_after = self.activeSet(self.xc+p)
         return p
@@ -1069,9 +1076,11 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
 
     @timeIt
     def findSearchDirection(self):
-        Hinv = SolverICG(
-            self.H, M=self.approxHinv, tol=self.tolCG, maxiter=self.maxIterCG
-        )
+        if sp12p:
+            inp = {"rtol": self.tolCG, "maxiter": self.maxIterCG}
+        else:
+            inp = {"tol": self.tolCG, "maxiter": self.maxIterCG}
+        Hinv = SolverICG(self.H, M=self.approxHinv, **inp)
         p = Hinv * (-self.g)
         return p
 
