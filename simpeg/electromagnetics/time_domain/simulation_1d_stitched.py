@@ -28,9 +28,10 @@ def run_simulation_time_domain(args):
     :param np.array tau1: np.array(N,) lower time-relaxation constant for magnetic viscosity for a single sounding
     :param np.array tau2: np.array(N,) upper time-relaxation constant for magnetic viscosity for a single sounding
     :param float h: source height for a single sounding
-    :param string output_type: "response", "sensitivity"
+    :param list freq_to_time_matricies for a single sounding
+    :param list hankel_coefficients for a single sounding
     :param bool is_invert_h: boolean switch for inverting for source height
-    :return: response or sensitivities
+    :return: response or sensitivities or hankel coefficients or freq_to_time matricies
     """
 
     (
