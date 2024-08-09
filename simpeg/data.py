@@ -4,7 +4,7 @@ import warnings
 from .survey import BaseSurvey
 from .utils import mkvc, validate_ndarray_with_shape, validate_float, validate_type
 
-__all__ = ["Data", "SyntheticData"]
+__all__ = ["Data", "ComplexData", "SyntheticData"]
 
 
 class Data:
@@ -360,6 +360,16 @@ class Data:
         """
         v = mkvc(v)
         self.dobs = v
+
+
+class ComplexData(Data):
+    r"""Class for defining complex data in SimPEG.
+
+    The ``ComplexData`` class is a :py:class:`simpeg.data.Data` for complex data.
+
+    See :py:class:`simpeg.data.Data` for a description of the parameters and more info.
+    """
+    dobs = None
 
 
 class SyntheticData(Data):
