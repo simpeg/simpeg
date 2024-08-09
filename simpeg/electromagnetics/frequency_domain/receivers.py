@@ -56,7 +56,22 @@ class BaseRx(survey.BaseRx):
 
     @orientation.setter
     def orientation(self, var):
-        self._orientation = validate_direction("orientation", var, dim=3)
+        if isinstance(var, str) and var == "rotated":
+            self._orientation = "rotated"
+        else:
+            self._orientation = validate_direction("orientation", var, dim=3)
+
+    @property
+    def azimuth(self):
+        if not hasattr(self, '_azimuth'):
+            self._azimuth = None
+        return self._azimuth
+
+    @property
+    def elevation(self):
+        if not hasattr(self, '_elevation'):
+            self._elevation = None
+        return self._elevation
 
     @property
     def component(self):
@@ -285,8 +300,22 @@ class PointElectricField(BaseRx):
         Azimuth and elevation, only used if ``orientation='rotated'``.
     """
 
+    # TODO : the current implementation of azimuth/elevation is not good. It
+    #        only allows for one azimuth/elevation for all locations. Ideally
+    #        the angles should have the same size as locations (but 1D).
+
+    # azimuth = properties.Float(
+    #     "azimuth (anticlockwise from Easting)", default=0, min=-360.0, max=360
+    # )
+
+    # elevation = properties.Float(
+    #     "elevation (positive up)", default=0, min=-180.0, max=180
+    # )
+
     def __init__(self, locations, orientation="x", component="real", **kwargs):
-        angles = kwargs.get("azimuth", None) or kwargs.get("elevation", None)
+        self._azimuth = kwargs.get("azimuth", None)
+        self._elevation = kwargs.get("elevation", None)
+        angles = self._azimuth or self._elevation
         if orientation in ["x", "y", "z"] and angles:
             raise ValueError(
                 "orientation must be 'rotated' if angles are provided."
@@ -357,6 +386,18 @@ class PointMagneticField(BaseRx):
     `data_type`, `use_source_receiver_offset`, and the options of `'both'` and
     `'complex'` for component are only implemented for the `Simulation1DLayered`.
     """
+
+    # TODO : the current implementation of azimuth/elevation is not good. It
+    #        only allows for one azimuth/elevation for all locations. Ideally
+    #        the angles should have the same size as locations (but 1D).
+
+    # azimuth = properties.Float(
+    #     "azimuth (anticlockwise from Easting)", default=0, min=-360.0, max=360
+    # )
+
+    # elevation = properties.Float(
+    #     "elevation (positive up)", default=0, min=-180.0, max=180
+    # )
 
     def __init__(self, locations, orientation="x", component="real", **kwargs):
         angles = kwargs.get("azimuth", None) or kwargs.get("elevation", None)
