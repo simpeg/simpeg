@@ -1,3 +1,5 @@
+import numpy as np
+
 from ... import survey
 from ...utils import validate_string, validate_type, validate_direction
 from discretize.utils import Zero
@@ -62,7 +64,7 @@ class BaseRx(survey.BaseRx):
 
         Returns
         -------
-        str : {'real', 'imag', 'both', 'complex'}
+        str : {'real', 'imag', 'both', 'complex', 'amplitude', 'phase'}
             Component of the receiver; i.e. 'real' or 'imag'. The options 'both' and
             'complex' are only available for the 1D layered simulations.
         """
@@ -85,6 +87,8 @@ class BaseRx(survey.BaseRx):
                 ),
                 "both",
                 "complex",
+                ("amplitude", "amp"),
+                ("phase", "pha"),
             ),
         )
 
@@ -166,6 +170,14 @@ class BaseRx(survey.BaseRx):
         if self.storeProjections:
             self._Ps[(mesh, projected_grid)] = P
         return P
+
+    def evalDataComplex(self, data_complex):
+        if self.component == "amplitude":
+            return abs(data_complex)
+        elif self.component == "phase":
+            return np.angle(data_complex)
+        else:
+            return data_complex
 
     def eval(self, src, mesh, f):  # noqa: A003
         """Project fields from the mesh to the receiver(s).
@@ -265,13 +277,20 @@ class PointElectricField(BaseRx):
     ----------
     locations : (n_loc, n_dim) numpy.ndarray
         Receiver locations.
-    orientation : {'x', 'y', 'z'}
+    orientation : {'x', 'y', 'z', 'rotated'}
         Receiver orientation.
-    component : {'real', 'imag'}
+    component : {'real', 'imag', 'complex', 'amplitude', 'phase'}
         Real or imaginary component.
+    azimuth, elevation: numpy.ndarray
+        Azimuth and elevation, only used if ``orientation='rotated'``.
     """
 
     def __init__(self, locations, orientation="x", component="real", **kwargs):
+        angles = kwargs.get("azimuth", None) or kwargs.get("elevation", None)
+        if orientation in ["x", "y", "z"] and angles:
+            raise ValueError(
+                "orientation must be 'rotated' if angles are provided."
+            )
         self.projField = "e"
         super().__init__(locations, orientation, component, **kwargs)
 
@@ -321,9 +340,11 @@ class PointMagneticField(BaseRx):
         Receiver locations.
     orientation : {'x', 'y', 'z'}
         Receiver orientation.
-    component : {'real', 'imag', 'both', 'complex'}
+    component : {'real', 'imag', 'complex', 'amplitude', 'phase'}
         Component of the receiver; i.e. 'real' or 'imag'. The options 'both' and
         'complex' are only available for the 1D layered simulations.
+    azimuth, elevation: numpy.ndarray
+        Azimuth and elevation, only used if ``orientation='rotated'``.
     data_type : {'field', 'ppm'}
         Data type observed by the receiver, either field, or ppm secondary
         of the total field.
@@ -338,6 +359,11 @@ class PointMagneticField(BaseRx):
     """
 
     def __init__(self, locations, orientation="x", component="real", **kwargs):
+        angles = kwargs.get("azimuth", None) or kwargs.get("elevation", None)
+        if orientation in ["x", "y", "z"] and angles:
+            raise ValueError(
+                "orientation must be 'rotated' if angles are provided."
+            )
         self.projField = "h"
         super().__init__(locations, orientation, component, **kwargs)
 

@@ -1156,7 +1156,7 @@ def validate_direction(property_name, obj, dim=3):
     ----------
     property_name : str
         The name of the property being set
-    obj : {"x", "y", "z"} or (dim) numpy.ndarray
+    obj : {"x", "y", "z", "rotated"} or (dim) numpy.ndarray
         The object to test
     dim : int, optional
         The dimension of the vector

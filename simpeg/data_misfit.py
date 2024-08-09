@@ -266,7 +266,7 @@ class L2DataMisfit(BaseDataMisfit):
         """Evaluate the residual for a given model."""
 
         R = self.W * self.residual(m, f=f)
-        return np.vdot(R, R)
+        return np.vdot(R, R).real
 
     @timeIt
     def deriv(self, m, f=None):
