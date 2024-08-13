@@ -306,7 +306,7 @@ class ElectricDipole(BaseFDEMSrc):
         )
 
 
-class WireSourceLocationArray:
+class WiredSourceLocationArray:
 
     class_info = "an array of receiver locations"
 
