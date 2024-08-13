@@ -369,6 +369,7 @@ class ComplexData(Data):
 
     See :py:class:`simpeg.data.Data` for a description of the parameters and more info.
     """
+
     dobs = None
 
 

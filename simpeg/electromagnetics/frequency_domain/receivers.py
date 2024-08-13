@@ -63,13 +63,13 @@ class BaseRx(survey.BaseRx):
 
     @property
     def azimuth(self):
-        if not hasattr(self, '_azimuth'):
+        if not hasattr(self, "_azimuth"):
             self._azimuth = None
         return self._azimuth
 
     @property
     def elevation(self):
-        if not hasattr(self, '_elevation'):
+        if not hasattr(self, "_elevation"):
             self._elevation = None
         return self._elevation
 
@@ -317,9 +317,7 @@ class PointElectricField(BaseRx):
         self._elevation = kwargs.get("elevation", None)
         angles = self._azimuth or self._elevation
         if orientation in ["x", "y", "z"] and angles:
-            raise ValueError(
-                "orientation must be 'rotated' if angles are provided."
-            )
+            raise ValueError("orientation must be 'rotated' if angles are provided.")
         self.projField = "e"
         super().__init__(locations, orientation, component, **kwargs)
 
@@ -402,9 +400,7 @@ class PointMagneticField(BaseRx):
     def __init__(self, locations, orientation="x", component="real", **kwargs):
         angles = kwargs.get("azimuth", None) or kwargs.get("elevation", None)
         if orientation in ["x", "y", "z"] and angles:
-            raise ValueError(
-                "orientation must be 'rotated' if angles are provided."
-            )
+            raise ValueError("orientation must be 'rotated' if angles are provided.")
         self.projField = "h"
         super().__init__(locations, orientation, component, **kwargs)
 

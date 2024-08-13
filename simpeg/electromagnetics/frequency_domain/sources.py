@@ -290,7 +290,7 @@ class ElectricDipole(BaseFDEMSrc):
 
     @elevation.setter
     def elevation(self, elevation):
-        elevation = np.unwrap(np.r_[-180, elevation]+180, period=360)[1:]-180
+        elevation = np.unwrap(np.r_[-180, elevation] + 180, period=360)[1:] - 180
         self._elevation = validate_float(
             "elevation", elevation, min_val=-180, max_val=180
         )
@@ -343,9 +343,8 @@ class ElectricWire(BaseFDEMSrc):
 
     @location.setter
     def location(self, location):
-        self._loction = WiredSourceLocation(
-            "Location of the source [x, y, z] in 3D",
-            shape=("*","*"), required=True
+        self._loction = WiredSourceLocationArray(
+            "Location of the source [x, y, z] in 3D", shape=("*", "*"), required=True
         )
 
 
