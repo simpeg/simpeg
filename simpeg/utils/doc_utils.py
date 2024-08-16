@@ -72,14 +72,11 @@ def class_arg_doc_dict(this_class):
     call_signature = inspect.signature(this_class.__init__)
 
     arg_dict = {}
-    for match, next_match in _pairwise(KV_REGEX.finditer(parameters)):
-        arg_type = match.group()
-        split = ARG_TYPE_SEP_REGEX.split(arg_type, 1)
-        arg = split[0]
-        type_string = split[1] if len(split) > 1 else None
+    for match, next_match in _pairwise(NUMPY_ARG_TYPE_REGEX.finditer(parameters)):
+        arg, type_string = match.groups()
 
         # skip over values that are to be replaced (if there are any left)
-        # and skip of **kwargs
+        # and skip over **kwargs
         if not REPLACE_REGEX.match(arg) and arg != "**kwargs":
             # +1 removes the newline character at the end of the argument : type_name match
             start = match.end() + 1
