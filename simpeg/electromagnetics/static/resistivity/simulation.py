@@ -346,6 +346,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
     bc_type : {"Robin", "Dirichlet", "Neumann"}
     %(super.sigma, rho)
     %(super.sigmaMap, rhoMap)
+    %(super.model)
 
     Other Parameters
     ----------------
@@ -509,9 +510,23 @@ class Simulation3DCellCentered(BaseDCSimulation):
         self.Grad = self.Grad - B
 
 
+@doc_inherit()
 class Simulation3DNodal(BaseDCSimulation):
     """
-    3D nodal DC problem
+    3D Nodal DC problem
+
+    Parameters
+    ----------
+    %(super.mesh)
+    %(super.survey)
+    bc_type : {"Robin", "Dirichlet", "Neumann"}
+    %(super.sigma, rho)
+    %(super.sigmaMap, rhoMap)
+    %(super.model)
+
+    Other Parameters
+    ----------------
+    %(super.*)
     """
 
     _solutionType = "phiSolution"
