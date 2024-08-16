@@ -4,6 +4,7 @@ from discretize.utils import Zero, TensorType
 from ..simulation import BaseSimulation
 from .. import props
 from scipy.constants import mu_0
+from ..utils.doc_utils import doc_inherit
 
 
 def __inner_mat_mul_op(M, u, v=None, adjoint=False):
@@ -491,7 +492,23 @@ class BasePDESimulation(BaseSimulation):
 
 @with_property_mass_matrices("sigma")
 @with_property_mass_matrices("rho")
+@doc_inherit()
 class BaseElectricalPDESimulation(BasePDESimulation):
+    """A simulation containing the electrical physical properties sigma and rho.
+
+    Parameters
+    ----------
+    %(super.mesh)
+    sigma, rho : (mesh.n_cells) array_like, optional
+        Conductivity and resitivity properties. These are linked to each
+        other as inverses and at most one can be set.
+    sigmaMap, rhoMap : simpeg.IdentityMap, optional
+        Relationship between the `model` and conductivity or resistivity.
+        These are linked to each other as inverses and at most one can be set.
+    **kwargs
+        keyword arguments passed to the parent class.
+    """
+
     sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
     rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
     props.Reciprocal(sigma, rho)
@@ -500,8 +517,12 @@ class BaseElectricalPDESimulation(BasePDESimulation):
         self, mesh, sigma=None, sigmaMap=None, rho=None, rhoMap=None, **kwargs
     ):
         super().__init__(mesh=mesh, **kwargs)
+        if sigma and rho:
+            raise TypeError("Cannot set both sigma and rho.")
         self.sigma = sigma
         self.rho = rho
+        if sigmaMap and rhoMap:
+            raise TypeError("Cannot set both sigmaMap and rhoMap.")
         self.sigmaMap = sigmaMap
         self.rhoMap = rhoMap
 

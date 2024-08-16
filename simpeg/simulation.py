@@ -27,6 +27,7 @@ from .utils import (
     validate_string,
     validate_integer,
 )
+from .utils.doc_utils import doc_inherit
 
 try:
     from pymatsolver import Pardiso as DefaultSolver
@@ -72,7 +73,7 @@ class BaseSimulation(props.HasModel):
         Path to directory where sensitivity file is stored.
     counter : None or simpeg.utils.Counter
         SimPEG ``Counter`` object to store iterations and run-times.
-    verbose : bool, optional
+    verbose : bool, default: False
         Verbose progress printout.
     """
 
@@ -713,6 +714,7 @@ class BaseTimeSimulation(BaseSimulation):
 ##############################################################################
 
 
+@doc_inherit(star_excludes=["solver", "solver_opts"])
 class LinearSimulation(BaseSimulation):
     r"""Linear forward simulation class.
 
@@ -739,15 +741,14 @@ class LinearSimulation(BaseSimulation):
 
     Parameters
     ----------
-    mesh : discretize.BaseMesh, optional
-        Mesh on which the forward problem is discretized. This is not necessarily
-        the same as the mesh on which the simulation is defined.
+    %(super.mesh)
     model_map : simpeg.maps.BaseMap
         Mapping from the model parameters to vector that the linear operator acts on.
     G : (n_data, n_param) numpy.ndarray or scipy.sparse.csr_matrx
         The linear operator. For a ``model_map`` that maps within the same vector space
         (e.g. the identity map), the dimension ``n_param`` equals the number of model parameters.
         If not, the dimension ``n_param`` of the linear operator will depend on the mapping.
+    %(super.*)
     """
 
     linear_model, model_map, model_deriv = props.Invertible(
@@ -755,10 +756,12 @@ class LinearSimulation(BaseSimulation):
     )
 
     def __init__(self, mesh=None, linear_model=None, model_map=None, G=None, **kwargs):
+
         super().__init__(mesh=mesh, **kwargs)
         self.linear_model = linear_model
         self.model_map = model_map
         self.solver = None
+
         if G is not None:
             self.G = G
 

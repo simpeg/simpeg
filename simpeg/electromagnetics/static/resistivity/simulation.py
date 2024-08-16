@@ -14,16 +14,33 @@ from .survey import Survey
 from .fields import Fields3DCellCentered, Fields3DNodal
 from .utils import _mini_pole_pole
 from discretize.utils import make_boundary_bool
+from ....utils.doc_utils import doc_inherit
 
 
+@doc_inherit()
 class BaseDCSimulation(BaseElectricalPDESimulation):
     """
     Base DC Problem
+
+    Parameters
+    ----------
+    %(super.mesh)
+    survey : .resistivity.Survey, optional
+        The resistivity survey containing all of the electrode sources
+        and receivers.
+    storeJ : bool, optional
+        Whether to create and store the jacobian matrix. This could require
+        a large amount of memory, as an array of size (n_data, n_model) is
+        stored.
+    miniaturize : bool, optional
+        Whether to internally represent the `survey` as a potentially smaller
+        version to speed up computation and reduce the size of the fields object.
+    surface_faces : (n_bf, ) numpy.ndarray of bool, optional
+        Which faces on the mesh to interpret as belonging to the surface. Nuemann
+        boundary conditions are set on these surfaces. Required for tetrahedral meshes.
+    **kwargs
+        keyword arguments passed to the parent class.
     """
-
-    _mini_survey = None
-
-    Ainv = None
 
     def __init__(
         self,
@@ -35,6 +52,10 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
+
+        self._mini_survey = None
+
+        self.Ainv = None
         self.storeJ = storeJ
         self.surface_faces = surface_faces
         # Do stuff to simplify the forward and JTvec operation if number of dipole
@@ -313,9 +334,22 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return out
 
 
+@doc_inherit()
 class Simulation3DCellCentered(BaseDCSimulation):
     """
     3D cell centered DC problem
+
+    Parameters
+    ----------
+    %(super.mesh)
+    %(super.survey)
+    bc_type : {"Robin", "Dirichlet", "Neumann"}
+    %(super.sigma, rho)
+    %(super.sigmaMap, rhoMap)
+
+    Other Parameters
+    ----------------
+    %(super.*)
     """
 
     _solutionType = "phiSolution"

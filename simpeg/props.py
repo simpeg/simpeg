@@ -272,7 +272,24 @@ def Reciprocal(prop1, prop2):
 
 
 class BaseSimPEG:
-    """"""
+    """Base class for simpeg classes."""
+
+    # Developer note:
+    # This class is mostly used to identify simpeg classes
+    # and to catch any leftover keyword arguments before calling
+    # object.__init__() (if that was the next class on the mro above
+    # this one). If there are any leftover arguments, it throws a TypeError
+    # with an appropriate message reference the class that was initialized.
+    def __init__(self, **kwargs):
+        mro = type(self).__mro__
+        super_class = mro[mro.index(__class__) + 1]
+        if super_class is object:
+            if len(kwargs):
+                for key in kwargs:
+                    raise TypeError(
+                        f"{type(self).__name__} got an unexpected keyword argument '{key}'."
+                    )
+        super().__init__(**kwargs)
 
 
 class PhysicalPropertyMetaclass(type):
@@ -335,6 +352,17 @@ class PhysicalPropertyMetaclass(type):
 
 
 class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
+    """Class containing a `model` property optionally linked to `PhysicalProperties`
+
+    Parameters
+    ----------
+    model : (n_m,) array_like, optional
+        The parameter model, often used to descibe the model in an inversion.
+        If there are any physical property maps assigned, those physical properties
+        will be linked to this model through the map, and accessing them will require
+        a model to be set.
+    """
+
     def __init__(self, model=None, **kwargs):
         self.model = model
         super().__init__(**kwargs)
