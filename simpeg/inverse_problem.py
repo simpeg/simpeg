@@ -64,6 +64,7 @@ class BaseInvProblem:
     @beta.setter
     def beta(self, value):
         self._beta = validate_float("beta", value, min_val=0.0)
+        self.reg.multiplier = self._beta
 
     @property
     def debug(self):

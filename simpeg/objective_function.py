@@ -58,6 +58,7 @@ class BaseObjectiveFunction(BaseSimPEG):
         has_fields=False,
         counter=None,
         debug=False,
+        multiplier=1.0,
     ):
         self._nP = nP
         if mapping is None:
@@ -67,6 +68,7 @@ class BaseObjectiveFunction(BaseSimPEG):
         self.counter = counter
         self.debug = debug
         self.has_fields = has_fields
+        self.multiplier = multiplier
 
     def __call__(self, x, f=None):
         """Evaluate the objective function for a given model.
@@ -195,6 +197,18 @@ class BaseObjectiveFunction(BaseSimPEG):
             )
         )
 
+    @property
+    def multiplier(self) -> float:
+        """
+        Multiplier for the objective function.
+        """
+        return self._multiplier
+
+    @multiplier.setter
+    def multiplier(self, value: float):
+        _validate_multiplier(value)
+        self._multiplier = value
+
     def _test_deriv(
         self,
         x=None,
@@ -276,16 +290,15 @@ class BaseObjectiveFunction(BaseSimPEG):
                 f"Cannot add type '{other.__class__.__name__}' to an objective "
                 "function. Only ObjectiveFunctions can be added together."
             )
-        objective_functions, multipliers = [], []
+        objective_functions = []
         for instance in (self, other):
             if isinstance(instance, ComboObjectiveFunction) and instance._unpack_on_add:
                 objective_functions += instance.objfcts
-                multipliers += instance.multipliers
             else:
                 objective_functions.append(instance)
-                multipliers.append(1)
+
         combo = ComboObjectiveFunction(
-            objfcts=objective_functions, multipliers=multipliers
+            objfcts=objective_functions
         )
         return combo
 
@@ -293,7 +306,7 @@ class BaseObjectiveFunction(BaseSimPEG):
         return self + other
 
     def __mul__(self, multiplier):
-        return ComboObjectiveFunction(objfcts=[self], multipliers=[multiplier])
+        return ComboObjectiveFunction(objfcts=[self], multiplier=multiplier)
 
     def __rmul__(self, multiplier):
         return self * multiplier
@@ -385,20 +398,13 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     def __init__(
         self,
         objfcts: list[BaseObjectiveFunction] | None = None,
-        multipliers=None,
         unpack_on_add=True,
     ):
         # Define default lists if None
         if objfcts is None:
             objfcts = []
-        if multipliers is None:
-            multipliers = len(objfcts) * [1]
 
-        # Validate inputs
-        _check_length_objective_funcs_multipliers(objfcts, multipliers)
         _validate_objective_functions(objfcts)
-        for multiplier in multipliers:
-            _validate_multiplier(multiplier)
 
         # Get number of parameters (nP) from objective functions
         number_of_parameters = [f.nP for f in objfcts if f.nP != "*"]
@@ -410,14 +416,14 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         super().__init__(nP=nP)
 
         self.objfcts = objfcts
-        self._multipliers = multipliers
+
         self._unpack_on_add = unpack_on_add
 
     def __len__(self):
-        return len(self.multipliers)
+        return len(self.objfcts)
 
     def __getitem__(self, key):
-        return self.multipliers[key], self.objfcts[key]
+        return self.objfcts[key]
 
     @property
     def multipliers(self):
@@ -437,57 +443,58 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         list of int
             Multipliers for the objective functions.
         """
-        return self._multipliers
+        return [obj.multiplier for obj in self.objfcts]
 
     @multipliers.setter
-    def multipliers(self, value):
+    def multipliers(self, value: list[float]):
         """Set multipliers attribute after checking if they are valid."""
         for multiplier in value:
             _validate_multiplier(multiplier)
+
         _check_length_objective_funcs_multipliers(self.objfcts, value)
-        self._multipliers = value
+
+        for val, obj in zip(value, self.objfcts):
+            obj.multiplier = val
 
     def __call__(self, m, f=None):
         """Evaluate the objective functions for a given model."""
         fct = 0.0
-        for i, phi in enumerate(self):
-            multiplier, objfct = phi
-            if multiplier == 0.0:  # don't evaluate the fct
+        for i, objfct in enumerate(self):
+            if objfct.multiplier == 0.0:  # don't evaluate the fct
                 continue
             if f is not None and objfct.has_fields:
                 objective_func_value = objfct(m, f=f[i])
             else:
                 objective_func_value = objfct(m)
-            fct += multiplier * objective_func_value
+            fct += objfct.multiplier * objective_func_value
         return fct
 
     def deriv(self, m, f=None):
         # Docstring inherited from BaseObjectiveFunction
         g = Zero()
-        for i, phi in enumerate(self):
-            multiplier, objfct = phi
-            if multiplier == 0.0:  # don't evaluate the fct
+        for i, objfct in enumerate(self):
+            if objfct.multiplier == 0.0:  # don't evaluate the fct
                 continue
             if f is not None and objfct.has_fields:
                 aux = objfct.deriv(m, f=f[i])
             else:
                 aux = objfct.deriv(m)
             if not isinstance(aux, Zero):
-                g += multiplier * aux
+                g += objfct.multiplier * aux
         return g
 
     def deriv2(self, m, v=None, f=None):
         # Docstring inherited from BaseObjectiveFunction
         H = Zero()
-        for i, phi in enumerate(self):
-            multiplier, objfct = phi
-            if multiplier == 0.0:  # don't evaluate the fct
+        for i, objfct in enumerate(self):
+
+            if objfct.multiplier == 0.0:  # don't evaluate the fct
                 continue
             if f is not None and objfct.has_fields:
                 objfct_H = objfct.deriv2(m, v, f=f[i])
             else:
                 objfct_H = objfct.deriv2(m, v)
-            H = H + multiplier * objfct_H
+            H = H + objfct.multiplier * objfct_H
         return H
 
     # This assumes all objective functions have a W.

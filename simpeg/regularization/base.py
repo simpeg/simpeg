@@ -1606,6 +1606,10 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         else:
             self.length_scale_z = length_scale_z
 
+        self.alpha_xx = alpha_xx
+        self.alpha_yy = alpha_yy
+        self.alpha_zz = alpha_zz
+
         # Check if weights is a dictionary, raise error if it's not
         if weights is not None and not isinstance(weights, dict):
             raise TypeError(
@@ -1616,19 +1620,19 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         # do this to allow child classes to also pass a list of objfcts to this constructor
         if "objfcts" not in kwargs:
             objfcts = [
-                Smallness(mesh=self.regularization_mesh),
-                SmoothnessFirstOrder(mesh=self.regularization_mesh, orientation="x"),
-                SmoothnessSecondOrder(mesh=self.regularization_mesh, orientation="x"),
+                Smallness(mesh=self.regularization_mesh, multiplier=self.alpha_s),
+                SmoothnessFirstOrder(mesh=self.regularization_mesh, orientation="x", multiplier=self.alpha_x),
+                SmoothnessSecondOrder(mesh=self.regularization_mesh, orientation="x", multiplier=self.alpha_xx),
             ]
 
             if mesh.dim > 1:
                 objfcts.extend(
                     [
                         SmoothnessFirstOrder(
-                            mesh=self.regularization_mesh, orientation="y"
+                            mesh=self.regularization_mesh, orientation="y", multiplier=self.alpha_y
                         ),
                         SmoothnessSecondOrder(
-                            mesh=self.regularization_mesh, orientation="y"
+                            mesh=self.regularization_mesh, orientation="y", multiplier=self.alpha_yy
                         ),
                     ]
                 )
@@ -1637,10 +1641,10 @@ class WeightedLeastSquares(ComboObjectiveFunction):
                 objfcts.extend(
                     [
                         SmoothnessFirstOrder(
-                            mesh=self.regularization_mesh, orientation="z"
+                            mesh=self.regularization_mesh, orientation="z", multiplier=self.alpha_z
                         ),
                         SmoothnessSecondOrder(
-                            mesh=self.regularization_mesh, orientation="z"
+                            mesh=self.regularization_mesh, orientation="z", multiplier=self.alpha_zz
                         ),
                     ]
                 )
@@ -1658,9 +1662,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         self.mapping = mapping
         self.reference_model = reference_model
         self.reference_model_in_smooth = reference_model_in_smooth
-        self.alpha_xx = alpha_xx
-        self.alpha_yy = alpha_yy
-        self.alpha_zz = alpha_zz
+
         if weights is not None:
             self.set_weights(**weights)
 
@@ -2033,26 +2035,6 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         if self.reference_model is None:
             return m
         return m - self.reference_model
-
-    @property
-    def multipliers(self):
-        r"""Multiplier constants for weighted sum of objective functions.
-
-        For a model objective function :math:`\phi_m (\mathbf{m})` constructed using
-        a weighted sum of objective functions :math:`\phi_i (\mathbf{m})`, i.e.:
-
-        .. math::
-            \phi_m (\mathbf{m}) = \sum_i \alpha_i \, \phi_i (\mathbf{m})
-
-        the `multipliers` property returns the list of multiplier constants :math:`alpha_i`
-        in order.
-
-        Returns
-        -------
-        list of float
-            Multiplier constants for weighted sum of objective functions.
-        """
-        return [getattr(self, objfct._multiplier_pair) for objfct in self.objfcts]
 
     @property
     def active_cells(self) -> np.ndarray:
