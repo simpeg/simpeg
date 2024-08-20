@@ -13,6 +13,7 @@ dependencies:
   - geoana>=0.5.0
   - empymod>=2.0.0
   - pandas
+  - packaging
 
 # solver
 # uncomment the next line if you are on an intel platform
