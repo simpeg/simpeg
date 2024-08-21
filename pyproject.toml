@@ -24,7 +24,6 @@ dependencies = [
     "geoana>=0.5.0",
     "empymod>=2.0.0",
     "pandas",
-    "packaging",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

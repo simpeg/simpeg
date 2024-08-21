@@ -1,7 +1,6 @@
 import numpy as np
 import scipy
 import scipy.sparse as sp
-from packaging.version import parse
 
 from .utils.solver_utils import SolverWrapI, Solver, SolverDiag
 from .utils import (
@@ -18,9 +17,23 @@ from .utils import (
 
 norm = np.linalg.norm
 
+
 # Create a flag if the installed version of SciPy is newer or equal to 1.12.0
 # (Used to choose whether to pass `tol` or `rtol` to the solvers. See #1516).
-SCIPY_1_12 = parse(scipy.__version__) >= parse("1.12.0")
+class Version:
+    def __init__(self, version):
+        self.version = version
+
+    def as_tuple(self) -> tuple[int, int]:
+        major, minor = tuple(int(p) for p in self.version.split(".")[:2])
+        return (major, minor)
+
+    def __ge__(self, other):
+        return self.as_tuple() >= other.as_tuple()
+
+
+SCIPY_1_12 = Version(scipy.__version__) >= Version("1.12.0")
+
 
 __all__ = [
     "Minimize",
