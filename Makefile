@@ -23,10 +23,10 @@ test:
 	pytest ${PYTEST_OPTIONS} ${PYTEST_TARGET}
 
 docs:
-	cd docs;make html
+	make -C docs html
 
 clean:
-	cd docs;make clean
+	make -C docs clean
 	find . -name "*.pyc" | xargs -I {} rm -v "{}"
 
 check: black flake
