@@ -41,7 +41,7 @@ class IRLSMetrics:
 
 class UpdateIRLS(BetaSchedule):
     """
-    Directive to control the IRLS iterations for regularization.Sparse.
+    Directive to control the IRLS iterations for :class:`~simpeg.regularization.Sparse`.
 
     Parameters
     ----------
