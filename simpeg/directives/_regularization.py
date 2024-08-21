@@ -362,7 +362,7 @@ class UpdateIRLS(BetaSchedule):
         else:
             warnings.warn(
                 "Without a Linear preconditioner, convergence may be slow. "
-                "Consider adding `Directives.UpdatePreconditioner` to your "
+                "Consider adding `directives.UpdatePreconditioner` to your "
                 "directives list",
                 stacklevel=2,
             )
