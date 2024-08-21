@@ -3,7 +3,7 @@ STYLE_CHECK_FILES = simpeg examples tutorials tests
 PYTEST_OPTIONS = -v --cov-config=.coveragerc --cov=${PROJECT} --cov-report=xml --cov-report=html -W ignore::DeprecationWarning
 PYTEST_TARGET = ${PROJECT}
 
-.PHONY: help docs install test check black flake
+.PHONY: help docs install test check black flake flake-all
 
 help:
 	@echo "Commands:"
