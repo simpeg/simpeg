@@ -44,7 +44,7 @@ class UniformBackgroundField(BaseSrc):
 
         Returns
         -------
-        list of SimPEG.potential_fields.magnetics.Point
+        list of simpeg.potential_fields.magnetics.Point
             List of magnetic receivers associated with the survey
         """
         return self._receiver_list
