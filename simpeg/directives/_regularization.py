@@ -159,7 +159,7 @@ class UpdateIRLS(BetaSchedule):
 
     @property
     def cooling_factor(self):
-        """Beta is divided by this value every `cooling_rate` iterations.
+        """Beta is divided by this value every :attr:`cooling_rate` iterations.
 
         Returns
         -------
