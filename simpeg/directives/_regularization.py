@@ -23,7 +23,7 @@ class IRLSMetrics:
 
     Parameters
     ----------
-    input_norms : list of floats
+    input_norms : list of floats or None
         List of norms temporarily stored during the initialization.
     irls_iteration_count : int
         Number of IRLS iterations.
@@ -33,7 +33,7 @@ class IRLSMetrics:
         Previous value of the regularization function.
     """
 
-    input_norms: list[float] = (2.0, 2.0, 2.0, 2.0)
+    input_norms: list[float] | None = None
     irls_iteration_count: int = 0
     start_irls_iter: int | None = None
     f_old: float = 0.0
