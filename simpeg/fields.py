@@ -8,7 +8,7 @@ class Fields:
     r"""Base class for storing fields.
 
     Fields classes are used to store the discrete field solution for a
-    corresponding simulation object; see :py:class:`SimPEG.simulation.BaseSimulation`.
+    corresponding simulation object; see :py:class:`simpeg.simulation.BaseSimulation`.
     Generally only one field solution (e.g. ``'eSolution'``, ``'phiSolution'``, ``'bSolution'``) is stored.
     However, it may be possible to extract multiple field types (e.g. ``'e'``, ``'b'``, ``'j'``, ``'h'``)
     on the fly from the fields object. The field solution that is stored and the
@@ -17,7 +17,7 @@ class Fields:
 
     Parameters
     ----------
-    simulation : SimPEG.simulation.BaseSimulation
+    simulation : simpeg.simulation.BaseSimulation
         The simulation object used to compute the discrete field solution.
     knownFields : dict of {key: str}, optional
         Dictionary defining the field solutions that are stored and where
@@ -96,7 +96,7 @@ class Fields:
 
         Returns
         -------
-        SimPEG.simulation.BaseSimulation
+        simpeg.simulation.BaseSimulation
             The simulation object used to compute the field solution.
         """
         return self._simulation
@@ -185,7 +185,7 @@ class Fields:
 
         Returns
         -------
-        SimPEG.survey.BaseSurvey
+        simpeg.survey.BaseSurvey
             Survey used by the simulation.
         """
         return self.simulation.survey
@@ -351,7 +351,7 @@ class TimeFields(Fields):
     r"""Base class for storing TDEM fields.
 
     ``TimeFields`` is a base class for storing discrete field solutions for simulations
-    that use discrete time-stepping; see :py:class:`SimPEG.simulation.BaseTimeSimulation`.
+    that use discrete time-stepping; see :py:class:`simpeg.simulation.BaseTimeSimulation`.
     Generally only one field solution (e.g. ``'eSolution'``, ``'phiSolution'``, ``'bSolution'``) is stored.
     However, it may be possible to extract multiple field types (e.g. ``'e'``, ``'b'``, ``'j'``, ``'h'``)
     on the fly from the fields object. The field solution that is stored and the
@@ -360,7 +360,7 @@ class TimeFields(Fields):
 
     Parameters
     ----------
-    simulation : SimPEG.simulation.BaseTimeSimulation
+    simulation : simpeg.simulation.BaseTimeSimulation
         The simulation object used to compute the discrete field solution.
     knownFields : dict of {key: str}, optional
         Dictionary defining the field solutions that are stored and where
@@ -413,7 +413,7 @@ class TimeFields(Fields):
 
         Returns
         -------
-        SimPEG.simulation.BaseTimeSimulation
+        simpeg.simulation.BaseTimeSimulation
             The simulation object used to compute the field solution.
         """
         return self._simulation
