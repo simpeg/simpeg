@@ -3,12 +3,14 @@ STYLE_CHECK_FILES = simpeg examples tutorials tests
 PYTEST_OPTIONS = -v --cov-config=.coveragerc --cov=${PROJECT} --cov-report=xml --cov-report=html -W ignore::DeprecationWarning
 PYTEST_TARGET = ${PROJECT}
 
-.PHONY: help docs install test check black flake flake-all
+.PHONY: help docs clean install test check black flake flake-all
 
 help:
 	@echo "Commands:"
 	@echo ""
-	@echo "  install     install simpeg in edit (a.k.a developer) mode"
+	@echo "  install     install simpeg in edit (a.k.a. developer) mode"
+	@echo "  docs        build Sphinx docs"
+	@echo "  clean       clean built Sphinx docs"
 	@echo "  test        run full test suite"
 	@echo "  check       run code style and quality checks (black and flake8)"
 	@echo "  black       checks code style with black"
