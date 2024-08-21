@@ -368,7 +368,7 @@ class UpdateIRLS(BetaSchedule):
             )
 
         beta_schedule = [
-            d for d in directive_list if isinstance(d, BetaSchedule) and d != self
+            d for d in directive_list if isinstance(d, BetaSchedule) and d is not self
         ]
 
         if beta_schedule:
