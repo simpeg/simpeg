@@ -360,7 +360,7 @@ for ii in range(0, len(end_locations_list)):
     )
 
 # Define survey
-ip_survey = ip.survey.Survey(source_list, survey_type=survey_type)
+ip_survey = ip.survey.Survey(source_list)
 
 # Drape to discretized topography as before
 ip_survey.drape_electrodes_on_topography(mesh, ind_active, option="top")

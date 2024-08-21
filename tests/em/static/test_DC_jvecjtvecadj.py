@@ -67,6 +67,7 @@ class DCProblemTestsCC(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
@@ -78,8 +79,9 @@ class DCProblemTestsCC(unittest.TestCase):
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(mkvc(self.dobs).shape[0])
+        rng = np.random.default_rng(seed=42)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=mkvc(self.dobs).shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
@@ -87,6 +89,7 @@ class DCProblemTestsCC(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=6
         )
@@ -134,22 +137,25 @@ class DCProblemTestsCC_fields(unittest.TestCase):
         )
 
     def test_e_deriv(self):
-        x0 = -1 + 1e-1 * np.random.rand(self.sigma_map.nP)
+        rng = np.random.default_rng(seed=42)
+        x0 = -1 + 1e-1 * rng.uniform(size=self.sigma_map.nP)
 
         def fun(x):
             return self.prob.dpred(x), lambda x: self.prob.Jvec(x0, x)
 
+        np.random.seed(40)  # set a random seed for check_derivative
         return tests.check_derivative(fun, x0, num=3, plotIt=False)
 
     def test_e_adjoint(self):
         print("Adjoint Test for e")
 
-        m = -1 + 1e-1 * np.random.rand(self.sigma_map.nP)
+        rng = np.random.default_rng(seed=42)
+        m = -1 + 1e-1 * rng.uniform(size=self.sigma_map.nP)
         u = self.prob.fields(m)
         # u = u[self.survey.source_list,'e']
 
-        v = np.random.rand(self.survey.nD)
-        w = np.random.rand(self.sigma_map.nP)
+        v = rng.uniform(size=self.survey.nD)
+        w = rng.uniform(size=self.sigma_map.nP)
 
         vJw = v.dot(self.prob.Jvec(m, w, u))
         wJtv = w.dot(self.prob.Jtvec(m, v, u))
@@ -206,6 +212,7 @@ class DCProblemTestsN(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
@@ -217,8 +224,9 @@ class DCProblemTestsN(unittest.TestCase):
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(mkvc(self.dobs).shape[0])
+        rng = np.random.default_rng(seed=42)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=mkvc(self.dobs).shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
@@ -226,6 +234,7 @@ class DCProblemTestsN(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
@@ -277,6 +286,7 @@ class DCProblemTestsN_Robin(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
@@ -288,8 +298,9 @@ class DCProblemTestsN_Robin(unittest.TestCase):
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(mkvc(self.dobs).shape[0])
+        rng = np.random.default_rng(seed=42)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=mkvc(self.dobs).shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
@@ -297,6 +308,7 @@ class DCProblemTestsN_Robin(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
@@ -348,6 +360,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
@@ -359,8 +372,9 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(mkvc(self.dobs).shape[0])
+        rng = np.random.default_rng(seed=42)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=mkvc(self.dobs).shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
@@ -368,6 +382,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=4
         )
@@ -426,6 +441,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
@@ -437,8 +453,9 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(mkvc(self.dobs).shape[0])
+        rng = np.random.default_rng(seed=42)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=mkvc(self.dobs).shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
@@ -446,6 +463,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
@@ -508,6 +526,7 @@ class DCProblemTestsN_storeJ_Robin(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
@@ -519,8 +538,9 @@ class DCProblemTestsN_storeJ_Robin(unittest.TestCase):
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(mkvc(self.dobs).shape[0])
+        rng = np.random.default_rng(seed=42)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=mkvc(self.dobs).shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
@@ -528,6 +548,7 @@ class DCProblemTestsN_storeJ_Robin(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
