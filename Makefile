@@ -37,8 +37,8 @@ black:
 
 flake:
 	flake8 --version
-	flake8 ${FLAKE8_OPTS} ${STYLE_CHECK_FILES}
+	flake8 ${STYLE_CHECK_FILES}
 
 flake-all:
 	flake8 --version
-	flake8 ${FLAKE8_OPTS} --ignore "" ${STYLE_CHECK_FILES}
+	flake8 --ignore "" ${STYLE_CHECK_FILES}
