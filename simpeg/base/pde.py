@@ -4,7 +4,6 @@ from discretize.utils import Zero, TensorType
 from ..simulation import BaseSimulation
 from .. import props
 from scipy.constants import mu_0
-from ..utils.doc_utils import doc_inherit
 
 
 def __inner_mat_mul_op(M, u, v=None, adjoint=False):
@@ -414,6 +413,16 @@ def with_property_mass_matrices(property_name):
 
 
 class BasePDESimulation(BaseSimulation):
+    """
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        A required mesh.
+    """
+
+    def __init__(self, mesh, **kwargs):
+        super().__init__(mesh=mesh, **kwargs)
+
     @property
     def Vol(self):
         return self.Mcc
@@ -492,7 +501,6 @@ class BasePDESimulation(BaseSimulation):
 
 @with_property_mass_matrices("sigma")
 @with_property_mass_matrices("rho")
-@doc_inherit()
 class BaseElectricalPDESimulation(BasePDESimulation):
     """A simulation containing the electrical physical properties sigma and rho.
 

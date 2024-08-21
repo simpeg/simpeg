@@ -12,7 +12,7 @@ from ....utils import (
     validate_integer,
     validate_active_indices,
 )
-from ....base import BaseElectricalPDESimulation
+from ....base.pde import BaseElectricalPDESimulation
 from ....data import Data
 
 from .survey import Survey

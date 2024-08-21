@@ -9,7 +9,7 @@ from ....utils import (
     validate_active_indices,
 )
 from ....data import Data
-from ....base import BaseElectricalPDESimulation
+from ....base.pde import BaseElectricalPDESimulation
 from .survey import Survey
 from .fields import Fields3DCellCentered, Fields3DNodal
 from .utils import _mini_pole_pole
