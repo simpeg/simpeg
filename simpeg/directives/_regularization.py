@@ -6,7 +6,7 @@ import numpy as np
 from dataclasses import dataclass
 
 from ..maps import Projection
-from .directives import InversionDirective, UpdatePreconditioner, BetaSchedule
+from .directives import InversionDirective, UpdatePreconditioner
 from ..regularization import (
     Sparse,
     BaseSparse,
@@ -39,7 +39,7 @@ class IRLSMetrics:
     f_old: float = 0.0
 
 
-class UpdateIRLS(BetaSchedule):
+class UpdateIRLS(InversionDirective):
     """
     Directive to control the IRLS iterations for :class:`~simpeg.regularization.Sparse`.
 
