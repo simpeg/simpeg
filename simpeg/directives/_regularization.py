@@ -23,7 +23,7 @@ class IRLSMetrics:
 
     Parameters
     ----------
-    input_norms : list of floats
+    input_norms : list of floats or None
         List of norms temporarily stored during the initialization.
     irls_iteration_count : int
         Number of IRLS iterations.
@@ -33,15 +33,15 @@ class IRLSMetrics:
         Previous value of the regularization function.
     """
 
-    input_norms: list[float] = (2.0, 2.0, 2.0, 2.0)
+    input_norms: list[float] | None = None
     irls_iteration_count: int = 0
     start_irls_iter: int | None = None
     f_old: float = 0.0
 
 
-class UpdateIRLS(BetaSchedule):
+class UpdateIRLS(InversionDirective):
     """
-    Directive to control the IRLS iterations for regularization.Sparse.
+    Directive to control the IRLS iterations for :class:`~simpeg.regularization.Sparse`.
 
     Parameters
     ----------
@@ -159,7 +159,7 @@ class UpdateIRLS(BetaSchedule):
 
     @property
     def cooling_factor(self):
-        """Beta is divided by this value every `cooling_rate` iterations.
+        """Beta is divided by this value every :attr:`cooling_rate` iterations.
 
         Returns
         -------
@@ -175,7 +175,7 @@ class UpdateIRLS(BetaSchedule):
 
     @property
     def cooling_rate(self):
-        """Cool after this number of iterations.
+        """Cool beta after this number of iterations.
 
         Returns
         -------
@@ -233,7 +233,11 @@ class UpdateIRLS(BetaSchedule):
         Adjust the cooling schedule based on the misfit.
         """
         ratio = self.invProb.phi_d / self.misfit_from_chi_factor(self.chifact_target)
-        if np.abs(1.0 - ratio) > self.misfit_tolerance:
+
+        if (
+            np.abs(1.0 - ratio) > self.misfit_tolerance
+            and self.metrics.start_irls_iter is not None
+        ):
 
             if ratio > 1:
                 ratio = np.mean([2.0, ratio])
@@ -289,9 +293,7 @@ class UpdateIRLS(BetaSchedule):
 
                 for obj in reg.objfcts:
                     if isinstance(reg, (Sparse, BaseSparse)):
-                        obj.irls_threshold = (
-                            obj.irls_threshold / self.irls_cooling_factor
-                        )
+                        obj.irls_threshold /= self.irls_cooling_factor
 
             self.metrics.irls_iteration_count += 1
 
@@ -305,7 +307,7 @@ class UpdateIRLS(BetaSchedule):
 
             self.invProb.phi_m_last = self.reg(self.invProb.model)
 
-        # Repeat beta cooling schedule mechanism
+        # Apply beta cooling schedule mechanism
         if self.opt.iter > 0 and self.opt.iter % self.cooling_rate == 0:
             self.invProb.beta /= self.cooling_factor
 
@@ -360,13 +362,13 @@ class UpdateIRLS(BetaSchedule):
         else:
             warnings.warn(
                 "Without a Linear preconditioner, convergence may be slow. "
-                "Consider adding `Directives.UpdatePreconditioner` to your "
+                "Consider adding `directives.UpdatePreconditioner` to your "
                 "directives list",
                 stacklevel=2,
             )
 
         beta_schedule = [
-            d for d in directive_list if isinstance(d, BetaSchedule) and d != self
+            d for d in directive_list if isinstance(d, BetaSchedule) and d is not self
         ]
 
         if beta_schedule:

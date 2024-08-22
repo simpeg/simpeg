@@ -55,6 +55,8 @@ Directives related to sparse inversions
 .. autosummary::
    :toctree: generated/
 
+   UpdateIRLS
+   SphericalUnitsWeights
    Update_IRLS
 
 
