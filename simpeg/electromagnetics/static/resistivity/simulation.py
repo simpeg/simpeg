@@ -14,10 +14,8 @@ from .survey import Survey
 from .fields import Fields3DCellCentered, Fields3DNodal
 from .utils import _mini_pole_pole
 from discretize.utils import make_boundary_bool
-from ....utils.doc_utils import doc_inherit
 
 
-@doc_inherit()
 class BaseDCSimulation(BaseElectricalPDESimulation):
     """
     Base DC Problem
@@ -334,7 +332,6 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return out
 
 
-@doc_inherit()
 class Simulation3DCellCentered(BaseDCSimulation):
     """
     3D cell centered DC problem
@@ -344,8 +341,8 @@ class Simulation3DCellCentered(BaseDCSimulation):
     %(super.mesh)
     %(super.survey)
     bc_type : {"Robin", "Dirichlet", "Neumann"}
-    %(super.sigma, rho)
-    %(super.sigmaMap, rhoMap)
+    %(super.sigma, super.rho)
+    %(super.sigmaMap, super.rhoMap)
     %(super.model)
 
     Other Parameters
@@ -510,7 +507,6 @@ class Simulation3DCellCentered(BaseDCSimulation):
         self.Grad = self.Grad - B
 
 
-@doc_inherit()
 class Simulation3DNodal(BaseDCSimulation):
     """
     3D Nodal DC problem
@@ -520,8 +516,8 @@ class Simulation3DNodal(BaseDCSimulation):
     %(super.mesh)
     %(super.survey)
     bc_type : {"Robin", "Dirichlet", "Neumann"}
-    %(super.sigma, rho)
-    %(super.sigmaMap, rhoMap)
+    %(super.sigma, super.rho)
+    %(super.sigmaMap, super.rhoMap)
     %(super.model)
 
     Other Parameters

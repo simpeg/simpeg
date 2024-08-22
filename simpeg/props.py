@@ -2,6 +2,7 @@ import numpy as np
 
 from .maps import IdentityMap, ReciprocalMap
 from .utils import Zero, validate_type, validate_ndarray_with_shape
+from .base import BaseSimPEG, DoceratorMeta
 
 
 class Mapping:
@@ -271,29 +272,8 @@ def Reciprocal(prop1, prop2):
     prop2.reciprocal = prop1
 
 
-class BaseSimPEG:
-    """Base class for simpeg classes."""
-
-    # Developer note:
-    # This class is mostly used to identify simpeg classes
-    # and to catch any leftover keyword arguments before calling
-    # object.__init__() (if that was the next class on the mro above
-    # this one). If there are any leftover arguments, it throws a TypeError
-    # with an appropriate message reference the class that was initialized.
-    def __init__(self, **kwargs):
-        mro = type(self).__mro__
-        super_class = mro[mro.index(__class__) + 1]
-        if super_class is object:
-            if len(kwargs):
-                for key in kwargs:
-                    raise TypeError(
-                        f"{type(self).__name__} got an unexpected keyword argument '{key}'."
-                    )
-        super().__init__(**kwargs)
-
-
-class PhysicalPropertyMetaclass(type):
-    def __new__(mcs, name, bases, classdict):
+class PhysicalPropertyMetaclass(DoceratorMeta):
+    def __new__(mcs, name, bases, classdict, **kwargs):
         # set the phyiscal properties list.
 
         property_dict = {
@@ -339,7 +319,7 @@ class PhysicalPropertyMetaclass(type):
             classdict[key] = value.get_property()
             nested_modelers.add(key)
 
-        newcls = super().__new__(mcs, name, bases, classdict)
+        newcls = super().__new__(mcs, name, bases, classdict, **kwargs)
 
         for parent in reversed(newcls.__mro__):
             map_names.update(getattr(parent, "_all_map_names", set()))

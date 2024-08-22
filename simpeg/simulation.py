@@ -27,7 +27,6 @@ from .utils import (
     validate_string,
     validate_integer,
 )
-from .utils.doc_utils import doc_inherit
 
 try:
     from pymatsolver import Pardiso as DefaultSolver
@@ -714,8 +713,7 @@ class BaseTimeSimulation(BaseSimulation):
 ##############################################################################
 
 
-@doc_inherit(star_excludes=["solver", "solver_opts"])
-class LinearSimulation(BaseSimulation):
+class LinearSimulation(BaseSimulation, star_excludes=["solver", "solver_opts"]):
     r"""Linear forward simulation class.
 
     The ``LinearSimulation`` class is used to define forward simulations of the form:
@@ -742,6 +740,8 @@ class LinearSimulation(BaseSimulation):
     Parameters
     ----------
     %(super.mesh)
+    linear_model : array_like
+        The linear model parameters.
     model_map : simpeg.maps.BaseMap
         Mapping from the model parameters to vector that the linear operator acts on.
     G : (n_data, n_param) numpy.ndarray or scipy.sparse.csr_matrx
