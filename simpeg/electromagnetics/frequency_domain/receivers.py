@@ -313,8 +313,8 @@ class PointElectricField(BaseRx):
     # )
 
     def __init__(self, locations, orientation="x", component="real", **kwargs):
-        self._azimuth = kwargs.get("azimuth", None)
-        self._elevation = kwargs.get("elevation", None)
+        self._azimuth = kwargs.pop("azimuth", None)
+        self._elevation = kwargs.pop("elevation", None)
         angles = self._azimuth or self._elevation
         if orientation in ["x", "y", "z"] and angles:
             raise ValueError("orientation must be 'rotated' if angles are provided.")
