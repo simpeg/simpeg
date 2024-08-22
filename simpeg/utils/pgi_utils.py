@@ -34,10 +34,10 @@ except ImportError:
 
 ###############################################################################
 # Disclaimer: the following classes built upon the GaussianMixture class      #
-# from Scikit-Learn. New functionalitie are added, as well as modifications to#
-# existing functions, to serve the purposes pursued within SimPEG.            #
+# from Scikit-Learn. New functionalities are added, as well as modifications  #
+# to existing functions, to serve the purposes pursued within SimPEG.         #
 # This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)    #
-# and we are grateful for their contributions to the open-source community.   #                                                   #
+# and we are grateful for their contributions to the open-source community.   #
 ###############################################################################
 
 
