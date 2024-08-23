@@ -1,5 +1,5 @@
 from __future__ import annotations
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 
 import numbers
 import numpy as np
@@ -111,7 +111,8 @@ class BaseObjectiveFunction(ABC):
         """
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def nP(self):
         """
         Number of parameters expected in models.
