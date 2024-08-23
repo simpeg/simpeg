@@ -363,7 +363,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         Returns
         -------
-        list of int
+        list of float
             Multipliers for the objective functions.
         """
         return self._multipliers
