@@ -69,12 +69,12 @@ class BaseSimulation(props.HasModel):
         an appropriate solver specific to the simulation class is set by default.
     solver_opts : dict, optional
         Solver-specific parameters. If ``None``, default parameters are used for
-        the solver set by ``solver``. Otherwise, the ``dict`` must contain appropriate
-        pairs of keyword arguments and parameter values for the solver. Please visit
+        the `solver`. Otherwise, the ``dict`` must contain appropriate
+        pairs of keyword arguments and parameter values for `solver`. Please visit
         `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__ to learn more
         about solvers and their parameters.
     sensitivity_path : str, optional
-        Path to directory where sensitivity file is stored. Default is the ".\sensitivity"
+        Path to directory where sensitivity file is stored. Default is ".\sensitivity"
     counter : simpeg.utils.Counter, optional
         Object to store iterations and run-times.
     verbose : bool
@@ -748,9 +748,9 @@ class LinearSimulation(BaseSimulation, star_excludes=["solver", "solver_opts"]):
     %(super.mesh)
     linear_model : array_like
         The linear model parameters.
-    model_map : simpeg.maps.BaseMap
+    model_map : simpeg.maps.IdentityMap
         Mapping from the model parameters to vector that the linear operator acts on.
-    G : (n_data, n_param) numpy.ndarray or scipy.sparse.csr_matrx
+    G : (n_data, n_param) array_like
         The linear operator. For a ``model_map`` that maps within the same vector space
         (e.g. the identity map), the dimension ``n_param`` equals the number of model parameters.
         If not, the dimension ``n_param`` of the linear operator will depend on the mapping.
