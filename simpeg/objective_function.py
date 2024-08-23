@@ -315,7 +315,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         if objfcts is None:
             objfcts = []
         if multipliers is None:
-            multipliers = len(objfcts) * [1]
+            multipliers = [1.0 for _ in range(len(objfcts))]
 
         # Validate inputs
         _check_length_objective_funcs_multipliers(objfcts, multipliers)
@@ -349,7 +349,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         return self._nP
 
     @property
-    def multipliers(self):
+    def multipliers(self) -> list[float]:
         r"""Multipliers for the objective functions.
 
         For a composite objective function :math:`\phi`, that is, a weighted sum of
