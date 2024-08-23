@@ -215,7 +215,8 @@ class TestOperationsObjectiveFunctions:
         model = np.array([1.0])
         np.testing.assert_allclose(combo(model), 2.3 * phi1(model))
 
-    def test_error_sum_not_objective_functions(self, dummy_class):
+    @pytest.mark.parametrize("radd", (False, True), ids=("add", "radd"))
+    def test_error_sum_not_objective_functions(self, dummy_class, radd):
         """
         Test if error is raised when trying to add a non-objective function object.
         """
@@ -226,7 +227,10 @@ class TestOperationsObjectiveFunctions:
             "Only 'BaseObjectiveFunction's can be added together."
         )
         with pytest.raises(TypeError, match=msg):
-            phi + dummy
+            if radd:
+                dummy + phi
+            else:
+                phi + dummy
 
     def test_error_different_np(self):
         """
