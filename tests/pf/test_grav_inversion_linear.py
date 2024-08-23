@@ -77,7 +77,7 @@ def test_gravity_inversion_linear(engine):
         mesh,
         survey=survey,
         rhoMap=idenMap,
-        ind_active=actv,
+        active_cells=actv,
         store_sensitivities="ram",
         engine=engine,
         **kwargs,

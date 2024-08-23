@@ -234,7 +234,7 @@ simulation_grav = pf.gravity.simulation.Simulation3DIntegral(
     survey=data_grav.survey,
     mesh=mesh,
     rhoMap=wires.den,
-    ind_active=actv,
+    active_cells=actv,
     engine="choclo",
 )
 dmis_grav = data_misfit.L2DataMisfit(data=data_grav, simulation=simulation_grav)
@@ -243,7 +243,7 @@ simulation_mag = pf.magnetics.simulation.Simulation3DIntegral(
     survey=data_mag.survey,
     mesh=mesh,
     chiMap=wires.sus,
-    ind_active=actv,
+    active_cells=actv,
 )
 dmis_mag = data_misfit.L2DataMisfit(data=data_mag, simulation=simulation_mag)
 
