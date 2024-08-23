@@ -152,9 +152,9 @@ class TestOperationsObjectiveFunctions:
             new_phi(model),
         )
 
-    def test_sum(self):
+    def test_add(self):
         """
-        Test sum between two BaseObjectiveFunctions
+        Test add between two BaseObjectiveFunctions
         """
         phi1 = MockObjectiveFunction(nP=3, result=1.0)
         phi2 = MockObjectiveFunction(nP=3, result=2.0)
@@ -167,9 +167,9 @@ class TestOperationsObjectiveFunctions:
             new_phi(model),
         )
 
-    def test_sum_and_mul(self):
+    def test_add_and_mul(self):
         """
-        Test sum between several BaseObjectiveFunctions with scalar multiplications
+        Test add between several BaseObjectiveFunctions with scalar multiplications
         """
         phi1 = MockObjectiveFunction(nP=3, result=1.0)
         phi2 = MockObjectiveFunction(nP=3, result=2.0)
@@ -186,7 +186,7 @@ class TestOperationsObjectiveFunctions:
     @pytest.mark.parametrize("mul_scalar", (True, False))
     def test_mul_by_zero_object(self, mul_scalar):
         """
-        Test forming a ComboObjectiveFunction summing two objective functions
+        Test forming a ComboObjectiveFunction adding two objective functions
         but multiplying one by Zero.
         """
         n_params = 20
@@ -203,7 +203,7 @@ class TestOperationsObjectiveFunctions:
 
     def test_mul_by_zero_float(self):
         """
-        Test forming a ComboObjectiveFunction summing two objective functions
+        Test forming a ComboObjectiveFunction adding two objective functions
         but multiplying one by zero (float).
         """
         n_params = 20
@@ -216,7 +216,7 @@ class TestOperationsObjectiveFunctions:
         np.testing.assert_allclose(combo(model), 2.3 * phi1(model))
 
     @pytest.mark.parametrize("radd", (False, True), ids=("add", "radd"))
-    def test_error_sum_not_objective_functions(self, dummy_class, radd):
+    def test_error_add_not_objective_functions(self, dummy_class, radd):
         """
         Test if error is raised when trying to add a non-objective function object.
         """
@@ -234,7 +234,7 @@ class TestOperationsObjectiveFunctions:
 
     def test_error_different_np(self):
         """
-        Test if error is raised after trying to sum objective functions with
+        Test if error is raised after trying to add objective functions with
         different nP
         """
         phi1 = MockObjectiveFunction(nP=1)
@@ -246,7 +246,7 @@ class TestOperationsObjectiveFunctions:
     @pytest.mark.parametrize("two_combos", (True, False))
     def test_error_different_np_combo(self, two_combos):
         """
-        Test if error is raised after trying to sum combo objective functions
+        Test if error is raised after trying to add combo objective functions
         with different nP
         """
         phi1 = 2.0 * MockObjectiveFunction(nP=1) + 3.0 * MockObjectiveFunction(nP=1)
