@@ -81,7 +81,7 @@ class Simulation3DIntegral(BasePFSimulation):
         Mesh use to run the gravity simulation.
     survey : simpeg.potential_fields.gravity.Survey
         Gravity survey with information of the receivers.
-    ind_active : (n_cells) numpy.ndarray, optional
+    active_cells : (n_cells) numpy.ndarray, optional
         Array that indicates which cells in ``mesh`` are active cells.
     rho : numpy.ndarray, optional
         Density array for the active cells in the mesh.
