@@ -289,8 +289,7 @@ class UpdateIRLS(InversionDirective):
                     continue
 
                 for obj in reg.objfcts:
-                    if isinstance(reg, (Sparse, BaseSparse)):
-                        obj.irls_threshold /= self.irls_cooling_factor
+                    obj.irls_threshold /= self.irls_cooling_factor
 
             self.metrics.irls_iteration_count += 1
 
