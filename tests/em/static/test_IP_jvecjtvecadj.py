@@ -14,8 +14,6 @@ from simpeg.electromagnetics import resistivity as dc
 from simpeg.electromagnetics import induced_polarization as ip
 import shutil
 
-np.random.seed(30)
-
 
 class IPProblemTestsCC(unittest.TestCase):
     def setUp(self):
@@ -61,6 +59,7 @@ class IPProblemTestsCC(unittest.TestCase):
         # self.dobe = dobs
 
     def test_misfit(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
@@ -72,8 +71,9 @@ class IPProblemTestsCC(unittest.TestCase):
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.Survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.survey.nD)
+        rng = np.random.default_rng(seed=30)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
@@ -81,6 +81,7 @@ class IPProblemTestsCC(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
@@ -130,6 +131,7 @@ class IPProblemTestsN(unittest.TestCase):
         self.dmis = dmis
 
     def test_misfit(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
@@ -141,8 +143,9 @@ class IPProblemTestsN(unittest.TestCase):
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.Survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.survey.nD)
+        rng = np.random.default_rng(seed=30)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
@@ -150,6 +153,7 @@ class IPProblemTestsN(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
@@ -203,6 +207,7 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
         self.dmis = dmis
 
     def test_misfit(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
@@ -214,8 +219,9 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.Survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.survey.nD)
+        rng = np.random.default_rng(seed=30)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
@@ -223,6 +229,7 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
@@ -283,6 +290,7 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
         self.dmis = dmis
 
     def test_misfit(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
@@ -294,8 +302,9 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.Survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.survey.nD)
+        rng = np.random.default_rng(seed=30)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
@@ -303,6 +312,7 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )

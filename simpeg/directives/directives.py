@@ -1,8 +1,10 @@
+from __future__ import annotations  # needed to use type operands in Python 3.8
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
 import os
 import scipy.sparse as sp
+from ..typing import RandomSeed
 from ..data_misfit import BaseDataMisfit
 from ..objective_function import ComboObjectiveFunction
 from ..maps import IdentityMap, Wires
@@ -347,17 +349,17 @@ class BaseBetaEstimator(InversionDirective):
     ----------
     beta0_ratio : float
         Desired ratio between data misfit and model objective function at initial beta iteration.
-    seed : int, None
-        Seed used for random sampling.
+    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
+        Random seed used for random sampling. It can either be an int,
+        a predefined Numpy random number generator, or any valid input to
+        ``numpy.random.default_rng``.
 
     """
 
     def __init__(
         self,
         beta0_ratio=1.0,
-        n_pw_iter=4,
-        seed=None,
-        method="power_iteration",
+        seed: RandomSeed | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -386,14 +388,20 @@ class BaseBetaEstimator(InversionDirective):
 
         Returns
         -------
-        int
+        int, numpy.random.Generator or None
         """
         return self._seed
 
     @seed.setter
     def seed(self, value):
-        if value is not None:
-            value = validate_integer("seed", value, min_val=1)
+        try:
+            np.random.default_rng(value)
+        except TypeError as err:
+            msg = (
+                "Unable to initialize the random number generator with "
+                f"a {type(value).__name__}"
+            )
+            raise TypeError(msg) from err
         self._seed = value
 
     def validate(self, directive_list):
@@ -420,8 +428,10 @@ class BetaEstimateMaxDerivative(BaseBetaEstimator):
     ----------
     beta0_ratio: float
         Desired ratio between data misfit and model objective function at initial beta iteration.
-    seed : int, None
-        Seed used for random sampling.
+    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
+        Random seed used for random sampling. It can either be an int,
+        a predefined Numpy random number generator, or any valid input to
+        ``numpy.random.default_rng``.
 
     Notes
     -----
@@ -451,19 +461,18 @@ class BetaEstimateMaxDerivative(BaseBetaEstimator):
 
     """
 
-    def __init__(self, beta0_ratio=1.0, seed=None, **kwargs):
-        super().__init__(beta0_ratio, seed, **kwargs)
+    def __init__(self, beta0_ratio=1.0, seed: RandomSeed | None = None, **kwargs):
+        super().__init__(beta0_ratio=beta0_ratio, seed=seed, **kwargs)
 
     def initialize(self):
-        if self.seed is not None:
-            np.random.seed(self.seed)
+        rng = np.random.default_rng(seed=self.seed)
 
         if self.verbose:
             print("Calculating the beta0 parameter.")
 
         m = self.invProb.model
 
-        x0 = np.random.rand(*m.shape)
+        x0 = rng.random(size=m.shape)
         phi_d_deriv = np.abs(self.dmisfit.deriv(m)).max()
         dm = x0 / x0.max() * m.max()
         phi_m_deriv = np.abs(self.reg.deriv(m + dm)).max()
@@ -491,8 +500,10 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
         Desired ratio between data misfit and model objective function at initial beta iteration.
     n_pw_iter : int
         Number of power iterations used to estimate largest eigenvalues.
-    seed : int, None
-        Seed used for random sampling.
+    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
+        Random seed used for random sampling. It can either be an int,
+        a predefined Numpy random number generator, or any valid input to
+        ``numpy.random.default_rng``.
 
     Notes
     -----
@@ -521,8 +532,14 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
 
     """
 
-    def __init__(self, beta0_ratio=1.0, n_pw_iter=4, seed=None, **kwargs):
-        super().__init__(beta0_ratio, seed, **kwargs)
+    def __init__(
+        self,
+        beta0_ratio=1.0,
+        n_pw_iter=4,
+        seed: RandomSeed | None = None,
+        **kwargs,
+    ):
+        super().__init__(beta0_ratio=beta0_ratio, seed=seed, **kwargs)
         self.n_pw_iter = n_pw_iter
 
     @property
@@ -541,8 +558,7 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
         self._n_pw_iter = validate_integer("n_pw_iter", value, min_val=1)
 
     def initialize(self):
-        if self.seed is not None:
-            np.random.seed(self.seed)
+        rng = np.random.default_rng(seed=self.seed)
 
         if self.verbose:
             print("Calculating the beta0 parameter.")
@@ -553,11 +569,13 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
             self.dmisfit,
             m,
             n_pw_iter=self.n_pw_iter,
+            seed=rng,
         )
         reg_eigenvalue = eigenvalue_by_power_iteration(
             self.reg,
             m,
             n_pw_iter=self.n_pw_iter,
+            seed=rng,
         )
 
         self.ratio = np.asarray(dm_eigenvalue / reg_eigenvalue)
@@ -641,7 +659,13 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
     The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
     """
 
-    def __init__(self, alpha0_ratio=1.0, n_pw_iter=4, seed=None, **kwargs):
+    def __init__(
+        self,
+        alpha0_ratio=1.0,
+        n_pw_iter=4,
+        seed: RandomSeed | None = None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.alpha0_ratio = alpha0_ratio
         self.n_pw_iter = n_pw_iter
@@ -683,20 +707,25 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 
         Returns
         -------
-        int
+        int, numpy.random.Generator or None
         """
         return self._seed
 
     @seed.setter
     def seed(self, value):
-        if value is not None:
-            value = validate_integer("seed", value, min_val=1)
+        try:
+            np.random.default_rng(value)
+        except TypeError as err:
+            msg = (
+                "Unable to initialize the random number generator with "
+                f"a {type(value).__name__}"
+            )
+            raise TypeError(msg) from err
         self._seed = value
 
     def initialize(self):
         """"""
-        if self.seed is not None:
-            np.random.seed(self.seed)
+        rng = np.random.default_rng(seed=self.seed)
 
         smoothness = []
         smallness = []
@@ -731,6 +760,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
             smallness[0],
             self.invProb.model,
             n_pw_iter=self.n_pw_iter,
+            seed=rng,
         )
 
         self.alpha0_ratio = self.alpha0_ratio * np.ones(len(smoothness))
@@ -746,6 +776,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                 obj,
                 self.invProb.model,
                 n_pw_iter=self.n_pw_iter,
+                seed=rng,
             )
             ratio = smallness_eigenvalue / smooth_i_eigenvalue
 
@@ -767,7 +798,13 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
     The highest eigenvalue are estimated through power iterations and Rayleigh quotient.
     """
 
-    def __init__(self, chi0_ratio=None, n_pw_iter=4, seed=None, **kwargs):
+    def __init__(
+        self,
+        chi0_ratio=None,
+        n_pw_iter=4,
+        seed: RandomSeed | None = None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.chi0_ratio = chi0_ratio
         self.n_pw_iter = n_pw_iter
@@ -809,20 +846,25 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
 
         Returns
         -------
-        int
+        int, numpy.random.Generator or None
         """
         return self._seed
 
     @seed.setter
     def seed(self, value):
-        if value is not None:
-            value = validate_integer("seed", value, min_val=1)
+        try:
+            np.random.default_rng(value)
+        except TypeError as err:
+            msg = (
+                "Unable to initialize the random number generator with "
+                f"a {type(value).__name__}"
+            )
+            raise TypeError(msg) from err
         self._seed = value
 
     def initialize(self):
         """"""
-        if self.seed is not None:
-            np.random.seed(self.seed)
+        rng = np.random.default_rng(seed=self.seed)
 
         if self.verbose:
             print("Calculating the scaling parameter.")
@@ -845,7 +887,7 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
 
         dm_eigenvalue_list = []
         for dm in self.dmisfit.objfcts:
-            dm_eigenvalue_list += [eigenvalue_by_power_iteration(dm, m)]
+            dm_eigenvalue_list += [eigenvalue_by_power_iteration(dm, m, seed=rng)]
 
         self.chi0 = self.chi0_ratio / np.r_[dm_eigenvalue_list]
         self.chi0 = self.chi0 / np.sum(self.chi0)
@@ -2485,8 +2527,7 @@ class UpdateSensitivityWeights(InversionDirective):
     The dynamic range of RMS sensitivities can span many orders of magnitude. When computing sensitivity
     weights, thresholding is generally applied to set a minimum value.
 
-    Thresholding
-    ^^^^^^^^^^^^
+    **Thresholding:**
 
     If **global** thresholding is applied, we add a constant :math:`\tau` to the RMS sensitivities:
 

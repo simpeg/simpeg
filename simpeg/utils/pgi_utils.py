@@ -3,35 +3,45 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from scipy import linalg
 from scipy.special import logsumexp
-from sklearn.mixture import GaussianMixture
-from sklearn.cluster import KMeans
-from sklearn.utils import check_array
-from sklearn.utils.validation import check_is_fitted
-from sklearn.mixture._gaussian_mixture import (
-    _compute_precision_cholesky,
-    _compute_log_det_cholesky,
-    _estimate_gaussian_covariances_full,
-    _estimate_gaussian_covariances_diag,
-    _estimate_gaussian_covariances_spherical,
-    _check_means,
-    _check_precisions,
-    _check_shape,
-)
-from sklearn.mixture._base import check_random_state, ConvergenceWarning
 import warnings
 from simpeg.maps import IdentityMap
+
+from discretize.utils.code_utils import requires
+
+# sklearn is a soft dependency
+try:
+    import sklearn
+    from sklearn.mixture import GaussianMixture
+    from sklearn.cluster import KMeans
+    from sklearn.utils import check_array
+    from sklearn.utils.validation import check_is_fitted
+    from sklearn.mixture._gaussian_mixture import (
+        _compute_precision_cholesky,
+        _compute_log_det_cholesky,
+        _estimate_gaussian_covariances_full,
+        _estimate_gaussian_covariances_diag,
+        _estimate_gaussian_covariances_spherical,
+        _check_means,
+        _check_precisions,
+        _check_shape,
+    )
+    from sklearn.mixture._base import check_random_state, ConvergenceWarning
+
+except ImportError:
+    GaussianMixture = None
+    sklearn = False
 
 
 ###############################################################################
 # Disclaimer: the following classes built upon the GaussianMixture class      #
-# from Scikit-Learn. New functionalitie are added, as well as modifications to#
-# existing functions, to serve the purposes pursued within SimPEG.            #
+# from Scikit-Learn. New functionalities are added, as well as modifications  #
+# to existing functions, to serve the purposes pursued within SimPEG.         #
 # This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)    #
-# and we are grateful for their contributions to the open-source community.   #                                                   #
+# and we are grateful for their contributions to the open-source community.   #
 ###############################################################################
 
 
-class WeightedGaussianMixture(GaussianMixture):
+class WeightedGaussianMixture(GaussianMixture if sklearn else object):
     """
     Weighted Gaussian mixture class
 
@@ -65,6 +75,7 @@ class WeightedGaussianMixture(GaussianMixture):
         Active indexes
     """
 
+    @requires({"sklearn": sklearn})
     def __init__(
         self,
         n_components,
@@ -158,13 +169,13 @@ class WeightedGaussianMixture(GaussianMixture):
     def order_clusters_GM_weight(self, outputindex=False):
         """Order clusters by decreasing weights
 
-        PARAMETERS
+        Parameters
         ----------
         outputindex : bool, default: ``True``
             If ``True``, return the sorting index
 
-        RETURN
-        ------
+        Returns
+        -------
         np.ndarray
             Sorting index
         """
@@ -194,6 +205,7 @@ class WeightedGaussianMixture(GaussianMixture):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         Check the user provided 'weights'.
+
         Parameters
         ----------
         weights : array-like, shape (n_components,) or (n_samples, n_components)
@@ -271,6 +283,7 @@ class WeightedGaussianMixture(GaussianMixture):
         """
         [modified from Scikit-Learn.mixture._base]
         Initialize the model parameters.
+
         Parameters
         ----------
         X : array-like, shape  (n_samples, n_features)
@@ -303,6 +316,7 @@ class WeightedGaussianMixture(GaussianMixture):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         M step.
+
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -327,6 +341,7 @@ class WeightedGaussianMixture(GaussianMixture):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         Estimate the tied covariance matrix.
+
         Parameters
         ----------
         resp : array-like, shape (n_samples, n_components)
@@ -334,6 +349,7 @@ class WeightedGaussianMixture(GaussianMixture):
         nk : array-like, shape (n_components,)
         means : array-like, shape (n_components, n_features)
         reg_covar : float
+
         Returns
         -------
         covariance : array, shape (n_features, n_features)
@@ -350,6 +366,7 @@ class WeightedGaussianMixture(GaussianMixture):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         Estimate the Gaussian distribution parameters.
+
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -360,6 +377,7 @@ class WeightedGaussianMixture(GaussianMixture):
             The regularization added to the diagonal of the covariance matrices.
         covariance_type : {'full', 'tied', 'diag', 'spherical'}
             The type of precision matrices.
+
         Returns
         -------
         nk : array-like, shape (n_components,)
@@ -385,9 +403,11 @@ class WeightedGaussianMixture(GaussianMixture):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         E step.
+
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
+
         Returns
         -------
         log_prob_norm : float
@@ -426,6 +446,7 @@ class WeightedGaussianMixture(GaussianMixture):
         """
         [New function, modified from Scikit-Learn.mixture.gaussian_mixture._estimate_log_gaussian_prob]
         Estimate the log Gaussian probability with depth or sensitivity weighting.
+
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -438,6 +459,7 @@ class WeightedGaussianMixture(GaussianMixture):
             'diag' : shape of (n_components, n_features)
             'spherical' : shape of (n_components,)
         covariance_type : {'full', 'tied', 'diag', 'spherical'}
+
         Returns
         -------
         log_prob : array, shape (n_samples, n_components)
@@ -484,9 +506,11 @@ class WeightedGaussianMixture(GaussianMixture):
         """
         [New function, modified from Scikit-Learn.mixture.gaussian_mixture._estimate_weighted_log_prob]
         Estimate the weighted log-probabilities, log P(X | Z) + log weights.
+
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
+
         Returns
         -------
         weighted_log_prob : array, shape (n_samples, n_component)
@@ -828,6 +852,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         Shape is (index of the fixed cell, lithology index) fixed_membership:
     """
 
+    @requires({"sklearn": sklearn})
     def __init__(
         self,
         gmmref,
@@ -1157,7 +1182,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
                     self.converged_ = True
                     break
 
-            self._print_verbose_msg_init_end(lower_bound)
+            self._custom_print_verbose_msg_init_end(lower_bound)
 
             if lower_bound > max_lower_bound or max_lower_bound == -np.inf:
                 max_lower_bound = lower_bound
@@ -1179,6 +1204,22 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         self.lower_bound_ = max_lower_bound
 
         return self
+
+    def _custom_print_verbose_msg_init_end(self, ll):
+        """
+        Wrapper for the upstream _print_verbose_msg_init_end
+
+        This method was created to provide support of older versions
+        (scikit-learn<1.5.0) of this private method.
+        """
+        try:
+            self._print_verbose_msg_init_end(ll, init_has_converged=True)
+        except TypeError as exception:
+            # In scikit-learn<1.5.0, the method has a single argument
+            match = "got an unexpected keyword argument 'init_has_converged'"
+            if match not in str(exception):
+                raise
+            self._print_verbose_msg_init_end(ll)
 
 
 class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
@@ -1207,6 +1248,7 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
         List of mapping describing a nonlinear relationships between physical properties; one per cluster/unit.
     """
 
+    @requires({"sklearn": sklearn})
     def __init__(
         self,
         mesh,
@@ -1254,6 +1296,7 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         Initialization of the Gaussian mixture parameters.
+
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -1295,6 +1338,7 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         Estimate the log Gaussian probability.
+
         Parameters
         ----------
         X : array-like, shape (n_samples, n_features)
@@ -1306,6 +1350,7 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
             'diag' : shape of (n_components, n_features)
             'spherical' : shape of (n_components,)
         covariance_type : {'full', 'tied', 'diag', 'spherical'}
+
         Returns
         -------
         log_prob : array, shape (n_samples, n_components)
@@ -1514,6 +1559,7 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
 
     """
 
+    @requires({"sklearn": sklearn})
     def __init__(
         self,
         gmmref,

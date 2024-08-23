@@ -18,8 +18,6 @@ try:
 except ImportError:
     from simpeg import SolverLU as Solver
 
-np.random.seed(38)
-
 
 class SIPProblemTestsCC(unittest.TestCase):
     def setUp(self):
@@ -94,6 +92,7 @@ class SIPProblemTestsCC(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
@@ -105,8 +104,9 @@ class SIPProblemTestsCC(unittest.TestCase):
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-        v = np.random.rand(self.mesh.nC * 2)
-        w = np.random.rand(self.dobs.shape[0])
+        rng = np.random.default_rng(seed=38)
+        v = rng.uniform(size=self.mesh.nC * 2)
+        w = rng.uniform(size=self.dobs.shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
@@ -114,6 +114,7 @@ class SIPProblemTestsCC(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
@@ -192,6 +193,7 @@ class SIPProblemTestsN(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
@@ -202,8 +204,9 @@ class SIPProblemTestsN(unittest.TestCase):
 
     def test_adjoint(self):
         # Adjoint Test
-        v = np.random.rand(self.mesh.nC * 2)
-        w = np.random.rand(self.dobs.shape[0])
+        rng = np.random.default_rng(seed=38)
+        v = rng.uniform(size=self.mesh.nC * 2)
+        w = rng.uniform(size=self.dobs.shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
@@ -211,6 +214,7 @@ class SIPProblemTestsN(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )
@@ -302,6 +306,7 @@ class SIPProblemTestsN_air(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
@@ -312,8 +317,9 @@ class SIPProblemTestsN_air(unittest.TestCase):
 
     def test_adjoint(self):
         # Adjoint Test
-        v = np.random.rand(self.reg.nP)
-        w = np.random.rand(self.dobs.shape[0])
+        rng = np.random.default_rng(seed=38)
+        v = rng.uniform(size=self.reg.nP)
+        w = rng.uniform(size=self.dobs.shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
@@ -321,6 +327,7 @@ class SIPProblemTestsN_air(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
+        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
         )

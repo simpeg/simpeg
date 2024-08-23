@@ -148,6 +148,7 @@ from . import inversion
 from . import regularization
 from . import survey
 from . import simulation
+from . import typing
 
 from . import utils
 from .utils import mkvc

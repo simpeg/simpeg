@@ -200,7 +200,7 @@ class Simple(WeightedLeastSquares):
             length_scale_x=alpha_x,
             length_scale_y=alpha_y,
             length_scale_z=alpha_z,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -217,7 +217,7 @@ class Tikhonov(WeightedLeastSquares):
             alpha_x=alpha_x,
             alpha_y=alpha_y,
             alpha_z=alpha_z,
-            **kwargs
+            **kwargs,
         )
 
 

@@ -83,7 +83,7 @@ def test_test_derivatives():
     Check the `.test_derivatives` method in `BaseObjectiveFunction`
     """
     objfct = MockL2ObjectiveFunction()
-    assert objfct.test_derivatives(eps=1e-9)
+    assert objfct.test_derivatives(eps=1e-9, random_seed=42)
 
 
 @pytest.mark.parametrize(
