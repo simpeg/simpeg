@@ -125,7 +125,7 @@ class BaseObjectiveFunction(ABC):
         if not isinstance(other, BaseObjectiveFunction):
             raise TypeError(
                 f"Cannot add type '{other.__class__.__name__}' to an objective "
-                "function. Only BaseObjectiveFunctions can be added together."
+                "function. Only 'BaseObjectiveFunction's can be added together."
             )
         objective_functions, multipliers = [], []
         for instance in (self, other):

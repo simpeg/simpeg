@@ -113,6 +113,13 @@ def test_empty_combo(objfcts, multipliers):
 class TestOperationsObjectiveFunctions:
     """Test arithmetic operations involving BaseObjectiveFunction"""
 
+    @pytest.fixture
+    def dummy_class(self):
+        class Dummy:
+            pass
+
+        return Dummy
+
     @pytest.mark.parametrize("left", (True, False))
     def test_mul(self, left):
         """
@@ -207,6 +214,19 @@ class TestOperationsObjectiveFunctions:
         assert combo.multipliers == [2.3, 0.0]
         model = np.array([1.0])
         np.testing.assert_allclose(combo(model), 2.3 * phi1(model))
+
+    def test_error_sum_not_objective_functions(self, dummy_class):
+        """
+        Test if error is raised when trying to add a non-objective function object.
+        """
+        phi = MockObjectiveFunction(nP=1)
+        dummy = dummy_class()
+        msg = (
+            "Cannot add type 'Dummy' to an objective function. "
+            "Only 'BaseObjectiveFunction's can be added together."
+        )
+        with pytest.raises(TypeError, match=msg):
+            phi + dummy
 
     def test_error_different_np(self):
         """
