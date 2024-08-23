@@ -269,10 +269,10 @@ class UpdateIRLS(InversionDirective):
         ):
             self.start_irls()
 
-        # Check if misfit is within the tolerance, otherwise scale beta
+        # Update the cooling factor (only after IRLS has started)
         self.adjust_cooling_schedule()
 
-        # Only update after GN iterations
+        # Perform IRLS (only after `self.cooling_rate` iterations)
         if (
             self.metrics.start_irls_iter is not None
             and (self.opt.iter - self.metrics.start_irls_iter) % self.cooling_rate == 0
@@ -283,7 +283,7 @@ class UpdateIRLS(InversionDirective):
             else:
                 self.opt.stopNextIteration = False
 
-            # Print to screen
+            # Cool irls thresholds
             for reg in self.reg.objfcts:
                 if not isinstance(reg, Sparse):
                     continue
