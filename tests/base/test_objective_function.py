@@ -355,31 +355,65 @@ class TestMultiplierValidation:
     Test the _validate_multiplier private function.
     """
 
-    @pytest.mark.parametrize(
-        "multiplier",
-        (
-            3.14,
-            1,
-            np.float64(-15.3),
-            np.float32(-10.2),
-            np.int64(10),
-            np.int32(33),
-            Zero(),
-        ),
+    valid_multipliers = (
+        3.14,
+        1,
+        np.float64(-15.3),
+        np.float32(-10.2),
+        np.int64(10),
+        np.int32(33),
+        Zero(),
     )
+    invalid_multipliers = (
+        np.array([1, 3.14]),
+        np.array(3),
+        [1, 2, 3],
+        "string",
+        True,
+        None,
+    )
+
+    @pytest.mark.parametrize("multiplier", valid_multipliers)
     def test_valid_multipliers(self, multiplier):
         """
         Test function against valid multipliers
         """
         _validate_multiplier(multiplier)
 
-    @pytest.mark.parametrize(
-        "multiplier",
-        (np.array([1, 3.14]), np.array(3), [1, 2, 3], "string", True, None),
-    )
+    @pytest.mark.parametrize("multiplier", invalid_multipliers)
     def test_invalid_multipliers(self, multiplier):
         """
         Test function against invalid multipliers
         """
         with pytest.raises(TypeError, match="Invalid multiplier"):
             _validate_multiplier(multiplier)
+
+    def test_multipliers_setter(self):
+        """
+        Test multipliers setter against valid multipliers
+        """
+        objective_functions = [MockObjectiveFunction() for _ in range(3)]
+        combo = objective_function.ComboObjectiveFunction(objfcts=objective_functions)
+        multipliers = [i + 3 for i in range(len(objective_functions))]
+        combo.multipliers = multipliers
+
+    @pytest.mark.parametrize("multiplier", invalid_multipliers)
+    def test_multipliers_setter_invalid(self, multiplier):
+        """
+        Test multipliers setter against invalid multipliers
+        """
+        phi = MockObjectiveFunction()
+        combo = objective_function.ComboObjectiveFunction(objfcts=[phi])
+        with pytest.raises(TypeError, match="Invalid multiplier"):
+            combo.multipliers = [multiplier]
+
+    def test_multipliers_setter_invalid_length(self):
+        """
+        Test error when setting multipliers of invalid length.
+        """
+        objective_functions = [MockObjectiveFunction() for _ in range(3)]
+        multipliers = [1, 2, 3, 4, 5, 6]
+        combo = objective_function.ComboObjectiveFunction(objfcts=objective_functions)
+        msg = "Inconsistent number of elements between objective functions "
+        with pytest.raises(ValueError, match=msg):
+            combo.multipliers = multipliers
