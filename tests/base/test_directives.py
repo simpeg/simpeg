@@ -274,7 +274,7 @@ class ValidationInInversion(unittest.TestCase):
 
         # Here is where the norms are applied
         irls_directive = directives.UpdateIRLS(
-            coolingFactor=3,
+            cooling_factor=3,
             chifact_start=100.0,
             chifact_target=1.0,
             irls_cooling_factor=1.2,
@@ -285,7 +285,7 @@ class ValidationInInversion(unittest.TestCase):
             verbose=True,
         )
 
-        assert irls_directive.coolingFactor == 3
+        assert irls_directive.cooling_factor == 3
 
         with self.assertRaises(AssertionError):
             inversion.BaseInversion(
