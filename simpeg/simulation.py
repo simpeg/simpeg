@@ -5,14 +5,19 @@ Define simulation classes.
 from __future__ import annotations  # needed to use type operands in Python 3.8
 import os
 import inspect
+from typing import Optional, Dict, Any
+import numpy.typing as npt
+
 import numpy as np
 import warnings
 
 from discretize.base import BaseMesh
 from discretize import TensorMesh
 from discretize.utils import unpack_widths, sdiag
+from pymatsolver.solvers import Base as BaseSolver
 
 from . import props
+from . import maps
 from .typing import RandomSeed
 from .data import SyntheticData, Data
 from .survey import BaseSurvey
@@ -59,7 +64,7 @@ class BaseSimulation(props.HasModel):
         Mesh on which the forward problem is discretized.
     survey : simpeg.survey.BaseSurvey, optional
         The survey for the simulation.
-    solver : None or pymatsolver.base.Base, optional
+    solver : pymatsolver.solvers.Base, optional
         Numerical solver used to solve the forward problem. If ``None``,
         an appropriate solver specific to the simulation class is set by default.
     solver_opts : dict, optional
@@ -69,24 +74,25 @@ class BaseSimulation(props.HasModel):
         `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__ to learn more
         about solvers and their parameters.
     sensitivity_path : str, optional
-        Path to directory where sensitivity file is stored.
-    counter : None or simpeg.utils.Counter
-        SimPEG ``Counter`` object to store iterations and run-times.
-    verbose : bool, default: False
+        Path to directory where sensitivity file is stored. Default is the ".\sensitivity"
+    counter : simpeg.utils.Counter, optional
+        Object to store iterations and run-times.
+    verbose : bool
         Verbose progress printout.
+    %(super.*)
     """
 
     _REGISTRY = {}
 
     def __init__(
         self,
-        mesh=None,
-        survey=None,
-        solver=None,
-        solver_opts=None,
-        sensitivity_path=None,
-        counter=None,
-        verbose=False,
+        mesh: Optional[BaseMesh] = None,
+        survey: Optional[BaseSurvey] = None,
+        solver: Optional[BaseSolver] = None,
+        solver_opts: Optional[Dict[str, Any]] = None,
+        sensitivity_path: Optional[str] = None,
+        counter: Optional[Counter] = None,
+        verbose: bool = False,
         **kwargs,
     ):
         self.mesh = mesh
@@ -755,7 +761,14 @@ class LinearSimulation(BaseSimulation, star_excludes=["solver", "solver_opts"]):
         "The model for a linear problem"
     )
 
-    def __init__(self, mesh=None, linear_model=None, model_map=None, G=None, **kwargs):
+    def __init__(
+        self,
+        mesh: Optional[BaseMesh] = None,
+        linear_model: Optional[npt.ArrayLike] = None,
+        model_map: Optional[maps.IdentityMap] = None,
+        G: Optional[npt.ArrayLike] = None,
+        **kwargs,
+    ):
 
         super().__init__(mesh=mesh, **kwargs)
         self.linear_model = linear_model
@@ -860,7 +873,7 @@ class LinearSimulation(BaseSimulation, star_excludes=["solver", "solver_opts"]):
         return self.model_deriv.T * self.G.T.dot(v)
 
 
-class ExponentialSinusoidSimulation(LinearSimulation):
+class ExponentialSinusoidSimulation(LinearSimulation, star_excludes=["mesh", "G"]):
     r"""Simulation class for exponentially decaying sinusoidal kernel functions.
 
     This is the simulation class for the linear problem consisting of
@@ -912,6 +925,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         Minimum value for the spread of the kernel factors.
     jn : float
         Maximum value for the spread of the kernel factors.
+    %(super.*)
     """
 
     def __init__(self, n_kernels=20, p=-0.25, q=0.25, j0=0.0, jn=60.0, **kwargs):

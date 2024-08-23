@@ -1,8 +1,14 @@
+from typing import Optional
+
 import numpy as np
+import numpy.typing as npt
 import scipy.sparse as sp
+from discretize.base import BaseMesh
 from discretize.utils import Zero, TensorType
+from ..utils import validate_type
 from ..simulation import BaseSimulation
 from .. import props
+from ..maps import IdentityMap
 from scipy.constants import mu_0
 
 
@@ -413,15 +419,23 @@ def with_property_mass_matrices(property_name):
 
 
 class BasePDESimulation(BaseSimulation):
-    """
+    """Base class for PDE simulation.
+
+    This class implements the common methods for the finite volume PDE simulations.
+
     Parameters
     ----------
     mesh : discretize.base.BaseMesh
-        A required mesh.
+        Mesh on which the forward problem is discretized.
     """
 
-    def __init__(self, mesh, **kwargs):
+    def __init__(self, mesh: BaseMesh, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
+
+    @BaseSimulation.mesh.setter
+    def mesh(self, value):
+        # Overwrite the parent's setter to disallow None
+        self._mesh = validate_type("mesh", value, BaseMesh, cast=False)
 
     @property
     def Vol(self):
@@ -507,7 +521,7 @@ class BaseElectricalPDESimulation(BasePDESimulation):
     Parameters
     ----------
     %(super.mesh)
-    sigma, rho : (mesh.n_cells) array_like, optional
+    sigma, rho : (mesh.n_cells,) array_like, optional
         Conductivity and resitivity properties. These are linked to each
         other as inverses and at most one can be set.
     sigmaMap, rhoMap : simpeg.IdentityMap, optional
@@ -522,7 +536,13 @@ class BaseElectricalPDESimulation(BasePDESimulation):
     props.Reciprocal(sigma, rho)
 
     def __init__(
-        self, mesh, sigma=None, sigmaMap=None, rho=None, rhoMap=None, **kwargs
+        self,
+        mesh,
+        sigma: Optional[npt.ArrayLike] = None,
+        sigmaMap: Optional[IdentityMap] = None,
+        rho: Optional[npt.ArrayLike] = None,
+        rhoMap: Optional[IdentityMap] = None,
+        **kwargs,
     ):
         super().__init__(mesh=mesh, **kwargs)
         if sigma and rho:

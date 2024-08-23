@@ -6,27 +6,41 @@ import importlib
 import functools
 from re import Match
 from typing import Callable, Optional, Dict, Tuple, List, Any, Set, Iterator
+import warnings
 
-__all__ = ["bind_signature_to_function", "DoceratorMeta"]
+__all__ = ["bind_signature_to_function", "DoceratorMeta", "DocstringInheritWarning"]
+
+
+class DocstringInheritWarning(ImportWarning):
+    pass
+
 
 REPLACE_REGEX = re.compile(r"%\((?P<replace_key>.*)\)")
 REPLACE_STAR_REGEX = re.compile(r"%\((?P<class_name>\S+)\.\*\)")
 _numpydoc_sections = [
+    # not super interested in these first three sections.
+    # "Signature"
+    # "Summary"
+    # "Extended Summary"
     "Parameters",
+    "Attributes",
+    "Methods",
     "Returns",
     "Yields",
     "Receives",
     "Other Parameters",
     "Raises",
     "Warns",
+    "Warnings",
     "See Also",
     "Notes",
     "References",
     "Examples",
+    "index",
 ]
 _section_regexs = []
 for section in _numpydoc_sections:
-    section_regex = rf"(?:(?:^|\n\n){section}\n-{{{len(section)}}}\n(?P<{section.lower().replace(' ', '_')}>[\s\S]*?))"
+    section_regex = rf"(?:(?:^|\n){section}\n-{{{len(section)}}}\n(?P<{section.lower().replace(' ', '_')}>[\s\S]*?))"
     _section_regexs.append(section_regex)
 
 NUMPY_SECTION_REGEX = re.compile(
@@ -45,7 +59,9 @@ def _pairwise(iterable):
     return itertools.zip_longest(a, b, fillvalue=None)
 
 
-def _parse_numpydoc_parameters(doc: str) -> Iterator[Match[str]]:
+def _parse_numpydoc_parameters(
+    doc: str, double_check: bool = True
+) -> Iterator[Match[str]]:
     """Parse a numpydoc string for parameter descriptions.
 
     Parameters
@@ -53,7 +69,7 @@ def _parse_numpydoc_parameters(doc: str) -> Iterator[Match[str]]:
     doc : str
 
     Yields
-    -------
+    ------
     arg : str
         The name of the argument
     type_string: str or None
@@ -65,9 +81,20 @@ def _parse_numpydoc_parameters(doc: str) -> Iterator[Match[str]]:
     doc_sections = NUMPY_SECTION_REGEX.search(doc).groupdict()
     parameters = doc_sections.get("parameters")
     if parameters is None:
+        if double_check and "Parameters\n-" in doc:
+            raise TypeError(
+                "Unable to parse docstring for parameters section, but it looks like there might be a "
+                "'Parameters' section. Did you not put the correct number of `-` on the line below it?",
+            )
         parameters = ""
 
     others = doc_sections.get("other_parameters")
+    if double_check and others is None and "Other Parameters\n-" in doc:
+        raise TypeError(
+            "Unable to parse docstring for other parameters section, but it looks like there "
+            "might be an `Other Parameters` section. Did you not put the correct number of `-` on the "
+            "line below it?",
+        )
     if others is not None:
         parameters += "\n" + others
 
@@ -94,10 +121,17 @@ def _class_arg_doc_dict(cls: type) -> collections.OrderedDict[str, Dict[str, Any
         # skip over values that are to be replaced (if there are any left)
         # and skip over *args, **kwargs arguments
         if not REPLACE_REGEX.match(arg) and arg[0] != "*":
+            if not (param := init_params.get(arg, None)):
+                # This should likely be switched to an error in the future once all classes are properly documented.
+                warnings.warn(
+                    f"Documented argument {arg}, is not in the signature of {cls.__name__}.__init__",
+                    DocstringInheritWarning,
+                    stacklevel=2,
+                )
             arg_dict[arg] = {
                 "type_string": type_string,
                 "description": description,
-                "parameter": init_params.get(arg, None),
+                "parameter": param,
             }
     return arg_dict
 
@@ -107,9 +141,7 @@ def _replace_doc_args(
 ) -> str:
 
     # must escape all the special regex characters.
-    replace_target_regex = re.escape(target)
-    indent_search_regex = rf"^\s*(?={replace_target_regex})"
-    indent = re.search(indent_search_regex, doc, re.MULTILINE)[0]
+    indent = re.search(rf"^\s*(?={re.escape(target)})", doc, re.MULTILINE)[0]
 
     n_args = len(args)
     n_info = len(infos)
@@ -144,7 +176,7 @@ def _replace_doc_args(
     # add the indent before the replacement target to every line after the first line
     # in the replacement string.
     replace_string = f"\n{indent}".join(insert_string.splitlines())
-    doc = re.sub(replace_target_regex, replace_string, doc)
+    doc = doc.replace(target, replace_string)
     return doc
 
 
@@ -156,7 +188,7 @@ def _doc_replace(cls: type, star_excludes: Set[str]) -> Tuple[str, inspect.Signa
     ]
 
     call_parameters = collections.OrderedDict()
-    init = getattr(cls, "__init__", None)
+    init = cls.__dict__.get("__init__", None)
     if init:
         call_sign = inspect.signature(cls.__init__)
     else:
@@ -164,7 +196,7 @@ def _doc_replace(cls: type, star_excludes: Set[str]) -> Tuple[str, inspect.Signa
         call_sign = inspect.Signature()
 
     if not args_to_insert:
-        # if nothing to replace... exist early.
+        # if nothing to replace... exit early.
         return doc, call_sign
 
     add_kwargs_param_signature = False
@@ -186,7 +218,7 @@ def _doc_replace(cls: type, star_excludes: Set[str]) -> Tuple[str, inspect.Signa
             # either for specific items, or a * include of all of them.
             if class_name == "super" and not super_doc_dict:
                 super_doc_dict = collections.OrderedDict()
-                for base in bases:  # don't bother checking `object`
+                for base in bases[:-1]:  # don't bother checking `object`
                     if base_arg_dict := getattr(base, "_arg_dict", None):
                         super_doc_dict.update(base_arg_dict)
             if arg[0] != "*":
@@ -195,18 +227,24 @@ def _doc_replace(cls: type, star_excludes: Set[str]) -> Tuple[str, inspect.Signa
                     arg_dict = super_doc_dict
                     if arg not in super_doc_dict:
                         raise TypeError(
-                            f"Argument {arg} not found in {cls.__name__}'s inheritance."
+                            f"Argument {arg} not found in {cls.__name__}'s inheritance"
                         )
                 else:
                     # import the class and get it's arg_dict
-                    module_name, m_class_name = class_name.rsplit(".", 1)
+                    try:
+                        module_name, m_class_name = class_name.rsplit(".", 1)
+                    except ValueError:
+                        raise ValueError(
+                            f"{class_name} does not include the module information. "
+                            f"Should be included as module.to.import.from.{class_name}"
+                        )
                     try:
                         target_cls = getattr(
                             importlib.import_module(module_name), m_class_name
                         )
                     except ImportError:
                         raise TypeError(
-                            f"Unable to import class {class_name} for docstring replacement."
+                            f"Unable to import class {class_name} for docstring replacement"
                         ) from None
                     if target_cls not in bases:
                         raise TypeError(
@@ -215,19 +253,23 @@ def _doc_replace(cls: type, star_excludes: Set[str]) -> Tuple[str, inspect.Signa
                     arg_dict = getattr(target_cls, "_arg_dict", None)
                     if not arg_dict:
                         raise TypeError(
-                            f"{target_cls} must have an _arg_dict attribute."
+                            f"{target_cls} must have an _arg_dict attribute"
                         )
                     if arg not in arg_dict:
                         raise TypeError(
-                            f"{arg}'s description not found in {target_cls}._arg_dict."
+                            f"{arg}'s description not found in {target_cls}._arg_dict"
                         )
                 replacement = arg_dict[arg]
                 args.append(arg)
                 if arg not in call_parameters:
-                    param = replacement["parameter"]
-                    call_parameters[arg] = param.replace(
-                        kind=inspect.Parameter.KEYWORD_ONLY
-                    )
+                    if not (param := replacement["parameter"]):
+                        param = param.replace(kind=inspect.Parameter.KEYWORD_ONLY)
+                    else:
+                        # create a generic parameter description
+                        param = inspect.Parameter(
+                            arg, kind=inspect.Parameter.KEYWORD_ONLY, default=None
+                        )
+                    call_parameters[arg] = param
         if args:
             doc = _replace_doc_args(doc, f"%({arg_insert})", args, [replacement])
 
@@ -310,6 +352,101 @@ def bind_signature_to_function(
 
 
 class DoceratorMeta(type):
+    """Metaclass that implements class constructor argument replacement.
+
+    When a target class uses this as a metaclass, it will trigger a replacement on that
+    target class's docstring for specific keys. It looks for replacement strings of the form:
+
+    >>> "%(class_name.arg)"
+
+    ``class_name`` can be either:
+        1) A specific class from the target class's inheritance tree, in which case it must be in the format:
+           ``f"%({class.__module__}.{class.__qualname__})``, or
+        2) the special name ``super``, which triggers a lookup for the first instance
+           of ``arg`` in the target class's method resolution order.
+
+    ``arg`` can be either:
+        1) A specific argument, or
+        2) the ``*`` character, which will include everything from ``class_name``, except for
+           arguments in ``star_excludes`` or already in the target class's ``__init__`` signature.
+
+    Notes
+    -----
+    This metaclass assumes that the target class's docstring follows the numpydoc style format.
+
+    Any parameter that is in the target class's __init__ signature will never be pulled in with a `"*"` import.
+    It is expected to either be documented on the target class's docstring or explicitly included from a parent.
+
+    Examples
+    --------
+    We have a simple base class that uses the DoceratorMeta. Its subclasses then have access to the
+    argument descriptions in its docstring.
+
+    >>> from simpeg.base import DoceratorMeta
+    >>> class BaseClass(metaclass=DoceratorMeta):
+    ...     '''A simple base class
+    ...
+    ...     Parameters
+    ...     ----------
+    ...     info : str
+    ...         Information about this instance.
+    ...
+    ...     Other Parameters
+    ...     ----------------
+    ...     more_info : list of str, optional
+    ...         Additional information
+    ...     '''
+    ...     def __init__(self, info, more_info=None):...
+
+    Next we want to creat a new class that inherits from ``BaseClass`` but we don't want to copy and
+    paste the description of the `item` argument. We also want to include all of the other arguments
+    described in `BaseClass` in this class's Other Parameters section.
+    >>> class ChildClass(BaseClass):
+    ...     '''A child class
+    ...
+    ...     Parameters
+    ...     ----------
+    ...     %(super.info)
+    ...
+    ...     Other Parameters
+    ...     ----------------
+    ...     %(super.*)
+    ...     '''
+    ...     def __init__(self, info, **kwargs):
+    ...         super().__init__(info, **kwargs)
+    >>> print(ChildClass.__doc__)
+    A child class
+
+        Parameters
+        ----------
+        info : str
+            Information about this instance.
+
+        Other Parameters
+        ----------------
+        more_info : list of str, optional
+            Additional information
+
+    You can exclude arguments from wildcard include (``*``) by setting the `star_excludes` keyword argument
+    for that class.
+    >>> class OtherChildClass(BaseClass, star_excludes=["more_info"]):
+    ...     '''Another child class
+    ...
+    ...     Parameters
+    ...     ----------
+    ...     %(super.info)
+    ...     %(super.*)
+    ...     '''
+    ...     def __init__(self, info, **kwargs):
+    ...         super().__init__(info, **kwargs)
+    >>> print(OtherChildClass.__doc__)
+    Another child class
+
+        Parameters
+        ----------
+        info : str
+            Information about this instance.
+    """  # NOQA RST401
 
     def __new__(
         mcs,
@@ -320,6 +457,19 @@ class DoceratorMeta(type):
         update_signature: bool = True,
         **kwargs,
     ):
+        """
+        Parameters
+        ----------
+        name : str
+        bases : type
+        namespace : dict
+        star_excludes : set, optional
+            Arguments to exclude from any (class_name.*) imports
+        update_signature : bool, optional
+            Whether to update the class's signature to match the updated docstring.
+        **kwargs
+            Extra keyword arguments passed to the parent metaclass.
+        """
         # construct the class
         cls = super().__new__(mcs, name, bases, namespace, **kwargs)
         # build the argument dictionary
@@ -331,7 +481,18 @@ class DoceratorMeta(type):
         cls._arg_dict = _class_arg_doc_dict(cls)
         if star_excludes is None:
             star_excludes = set()
-        cls.__doc__, init_sig = _doc_replace(cls, star_excludes)
+        else:
+            # Make a copy, so we don't mutate the input argument.
+            star_excludes = set(star_excludes).copy()
+
+        cls._excluded_parent_args = star_excludes
+        # get all the excludes from the inheritance tree as well.
+        parent_excludes = set()
+        for base in cls.__mro__[1:-1]:
+            if excluded := getattr(base, "_excluded_parent_args", None):
+                parent_excludes.update(excluded)
+        excludes = star_excludes | parent_excludes  # set union
+        cls.__doc__, init_sig = _doc_replace(cls, excludes)
         # Need to look inside __dict___ to check if the class
         # actually has an __init__ defined for it. Can't check
         # for cls.__init__ because it could pull the parent's

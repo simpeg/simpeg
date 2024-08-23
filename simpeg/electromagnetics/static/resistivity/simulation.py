@@ -1,5 +1,8 @@
 import numpy as np
 import scipy.sparse as sp
+from typing import Optional
+from discretize.base import BaseMesh
+from ....typing import IndexArray
 
 from ....utils import (
     mkvc,
@@ -26,14 +29,16 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
     survey : .resistivity.Survey, optional
         The resistivity survey containing all of the electrode sources
         and receivers.
-    storeJ : bool, optional
+    bc_type : {"Robin", "Dirichlet", "Neumann"}
+        Type of boundary condition to use for simulation.
+    storeJ : bool
         Whether to create and store the jacobian matrix. This could require
         a large amount of memory, as an array of size (n_data, n_model) is
         stored.
-    miniaturize : bool, optional
+    miniaturize : bool
         Whether to internally represent the `survey` as a potentially smaller
         version to speed up computation and reduce the size of the fields object.
-    surface_faces : (n_bf, ) numpy.ndarray of bool, optional
+    surface_faces : (n_bf, ) index_array, optional
         Which faces on the mesh to interpret as belonging to the surface. Nuemann
         boundary conditions are set on these surfaces. Required for tetrahedral meshes.
     **kwargs
@@ -42,16 +47,20 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
     def __init__(
         self,
-        mesh,
-        survey=None,
-        storeJ=False,
-        miniaturize=False,
-        surface_faces=None,
+        mesh: BaseMesh,
+        survey: Optional[Survey] = None,
+        bc_type: Optional[str] = None,
+        storeJ: bool = False,
+        miniaturize: bool = False,
+        surface_faces: Optional[IndexArray] = None,
         **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
 
         self._mini_survey = None
+        if bc_type is not None:
+            bc_type = "Robin"
+        self.bc_type = bc_type
 
         self.Ainv = None
         self.storeJ = storeJ
@@ -79,6 +88,26 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         if value is not None:
             value = validate_type("survey", value, Survey, cast=False)
         self._survey = value
+
+    @property
+    def bc_type(self):
+        """Type of boundary condition to use for simulation.
+
+        Returns
+        -------
+        {"Dirichlet", "Neumann", "Robin", "Mixed"}
+
+        Notes
+        -----
+        Robin and Mixed are equivalent.
+        """
+        return self._bc_type
+
+    @bc_type.setter
+    def bc_type(self, value):
+        self._bc_type = validate_string(
+            "bc_type", value, ["Dirichlet", "Neumann", ("Robin", "Mixed")]
+        )
 
     @property
     def storeJ(self):
@@ -333,14 +362,12 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
 
 class Simulation3DCellCentered(BaseDCSimulation):
-    """
-    3D cell centered DC problem
+    """3D DC simulation using a cell centered formulation.
 
     Parameters
     ----------
     %(super.mesh)
     %(super.survey)
-    bc_type : {"Robin", "Dirichlet", "Neumann"}
     %(super.sigma, super.rho)
     %(super.sigmaMap, super.rhoMap)
     %(super.model)
@@ -354,30 +381,9 @@ class Simulation3DCellCentered(BaseDCSimulation):
     _formulation = "HJ"  # CC potentials means J is on faces
     fieldsPair = Fields3DCellCentered
 
-    def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
+    def __init__(self, mesh: BaseMesh, survey: Survey = None, **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
-        self.bc_type = bc_type
         self.setBC()
-
-    @property
-    def bc_type(self):
-        """Type of boundary condition to use for simulation.
-
-        Returns
-        -------
-        {"Dirichlet", "Neumann", "Robin", "Mixed"}
-
-        Notes
-        -----
-        Robin and Mixed are equivalent.
-        """
-        return self._bc_type
-
-    @bc_type.setter
-    def bc_type(self, value):
-        self._bc_type = validate_string(
-            "bc_type", value, ["Dirichlet", "Neumann", ("Robin", "Mixed")]
-        )
 
     def getA(self, resistivity=None):
         """
@@ -508,14 +514,12 @@ class Simulation3DCellCentered(BaseDCSimulation):
 
 
 class Simulation3DNodal(BaseDCSimulation):
-    """
-    3D Nodal DC problem
+    """3D DC simulation using a nodal formulation.
 
     Parameters
     ----------
     %(super.mesh)
     %(super.survey)
-    bc_type : {"Robin", "Dirichlet", "Neumann"}
     %(super.sigma, super.rho)
     %(super.sigmaMap, super.rhoMap)
     %(super.model)
@@ -529,7 +533,7 @@ class Simulation3DNodal(BaseDCSimulation):
     _formulation = "EB"  # N potentials means B is on faces
     fieldsPair = Fields3DNodal
 
-    def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
+    def __init__(self, mesh, survey=None, **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         # Not sure why I need to do this
         # To evaluate mesh.aveE2CC, this is required....
@@ -539,26 +543,6 @@ class Simulation3DNodal(BaseDCSimulation):
             bc_type = "Neumann"
         self.bc_type = bc_type
         self.setBC()
-
-    @property
-    def bc_type(self):
-        """Type of boundary condition to use for simulation.
-
-        Returns
-        -------
-        {"Neumann", "Robin", "Mixed"}
-
-        Notes
-        -----
-        Robin and Mixed are equivalent.
-        """
-        return self._bc_type
-
-    @bc_type.setter
-    def bc_type(self, value):
-        self._bc_type = validate_string(
-            "bc_type", value, ["Neumann", ("Robin", "Mixed")]
-        )
 
     def getA(self, resistivity=None):
         """

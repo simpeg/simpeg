@@ -1,4 +1,4 @@
-from simpeg.base import with_property_mass_matrices, BasePDESimulation
+from simpeg.base.pde import with_property_mass_matrices, BasePDESimulation
 from simpeg import props, maps
 import unittest
 import discretize

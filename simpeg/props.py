@@ -1,4 +1,7 @@
+from typing import Optional
+
 import numpy as np
+import numpy.typing as npt
 
 from .maps import IdentityMap, ReciprocalMap
 from .utils import Zero, validate_type, validate_ndarray_with_shape
@@ -337,13 +340,15 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
     Parameters
     ----------
     model : (n_m,) array_like, optional
-        The parameter model, often used to descibe the model in an inversion.
-        If there are any physical property maps assigned, those physical properties
+        The parameter model, often used to describe the model in an inversion.
+        If there are any physical property maps assigned, the respective physical properties
         will be linked to this model through the map, and accessing them will require
         a model to be set.
+    **kwargs
+        Arguments passed to the parent class constructor.
     """
 
-    def __init__(self, model=None, **kwargs):
+    def __init__(self, model: Optional[npt.ArrayLike] = None, **kwargs):
         self.model = model
         super().__init__(**kwargs)
 
