@@ -402,51 +402,31 @@ class DoceratorMeta(type):
     paste the description of the `item` argument. We also want to include all of the other arguments
     described in `BaseClass` in this class's Other Parameters section.
     >>> class ChildClass(BaseClass):
-    ...     '''A child class
-    ...
-    ...     Parameters
-    ...     ----------
+    ...     '''A Child Class
     ...     %(super.info)
-    ...
-    ...     Other Parameters
-    ...     ----------------
     ...     %(super.*)
     ...     '''
-    ...     def __init__(self, info, **kwargs):
-    ...         super().__init__(info, **kwargs)
+    ...     def __init__(self, info, **kwargs):...
     >>> print(ChildClass.__doc__)
-    A child class
+    A Child Class
+    info : str
+        Information about this instance.
+    more_info : list of str, optional
+        Additional information
 
-        Parameters
-        ----------
-        info : str
-            Information about this instance.
-
-        Other Parameters
-        ----------------
-        more_info : list of str, optional
-            Additional information
-
-    You can exclude arguments from wildcard include (``*``) by setting the `star_excludes` keyword argument
+    You can exclude arguments from wildcard includes (``*``) by setting the `star_excludes` keyword argument
     for that class.
     >>> class OtherChildClass(BaseClass, star_excludes=["more_info"]):
     ...     '''Another child class
-    ...
-    ...     Parameters
-    ...     ----------
     ...     %(super.info)
     ...     %(super.*)
     ...     '''
-    ...     def __init__(self, info, **kwargs):
-    ...         super().__init__(info, **kwargs)
+    ...     def __init__(self, info, **kwargs):...
     >>> print(OtherChildClass.__doc__)
     Another child class
-
-        Parameters
-        ----------
         info : str
             Information about this instance.
-    """  # NOQA RST401
+    """
 
     def __new__(
         mcs,
