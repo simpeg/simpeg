@@ -6,12 +6,15 @@ import importlib
 import functools
 from re import Match
 from typing import Callable, Optional, Dict, Tuple, List, Any, Set, Iterator
-import warnings
 
 __all__ = ["bind_signature_to_function", "DoceratorMeta", "DocstringInheritWarning"]
 
 
 class DocstringInheritWarning(ImportWarning):
+    pass
+
+
+class DoceratorParsingError(SyntaxError):
     pass
 
 
@@ -43,6 +46,16 @@ for section in _numpydoc_sections:
     section_regex = rf"(?:(?:^|\n){section}\n-{{{len(section)}}}\n(?P<{section.lower().replace(' ', '_')}>[\s\S]*?))"
     _section_regexs.append(section_regex)
 
+
+DEBUG_LEVEL = 0
+
+
+def set_debug_level(level: int) -> bool:
+    global DEBUG_LEVEL
+    DEBUG_LEVEL = int(level)
+    return DEBUG_LEVEL
+
+
 # The numpy regexes require a cleaned docstring
 # first gets the contents of each section (assuming they are in order)
 NUMPY_SECTION_REGEX = re.compile(
@@ -62,9 +75,7 @@ def _pairwise(iterable):
     return itertools.zip_longest(a, b, fillvalue=None)
 
 
-def _parse_numpydoc_parameters(
-    doc: str, double_check: bool = True
-) -> Iterator[Match[str]]:
+def _parse_numpydoc_parameters(doc: str) -> Iterator[Match[str]]:
     """Parse a numpydoc string for parameter descriptions.
 
     Parameters
@@ -84,8 +95,8 @@ def _parse_numpydoc_parameters(
     doc_sections = NUMPY_SECTION_REGEX.search(doc).groupdict()
     parameters = doc_sections.get("parameters")
     if parameters is None:
-        if double_check and "Parameters\n-" in doc:
-            raise TypeError(
+        if DEBUG_LEVEL and "Parameters\n-" in doc:
+            raise DoceratorParsingError(
                 "Unable to parse docstring for parameters section, but it looks like there might be a "
                 "'Parameters' section. Did you not put the correct number of `-` on the line below it? "
                 "Are the sections in the correct order?",
@@ -93,8 +104,8 @@ def _parse_numpydoc_parameters(
         parameters = ""
 
     others = doc_sections.get("other_parameters")
-    if double_check and others is None and "Other Parameters\n-" in doc:
-        raise TypeError(
+    if DEBUG_LEVEL and others is None and "Other Parameters\n-" in doc:
+        raise DoceratorParsingError(
             "Unable to parse docstring for other parameters section, but it looks like there "
             "might be an `Other Parameters` section. Did you not put the correct number of `-` on the "
             "line below it? Are the sections in the correct order?",
@@ -102,7 +113,9 @@ def _parse_numpydoc_parameters(
     if others:
         parameters += "\n" + others
 
+    matches = False
     for match, next_match in _pairwise(NUMPY_ARG_TYPE_REGEX.finditer(parameters)):
+        matches = True
         arg, type_string = match.groups()
 
         # +1 removes the newline character at the end of the argument : type_name match
@@ -114,6 +127,12 @@ def _parse_numpydoc_parameters(
             description = None
         for arg_part in ARG_SPLIT_REGEX.split(arg):
             yield arg_part, type_string, description
+    if DEBUG_LEVEL and not matches and "Parameters\n-" in doc:
+        raise DoceratorParsingError(
+            "Did not find any documented arguments in any parameter sections. "
+            "Check the docstring formatting, ensuring the argument names are at the same indentation level as "
+            "the section headings."
+        )
 
 
 def _class_arg_doc_dict(cls: type) -> collections.OrderedDict[str, Dict[str, Any]]:
@@ -123,14 +142,18 @@ def _class_arg_doc_dict(cls: type) -> collections.OrderedDict[str, Dict[str, Any
     init_params = inspect.signature(cls.__init__).parameters
     for arg, type_string, description in parameters:
         # skip over values that are to be replaced (if there are any left)
-        # and skip over *args, **kwargs arguments
+        # and skip over *args, **kwargs arguments (but need the numpy arg
+        # type regex to match them, so it pull the right descriptions).
         if not REPLACE_REGEX.match(arg) and arg[0] != "*":
             if not (param := init_params.get(arg, None)):
-                # This should likely be switched to an error in the future once all classes are properly documented.
-                warnings.warn(
-                    f"Documented argument {arg}, is not in the signature of {cls.__name__}.__init__",
-                    DocstringInheritWarning,
-                    stacklevel=2,
+                if DEBUG_LEVEL:
+                    raise DoceratorParsingError(
+                        f"Documented argument {arg}, is not in the signature of {cls.__name__}.__init__"
+                    )
+                # give it a simple signature of
+                # name, keyword only argument, and a default of None.
+                param = inspect.Parameter(
+                    arg, kind=inspect.Parameter.KEYWORD_ONLY, default=None
                 )
             arg_dict[arg] = {
                 "type_string": type_string,
@@ -149,7 +172,7 @@ def _replace_doc_args(
 
     n_args = len(args)
     n_info = len(infos)
-    if n_info == 1:
+    if n_args > 0 and n_info == 1:
         type_string = infos[0]["type_string"]
         desc_string = infos[0]["description"]
 
@@ -179,7 +202,11 @@ def _replace_doc_args(
         )
     # add the indent before the replacement target to every line after the first line
     # in the replacement string.
-    replace_string = f"\n{indent}".join(insert_string.splitlines())
+    lines = insert_string.splitlines()
+    for i, line in enumerate(lines[1:]):
+        if line:
+            lines[i + 1] = f"{indent}{line}"
+    replace_string = "\n".join(lines)
     doc = doc.replace(target, replace_string)
     return doc
 
@@ -266,14 +293,9 @@ def _doc_replace(cls: type, star_excludes: Set[str]) -> Tuple[str, inspect.Signa
                 replacement = arg_dict[arg]
                 args.append(arg)
                 if arg not in call_parameters:
-                    if not (param := replacement["parameter"]):
-                        param = param.replace(kind=inspect.Parameter.KEYWORD_ONLY)
-                    else:
-                        # create a generic parameter description
-                        param = inspect.Parameter(
-                            arg, kind=inspect.Parameter.KEYWORD_ONLY, default=None
-                        )
-                    call_parameters[arg] = param
+                    call_parameters[arg] = replacement["parameter"].replace(
+                        kind=inspect.Parameter.KEYWORD_ONLY
+                    )
         if args:
             doc = _replace_doc_args(doc, f"%({arg_insert})", args, [replacement])
 
@@ -372,6 +394,10 @@ class DoceratorMeta(type):
         2) the ``*`` character, which will include everything from ``class_name``, except for
            arguments in ``star_excludes`` or already in the target class's ``__init__`` signature.
 
+    It will then also adjust the target class's ``__init__`` signature to match the arguments added
+    to the docstring by DoceratorMeta. If the target class had a ``**kwargs`` and a ``%(super.*)`` style
+    replacement was added, the ``**kwargs`` will be removed from the signature.
+
     Notes
     -----
     This metaclass assumes that the target class's docstring follows the numpydoc style format.
@@ -455,23 +481,24 @@ class DoceratorMeta(type):
         # construct the class
         cls = super().__new__(mcs, name, bases, namespace, **kwargs)
         # build the argument dictionary
-        if not getattr(cls, "__doc__", None):
+        if not cls.__doc__:
             # if I don't have a __doc__ don't do anything.
             cls._arg_dict = {}
+            cls._excluded_parent_args = set()
             return cls
 
         cls._arg_dict = _class_arg_doc_dict(cls)
         if star_excludes is None:
             star_excludes = set()
         else:
-            # Make a copy, so we don't mutate the input argument.
-            star_excludes = set(star_excludes).copy()
+            star_excludes = set(star_excludes)
 
-        cls._excluded_parent_args = star_excludes
+        # make a copy to make sure nothing mutates the original set...
+        cls._excluded_parent_args = star_excludes.copy()
         # get all the excludes from the inheritance tree as well.
         parent_excludes = set()
         for base in cls.__mro__[1:-1]:
-            if excluded := getattr(base, "_excluded_parent_args", None):
+            if excluded := getattr(base, "_excluded_parent_args", set()):
                 parent_excludes.update(excluded)
         excludes = star_excludes | parent_excludes  # set union
         cls.__doc__, init_sig = _doc_replace(cls, excludes)

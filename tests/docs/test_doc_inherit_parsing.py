@@ -117,12 +117,23 @@ def param_references():
             "item : bool, default:True",
             "item",
             "bool, default:True",
-        ),  # ":" in the type string.
+        ),  # make sure it doesn't separate on the ":" in the type string.
+        ("%(item.name)", "%(item.name)", None),
+        ("*args", "*args", None),
+        ("**kwargs", "**kwargs", None),
+        (
+            "    bad_type",
+            None,
+            None,
+        ),  # shouldn't pick up on strings that start with a whitespace character.
     ],
 )
 def test_numpy_argtype_regex(parsed_string, arg, arg_type):
     match = doc_inherit.NUMPY_ARG_TYPE_REGEX.match(parsed_string)
-    assert (arg, arg_type) == match.groups()
+    if match is None:
+        assert arg is None and arg_type is None
+    else:
+        assert (arg, arg_type) == match.groups()
 
 
 @pytest.mark.parametrize(
@@ -353,18 +364,26 @@ def test_class_doc_parsing():
 
 @pytest.mark.parametrize("dash_length", [3, 50])
 @pytest.mark.parametrize("section", ["Parameters", "Other Parameters"])
-def test_parse_numpydoc_hyphen_errors(section, dash_length):
-
+@pytest.mark.parametrize("debug", [0, 1])
+def test_parse_numpydoc_hyphen_errors(section, dash_length, debug):
+    doc_inherit.set_debug_level(debug)
     docstring = "Summary\n"
     if section != "Parameters":
         docstring += "\nParameters\n----------\nthing\n"
     docstring += f"\n{section}\n{'-'*dash_length}\nitem"
-    match = f"(Unable to parse docstring for {section.lower()}).*"
-    with pytest.raises(TypeError, match=match):
+
+    if debug:
+        match = f"(Unable to parse docstring for {section.lower()}).*"
+        with pytest.raises(doc_inherit.DoceratorParsingError, match=match):
+            list(doc_inherit._parse_numpydoc_parameters(docstring))
+    else:
+        # Shouldn't throw if no debug
         list(doc_inherit._parse_numpydoc_parameters(docstring))
+    doc_inherit.set_debug_level(0)
 
 
-def test_bad_section_order():
+@pytest.mark.parametrize("debug", [0, 1])
+def test_bad_section_order(debug):
     docstring = """Summary
 
     Attributes
@@ -378,12 +397,21 @@ def test_bad_section_order():
     Returns
     -------
     """
-    match = "(Unable to parse docstring for parameters).*"
-    with pytest.raises(TypeError, match=match):
+
+    doc_inherit.set_debug_level(debug)
+    if debug:
+        match = "(Unable to parse docstring for parameters).*"
+        with pytest.raises(doc_inherit.DoceratorParsingError, match=match):
+            list(doc_inherit._parse_numpydoc_parameters(docstring))
+    else:
+        # Shouldn't throw if no debug
         list(doc_inherit._parse_numpydoc_parameters(docstring))
 
+    doc_inherit.set_debug_level(0)
 
-def test_bad_section_indent():
+
+@pytest.mark.parametrize("debug", [0, 1])
+def test_bad_section_indent(debug):
     docstring = """Summary
      Parameters
     ----------
@@ -392,6 +420,87 @@ def test_bad_section_indent():
     Returns
     -------
     """
-    match = "(Unable to parse docstring for parameters).*"
-    with pytest.raises(TypeError, match=match):
-        list(doc_inherit._parse_numpydoc_parameters(docstring))
+
+    doc_inherit.set_debug_level(debug)
+    if debug:
+        match = "(Unable to parse docstring for parameters).*"
+        with pytest.raises(doc_inherit.DoceratorParsingError, match=match):
+            list(doc_inherit._parse_numpydoc_parameters(docstring))
+    else:
+        # Shouldn't throw if no debug
+        assert list(doc_inherit._parse_numpydoc_parameters(docstring)) == []
+
+    doc_inherit.set_debug_level(0)
+
+
+@pytest.mark.parametrize("debug", [0, 1])
+def test_unparseable_parameters(debug):
+    docstring = """Summary
+    Parameters
+    ----------
+     bad_indent
+    """
+    match = "(Did not find any documented arguments in any parameter).*"
+
+    doc_inherit.set_debug_level(debug)
+    if debug:
+        with pytest.raises(doc_inherit.DoceratorParsingError, match=match):
+            list(doc_inherit._parse_numpydoc_parameters(docstring))
+    else:
+        # Shouldn't throw if no debug
+        assert list(doc_inherit._parse_numpydoc_parameters(docstring)) == []
+    doc_inherit.set_debug_level(0)
+
+
+@pytest.mark.parametrize("debug", [0, 1])
+def test_class_doc_with_extra_arg(debug):
+    class TestClass:
+        """Simple class with a docstring
+
+        Parameters
+        ----------
+        item : object
+            Could be anything really...
+        a, b : float
+            Two numbers to store on the class
+        not_in_signature : object
+            This argument is not explicitly in this class's call signature.
+        """
+
+        def __init__(self, item, a, b, **kwargs): ...
+
+    doc_inherit.set_debug_level(debug)
+    if debug:
+        match = "Documented argument not_in_signature, is not in the signature of TestClass.__init__"
+        with pytest.raises(doc_inherit.DoceratorParsingError, match=match):
+            doc_inherit._class_arg_doc_dict(TestClass)
+    else:
+        verify_dict = collections.OrderedDict(
+            item={
+                "type_string": "object",
+                "description": "    Could be anything really...",
+                "parameter": Parameter(
+                    name="item", kind=Parameter.POSITIONAL_OR_KEYWORD
+                ),
+            },
+            a={
+                "type_string": "float",
+                "description": "    Two numbers to store on the class",
+                "parameter": Parameter(name="a", kind=Parameter.POSITIONAL_OR_KEYWORD),
+            },
+            b={
+                "type_string": "float",
+                "description": "    Two numbers to store on the class",
+                "parameter": Parameter(name="b", kind=Parameter.POSITIONAL_OR_KEYWORD),
+            },
+            not_in_signature={
+                "type_string": "object",
+                "description": "    This argument is not explicitly in this class's call signature.",
+                "parameter": Parameter(
+                    name="not_in_signature", default=None, kind=Parameter.KEYWORD_ONLY
+                ),
+            },
+        )
+        # Shouldn't throw if no debug
+        assert doc_inherit._class_arg_doc_dict(TestClass) == verify_dict
+    doc_inherit.set_debug_level(0)
