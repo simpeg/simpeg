@@ -4,7 +4,6 @@ import re
 import collections
 import importlib
 import functools
-from re import Match
 from typing import Callable, Optional, Dict, Tuple, List, Any, Set, Iterator
 
 __all__ = ["bind_signature_to_function", "DoceratorMeta", "DocstringInheritWarning"]
@@ -75,7 +74,7 @@ def _pairwise(iterable):
     return itertools.zip_longest(a, b, fillvalue=None)
 
 
-def _parse_numpydoc_parameters(doc: str) -> Iterator[Match]:  # Match[str]
+def _parse_numpydoc_parameters(doc: str) -> Iterator:  # [Match[str]]:
     """Parse a numpydoc string for parameter descriptions.
 
     Parameters
