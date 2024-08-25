@@ -75,7 +75,7 @@ def _pairwise(iterable):
     return itertools.zip_longest(a, b, fillvalue=None)
 
 
-def _parse_numpydoc_parameters(doc: str) -> Iterator[Match[str]]:
+def _parse_numpydoc_parameters(doc: str) -> Iterator[Match]:  # Match[str]
     """Parse a numpydoc string for parameter descriptions.
 
     Parameters
