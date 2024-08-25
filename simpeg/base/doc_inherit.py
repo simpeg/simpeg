@@ -43,14 +43,17 @@ for section in _numpydoc_sections:
     section_regex = rf"(?:(?:^|\n){section}\n-{{{len(section)}}}\n(?P<{section.lower().replace(' ', '_')}>[\s\S]*?))"
     _section_regexs.append(section_regex)
 
+# The numpy regexes require a cleaned docstring
+# first gets the contents of each section (assuming they are in order)
 NUMPY_SECTION_REGEX = re.compile(
     rf"^(?P<summary>[\s\S]+?)??{'?'.join(_section_regexs)}?$"
 )
-ARG_TYPE_SEP_REGEX = re.compile(r"\s*:\s*")
-ARG_SPLIT_REGEX = re.compile(r"\s*,\s*")
+# Next parses for "arg : type" items.
 NUMPY_ARG_TYPE_REGEX = re.compile(
     r"^(?P<arg_name>\S.*?)(?:\s*:\s*(?P<type>.*?))?$", re.MULTILINE
 )
+
+ARG_SPLIT_REGEX = re.compile(r"\s*,\s*")
 
 
 def _pairwise(iterable):
@@ -84,7 +87,8 @@ def _parse_numpydoc_parameters(
         if double_check and "Parameters\n-" in doc:
             raise TypeError(
                 "Unable to parse docstring for parameters section, but it looks like there might be a "
-                "'Parameters' section. Did you not put the correct number of `-` on the line below it?",
+                "'Parameters' section. Did you not put the correct number of `-` on the line below it? "
+                "Are the sections in the correct order?",
             )
         parameters = ""
 
@@ -93,9 +97,9 @@ def _parse_numpydoc_parameters(
         raise TypeError(
             "Unable to parse docstring for other parameters section, but it looks like there "
             "might be an `Other Parameters` section. Did you not put the correct number of `-` on the "
-            "line below it?",
+            "line below it? Are the sections in the correct order?",
         )
-    if others is not None:
+    if others:
         parameters += "\n" + others
 
     for match, next_match in _pairwise(NUMPY_ARG_TYPE_REGEX.finditer(parameters)):
@@ -199,12 +203,12 @@ def _doc_replace(cls: type, star_excludes: Set[str]) -> Tuple[str, inspect.Signa
         # if nothing to replace... exit early.
         return doc, call_sign
 
-    add_kwargs_param_signature = False
+    kwargs_param = None
     for name, parameter in call_sign.parameters.items():
         if parameter.kind != inspect.Parameter.VAR_KEYWORD:
             call_parameters[name] = parameter
         else:
-            add_kwargs_param_signature = True
+            kwargs_param = parameter
 
     super_doc_dict = None
     bases = cls.__mro__[1:]
@@ -251,7 +255,7 @@ def _doc_replace(cls: type, star_excludes: Set[str]) -> Tuple[str, inspect.Signa
                             f"{target_cls.__name__} is not a parent of {cls.__name__}"
                         )
                     arg_dict = getattr(target_cls, "_arg_dict", None)
-                    if not arg_dict:
+                    if arg_dict is None:
                         raise TypeError(
                             f"{target_cls} must have an _arg_dict attribute"
                         )
@@ -279,7 +283,7 @@ def _doc_replace(cls: type, star_excludes: Set[str]) -> Tuple[str, inspect.Signa
 
     for star_class in star_args_classes:
         if star_class == "super":
-            add_kwargs_param_signature = False
+            kwargs_param = None
             star_arg_dict = super_doc_dict
         else:
             module_name, class_name = star_class.rsplit(".", 1)
@@ -310,10 +314,8 @@ def _doc_replace(cls: type, star_excludes: Set[str]) -> Tuple[str, inspect.Signa
 
         doc = _replace_doc_args(doc, f"%({star_class}.*)", args, replacements)
 
-    if add_kwargs_param_signature:
-        call_parameters["kwargs"] = inspect.Parameter(
-            "kwargs", inspect.Parameter.VAR_KEYWORD
-        )
+    if kwargs_param:
+        call_parameters[kwargs_param.name] = kwargs_param
     new_signature = inspect.Signature(parameters=call_parameters.values())
     return doc, new_signature
 
@@ -453,7 +455,7 @@ class DoceratorMeta(type):
         # construct the class
         cls = super().__new__(mcs, name, bases, namespace, **kwargs)
         # build the argument dictionary
-        if getattr(cls, "__doc__", None) is None:
+        if not getattr(cls, "__doc__", None):
             # if I don't have a __doc__ don't do anything.
             cls._arg_dict = {}
             return cls
