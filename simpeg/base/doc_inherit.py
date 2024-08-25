@@ -117,16 +117,19 @@ def _parse_numpydoc_parameters(doc: str) -> Iterator[Match[str]]:
     for match, next_match in _pairwise(NUMPY_ARG_TYPE_REGEX.finditer(parameters)):
         matches = True
         arg, type_string = match.groups()
-
-        # +1 removes the newline character at the end of the argument : type_name match
-        start = match.end() + 1
-        # -1 removes the newline character at the start of the argument : type_name match (if there was one).
-        end = next_match.start() - 1 if next_match is not None else None
-        description = parameters[start:end]
-        if description == "":
-            description = None
-        for arg_part in ARG_SPLIT_REGEX.split(arg):
-            yield arg_part, type_string, description
+        # skip over values that are to be replaced (if there are any left)
+        # and skip over *args, **kwargs arguments (but need the numpy arg
+        # type regex to match them, so it pull the right descriptions).
+        if not REPLACE_REGEX.match(arg) and arg[0] != "*":
+            # +1 removes the newline character at the end of the argument : type_name match
+            start = match.end() + 1
+            # -1 removes the newline character at the start of the argument : type_name match (if there was one).
+            end = next_match.start() - 1 if next_match is not None else None
+            description = parameters[start:end]
+            if description == "":
+                description = None
+            for arg_part in ARG_SPLIT_REGEX.split(arg):
+                yield arg_part, type_string, description
     if DEBUG_LEVEL and not matches and "Parameters\n-" in doc:
         raise DoceratorParsingError(
             "Did not find any documented arguments in any parameter sections. "
@@ -141,25 +144,21 @@ def _class_arg_doc_dict(cls: type) -> collections.OrderedDict[str, Dict[str, Any
     arg_dict = collections.OrderedDict()
     init_params = inspect.signature(cls.__init__).parameters
     for arg, type_string, description in parameters:
-        # skip over values that are to be replaced (if there are any left)
-        # and skip over *args, **kwargs arguments (but need the numpy arg
-        # type regex to match them, so it pull the right descriptions).
-        if not REPLACE_REGEX.match(arg) and arg[0] != "*":
-            if not (param := init_params.get(arg, None)):
-                if DEBUG_LEVEL:
-                    raise DoceratorParsingError(
-                        f"Documented argument {arg}, is not in the signature of {cls.__name__}.__init__"
-                    )
-                # give it a simple signature of
-                # name, keyword only argument, and a default of None.
-                param = inspect.Parameter(
-                    arg, kind=inspect.Parameter.KEYWORD_ONLY, default=None
+        if not (param := init_params.get(arg, None)):
+            if DEBUG_LEVEL:
+                raise DoceratorParsingError(
+                    f"Documented argument {arg}, is not in the signature of {cls.__name__}.__init__"
                 )
-            arg_dict[arg] = {
-                "type_string": type_string,
-                "description": description,
-                "parameter": param,
-            }
+            # give it a simple signature of
+            # name, keyword only argument, and a default of None.
+            param = inspect.Parameter(
+                arg, kind=inspect.Parameter.KEYWORD_ONLY, default=None
+            )
+        arg_dict[arg] = {
+            "type_string": type_string,
+            "description": description,
+            "parameter": param,
+        }
     return arg_dict
 
 

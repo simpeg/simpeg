@@ -49,7 +49,6 @@ def param_references():
         "item6",
         "item7",
         "multiple, args",
-        "%(replace.last_item)",
     ]
 
     arg_types = [
@@ -62,7 +61,6 @@ def param_references():
         "type",
         "type",
         "shared type",
-        None,
     ]
     arg_descriptions = [
         None,
@@ -74,7 +72,6 @@ def param_references():
         "    I've got a description line\n\n    that has an empty line in it.",
         "    I've got a description line\n    that ends with an empty line.\n",
         "    Shared Description\n",
-        None,
     ]
     # if expand_shared:
     #     updated_names = []
@@ -254,7 +251,18 @@ def test_numpy_argtype_regex_within_section_contents(param_section, param_refere
     # Create a parameter section as it would be output by the
     # doc_inherit.NUMPY_SECTION_REGEX
     arg_names, arg_types, _ = param_references
-    matches = list(doc_inherit.NUMPY_ARG_TYPE_REGEX.finditer(param_section))
+
+    def tester(match):
+        arg, type_string = match.groups()
+        if doc_inherit.REPLACE_REGEX.match(arg):
+            return False
+        if arg[0] == "*":
+            return False
+        return True
+
+    matches = list(
+        filter(tester, doc_inherit.NUMPY_ARG_TYPE_REGEX.finditer(param_section))
+    )
     assert len(matches) == len(arg_names)
     for match, ref_arg, ref_type in zip(matches, arg_names, arg_types):
         arg, type_string = match.groups()
