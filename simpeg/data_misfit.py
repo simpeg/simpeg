@@ -183,7 +183,7 @@ class BaseDataMisfit(BaseObjectiveFunction):
 
         Where :math:`\mathbf{d}_\text{obs}` is the observed data vector and
         :math:`\mathbf{d}_\text{pred}` is the predicted data vector for a model
-        vector :math:`\mathbf{m}`, this function computes the data residual:
+        vector :math:`\mathbf{m}`, this method computes the data residual:
 
         .. math::
             \mathbf{r} = \mathbf{d}_\text{pred} - \mathbf{d}_\text{obs}
