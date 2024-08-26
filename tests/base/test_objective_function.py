@@ -4,7 +4,7 @@ import pytest
 from simpeg import utils
 from simpeg import objective_function
 from simpeg.objective_function import BaseObjectiveFunction, ComboObjectiveFunction
-from simpeg.objective_function import _validate_multiplier
+from simpeg.objective_function import _validate_multiplier, _need_to_pass_fields
 from simpeg.utils import Zero
 
 
@@ -491,3 +491,56 @@ class TestGetFunctionsOfType:
         else:
             result = combo.get_functions_of_type(mock_class_type_b)
             assert result == [[phi_2], [phi_4]]
+
+
+class TestNeedsFields:
+    """
+    Test the private ``_need_to_pass_fields`` function.
+    """
+
+    @pytest.fixture
+    def mock_with_has_fields(self):
+        class MockWithHasField(MockObjectiveFunction):
+
+            def __init__(self, **kwargs):
+                super().__init__(**kwargs)
+                self.has_fields = True
+
+        return MockWithHasField
+
+    @pytest.fixture
+    def combo_with_fields(self):
+        class ComboWithHasField(ComboObjectiveFunction):
+
+            def __init__(self, **kwargs):
+                super().__init__(**kwargs)
+                self.has_fields = True
+
+        return ComboWithHasField
+
+    def test_with_regular_class(self):
+        """
+        Test ``_need_to_pass_fields`` with a regular objective function class.
+        """
+        phi = MockObjectiveFunction()
+        assert not _need_to_pass_fields(phi)
+
+    def test_with_class_that_has_fields(self, mock_with_has_fields):
+        """
+        Test ``_need_to_pass_fields`` with a class that has ``has_fields``.
+        """
+        assert _need_to_pass_fields(mock_with_has_fields())
+
+    def test_with_combo(self):
+        """
+        Test ``_need_to_pass_fields`` with a combo class.
+        """
+        phi = MockObjectiveFunction()
+        assert _need_to_pass_fields(ComboObjectiveFunction(objfcts=[phi]))
+
+    def test_with_combo_that_has_fields(self, combo_with_fields):
+        """
+        Test ``_need_to_pass_fields`` with a combo class that has ``has_fields``.
+        """
+        phi = MockObjectiveFunction()
+        assert _need_to_pass_fields(combo_with_fields(objfcts=[phi]))
