@@ -424,7 +424,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         Parameters
         ----------
-        fun_class : list or simpeg.objective_function.BaseObjectiveFunction
+        fun_class : class or list of classes
             Objective function class or list of objective function classes to return.
 
         Returns
