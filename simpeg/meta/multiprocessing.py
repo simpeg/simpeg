@@ -1,4 +1,3 @@
-import threading
 from multiprocessing import Process, Queue, cpu_count
 from simpeg.meta import MetaSimulation, SumMetaSimulation, RepeatedSimulation
 from simpeg.props import HasModel
@@ -26,7 +25,7 @@ class SimpleFuture:
 
     def __del__(self):
         if self.sim_process.is_alive():
-            self.sim_process.task_queue.put(("dec_ref", (self.item_id,)))
+            self.sim_process.task_queue.put(("del_item", (self.item_id,)))
 
 
 class _SimulationProcess(Process):
@@ -42,7 +41,6 @@ class _SimulationProcess(Process):
         super().__init__()
         self.task_queue = Queue()
         self.result_queue = Queue()
-        self._lock = threading.RLock()
 
     def run(self):
         # everything here is local to the process
@@ -171,14 +169,13 @@ class _SimulationProcess(Process):
         return self.result_queue.get()
 
     def join(self, timeout=None):
-        with self._lock:
-            self._check_closed()
-            self.task_queue.put(None)
-            self.task_queue.close()
-            self.result_queue.close()
-            self.task_queue.join_thread()
-            self.result_queue.join_thread()
-            super().join(timeout=timeout)
+        self._check_closed()
+        self.task_queue.put(None)
+        self.task_queue.close()
+        self.result_queue.close()
+        self.task_queue.join_thread()
+        self.result_queue.join_thread()
+        super().join(timeout=timeout)
 
 
 class MultiprocessingMetaSimulation(MetaSimulation):
