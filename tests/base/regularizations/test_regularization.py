@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import sparse
 import unittest
 
 import pytest
@@ -97,7 +98,7 @@ class RegularizationTests(unittest.TestCase):
                     reg.reference_model = mref
 
                     # test derivs
-                    passed = reg.test(m, eps=TOL)
+                    passed = reg.test_derivatives(m, eps=TOL)
                     self.assertTrue(passed)
 
         def test_regularization_ActiveCells(self):
@@ -145,7 +146,7 @@ class RegularizationTests(unittest.TestCase):
 
                     print("--- Checking {} ---\n".format(reg.__class__.__name__))
 
-                    passed = reg.test(m, eps=TOL)
+                    passed = reg.test_derivatives(m, eps=TOL)
                     self.assertTrue(passed)
 
     if testRegMesh:
@@ -247,17 +248,17 @@ class RegularizationTests(unittest.TestCase):
         reg_a = reg1 + reg2
         self.assertTrue(len(reg_a) == 2)
         self.assertTrue(reg1(m) + reg2(m) == reg_a(m))
-        reg_a.test(eps=TOL)
+        reg_a.test_derivatives(eps=TOL)
 
         reg_b = 2 * reg1 + reg2
         self.assertTrue(len(reg_b) == 2)
         self.assertTrue(2 * reg1(m) + reg2(m) == reg_b(m))
-        reg_b.test(eps=TOL)
+        reg_b.test_derivatives(eps=TOL)
 
         reg_c = reg1 + reg2 / 2
         self.assertTrue(len(reg_c) == 2)
         self.assertTrue(reg1(m) + 0.5 * reg2(m) == reg_c(m))
-        reg_c.test(eps=TOL)
+        reg_c.test_derivatives(eps=TOL)
 
     def test_mappings(self):
         mesh = discretize.TensorMesh([8, 7, 6])
@@ -276,9 +277,9 @@ class RegularizationTests(unittest.TestCase):
             self.assertTrue(reg3.nP == 2 * mesh.nC)
             self.assertTrue(reg3(m) == reg1(m) + reg2(m))
 
-            reg1.test(eps=TOL)
-            reg2.test(eps=TOL)
-            reg3.test(eps=TOL)
+            reg1.test_derivatives(eps=TOL)
+            reg2.test_derivatives(eps=TOL)
+            reg3.test_derivatives(eps=TOL)
 
     def test_mref_is_zero(self):
         mesh = discretize.TensorMesh([10, 5, 8])
@@ -296,7 +297,6 @@ class RegularizationTests(unittest.TestCase):
     def test_mappings_and_cell_weights(self):
         mesh = discretize.TensorMesh([8, 7, 6])
         m = np.random.rand(2 * mesh.nC)
-        v = np.random.rand(2 * mesh.nC)
 
         cell_weights = np.random.rand(mesh.nC)
 
@@ -305,14 +305,17 @@ class RegularizationTests(unittest.TestCase):
         reg = regularization.Smallness(mesh, mapping=wires.sigma)
         reg.set_weights(cell_weights=cell_weights)
 
-        objfct = objective_function.L2ObjectiveFunction(
-            W=utils.sdiag(np.sqrt(cell_weights * mesh.cell_volumes)),
-            mapping=wires.sigma,
-        )
+        # Compute expected outputs and compare with the outputs of Smallness
+        w = sparse.diags(np.sqrt(reg.get_weights("volume") * cell_weights))
+        sigma = m[: mesh.nC]
+        r = w * sigma
+        smallness = r.T @ r
+        deriv = np.hstack((2 * w.T @ w @ sigma, np.zeros_like(sigma)))
+        deriv2 = sparse.block_diag([2 * w.T @ w, sparse.diags(np.zeros(mesh.nC))])
 
-        self.assertTrue(reg(m) == objfct(m))
-        self.assertTrue(np.all(reg.deriv(m) == objfct.deriv(m)))
-        self.assertTrue(np.all(reg.deriv2(m, v=v) == objfct.deriv2(m, v=v)))
+        np.testing.assert_allclose(reg(m), smallness)
+        np.testing.assert_allclose(reg.deriv(m), deriv)
+        np.testing.assert_allclose(reg.deriv2(m).toarray(), deriv2.toarray())
 
         reg.set_weights(user_weights=cell_weights)
 
@@ -593,7 +596,7 @@ class RegularizationTests(unittest.TestCase):
             reg.objfcts[0].f_m(model.flatten(order="F")), np.linalg.norm(model, axis=1)
         )
 
-        reg.test(model.flatten(order="F"))
+        reg.test_derivatives(model.flatten(order="F"))
 
 
 def test_WeightedLeastSquares():
@@ -638,7 +641,7 @@ def test_cross_ref_reg(dim):
         assert cross_reg.W.shape == (n_active, n_active)
 
     m = np.random.rand(dim * n_active)
-    cross_reg.test(m)
+    cross_reg.test_derivatives(m)
 
 
 def test_cross_reg_reg_errors():
@@ -778,6 +781,8 @@ class TestRemovedObjects:
         elif request.param == "3D":
             hx, hy, hz = np.random.rand(10), np.random.rand(9), np.random.rand(8)
             h = [h_i / h_i.sum() for h_i in (hx, hy, hz)]
+        else:
+            raise ValueError("Invalid mesh dimensions")
         return discretize.TensorMesh(h)
 
     @pytest.mark.parametrize(

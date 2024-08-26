@@ -306,7 +306,7 @@ class SIPProblemTestsN_air(unittest.TestCase):
     def test_adjoint(self):
         # Adjoint Test
         rng = np.random.default_rng(seed=38)
-        v = rng.uniform(size=self.reg.mapping.nP)
+        v = rng.uniform(size=self.reg.nP)
         w = rng.uniform(size=self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))

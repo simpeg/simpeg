@@ -1,419 +1,98 @@
 import numpy as np
-import scipy.sparse as sp
 import pytest
-import unittest
 
-from simpeg import utils, maps
+from simpeg import utils
 from simpeg import objective_function
-from simpeg.objective_function import _validate_multiplier
+from simpeg.objective_function import BaseObjectiveFunction, ComboObjectiveFunction
+from simpeg.objective_function import _validate_multiplier, _need_to_pass_fields
 from simpeg.utils import Zero
-
-np.random.seed(130)
-
-EPS = 1e-9
+from simpeg.fields import Fields
 
 
-class Empty_ObjFct(objective_function.BaseObjectiveFunction):
+class MockObjectiveFunction(BaseObjectiveFunction):
+    """Mock objective function class to run tests."""
+
+    def __init__(self, nP=None, result=None):
+        self._nP = nP
+        self._result = result
+
+    def __call__(self, model, f=None):
+        if self._result is None:
+            return 1.0
+        return self._result
+
+    def deriv(self, model):
+        raise NotImplementedError()
+
+    def deriv2(self, model, v=None):
+        raise NotImplementedError()
+
+    @property
+    def nP(self):
+        return self._nP
+
+
+class MockL2ObjectiveFunction(BaseObjectiveFunction):
+    """
+    Mock L2 objective function to use in tests.
+    """
+
     def __init__(self):
-        super(Empty_ObjFct, self).__init__()
-
-
-class Error_if_Hit_ObjFct(objective_function.BaseObjectiveFunction):
-    def __init__(self):
-        super(Error_if_Hit_ObjFct, self).__init__()
-
-    def __call__(self, m):
-        raise Exception("entered __call__")
-
-    def deriv(self, m):
-        raise Exception("entered deriv")
-
-    def deriv2(self, m, v=None):
-        raise Exception("entered deriv2")
-
-
-class TestBaseObjFct(unittest.TestCase):
-    def test_derivs(self):
-        objfct = objective_function.L2ObjectiveFunction()
-        self.assertTrue(objfct.test(eps=1e-9, random_seed=42))
-
-    def test_deriv2(self):
-        nP = 100
-        mapping = maps.ExpMap(nP=nP)
-        m = np.random.rand(nP)
-        v = np.random.rand(nP)
-        objfct = objective_function.L2ObjectiveFunction(nP=nP, mapping=mapping)
-        self.assertTrue(np.allclose(objfct.deriv2(m=m, v=v), objfct.deriv2(m=m) * v))
-
-    def test_scalarmul(self):
-        scalar = 10.0
-        nP = 100
-        objfct_a = objective_function.L2ObjectiveFunction(
-            W=utils.sdiag(np.random.randn(nP))
-        )
-        objfct_b = scalar * objfct_a
-        m = np.random.rand(nP)
-
-        objfct_c = objfct_a + objfct_b
-
-        self.assertTrue(scalar * objfct_a(m) == objfct_b(m))
-        self.assertTrue(objfct_b.test(random_seed=42))
-        self.assertTrue(objfct_c(m) == objfct_a(m) + objfct_b(m))
-
-        self.assertTrue(len(objfct_c.objfcts) == 2)
-        self.assertTrue(len(objfct_c.multipliers) == 2)
-        self.assertTrue(len(objfct_c) == 2)
-
-    def test_sum(self):
-        scalar = 10.0
-        nP = 100.0
-        objfct = objective_function.L2ObjectiveFunction(
-            W=sp.eye(nP)
-        ) + scalar * objective_function.L2ObjectiveFunction(W=sp.eye(nP))
-        self.assertTrue(objfct.test(eps=1e-9, random_seed=42))
-
-        self.assertTrue(np.all(objfct.multipliers == np.r_[1.0, scalar]))
-
-    def test_2sum(self):
-        nP = 80
-        alpha1 = 100
-        alpha2 = 200
-
-        phi1 = (
-            objective_function.L2ObjectiveFunction(W=utils.sdiag(np.random.rand(nP)))
-            + alpha1 * objective_function.L2ObjectiveFunction()
-        )
-        phi2 = objective_function.L2ObjectiveFunction() + alpha2 * phi1
-        self.assertTrue(phi2.test(eps=EPS, random_seed=42))
-
-        self.assertTrue(len(phi1.multipliers) == 2)
-        self.assertTrue(len(phi2.multipliers) == 2)
-
-        self.assertTrue(len(phi1.objfcts) == 2)
-        self.assertTrue(len(phi2.objfcts) == 2)
-        self.assertTrue(len(phi2) == 2)
-
-        self.assertTrue(len(phi1) == 2)
-        self.assertTrue(len(phi2) == 2)
-
-        self.assertTrue(np.all(phi1.multipliers == np.r_[1.0, alpha1]))
-        self.assertTrue(np.all(phi2.multipliers == np.r_[1.0, alpha2]))
-
-    def test_3sum(self):
-        nP = 90
-
-        alpha1 = 0.3
-        alpha2 = 0.6
-        alpha3inv = 9
-
-        phi1 = objective_function.L2ObjectiveFunction(W=sp.eye(nP))
-        phi2 = objective_function.L2ObjectiveFunction(W=sp.eye(nP))
-        phi3 = objective_function.L2ObjectiveFunction(W=sp.eye(nP))
-
-        phi = alpha1 * phi1 + alpha2 * phi2 + phi3 / alpha3inv
-
-        m = np.random.rand(nP)
-
-        self.assertTrue(
-            np.all(phi.multipliers == np.r_[alpha1, alpha2, 1.0 / alpha3inv])
-        )
-
-        self.assertTrue(
-            np.allclose(
-                (alpha1 * phi1(m) + alpha2 * phi2(m) + phi3(m) / alpha3inv), phi(m)
-            )
-        )
-
-        self.assertTrue(len(phi.objfcts) == 3)
-
-        self.assertTrue(phi.test(random_seed=42))
-
-    def test_sum_fail(self):
-        nP1 = 10
-        nP2 = 30
-
-        phi1 = objective_function.L2ObjectiveFunction(
-            W=utils.sdiag(np.random.rand(nP1))
-        )
-
-        phi2 = objective_function.L2ObjectiveFunction(
-            W=utils.sdiag(np.random.rand(nP2))
-        )
-
-        with self.assertRaises(Exception):
-            phi1 + phi2
-
-        with self.assertRaises(Exception):
-            phi1 + 100 * phi2
-
-    def test_emptyObjFct(self):
-        phi = Empty_ObjFct()
-        x = np.random.rand(20)
-
-        with self.assertRaises(NotImplementedError):
-            phi(x)
-            phi.deriv(x)
-            phi.deriv2(x)
-
-    def test_ZeroObjFct(self):
-        # This is not a combo objective function, it will just give back an
-        # L2 objective function. That might be ok? or should this be a combo
-        # objective function?
-        nP = 20
-        alpha = 2.0
-        phi = alpha * (
-            objective_function.L2ObjectiveFunction(W=sp.eye(nP))
-            + utils.Zero() * objective_function.L2ObjectiveFunction()
-        )
-        self.assertTrue(len(phi.objfcts) == 1)
-        self.assertTrue(phi.test(random_seed=42))
-
-    def test_updateMultipliers(self):
-        nP = 10
-
-        m = np.random.rand(nP)
-
-        W1 = utils.sdiag(np.random.rand(nP))
-        W2 = utils.sdiag(np.random.rand(nP))
-
-        phi1 = objective_function.L2ObjectiveFunction(W=W1)
-        phi2 = objective_function.L2ObjectiveFunction(W=W2)
-
-        phi = phi1 + phi2
-
-        self.assertTrue(phi(m) == phi1(m) + phi2(m))
-
-        phi.multipliers[0] = utils.Zero()
-        self.assertTrue(phi(m) == phi2(m))
-
-        phi.multipliers[0] = 1.0
-        phi.multipliers[1] = utils.Zero()
-
-        self.assertTrue(len(phi.objfcts) == 2)
-        self.assertTrue(len(phi.multipliers) == 2)
-        self.assertTrue(len(phi) == 2)
-
-        self.assertTrue(phi(m) == phi1(m))
-
-    def test_invalid_mapping(self):
-        """Test if setting mapping of wrong type raises errors."""
-
-        class Dummy:
-            pass
-
-        phi = objective_function.L2ObjectiveFunction()
-        invalid_mapping = Dummy()
-        msg = "Invalid mapping of class 'Dummy'."
-        with pytest.raises(TypeError, match=msg):
-            phi.mapping = invalid_mapping
-
-    def test_early_exits(self):
-        nP = 10
-
-        m = np.random.rand(nP)
-        v = np.random.rand(nP)
-
-        W1 = utils.sdiag(np.random.rand(nP))
-        phi1 = objective_function.L2ObjectiveFunction(W=W1)
-
-        phi2 = Error_if_Hit_ObjFct()
-
-        objfct = phi1 + 0 * phi2
-
-        self.assertTrue(len(objfct) == 2)
-        self.assertTrue(np.all(objfct.multipliers == np.r_[1, 0]))
-        self.assertTrue(objfct(m) == phi1(m))
-        self.assertTrue(np.all(objfct.deriv(m) == phi1.deriv(m)))
-        self.assertTrue(np.all(objfct.deriv2(m, v) == phi1.deriv2(m, v)))
-
-        objfct.multipliers[1] = utils.Zero()
-
-        self.assertTrue(len(objfct) == 2)
-        self.assertTrue(np.all(objfct.multipliers == np.r_[1, 0]))
-        self.assertTrue(objfct(m) == phi1(m))
-        self.assertTrue(np.all(objfct.deriv(m) == phi1.deriv(m)))
-        self.assertTrue(np.all(objfct.deriv2(m, v) == phi1.deriv2(m, v)))
-
-    def test_Maps(self):
-        nP = 10
-        m = np.random.rand(2 * nP)
-
-        wires = maps.Wires(("sigma", nP), ("mu", nP))
-
-        objfct1 = objective_function.L2ObjectiveFunction(mapping=wires.sigma)
-        objfct2 = objective_function.L2ObjectiveFunction(mapping=wires.mu)
-
-        objfct3 = objfct1 + objfct2
-
-        objfct4 = objective_function.L2ObjectiveFunction(nP=nP)
-
-        self.assertTrue(objfct1.nP == 2 * nP)
-        self.assertTrue(objfct2.nP == 2 * nP)
-        self.assertTrue(objfct3.nP == 2 * nP)
-
-        # print(objfct1.nP, objfct4.nP, objfct4.W.shape, objfct1.W.shape, m[:nP].shape)
-        self.assertTrue(objfct1(m) == objfct4(m[:nP]))
-        self.assertTrue(objfct2(m) == objfct4(m[nP:]))
-
-        self.assertTrue(objfct3(m) == objfct1(m) + objfct2(m))
-
-        seed = 42
-        objfct1.test(random_seed=seed)
-        objfct2.test(random_seed=seed)
-        objfct3.test(random_seed=seed)
-
-    def test_ComboW(self):
-        nP = 15
-        m = np.random.rand(nP)
-
-        phi1 = objective_function.L2ObjectiveFunction(nP=nP)
-        phi2 = objective_function.L2ObjectiveFunction(nP=nP)
-
-        alpha1 = 2.0
-        alpha2 = 0.5
-
-        phi = alpha1 * phi1 + alpha2 * phi2
-
-        r = phi.W * m
-
-        r1 = phi1.W * m
-        r2 = phi2.W * m
-
-        print(phi(m), np.inner(r, r))
-
-        self.assertTrue(np.allclose(phi(m), np.inner(r, r)))
-        self.assertTrue(
-            np.allclose(phi(m), (alpha1 * np.inner(r1, r1) + alpha2 * np.inner(r2, r2)))
-        )
-
-    def test_ComboConstruction(self):
-        nP = 10
-        m = np.random.rand(nP)
-        v = np.random.rand(nP)
-
-        phi1 = objective_function.L2ObjectiveFunction(nP=nP)
-        phi2 = objective_function.L2ObjectiveFunction(nP=nP)
-
-        phi3 = 2 * phi1 + 3 * phi2
-
-        phi4 = objective_function.ComboObjectiveFunction([phi1, phi2], [2, 3])
-
-        self.assertTrue(phi3(m) == phi4(m))
-        self.assertTrue(np.all(phi3.deriv(m) == phi4.deriv(m)))
-        self.assertTrue(np.all(phi3.deriv2(m, v) == phi4.deriv2(m, v)))
-
-    def test_updating_multipliers(self):
-        nP = 20
-
-        phi1 = objective_function.L2ObjectiveFunction(nP=nP)
-        phi2 = objective_function.L2ObjectiveFunction(nP=nP)
-
-        phi3 = 2 * phi1 + 4 * phi2
-
-        self.assertTrue(all(phi3.multipliers == np.r_[2, 4]))
-
-        phi3.multipliers[1] = 3
-        self.assertTrue(all(phi3.multipliers == np.r_[2, 3]))
-
-        phi3.multipliers = np.r_[1.0, 5.0]
-        self.assertTrue(all(phi3.multipliers == np.r_[1.0, 5.0]))
-
-        with self.assertRaises(Exception):
-            phi3.multipliers[0] = "a"
-
-        with self.assertRaises(Exception):
-            phi3.multipliers = np.r_[0.0, 3.0, 4.0]
-
-        with self.assertRaises(Exception):
-            phi3.multipliers = ["a", "b"]
-
-    def test_inconsistent_nparams_and_weights(self):
-        """
-        Test if L2ObjectiveFunction raises error after nP != columns in W
-        """
-        n_params = 9
-        weights = np.zeros((5, n_params + 1))
-        with pytest.raises(ValueError, match="Number of parameters nP"):
-            objective_function.L2ObjectiveFunction(nP=n_params, W=weights)
-
-
-class TestOperationsComboObjectiveFunctions:
-    """Test arithmetic operations involving ComboObjectiveFunction"""
-
-    @pytest.mark.parametrize("unpack_on_add", (True, False))
-    def test_mul(self, unpack_on_add):
-        """Test if ComboObjectiveFunction multiplication works as expected"""
-        n_params = 10
-        phi1 = objective_function.L2ObjectiveFunction(nP=n_params)
-        phi2 = objective_function.L2ObjectiveFunction(nP=n_params)
-        combo = objective_function.ComboObjectiveFunction(
-            [phi1, phi2], [2, 3], unpack_on_add=unpack_on_add
-        )
-        combo_mul = 3.5 * combo
-        assert len(combo_mul) == 1
-        assert combo_mul.multipliers == [3.5]
-        assert combo_mul.objfcts == [combo]
-
-    @pytest.mark.parametrize("unpack_on_add", (True, False))
-    def test_add(self, unpack_on_add):
-        """Test if ComboObjectiveFunction addition works as expected"""
-        n_params = 10
-        phi1 = objective_function.L2ObjectiveFunction(nP=n_params)
-        phi2 = objective_function.L2ObjectiveFunction(nP=n_params)
-        phi3 = objective_function.L2ObjectiveFunction(nP=n_params)
-        combo_1 = objective_function.ComboObjectiveFunction(
-            [phi1, phi2], [2, 3], unpack_on_add=unpack_on_add
-        )
-        combo_2 = phi3 + combo_1
-        if unpack_on_add:
-            assert len(combo_2) == 3
-            assert combo_2.multipliers == [1, 2, 3]
-            assert combo_2.objfcts == [phi3, phi1, phi2]
-        else:
-            assert len(combo_2) == 2
-            assert combo_2.multipliers == [1, 1]
-            assert combo_2.objfcts == [phi3, combo_1]
-            combo_1 = combo_2.objfcts[1]
-            assert combo_1.multipliers == [2, 3]
-
-    def test_add_multiple_terms(self):
-        """Test addition of multiple BaseObjectiveFunctions"""
-        n_params = 10
-        phi1 = objective_function.L2ObjectiveFunction(nP=n_params)
-        phi2 = objective_function.L2ObjectiveFunction(nP=n_params)
-        phi3 = objective_function.L2ObjectiveFunction(nP=n_params)
-        combo = 1.1 * phi1 + 1.2 * phi2 + 1.3 * phi3
-        assert len(combo) == 3
-        assert combo.multipliers == [1.1, 1.2, 1.3]
-        assert combo.objfcts == [phi1, phi2, phi3]
-
-    @pytest.mark.parametrize("unpack_on_add", (True, False))
-    def test_add_and_mul(self, unpack_on_add):
-        """
-        Test ComboObjectiveFunction addition with multiplication
-
-        After multiplying a Combo with a scalar, the `__mul__` method creates
-        another Combo for it.
-        """
-        n_params = 10
-        phi1 = objective_function.L2ObjectiveFunction(nP=n_params)
-        phi2 = objective_function.L2ObjectiveFunction(nP=n_params)
-        phi3 = objective_function.L2ObjectiveFunction(nP=n_params)
-        combo_1 = objective_function.ComboObjectiveFunction(
-            [phi1, phi2], [2, 3], unpack_on_add=unpack_on_add
-        )
-        combo_2 = 5 * phi3 + 1.2 * combo_1
-        assert len(combo_2) == 2
-        assert combo_2.multipliers == [5, 1.2]
-        assert combo_2.objfcts == [phi3, combo_1]
+        self._nP = 3
+
+    @property
+    def nP(self):
+        return self._nP
+
+    def __call__(self, model, f=None):
+        residual = self.G @ model
+        return residual.T @ residual
+
+    def deriv(self, model):
+        return 2 * self.G.T @ self.G @ model
+
+    def deriv2(self, model, v=None):
+        return 2 * self.G.T @ self.G
+
+    @property
+    def G(self):
+        if not hasattr(self, "_G"):
+            matrix = [
+                [1, 2, 3],
+                [4, 5, 6],
+                [7, 8, 9],
+            ]
+            self._G = np.array(matrix, dtype=np.float64)
+        return self._G
+
+
+def test_invalid_objfcts_in_combo():
+    """Test invalid objective function class in ComboObjectiveFunction."""
+
+    class Dummy:
+        pass
+
+    phi = MockObjectiveFunction()
+    invalid_phi = Dummy()
+    msg = "Unrecognized objective function type Dummy in 'objfcts'."
+    with pytest.raises(TypeError, match=msg):
+        objective_function.ComboObjectiveFunction(objfcts=[phi, invalid_phi])
+
+
+def test_test_derivatives():
+    """
+    Check the `.test_derivatives` method in `BaseObjectiveFunction`
+    """
+    objfct = MockL2ObjectiveFunction()
+    assert objfct.test_derivatives(eps=1e-9, random_seed=42)
 
 
 @pytest.mark.parametrize(
     "objfcts, multipliers",
     (
         (None, None),
-        ([objective_function.L2ObjectiveFunction()], None),
-        ([objective_function.L2ObjectiveFunction()], [2.5]),
+        ([MockObjectiveFunction()], None),
+        ([MockObjectiveFunction()], [2.5]),
     ),
 )
 def test_empty_combo(objfcts, multipliers):
@@ -432,17 +111,244 @@ def test_empty_combo(objfcts, multipliers):
             assert combo.multipliers == [2.5]
 
 
-def test_invalid_objfcts_in_combo():
-    """Test invalid objective function class in ComboObjectiveFunction."""
+class TestOperationsObjectiveFunctions:
+    """Test arithmetic operations involving BaseObjectiveFunction"""
 
-    class Dummy:
-        pass
+    @pytest.fixture
+    def dummy_class(self):
+        class Dummy:
+            pass
 
-    phi = objective_function.L2ObjectiveFunction()
-    invalid_phi = Dummy()
-    msg = "Unrecognized objective function type Dummy in 'objfcts'."
-    with pytest.raises(TypeError, match=msg):
-        objective_function.ComboObjectiveFunction(objfcts=[phi, invalid_phi])
+        return Dummy
+
+    @pytest.mark.parametrize("left", (True, False))
+    def test_mul(self, left):
+        """
+        Test scalar multiplication for BaseObjectiveFunction
+        """
+        phi = MockObjectiveFunction(nP=3, result=2.0)
+        if left:
+            new_phi = 3.0 * phi
+        else:
+            new_phi = phi * 3.0
+        assert new_phi.multipliers == [3.0]
+        assert new_phi.objfcts == [phi]
+        model = np.array([1.0])
+        np.testing.assert_allclose(
+            3.0 * phi(model),
+            new_phi(model),
+        )
+
+    def test_div(self):
+        """
+        Test div of BaseObjectiveFunctions over a scalar
+        """
+        phi = MockObjectiveFunction(nP=3, result=2.0)
+        new_phi = phi / 3.0
+        assert new_phi.multipliers == [1.0 / 3.0]
+        assert new_phi.objfcts == [phi]
+        model = np.array([1.0])
+        np.testing.assert_allclose(
+            phi(model) / 3.0,
+            new_phi(model),
+        )
+
+    def test_add(self):
+        """
+        Test add between two BaseObjectiveFunctions
+        """
+        phi1 = MockObjectiveFunction(nP=3, result=1.0)
+        phi2 = MockObjectiveFunction(nP=3, result=2.0)
+        new_phi = phi1 + phi2
+        assert new_phi.multipliers == [1.0, 1.0]
+        assert new_phi.objfcts == [phi1, phi2]
+        model = np.array([1.0])
+        np.testing.assert_allclose(
+            phi1(model) + phi2(model),
+            new_phi(model),
+        )
+
+    def test_add_and_mul(self):
+        """
+        Test add between several BaseObjectiveFunctions with scalar multiplications
+        """
+        phi1 = MockObjectiveFunction(nP=3, result=1.0)
+        phi2 = MockObjectiveFunction(nP=3, result=2.0)
+        phi3 = MockObjectiveFunction(nP=3, result=3.0)
+        new_phi = 1.3 * phi1 + 3.3 * phi2 + 4.2 * phi3
+        assert new_phi.multipliers == [1.3, 3.3, 4.2]
+        assert new_phi.objfcts == [phi1, phi2, phi3]
+        model = np.array([1.0])
+        np.testing.assert_allclose(
+            1.3 * phi1(model) + 3.3 * phi2(model) + 4.2 * phi3(model),
+            new_phi(model),
+        )
+
+    @pytest.mark.parametrize("mul_scalar", (True, False))
+    def test_mul_by_zero_object(self, mul_scalar):
+        """
+        Test forming a ComboObjectiveFunction adding two objective functions
+        but multiplying one by Zero.
+        """
+        n_params = 20
+        phi1 = MockObjectiveFunction(nP=n_params, result=1.0)
+        phi2 = MockObjectiveFunction(nP=n_params, result=2.0)
+        if mul_scalar:
+            combo = 3.3 * phi1 + utils.Zero() * phi2
+            assert combo.objfcts == [phi1]
+            assert combo.multipliers == [3.3]
+        else:
+            combo = phi1 + utils.Zero() * phi2
+            # The combo should be the objective function phi1
+            assert combo == phi1
+
+    def test_mul_by_zero_float(self):
+        """
+        Test forming a ComboObjectiveFunction adding two objective functions
+        but multiplying one by zero (float).
+        """
+        n_params = 20
+        phi1 = MockObjectiveFunction(nP=n_params, result=1.0)
+        phi2 = MockObjectiveFunction(nP=n_params, result=2.0)
+        combo = 2.3 * phi1 + 0.0 * phi2
+        assert combo.objfcts == [phi1, phi2]
+        assert combo.multipliers == [2.3, 0.0]
+        model = np.array([1.0])
+        np.testing.assert_allclose(combo(model), 2.3 * phi1(model))
+
+    @pytest.mark.parametrize("radd", (False, True), ids=("add", "radd"))
+    def test_error_add_not_objective_functions(self, dummy_class, radd):
+        """
+        Test if error is raised when trying to add a non-objective function object.
+        """
+        phi = MockObjectiveFunction(nP=1)
+        dummy = dummy_class()
+        msg = (
+            "Cannot add type 'Dummy' to an objective function. "
+            "Only 'BaseObjectiveFunction's can be added together."
+        )
+        with pytest.raises(TypeError, match=msg):
+            if radd:
+                dummy + phi
+            else:
+                phi + dummy
+
+    def test_error_different_np(self):
+        """
+        Test if error is raised after trying to add objective functions with
+        different nP
+        """
+        phi1 = MockObjectiveFunction(nP=1)
+        phi2 = MockObjectiveFunction(nP=3)
+        msg = "Invalid number of parameters"
+        with pytest.raises(ValueError, match=msg):
+            phi1 + phi2
+
+    @pytest.mark.parametrize("two_combos", (True, False))
+    def test_error_different_np_combo(self, two_combos):
+        """
+        Test if error is raised after trying to add combo objective functions
+        with different nP
+        """
+        phi1 = 2.0 * MockObjectiveFunction(nP=1) + 3.0 * MockObjectiveFunction(nP=1)
+        if two_combos:
+            phi2 = 5.0 * MockObjectiveFunction(nP=3) + 6.0 * MockObjectiveFunction(nP=3)
+        else:
+            phi2 = MockObjectiveFunction(nP=3)
+        msg = "Invalid number of parameters"
+        with pytest.raises(ValueError, match=msg):
+            phi1 + phi2
+
+
+class TestOperationsComboObjectiveFunctions:
+    """Test arithmetic operations involving ComboObjectiveFunction"""
+
+    @pytest.mark.parametrize("unpack_on_add", (True, False))
+    def test_mul(self, unpack_on_add):
+        """Test if ComboObjectiveFunction multiplication works as expected"""
+        n_params = 10
+        phi1 = MockObjectiveFunction(nP=n_params, result=1.0)
+        phi2 = MockObjectiveFunction(nP=n_params, result=2.0)
+        combo = objective_function.ComboObjectiveFunction(
+            [phi1, phi2], [2, 3], unpack_on_add=unpack_on_add
+        )
+        combo_mul = 3.5 * combo
+        assert len(combo_mul) == 1
+        assert combo_mul.multipliers == [3.5]
+        assert combo_mul.objfcts == [combo]
+        model = np.array([1.0])
+        np.testing.assert_allclose(
+            3.5 * combo(model),
+            combo_mul(model),
+        )
+
+    @pytest.mark.parametrize("unpack_on_add", (True, False))
+    def test_add(self, unpack_on_add):
+        """Test if ComboObjectiveFunction addition works as expected"""
+        n_params = 10
+        phi1 = MockObjectiveFunction(nP=n_params, result=1.0)
+        phi2 = MockObjectiveFunction(nP=n_params, result=2.0)
+        phi3 = MockObjectiveFunction(nP=n_params, result=3.0)
+        combo_1 = objective_function.ComboObjectiveFunction(
+            [phi1, phi2], [2, 3], unpack_on_add=unpack_on_add
+        )
+        combo_2 = phi3 + combo_1
+        if unpack_on_add:
+            assert len(combo_2) == 3
+            assert combo_2.multipliers == [1, 2, 3]
+            assert combo_2.objfcts == [phi3, phi1, phi2]
+        else:
+            assert len(combo_2) == 2
+            assert combo_2.multipliers == [1, 1]
+            assert combo_2.objfcts == [phi3, combo_1]
+            combo_1 = combo_2.objfcts[1]
+            assert combo_1.multipliers == [2, 3]
+        model = np.array([1.0])
+        np.testing.assert_allclose(
+            phi3(model) + 2 * phi1(model) + 3 * phi2(model),
+            combo_2(model),
+        )
+
+    def test_add_multiple_terms(self):
+        """Test addition of multiple BaseObjectiveFunctions"""
+        n_params = 10
+        phi1 = MockObjectiveFunction(nP=n_params, result=1.0)
+        phi2 = MockObjectiveFunction(nP=n_params, result=2.0)
+        phi3 = MockObjectiveFunction(nP=n_params, result=3.0)
+        combo = 1.1 * phi1 + 1.2 * phi2 + 1.3 * phi3
+        assert len(combo) == 3
+        assert combo.multipliers == [1.1, 1.2, 1.3]
+        assert combo.objfcts == [phi1, phi2, phi3]
+        model = np.array([1.0])
+        np.testing.assert_allclose(
+            1.1 * phi1(model) + 1.2 * phi2(model) + 1.3 * phi3(model),
+            combo(model),
+        )
+
+    @pytest.mark.parametrize("unpack_on_add", (True, False))
+    def test_add_and_mul(self, unpack_on_add):
+        """
+        Test ComboObjectiveFunction addition with multiplication
+
+        After multiplying a Combo with a scalar, the `__mul__` method creates
+        another Combo for it.
+        """
+        n_params = 10
+        phi1 = MockObjectiveFunction(nP=n_params)
+        phi2 = MockObjectiveFunction(nP=n_params)
+        phi3 = MockObjectiveFunction(nP=n_params)
+        combo_1 = objective_function.ComboObjectiveFunction(
+            [phi1, phi2], [2, 3], unpack_on_add=unpack_on_add
+        )
+        combo_2 = 5 * phi3 + 1.2 * combo_1
+        assert len(combo_2) == 2
+        assert combo_2.multipliers == [5, 1.2]
+        assert combo_2.objfcts == [phi3, combo_1]
+        model = np.array([1.0])
+        np.testing.assert_allclose(
+            5 * phi3(model) + 1.2 * (2 * phi1(model) + 3 * phi2(model)),
+            combo_2(model),
+        )
 
 
 class TestMultiplierValidation:
@@ -450,28 +356,32 @@ class TestMultiplierValidation:
     Test the _validate_multiplier private function.
     """
 
-    @pytest.mark.parametrize(
-        "multiplier",
-        (
-            3.14,
-            1,
-            np.float64(-15.3),
-            np.float32(-10.2),
-            np.int64(10),
-            np.int32(33),
-            Zero(),
-        ),
+    valid_multipliers = (
+        3.14,
+        1,
+        np.float64(-15.3),
+        np.float32(-10.2),
+        np.int64(10),
+        np.int32(33),
+        Zero(),
     )
+    invalid_multipliers = (
+        np.array([1, 3.14]),
+        np.array(3),
+        [1, 2, 3],
+        "string",
+        True,
+        None,
+    )
+
+    @pytest.mark.parametrize("multiplier", valid_multipliers)
     def test_valid_multipliers(self, multiplier):
         """
         Test function against valid multipliers
         """
         _validate_multiplier(multiplier)
 
-    @pytest.mark.parametrize(
-        "multiplier",
-        (np.array([1, 3.14]), np.array(3), [1, 2, 3], "string", True, None),
-    )
+    @pytest.mark.parametrize("multiplier", invalid_multipliers)
     def test_invalid_multipliers(self, multiplier):
         """
         Test function against invalid multipliers
@@ -479,6 +389,261 @@ class TestMultiplierValidation:
         with pytest.raises(TypeError, match="Invalid multiplier"):
             _validate_multiplier(multiplier)
 
+    def test_multipliers_setter(self):
+        """
+        Test multipliers setter against valid multipliers
+        """
+        objective_functions = [MockObjectiveFunction() for _ in range(3)]
+        combo = objective_function.ComboObjectiveFunction(objfcts=objective_functions)
+        multipliers = [i + 3 for i in range(len(objective_functions))]
+        combo.multipliers = multipliers
 
-if __name__ == "__main__":
-    unittest.main()
+    @pytest.mark.parametrize("multiplier", invalid_multipliers)
+    def test_multipliers_setter_invalid(self, multiplier):
+        """
+        Test multipliers setter against invalid multipliers
+        """
+        phi = MockObjectiveFunction()
+        combo = objective_function.ComboObjectiveFunction(objfcts=[phi])
+        with pytest.raises(TypeError, match="Invalid multiplier"):
+            combo.multipliers = [multiplier]
+
+    def test_multipliers_setter_invalid_length(self):
+        """
+        Test error when setting multipliers of invalid length.
+        """
+        objective_functions = [MockObjectiveFunction() for _ in range(3)]
+        multipliers = [1, 2, 3, 4, 5, 6]
+        combo = objective_function.ComboObjectiveFunction(objfcts=objective_functions)
+        msg = "Inconsistent number of elements between objective functions "
+        with pytest.raises(ValueError, match=msg):
+            combo.multipliers = multipliers
+
+
+class TestGetFunctionsOfType:
+    """
+    Test the ``get_functions_of_type`` method in ``ComboObjectiveFunction``.
+    """
+
+    @pytest.fixture
+    def mock_class_type_a(self):
+        class MockTypeA(MockObjectiveFunction):
+            pass
+
+        return MockTypeA
+
+    @pytest.fixture
+    def mock_class_type_b(self):
+        class MockTypeB(MockObjectiveFunction):
+            pass
+
+        return MockTypeB
+
+    def test_same_class(self, mock_class_type_a, mock_class_type_b):
+        """
+        Test combo with two objective functions of the same class.
+        """
+        phi_1, phi_2 = mock_class_type_a(), mock_class_type_a()
+        combo = 2 * phi_1 + 3 * phi_2
+        result = combo.get_functions_of_type(mock_class_type_a)
+        assert result == [phi_1, phi_2]
+
+    @pytest.mark.parametrize("class_type", ("a", "b"))
+    def test_different_classes(self, class_type, mock_class_type_a, mock_class_type_b):
+        """
+        Test combo with two objective functions of different classes.
+        """
+        phi_1, phi_2 = mock_class_type_a(), mock_class_type_b()
+        combo = 2 * phi_1 + 3 * phi_2
+        if class_type == "a":
+            result = combo.get_functions_of_type(mock_class_type_a)
+            assert result == [phi_1]
+        else:
+            result = combo.get_functions_of_type(mock_class_type_b)
+            assert result == [phi_2]
+
+    def test_combo_class(self, mock_class_type_a, mock_class_type_b):
+        """
+        Test if the required class is a ComboObjectiveFunction.
+        """
+        phi_1, phi_2 = mock_class_type_a(), mock_class_type_b()
+        combo = 2 * phi_1 + 3 * phi_2
+        result = combo.get_functions_of_type(ComboObjectiveFunction)
+        assert result == [combo]
+
+    @pytest.mark.parametrize("class_type", ("a", "b"))
+    def test_nested_combos(self, class_type, mock_class_type_a, mock_class_type_b):
+        """
+        Test when the combo has nested combos.
+        """
+        phi_1, phi_2 = mock_class_type_a(), mock_class_type_b()
+        phi_3, phi_4 = mock_class_type_a(), mock_class_type_b()
+        sub_combo_1 = 2 * phi_1 + 3 * phi_2
+        sub_combo_2 = 5 * phi_3 + 4 * phi_4
+        combo = ComboObjectiveFunction(
+            objfcts=[sub_combo_1, sub_combo_2], multipliers=[1, 1]
+        )
+        # Just check the nested structure before running the tests
+        assert combo.objfcts == [sub_combo_1, sub_combo_2]
+        # Tests the get_functions_of_type method
+        if class_type == "a":
+            result = combo.get_functions_of_type(mock_class_type_a)
+            assert result == [[phi_1], [phi_3]]
+        else:
+            result = combo.get_functions_of_type(mock_class_type_b)
+            assert result == [[phi_2], [phi_4]]
+
+
+class TestNeedsFields:
+    """
+    Test the private ``_need_to_pass_fields`` function.
+    """
+
+    @pytest.fixture
+    def mock_with_has_fields(self):
+        class MockWithHasField(MockObjectiveFunction):
+
+            def __init__(self, **kwargs):
+                super().__init__(**kwargs)
+                self.has_fields = True
+
+        return MockWithHasField
+
+    @pytest.fixture
+    def combo_with_fields(self):
+        class ComboWithHasField(ComboObjectiveFunction):
+
+            def __init__(self, **kwargs):
+                super().__init__(**kwargs)
+                self.has_fields = True
+
+        return ComboWithHasField
+
+    def test_with_regular_class(self):
+        """
+        Test ``_need_to_pass_fields`` with a regular objective function class.
+        """
+        phi = MockObjectiveFunction()
+        assert not _need_to_pass_fields(phi)
+
+    def test_with_class_that_has_fields(self, mock_with_has_fields):
+        """
+        Test ``_need_to_pass_fields`` with a class that has ``has_fields``.
+        """
+        assert _need_to_pass_fields(mock_with_has_fields())
+
+    def test_with_combo(self):
+        """
+        Test ``_need_to_pass_fields`` with a combo class.
+        """
+        phi = MockObjectiveFunction()
+        assert _need_to_pass_fields(ComboObjectiveFunction(objfcts=[phi]))
+
+    def test_with_combo_that_has_fields(self, combo_with_fields):
+        """
+        Test ``_need_to_pass_fields`` with a combo class that has ``has_fields``.
+        """
+        phi = MockObjectiveFunction()
+        assert _need_to_pass_fields(combo_with_fields(objfcts=[phi]))
+
+
+class TestCallComboObjectiveFunction:
+    """
+    Test calling a ``ComboObjectiveFunction`` with has_fields.
+    """
+
+    @pytest.fixture
+    def mock_simulation(self):
+        from simpeg.simulation import BaseSimulation
+
+        class MockSimulation(BaseSimulation):
+            pass
+
+        return MockSimulation
+
+    @pytest.fixture
+    def mock_with_has_fields(self):
+        """Mock objective function class with ``has_fields``."""
+
+        class MockWithHasField(MockObjectiveFunction):
+
+            def __init__(self, **kwargs):
+                super().__init__(nP=1, **kwargs)  # the model must have a single value
+                self.has_fields = True
+
+            def __call__(self, model, f=None):
+                """
+                Evaluate as the model value times the field "foo" in ``f``.
+                """
+                (value,) = model
+                return value * f.knownFields["foo"]
+
+        return MockWithHasField
+
+    @pytest.fixture
+    def mock_without_fields(self):
+        """Mock objective function class without ``has_fields``."""
+
+        class MockWithoutField(MockObjectiveFunction):
+
+            def __init__(self, **kwargs):
+                super().__init__(nP=1, **kwargs)  # the model must have a single value
+
+            def __call__(self, model, f=None):
+                """
+                Evaluate as the model value times the field "foo" in ``f``.
+                """
+                (value,) = model
+                return value
+
+        return MockWithoutField
+
+    def test_mock_classes(self, mock_simulation, mock_with_has_fields):
+        """Simple test on mock classes."""
+        simulation = mock_simulation()
+        phi = mock_with_has_fields()
+        model = np.array([3.5])
+        fields = Fields(simulation, knownFields={"foo": 3.0})
+        np.testing.assert_allclose(phi(model, fields), 3.5 * 3.0)
+
+    def test_call_combo_with_fields(self, mock_simulation, mock_with_has_fields):
+        """Test calling a combo with a single objective function with fields."""
+        simulation = mock_simulation()
+        phi = mock_with_has_fields()
+        combo = ComboObjectiveFunction(objfcts=[phi], multipliers=[2.0])
+        model = np.array([3.5])
+        fields = Fields(simulation, knownFields={"foo": 3.0})
+        np.testing.assert_allclose(combo(model, [fields]), 2.0 * 3.5 * 3.0)
+
+    def test_call_combo_multiple_objective_with_fields(
+        self, mock_simulation, mock_with_has_fields, mock_without_fields
+    ):
+        """Test calling a combo with a multiple objective functions with fields."""
+        simulation = mock_simulation()
+        phi_1 = mock_with_has_fields()
+        phi_2 = mock_without_fields()
+        combo = ComboObjectiveFunction(objfcts=[phi_1, phi_2], multipliers=[2.0, 5.0])
+        model = np.array([3.5])
+        fields = Fields(simulation, knownFields={"foo": 3.0})
+        np.testing.assert_allclose(
+            combo(model, [fields, None]), 2.0 * 3.5 * 3.0 + 5.0 * 3.5
+        )
+
+    def test_call_zero_multiplier(
+        self, mock_simulation, mock_with_has_fields, mock_without_fields
+    ):
+        """Test calling a combo with a function with multiplier equal to zero."""
+        simulation = mock_simulation()
+        phi_1 = mock_with_has_fields()
+        phi_2 = mock_with_has_fields()
+        phi_3 = mock_without_fields()
+        combo = ComboObjectiveFunction(
+            objfcts=[phi_1, phi_2, phi_3], multipliers=[2.0, 0.0, 5.0]
+        )
+        model = np.array([3.5])
+        fields_1 = Fields(simulation, knownFields={"foo": 3.0})
+        fields_2 = Fields(simulation, knownFields={"foo": -2.0})
+        expected_result = 2.0 * 3.5 * 3.0 + 5.0 * 3.5
+        np.testing.assert_allclose(
+            combo(model, [fields_1, fields_2, None]), expected_result
+        )
