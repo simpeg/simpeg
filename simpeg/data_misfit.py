@@ -31,6 +31,13 @@ class BaseDataMisfit(BaseObjectiveFunction):
         self.simulation = simulation
 
     @property
+    def has_fields(self):
+        """
+        Data misfits always have fields.
+        """
+        return True
+
+    @property
     def data(self):
         """A SimPEG data object.
 
