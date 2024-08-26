@@ -306,15 +306,6 @@ class ElectricDipole(BaseFDEMSrc):
         )
 
 
-class WiredSourceLocationArray:
-
-    class_info = "an array of receiver locations"
-
-    def validate(self, instance, value):
-        value = np.atleast_2d(value)
-        return super(WireSourceLocationArray, self).validate(instance, value)
-
-
 class ElectricWire(BaseFDEMSrc):
     """
     Electric Dipole source. It is defined by the user provided vector s_e
@@ -326,7 +317,7 @@ class ElectricWire(BaseFDEMSrc):
 
     def __init__(self, receiver_list=None, frequency=None, **kwargs):
         self.strength = kwargs.pop("strength", 1.0)
-        self.location = kwargs.pop("location", np.array([0.0, 0.0, 0.0]))
+        self.locations = kwargs.pop("locations", np.array([0.0, 0.0, 0.0]))
         super().__init__(receiver_list, frequency=frequency, **kwargs)
 
     @property
@@ -338,13 +329,13 @@ class ElectricWire(BaseFDEMSrc):
         self._strength = validate_float("strength", strength, min_val=1e-15)
 
     @property
-    def location(self):
-        return self._location
+    def locations(self):
+        return self._locations
 
-    @location.setter
-    def location(self, location):
-        self._loction = WiredSourceLocationArray(
-            "Location of the source [x, y, z] in 3D", shape=("*", "*"), required=True
+    @locations.setter
+    def locations(self, locs):
+        self._locations = validate_ndarray_with_shape(
+            "locations", locs, shape=("*", "*"), dtype=float
         )
 
 
