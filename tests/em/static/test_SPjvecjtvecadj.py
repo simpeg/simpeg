@@ -71,7 +71,9 @@ def test_deriv(q_map):
 
         return d, Jvec
 
-    m0 = np.random.randn(q_map.shape[1])
+    rng = np.random.default_rng(seed=42)
+    m0 = rng.normal(size=q_map.shape[1])
+    np.random.seed(40)  # set a random seed for check_derivative
     check_derivative(func, m0, plotIt=False)
 
 
@@ -87,7 +89,8 @@ def test_adjoint(q_map):
     sim.model = None
     sim.qMap = q_map
 
-    model = np.random.rand(q_map.shape[1])
+    rng = np.random.default_rng(seed=42)
+    model = rng.uniform(size=q_map.shape[1])
     f = sim.fields(model)
 
     def Jvec(v):

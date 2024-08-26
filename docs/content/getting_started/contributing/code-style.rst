@@ -20,7 +20,7 @@ Run ``black`` on SimPEG directories that contain Python source files:
 
 .. code::
 
-   black simpeg examples tutorials tests
+   black .
 
 Run ``flake8`` on the whole project with:
 

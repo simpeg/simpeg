@@ -935,8 +935,8 @@ class PrimSecCasingExample(object):
                 from matplotlib.colors import LogNorm
 
                 f = ax.contourf(
-                    rx_x,
-                    rx_y,
+                    self.rx_x,
+                    self.rx_y,
                     np.absolute(Jv),
                     num,
                     cmap=plt.get_cmap("viridis"),
@@ -950,7 +950,7 @@ class PrimSecCasingExample(object):
 
             if plotGrid:
                 self.meshs.plot_slice(
-                    np.nan * np.ones(mesh.nC), normal="Z", grid=True, ax=ax
+                    np.nan * np.ones(self.meshs.nC), normal="Z", grid=True, ax=ax
                 )
 
             if xlim is not None:
