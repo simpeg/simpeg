@@ -3,7 +3,7 @@ import pytest
 
 from simpeg import utils
 from simpeg import objective_function
-from simpeg.objective_function import BaseObjectiveFunction
+from simpeg.objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from simpeg.objective_function import _validate_multiplier
 from simpeg.utils import Zero
 
@@ -417,3 +417,77 @@ class TestMultiplierValidation:
         msg = "Inconsistent number of elements between objective functions "
         with pytest.raises(ValueError, match=msg):
             combo.multipliers = multipliers
+
+
+class TestGetFunctionsOfType:
+    """
+    Test the ``get_functions_of_type`` method in ``ComboObjectiveFunction``.
+    """
+
+    @pytest.fixture
+    def mock_class_type_a(self):
+        class MockTypeA(MockObjectiveFunction):
+            pass
+
+        return MockTypeA
+
+    @pytest.fixture
+    def mock_class_type_b(self):
+        class MockTypeB(MockObjectiveFunction):
+            pass
+
+        return MockTypeB
+
+    def test_same_class(self, mock_class_type_a, mock_class_type_b):
+        """
+        Test combo with two objective functions of the same class.
+        """
+        phi_1, phi_2 = mock_class_type_a(), mock_class_type_a()
+        combo = 2 * phi_1 + 3 * phi_2
+        result = combo.get_functions_of_type(mock_class_type_a)
+        assert result == [phi_1, phi_2]
+
+    @pytest.mark.parametrize("class_type", ("a", "b"))
+    def test_different_classes(self, class_type, mock_class_type_a, mock_class_type_b):
+        """
+        Test combo with two objective functions of different classes.
+        """
+        phi_1, phi_2 = mock_class_type_a(), mock_class_type_b()
+        combo = 2 * phi_1 + 3 * phi_2
+        if class_type == "a":
+            result = combo.get_functions_of_type(mock_class_type_a)
+            assert result == [phi_1]
+        else:
+            result = combo.get_functions_of_type(mock_class_type_b)
+            assert result == [phi_2]
+
+    def test_combo_class(self, mock_class_type_a, mock_class_type_b):
+        """
+        Test if the required class is a ComboObjectiveFunction.
+        """
+        phi_1, phi_2 = mock_class_type_a(), mock_class_type_b()
+        combo = 2 * phi_1 + 3 * phi_2
+        result = combo.get_functions_of_type(ComboObjectiveFunction)
+        assert result == [combo]
+
+    @pytest.mark.parametrize("class_type", ("a", "b"))
+    def test_nested_combos(self, class_type, mock_class_type_a, mock_class_type_b):
+        """
+        Test when the combo has nested combos.
+        """
+        phi_1, phi_2 = mock_class_type_a(), mock_class_type_b()
+        phi_3, phi_4 = mock_class_type_a(), mock_class_type_b()
+        sub_combo_1 = 2 * phi_1 + 3 * phi_2
+        sub_combo_2 = 5 * phi_3 + 4 * phi_4
+        combo = ComboObjectiveFunction(
+            objfcts=[sub_combo_1, sub_combo_2], multipliers=[1, 1]
+        )
+        # Just check the nested structure before running the tests
+        assert combo.objfcts == [sub_combo_1, sub_combo_2]
+        # Tests the get_functions_of_type method
+        if class_type == "a":
+            result = combo.get_functions_of_type(mock_class_type_a)
+            assert result == [[phi_1], [phi_3]]
+        else:
+            result = combo.get_functions_of_type(mock_class_type_b)
+            assert result == [[phi_2], [phi_4]]
