@@ -62,6 +62,12 @@ class BasePFSimulation(LinearSimulation):
         If True, the simulation will run in parallel. If False, it will
         run in serial. If ``engine`` is not ``"choclo"`` this argument will be
         ignored.
+    ind_active : np.ndarray of int or bool
+
+        .. deprecated:: 0.23.0
+
+           Keyword argument ``ind_active`` is deprecated in favor of
+           ``active_cells`` and will be removed in SimPEG v0.24.0.
 
     Notes
     -----
@@ -89,6 +95,7 @@ class BasePFSimulation(LinearSimulation):
         sensitivity_dtype=np.float32,
         engine="geoana",
         numba_parallel=True,
+        ind_active=None,
         **kwargs,
     ):
         # If deprecated property set with kwargs
@@ -98,20 +105,20 @@ class BasePFSimulation(LinearSimulation):
             )
 
         # Deprecate ind_active argument
-        if (key := "ind_active") in kwargs:
+        if ind_active is not None:
             if active_cells is not None:
                 raise TypeError(
-                    f"Cannot pass both 'active_cells' and '{key}'."
-                    f"'{key}' has been deprecated and will be removed in "
+                    "Cannot pass both 'active_cells' and 'ind_active'."
+                    "'ind_active' has been deprecated and will be removed in "
                     " SimPEG v0.24.0, please use 'active_cells' instead.",
                 )
             warnings.warn(
-                f"'{key}' has been deprecated and will be removed in "
+                "'ind_active' has been deprecated and will be removed in "
                 " SimPEG v0.24.0, please use 'active_cells' instead.",
                 FutureWarning,
                 stacklevel=2,
             )
-            active_cells = kwargs.pop(key)
+            active_cells = ind_active
 
         if "forwardOnly" in kwargs:
             raise AttributeError(
