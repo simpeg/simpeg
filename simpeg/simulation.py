@@ -2,7 +2,6 @@
 Define simulation classes.
 """
 
-from __future__ import annotations  # needed to use type operands in Python 3.8
 import os
 import inspect
 import numpy as np

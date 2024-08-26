@@ -227,12 +227,6 @@ class MultiprocessingMetaSimulation(MetaSimulation):
         to `multiprocessing.cpu_count()`. The number of processes spawned
         will be the minimum of this number and the number of simulations.
 
-    Notes
-    -----
-    On Unix systems with python version 3.8 the default `fork` method of starting the
-    processes has lead to program stalls in certain cases. If you encounter this
-    try setting the start method to `spawn'.
-
     >>> import multiprocessing as mp
     >>> mp.set_start_method("spawn")
     """
