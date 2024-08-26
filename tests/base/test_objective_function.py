@@ -6,6 +6,7 @@ from simpeg import objective_function
 from simpeg.objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from simpeg.objective_function import _validate_multiplier, _need_to_pass_fields
 from simpeg.utils import Zero
+from simpeg.fields import Fields
 
 
 class MockObjectiveFunction(BaseObjectiveFunction):
@@ -544,3 +545,105 @@ class TestNeedsFields:
         """
         phi = MockObjectiveFunction()
         assert _need_to_pass_fields(combo_with_fields(objfcts=[phi]))
+
+
+class TestCallComboObjectiveFunction:
+    """
+    Test calling a ``ComboObjectiveFunction`` with has_fields.
+    """
+
+    @pytest.fixture
+    def mock_simulation(self):
+        from simpeg.simulation import BaseSimulation
+
+        class MockSimulation(BaseSimulation):
+            pass
+
+        return MockSimulation
+
+    @pytest.fixture
+    def mock_with_has_fields(self):
+        """Mock objective function class with ``has_fields``."""
+
+        class MockWithHasField(MockObjectiveFunction):
+
+            def __init__(self, **kwargs):
+                super().__init__(nP=1, **kwargs)  # the model must have a single value
+                self.has_fields = True
+
+            def __call__(self, model, f=None):
+                """
+                Evaluate as the model value times the field "foo" in ``f``.
+                """
+                (value,) = model
+                return value * f.knownFields["foo"]
+
+        return MockWithHasField
+
+    @pytest.fixture
+    def mock_without_fields(self):
+        """Mock objective function class without ``has_fields``."""
+
+        class MockWithoutField(MockObjectiveFunction):
+
+            def __init__(self, **kwargs):
+                super().__init__(nP=1, **kwargs)  # the model must have a single value
+
+            def __call__(self, model, f=None):
+                """
+                Evaluate as the model value times the field "foo" in ``f``.
+                """
+                (value,) = model
+                return value
+
+        return MockWithoutField
+
+    def test_mock_classes(self, mock_simulation, mock_with_has_fields):
+        """Simple test on mock classes."""
+        simulation = mock_simulation()
+        phi = mock_with_has_fields()
+        model = np.array([3.5])
+        fields = Fields(simulation, knownFields={"foo": 3.0})
+        np.testing.assert_allclose(phi(model, fields), 3.5 * 3.0)
+
+    def test_call_combo_with_fields(self, mock_simulation, mock_with_has_fields):
+        """Test calling a combo with a single objective function with fields."""
+        simulation = mock_simulation()
+        phi = mock_with_has_fields()
+        combo = ComboObjectiveFunction(objfcts=[phi], multipliers=[2.0])
+        model = np.array([3.5])
+        fields = Fields(simulation, knownFields={"foo": 3.0})
+        np.testing.assert_allclose(combo(model, [fields]), 2.0 * 3.5 * 3.0)
+
+    def test_call_combo_multiple_objective_with_fields(
+        self, mock_simulation, mock_with_has_fields, mock_without_fields
+    ):
+        """Test calling a combo with a multiple objective functions with fields."""
+        simulation = mock_simulation()
+        phi_1 = mock_with_has_fields()
+        phi_2 = mock_without_fields()
+        combo = ComboObjectiveFunction(objfcts=[phi_1, phi_2], multipliers=[2.0, 5.0])
+        model = np.array([3.5])
+        fields = Fields(simulation, knownFields={"foo": 3.0})
+        np.testing.assert_allclose(
+            combo(model, [fields, None]), 2.0 * 3.5 * 3.0 + 5.0 * 3.5
+        )
+
+    def test_call_zero_multiplier(
+        self, mock_simulation, mock_with_has_fields, mock_without_fields
+    ):
+        """Test calling a combo with a function with multiplier equal to zero."""
+        simulation = mock_simulation()
+        phi_1 = mock_with_has_fields()
+        phi_2 = mock_with_has_fields()
+        phi_3 = mock_without_fields()
+        combo = ComboObjectiveFunction(
+            objfcts=[phi_1, phi_2, phi_3], multipliers=[2.0, 0.0, 5.0]
+        )
+        model = np.array([3.5])
+        fields_1 = Fields(simulation, knownFields={"foo": 3.0})
+        fields_2 = Fields(simulation, knownFields={"foo": -2.0})
+        expected_result = 2.0 * 3.5 * 3.0 + 5.0 * 3.5
+        np.testing.assert_allclose(
+            combo(model, [fields_1, fields_2, None]), expected_result
+        )
