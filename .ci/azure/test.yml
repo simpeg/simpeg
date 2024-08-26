@@ -11,7 +11,7 @@ parameters:
          'tests/examples/test_tutorials_1.py tests/examples/test_tutorials_2.py',
          'tests/examples/test_tutorials_3.py',
          'tests/pf',
-         'tests/dask', # This code bust be tested on its own to avoid modifying the implementation for any other tests.
+         'tests/dask', # This code must be tested on its own to avoid modifying the implementation for any other tests.
          ]
 
 jobs:
