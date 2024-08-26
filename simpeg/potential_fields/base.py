@@ -98,12 +98,6 @@ class BasePFSimulation(LinearSimulation):
         ind_active=None,
         **kwargs,
     ):
-        # If deprecated property set with kwargs
-        if "actInd" in kwargs:
-            raise AttributeError(
-                "actInd was removed in SimPEG 0.17.0, please use 'active_cells'"
-            )
-
         # Deprecate ind_active argument
         if ind_active is not None:
             if active_cells is not None:
