@@ -67,7 +67,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             )
             assert np.all(src.orientation == orient_vec)
 
-    def test_MagDipole(self):
+    def test_ElectricDipole(self):
         print("\ntesting ElectricDipole assignments")
 
         for orient in ["x", "y", "z", "X", "Y", "Z"]:
