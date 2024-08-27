@@ -362,17 +362,6 @@ class Data:
         self.dobs = v
 
 
-class ComplexData(Data):
-    r"""Class for defining complex data in SimPEG.
-
-    The ``ComplexData`` class is a :py:class:`simpeg.data.Data` for complex data.
-
-    See :py:class:`simpeg.data.Data` for a description of the parameters and more info.
-    """
-
-    dobs = None
-
-
 class SyntheticData(Data):
     r"""Synthetic data class.
 
