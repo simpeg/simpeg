@@ -67,6 +67,35 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             )
             assert np.all(src.orientation == orient_vec)
 
+    def test_MagDipole(self):
+        print("\ntesting ElectricDipole assignments")
+
+        for orient in ["x", "y", "z", "X", "Y", "Z"]:
+            src = fdem.sources.ElectricDipole(
+                [],
+                frequency=self.frequency,
+                location=np.r_[0.0, 0.0, 0.0],
+                orientation=orient,
+            )
+            # test assignments
+            assert np.all(src.location == np.r_[0.0, 0.0, 0.0])
+            assert src.frequency == self.frequency
+            assert src.strength == 1.0
+
+            if orient.upper() == "X":
+                orient_vec = np.r_[1.0, 0.0, 0.0]
+            elif orient.upper() == "Y":
+                orient_vec = np.r_[0.0, 1.0, 0.0]
+            elif orient.upper() == "Z":
+                orient_vec = np.r_[0.0, 0.0, 1.0]
+
+            print(
+                " {0} component. src: {1}, expected: {2}".format(
+                    orient, src.orientation, orient_vec
+                )
+            )
+            assert np.all(src.orientation == orient_vec)
+
     def test_MagDipoleSimpleFail(self):
         print("\ntesting MagDipole error handling")
 

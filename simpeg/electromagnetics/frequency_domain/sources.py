@@ -723,6 +723,93 @@ class MagDipole_Bfield(MagDipole):
         return mkvc(b)
 
 
+class ElectricDipole(BaseFDEMSrc):
+    r"""
+    Point electric dipole source.
+
+
+    Parameters
+    ----------
+    receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
+        A list of FDEM receivers
+    frequency : float
+        Source frequency
+    location : (dim) numpy.ndarray, default: numpy.r_[0., 0., 0.]
+        Source location.
+    strength : float, default: 1.0
+        Source strength (Am).
+    orientation : {'z', x', 'y'} or (dim) numpy.ndarray
+        Orientation of the dipole.
+    """
+
+    def __init__(
+        self,
+        receiver_list,
+        frequency,
+        location=None,
+        strength=1.0,
+        orientation="x",
+        **kwargs,
+    ):
+        if location is None:
+            location = np.r_[0.0, 0.0, 0.0]
+
+        super().__init__(
+            receiver_list=receiver_list,
+            frequency=frequency,
+            location=location,
+            **kwargs,
+        )
+
+        self.strength = strength
+        self.orientation = orientation
+
+    @property
+    def location(self):
+        """Location of the dipole
+
+        Returns
+        -------
+        (3) numpy.ndarray of float
+            xyz dipole location
+        """
+        return self._location
+
+    @location.setter
+    def location(self, vec):
+        self._location = validate_location_property("location", vec, 3)
+
+    @property
+    def strength(self):
+        """Strength of the electric dipole (:math:`Am`)
+
+        Returns
+        -------
+        float
+            Strength of the electric dipole (:math:`Am`)
+        """
+        return self._strength
+
+    @strength.setter
+    def strength(self, value):
+        self._strength = validate_float("strength", value, min_val=0)
+
+    @property
+    def orientation(self):
+        """Orientation of the dipole as a normalized vector
+
+        Returns
+        -------
+        (3) numpy.ndarray of float
+            dipole orientation, normalized to unit magnitude
+        """
+        return self._orientation
+
+    @orientation.setter
+    def orientation(self, var):
+        self._orientation = validate_direction("orientation", var, dim=3)
+
+
 class CircularLoop(MagDipole):
     """
     Circular loop magnetic source calculated by taking the curl of a magnetic
