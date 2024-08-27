@@ -738,7 +738,7 @@ class ElectricDipole(BaseFDEMSrc):
         Source location.
     strength : float, default: 1.0
         Source strength (Am).
-    orientation : {'z', x', 'y'} or (dim) numpy.ndarray
+    orientation : {x', 'y', 'z'} or (dim) numpy.ndarray
         Orientation of the dipole.
     """
 
