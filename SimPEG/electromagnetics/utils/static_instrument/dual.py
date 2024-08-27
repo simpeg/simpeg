@@ -109,7 +109,7 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
     @property
     def hm_data(self):
         dbdt = self.xyz.dbdt_ch2gt.values
-        if "dbdt_inuse_ch1gt" in self.xyz.layer_data:
+        if "dbdt_inuse_ch2gt" in self.xyz.layer_data:
             dbdt = np.where(self.xyz.dbdt_inuse_ch2gt == 0, np.nan, dbdt)
         tiltcorrection = self.correct_tilt_pitch_for1Dinv
         tiltcorrection = np.tile(tiltcorrection, (dbdt.shape[1], 1)).T
