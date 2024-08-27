@@ -96,10 +96,16 @@ class TestGravityEquivalentSources:
     def mapping(self, tree_mesh):
         return simpeg.maps.IdentityMap(nP=tree_mesh.n_cells)
 
-    @pytest.fixture
-    def simulation(self, tree_mesh, mesh_bottom, mesh_top, survey, mapping):
+    @pytest.fixture(params=("geoana", "choclo"))
+    def simulation(self, tree_mesh, mesh_bottom, mesh_top, survey, mapping, request):
+        engine = request.param
         simulation = gravity.SimulationEquivalentSourceLayer(
-            tree_mesh, mesh_top, mesh_bottom, survey=survey, rhoMap=mapping
+            tree_mesh,
+            mesh_top,
+            mesh_bottom,
+            survey=survey,
+            rhoMap=mapping,
+            engine=engine,
         )
         return simulation
 
