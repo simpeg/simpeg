@@ -230,7 +230,7 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
             _check_shape(weights, (n_components,), "weights")
 
         # check range
-        if any(np.less(weights, 0.0)) or any(np.greater(weights, 1.0)):
+        if (weights < 0.0).any() or (weights > 1.0).any():
             raise ValueError(
                 "The parameter 'weights' should be in the range "
                 "[0, 1], but got max value %.5f, min value %.5f"
