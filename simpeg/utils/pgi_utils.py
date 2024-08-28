@@ -212,10 +212,12 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
             The proportions of components of each mixture.
         n_components : int
             Number of components.
+        n_samples : int or None
+            Number of samples.
 
         Returns
         -------
-        weights : array, shape (n_components,)
+        weights : (n_components,) or (n_samples, n_components) numpy.ndarray
         """
 
         if len(weights.shape) == 2:
