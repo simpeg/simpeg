@@ -219,7 +219,7 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
         -------
         weights : (n_components,) or (n_samples, n_components) numpy.ndarray
         """
-
+        weights = np.asarray(weights)
         if len(weights.shape) == 2:
             weights = check_array(
                 weights, dtype=[np.float64, np.float32], ensure_2d=True
