@@ -365,7 +365,7 @@ class BasePFSimulation(LinearSimulation):
             nodes = self.mesh.nodes
         else:
             raise TypeError(f"Invalid mesh of type {self.mesh.__class__.__name__}.")
-        # Get original cell_nodes but only for active cells
+        # Get original cell_nodes
         cell_nodes = self.mesh.cell_nodes
         # If all cells in the mesh are active, return nodes and cell_nodes
         if self.nC == self.mesh.n_cells:
