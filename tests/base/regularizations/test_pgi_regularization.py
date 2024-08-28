@@ -485,16 +485,7 @@ def test_removed_mref():
 
 
 class TestCheckWeights:
-    """Test the ``WeightedGaussianMixture._check_weights`` method.
-
-    Test:
-    * Valid 1d and 2d weights
-    * Invalid weights (for 1d and 2d):
-        * with wrong shape
-        * with weights <0
-        * with weights >0
-        * normalization?
-    """
+    """Test the ``WeightedGaussianMixture._check_weights`` method."""
 
     VALID_ARGS = {
         "1d-array": (np.array([0.5, 0.2, 0.3]), 3, None),
