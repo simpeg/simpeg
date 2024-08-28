@@ -407,8 +407,6 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
     """
 
     def __init__(self, mesh, cell_z_top, cell_z_bottom, **kwargs):
-        if mesh.dim != 2:
-            raise AttributeError("Mesh to equivalent source layer must be 2D.")
 
         super().__init__(mesh, **kwargs)
 
@@ -424,6 +422,8 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
                 "cells, and match the number of active cells.",
             )
 
+        self._cell_z_top, self._cell_z_bottom = cell_z_top, cell_z_bottom
+
         all_nodes = self._nodes[self._unique_inv]
         all_nodes = [
             np.c_[all_nodes[0], cell_z_bottom],
@@ -437,6 +437,32 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
         ]
         self._nodes = np.stack(all_nodes, axis=0)
         self._unique_inv = None
+
+    @property
+    def cell_z_top(self) -> np.ndarray:
+        """
+        Elevations for the top face of all cells in the layer.
+        """
+        return self._cell_z_top
+
+    @property
+    def cell_z_bottom(self) -> np.ndarray:
+        """
+        Elevations for the bottom face of all cells in the layer.
+        """
+        return self._cell_z_bottom
+
+    def _check_engine_and_mesh_dimensions(self):
+        """
+        Check dimensions of the mesh
+
+        Overwrite the parent's method: the equivalent sources class needs 2D
+        meshes, while the potential field simulations work only with 3D meshes.
+
+        This check will run for any given engine.
+        """
+        if self.mesh.dim != 2:
+            raise AttributeError("Mesh to equivalent source layer must be 2D.")
 
 
 def progress(iteration, prog, final):
