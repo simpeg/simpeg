@@ -1033,20 +1033,17 @@ def validate_ndarray_with_shape(property_name, var, shape=None, dtype=float):
         dtypes = (dtype,)
     else:
         dtypes = dtype
-
-    # If var is already a numpy array of an allowed dtype, all good
-    if isinstance(var, np.ndarray) and var.dtype in dtypes:
-        bad_type = False
-    # Else, loop over dtypes and try to cast.
-    else:
-        for dtype in dtypes:
-            try:
+    for dtype in dtypes:
+        try:
+            if isinstance(var, np.ndarray):
+                var = var.astype(dtype, casting='safe', copy=False)
+            else:
                 var = np.asarray(var, dtype=dtype)
-                bad_type = False
-                break
-            except (TypeError, ValueError) as err:
-                bad_type = True
-                raised_err = err
+            bad_type = False
+            break
+        except (TypeError, ValueError) as err:
+            bad_type = True
+            raised_err = err
 
     if bad_type:
         raise TypeError(
