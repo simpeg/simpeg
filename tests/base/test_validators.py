@@ -224,7 +224,7 @@ def test_ndarray_validation():
     np.testing.assert_equal(out, np.array([3.0j, 4.0j, 5.0j]))
 
     out = validate_ndarray_with_shape(
-        "array_prop", np.array(["3j", "4j", "5j"]), dtype=(float, complex)
+        "array_prop", np.array([3j, 4j, 5j]), dtype=(float, complex)
     )
     assert np.issubdtype(out.dtype, complex)
     np.testing.assert_equal(out, np.array([3.0j, 4.0j, 5.0j]))
