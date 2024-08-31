@@ -1035,7 +1035,10 @@ def validate_ndarray_with_shape(property_name, var, shape=None, dtype=float):
         dtypes = dtype
     for dtype in dtypes:
         try:
-            var = np.asarray(var, dtype=dtype)
+            if isinstance(var, np.ndarray):
+                var = var.astype(dtype, casting="safe", copy=False)
+            else:
+                var = np.asarray(var, dtype=dtype)
             bad_type = False
             break
         except (TypeError, ValueError) as err:
