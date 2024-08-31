@@ -286,6 +286,13 @@ class ValidationInInversion(unittest.TestCase):
         )
 
         assert irls_directive.cooling_factor == 3
+        assert irls_directive.metrics is not None
+
+        #TODO Move these assertion test to the 'test_validation_in_inversion' after update
+        with self.assertRaises(AssertionError):
+            inversion.BaseInversion(
+                invProb, directiveList=[beta_schedule, irls_directive]
+            )
 
         with self.assertRaises(AssertionError):
             inversion.BaseInversion(
@@ -297,13 +304,20 @@ class ValidationInInversion(unittest.TestCase):
             inversion.BaseInversion(
                 invProb, directiveList=[irls_directive, spherical_weights]
             )
+
+        update_Jacobi = directives.UpdatePreconditioner()
+        with self.assertRaises(AssertionError):
+            inversion.BaseInversion(
+                invProb, directiveList=[update_Jacobi, irls_directive]
+            )
+
         invProb.phi_d = 1.0
         self.opt.iter = 3
         invProb.model = np.random.randn(reg.regularization_mesh.nC)
         inv = inversion.BaseInversion(invProb, directiveList=[irls_directive])
 
         irls_directive.initialize()
-        assert irls_directive.metrics.input_norms == [input_norms]
+        assert irls_directive.metrics.input_norms == [input_norms, None]
         assert reg.norms == [2.0, 2.0, 2.0, 2.0]
 
         irls_directive.inversion = inv
@@ -316,6 +330,22 @@ class ValidationInInversion(unittest.TestCase):
         irls_directive.endIter()
 
         assert self.opt.stopNextIteration
+
+        # Test stopping criteria based on max_irls_iter
+        irls_directive.max_irls_iterations = 2
+        assert irls_directive.stopping_criteria()
+
+        # Test beta re-adjustment down
+        invProb.phi_d = 4.0
+        irls_directive.misfit_tolerance = 0.1
+        irls_directive.adjust_cooling_schedule()
+        assert irls_directive.cooling_factor == 2.0
+
+        # Test beta re-adjustment up
+        invProb.phi_d = 0.5
+        irls_directive.adjust_cooling_schedule()
+        assert irls_directive.cooling_factor == 0.5
+
 
     def test_spherical_weights(self):
         reg = regularization.Sparse(self.mesh)
