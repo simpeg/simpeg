@@ -288,7 +288,7 @@ class ValidationInInversion(unittest.TestCase):
         assert irls_directive.cooling_factor == 3
         assert irls_directive.metrics is not None
 
-        #TODO Move these assertion test to the 'test_validation_in_inversion' after update
+        # TODO Move these assertion test to the 'test_validation_in_inversion' after update
         with self.assertRaises(AssertionError):
             inversion.BaseInversion(
                 invProb, directiveList=[beta_schedule, irls_directive]
