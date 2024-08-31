@@ -71,7 +71,7 @@ This practice also allows you to uninstall SimPEG if so desired:
 
 .. code::
 
-    pip uninstall SimPEG
+    pip uninstall simpeg
 
 .. note::
 
@@ -84,7 +84,7 @@ This practice also allows you to uninstall SimPEG if so desired:
 Check your installation
 -----------------------
 
-You should be able to open a terminal within SimPEG/tutorials and run an
+You should be able to open a terminal within simpeg/tutorials and run an
 example, i.e.
 
 .. code::
