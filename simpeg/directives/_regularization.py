@@ -309,6 +309,9 @@ class UpdateIRLS(InversionDirective):
             self.invProb.beta /= self.cooling_factor
 
     def start_irls(self):
+        """
+        Start the IRLS iterations by computing the initial threshold values.
+        """
         if self.verbose:
             print(
                 "Reached starting chifact with l2-norm regularization:"
