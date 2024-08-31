@@ -346,7 +346,6 @@ class ValidationInInversion(unittest.TestCase):
         irls_directive.adjust_cooling_schedule()
         assert irls_directive.cooling_factor == 0.5
 
-
     def test_spherical_weights(self):
         reg = regularization.Sparse(self.mesh)
         projection = maps.Projection(self.mesh.n_cells, np.arange(self.mesh.n_cells))
