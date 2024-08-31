@@ -26,6 +26,7 @@ from .utils import (
     validate_string,
     validate_integer,
 )
+import uuid
 
 try:
     from pymatsolver import Pardiso as DefaultSolver
@@ -101,6 +102,8 @@ class BaseSimulation(props.HasModel):
         self.sensitivity_path = sensitivity_path
         self.counter = counter
         self.verbose = verbose
+
+        self._uuid = uuid.uuid4()
 
         super().__init__(**kwargs)
 

@@ -2,7 +2,8 @@ parameters:
   os : ['ubuntu-latest']
   py_vers: ['3.10']
   test: ['tests/em',
-         'tests/base tests/flow tests/seis tests/utils tests/meta',
+         'tests/base tests/flow tests/seis tests/utils',
+         'tests/meta',
          'tests/docs -s -v',
          'tests/examples/test_examples_1.py',
          'tests/examples/test_examples_2.py',
@@ -10,7 +11,7 @@ parameters:
          'tests/examples/test_tutorials_1.py tests/examples/test_tutorials_2.py',
          'tests/examples/test_tutorials_3.py',
          'tests/pf',
-         'tests/dask', # This must be ran on it's own to avoid modifying the code from any other tests.
+         'tests/dask', # This code must be tested on its own to avoid modifying the implementation for any other tests.
          ]
 
 jobs:
