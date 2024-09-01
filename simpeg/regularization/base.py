@@ -1,6 +1,5 @@
 import numpy as np
 from discretize.base import BaseMesh
-from typing import TYPE_CHECKING
 from .. import maps
 from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .. import utils
@@ -8,8 +7,7 @@ from .regularization_mesh import RegularizationMesh
 
 from simpeg.utils.code_utils import deprecate_property, validate_ndarray_with_shape
 
-if TYPE_CHECKING:
-    from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix
 
 
 class BaseRegularization(BaseObjectiveFunction):
