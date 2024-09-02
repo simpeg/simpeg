@@ -115,7 +115,6 @@ class ValidationInInversion(unittest.TestCase):
 
         # Here is where the norms are applied
         IRLS = directives.Update_IRLS(f_min_change=1e-4, misfit_tolerance=1e-2)
-        beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights()
         with self.assertRaises(AssertionError):
@@ -123,7 +122,6 @@ class ValidationInInversion(unittest.TestCase):
             # (IRLS needs to be before update_Jacobi)
             inversion.BaseInversion(
                 invProb, directiveList=[betaest, update_Jacobi, IRLS]
-
             )
 
         with self.assertRaises(AssertionError):
