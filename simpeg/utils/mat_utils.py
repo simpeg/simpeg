@@ -211,28 +211,28 @@ def eigenvalue_by_power_iteration(
     # Power iteration: estimate eigenvector
     for _ in range(n_pw_iter):
         x1 = 0.0
-        for j, (mult, obj) in enumerate(
-            zip(combo_objfct.multipliers, combo_objfct.objfcts)
+        for j, obj in enumerate(
+            combo_objfct.objfcts
         ):
             if hasattr(obj, "simulation"):  # if data misfit term
                 aux = obj.deriv2(model, v=x0, f=fields_list[j])
                 if not isinstance(aux, Zero):
-                    x1 += mult * aux
+                    x1 += obj.multiplier * aux
             else:
                 aux = obj.deriv2(model, v=x0)
                 if not isinstance(aux, Zero):
-                    x1 += mult * aux
+                    x1 += obj.multiplier * aux
         x0 = x1 / np.linalg.norm(x1)
 
     # Compute highest eigenvalue from estimated eigenvector
     eigenvalue = 0.0
-    for j, (mult, obj) in enumerate(
-        zip(combo_objfct.multipliers, combo_objfct.objfcts)
+    for j, obj in enumerate(
+        combo_objfct.objfcts
     ):
         if hasattr(obj, "simulation"):  # if data misfit term
-            eigenvalue += mult * x0.dot(obj.deriv2(model, v=x0, f=fields_list[j]))
+            eigenvalue += obj.multiplier * x0.dot(obj.deriv2(model, v=x0, f=fields_list[j]))
         else:
-            eigenvalue += mult * x0.dot(
+            eigenvalue += obj.multiplier * x0.dot(
                 obj.deriv2(
                     model,
                     v=x0,
