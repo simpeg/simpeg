@@ -297,9 +297,7 @@ class BaseObjectiveFunction(BaseSimPEG):
             else:
                 objective_functions.append(instance)
 
-        combo = ComboObjectiveFunction(
-            objfcts=objective_functions
-        )
+        combo = ComboObjectiveFunction(objfcts=objective_functions)
         return combo
 
     def __radd__(self, other):

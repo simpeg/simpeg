@@ -1621,18 +1621,30 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         if "objfcts" not in kwargs:
             objfcts = [
                 Smallness(mesh=self.regularization_mesh, multiplier=self.alpha_s),
-                SmoothnessFirstOrder(mesh=self.regularization_mesh, orientation="x", multiplier=self.alpha_x),
-                SmoothnessSecondOrder(mesh=self.regularization_mesh, orientation="x", multiplier=self.alpha_xx),
+                SmoothnessFirstOrder(
+                    mesh=self.regularization_mesh,
+                    orientation="x",
+                    multiplier=self.alpha_x,
+                ),
+                SmoothnessSecondOrder(
+                    mesh=self.regularization_mesh,
+                    orientation="x",
+                    multiplier=self.alpha_xx,
+                ),
             ]
 
             if mesh.dim > 1:
                 objfcts.extend(
                     [
                         SmoothnessFirstOrder(
-                            mesh=self.regularization_mesh, orientation="y", multiplier=self.alpha_y
+                            mesh=self.regularization_mesh,
+                            orientation="y",
+                            multiplier=self.alpha_y,
                         ),
                         SmoothnessSecondOrder(
-                            mesh=self.regularization_mesh, orientation="y", multiplier=self.alpha_yy
+                            mesh=self.regularization_mesh,
+                            orientation="y",
+                            multiplier=self.alpha_yy,
                         ),
                     ]
                 )
@@ -1641,10 +1653,14 @@ class WeightedLeastSquares(ComboObjectiveFunction):
                 objfcts.extend(
                     [
                         SmoothnessFirstOrder(
-                            mesh=self.regularization_mesh, orientation="z", multiplier=self.alpha_z
+                            mesh=self.regularization_mesh,
+                            orientation="z",
+                            multiplier=self.alpha_z,
                         ),
                         SmoothnessSecondOrder(
-                            mesh=self.regularization_mesh, orientation="z", multiplier=self.alpha_zz
+                            mesh=self.regularization_mesh,
+                            orientation="z",
+                            multiplier=self.alpha_zz,
                         ),
                     ]
                 )
