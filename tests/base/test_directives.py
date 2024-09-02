@@ -21,7 +21,7 @@ class directivesValidation(unittest.TestCase):
     def test_validation_pass(self):
         betaest = directives.BetaEstimate_ByEig()
 
-        IRLS = directives.Update_IRLS(f_min_change=1e-4, misfit_tolerance=1e-2)
+        IRLS = directives.Update_IRLS(f_min_change=1e-4, beta_tol=1e-2)
         beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
 
         update_Jacobi = directives.UpdatePreconditioner()
@@ -33,7 +33,7 @@ class directivesValidation(unittest.TestCase):
     def test_validation_fail(self):
         betaest = directives.BetaEstimate_ByEig()
 
-        IRLS = directives.Update_IRLS(f_min_change=1e-4, misfit_tolerance=1e-2)
+        IRLS = directives.Update_IRLS(f_min_change=1e-4, beta_tol=1e-2)
         update_Jacobi = directives.UpdatePreconditioner()
         beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
 
@@ -55,7 +55,7 @@ class directivesValidation(unittest.TestCase):
     def test_validation_warning(self):
         betaest = directives.BetaEstimate_ByEig()
 
-        IRLS = directives.Update_IRLS(f_min_change=1e-4, misfit_tolerance=1e-2)
+        IRLS = directives.Update_IRLS(f_min_change=1e-4, beta_tol=1e-2)
         beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
         dList = [betaest, IRLS, beta_schedule]
         directiveList = directives.DirectiveList(*dList)
@@ -114,7 +114,7 @@ class ValidationInInversion(unittest.TestCase):
         betaest = directives.BetaEstimate_ByEig()
 
         # Here is where the norms are applied
-        IRLS = directives.Update_IRLS(f_min_change=1e-4, misfit_tolerance=1e-2)
+        IRLS = directives.Update_IRLS(f_min_change=1e-4, beta_tol=1e-2)
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights()
         with self.assertRaises(AssertionError):
