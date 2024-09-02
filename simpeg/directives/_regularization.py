@@ -219,12 +219,9 @@ class UpdateIRLS(InversionDirective):
             Chi factor to compute the target misfit from.
         """
         value = 0
-        if isinstance(self.survey, list):
-            for survey in self.survey:
-                value += survey.nD * chi_factor
 
-        else:
-            value = self.survey.nD * chi_factor
+        for survey in self.survey:
+            value += survey.nD * chi_factor
 
         return value
 
@@ -254,10 +251,10 @@ class UpdateIRLS(InversionDirective):
         input_norms = []
         for reg in self.reg.objfcts:
             if not isinstance(reg, Sparse):
-                continue
-
-            input_norms += [reg.norms]
-            reg.norms = [2.0 for _ in reg.objfcts]
+                input_norms += [None]
+            else:
+                input_norms += [reg.norms]
+                reg.norms = [2.0 for _ in reg.objfcts]
 
         self._metrics = IRLSMetrics(input_norms=input_norms)
 
@@ -312,17 +309,16 @@ class UpdateIRLS(InversionDirective):
             self.invProb.beta /= self.cooling_factor
 
     def start_irls(self):
+        """
+        Start the IRLS iterations by computing the initial threshold values.
+        """
         if self.verbose:
             print(
                 "Reached starting chifact with l2-norm regularization:"
                 + " Start IRLS steps..."
             )
 
-        if getattr(self.opt, "iter", None) is None:
-            self.metrics.start_irls_iter = 0
-        else:
-            self.metrics.start_irls_iter = self.opt.iter
-
+        self.metrics.start_irls_iter = getattr(self.opt, "iter", 0)
         self.invProb.phi_m_last = self.reg(self.invProb.model)
 
         # Either use the supplied irls_threshold, or fix base on distribution of
@@ -354,8 +350,8 @@ class UpdateIRLS(InversionDirective):
         self_ind = directive_list.index(self)
         lin_precond_ind = [isinstance(d, UpdatePreconditioner) for d in directive_list]
 
-        if any(lin_precond_ind):
-            assert lin_precond_ind.index(True) > self_ind, (
+        if any(lin_precond_ind) and lin_precond_ind.index(True) < self_ind:
+            raise AssertionError(
                 "The directive 'UpdatePreconditioner' must be after Update_IRLS "
                 "in the directiveList"
             )

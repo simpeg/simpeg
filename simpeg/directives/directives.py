@@ -1,5 +1,7 @@
 from __future__ import annotations  # needed to use type operands in Python 3.8
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
@@ -40,6 +42,10 @@ from ..utils.code_utils import (
     validate_float,
     validate_ndarray_with_shape,
 )
+
+if TYPE_CHECKING:
+    from ..simulation import BaseSimulation
+    from ..survey import BaseSurvey
 
 
 class InversionDirective:
@@ -190,7 +196,7 @@ class InversionDirective:
         self._dmisfit = value
 
     @property
-    def survey(self):
+    def survey(self) -> list[BaseSurvey]:
         """Return survey for all data misfits
 
         Assuming that ``dmisfit`` is always a ``ComboObjectiveFunction``,
@@ -205,7 +211,7 @@ class InversionDirective:
         return [objfcts.simulation.survey for objfcts in self.dmisfit.objfcts]
 
     @property
-    def simulation(self):
+    def simulation(self) -> list[BaseSimulation]:
         """Return simulation for all data misfits.
 
         Assuming that ``dmisfit`` is always a ``ComboObjectiveFunction``,
