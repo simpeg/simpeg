@@ -277,7 +277,6 @@ update_IRLS = directives.UpdateIRLS(
     irls_cooling_factor=1.5,
     misfit_tolerance=1e-2,
 )
-
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
