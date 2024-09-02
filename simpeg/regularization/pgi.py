@@ -1222,7 +1222,7 @@ class PGI(ComboObjectiveFunction):
     def alpha_pgi(self, value):
         value = validate_float("alpha_pgi", value, min_val=0.0)
         self._alpha_pgi = value
-        self._multipliers[0] = value
+        self.objfcts[0].multiplier = value
 
     @property
     def gmm(self):

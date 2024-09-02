@@ -399,6 +399,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         self,
         objfcts: list[BaseObjectiveFunction] | None = None,
         unpack_on_add=True,
+        multiplier=1.0,
     ):
         # Define default lists if None
         if objfcts is None:
@@ -413,7 +414,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         else:
             nP = None
 
-        super().__init__(nP=nP)
+        super().__init__(nP=nP, multiplier=multiplier)
 
         self.objfcts = objfcts
 

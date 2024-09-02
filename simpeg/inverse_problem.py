@@ -319,25 +319,24 @@ class BaseInvProblem:
             self.phi_y = 0.0
             self.phi_z = 0.0
 
-            if not isinstance(self.reg, WeightedLeastSquares):
-                regs = self.reg.objfcts
-                mults = self.reg.multipliers
-            else:
-                regs = [self.reg]
-                mults = [1.0]
-            for reg, mult in zip(regs, mults):
-                if isinstance(reg, Sparse):
-                    i_s, i_x, i_y, i_z = 0, 1, 2, 3
+            funs = []
+            for reg in self.reg.objfcts:
+                if isinstance(reg, ComboObjectiveFunction):
+                    funs += reg.objfcts
                 else:
-                    i_s, i_x, i_y, i_z = 0, 1, 3, 5
-                dim = reg.regularization_mesh.dim
-                self.phi_s += mult * reg.objfcts[i_s](m) * reg.alpha_s
-                self.phi_x += mult * reg.objfcts[i_x](m) * reg.alpha_x
-                if dim > 1:
-                    self.phi_z += mult * reg.objfcts[i_y](m) * reg.alpha_y
-                if dim > 2:
-                    self.phi_y = self.phi_z
-                    self.phi_z += mult * reg.objfcts[i_z](m) * reg.alpha_z
+                    funs += [reg]
+
+            for fun in funs:
+                str_pair = getattr(fun, "_multiplier_pairs", None)
+                if not isinstance(str_pair, str):
+                    continue
+
+                obj_tolal = getattr(self, f"phi_{str_pair[-1]}", None)
+
+                if obj_tolal is None:
+                    continue
+
+                obj_tolal += self.reg.multiplier * fun(m) * fun.multiplier
 
         phi = phi_d + self.beta * phi_m
 
