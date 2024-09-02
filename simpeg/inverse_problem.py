@@ -97,7 +97,7 @@ class BaseInvProblem:
         self._counter = value
 
     @property
-    def dmisfit(self):
+    def dmisfit(self) -> ComboObjectiveFunction:
         """The data misfit.
 
         Returns
@@ -114,7 +114,7 @@ class BaseInvProblem:
         self._dmisfit = value
 
     @property
-    def reg(self):
+    def reg(self) -> ComboObjectiveFunction:
         """The regularization object for the inversion
 
         Returns
