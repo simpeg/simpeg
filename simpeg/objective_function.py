@@ -293,7 +293,9 @@ class BaseObjectiveFunction(BaseSimPEG):
         objective_functions = []
         for instance in (self, other):
             if isinstance(instance, ComboObjectiveFunction) and instance._unpack_on_add:
-                objective_functions += instance.objfcts
+                for obj in instance.objfcts:
+                    obj.multiplier *= instance.multiplier
+                    objective_functions.append(obj)
             else:
                 objective_functions.append(instance)
 

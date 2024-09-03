@@ -254,6 +254,7 @@ class RegularizationTests(unittest.TestCase):
         self.assertTrue(2 * reg1(m) + reg2(m) == reg_b(m))
         reg_b.test(eps=TOL)
 
+        reg1.multiplier = 1.0
         reg_c = reg1 + reg2 / 2
         self.assertTrue(len(reg_c) == 2)
         self.assertTrue(reg1(m) + 0.5 * reg2(m) == reg_c(m))
