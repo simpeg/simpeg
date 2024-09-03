@@ -1,3 +1,4 @@
+from typing import TYPE_CHECKING
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
@@ -5,7 +6,7 @@ import os
 import scipy.sparse as sp
 from ..typing import RandomSeed
 from ..data_misfit import BaseDataMisfit
-from ..objective_function import ComboObjectiveFunction
+from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from ..maps import IdentityMap, Wires
 from ..regularization import (
     WeightedLeastSquares,
@@ -31,12 +32,17 @@ from ..utils import (
     validate_string,
 )
 from ..utils.code_utils import (
+    deprecate_class,
     deprecate_property,
     validate_type,
     validate_integer,
     validate_float,
     validate_ndarray_with_shape,
 )
+
+if TYPE_CHECKING:
+    from ..simulation import BaseSimulation
+    from ..survey import BaseSurvey
 
 
 class InversionDirective:
@@ -139,7 +145,7 @@ class InversionDirective:
         return self.invProb.opt
 
     @property
-    def reg(self):
+    def reg(self) -> BaseObjectiveFunction:
         """Regularization associated with the directive.
 
         Returns
@@ -163,7 +169,7 @@ class InversionDirective:
         self._reg = value
 
     @property
-    def dmisfit(self):
+    def dmisfit(self) -> BaseObjectiveFunction:
         """Data misfit associated with the directive.
 
         Returns
@@ -187,7 +193,7 @@ class InversionDirective:
         self._dmisfit = value
 
     @property
-    def survey(self):
+    def survey(self) -> list[BaseSurvey]:
         """Return survey for all data misfits
 
         Assuming that ``dmisfit`` is always a ``ComboObjectiveFunction``,
@@ -202,7 +208,7 @@ class InversionDirective:
         return [objfcts.simulation.survey for objfcts in self.dmisfit.objfcts]
 
     @property
-    def simulation(self):
+    def simulation(self) -> list[BaseSimulation]:
         """Return simulation for all data misfits.
 
         Assuming that ``dmisfit`` is always a ``ComboObjectiveFunction``,
@@ -1962,6 +1968,7 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
         self.outDict[self.opt.iter] = iterDict
 
 
+@deprecate_class(removal_version="0.24.0", error=False)
 class Update_IRLS(InversionDirective):
     f_old = 0
     f_min_change = 1e-2
