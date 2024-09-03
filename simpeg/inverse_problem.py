@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse as sp
 import gc
 from .data_misfit import BaseDataMisfit
-from .regularization import BaseRegularization, WeightedLeastSquares, Sparse
+from .regularization import BaseRegularization
 from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .optimization import Minimize
 from .utils import (
