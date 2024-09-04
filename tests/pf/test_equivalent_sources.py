@@ -1,7 +1,7 @@
 import pytest
 
 import numpy as np
-from discretize.utils import mesh_builder_xyz, mkvc, refine_tree_xyz
+from discretize.utils import mesh_builder_xyz, mkvc
 
 import simpeg
 from simpeg.optimization import ProjectedGNCG
@@ -18,26 +18,21 @@ def create_grid(x_range, y_range, spacing):
     return x, y
 
 
-@pytest.fixture
-def tree_mesh(coordinates):
+@pytest.fixture(params=["tensor", "tree"])
+def mesh(coordinates, request):
     """Sample 2D mesh to use with equivalent sources."""
+    mesh_type = request.param
     # Define parameters for building the mesh
     h = [5, 5]
     padDist = np.ones((2, 2)) * 100
-    nCpad = [2, 4]
     # Build mesh
     mesh = mesh_builder_xyz(
-        coordinates[:, :2], h, padding_distance=padDist, mesh_type="TREE"
+        coordinates[:, :2], h, padding_distance=padDist, mesh_type=mesh_type
     )
-    # Refine mesh
-    mesh = refine_tree_xyz(
-        mesh,
-        coordinates[:, :2],
-        method="radial",
-        octree_levels=nCpad,
-        octree_levels_padding=nCpad,
-        finalize=True,
-    )
+    if mesh_type == "tree":
+        # Refine tree mesh
+        nCpad = [2, 4]
+        mesh.refine_points(coordinates[:, :2], padding_cells_by_level=nCpad)
     return mesh
 
 
@@ -60,11 +55,11 @@ def coordinates():
 
 
 @pytest.fixture
-def block_model(tree_mesh):
+def block_model(mesh):
     """Build a block model."""
     model = simpeg.utils.model_builder.add_block(
-        tree_mesh.cell_centers,
-        np.zeros(tree_mesh.n_cells),
+        mesh.cell_centers,
+        np.zeros(mesh.n_cells),
         np.r_[-20, -20],
         np.r_[20, 20],
         1.0,
@@ -93,14 +88,14 @@ class TestGravityEquivalentSources:
         return density * block_model
 
     @pytest.fixture
-    def mapping(self, tree_mesh):
-        return simpeg.maps.IdentityMap(nP=tree_mesh.n_cells)
+    def mapping(self, mesh):
+        return simpeg.maps.IdentityMap(nP=mesh.n_cells)
 
     @pytest.fixture(params=("geoana", "choclo"))
-    def simulation(self, tree_mesh, mesh_bottom, mesh_top, survey, mapping, request):
+    def simulation(self, mesh, mesh_bottom, mesh_top, survey, mapping, request):
         engine = request.param
         simulation = gravity.SimulationEquivalentSourceLayer(
-            tree_mesh,
+            mesh,
             mesh_top,
             mesh_bottom,
             survey=survey,
@@ -120,13 +115,13 @@ class TestGravityEquivalentSources:
         )
         return data
 
-    def build_inversion(self, tree_mesh, simulation, synthetic_data):
+    def build_inversion(self, mesh, simulation, synthetic_data):
         """Build inversion problem."""
         # Build data misfit and regularization terms
         data_misfit = simpeg.data_misfit.L2DataMisfit(
             simulation=simulation, data=synthetic_data
         )
-        regularization = simpeg.regularization.WeightedLeastSquares(mesh=tree_mesh)
+        regularization = simpeg.regularization.WeightedLeastSquares(mesh=mesh)
         # Choose optimization
         optimization = ProjectedGNCG(
             maxIterLS=5,
@@ -156,12 +151,12 @@ class TestGravityEquivalentSources:
         inversion = simpeg.inversion.BaseInversion(inverse_problem, directives)
         return inversion
 
-    def test_gravity_equivalent_sources(self, tree_mesh, simulation, synthetic_data):
+    def test_gravity_equivalent_sources(self, mesh, simulation, synthetic_data):
         """Test gravity equivalent sources against block model."""
         # Build inversion
-        inversion = self.build_inversion(tree_mesh, simulation, synthetic_data)
+        inversion = self.build_inversion(mesh, simulation, synthetic_data)
         # Run inversion
-        starting_model = np.zeros(tree_mesh.n_cells)
+        starting_model = np.zeros(mesh.n_cells)
         recovered_model = inversion.run(starting_model)
         # Predict data
         prediction = simulation.dpred(recovered_model)
