@@ -193,7 +193,7 @@ class InversionDirective:
         self._dmisfit = value
 
     @property
-    def survey(self) -> list[BaseSurvey]:
+    def survey(self) -> list["BaseSurvey"]:
         """Return survey for all data misfits
 
         Assuming that ``dmisfit`` is always a ``ComboObjectiveFunction``,
@@ -208,7 +208,7 @@ class InversionDirective:
         return [objfcts.simulation.survey for objfcts in self.dmisfit.objfcts]
 
     @property
-    def simulation(self) -> list[BaseSimulation]:
+    def simulation(self) -> list["BaseSimulation"]:
         """Return simulation for all data misfits.
 
         Assuming that ``dmisfit`` is always a ``ComboObjectiveFunction``,
