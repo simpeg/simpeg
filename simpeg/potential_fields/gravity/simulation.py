@@ -83,51 +83,32 @@ def _get_conversion_factor(component):
 
 def _get_cell_bounds(mesh: TensorMesh | TreeMesh):
     """
-    Return the bounds of each cell in the mesh.
+    Bounds of each cell in a 2D TensorMesh or TreeMesh.
 
-    The bounds are defined as ``x_min``, ``x_max``, ``y_min``, ``y_max``,
-    [``z_min``, ``z_max``].
+    The bounds are defined as ``x_min``, ``x_max``, ``y_min``, ``y_max``.
 
     Parameters
     ----------
     mesh : discretize.TensorMesh or discretize.TreeMesh
+        A 2D mesh.
 
     Returns
     -------
-    (n_cells, 2 * n_dim) np.ndarray
+    bounds : (n_cells, 4) array
+        Array with the bounds of each cell in the mesh.
     """
-    if isinstance(mesh, TensorMesh):
-        bounds = np.array([cell.bounds for cell in mesh])
-    elif isinstance(mesh, TreeMesh):
-        bounds = np.array([_get_tree_cell_bounds(cell) for cell in mesh])
-    else:
+    if not isinstance(mesh, (TensorMesh, TreeMesh)):
         raise TypeError(f"Invalid mesh of type {mesh.__class__}.")
-    return bounds
-
-
-def _get_tree_cell_bounds(cell):
-    """
-    Bounds of the TreeCell.
-
-    Coordinates that define the bounds of the cell. Bounds are returned in
-    the following order: ``x1``, ``x2``, ``y1``, ``y2``, ``z1``, ``z2``.
-
-    .. note::
-
-        This should be implemented in discretize.
-
-    Returns
-    -------
-    bounds : (2 * dim) array
-        Array with the cell bounds.
-    """
-    bounds = np.array(
-        [
-            origin_i + factor * h_i
-            for origin_i, h_i in zip(cell.origin, cell.h)
-            for factor in (0, 1)
-        ]
-    )
+    if mesh.dim != 2:
+        raise TypeError(
+            f"Invalid mesh with '{mesh.dim}' dimensions. Only 2D meshes can be passed."
+        )
+    centers, widths = mesh.cell_centers, mesh.h_gridded
+    xmin = centers[:, 0] - widths[:, 0] / 2
+    xmax = centers[:, 0] + widths[:, 0] / 2
+    ymin = centers[:, 1] - widths[:, 1] / 2
+    ymax = centers[:, 1] + widths[:, 1] / 2
+    bounds = np.hstack(tuple(v[:, np.newaxis] for v in (xmin, xmax, ymin, ymax)))
     return bounds
 
 
