@@ -201,12 +201,14 @@ class WeightedGaussianMixture(GaussianMixture):
             The proportions of components of each mixture.
         n_components : int
             Number of components.
+        n_samples : int or None
+            Number of samples.
 
         Returns
         -------
-        weights : array, shape (n_components,)
+        weights : (n_components,) or (n_samples, n_components) numpy.ndarray
         """
-
+        weights = np.asarray(weights)
         if len(weights.shape) == 2:
             weights = check_array(
                 weights, dtype=[np.float64, np.float32], ensure_2d=True
@@ -219,7 +221,7 @@ class WeightedGaussianMixture(GaussianMixture):
             _check_shape(weights, (n_components,), "weights")
 
         # check range
-        if any(np.less(weights, 0.0)) or any(np.greater(weights, 1.0)):
+        if (weights < 0.0).any() or (weights > 1.0).any():
             raise ValueError(
                 "The parameter 'weights' should be in the range "
                 "[0, 1], but got max value %.5f, min value %.5f"
