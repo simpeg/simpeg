@@ -22,7 +22,7 @@ class LCRegularizationMesh(RegularizationMesh):
         self.mesh_radial = mesh[0]
         self.mesh_vertical = mesh[1]
         self.active_edges = active_edges
-        utils.setKwargs(self, **kwargs)
+        utils.set_kwargs(self, **kwargs)
 
     @property
     def active_cells(self) -> np.ndarray:
@@ -349,7 +349,7 @@ class LCRegularizationMesh(RegularizationMesh):
             if self.active_edges is None:
                 self._Paer = utils.speye(self.nE)
             else:
-                ave = self.mesh_vertical.average_face_to_cell
+                # ave = self.mesh_vertical.average_face_to_cell
                 self._Paer = utils.speye(self.nE)[:, self.active_edges]
         return self._Paer
 
