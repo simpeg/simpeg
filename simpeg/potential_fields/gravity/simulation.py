@@ -37,9 +37,46 @@ if choclo is not None:
         return result
 
     @jit(nopython=True)
-    def gravity_uv(easting, northing, upward, radius):
+    def gravity_uv(
+        easting,
+        northing,
+        upward,
+        prism_west,
+        prism_east,
+        prism_south,
+        prism_north,
+        prism_bottom,
+        prism_top,
+        density,
+    ):
         """Forward model the Guv gradiometry component."""
-        raise NotImplementedError()
+        result = 0.5 * (
+            choclo.prism.gravity_nn(
+                easting,
+                northing,
+                upward,
+                prism_west,
+                prism_east,
+                prism_south,
+                prism_north,
+                prism_bottom,
+                prism_top,
+                density,
+            )
+            - choclo.prism.gravity_ee(
+                easting,
+                northing,
+                upward,
+                prism_west,
+                prism_east,
+                prism_south,
+                prism_north,
+                prism_bottom,
+                prism_top,
+                density,
+            )
+        )
+        return result
 
     CHOCLO_KERNELS = {
         "gx": choclo.prism.kernel_e,
