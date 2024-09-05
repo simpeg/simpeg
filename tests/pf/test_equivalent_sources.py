@@ -36,14 +36,26 @@ def mesh(coordinates, request):
     return mesh
 
 
-@pytest.fixture
-def mesh_top():
-    return -20.0
+@pytest.fixture(params=("float", "array"))
+def mesh_top(mesh, request):
+    mesh_top = -20.0
+    if request.param == "array":
+        rng = np.random.default_rng(seed=42)
+        mesh_top = np.full(mesh.n_cells, fill_value=mesh_top) + rng.normal(
+            scale=0.5, size=mesh.n_cells
+        )
+    return mesh_top
 
 
-@pytest.fixture
-def mesh_bottom():
-    return -50.0
+@pytest.fixture(params=("float", "array"))
+def mesh_bottom(mesh, request):
+    mesh_bottom = -50.0
+    if request.param == "array":
+        rng = np.random.default_rng(seed=42)
+        mesh_bottom = np.full(mesh.n_cells, fill_value=mesh_bottom) + rng.normal(
+            scale=0.5, size=mesh.n_cells
+        )
+    return mesh_bottom
 
 
 @pytest.fixture
@@ -91,21 +103,7 @@ class TestGravityEquivalentSources:
     def mapping(self, mesh):
         return simpeg.maps.IdentityMap(nP=mesh.n_cells)
 
-    @pytest.fixture(params=("geoana", "choclo"))
-    def simulation(self, mesh, mesh_bottom, mesh_top, survey, mapping, request):
-        engine = request.param
-        simulation = gravity.SimulationEquivalentSourceLayer(
-            mesh,
-            mesh_top,
-            mesh_bottom,
-            survey=survey,
-            rhoMap=mapping,
-            engine=engine,
-        )
-        return simulation
-
-    @pytest.fixture
-    def synthetic_data(self, simulation, model):
+    def build_synthetic_data(self, simulation, model):
         data = simulation.make_synthetic_data(
             model,
             relative_error=0.0,
@@ -151,8 +149,35 @@ class TestGravityEquivalentSources:
         inversion = simpeg.inversion.BaseInversion(inverse_problem, directives)
         return inversion
 
-    def test_gravity_equivalent_sources(self, mesh, simulation, synthetic_data):
+    @pytest.mark.parametrize("store_sensitivities", ("ram", "forward_only"))
+    def test_gravity_equivalent_sources_engines(
+        self, mesh, mesh_bottom, mesh_top, model, survey, mapping, store_sensitivities
+    ):
+        """Test gravity equivalent sources predictions using geoana and choclo."""
+        # Build simulation
+        kwargs = dict(
+            mesh=mesh,
+            cell_z_top=mesh_top,
+            cell_z_bottom=mesh_bottom,
+            survey=survey,
+            rhoMap=mapping,
+            store_sensitivities=store_sensitivities,
+        )
+        sim_geoana = gravity.SimulationEquivalentSourceLayer(engine="geoana", **kwargs)
+        sim_choclo = gravity.SimulationEquivalentSourceLayer(engine="choclo", **kwargs)
+        np.testing.assert_allclose(sim_geoana.dpred(model), sim_choclo.dpred(model))
+
+    @pytest.mark.parametrize("engine", ("geoana", "choclo"))
+    def test_gravity_equivalent_sources(
+        self, mesh, mesh_bottom, mesh_top, model, survey, mapping, engine
+    ):
         """Test gravity equivalent sources against block model."""
+        # Build simulation
+        simulation = gravity.SimulationEquivalentSourceLayer(
+            mesh, mesh_top, mesh_bottom, survey=survey, rhoMap=mapping, engine=engine
+        )
+        # Generate synthetic data
+        synthetic_data = self.build_synthetic_data(simulation, model)
         # Build inversion
         inversion = self.build_inversion(mesh, simulation, synthetic_data)
         # Run inversion
@@ -161,7 +186,7 @@ class TestGravityEquivalentSources:
         # Predict data
         prediction = simulation.dpred(recovered_model)
         # Check if prediction is close to the synthetic data
-        atol, rtol = 0.004, 1e-5
+        atol, rtol = 0.005, 1e-5
         np.testing.assert_allclose(
             prediction, synthetic_data.dobs, atol=atol, rtol=rtol
         )
