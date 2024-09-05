@@ -7,13 +7,15 @@ import simpeg
 from simpeg.optimization import ProjectedGNCG
 from simpeg.potential_fields import gravity
 
+COMPONENTS = ["gx", "gy", "gz", "gxx", "gyy", "gzz", "gxy", "gxz", "gyz", "guv"]
 
-def create_grid(x_range, y_range, spacing):
+
+def create_grid(x_range, y_range, size):
     """Create a 2D horizontal coordinates grid."""
     x_start, x_end = x_range
     y_start, y_end = y_range
     x, y = np.meshgrid(
-        np.linspace(x_start, x_end, spacing), np.linspace(y_start, y_end, spacing)
+        np.linspace(x_start, x_end, size), np.linspace(y_start, y_end, size)
     )
     return x, y
 
@@ -24,7 +26,7 @@ def mesh(coordinates, request):
     mesh_type = request.param
     # Define parameters for building the mesh
     h = [5, 5]
-    padDist = np.ones((2, 2)) * 100
+    padDist = np.ones((2, 2)) * 50
     # Build mesh
     mesh = mesh_builder_xyz(
         coordinates[:, :2], h, padding_distance=padDist, mesh_type=mesh_type
@@ -36,32 +38,22 @@ def mesh(coordinates, request):
     return mesh
 
 
-@pytest.fixture(params=("float", "array"))
-def mesh_top(mesh, request):
-    mesh_top = -20.0
-    if request.param == "array":
-        rng = np.random.default_rng(seed=42)
-        mesh_top = np.full(mesh.n_cells, fill_value=mesh_top) + rng.normal(
-            scale=0.5, size=mesh.n_cells
-        )
-    return mesh_top
+@pytest.fixture
+def mesh_top():
+    """Top boundary of the mesh."""
+    return -20.0
 
 
-@pytest.fixture(params=("float", "array"))
-def mesh_bottom(mesh, request):
-    mesh_bottom = -50.0
-    if request.param == "array":
-        rng = np.random.default_rng(seed=42)
-        mesh_bottom = np.full(mesh.n_cells, fill_value=mesh_bottom) + rng.normal(
-            scale=0.5, size=mesh.n_cells
-        )
-    return mesh_bottom
+@pytest.fixture
+def mesh_bottom():
+    """Bottom boundary of the mesh."""
+    return -50.0
 
 
 @pytest.fixture
 def coordinates():
     """Synthetic observation points grid."""
-    x, y = create_grid(x_range=(-100, 100), y_range=(-100, 100), spacing=50)
+    x, y = create_grid(x_range=(-50, 50), y_range=(-50, 50), size=11)
     z = np.full_like(x, fill_value=5.0)
     return np.c_[mkvc(x), mkvc(y), mkvc(z)]
 
@@ -86,10 +78,7 @@ class TestGravityEquivalentSources:
         """
         Sample survey for the gravity equivalent sources.
         """
-        receivers = gravity.Point(coordinates)
-        source_field = gravity.SourceField([receivers])
-        survey = gravity.Survey(source_field)
-        return survey
+        return self._build_survey(coordinates, components="gz")
 
     @pytest.fixture
     def model(self, block_model):
@@ -102,6 +91,34 @@ class TestGravityEquivalentSources:
     @pytest.fixture
     def mapping(self, mesh):
         return simpeg.maps.IdentityMap(nP=mesh.n_cells)
+
+    def _get_mesh_top_bottom(self, mesh, array=False):
+        """Build the top and bottom boundaries of the mesh.
+
+        If array is True, the outputs are going to be arrays, otherwise they'll
+        be floats.
+        """
+        top, bottom = -20.0, -50.0
+        if array:
+            rng = np.random.default_rng(seed=42)
+            mesh_top = np.full(mesh.n_cells, fill_value=top) + rng.normal(
+                scale=0.5, size=mesh.n_cells
+            )
+            mesh_bottom = np.full(mesh.n_cells, fill_value=bottom) + rng.normal(
+                scale=0.5, size=mesh.n_cells
+            )
+        else:
+            mesh_top, mesh_bottom = top, bottom
+        return mesh_top, mesh_bottom
+
+    def _build_survey(self, coordinates, components):
+        """
+        Build a gravity survey.
+        """
+        receivers = gravity.Point(coordinates, components=components)
+        source_field = gravity.SourceField([receivers])
+        survey = gravity.Survey(source_field)
+        return survey
 
     def build_synthetic_data(self, simulation, model):
         data = simulation.make_synthetic_data(
@@ -150,11 +167,18 @@ class TestGravityEquivalentSources:
         return inversion
 
     @pytest.mark.parametrize("store_sensitivities", ("ram", "forward_only"))
-    def test_gravity_equivalent_sources_engines(
-        self, mesh, mesh_bottom, mesh_top, model, survey, mapping, store_sensitivities
+    def test_forward_geoana_choclo(
+        self,
+        mesh,
+        mesh_bottom,
+        mesh_top,
+        model,
+        survey,
+        mapping,
+        store_sensitivities,
     ):
-        """Test gravity equivalent sources predictions using geoana and choclo."""
-        # Build simulation
+        """Test forward using geoana and choclo varying how to store sensitivity."""
+        # Build simulations
         kwargs = dict(
             mesh=mesh,
             cell_z_top=mesh_top,
@@ -167,11 +191,49 @@ class TestGravityEquivalentSources:
         sim_choclo = gravity.SimulationEquivalentSourceLayer(engine="choclo", **kwargs)
         np.testing.assert_allclose(sim_geoana.dpred(model), sim_choclo.dpred(model))
 
-    @pytest.mark.parametrize("engine", ("geoana", "choclo"))
-    def test_gravity_equivalent_sources(
-        self, mesh, mesh_bottom, mesh_top, model, survey, mapping, engine
+    @pytest.mark.parametrize("components", COMPONENTS + [["gz", "gzz"]])
+    def test_forward_geoana_choclo_with_components(
+        self,
+        coordinates,
+        mesh,
+        mesh_bottom,
+        mesh_top,
+        model,
+        mapping,
+        components,
     ):
-        """Test gravity equivalent sources against block model."""
+        """Test forward using geoana and choclo with different components."""
+        # Build survey
+        survey = self._build_survey(coordinates, components)
+        # Build simulations
+        kwargs = dict(
+            mesh=mesh,
+            cell_z_top=mesh_top,
+            cell_z_bottom=mesh_bottom,
+            survey=survey,
+            rhoMap=mapping,
+        )
+        sim_geoana = gravity.SimulationEquivalentSourceLayer(engine="geoana", **kwargs)
+        sim_choclo = gravity.SimulationEquivalentSourceLayer(engine="choclo", **kwargs)
+        np.testing.assert_allclose(sim_geoana.dpred(model), sim_choclo.dpred(model))
+
+    @pytest.mark.parametrize("engine", ("geoana", "choclo"))
+    def test_predictions_on_data_points(
+        self,
+        mesh,
+        mesh_top,
+        mesh_bottom,
+        model,
+        survey,
+        mapping,
+        engine,
+    ):
+        """
+        Test eq sources predictions on the same data points.
+
+        The equivalent sources should be able to reproduce the same data with
+        which they were trained.
+        """
         # Build simulation
         simulation = gravity.SimulationEquivalentSourceLayer(
             mesh, mesh_top, mesh_bottom, survey=survey, rhoMap=mapping, engine=engine
