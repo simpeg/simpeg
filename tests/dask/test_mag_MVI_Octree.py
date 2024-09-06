@@ -214,7 +214,7 @@ class MVIProblemTest(unittest.TestCase):
             misfit_tolerance=0.5,
         )
 
-        spherical_scale = directives.SphericalDomain()
+        spherical_scale = directives.SphericalUnitsWeights()
 
         # Special directive specific to the mag amplitude problem. The sensitivity
         # weights are update between each iteration.

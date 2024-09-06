@@ -351,7 +351,7 @@ irls = directives.UpdateIRLS(
     max_irls_iterations=20,
     misfit_tolerance=0.5,
 )
-scale_spherical = directives.SphericalDomain()
+scale_spherical = directives.SphericalUnitsWeights()
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are updated between each iteration.
 spherical_projection = directives.ProjectSphericalBounds()
