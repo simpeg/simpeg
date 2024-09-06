@@ -723,64 +723,6 @@ class MagDipole_Bfield(MagDipole):
         return mkvc(b)
 
 
-class ElectricDipole(LineCurrent):
-    r"""
-    Point electric dipole source.
-
-
-    Parameters
-    ----------
-    receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
-        List of FDEM receivers
-    frequency : float
-        Source frequency
-    location : (1,3) numpy.ndarray
-        Array defining the dipole location.
-    orientation : {x', 'y', 'z'} or (dim) numpy.ndarray
-        Orientation of the dipole.
-    current : float, optional
-        Strength of the current.
-    mu : float, optional
-        Magnetic permeability to use.
-    """
-
-    def __init__(
-        self,
-        receiver_list=None,
-        frequency=None,
-        location=None,
-        orientation="x",
-        current=1.0,
-        mu=mu_0,
-        **kwargs,
-    ):
-        super().__init__(
-            receiver_list=receiver_list,
-            frequency=frequency,
-            location=location,
-            current=current,
-            mu=mu_0,
-            **kwargs,
-        )
-
-        self.orientation = orientation
-
-    @property
-    def orientation(self):
-        """Orientation of the dipole as a normalized vector
-
-        Returns
-        -------
-        (3) numpy.ndarray of float
-            dipole orientation, normalized to unit magnitude
-        """
-        return self._orientation
-
-    @orientation.setter
-    def orientation(self, var):
-        self._orientation = validate_direction("orientation", var, dim=3)
-
-
 class CircularLoop(MagDipole):
     """
     Circular loop magnetic source calculated by taking the curl of a magnetic
@@ -1447,3 +1389,61 @@ class LineCurrent(BaseFDEMSrc):
                 "Primary field calculation for LineCurrent has not been implemented"
             )
         return super().hPrimary(simulation)
+
+
+class ElectricDipole(LineCurrent):
+    r"""
+    Point electric dipole source.
+
+
+    Parameters
+    ----------
+    receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
+        List of FDEM receivers
+    frequency : float
+        Source frequency
+    location : (1,3) numpy.ndarray
+        Array defining the dipole location.
+    orientation : {x', 'y', 'z'} or (dim) numpy.ndarray
+        Orientation of the dipole.
+    current : float, optional
+        Strength of the current.
+    mu : float, optional
+        Magnetic permeability to use.
+    """
+
+    def __init__(
+        self,
+        receiver_list=None,
+        frequency=None,
+        location=None,
+        orientation="x",
+        current=1.0,
+        mu=mu_0,
+        **kwargs,
+    ):
+        super().__init__(
+            receiver_list=receiver_list,
+            frequency=frequency,
+            location=location,
+            current=current,
+            mu=mu_0,
+            **kwargs,
+        )
+
+        self.orientation = orientation
+
+    @property
+    def orientation(self):
+        """Orientation of the dipole as a normalized vector
+
+        Returns
+        -------
+        (3) numpy.ndarray of float
+            dipole orientation, normalized to unit magnitude
+        """
+        return self._orientation
+
+    @orientation.setter
+    def orientation(self, var):
+        self._orientation = validate_direction("orientation", var, dim=3)
