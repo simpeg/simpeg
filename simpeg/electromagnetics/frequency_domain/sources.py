@@ -723,7 +723,7 @@ class MagDipole_Bfield(MagDipole):
         return mkvc(b)
 
 
-class ElectricDipole(BaseFDEMSrc):
+class ElectricDipole(LineCurrent):
     r"""
     Point electric dipole source.
 
@@ -731,68 +731,39 @@ class ElectricDipole(BaseFDEMSrc):
     Parameters
     ----------
     receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
-        A list of FDEM receivers
+        List of FDEM receivers
     frequency : float
         Source frequency
-    location : (dim) numpy.ndarray, default: numpy.r_[0., 0., 0.]
-        Source location.
-    strength : float, default: 1.0
-        Source strength (Am).
+    location : (1,3) numpy.ndarray
+        Array defining the dipole location.
     orientation : {x', 'y', 'z'} or (dim) numpy.ndarray
         Orientation of the dipole.
+    current : float, optional
+        Strength of the current.
+    mu : float, optional
+        Magnetic permeability to use.
     """
 
     def __init__(
         self,
-        receiver_list,
-        frequency,
+        receiver_list=None,
+        frequency=None,
         location=None,
-        strength=1.0,
         orientation="x",
+        current=1.0,
+        mu=mu_0,
         **kwargs,
     ):
-        if location is None:
-            location = np.r_[0.0, 0.0, 0.0]
-
         super().__init__(
             receiver_list=receiver_list,
             frequency=frequency,
             location=location,
+            current=current,
+            mu=mu_0,
             **kwargs,
         )
 
-        self.strength = strength
         self.orientation = orientation
-
-    @property
-    def location(self):
-        """Location of the dipole
-
-        Returns
-        -------
-        (3) numpy.ndarray of float
-            xyz dipole location
-        """
-        return self._location
-
-    @location.setter
-    def location(self, vec):
-        self._location = validate_location_property("location", vec, 3)
-
-    @property
-    def strength(self):
-        """Strength of the electric dipole (:math:`Am`)
-
-        Returns
-        -------
-        float
-            Strength of the electric dipole (:math:`Am`)
-        """
-        return self._strength
-
-    @strength.setter
-    def strength(self, value):
-        self._strength = validate_float("strength", value, min_val=0)
 
     @property
     def orientation(self):
