@@ -66,7 +66,7 @@ class BaseSrc(survey.BaseSrc):
 
         Parameters
         ----------
-        sim : simpeg.base.BaseElectricalPDESimulation
+        sim : simpeg.base.pde.BaseElectricalPDESimulation
             The static electromagnetic simulation
 
         Returns
@@ -94,7 +94,7 @@ class BaseSrc(survey.BaseSrc):
 
         Parameters
         ----------
-        sim : simpeg.base.BaseElectricalPDESimulation
+        sim : simpeg.base.pde.BaseElectricalPDESimulation
             The static electromagnetic simulation
 
         Returns

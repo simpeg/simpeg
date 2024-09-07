@@ -4,7 +4,7 @@ import numpy as np
 import scipy.sparse as sp
 
 from .... import maps, props
-from ....base import BasePDESimulation
+from ....base.pde import BasePDESimulation
 from ....data import Data
 from ..resistivity import Simulation2DCellCentered as DC_2D_CC
 from ..resistivity import Simulation2DNodal as DC_2D_N

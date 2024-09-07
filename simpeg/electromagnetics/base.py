@@ -1,6 +1,6 @@
 from ..survey import BaseSrc
 from ..utils import Zero, validate_type
-from ..base import BaseElectricalPDESimulation, BaseMagneticPDESimulation
+from ..base.pde import BaseElectricalPDESimulation, BaseMagneticPDESimulation
 
 __all__ = ["BaseEMSimulation", "BaseEMSrc"]
 

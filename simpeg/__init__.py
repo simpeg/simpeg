@@ -7,6 +7,13 @@ Base SimPEG Classes (:mod:`simpeg`)
 SimPEG is built off of several base classes that define the
 general structure of simulations and inversion operations.
 
+
+SimPEG Base Class
+=================
+.. autosummary::
+    :toctree: generated/
+    base.BaseSimPEG
+
 Simulations
 ===========
 
@@ -20,9 +27,9 @@ Base Simulations
   simulation.BaseTimeSimulation
   simulation.LinearSimulation
   simulation.ExponentialSinusoidSimulation
-  base.BasePDESimulation
-  base.BaseElectricalPDESimulation
-  base.BaseMagneticPDESimulation
+  base.pde.BasePDESimulation
+  base.pde.BaseElectricalPDESimulation
+  base.pde.BaseMagneticPDESimulation
 
 Base Surveys, Sources and Receivers
 -----------------------------------
@@ -133,6 +140,12 @@ Base inversion pieces
   inverse_problem.BaseInvProblem
   inversion.BaseInversion
 
+Documentation building
+======================
+.. autosummary::
+    :toctree: generated
+    base.doc_inherit.bind_signature_to_function
+    base.doc_inherit.DoceratorMeta
 """
 
 # import discretize as Mesh

@@ -1,8 +1,14 @@
+from typing import Optional
+
 import numpy as np
+import numpy.typing as npt
 import scipy.sparse as sp
+from discretize.base import BaseMesh
 from discretize.utils import Zero, TensorType
+from ..utils import validate_type
 from ..simulation import BaseSimulation
 from .. import props
+from ..maps import IdentityMap
 from scipy.constants import mu_0
 
 
@@ -413,6 +419,24 @@ def with_property_mass_matrices(property_name):
 
 
 class BasePDESimulation(BaseSimulation):
+    """Base class for PDE simulation.
+
+    This class implements the common methods for the finite volume PDE simulations.
+
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        Mesh on which the forward problem is discretized.
+    """
+
+    def __init__(self, mesh: BaseMesh, **kwargs):
+        super().__init__(mesh=mesh, **kwargs)
+
+    @BaseSimulation.mesh.setter
+    def mesh(self, value):
+        # Overwrite the parent's setter to disallow None
+        self._mesh = validate_type("mesh", value, BaseMesh, cast=False)
+
     @property
     def Vol(self):
         return self.Mcc
@@ -492,16 +516,41 @@ class BasePDESimulation(BaseSimulation):
 @with_property_mass_matrices("sigma")
 @with_property_mass_matrices("rho")
 class BaseElectricalPDESimulation(BasePDESimulation):
+    """A simulation containing the electrical physical properties sigma and rho.
+
+    Parameters
+    ----------
+    %(super.mesh)
+    sigma, rho : (mesh.n_cells,) array_like, optional
+        Conductivity and resitivity properties. These are linked to each
+        other as inverses and at most one can be set.
+    sigmaMap, rhoMap : simpeg.IdentityMap, optional
+        Relationship between the `model` and conductivity or resistivity.
+        These are linked to each other as inverses and at most one can be set.
+    **kwargs
+        keyword arguments passed to the parent class.
+    """
+
     sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
     rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
     props.Reciprocal(sigma, rho)
 
     def __init__(
-        self, mesh, sigma=None, sigmaMap=None, rho=None, rhoMap=None, **kwargs
+        self,
+        mesh,
+        sigma: Optional[npt.ArrayLike] = None,
+        sigmaMap: Optional[IdentityMap] = None,
+        rho: Optional[npt.ArrayLike] = None,
+        rhoMap: Optional[IdentityMap] = None,
+        **kwargs,
     ):
         super().__init__(mesh=mesh, **kwargs)
+        if sigma and rho:
+            raise TypeError("Cannot set both sigma and rho.")
         self.sigma = sigma
         self.rho = rho
+        if sigmaMap and rhoMap:
+            raise TypeError("Cannot set both sigmaMap and rhoMap.")
         self.sigmaMap = sigmaMap
         self.rhoMap = rhoMap
 
