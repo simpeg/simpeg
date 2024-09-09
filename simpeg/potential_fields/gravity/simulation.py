@@ -124,6 +124,11 @@ def _get_cell_bounds(mesh: TensorMesh | TreeMesh):
 
     The bounds are defined as ``x_min``, ``x_max``, ``y_min``, ``y_max``.
 
+    ..note:
+
+        This private function could be replaced by calling some `cell_bounds`
+        method of the meshes directly from discretize.
+
     Parameters
     ----------
     mesh : discretize.TensorMesh or discretize.TreeMesh
