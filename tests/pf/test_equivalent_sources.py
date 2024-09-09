@@ -5,7 +5,7 @@ from discretize.utils import mesh_builder_xyz, mkvc
 
 import simpeg
 from simpeg.optimization import ProjectedGNCG
-from simpeg.potential_fields import gravity
+from simpeg.potential_fields import gravity, magnetics
 
 COMPONENTS = ["gx", "gy", "gz", "gxx", "gyy", "gzz", "gxy", "gxz", "gyz", "guv"]
 
@@ -71,6 +71,11 @@ def block_model(mesh):
     return model
 
 
+@pytest.fixture
+def mapping(mesh):
+    return simpeg.maps.IdentityMap(nP=mesh.n_cells)
+
+
 class TestGravityEquivalentSources:
 
     @pytest.fixture
@@ -87,10 +92,6 @@ class TestGravityEquivalentSources:
         """
         density = 2.67  # in g/cc
         return density * block_model
-
-    @pytest.fixture
-    def mapping(self, mesh):
-        return simpeg.maps.IdentityMap(nP=mesh.n_cells)
 
     def _get_mesh_top_bottom(self, mesh, array=False):
         """Build the top and bottom boundaries of the mesh.
@@ -282,3 +283,41 @@ class TestGravityEquivalentSources:
         np.testing.assert_allclose(
             prediction, synthetic_data.dobs, atol=atol, rtol=rtol
         )
+
+
+class TestMagneticEquivalentSources:
+    @pytest.fixture
+    def survey(self, coordinates):
+        """
+        Sample survey for the gravity equivalent sources.
+        """
+        return self._build_survey(coordinates, components="tmi")
+
+    def _build_survey(self, coordinates, components):
+        """
+        Build a magnetic survey.
+        """
+        receivers = magnetics.Point(coordinates, components=components)
+        source_field = magnetics.UniformBackgroundField(
+            [receivers], amplitude=50_000, inclination=35, declination=12
+        )
+        survey = magnetics.Survey(source_field)
+        return survey
+
+    def test_choclo_not_implemented(self, survey, mapping):
+        """
+        Test if error is raised when passing "choclo" to magnetic eq sources.
+        """
+        msg = (
+            "Magnetic equivalent sources with choclo as engine has not been"
+            " implemented yet. Use 'geoana' instead."
+        )
+        with pytest.raises(NotImplementedError, match=msg):
+            magnetics.SimulationEquivalentSourceLayer(
+                mesh,
+                mesh_top,
+                mesh_bottom,
+                survey=survey,
+                rhoMap=mapping,
+                engine="choclo",
+            )

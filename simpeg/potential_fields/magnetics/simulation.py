@@ -745,6 +745,29 @@ class SimulationEquivalentSourceLayer(
 
     """
 
+    def __init__(
+        self,
+        mesh,
+        cell_z_top,
+        cell_z_bottom,
+        engine="geoana",
+        numba_parallel=True,
+        **kwargs,
+    ):
+        if engine == "choclo":
+            raise NotImplementedError(
+                "Magnetic equivalent sources with choclo as engine has not been"
+                " implemented yet. Use 'geoana' instead."
+            )
+        super().__init__(
+            mesh,
+            cell_z_top,
+            cell_z_bottom,
+            engine=engine,
+            numba_parallel=numba_parallel,
+            **kwargs,
+        )
+
 
 class Simulation3DDifferential(BaseMagneticPDESimulation):
     """
