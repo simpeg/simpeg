@@ -217,6 +217,36 @@ class TestGravityEquivalentSources:
         sim_choclo = gravity.SimulationEquivalentSourceLayer(engine="choclo", **kwargs)
         np.testing.assert_allclose(sim_geoana.dpred(model), sim_choclo.dpred(model))
 
+    def test_forward_geoana_choclo_active_cells(
+        self,
+        mesh,
+        mesh_bottom,
+        mesh_top,
+        model,
+        survey,
+        mapping,
+    ):
+        """Test forward using geoana and choclo passing active cells."""
+        # Define some inactive cells inside the block
+        block_cells_indices = np.indices(model.shape).ravel()[model != 0]
+        inactive_indices = block_cells_indices[
+            : block_cells_indices.size // 2
+        ]  # mark half of the cells in the block as inactive
+        active_cells = np.ones_like(model, dtype=bool)
+        active_cells[inactive_indices] = False
+        assert not np.all(active_cells)  # check we do have inactive cells
+        # Build simulations
+        kwargs = dict(
+            mesh=mesh,
+            cell_z_top=mesh_top,
+            cell_z_bottom=mesh_bottom,
+            survey=survey,
+            rhoMap=mapping,
+        )
+        sim_geoana = gravity.SimulationEquivalentSourceLayer(engine="geoana", **kwargs)
+        sim_choclo = gravity.SimulationEquivalentSourceLayer(engine="choclo", **kwargs)
+        np.testing.assert_allclose(sim_geoana.dpred(model), sim_choclo.dpred(model))
+
     @pytest.mark.parametrize("engine", ("geoana", "choclo"))
     def test_predictions_on_data_points(
         self,
