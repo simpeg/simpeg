@@ -20,22 +20,47 @@ def create_grid(x_range, y_range, size):
     return x, y
 
 
+@pytest.fixture()
+def mesh_params():
+    """Parameters for building the sample meshes."""
+    h = [5, 5]
+    padding_distances = np.ones((2, 2)) * 50
+    return h, padding_distances
+
+
+@pytest.fixture()
+def tensor_mesh(mesh_params, coordinates):
+    """Sample 2D tensor mesh to use with equivalent sources."""
+    mesh_type = "tensor"
+    h, padding_distance = mesh_params
+    mesh = mesh_builder_xyz(
+        coordinates[:, :2], h, padding_distance=padding_distance, mesh_type=mesh_type
+    )
+    return mesh
+
+
+@pytest.fixture()
+def tree_mesh(mesh_params, coordinates):
+    """Sample 2D tensor mesh to use with equivalent sources."""
+    mesh_type = "tree"
+    h, padding_distance = mesh_params
+    mesh = mesh_builder_xyz(
+        coordinates[:, :2], h, padding_distance=padding_distance, mesh_type=mesh_type
+    )
+    mesh.refine_points(coordinates[:, :2], padding_cells_by_level=[2, 4])
+    return mesh
+
+
 @pytest.fixture(params=["tensor", "tree"])
-def mesh(coordinates, request):
+def mesh(tensor_mesh, tree_mesh, request):
     """Sample 2D mesh to use with equivalent sources."""
     mesh_type = request.param
-    # Define parameters for building the mesh
-    h = [5, 5]
-    padDist = np.ones((2, 2)) * 50
-    # Build mesh
-    mesh = mesh_builder_xyz(
-        coordinates[:, :2], h, padding_distance=padDist, mesh_type=mesh_type
-    )
     if mesh_type == "tree":
-        # Refine tree mesh
-        nCpad = [2, 4]
-        mesh.refine_points(coordinates[:, :2], padding_cells_by_level=nCpad)
-    return mesh
+        return tree_mesh
+    elif mesh_type == "tensor":
+        return tensor_mesh
+    else:
+        raise ValueError(f"Invalid mesh type: '{mesh_type}'")
 
 
 @pytest.fixture
@@ -58,21 +83,20 @@ def coordinates():
     return np.c_[mkvc(x), mkvc(y), mkvc(z)]
 
 
-@pytest.fixture
-def block_model(mesh):
+def get_block_model(mesh, phys_property: float):
     """Build a block model."""
     model = simpeg.utils.model_builder.add_block(
         mesh.cell_centers,
         np.zeros(mesh.n_cells),
         np.r_[-20, -20],
         np.r_[20, 20],
-        1.0,
+        phys_property,
     )
     return model
 
 
-@pytest.fixture
-def mapping(mesh):
+def get_mapping(mesh):
+    """Get an identity map for the given mesh."""
     return simpeg.maps.IdentityMap(nP=mesh.n_cells)
 
 
@@ -84,14 +108,6 @@ class TestGravityEquivalentSources:
         Sample survey for the gravity equivalent sources.
         """
         return self._build_survey(coordinates, components="gz")
-
-    @pytest.fixture
-    def model(self, block_model):
-        """
-        Sample model the gravity equivalent sources.
-        """
-        density = 2.67  # in g/cc
-        return density * block_model
 
     def _get_mesh_top_bottom(self, mesh, array=False):
         """Build the top and bottom boundaries of the mesh.
@@ -169,17 +185,11 @@ class TestGravityEquivalentSources:
 
     @pytest.mark.parametrize("store_sensitivities", ("ram", "forward_only"))
     def test_forward_geoana_choclo(
-        self,
-        mesh,
-        mesh_bottom,
-        mesh_top,
-        model,
-        survey,
-        mapping,
-        store_sensitivities,
+        self, mesh, mesh_bottom, mesh_top, survey, store_sensitivities
     ):
         """Test forward using geoana and choclo varying how to store sensitivity."""
         # Build simulations
+        mapping = get_mapping(mesh)
         kwargs = dict(
             mesh=mesh,
             cell_z_top=mesh_top,
@@ -190,23 +200,18 @@ class TestGravityEquivalentSources:
         )
         sim_geoana = gravity.SimulationEquivalentSourceLayer(engine="geoana", **kwargs)
         sim_choclo = gravity.SimulationEquivalentSourceLayer(engine="choclo", **kwargs)
+        model = get_block_model(mesh, 2.67)
         np.testing.assert_allclose(sim_geoana.dpred(model), sim_choclo.dpred(model))
 
     @pytest.mark.parametrize("components", COMPONENTS + [["gz", "gzz"]])
     def test_forward_geoana_choclo_with_components(
-        self,
-        coordinates,
-        mesh,
-        mesh_bottom,
-        mesh_top,
-        model,
-        mapping,
-        components,
+        self, coordinates, mesh, mesh_bottom, mesh_top, components
     ):
         """Test forward using geoana and choclo with different components."""
         # Build survey
         survey = self._build_survey(coordinates, components)
         # Build simulations
+        mapping = get_mapping(mesh)
         kwargs = dict(
             mesh=mesh,
             cell_z_top=mesh_top,
@@ -216,18 +221,14 @@ class TestGravityEquivalentSources:
         )
         sim_geoana = gravity.SimulationEquivalentSourceLayer(engine="geoana", **kwargs)
         sim_choclo = gravity.SimulationEquivalentSourceLayer(engine="choclo", **kwargs)
+        model = get_block_model(mesh, 2.67)
         np.testing.assert_allclose(sim_geoana.dpred(model), sim_choclo.dpred(model))
 
     def test_forward_geoana_choclo_active_cells(
-        self,
-        mesh,
-        mesh_bottom,
-        mesh_top,
-        model,
-        survey,
-        mapping,
+        self, mesh, mesh_bottom, mesh_top, survey
     ):
         """Test forward using geoana and choclo passing active cells."""
+        model = get_block_model(mesh, 2.67)
         # Define some inactive cells inside the block
         block_cells_indices = np.indices(model.shape).ravel()[model != 0]
         inactive_indices = block_cells_indices[
@@ -237,6 +238,7 @@ class TestGravityEquivalentSources:
         active_cells[inactive_indices] = False
         assert not np.all(active_cells)  # check we do have inactive cells
         # Build simulations
+        mapping = get_mapping(mesh)
         kwargs = dict(
             mesh=mesh,
             cell_z_top=mesh_top,
@@ -246,17 +248,16 @@ class TestGravityEquivalentSources:
         )
         sim_geoana = gravity.SimulationEquivalentSourceLayer(engine="geoana", **kwargs)
         sim_choclo = gravity.SimulationEquivalentSourceLayer(engine="choclo", **kwargs)
+        model = get_block_model(mesh, 2.67)
         np.testing.assert_allclose(sim_geoana.dpred(model), sim_choclo.dpred(model))
 
     @pytest.mark.parametrize("engine", ("geoana", "choclo"))
     def test_predictions_on_data_points(
         self,
-        mesh,
+        tree_mesh,
         mesh_top,
         mesh_bottom,
-        model,
         survey,
-        mapping,
         engine,
     ):
         """
@@ -266,15 +267,22 @@ class TestGravityEquivalentSources:
         which they were trained.
         """
         # Build simulation
+        mapping = get_mapping(tree_mesh)
         simulation = gravity.SimulationEquivalentSourceLayer(
-            mesh, mesh_top, mesh_bottom, survey=survey, rhoMap=mapping, engine=engine
+            tree_mesh,
+            mesh_top,
+            mesh_bottom,
+            survey=survey,
+            rhoMap=mapping,
+            engine=engine,
         )
         # Generate synthetic data
+        model = get_block_model(tree_mesh, 2.67)
         synthetic_data = self.build_synthetic_data(simulation, model)
         # Build inversion
-        inversion = self.build_inversion(mesh, simulation, synthetic_data)
+        inversion = self.build_inversion(tree_mesh, simulation, synthetic_data)
         # Run inversion
-        starting_model = np.zeros(mesh.n_cells)
+        starting_model = np.zeros(tree_mesh.n_cells)
         recovered_model = inversion.run(starting_model)
         # Predict data
         prediction = simulation.dpred(recovered_model)
@@ -304,7 +312,7 @@ class TestMagneticEquivalentSources:
         survey = magnetics.Survey(source_field)
         return survey
 
-    def test_choclo_not_implemented(self, survey, mapping):
+    def test_choclo_not_implemented(self, tensor_mesh, mesh_top, mesh_bottom, survey):
         """
         Test if error is raised when passing "choclo" to magnetic eq sources.
         """
@@ -312,9 +320,10 @@ class TestMagneticEquivalentSources:
             "Magnetic equivalent sources with choclo as engine has not been"
             " implemented yet. Use 'geoana' instead."
         )
+        mapping = simpeg.maps.IdentityMap(nP=tensor_mesh.n_cells)
         with pytest.raises(NotImplementedError, match=msg):
             magnetics.SimulationEquivalentSourceLayer(
-                mesh,
+                tensor_mesh,
                 mesh_top,
                 mesh_bottom,
                 survey=survey,
