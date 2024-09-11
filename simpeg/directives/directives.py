@@ -3183,7 +3183,7 @@ class SaveIterationsGeoH5(InversionDirective):
                 else:
                     file_entity = h5_object.parent.add_file(filepath)
 
-                file_entity.values = raw_file
+                file_entity.file_bytes = raw_file
 
     @property
     def joint_index(self):
