@@ -408,6 +408,9 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
 
     def __init__(self, mesh, cell_z_top, cell_z_bottom, **kwargs):
 
+        if mesh.dim != 2:
+            raise AttributeError("Mesh to equivalent source layer must be 2D.")
+
         super().__init__(mesh, **kwargs)
 
         if isinstance(cell_z_top, (int, float)):
