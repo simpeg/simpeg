@@ -116,14 +116,14 @@ class ValidationInInversion(unittest.TestCase):
         with self.assertRaises(AssertionError):
             # validation should happen and this will fail
             # (IRLS needs to be before update_Jacobi)
-            inv = inversion.BaseInversion(
+            inversion.BaseInversion(
                 invProb, directiveList=[betaest, update_Jacobi, IRLS]
             )
 
         with self.assertRaises(AssertionError):
             # validation should happen and this will fail
             # (sensitivity_weights needs to be before betaest)
-            inv = inversion.BaseInversion(
+            inversion.BaseInversion(
                 invProb, directiveList=[betaest, sensitivity_weights]
             )
 
@@ -258,7 +258,118 @@ class ValidationInInversion(unittest.TestCase):
 
         # self.test_sensitivity_weighting_subroutine(test_weights, test_directive)
 
-        print("SENSITIVITY WEIGHTING BY AMPLIUTDE AND MAX ALUE TEST PASSED")
+        print("SENSITIVITY WEIGHTING BY AMPLITUDE AND MAX VALUE TEST PASSED")
+
+    def test_irls_directive(self):
+        input_norms = [0.0, 1.0, 1.0, 1.0]
+        reg = regularization.Sparse(self.mesh)
+        reg.norms = input_norms
+        projection = maps.Projection(self.mesh.n_cells, np.arange(self.mesh.n_cells))
+
+        other_reg = regularization.WeightedLeastSquares(self.mesh)
+
+        invProb = inverse_problem.BaseInvProblem(self.dmis, reg + other_reg, self.opt)
+
+        beta_schedule = directives.BetaSchedule(coolingFactor=3)
+
+        # Here is where the norms are applied
+        irls_directive = directives.UpdateIRLS(
+            cooling_factor=3,
+            chifact_start=100.0,
+            chifact_target=1.0,
+            irls_cooling_factor=1.2,
+            f_min_change=np.inf,
+            max_irls_iterations=20,
+            misfit_tolerance=1e-0,
+            percentile=100,
+            verbose=True,
+        )
+
+        assert irls_directive.cooling_factor == 3
+        assert irls_directive.metrics is not None
+
+        # TODO Move these assertion test to the 'test_validation_in_inversion' after update
+        with self.assertRaises(AssertionError):
+            inversion.BaseInversion(
+                invProb, directiveList=[beta_schedule, irls_directive]
+            )
+
+        with self.assertRaises(AssertionError):
+            inversion.BaseInversion(
+                invProb, directiveList=[beta_schedule, irls_directive]
+            )
+
+        spherical_weights = directives.SphericalUnitsWeights(projection, [reg])
+        with self.assertRaises(AssertionError):
+            inversion.BaseInversion(
+                invProb, directiveList=[irls_directive, spherical_weights]
+            )
+
+        update_Jacobi = directives.UpdatePreconditioner()
+        with self.assertRaises(AssertionError):
+            inversion.BaseInversion(
+                invProb, directiveList=[update_Jacobi, irls_directive]
+            )
+
+        invProb.phi_d = 1.0
+        self.opt.iter = 3
+        invProb.model = np.random.randn(reg.regularization_mesh.nC)
+        inv = inversion.BaseInversion(invProb, directiveList=[irls_directive])
+
+        irls_directive.initialize()
+        assert irls_directive.metrics.input_norms == [input_norms, None]
+        assert reg.norms == [2.0, 2.0, 2.0, 2.0]
+
+        irls_directive.inversion = inv
+        irls_directive.endIter()
+
+        assert irls_directive.metrics.start_irls_iter == self.opt.iter
+        assert len(reg.objfcts[0]._weights) == 2  # With irls weights
+        assert len(other_reg.objfcts[0]._weights) == 1  # No irls
+        irls_directive.metrics.irls_iteration_count += 1
+        irls_directive.endIter()
+
+        assert self.opt.stopNextIteration
+
+        # Test stopping criteria based on max_irls_iter
+        irls_directive.max_irls_iterations = 2
+        assert irls_directive.stopping_criteria()
+
+        # Test beta re-adjustment down
+        invProb.phi_d = 4.0
+        irls_directive.misfit_tolerance = 0.1
+        irls_directive.adjust_cooling_schedule()
+        assert irls_directive.cooling_factor == 2.0
+
+        # Test beta re-adjustment up
+        invProb.phi_d = 0.5
+        irls_directive.adjust_cooling_schedule()
+        assert irls_directive.cooling_factor == 0.5
+
+    def test_spherical_weights(self):
+        reg = regularization.Sparse(self.mesh)
+        projection = maps.Projection(self.mesh.n_cells, np.arange(self.mesh.n_cells))
+        for obj in reg.objfcts[1:]:
+            obj.units = "radian"
+
+        with pytest.raises(TypeError, match="Attribute 'amplitude' must be of type"):
+            directives.SphericalUnitsWeights(reg, [reg])
+
+        with pytest.raises(TypeError, match="Attribute 'angles' must be a list of"):
+            directives.SphericalUnitsWeights(projection, ["abc"])
+
+        spherical_weights = directives.SphericalUnitsWeights(projection, [reg])
+
+        inv_prob = inverse_problem.BaseInvProblem(self.dmis, reg, self.opt)
+        model = np.abs(np.random.randn(reg.regularization_mesh.nC))
+        inv_prob.model = model
+        inv = inversion.BaseInversion(inv_prob, directiveList=[spherical_weights])
+        spherical_weights.inversion = inv
+
+        spherical_weights.initialize()
+
+        assert "angle_scale" not in reg.objfcts[0]._weights
+        assert reg.objfcts[1]._weights["angle_scale"].max() == model.max() / np.pi
 
     def tearDown(self):
         # Clean up the working directory

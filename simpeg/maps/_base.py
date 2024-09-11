@@ -11,6 +11,7 @@ import scipy.sparse as sp
 from scipy.sparse import csr_matrix as csr
 from discretize.tests import check_derivative
 from discretize.utils import Zero, Identity, mkvc, speye, sdiag
+import uuid
 
 from ..utils import (
     mat_utils,
@@ -70,6 +71,8 @@ class IdentityMap:
                 ) from err
         self.mesh = mesh
         self._nP = nP
+
+        self._uuid = uuid.uuid4()
 
         super().__init__(**kwargs)
 
