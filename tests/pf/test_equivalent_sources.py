@@ -203,6 +203,34 @@ class TestGravityEquivalentSources:
         model = get_block_model(mesh, 2.67)
         np.testing.assert_allclose(sim_geoana.dpred(model), sim_choclo.dpred(model))
 
+    def test_forward_geoana_choclo_on_disk(
+        self, mesh, mesh_bottom, mesh_top, survey, tmp_path
+    ):
+        """Test forward using geoana and choclo varying how to store sensitivity."""
+        # Build simulations
+        mapping = get_mapping(mesh)
+        kwargs = dict(
+            mesh=mesh,
+            cell_z_top=mesh_top,
+            cell_z_bottom=mesh_bottom,
+            survey=survey,
+            rhoMap=mapping,
+            store_sensitivities="disk",
+        )
+        # Create directory for geoana
+        sensitivity_dir = tmp_path / "sensitivities_geoana"
+        sensitivity_dir.mkdir()
+        # Define fname for choclo
+        sensitivity_fname = tmp_path / "sensitivities_choclo"
+        sim_geoana = gravity.SimulationEquivalentSourceLayer(
+            engine="geoana", sensitivity_path=str(sensitivity_dir), **kwargs
+        )
+        sim_choclo = gravity.SimulationEquivalentSourceLayer(
+            engine="choclo", sensitivity_path=str(sensitivity_fname), **kwargs
+        )
+        model = get_block_model(mesh, 2.67)
+        np.testing.assert_allclose(sim_geoana.dpred(model), sim_choclo.dpred(model))
+
     @pytest.mark.parametrize("components", COMPONENTS + [["gz", "gzz"]])
     def test_forward_geoana_choclo_with_components(
         self, coordinates, mesh, mesh_bottom, mesh_top, components
