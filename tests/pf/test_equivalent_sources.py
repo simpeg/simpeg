@@ -248,8 +248,28 @@ class TestGravityEquivalentSources:
         )
         sim_geoana = gravity.SimulationEquivalentSourceLayer(engine="geoana", **kwargs)
         sim_choclo = gravity.SimulationEquivalentSourceLayer(engine="choclo", **kwargs)
-        model = get_block_model(mesh, 2.67)
         np.testing.assert_allclose(sim_geoana.dpred(model), sim_choclo.dpred(model))
+
+    def test_forward_choclo_serial_parallel(self, mesh, mesh_bottom, mesh_top, survey):
+        """Test forward using choclo in serial and in parallel."""
+        # Build simulations
+        mapping = get_mapping(mesh)
+        kwargs = dict(
+            mesh=mesh,
+            cell_z_top=mesh_top,
+            cell_z_bottom=mesh_bottom,
+            survey=survey,
+            rhoMap=mapping,
+            engine="choclo",
+        )
+        sim_parallel = gravity.SimulationEquivalentSourceLayer(
+            numba_parallel=True, **kwargs
+        )
+        sim_serial = gravity.SimulationEquivalentSourceLayer(
+            numba_parallel=False, **kwargs
+        )
+        model = get_block_model(mesh, 2.67)
+        np.testing.assert_allclose(sim_parallel.dpred(model), sim_serial.dpred(model))
 
     @pytest.mark.parametrize("engine", ("geoana", "choclo"))
     def test_predictions_on_data_points(
