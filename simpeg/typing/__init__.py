@@ -16,30 +16,17 @@ API
 
 """
 
-from __future__ import annotations
 import numpy as np
 import numpy.typing as npt
-from typing import Union
+from typing import Union, TypeAlias
 
-# Use try and except to support Python<3.10
-try:
-    from typing import TypeAlias
-
-    RandomSeed: TypeAlias = Union[
-        int,
-        npt.NDArray[np.int_],
-        np.random.SeedSequence,
-        np.random.BitGenerator,
-        np.random.Generator,
-    ]
-except ImportError:
-    RandomSeed = Union[
-        int,
-        npt.NDArray[np.int_],
-        np.random.SeedSequence,
-        np.random.BitGenerator,
-        np.random.Generator,
-    ]
+RandomSeed: TypeAlias = Union[
+    int,
+    npt.NDArray[np.int_],
+    np.random.SeedSequence,
+    np.random.BitGenerator,
+    np.random.Generator,
+]
 
 RandomSeed.__doc__ = """
 A ``typing.Union`` for random seeds and Numpy's random number generators.
