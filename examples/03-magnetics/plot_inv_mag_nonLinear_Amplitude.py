@@ -257,13 +257,10 @@ IRLS = directives.UpdateIRLS(
     f_min_change=1e-3, misfit_tolerance=1e-1, max_irls_iterations=5
 )
 
-# Setting a beta cooling schedule
-beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
-
 update_Jacobi = directives.UpdatePreconditioner()
 # Put all the parts together
 inv = inversion.BaseInversion(
-    invProb, directiveList=[betaest, IRLS, beta_schedule, update_Jacobi]
+    invProb, directiveList=[betaest, IRLS, update_Jacobi]
 )
 
 # Run the equivalent source inversion
