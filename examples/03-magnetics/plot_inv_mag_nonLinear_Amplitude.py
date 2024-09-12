@@ -259,9 +259,7 @@ IRLS = directives.UpdateIRLS(
 
 update_Jacobi = directives.UpdatePreconditioner()
 # Put all the parts together
-inv = inversion.BaseInversion(
-    invProb, directiveList=[betaest, IRLS, update_Jacobi]
-)
+inv = inversion.BaseInversion(invProb, directiveList=[betaest, IRLS, update_Jacobi])
 
 # Run the equivalent source inversion
 mrec = inv.run(mstart)
