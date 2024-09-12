@@ -1,15 +1,10 @@
-from __future__ import annotations
-from typing import TYPE_CHECKING
-
 import scipy.sparse as sp
 import numpy as np
 from .base import Smallness
 from discretize.base import BaseMesh
 from .base import RegularizationMesh, BaseRegularization
 from .sparse import Sparse, SparseSmallness, SparseSmoothness
-
-if TYPE_CHECKING:
-    from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix
 
 
 class BaseVectorRegularization(BaseRegularization):
