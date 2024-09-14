@@ -212,7 +212,9 @@ class MVIProblemTest(unittest.TestCase):
             max_irls_iterations=5,
             misfit_tolerance=0.5,
         )
-        spherical_scale = directives.SphericalUnitsWeights()
+        spherical_scale = directives.SphericalUnitsWeights(
+            amplitude=wires.amp, angles=[reg_t, reg_p]
+        )
 
         # Special directive specific to the mag amplitude problem. The sensitivity
         # weights are update between each iteration.
