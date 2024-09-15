@@ -30,7 +30,7 @@ from simpeg import (
 from simpeg import utils
 from simpeg.utils import mkvc
 
-from discretize.utils import active_from_xyz, mesh_builder_xyz, refine_tree_xyz
+from discretize.utils import active_from_xyz, mesh_builder_xyz
 from simpeg.potential_fields import magnetics
 import scipy as sp
 import numpy as np
