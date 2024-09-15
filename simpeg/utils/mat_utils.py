@@ -1,4 +1,3 @@
-from __future__ import annotations  # needed to use type operands in Python 3.8
 import numpy as np
 from .code_utils import deprecate_function
 from ..typing import RandomSeed

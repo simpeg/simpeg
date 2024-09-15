@@ -2,7 +2,7 @@ name: simpeg-test
 channels:
   - conda-forge
 dependencies:
-  - numpy>=1.20
+  - numpy>=1.21
   - scipy>=1.8
   - pymatsolver-base>=0.2
   - matplotlib-base

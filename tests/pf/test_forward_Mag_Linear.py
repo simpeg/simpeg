@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import discretize
 import numpy as np
 import pytest

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import numbers
 import numpy as np
 import scipy.sparse as sp

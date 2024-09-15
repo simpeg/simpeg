@@ -1,4 +1,3 @@
-from __future__ import annotations
 import types
 import numpy as np
 from functools import wraps
