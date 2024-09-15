@@ -1571,6 +1571,52 @@ class WeightedLeastSquares(ComboObjectiveFunction):
                 f"'{key}' argument has been removed. Please use 'weights' instead."
             )
 
+        # Check if weights is a dictionary, raise error if it's not
+        if weights is not None and not isinstance(weights, dict):
+            raise TypeError(
+                f"Invalid 'weights' of type '{type(weights)}'. "
+                "It must be a dictionary with strings as keys and arrays as values."
+            )
+
+        # do this to allow child classes to also pass a list of objfcts to this constructor
+        if "objfcts" not in kwargs:
+            objfcts = [
+                Smallness(mesh=self.regularization_mesh),
+                SmoothnessFirstOrder(mesh=self.regularization_mesh, orientation="x"),
+                SmoothnessSecondOrder(mesh=self.regularization_mesh, orientation="x"),
+            ]
+
+            if mesh.dim > 1:
+                objfcts.extend(
+                    [
+                        SmoothnessFirstOrder(
+                            mesh=self.regularization_mesh, orientation="y"
+                        ),
+                        SmoothnessSecondOrder(
+                            mesh=self.regularization_mesh, orientation="y"
+                        ),
+                    ]
+                )
+
+            if mesh.dim > 2:
+                objfcts.extend(
+                    [
+                        SmoothnessFirstOrder(
+                            mesh=self.regularization_mesh, orientation="z"
+                        ),
+                        SmoothnessSecondOrder(
+                            mesh=self.regularization_mesh, orientation="z"
+                        ),
+                    ]
+                )
+        else:
+            objfcts = kwargs.pop("objfcts")
+
+        super().__init__(objfcts=objfcts, unpack_on_add=False, **kwargs)
+
+        for fun in objfcts:
+            fun.parent = self
+
         self.alpha_s = alpha_s
         if alpha_x is not None:
             if length_scale_x is not None:
@@ -1605,68 +1651,6 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         self.alpha_xx = alpha_xx
         self.alpha_yy = alpha_yy
         self.alpha_zz = alpha_zz
-
-        # Check if weights is a dictionary, raise error if it's not
-        if weights is not None and not isinstance(weights, dict):
-            raise TypeError(
-                f"Invalid 'weights' of type '{type(weights)}'. "
-                "It must be a dictionary with strings as keys and arrays as values."
-            )
-
-        # do this to allow child classes to also pass a list of objfcts to this constructor
-        if "objfcts" not in kwargs:
-            objfcts = [
-                Smallness(mesh=self.regularization_mesh, multiplier=self.alpha_s),
-                SmoothnessFirstOrder(
-                    mesh=self.regularization_mesh,
-                    orientation="x",
-                    multiplier=self.alpha_x,
-                ),
-                SmoothnessSecondOrder(
-                    mesh=self.regularization_mesh,
-                    orientation="x",
-                    multiplier=self.alpha_xx,
-                ),
-            ]
-
-            if mesh.dim > 1:
-                objfcts.extend(
-                    [
-                        SmoothnessFirstOrder(
-                            mesh=self.regularization_mesh,
-                            orientation="y",
-                            multiplier=self.alpha_y,
-                        ),
-                        SmoothnessSecondOrder(
-                            mesh=self.regularization_mesh,
-                            orientation="y",
-                            multiplier=self.alpha_yy,
-                        ),
-                    ]
-                )
-
-            if mesh.dim > 2:
-                objfcts.extend(
-                    [
-                        SmoothnessFirstOrder(
-                            mesh=self.regularization_mesh,
-                            orientation="z",
-                            multiplier=self.alpha_z,
-                        ),
-                        SmoothnessSecondOrder(
-                            mesh=self.regularization_mesh,
-                            orientation="z",
-                            multiplier=self.alpha_zz,
-                        ),
-                    ]
-                )
-        else:
-            objfcts = kwargs.pop("objfcts")
-
-        super().__init__(objfcts=objfcts, unpack_on_add=False, **kwargs)
-
-        for fun in objfcts:
-            fun.parent = self
 
         if active_cells is not None:
             self.active_cells = active_cells
@@ -1762,6 +1746,10 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             raise ValueError(f"alpha_s must be non-negative, not {value}")
         self._alpha_s = value
 
+        for objfct in self.objfcts:
+            if isinstance(objfct, Smallness):
+                objfct.multiplier = value
+
     @property
     def alpha_x(self):
         """Multiplier constant for first-order smoothness along x.
@@ -1782,6 +1770,10 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         if value < 0:
             raise ValueError(f"alpha_x must be non-negative, not {value}")
         self._alpha_x = value
+
+        for objfct in self.objfcts:
+            if isinstance(objfct, SmoothnessFirstOrder) and objfct.orientation == "x":
+                objfct.multiplier = value
 
     @property
     def alpha_y(self):
@@ -1804,6 +1796,10 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             raise ValueError(f"alpha_y must be non-negative, not {value}")
         self._alpha_y = value
 
+        for objfct in self.objfcts:
+            if isinstance(objfct, SmoothnessFirstOrder) and objfct.orientation == "y":
+                objfct.multiplier = value
+
     @property
     def alpha_z(self):
         """Multiplier constant for first-order smoothness along z.
@@ -1824,6 +1820,10 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         if value < 0:
             raise ValueError(f"alpha_z must be non-negative, not {value}")
         self._alpha_z = value
+
+        for objfct in self.objfcts:
+            if isinstance(objfct, SmoothnessFirstOrder) and objfct.orientation == "z":
+                objfct.multiplier = value
 
     @property
     def alpha_xx(self):
@@ -1848,6 +1848,10 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             raise ValueError(f"alpha_xx must be non-negative, not {value}")
         self._alpha_xx = value
 
+        for objfct in self.objfcts:
+            if isinstance(objfct, SmoothnessSecondOrder) and objfct.orientation == "x":
+                objfct.multiplier = value
+
     @property
     def alpha_yy(self):
         """Multiplier constant for second-order smoothness along y.
@@ -1871,6 +1875,10 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             raise ValueError(f"alpha_yy must be non-negative, not {value}")
         self._alpha_yy = value
 
+        for objfct in self.objfcts:
+            if isinstance(objfct, SmoothnessSecondOrder) and objfct.orientation == "y":
+                objfct.multiplier = value
+
     @property
     def alpha_zz(self):
         """Multiplier constant for second-order smoothness along z.
@@ -1893,6 +1901,10 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         if value < 0:
             raise ValueError(f"alpha_zz must be non-negative, not {value}")
         self._alpha_zz = value
+
+        for objfct in self.objfcts:
+            if isinstance(objfct, SmoothnessSecondOrder) and objfct.orientation == "z":
+                objfct.multiplier = value
 
     @property
     def length_scale_x(self):

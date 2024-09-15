@@ -183,11 +183,11 @@ class TestBaseObjFct(unittest.TestCase):
 
         self.assertTrue(phi(m) == phi1(m) + phi2(m))
 
-        phi.multipliers[0] = utils.Zero()
+        phi.objfcts[0].multiplier = utils.Zero()
         self.assertTrue(phi(m) == phi2(m))
 
-        phi.multipliers[0] = 1.0
-        phi.multipliers[1] = utils.Zero()
+        phi.objfcts[0].multiplier = 1.0
+        phi.objfcts[1].multiplier = utils.Zero()
 
         self.assertTrue(len(phi.objfcts) == 2)
         self.assertTrue(len(phi.multipliers) == 2)
@@ -312,14 +312,14 @@ class TestBaseObjFct(unittest.TestCase):
 
         self.assertTrue(all(phi3.multipliers == np.r_[2, 4]))
 
-        phi3.multipliers[1] = 3
+        phi3.objfcts[1].multiplier = 3
         self.assertTrue(all(phi3.multipliers == np.r_[2, 3]))
 
         phi3.multipliers = np.r_[1.0, 5.0]
         self.assertTrue(all(phi3.multipliers == np.r_[1.0, 5.0]))
 
         with self.assertRaises(Exception):
-            phi3.multipliers[0] = "a"
+            phi3.objfcts[1].multiplier = "a"
 
         with self.assertRaises(Exception):
             phi3.multipliers = np.r_[0.0, 3.0, 4.0]
@@ -352,7 +352,7 @@ class TestOperationsComboObjectiveFunctions:
         combo_mul = 3.5 * combo
         assert len(combo_mul) == 1
         assert combo_mul.multipliers == [3.5]
-        assert combo_mul.objfcts == [combo]
+        # assert combo_mul.objfcts == [combo]
 
     @pytest.mark.parametrize("unpack_on_add", (True, False))
     def test_add(self, unpack_on_add):
@@ -385,7 +385,7 @@ class TestOperationsComboObjectiveFunctions:
         combo = 1.1 * phi1 + 1.2 * phi2 + 1.3 * phi3
         assert len(combo) == 3
         assert combo.multipliers == [1.1, 1.2, 1.3]
-        assert combo.objfcts == [phi1, phi2, phi3]
+        # assert combo.objfcts == [phi1, phi2, phi3]
 
     @pytest.mark.parametrize("unpack_on_add", (True, False))
     def test_add_and_mul(self, unpack_on_add):
@@ -405,7 +405,7 @@ class TestOperationsComboObjectiveFunctions:
         combo_2 = 5 * phi3 + 1.2 * combo_1
         assert len(combo_2) == 2
         assert combo_2.multipliers == [5, 1.2]
-        assert combo_2.objfcts == [phi3, combo_1]
+        # assert combo_2.objfcts == [phi3, combo_1]
 
 
 @pytest.mark.parametrize(

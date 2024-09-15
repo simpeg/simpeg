@@ -1,3 +1,4 @@
+from copy import deepcopy
 import numbers
 import numpy as np
 import scipy.sparse as sp
@@ -304,7 +305,9 @@ class BaseObjectiveFunction(BaseSimPEG):
         return self + other
 
     def __mul__(self, multiplier):
-        return ComboObjectiveFunction(objfcts=[self], multiplier=multiplier)
+        fun = deepcopy(self)
+        fun.multiplier *= multiplier
+        return ComboObjectiveFunction(objfcts=[fun])
 
     def __rmul__(self, multiplier):
         return self * multiplier
@@ -396,6 +399,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     def __init__(
         self,
         objfcts: list[BaseObjectiveFunction] | None = None,
+        multipliers: list[float] | None = None,
         unpack_on_add=True,
         multiplier=1.0,
     ):
@@ -415,6 +419,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         super().__init__(nP=nP, multiplier=multiplier)
 
         self.objfcts = objfcts
+        self.multipliers = multipliers
 
         self._unpack_on_add = unpack_on_add
 
@@ -445,8 +450,11 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         return [obj.multiplier for obj in self.objfcts]
 
     @multipliers.setter
-    def multipliers(self, value: list[float]):
+    def multipliers(self, value: list[float] | None):
         """Set multipliers attribute after checking if they are valid."""
+        if value is None:
+            return
+
         for multiplier in value:
             _validate_multiplier(multiplier)
 
@@ -523,8 +531,8 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             Full weighting matrix for the combo objective function.
         """
         W = []
-        for mult, fct in self:
-            curW = np.sqrt(mult) * fct.W
+        for fct in self:
+            curW = np.sqrt(fct.multiplier) * fct.W
             if not isinstance(curW, Zero):
                 W.append(curW)
         return sp.vstack(W)
