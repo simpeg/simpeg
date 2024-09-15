@@ -191,7 +191,9 @@ class InversionDirective:
             ), "Misfit must be in {}, not {}".format(self._dmisfitPair, type(value))
 
             if not isinstance(value, ComboObjectiveFunction):
-                value = 1 * value  # turn it into a combo objective function
+                value = ComboObjectiveFunction(
+                    objfcts=[value]
+                )  # turn it into a combo objective function
         self._dmisfit = value
 
     @property
