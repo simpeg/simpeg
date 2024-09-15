@@ -291,7 +291,7 @@ def run(plotIt=True):
         axs = plt.subplot()
         axs.plot(saveDict.phi_d, "k", lw=2)
         axs.plot(
-            np.r_[IRLS.iterStart, IRLS.iterStart],
+            np.r_[IRLS.metrics.start_irls_iter, IRLS.metrics.start_irls_iter],
             np.r_[0, np.max(saveDict.phi_d)],
             "k:",
         )
@@ -299,7 +299,7 @@ def run(plotIt=True):
         twin = axs.twinx()
         twin.plot(saveDict.phi_m, "k--", lw=2)
         axs.text(
-            IRLS.iterStart,
+            IRLS.metrics.start_irls_iter,
             0,
             "IRLS Steps",
             va="bottom",
