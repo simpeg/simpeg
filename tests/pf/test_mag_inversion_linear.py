@@ -93,7 +93,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         data = sim.make_synthetic_data(
             self.model,
             relative_error=0.0,
-            noise_floor=1.0,
+            noise_floor=2.0,
             add_noise=True,
             random_seed=2,
         )
@@ -133,16 +133,24 @@ class MagInvLinProblemTest(unittest.TestCase):
         mrec = self.inv.run(self.model)
         residual = np.linalg.norm(mrec - self.model) / np.linalg.norm(self.model)
 
+        # import matplotlib.pyplot as plt
         # plt.figure()
         # ax = plt.subplot(1, 2, 1)
-        # midx = int(self.mesh.shape_cells[0]/2)
-        # self.mesh.plot_slice(self.actvMap*mrec, ax=ax, normal='Y', ind=midx,
-        #                grid=True, clim=(0, 0.02))
-
+        # midx = int(self.mesh.shape_cells[0] / 2)
+        # self.mesh.plot_slice(
+        #     self.actvMap * mrec, ax=ax, normal="Y", ind=midx, grid=True, clim=(0, 0.02)
+        # )
+        #
         # ax = plt.subplot(1, 2, 2)
-        # midx = int(self.mesh.shape_cells[0]/2)
-        # self.mesh.plot_slice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
-        #                grid=True, clim=(0, 0.02))
+        # midx = int(self.mesh.shape_cells[0] / 2)
+        # self.mesh.plot_slice(
+        #     self.actvMap * self.model,
+        #     ax=ax,
+        #     normal="Y",
+        #     ind=midx,
+        #     grid=True,
+        #     clim=(0, 0.02),
+        # )
         # plt.show()
 
         self.assertTrue(residual < 0.05)
