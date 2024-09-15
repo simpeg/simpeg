@@ -314,9 +314,6 @@ update_IRLS = directives.UpdateIRLS(
     misfit_tolerance=1e-2,
 )
 
-# Setting a beta cooling schedule
-beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
-
 # Updating the preconditioner if it is model dependent.
 update_jacobi = directives.UpdatePreconditioner()
 
@@ -332,7 +329,6 @@ directives_list = [
     starting_beta,
     save_iteration,
     update_IRLS,
-    beta_schedule,
     update_jacobi,
 ]
 
