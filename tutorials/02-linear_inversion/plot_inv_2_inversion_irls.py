@@ -239,9 +239,13 @@ ax.plot(saveDict.phi_d, "k", lw=2)
 
 twin = ax.twinx()
 twin.plot(saveDict.phi_m, "k--", lw=2)
-ax.plot(np.r_[IRLS.iterStart, IRLS.iterStart], np.r_[0, np.max(saveDict.phi_d)], "k:")
+ax.plot(
+    np.r_[IRLS.metrics.start_irls_iter, IRLS.metrics.start_irls_iter],
+    np.r_[0, np.max(saveDict.phi_d)],
+    "k:",
+)
 ax.text(
-    IRLS.iterStart,
+    IRLS.metrics.start_irls_iter,
     0.0,
     "IRLS Start",
     va="bottom",
