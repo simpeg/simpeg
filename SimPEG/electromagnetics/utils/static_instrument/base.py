@@ -518,7 +518,8 @@ class XYZSystem(object):
             uncertfilt = np.isinf(self.data_uncert_array_culled)
             
             derr = (self.inv.invProb.dmisfit.data.dobs-dpred) * self.inv.invProb.dmisfit.W.diagonal()
-            std = np.abs(1 / self.inv.invProb.dmisfit.W.diagonal() / self.inv.invProb.dmisfit.data.dobs)
+            with np.errstate(divide='ignore'):
+                std = np.abs(1 / self.inv.invProb.dmisfit.W.diagonal() / self.inv.invProb.dmisfit.data.dobs)
 
             # dpred, dobs etc contain dummy values where uncertainty
             # is inf. Don't let them through to the file or it will
@@ -534,7 +535,8 @@ class XYZSystem(object):
                 xyzresp.layer_data["dbdt_std_ch%sgt" % (idx + 1)] = moment
 
             derrall = reshape_nosplit(derr)
-            xyzresp.flightlines['resdata'] = np.sqrt(np.nansum(derrall**2, axis=1) / (derrall > 0).sum(axis=1))
+            with np.errstate(divide='ignore'):
+                xyzresp.flightlines['resdata'] = np.sqrt(np.nansum(derrall**2, axis=1) / (derrall > 0).sum(axis=1))
             
         dpred = dpred / self.xyz.model_info.get("scalefactor", 1)
         
@@ -545,7 +547,7 @@ class XYZSystem(object):
         for idx, t in enumerate(self.times):
             xyzresp.model_info["gate times for channel %s" % (idx + 1)] = list(t)
 
-        return self.pad_times(xyzresp, self.times_full, self.times_filter)
+        return self.xyz.unfilter(self.pad_times(xyzresp, self.times_full, self.times_filter), layerfilter=False)
     
     def forward(self, **kw):
         """Does a forward modelling of the model in the XYZ file using
@@ -559,4 +561,4 @@ class XYZSystem(object):
         model_cond=np.log(1/self.xyz.resistivity.values)
         resp = self.sim.dpred(model_cond.flatten())
 
-        return self.xyz.unfilter(self.forward_data_to_xyz(resp), layerfilter=False)
+        return self.forward_data_to_xyz(resp)
