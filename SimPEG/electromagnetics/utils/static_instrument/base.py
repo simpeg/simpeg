@@ -181,7 +181,7 @@ class XYZSystem(object):
     "Noise as a factor of data"
     uncertainties__std_data_override = False
     "If set to true, use the std_data value instead of data std:s from stacking"
-    uncertainties__noise_level_1ms = 3e-10
+    uncertainties__noise_level_1ms = 1e-9
     "Amplitude at 1ms, in V/m^2"
     uncertainties__noise_exponent = -0.5
     "Slope of noise floor, t^uncertainties__noise_exponent"
