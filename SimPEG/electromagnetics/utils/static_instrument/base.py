@@ -307,10 +307,21 @@ class XYZSystem(object):
     def make_startmodel(self, thicknesses):
         startmodel=np.log(np.ones(self.n_param(thicknesses)) * 1/self.startmodel__res)
         return startmodel
-    
-    regularization__alpha_s = 1e-10
+
+    # FIXME!!! Should alpha_s's default be set to something based off the model domain?
+    #  https://giftoolscookbook.readthedocs.io/en/latest/content/fundamentals/Alphas.html
+    #  Here it talks about how how alpha_s is often set to
+    #  alpha_s = 1/(h**2),
+    #  where h is the cell size dimension for the core region.
+    #  for us h could be
+    #    1) the height of the last, non-halfspace layer,
+    #    2) the average thickness of our model domain,
+    #    3) the average sounding spacing.
+    #    4) 1e-4 as proposed in the link above
+    regularization__alpha_s = 1e-4
     regularization__alpha_r = 1.
     regularization__alpha_z = 1.
+
     def make_regularization(self, thicknesses):
         if False:
             assert False, "LCI is currently broken"
