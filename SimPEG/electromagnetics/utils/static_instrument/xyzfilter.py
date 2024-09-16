@@ -31,6 +31,7 @@ class FilteredXYZ(libaarhusxyz.XYZ):
                 soundings = self.layer_data[key].iloc[soundingfilter]
             else:
                 soundings = self.layer_data[key].loc[soundingfilter]
+            print(f"key = {key}")
             self.layer_data[key] = soundings.iloc[:, self.get_layerfilter(key)].reset_index(drop=True)
             
         return self
