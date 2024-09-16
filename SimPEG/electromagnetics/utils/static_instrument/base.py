@@ -319,6 +319,8 @@ class XYZSystem(object):
     #    3) the average sounding spacing.
     #    4) 1e-4 as proposed in the link above
     #    5) line spacing (if 100m then alpha_s = 1e-4, if 400m then 6.3e-6)
+    #    6) geomean of the linespacing and sounding spacing: sqrt(line_space * sound_space)
+    #        - 25m sounding spacing, 100m line spacing: h=50, alpha_s=4e-4
     regularization__alpha_s = 1e-4
     regularization__alpha_r = 1.
     regularization__alpha_z = 1.
