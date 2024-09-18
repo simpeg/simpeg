@@ -987,7 +987,8 @@ class TestInjectActiveCells(DeprecatedIndActive):
         )
         msg = "valInactive has been deprecated, please use value_inactive"
         with pytest.warns(FutureWarning, match=msg):
-            mapping.valInactive = 3.14
+            mapping.valInactive = 4.5
+        np.testing.assert_allclose(mapping.value_inactive[~mapping.active_cells], 4.5)
 
 
 class TestParametric(DeprecatedIndActive):
