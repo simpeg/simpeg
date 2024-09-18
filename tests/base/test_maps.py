@@ -788,6 +788,21 @@ class DeprecatedIndActive:
         active_cells[0] = False
         return active_cells
 
+    def get_message_duplicated_error(self, old_name, new_name, version="v0.24.0"):
+        msg = (
+            f"Cannot pass both '{new_name}' and '{old_name}'."
+            f"'{old_name}' has been deprecated and will be removed in "
+            f" SimPEG {version}, please use '{new_name}' instead."
+        )
+        return msg
+
+    def get_message_deprecated_warning(self, old_name, new_name, version="v0.24.0"):
+        msg = (
+            f"'{old_name}' has been deprecated and will be removed in "
+            f" SimPEG {version}, please use '{new_name}' instead."
+        )
+        return msg
+
 
 class TestParametricPolyMap(DeprecatedIndActive):
     """Test deprecated ``actInd`` in ParametricPolyMap."""
@@ -796,7 +811,7 @@ class TestParametricPolyMap(DeprecatedIndActive):
         """
         Test if warning is raised after passing ``actInd`` to the constructor.
         """
-        msg = "'actInd' has been deprecated and will be removed in "
+        msg = self.get_message_deprecated_warning("actInd", "active_cells")
         with pytest.warns(FutureWarning, match=msg):
             maps.ParametricPolyMap(mesh, 2, actInd=active_cells)
 
@@ -804,7 +819,7 @@ class TestParametricPolyMap(DeprecatedIndActive):
         """
         Test error after passing ``actInd`` and ``active_cells`` to the constructor.
         """
-        msg = "Cannot pass both 'active_cells' and 'actInd'."
+        msg = self.get_message_duplicated_error("actInd", "active_cells")
         with pytest.raises(TypeError, match=msg):
             maps.ParametricPolyMap(
                 mesh, 2, active_cells=active_cells, actInd=active_cells
@@ -845,7 +860,7 @@ class TestMesh2Mesh(DeprecatedIndActive):
         """
         Test if warning is raised after passing ``indActive`` to the constructor.
         """
-        msg = "'indActive' has been deprecated and will be removed in "
+        msg = self.get_message_deprecated_warning("indActive", "active_cells")
         with pytest.warns(FutureWarning, match=msg):
             maps.Mesh2Mesh(meshes, indActive=active_cells)
 
@@ -853,7 +868,7 @@ class TestMesh2Mesh(DeprecatedIndActive):
         """
         Test error after passing ``indActive`` and ``active_cells`` to the constructor.
         """
-        msg = "Cannot pass both 'active_cells' and 'indActive'."
+        msg = self.get_message_duplicated_error("indActive", "active_cells")
         with pytest.raises(TypeError, match=msg):
             maps.Mesh2Mesh(meshes, active_cells=active_cells, indActive=active_cells)
 
@@ -888,7 +903,7 @@ class TestInjectActiveCells(DeprecatedIndActive):
         """
         Test if warning is raised after passing ``indActive`` to the constructor.
         """
-        msg = "'indActive' has been deprecated and will be removed in "
+        msg = self.get_message_deprecated_warning("indActive", "active_cells")
         with pytest.warns(FutureWarning, match=msg):
             maps.InjectActiveCells(mesh, indActive=active_cells)
 
@@ -896,7 +911,7 @@ class TestInjectActiveCells(DeprecatedIndActive):
         """
         Test error after passing ``indActive`` and ``active_cells`` to the constructor.
         """
-        msg = "Cannot pass both 'active_cells' and 'indActive'."
+        msg = self.get_message_duplicated_error("indActive", "active_cells")
         with pytest.raises(TypeError, match=msg):
             maps.InjectActiveCells(
                 mesh, active_cells=active_cells, indActive=active_cells
@@ -929,7 +944,7 @@ class TestInjectActiveCells(DeprecatedIndActive):
         """
         Test if warning is raised after passing ``valInactive`` to the constructor.
         """
-        msg = "'valInactive' has been deprecated and will be removed in "
+        msg = self.get_message_deprecated_warning("valInactive", "value_inactive")
         with pytest.warns(FutureWarning, match=msg):
             maps.InjectActiveCells(mesh, active_cells=active_cells, valInactive=3.14)
 
@@ -938,7 +953,7 @@ class TestInjectActiveCells(DeprecatedIndActive):
         Test error after passing ``valInactive`` and ``value_inactive`` to the
         constructor.
         """
-        msg = "Cannot pass both 'value_inactive' and 'valInactive'."
+        msg = self.get_message_duplicated_error("valInactive", "value_inactive")
         with pytest.raises(TypeError, match=msg):
             maps.InjectActiveCells(
                 mesh, active_cells=active_cells, value_inactive=3.14, valInactive=3.14
