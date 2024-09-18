@@ -227,7 +227,7 @@ class InjectActiveCells(IdentityMap):
         self.active_cells = active_cells
         self._nP = np.sum(self.active_cells)
 
-        self.P = sp.eye(self.nC, format="csr")[:, self.indActive]
+        self.P = sp.eye(self.nC, format="csr")[:, self.active_cells]
 
         self.value_inactive = value_inactive
 
@@ -312,12 +312,12 @@ class InjectActiveCells(IdentityMap):
         int
             Number of parameters the model acts on; i.e. the number of active cells
         """
-        return int(self.indActive.sum())
+        return int(self.active_cells.sum())
 
     def _transform(self, m):
         if m.ndim > 1:
-            return self.P * m + self.valInactive[:, None]
-        return self.P * m + self.valInactive
+            return self.P * m + self.value_inactive[:, None]
+        return self.P * m + self.value_inactive
 
     def inverse(self, u):
         r"""Recover the model parameters (active cells) from a set of physical
