@@ -9,6 +9,13 @@ from simpeg import maps, models, utils
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 import inspect
 
+from simpeg.maps._parametric import (
+    BaseParametric,
+    ParametricLayer,
+    ParametricBlock,
+    ParametricEllipsoid,
+)
+
 TOL = 1e-14
 
 np.random.seed(121)
@@ -981,6 +988,55 @@ class TestInjectActiveCells(DeprecatedIndActive):
         msg = "valInactive has been deprecated, please use value_inactive"
         with pytest.warns(FutureWarning, match=msg):
             mapping.valInactive = 3.14
+
+
+class TestParametric(DeprecatedIndActive):
+    """Test deprecated ``indActive`` in parametric mappings."""
+
+    CLASSES = (BaseParametric, ParametricLayer, ParametricBlock, ParametricEllipsoid)
+
+    @pytest.mark.parametrize("map_class", CLASSES)
+    def test_indactive_warning_argument(self, mesh, active_cells, map_class):
+        """
+        Test if warning is raised after passing ``indActive`` to the constructor.
+        """
+        msg = self.get_message_deprecated_warning("indActive", "active_cells")
+        with pytest.warns(FutureWarning, match=msg):
+            map_class(mesh, indActive=active_cells)
+
+    @pytest.mark.parametrize("map_class", CLASSES)
+    def test_indactive_error_duplicated_argument(self, mesh, active_cells, map_class):
+        """
+        Test error after passing ``indActive`` and ``active_cells`` to the constructor.
+        """
+        msg = self.get_message_duplicated_error("indActive", "active_cells")
+        with pytest.raises(TypeError, match=msg):
+            map_class(mesh, active_cells=active_cells, indActive=active_cells)
+
+    @pytest.mark.parametrize("map_class", CLASSES)
+    def test_indactive_warning_accessing_property(self, mesh, active_cells, map_class):
+        """
+        Test warning when trying to access the ``indActive`` property.
+        """
+        mapping = map_class(mesh, active_cells=active_cells)
+        msg = "indActive has been deprecated, please use active_cells"
+        with pytest.warns(FutureWarning, match=msg):
+            old_act_ind = mapping.indActive
+        np.testing.assert_allclose(mapping.active_cells, old_act_ind)
+
+    @pytest.mark.parametrize("map_class", CLASSES)
+    def test_indactive_warning_setter(self, mesh, active_cells, map_class):
+        """
+        Test warning when trying to set the ``indActive`` property.
+        """
+        mapping = map_class(mesh, active_cells=active_cells)
+        # Define new active cells to pass to the setter
+        new_active_cells = active_cells.copy()
+        new_active_cells[-4:] = False
+        msg = "indActive has been deprecated, please use active_cells"
+        with pytest.warns(FutureWarning, match=msg):
+            mapping.indActive = new_active_cells
+        np.testing.assert_allclose(mapping.active_cells, new_active_cells)
 
 
 if __name__ == "__main__":
