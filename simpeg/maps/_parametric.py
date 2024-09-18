@@ -417,7 +417,7 @@ class ParametricPolyMap(IdentityMap):
             if active_cells is not None:
                 raise TypeError(
                     "Cannot pass both 'active_cells' and 'actInd'."
-                    "'ind_active' has been deprecated and will be removed in "
+                    "'actInd' has been deprecated and will be removed in "
                     " SimPEG v0.24.0, please use 'active_cells' instead.",
                 )
             warnings.warn(
