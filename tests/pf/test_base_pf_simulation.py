@@ -147,7 +147,7 @@ class TestGetActiveNodes:
         active_cells = np.zeros(tensor_mesh.n_cells, dtype=bool)
         active_cells[0] = True
         # Initialize simulation
-        simulation = mock_simulation_class(tensor_mesh, ind_active=active_cells)
+        simulation = mock_simulation_class(tensor_mesh, active_cells=active_cells)
         # Build expected active_nodes and active_cell_nodes
         expected_active_nodes = tensor_mesh.nodes[tensor_mesh[0].nodes]
         expected_active_cell_nodes = np.atleast_2d(np.arange(8, dtype=int))
@@ -165,7 +165,7 @@ class TestGetActiveNodes:
         active_cells[0] = True
 
         # Initialize simulation
-        simulation = mock_simulation_class(tree_mesh, ind_active=active_cells)
+        simulation = mock_simulation_class(tree_mesh, active_cells=active_cells)
 
         # Build expected active_nodes (in the right order for a single cell)
         expected_active_nodes = [
@@ -304,3 +304,41 @@ class TestInvalidMeshChoclo:
         )
         with pytest.raises(ValueError, match=msg):
             mock_simulation_class(mesh, engine="choclo")
+
+
+class TestDeprecationIndActive:
+    """
+    Test if using the deprecated ind_active argument/property raise warnings/errors
+    """
+
+    def test_deprecated_argument(self, tensor_mesh, mock_simulation_class):
+        """Test if passing ind_active argument raises warning."""
+        ind_active = np.ones(tensor_mesh.n_cells, dtype=bool)
+        version_regex = "v[0-9]+.[0-9]+.[0-9]+"
+        msg = (
+            "'ind_active' has been deprecated and will be removed in "
+            f" SimPEG {version_regex}, please use 'active_cells' instead."
+        )
+        with pytest.warns(FutureWarning, match=msg):
+            mock_simulation_class(tensor_mesh, ind_active=ind_active)
+
+    def test_error_both_args(self, tensor_mesh, mock_simulation_class):
+        """Test if passing both ind_active and active_cells raises error."""
+        ind_active = np.ones(tensor_mesh.n_cells, dtype=bool)
+        version_regex = "v[0-9]+.[0-9]+.[0-9]+"
+        msg = (
+            f"Cannot pass both 'active_cells' and 'ind_active'."
+            "'ind_active' has been deprecated and will be removed in "
+            f" SimPEG {version_regex}, please use 'active_cells' instead."
+        )
+        with pytest.raises(TypeError, match=msg):
+            mock_simulation_class(
+                tensor_mesh, active_cells=ind_active, ind_active=ind_active
+            )
+
+    def test_deprecated_property(self, tensor_mesh, mock_simulation_class):
+        """Test if passing both ind_active and active_cells raises error."""
+        ind_active = np.ones(tensor_mesh.n_cells, dtype=bool)
+        simulation = mock_simulation_class(tensor_mesh, active_cells=ind_active)
+        with pytest.warns(FutureWarning):
+            simulation.ind_active
