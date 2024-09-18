@@ -881,5 +881,92 @@ class TestMesh2Mesh(DeprecatedIndActive):
         np.testing.assert_allclose(mapping.active_cells, new_active_cells)
 
 
+class TestInjectActiveCells(DeprecatedIndActive):
+    """Test deprecated ``indActive`` and ``valInactive`` in ``InjectActiveCells``."""
+
+    def test_indactive_warning_argument(self, mesh, active_cells):
+        """
+        Test if warning is raised after passing ``indActive`` to the constructor.
+        """
+        msg = "'indActive' has been deprecated and will be removed in "
+        with pytest.warns(FutureWarning, match=msg):
+            maps.InjectActiveCells(mesh, indActive=active_cells)
+
+    def test_indactive_error_duplicated_argument(self, mesh, active_cells):
+        """
+        Test error after passing ``indActive`` and ``active_cells`` to the constructor.
+        """
+        msg = "Cannot pass both 'active_cells' and 'indActive'."
+        with pytest.raises(TypeError, match=msg):
+            maps.InjectActiveCells(
+                mesh, active_cells=active_cells, indActive=active_cells
+            )
+
+    def test_indactive_warning_accessing_property(self, mesh, active_cells):
+        """
+        Test warning when trying to access the ``indActive`` property.
+        """
+        mapping = maps.InjectActiveCells(mesh, active_cells=active_cells)
+        msg = "indActive has been deprecated, please use active_cells"
+        with pytest.warns(FutureWarning, match=msg):
+            old_act_ind = mapping.indActive
+        np.testing.assert_allclose(mapping.active_cells, old_act_ind)
+
+    def test_indactive_warning_setter(self, mesh, active_cells):
+        """
+        Test warning when trying to set the ``indActive`` property.
+        """
+        mapping = maps.InjectActiveCells(mesh, active_cells=active_cells)
+        # Define new active cells to pass to the setter
+        new_active_cells = active_cells.copy()
+        new_active_cells[-4:] = False
+        msg = "indActive has been deprecated, please use active_cells"
+        with pytest.warns(FutureWarning, match=msg):
+            mapping.indActive = new_active_cells
+        np.testing.assert_allclose(mapping.active_cells, new_active_cells)
+
+    def test_valinactive_warning_argument(self, mesh, active_cells):
+        """
+        Test if warning is raised after passing ``valInactive`` to the constructor.
+        """
+        msg = "'valInactive' has been deprecated and will be removed in "
+        with pytest.warns(FutureWarning, match=msg):
+            maps.InjectActiveCells(mesh, active_cells=active_cells, valInactive=3.14)
+
+    def test_valinactive_error_duplicated_argument(self, mesh, active_cells):
+        """
+        Test error after passing ``valInactive`` and ``value_inactive`` to the
+        constructor.
+        """
+        msg = "Cannot pass both 'value_inactive' and 'valInactive'."
+        with pytest.raises(TypeError, match=msg):
+            maps.InjectActiveCells(
+                mesh, active_cells=active_cells, value_inactive=3.14, valInactive=3.14
+            )
+
+    def test_valinactive_warning_accessing_property(self, mesh, active_cells):
+        """
+        Test warning when trying to access the ``valInactive`` property.
+        """
+        mapping = maps.InjectActiveCells(
+            mesh, active_cells=active_cells, value_inactive=3.14
+        )
+        msg = "valInactive has been deprecated, please use value_inactive"
+        with pytest.warns(FutureWarning, match=msg):
+            old_value = mapping.valInactive
+        np.testing.assert_allclose(mapping.value_inactive, old_value)
+
+    def test_valinactive_warning_setter(self, mesh, active_cells):
+        """
+        Test warning when trying to set the ``valInactive`` property.
+        """
+        mapping = maps.InjectActiveCells(
+            mesh, active_cells=active_cells, value_inactive=3.14
+        )
+        msg = "valInactive has been deprecated, please use value_inactive"
+        with pytest.warns(FutureWarning, match=msg):
+            mapping.valInactive = 3.14
+
+
 if __name__ == "__main__":
     unittest.main()

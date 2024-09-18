@@ -159,50 +159,114 @@ class InjectActiveCells(IdentityMap):
     ----------
     mesh : discretize.BaseMesh
         A discretize mesh
-    indActive : numpy.ndarray
+    active_cells : numpy.ndarray
         Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
-    valInactive : float or numpy.ndarray
+    value_inactive : float or numpy.ndarray
         The physical property value assigned to all inactive cells in the mesh
+    indActive : numpy.ndarray
+
+        .. deprecated:: 0.23.0
+
+           Argument ``indActive`` is deprecated in favor of ``active_cells`` and will
+           be removed in SimPEG v0.24.0.
+
+    valInactive : float or numpy.ndarray
+
+        .. deprecated:: 0.23.0
+
+           Argument ``valInactive`` is deprecated in favor of ``value_inactive`` and
+           will be removed in SimPEG v0.24.0.
 
     """
 
-    def __init__(self, mesh, indActive=None, valInactive=0.0, nC=None):
+    def __init__(
+        self,
+        mesh,
+        active_cells=None,
+        value_inactive=0.0,
+        nC=None,
+        indActive=None,
+        valInactive=0.0,
+    ):
         self.mesh = mesh
         self.nC = nC or mesh.nC
 
-        self._indActive = validate_active_indices("indActive", indActive, self.nC)
-        self._nP = np.sum(self.indActive)
+        # Deprecate indActive argument
+        if indActive is not None:
+            if active_cells is not None:
+                raise TypeError(
+                    "Cannot pass both 'active_cells' and 'indActive'."
+                    "'indActive' has been deprecated and will be removed in "
+                    " SimPEG v0.24.0, please use 'active_cells' instead.",
+                )
+            warnings.warn(
+                "'indActive' has been deprecated and will be removed in "
+                " SimPEG v0.24.0, please use 'active_cells' instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            active_cells = indActive
+
+        # Deprecate valInactive argument
+        if valInactive != 0.0:
+            if value_inactive != 0.0:
+                raise TypeError(
+                    "Cannot pass both 'value_inactive' and 'valInactive'."
+                    "'valInactive' has been deprecated and will be removed in "
+                    " SimPEG v0.24.0, please use 'value_inactive' instead.",
+                )
+            warnings.warn(
+                "'valInactive' has been deprecated and will be removed in "
+                " SimPEG v0.24.0, please use 'value_inactive' instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            value_inactive = valInactive
+
+        self.active_cells = active_cells
+        self._nP = np.sum(self.active_cells)
 
         self.P = sp.eye(self.nC, format="csr")[:, self.indActive]
 
-        self.valInactive = valInactive
+        self.value_inactive = value_inactive
 
     @property
-    def valInactive(self):
+    def value_inactive(self):
         """The physical property value assigned to all inactive cells in the mesh.
 
         Returns
         -------
         numpy.ndarray
         """
-        return self._valInactive
+        return self._value_inactive
 
-    @valInactive.setter
-    def valInactive(self, value):
+    @value_inactive.setter
+    def value_inactive(self, value):
         n_inactive = self.nC - self.nP
         try:
-            value = validate_float("valInactive", value)
+            value = validate_float("value_inactive", value)
             value = np.full(n_inactive, value)
         except Exception:
             pass
-        value = validate_ndarray_with_shape("valInactive", value, shape=(n_inactive,))
+        value = validate_ndarray_with_shape(
+            "value_inactive", value, shape=(n_inactive,)
+        )
+        value_inactive = np.zeros(self.nC, dtype=float)
+        value_inactive[~self.active_cells] = value
+        self._value_inactive = value_inactive
 
-        self._valInactive = np.zeros(self.nC, dtype=float)
-        self._valInactive[~self.indActive] = value
+    valInactive = deprecate_property(
+        value_inactive,
+        "valInactive",
+        "value_inactive",
+        removal_version="0.24.0",
+        future_warn=True,
+        error=False,
+    )
 
     @property
-    def indActive(self):
+    def active_cells(self):
         """
 
         Returns
@@ -210,7 +274,22 @@ class InjectActiveCells(IdentityMap):
         numpy.ndarray of bool
 
         """
-        return self._indActive
+        return self._active_cells
+
+    @active_cells.setter
+    def active_cells(self, value):
+        if value is not None:
+            value = validate_active_indices("active_cells", value, self.nC)
+        self._active_cells = value
+
+    indActive = deprecate_property(
+        active_cells,
+        "indActive",
+        "active_cells",
+        removal_version="0.24.0",
+        future_warn=True,
+        error=False,
+    )
 
     @property
     def shape(self):
