@@ -243,15 +243,14 @@ class InjectActiveCells(IdentityMap):
 
     @value_inactive.setter
     def value_inactive(self, value):
+        value = validate_float("value_inactive", value)
+
         n_inactive = self.nC - self.nP
-        try:
-            value = validate_float("value_inactive", value)
-            value = np.full(n_inactive, value)
-        except Exception:
-            pass
+        value = np.full(n_inactive, value)
         value = validate_ndarray_with_shape(
             "value_inactive", value, shape=(n_inactive,)
         )
+
         value_inactive = np.zeros(self.nC, dtype=float)
         value_inactive[~self.active_cells] = value
         self._value_inactive = value_inactive
