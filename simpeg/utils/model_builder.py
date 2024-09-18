@@ -1,4 +1,3 @@
-from __future__ import annotations  # needed to use type operands in Python 3.8
 import numpy as np
 import scipy.ndimage as ndi
 import scipy.sparse as sp

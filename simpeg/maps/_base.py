@@ -2,8 +2,6 @@
 Base and general map classes.
 """
 
-from __future__ import annotations  # needed to use type operands in Python 3.8
-
 from collections import namedtuple
 import discretize
 import numpy as np
