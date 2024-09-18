@@ -1,3 +1,4 @@
+from copy import deepcopy
 import numpy as np
 import unittest
 import discretize
@@ -830,6 +831,53 @@ class TestParametricPolyMap(DeprecatedIndActive):
         msg = "actInd has been deprecated, please use active_cells"
         with pytest.warns(FutureWarning, match=msg):
             mapping.actInd = new_active_cells
+        np.testing.assert_allclose(mapping.active_cells, new_active_cells)
+
+
+class TestMesh2Mesh(DeprecatedIndActive):
+    """Test deprecated ``indActive`` in ``Mesh2Mesh``."""
+
+    @pytest.fixture
+    def meshes(self, mesh):
+        return [mesh, deepcopy(mesh)]
+
+    def test_warning_argument(self, meshes, active_cells):
+        """
+        Test if warning is raised after passing ``indActive`` to the constructor.
+        """
+        msg = "'indActive' has been deprecated and will be removed in "
+        with pytest.warns(FutureWarning, match=msg):
+            maps.Mesh2Mesh(meshes, indActive=active_cells)
+
+    def test_error_duplicated_argument(self, meshes, active_cells):
+        """
+        Test error after passing ``indActive`` and ``active_cells`` to the constructor.
+        """
+        msg = "Cannot pass both 'active_cells' and 'indActive'."
+        with pytest.raises(TypeError, match=msg):
+            maps.Mesh2Mesh(meshes, active_cells=active_cells, indActive=active_cells)
+
+    def test_warning_accessing_property(self, meshes, active_cells):
+        """
+        Test warning when trying to access the ``indActive`` property.
+        """
+        mapping = maps.Mesh2Mesh(meshes, active_cells=active_cells)
+        msg = "indActive has been deprecated, please use active_cells"
+        with pytest.warns(FutureWarning, match=msg):
+            old_act_ind = mapping.indActive
+        np.testing.assert_allclose(mapping.active_cells, old_act_ind)
+
+    def test_warning_setter(self, meshes, active_cells):
+        """
+        Test warning when trying to set the ``indActive`` property.
+        """
+        mapping = maps.Mesh2Mesh(meshes, active_cells=active_cells)
+        # Define new active cells to pass to the setter
+        new_active_cells = active_cells.copy()
+        new_active_cells[-4:] = False
+        msg = "indActive has been deprecated, please use active_cells"
+        with pytest.warns(FutureWarning, match=msg):
+            mapping.indActive = new_active_cells
         np.testing.assert_allclose(mapping.active_cells, new_active_cells)
 
 

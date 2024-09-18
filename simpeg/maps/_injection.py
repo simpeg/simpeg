@@ -2,6 +2,7 @@
 Injection and interpolation map classes.
 """
 
+import warnings
 import discretize
 import numpy as np
 import scipy.sparse as sp
@@ -13,6 +14,7 @@ from ..utils import (
     validate_active_indices,
 )
 from ._base import IdentityMap
+from ..utils.code_utils import deprecate_property
 
 
 class Mesh2Mesh(IdentityMap):
@@ -20,7 +22,7 @@ class Mesh2Mesh(IdentityMap):
     Takes a model on one mesh are translates it to another mesh.
     """
 
-    def __init__(self, meshes, indActive=None, **kwargs):
+    def __init__(self, meshes, active_cells=None, indActive=None, **kwargs):
         # Sanity checks for the meshes parameter
         try:
             mesh, mesh2 = meshes
@@ -36,7 +38,24 @@ class Mesh2Mesh(IdentityMap):
                 f"Found meshes with dimensions '{mesh.dim}' and '{mesh2.dim}'. "
                 + "Both meshes must have the same dimension."
             )
-        self.indActive = indActive
+
+        # Deprecate indActive argument
+        if indActive is not None:
+            if active_cells is not None:
+                raise TypeError(
+                    "Cannot pass both 'active_cells' and 'indActive'."
+                    "'ind_active' has been deprecated and will be removed in "
+                    " SimPEG v0.24.0, please use 'active_cells' instead.",
+                )
+            warnings.warn(
+                "'indActive' has been deprecated and will be removed in "
+                " SimPEG v0.24.0, please use 'active_cells' instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            active_cells = indActive
+
+        self.active_cells = active_cells
 
     # reset to not accepted None for mesh
     @IdentityMap.mesh.setter
@@ -60,28 +79,37 @@ class Mesh2Mesh(IdentityMap):
         )
 
     @property
-    def indActive(self):
+    def active_cells(self):
         """Active indices on target mesh.
 
         Returns
         -------
         (mesh.n_cells) numpy.ndarray of bool or none
         """
-        return self._indActive
+        return self._active_cells
 
-    @indActive.setter
-    def indActive(self, value):
+    @active_cells.setter
+    def active_cells(self, value):
         if value is not None:
-            value = validate_active_indices("indActive", value, self.mesh.n_cells)
-        self._indActive = value
+            value = validate_active_indices("active_cells", value, self.mesh.n_cells)
+        self._active_cells = value
+
+    indActive = deprecate_property(
+        active_cells,
+        "indActive",
+        "active_cells",
+        removal_version="0.24.0",
+        future_warn=True,
+        error=False,
+    )
 
     @property
     def P(self):
         if getattr(self, "_P", None) is None:
             self._P = self.mesh2.get_interpolation_matrix(
                 (
-                    self.mesh.cell_centers[self.indActive, :]
-                    if self.indActive is not None
+                    self.mesh.cell_centers[self.active_cells, :]
+                    if self.active_cells is not None
                     else self.mesh.cell_centers
                 ),
                 "CC",
@@ -92,8 +120,8 @@ class Mesh2Mesh(IdentityMap):
     @property
     def shape(self):
         """Number of parameters in the model."""
-        if self.indActive is not None:
-            return (self.indActive.sum(), self.mesh2.nC)
+        if self.active_cells is not None:
+            return (self.active_cells.sum(), self.mesh2.nC)
         return (self.mesh.nC, self.mesh2.nC)
 
     @property
