@@ -138,7 +138,7 @@ survey = gravity.survey.Survey(srcField)
 
 # Create the forward simulation for the global dataset
 simulation = gravity.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, rhoMap=idenMap, ind_active=activeCells
+    survey=survey, mesh=mesh, rhoMap=idenMap, active_cells=activeCells
 )
 
 # Compute linear forward operator and compute some data
@@ -166,7 +166,7 @@ for ii, local_survey in enumerate(local_surveys):
         survey=local_survey,
         mesh=local_meshes[ii],
         rhoMap=tile_map,
-        ind_active=local_actives,
+        active_cells=local_actives,
         sensitivity_path=os.path.join("Inversion", f"Tile{ii}.zarr"),
     )
 
