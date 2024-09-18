@@ -2,6 +2,7 @@
 Parametric map classes.
 """
 
+import warnings
 import discretize
 import numpy as np
 from numpy.polynomial import polynomial
@@ -19,6 +20,7 @@ from ..utils import (
     validate_active_indices,
 )
 from ._base import IdentityMap
+from ..utils.code_utils import deprecate_property
 
 
 class ParametricCircleMap(IdentityMap):
@@ -329,9 +331,16 @@ class ParametricPolyMap(IdentityMap):
         If ``True``, parameters :math:`\sigma_1` and :math:`\sigma_2` represent
         the natural log of a physical property.
     normal : {'x', 'y', 'z'}
-    actInd : numpy.ndarray
-        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
-        or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
+    active_cells : (n_cells) numpy.ndarray, optional
+        Active cells array. Can be a boolean ``numpy.ndarray`` of length
+        ``mesh.n_cells`` or a ``numpy.ndarray`` of ``int`` containing the
+        indices of the active cells.
+    actInd : numpy.ndarray, optional
+
+        .. deprecated:: 0.23.0
+
+           Argument ``actInd`` is deprecated in favor of ``active_cells`` and will
+           be removed in SimPEG v0.24.0.
 
     Examples
     --------
@@ -355,7 +364,7 @@ class ParametricPolyMap(IdentityMap):
     >>> model = np.r_[sig1, sig2, c0, c1]
 
     >>> poly_map = ParametricPolyMap(
-    >>>     mesh, order=1, logSigma=False, normal='Y', actInd=ind_active, slope=1e4
+    >>>     mesh, order=1, logSigma=False, normal='Y', active_cells=ind_active, slope=1e4
     >>> )
     >>> act_map = InjectActiveCells(mesh, ind_active, 0.)
 
@@ -376,7 +385,7 @@ class ParametricPolyMap(IdentityMap):
     >>> model = np.r_[sig1, sig2, c0, cx, cy, cxy]
     >>>
     >>> poly_map = ParametricPolyMap(
-    >>>     mesh, order=[1, 1], logSigma=False, normal='Z', actInd=ind_active, slope=2
+    >>>     mesh, order=[1, 1], logSigma=False, normal='Z', active_cells=ind_active, slope=2
     >>> )
     >>> act_map = InjectActiveCells(mesh, ind_active, 0.)
     >>>
@@ -387,16 +396,41 @@ class ParametricPolyMap(IdentityMap):
 
     """
 
-    def __init__(self, mesh, order, logSigma=True, normal="X", actInd=None, slope=1e4):
+    def __init__(
+        self,
+        mesh,
+        order,
+        logSigma=True,
+        normal="X",
+        active_cells=None,
+        slope=1e4,
+        actInd=None,
+    ):
         super().__init__(mesh=mesh)
         self.logSigma = logSigma
         self.order = order
         self.normal = normal
         self.slope = slope
 
-        if actInd is None:
-            actInd = np.ones(mesh.n_cells, dtype=bool)
-        self.actInd = actInd
+        # Deprecate actInd argument
+        if actInd is not None:
+            if active_cells is not None:
+                raise TypeError(
+                    "Cannot pass both 'active_cells' and 'actInd'."
+                    "'ind_active' has been deprecated and will be removed in "
+                    " SimPEG v0.24.0, please use 'active_cells' instead.",
+                )
+            warnings.warn(
+                "'actInd' has been deprecated and will be removed in "
+                " SimPEG v0.24.0, please use 'active_cells' instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            active_cells = actInd
+
+        if active_cells is None:
+            active_cells = np.ones(mesh.n_cells, dtype=bool)
+        self.active_cells = active_cells
 
     @property
     def slope(self):
@@ -443,19 +477,30 @@ class ParametricPolyMap(IdentityMap):
         self._normal = validate_string("normal", value, ("x", "y", "z"))
 
     @property
-    def actInd(self):
+    def active_cells(self):
         """Active indices of the mesh.
 
         Returns
         -------
         (mesh.n_cells) numpy.ndarray of bool
         """
-        return self._actInd
+        return self._active_cells
 
-    @actInd.setter
-    def actInd(self, value):
-        self._actInd = validate_active_indices("actInd", value, self.mesh.n_cells)
-        self._nC = sum(self._actInd)
+    @active_cells.setter
+    def active_cells(self, value):
+        self._active_cells = validate_active_indices(
+            "active_cells", value, self.mesh.n_cells
+        )
+        self._nC = sum(self._active_cells)
+
+    actInd = deprecate_property(
+        active_cells,
+        "actInd",
+        "active_cells",
+        removal_version="0.24.0",
+        future_warn=True,
+        error=False,
+    )
 
     @property
     def shape(self):
@@ -467,7 +512,7 @@ class ParametricPolyMap(IdentityMap):
             The dimensions of the mapping as a tuple of the form
             (*nC* , *nP*), where *nP* is the number of model parameters
             the mapping acts on and *nC* is the number of active cells
-            being mapping to. If *actInd* is ``None``, then
+            being mapping to. If ``active_cells`` is ``None``, then
             *nC = mesh.nC*.
         """
         return (self.nC, self.nP)
@@ -507,8 +552,8 @@ class ParametricPolyMap(IdentityMap):
 
         # 2D
         if self.mesh.dim == 2:
-            X = self.mesh.cell_centers[self.actInd, 0]
-            Y = self.mesh.cell_centers[self.actInd, 1]
+            X = self.mesh.cell_centers[self.active_cells, 0]
+            Y = self.mesh.cell_centers[self.active_cells, 1]
             if self.normal == "x":
                 f = polynomial.polyval(Y, c) - X
             elif self.normal == "y":
@@ -518,9 +563,9 @@ class ParametricPolyMap(IdentityMap):
 
         # 3D
         elif self.mesh.dim == 3:
-            X = self.mesh.cell_centers[self.actInd, 0]
-            Y = self.mesh.cell_centers[self.actInd, 1]
-            Z = self.mesh.cell_centers[self.actInd, 2]
+            X = self.mesh.cell_centers[self.active_cells, 0]
+            Y = self.mesh.cell_centers[self.active_cells, 1]
+            Z = self.mesh.cell_centers[self.active_cells, 2]
 
             if self.normal == "x":
                 f = (
@@ -596,8 +641,8 @@ class ParametricPolyMap(IdentityMap):
 
         # 2D
         if self.mesh.dim == 2:
-            X = self.mesh.cell_centers[self.actInd, 0]
-            Y = self.mesh.cell_centers[self.actInd, 1]
+            X = self.mesh.cell_centers[self.active_cells, 0]
+            Y = self.mesh.cell_centers[self.active_cells, 1]
 
             if self.normal == "x":
                 f = polynomial.polyval(Y, c) - X
@@ -610,9 +655,9 @@ class ParametricPolyMap(IdentityMap):
 
         # 3D
         elif self.mesh.dim == 3:
-            X = self.mesh.cell_centers[self.actInd, 0]
-            Y = self.mesh.cell_centers[self.actInd, 1]
-            Z = self.mesh.cell_centers[self.actInd, 2]
+            X = self.mesh.cell_centers[self.active_cells, 0]
+            Y = self.mesh.cell_centers[self.active_cells, 1]
+            Z = self.mesh.cell_centers[self.active_cells, 2]
 
             if self.normal == "x":
                 f = (

@@ -772,5 +772,66 @@ def test_linearity():
     assert all(not m.is_linear for m in non_linear_maps)
 
 
+class DeprecatedIndActive:
+    """Base class to use to test deprecated ``actInd`` arguments in maps."""
+
+    @pytest.fixture
+    def mesh(self):
+        """Sample mesh."""
+        return discretize.TensorMesh([np.ones(10), np.ones(10)], "CN")
+
+    @pytest.fixture
+    def active_cells(self, mesh):
+        """Sample active cells for the mesh."""
+        active_cells = np.ones(mesh.n_cells, dtype=bool)
+        active_cells[0] = False
+        return active_cells
+
+
+class TestParametricPolyMap(DeprecatedIndActive):
+    """Test deprecated ``actInd`` in ParametricPolyMap."""
+
+    def test_warning_argument(self, mesh, active_cells):
+        """
+        Test if warning is raised after passing ``actInd`` to the constructor.
+        """
+        msg = "'actInd' has been deprecated and will be removed in "
+        with pytest.warns(FutureWarning, match=msg):
+            maps.ParametricPolyMap(mesh, 2, actInd=active_cells)
+
+    def test_error_duplicated_argument(self, mesh, active_cells):
+        """
+        Test error after passing ``actInd`` and ``active_cells`` to the constructor.
+        """
+        msg = "Cannot pass both 'active_cells' and 'actInd'."
+        with pytest.raises(TypeError, match=msg):
+            maps.ParametricPolyMap(
+                mesh, 2, active_cells=active_cells, actInd=active_cells
+            )
+
+    def test_warning_accessing_property(self, mesh, active_cells):
+        """
+        Test warning when trying to access the ``actInd`` property.
+        """
+        mapping = maps.ParametricPolyMap(mesh, 2, active_cells=active_cells)
+        msg = "actInd has been deprecated, please use active_cells"
+        with pytest.warns(FutureWarning, match=msg):
+            old_act_ind = mapping.actInd
+        np.testing.assert_allclose(mapping.active_cells, old_act_ind)
+
+    def test_warning_setter(self, mesh, active_cells):
+        """
+        Test warning when trying to set the ``actInd`` property.
+        """
+        mapping = maps.ParametricPolyMap(mesh, 2, active_cells=active_cells)
+        # Define new active cells to pass to the setter
+        new_active_cells = active_cells.copy()
+        new_active_cells[-4:] = False
+        msg = "actInd has been deprecated, please use active_cells"
+        with pytest.warns(FutureWarning, match=msg):
+            mapping.actInd = new_active_cells
+        np.testing.assert_allclose(mapping.active_cells, new_active_cells)
+
+
 if __name__ == "__main__":
     unittest.main()
