@@ -120,6 +120,7 @@ from .directives import (
     VectorInversion,
     SaveIterationsGeoH5,
     ProjectSphericalBounds,
+    ScaleMisfitMultipliers
 )
 
 from .pgi_directives import (

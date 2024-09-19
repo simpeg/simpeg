@@ -3426,3 +3426,57 @@ class VectorInversion(InversionDirective):
             for directive in directiveList:
                 if not isinstance(directive, SaveIterationsGeoH5):
                     directive.endIter()
+
+
+class ScaleMisfitMultipliers(InversionDirective):
+    """
+    Scale the misfits by a factor.
+    """
+
+    def __init__(self, chifact_target, out_group: SimPEGGroup, **kwargs):
+        self.last_beta = None
+        self.chifact_target = chifact_target
+        self.out_group = out_group
+
+        dirpath = Path(self.out_group.workspace.h5file).parent
+        self.filepath = dirpath / "ChiFactors.log"
+
+        super().__init__(**kwargs)
+
+    def initialize(self):
+        self.last_beta = self.invProb.beta
+        self.multipliers = self.invProb.dmisfit.multipliers
+
+        with open(self.filepath, "w", encoding="utf-8") as f:
+            f.write(
+                "Iterations\t" + '\t'.join(objfct.name for objfct in self.invProb.dmisfit.objfcts)
+            )
+            f.write("\n")
+
+
+    def endIter(self):
+        ratio = self.invProb.beta / self.last_beta
+        chi_factors = []
+        phi_ds = []
+        for (mult, objfct), pred in zip(self.invProb.dmisfit, self.invProb.dpred):
+            residual = objfct.W * (objfct.data.dobs - pred)
+            phi_d = mult * np.vdot(residual, residual)
+            chi_factors.append(phi_d / objfct.nD)
+            phi_ds.append(phi_d)
+
+        phi_ds = np.asarray(phi_ds)
+        chi_factors = np.asarray(chi_factors)
+        # ratios = np.ones_like(chi_factors) * np.min([1, ratio])
+        # scalings = np.max(np.c_[ratios, chi_factors/chi_factors.max()], axis=1)
+        scalings = chi_factors/chi_factors.min()
+        multipliers = scalings
+        # self.invProb.beta *= (phi_ds * scalings).sum() / phi_ds.sum()
+
+        with open(self.filepath, "a", encoding="utf-8") as f:
+            f.write(
+                f"{self.opt.iter}\t" + '\t'.join("%.3f" % chi for chi in chi_factors) + "\n"
+            )
+
+        self.invProb.dmisfit.multipliers = multipliers.tolist()
+        self.last_beta = self.invProb.beta
+
