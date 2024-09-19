@@ -244,13 +244,13 @@ class PrimSecCasingExample(object):
             # inject casing parameters so they are included in the construction
             # of the layered background + casing
             injectCasingParams = maps.InjectActiveCells(
-                None, indActive=np.r_[0, 1, 4, 5], valInactive=valInactive, nC=10
+                None, active_cells=np.r_[0, 1, 4, 5], value_inactive=valInactive, nC=10
             )
 
             # maps a list of casing parameters to the cyl mesh (below the
             # subsurface)
             paramMapPrimary = maps.ParametricCasingAndLayer(
-                self.meshp, indActive=self.indActivePrimary, slopeFact=1e4
+                self.meshp, active_cells=self.indActivePrimary, slopeFact=1e4
             )
 
             # inject air cells
@@ -519,7 +519,7 @@ class PrimSecCasingExample(object):
         return self._meshs
 
     @property
-    def indActive(self):
+    def iindActivendActive(self):
         return self.meshs.gridCC[:, 2] <= 0.0  # air cells
 
     @property
@@ -538,7 +538,9 @@ class PrimSecCasingExample(object):
         # model on our mesh
         if getattr(self, "_mapping", None) is None:
             print("building secondary mapping")
-            paramMap = maps.ParametricBlockInLayer(self.meshs, indActive=self.indActive)
+            paramMap = maps.ParametricBlockInLayer(
+                self.meshs, active_cells=self.indActive
+            )
             self._mapping = (
                 self.expMap
                 * self.injActMap  # log sigma --> sigma
@@ -555,7 +557,7 @@ class PrimSecCasingExample(object):
             # block)
             print("Building primaryMap2meshs")
             paramMapPrimaryMeshs = maps.ParametricLayer(
-                self.meshs, indActive=self.indActive
+                self.meshs, active_cells=self.indActive
             )
 
             self._primaryMap2mesh = (
