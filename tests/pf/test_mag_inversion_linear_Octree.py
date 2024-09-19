@@ -103,7 +103,7 @@ class MagInvLinProblemTest(unittest.TestCase):
             self.mesh,
             survey=survey,
             chiMap=idenMap,
-            ind_active=actv,
+            active_cells=actv,
             store_sensitivities="ram",
             n_processes=None,
         )
