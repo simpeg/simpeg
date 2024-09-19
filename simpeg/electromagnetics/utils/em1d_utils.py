@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 from simpeg import utils
 from discretize import TensorMesh
+from discretize import utils as dis_utils
 
 from simpeg.utils.code_utils import (
     validate_ndarray_with_shape,
@@ -450,7 +451,6 @@ class Stitched1DModel:
         i_layer=0,
         i_line=0,
         x_axis="x",
-        plot_type="contour",
         physical_property=None,
         clim=None,
         ax=None,
@@ -463,7 +463,6 @@ class Stitched1DModel:
         dx=20.0,
         invert_xaxis=False,
         alpha=0.7,
-        pcolorOpts=None,
     ):
         ind_line = self.line == self.unique_line[i_line]
         if physical_property is not None:
@@ -509,18 +508,27 @@ class Stitched1DModel:
                 x_tmp = self.topography[i, x_ind]
 
             topo_temp = np.c_[x_tmp - dx, x_tmp + dx]
-            out = ax.pcolormesh(
-                topo_temp,
-                -self.depth_matrix[:, i] + self.topography[i, 2],
-                physical_property_matrix[:, inds_temp],
-                cmap=cmap,
-                alpha=alpha,
-                vmin=vmin,
-                vmax=vmax,
-                norm=norm,
-                shading="auto",
-                **pcolorOpts,
-            )
+            if scale == "log":
+                out = ax.pcolormesh(
+                    topo_temp,
+                    -self.depth_matrix[:, i] + self.topography[i, 2],
+                    physical_property_matrix[:, inds_temp],
+                    cmap=cmap,
+                    alpha=alpha,
+                    norm=norm,
+                    shading="auto",
+                )
+            else:
+                out = ax.pcolormesh(
+                    topo_temp,
+                    -self.depth_matrix[:, i] + self.topography[i, 2],
+                    physical_property_matrix[:, inds_temp],
+                    cmap=cmap,
+                    alpha=alpha,
+                    vmin=vmin,
+                    vmax=vmax,
+                    shading="auto",
+                )
 
         if show_colorbar:
             cb = plt.colorbar(out, ax=ax, fraction=0.01)
@@ -598,7 +606,7 @@ class Stitched1DModel:
         hy = [(dy, npad_y, -1.2), (dy, ny), (dy, npad_y, -1.2)]
         hz = [(dz, npad_z, -1.2), (dz, nz)]
 
-        zmin = self.topography[:, 2].max() - utils.meshTensor(hz).sum()
+        zmin = self.topography[:, 2].max() - utils.unpack_widths(hz).sum()
         self._mesh_3d = TensorMesh([hx, hy, hz], x0=[xmin, ymin, zmin])
 
         return self.mesh_3d
@@ -630,7 +638,7 @@ class Stitched1DModel:
 
         z = self.P * self.topography[:, 2]
 
-        act_inds = utils.surface2ind_topo(self.mesh_3d, np.c_[xy, z])
+        act_inds = dis_utils.active_from_xyz(self.mesh_3d, np.c_[xy, z])
         self._actinds = np.zeros(self.mesh_3d.n_cells, dtype=bool)
         self._actinds[act_inds] = True
         Z = np.empty(self.mesh_3d.vnC, dtype=float, order="F")
