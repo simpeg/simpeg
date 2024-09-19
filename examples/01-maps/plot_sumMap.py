@@ -96,7 +96,7 @@ def run(plotIt=True):
         mesh,
         survey=survey,
         chiMap=idenMap,
-        ind_active=actv,
+        active_cells=actv,
         store_sensitivities="forward_only",
     )
 
@@ -117,7 +117,7 @@ def run(plotIt=True):
 
     # Create the forward model operator
     prob = magnetics.Simulation3DIntegral(
-        mesh, survey=survey, chiMap=sumMap, ind_active=actv, store_sensitivities="ram"
+        mesh, survey=survey, chiMap=sumMap, active_cells=actv, store_sensitivities="ram"
     )
 
     # Make sensitivity weighting
