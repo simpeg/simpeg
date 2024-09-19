@@ -519,7 +519,7 @@ class PrimSecCasingExample(object):
         return self._meshs
 
     @property
-    def iindActivendActive(self):
+    def indActive(self):
         return self.meshs.gridCC[:, 2] <= 0.0  # air cells
 
     @property
