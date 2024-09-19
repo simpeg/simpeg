@@ -6,6 +6,7 @@ import warnings
 import discretize
 import numpy as np
 import scipy.sparse as sp
+from numbers import Number
 
 from ..utils import (
     validate_type,
@@ -209,8 +210,8 @@ class InjectActiveCells(IdentityMap):
             active_cells = indActive
 
         # Deprecate valInactive argument
-        if valInactive != 0.0:
-            if value_inactive != 0.0:
+        if not isinstance(valInactive, Number) or valInactive != 0.0:
+            if not isinstance(value_inactive, Number) or value_inactive != 0.0:
                 raise TypeError(
                     "Cannot pass both 'value_inactive' and 'valInactive'."
                     "'valInactive' has been deprecated and will be removed in "
@@ -243,14 +244,13 @@ class InjectActiveCells(IdentityMap):
 
     @value_inactive.setter
     def value_inactive(self, value):
-        value = validate_float("value_inactive", value)
-
         n_inactive = self.nC - self.nP
-        value = np.full(n_inactive, value)
+        if isinstance(value, Number):
+            value = validate_float("value_inactive", value)
+            value = np.full(n_inactive, value)
         value = validate_ndarray_with_shape(
             "value_inactive", value, shape=(n_inactive,)
         )
-
         value_inactive = np.zeros(self.nC, dtype=float)
         value_inactive[~self.active_cells] = value
         self._value_inactive = value_inactive
