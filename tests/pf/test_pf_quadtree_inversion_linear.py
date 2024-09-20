@@ -209,7 +209,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 survey=grav_survey,
                 rhoMap=self.idenMap_active,
                 store_sensitivities="ram",
-                ind_active=self.active_cells,
+                active_cells=self.active_cells,
             )
 
             # Already defined
@@ -243,7 +243,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 survey=mag_survey,
                 chiMap=self.idenMap_active,
                 store_sensitivities="ram",
-                ind_active=self.active_cells,
+                active_cells=self.active_cells,
             )
 
             # Already defined
@@ -457,7 +457,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             -5.0 * np.ones(self.mesh.nC),
             survey=grav_survey,
             rhoMap=subset_idenMap,
-            ind_active=ind_active,
+            active_cells=ind_active,
         )
 
         print("Z_TOP OR Z_BOTTOM LENGTH MATCHING NACTIVE-CELLS ERROR TEST PASSED.")

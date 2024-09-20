@@ -91,7 +91,7 @@ def run(plotIt=True):
         survey=survey,
         mesh=mesh,
         chiMap=idenMap,
-        ind_active=actv,
+        active_cells=actv,
     )
 
     # Compute linear forward operator and compute some data

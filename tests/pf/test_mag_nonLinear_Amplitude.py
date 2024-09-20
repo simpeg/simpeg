@@ -100,7 +100,7 @@ class AmpProblemTest(unittest.TestCase):
             survey=survey,
             mesh=mesh,
             chiMap=idenMap,
-            ind_active=actv,
+            active_cells=actv,
             store_sensitivities="forward_only",
         )
         simulation.M = M_xyz
@@ -134,7 +134,7 @@ class AmpProblemTest(unittest.TestCase):
             mesh=mesh,
             survey=survey,
             chiMap=idenMap,
-            ind_active=surf,
+            active_cells=surf,
             store_sensitivities="ram",
         )
         simulation.model = mstart
@@ -201,7 +201,7 @@ class AmpProblemTest(unittest.TestCase):
             mesh=mesh,
             survey=surveyAmp,
             chiMap=idenMap,
-            ind_active=surf,
+            active_cells=surf,
             is_amplitude_data=True,
             store_sensitivities="forward_only",
         )
@@ -228,7 +228,7 @@ class AmpProblemTest(unittest.TestCase):
             survey=surveyAmp,
             mesh=mesh,
             chiMap=idenMap,
-            ind_active=actv,
+            active_cells=actv,
             is_amplitude_data=True,
         )
 
