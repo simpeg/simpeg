@@ -623,13 +623,13 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
             self.dmisfit,
             m,
             n_pw_iter=self.n_pw_iter,
-            seed=rng,
+            random_seed=rng,
         )
         reg_eigenvalue = eigenvalue_by_power_iteration(
             self.reg,
             m,
             n_pw_iter=self.n_pw_iter,
-            seed=rng,
+            random_seed=rng,
         )
 
         self.ratio = np.asarray(dm_eigenvalue / reg_eigenvalue)
@@ -840,7 +840,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
             smallness[0],
             self.invProb.model,
             n_pw_iter=self.n_pw_iter,
-            seed=rng,
+            random_seed=rng,
         )
 
         self.alpha0_ratio = self.alpha0_ratio * np.ones(len(smoothness))
@@ -856,7 +856,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                 obj,
                 self.invProb.model,
                 n_pw_iter=self.n_pw_iter,
-                seed=rng,
+                random_seed=rng,
             )
             ratio = smallness_eigenvalue / smooth_i_eigenvalue
 
@@ -993,7 +993,9 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
 
         dm_eigenvalue_list = []
         for dm in self.dmisfit.objfcts:
-            dm_eigenvalue_list += [eigenvalue_by_power_iteration(dm, m, seed=rng)]
+            dm_eigenvalue_list += [
+                eigenvalue_by_power_iteration(dm, m, random_seed=rng)
+            ]
 
         self.chi0 = self.chi0_ratio / np.r_[dm_eigenvalue_list]
         self.chi0 = self.chi0 / np.sum(self.chi0)
