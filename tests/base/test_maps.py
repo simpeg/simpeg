@@ -781,7 +781,7 @@ def test_linearity():
 
 
 class DeprecatedIndActive:
-    """Base class to use to test deprecated ``actInd`` arguments in maps."""
+    """Base class to test deprecated ``actInd`` and ``indActive`` arguments in maps."""
 
     @pytest.fixture
     def mesh(self):
