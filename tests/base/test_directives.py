@@ -569,5 +569,74 @@ class TestBetaEstimatorArguments:
         assert directive.seed == seed
 
 
+class TestDeprecateSeedProperty:
+    """
+    Test deprecation of seed property.
+    """
+
+    CLASSES = (
+        directives.AlphasSmoothEstimate_ByEig,
+        directives.BetaEstimate_ByEig,
+        directives.BetaEstimateMaxDerivative,
+        directives.ScalingMultipleDataMisfits_ByEig,
+    )
+
+    def get_message_duplicated_error(self, old_name, new_name, version="v0.24.0"):
+        msg = (
+            f"Cannot pass both '{new_name}' and '{old_name}'."
+            f"'{old_name}' has been deprecated and will be removed in "
+            f" SimPEG {version}, please use '{new_name}' instead."
+        )
+        return msg
+
+    def get_message_deprecated_warning(self, old_name, new_name, version="v0.24.0"):
+        msg = (
+            f"'{old_name}' has been deprecated and will be removed in "
+            f" SimPEG {version}, please use '{new_name}' instead."
+        )
+        return msg
+
+    @pytest.mark.parametrize("directive", CLASSES)
+    def test_warning_argument(self, directive):
+        """
+        Test if warning is raised after passing ``seed`` to the constructor.
+        """
+        msg = self.get_message_deprecated_warning("seed", "random_seed")
+        with pytest.warns(FutureWarning, match=msg):
+            directive(seed=42)
+
+    @pytest.mark.parametrize("directive", CLASSES)
+    def test_error_duplicated_argument(self, directive):
+        """
+        Test error after passing ``seed`` and ``random_seed`` to the constructor.
+        """
+        msg = self.get_message_duplicated_error("seed", "random_seed")
+        with pytest.raises(TypeError, match=msg):
+            directive(seed=42, random_seed=42)
+
+    @pytest.mark.parametrize("directive", CLASSES)
+    def test_warning_accessing_property(self, directive):
+        """
+        Test warning when trying to access the ``seed`` property.
+        """
+        directive_obj = directive(random_seed=42)
+        msg = "seed has been deprecated, please use random_seed"
+        with pytest.warns(FutureWarning, match=msg):
+            seed = directive_obj.seed
+        np.testing.assert_allclose(seed, directive_obj.random_seed)
+
+    @pytest.mark.parametrize("directive", CLASSES)
+    def test_warning_setter(self, directive):
+        """
+        Test warning when trying to set the ``seed`` property.
+        """
+        directive_obj = directive(random_seed=42)
+        msg = "seed has been deprecated, please use random_seed"
+        new_seed = 35
+        with pytest.warns(FutureWarning, match=msg):
+            directive_obj.seed = new_seed
+        np.testing.assert_allclose(directive_obj.random_seed, new_seed)
+
+
 if __name__ == "__main__":
     unittest.main()
