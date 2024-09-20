@@ -355,7 +355,7 @@ class UpdateIRLS(InversionDirective):
         if any(lin_precond_ind):
             if lin_precond_ind.index(True) < self_ind:
                 raise AssertionError(
-                    "The directive 'UpdatePreconditioner' must be after Update_IRLS "
+                    "The directive 'UpdatePreconditioner' must be after UpdateIRLS "
                     "in the directiveList"
                 )
         else:
