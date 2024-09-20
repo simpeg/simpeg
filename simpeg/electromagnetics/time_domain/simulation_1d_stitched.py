@@ -245,7 +245,7 @@ class Simulation1DLayeredStitched(BaseStitchedEM1DSimulation):
 
             if self._freq_to_time_matricies_set is False:
                 self.get_freq_to_time_matricies()
-
+            self.get_hankel_coefficients()
             run_simulation = run_simulation_time_domain
 
             if self.parallel:
