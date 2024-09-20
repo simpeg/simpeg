@@ -9,6 +9,10 @@ jobs:
       - checkout: self
         displayName: "Checkout repository"
 
+      # Install simpeg to generate the version.py file
+      - bash: pip install -e .
+        displayName: "Install simpeg"
+
       - bash: pip install coverage
         displayName: "Install coverage"
 
