@@ -22,7 +22,7 @@ jobs:
           patterns: "coverage-*/coverage-*"
         displayName: "Download coverage artifacts"
 
-      - bash: ls -la $(Pipeline.Workspace)/coverage-*/coverage-*.xml
+      - bash: ls -la $(Pipeline.Workspace)/coverage-*/coverage-*
         displayName: "List downloaded coverage artifacts"
 
       - bash: |
