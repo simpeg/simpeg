@@ -106,11 +106,11 @@ def get_survey(survey_type, orientation, components, locations, frequencies):
 
 
 CASES_LIST = [
-    # ("impedance", "xy", ["real", "imag"]),
+    ("impedance", "xy", ["real", "imag"]),
     ("impedance", "yx", ["real", "imag"]),
-    # ("impedance", "xy", ["app_res"]),
+    ("impedance", "xy", ["app_res"]),
     ("impedance", "yx", ["app_res"]),
-    # ("impedance", "xy", ["phase"]),
+    ("impedance", "xy", ["phase"]),
     ("impedance", "yx", ["phase"]),
 ]
 
@@ -162,39 +162,39 @@ class TestDerivatives:
 
         return m0, dmis
 
-    # def test_misfit(
-    #     self,
-    #     survey_type,
-    #     orientation,
-    #     components,
-    #     locations,
-    #     frequencies,
-    #     mesh,
-    #     active_cells,
-    #     mapping,
-    #     sigma_hs,
-    # ):
-    #     m0, dmis = self.get_setup_objects(
-    #         survey_type,
-    #         orientation,
-    #         components,
-    #         locations,
-    #         frequencies,
-    #         mesh,
-    #         active_cells,
-    #         mapping,
-    #         sigma_hs,
-    #     )
-    #     sim = dmis.simulation
+    def test_misfit(
+        self,
+        survey_type,
+        orientation,
+        components,
+        locations,
+        frequencies,
+        mesh,
+        active_cells,
+        mapping,
+        sigma_hs,
+    ):
+        m0, dmis = self.get_setup_objects(
+            survey_type,
+            orientation,
+            components,
+            locations,
+            frequencies,
+            mesh,
+            active_cells,
+            mapping,
+            sigma_hs,
+        )
+        sim = dmis.simulation
 
-    #     passed = tests.check_derivative(
-    #         lambda m: (sim.dpred(m), lambda mx: sim.Jvec(m0, mx)),
-    #         m0,
-    #         plotIt=False,
-    #         num=3,
-    #     )
+        passed = tests.check_derivative(
+            lambda m: (sim.dpred(m), lambda mx: sim.Jvec(m0, mx)),
+            m0,
+            plotIt=False,
+            num=3,
+        )
 
-    #     assert passed
+        assert passed
 
     def test_adjoint(
         self,
