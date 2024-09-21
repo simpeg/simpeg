@@ -79,7 +79,7 @@ class ComplexResistivityTest(unittest.TestCase):
 
         # Set the mapping
         actMap = maps.InjectActiveCells(
-            mesh=self.mesh, indActive=self.active, valInactive=np.log(1e-8)
+            mesh=self.mesh, active_cells=self.active, value_inactive=np.log(1e-8)
         )
         mapping = maps.ExpMap(self.mesh) * actMap
         # print(survey_ns.source_list)
@@ -121,7 +121,7 @@ class ComplexResistivityTest(unittest.TestCase):
 
         # Set the mapping
         actMap = maps.InjectActiveCells(
-            mesh=self.mesh, indActive=self.active, valInactive=np.log(1e-8)
+            mesh=self.mesh, active_cells=self.active, value_inactive=np.log(1e-8)
         )
         mapping = maps.ExpMap(self.mesh) * actMap
         # print(survey_ns.source_list)
@@ -173,7 +173,7 @@ class ComplexResistivityTest(unittest.TestCase):
 
         # Set the mapping
         actMap = maps.InjectActiveCells(
-            mesh=self.mesh, indActive=self.active, valInactive=np.log(1e-8)
+            mesh=self.mesh, active_cells=self.active, value_inactive=np.log(1e-8)
         )
         mapping = maps.ExpMap(self.mesh) * actMap
         # print(survey_ns.source_list)
@@ -212,7 +212,7 @@ class ComplexResistivityTest(unittest.TestCase):
 
         # Set the mapping
         actMap = maps.InjectActiveCells(
-            mesh=self.mesh, indActive=self.active, valInactive=np.log(1e-8)
+            mesh=self.mesh, active_cells=self.active, value_inactive=np.log(1e-8)
         )
         mapping = maps.ExpMap(self.mesh) * actMap
         # print(survey_ns.source_list)

@@ -2,6 +2,7 @@
 Parametric map classes.
 """
 
+import warnings
 import discretize
 import numpy as np
 from numpy.polynomial import polynomial
@@ -19,6 +20,7 @@ from ..utils import (
     validate_active_indices,
 )
 from ._base import IdentityMap
+from ..utils.code_utils import deprecate_property
 
 
 class ParametricCircleMap(IdentityMap):
@@ -329,9 +331,16 @@ class ParametricPolyMap(IdentityMap):
         If ``True``, parameters :math:`\sigma_1` and :math:`\sigma_2` represent
         the natural log of a physical property.
     normal : {'x', 'y', 'z'}
-    actInd : numpy.ndarray
-        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
-        or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
+    active_cells : (n_cells) numpy.ndarray, optional
+        Active cells array. Can be a boolean ``numpy.ndarray`` of length
+        ``mesh.n_cells`` or a ``numpy.ndarray`` of ``int`` containing the
+        indices of the active cells.
+    actInd : numpy.ndarray, optional
+
+        .. deprecated:: 0.23.0
+
+           Argument ``actInd`` is deprecated in favor of ``active_cells`` and will
+           be removed in SimPEG v0.24.0.
 
     Examples
     --------
@@ -355,7 +364,7 @@ class ParametricPolyMap(IdentityMap):
     >>> model = np.r_[sig1, sig2, c0, c1]
 
     >>> poly_map = ParametricPolyMap(
-    >>>     mesh, order=1, logSigma=False, normal='Y', actInd=ind_active, slope=1e4
+    >>>     mesh, order=1, logSigma=False, normal='Y', active_cells=ind_active, slope=1e4
     >>> )
     >>> act_map = InjectActiveCells(mesh, ind_active, 0.)
 
@@ -376,7 +385,7 @@ class ParametricPolyMap(IdentityMap):
     >>> model = np.r_[sig1, sig2, c0, cx, cy, cxy]
     >>>
     >>> poly_map = ParametricPolyMap(
-    >>>     mesh, order=[1, 1], logSigma=False, normal='Z', actInd=ind_active, slope=2
+    >>>     mesh, order=[1, 1], logSigma=False, normal='Z', active_cells=ind_active, slope=2
     >>> )
     >>> act_map = InjectActiveCells(mesh, ind_active, 0.)
     >>>
@@ -387,16 +396,41 @@ class ParametricPolyMap(IdentityMap):
 
     """
 
-    def __init__(self, mesh, order, logSigma=True, normal="X", actInd=None, slope=1e4):
+    def __init__(
+        self,
+        mesh,
+        order,
+        logSigma=True,
+        normal="X",
+        active_cells=None,
+        slope=1e4,
+        actInd=None,
+    ):
         super().__init__(mesh=mesh)
         self.logSigma = logSigma
         self.order = order
         self.normal = normal
         self.slope = slope
 
-        if actInd is None:
-            actInd = np.ones(mesh.n_cells, dtype=bool)
-        self.actInd = actInd
+        # Deprecate actInd argument
+        if actInd is not None:
+            if active_cells is not None:
+                raise TypeError(
+                    "Cannot pass both 'active_cells' and 'actInd'."
+                    "'actInd' has been deprecated and will be removed in "
+                    " SimPEG v0.24.0, please use 'active_cells' instead.",
+                )
+            warnings.warn(
+                "'actInd' has been deprecated and will be removed in "
+                " SimPEG v0.24.0, please use 'active_cells' instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            active_cells = actInd
+
+        if active_cells is None:
+            active_cells = np.ones(mesh.n_cells, dtype=bool)
+        self.active_cells = active_cells
 
     @property
     def slope(self):
@@ -443,19 +477,30 @@ class ParametricPolyMap(IdentityMap):
         self._normal = validate_string("normal", value, ("x", "y", "z"))
 
     @property
-    def actInd(self):
+    def active_cells(self):
         """Active indices of the mesh.
 
         Returns
         -------
         (mesh.n_cells) numpy.ndarray of bool
         """
-        return self._actInd
+        return self._active_cells
 
-    @actInd.setter
-    def actInd(self, value):
-        self._actInd = validate_active_indices("actInd", value, self.mesh.n_cells)
-        self._nC = sum(self._actInd)
+    @active_cells.setter
+    def active_cells(self, value):
+        self._active_cells = validate_active_indices(
+            "active_cells", value, self.mesh.n_cells
+        )
+        self._nC = sum(self._active_cells)
+
+    actInd = deprecate_property(
+        active_cells,
+        "actInd",
+        "active_cells",
+        removal_version="0.24.0",
+        future_warn=True,
+        error=False,
+    )
 
     @property
     def shape(self):
@@ -467,7 +512,7 @@ class ParametricPolyMap(IdentityMap):
             The dimensions of the mapping as a tuple of the form
             (*nC* , *nP*), where *nP* is the number of model parameters
             the mapping acts on and *nC* is the number of active cells
-            being mapping to. If *actInd* is ``None``, then
+            being mapping to. If ``active_cells`` is ``None``, then
             *nC = mesh.nC*.
         """
         return (self.nC, self.nP)
@@ -507,8 +552,8 @@ class ParametricPolyMap(IdentityMap):
 
         # 2D
         if self.mesh.dim == 2:
-            X = self.mesh.cell_centers[self.actInd, 0]
-            Y = self.mesh.cell_centers[self.actInd, 1]
+            X = self.mesh.cell_centers[self.active_cells, 0]
+            Y = self.mesh.cell_centers[self.active_cells, 1]
             if self.normal == "x":
                 f = polynomial.polyval(Y, c) - X
             elif self.normal == "y":
@@ -518,9 +563,9 @@ class ParametricPolyMap(IdentityMap):
 
         # 3D
         elif self.mesh.dim == 3:
-            X = self.mesh.cell_centers[self.actInd, 0]
-            Y = self.mesh.cell_centers[self.actInd, 1]
-            Z = self.mesh.cell_centers[self.actInd, 2]
+            X = self.mesh.cell_centers[self.active_cells, 0]
+            Y = self.mesh.cell_centers[self.active_cells, 1]
+            Z = self.mesh.cell_centers[self.active_cells, 2]
 
             if self.normal == "x":
                 f = (
@@ -596,8 +641,8 @@ class ParametricPolyMap(IdentityMap):
 
         # 2D
         if self.mesh.dim == 2:
-            X = self.mesh.cell_centers[self.actInd, 0]
-            Y = self.mesh.cell_centers[self.actInd, 1]
+            X = self.mesh.cell_centers[self.active_cells, 0]
+            Y = self.mesh.cell_centers[self.active_cells, 1]
 
             if self.normal == "x":
                 f = polynomial.polyval(Y, c) - X
@@ -610,9 +655,9 @@ class ParametricPolyMap(IdentityMap):
 
         # 3D
         elif self.mesh.dim == 3:
-            X = self.mesh.cell_centers[self.actInd, 0]
-            Y = self.mesh.cell_centers[self.actInd, 1]
-            Z = self.mesh.cell_centers[self.actInd, 2]
+            X = self.mesh.cell_centers[self.active_cells, 0]
+            Y = self.mesh.cell_centers[self.active_cells, 1]
+            Z = self.mesh.cell_centers[self.active_cells, 2]
 
             if self.normal == "x":
                 f = (
@@ -1049,21 +1094,53 @@ class BaseParametric(IdentityMap):
     ----------
     mesh : discretize.BaseMesh
         A discretize mesh
-    indActive : numpy.ndarray, optional
-        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
-        or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
     slope : float, optional
         Directly set the scaling parameter *slope* which sets the sharpness of boundaries
         between units.
     slopeFact : float, optional
         Set sharpness of boundaries between units based on minimum cell size. If set,
         the scalaing parameter *slope = slopeFact / dh*.
+    active_cells : numpy.ndarray, optional
+        Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
+        or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
+    indActive : numpy.ndarray
+
+        .. deprecated:: 0.23.0
+
+           Argument ``indActive`` is deprecated in favor of ``active_cells`` and will
+           be removed in SimPEG v0.24.0.
+
 
     """
 
-    def __init__(self, mesh, slope=None, slopeFact=1.0, indActive=None, **kwargs):
+    def __init__(
+        self,
+        mesh,
+        slope=None,
+        slopeFact=1.0,
+        active_cells=None,
+        indActive=None,
+        **kwargs,
+    ):
         super(BaseParametric, self).__init__(mesh, **kwargs)
-        self.indActive = indActive
+
+        # Deprecate indActive argument
+        if indActive is not None:
+            if active_cells is not None:
+                raise TypeError(
+                    "Cannot pass both 'active_cells' and 'indActive'."
+                    "'indActive' has been deprecated and will be removed in "
+                    " SimPEG v0.24.0, please use 'active_cells' instead.",
+                )
+            warnings.warn(
+                "'indActive' has been deprecated and will be removed in "
+                " SimPEG v0.24.0, please use 'active_cells' instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            active_cells = indActive
+
+        self.active_cells = active_cells
         self.slopeFact = slopeFact
         if slope is not None:
             self.slope = slope
@@ -1098,14 +1175,23 @@ class BaseParametric(IdentityMap):
         self.slope = self._slopeFact / self.mesh.edge_lengths.min()
 
     @property
-    def indActive(self):
-        return self._indActive
+    def active_cells(self):
+        return self._active_cells
 
-    @indActive.setter
-    def indActive(self, value):
+    @active_cells.setter
+    def active_cells(self, value):
         if value is not None:
-            value = validate_active_indices("indActive", value, self.mesh.n_cells)
-        self._indActive = value
+            value = validate_active_indices("active_cells", value, self.mesh.n_cells)
+        self._active_cells = value
+
+    indActive = deprecate_property(
+        active_cells,
+        "indActive",
+        "active_cells",
+        removal_version="0.24.0",
+        future_warn=True,
+        error=False,
+    )
 
     @property
     def x(self):
@@ -1121,16 +1207,16 @@ class BaseParametric(IdentityMap):
                 self._x = [
                     (
                         self.mesh.cell_centers
-                        if self.indActive is None
-                        else self.mesh.cell_centers[self.indActive]
+                        if self.active_cells is None
+                        else self.mesh.cell_centers[self.active_cells]
                     )
                 ][0]
             else:
                 self._x = [
                     (
                         self.mesh.cell_centers[:, 0]
-                        if self.indActive is None
-                        else self.mesh.cell_centers[self.indActive, 0]
+                        if self.active_cells is None
+                        else self.mesh.cell_centers[self.active_cells, 0]
                     )
                 ][0]
         return self._x
@@ -1149,8 +1235,8 @@ class BaseParametric(IdentityMap):
                 self._y = [
                     (
                         self.mesh.cell_centers[:, 1]
-                        if self.indActive is None
-                        else self.mesh.cell_centers[self.indActive, 1]
+                        if self.active_cells is None
+                        else self.mesh.cell_centers[self.active_cells, 1]
                     )
                 ][0]
             else:
@@ -1171,8 +1257,8 @@ class BaseParametric(IdentityMap):
                 self._z = [
                     (
                         self.mesh.cell_centers[:, 2]
-                        if self.indActive is None
-                        else self.mesh.cell_centers[self.indActive, 2]
+                        if self.active_cells is None
+                        else self.mesh.cell_centers[self.active_cells, 2]
                     )
                 ][0]
             else:
@@ -1226,7 +1312,7 @@ class ParametricLayer(BaseParametric):
     ----------
     mesh : discretize.BaseMesh
         A discretize mesh
-    indActive : numpy.ndarray
+    active_cells : numpy.ndarray, optional
         Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
     slope : float
@@ -1235,6 +1321,12 @@ class ParametricLayer(BaseParametric):
     slopeFact : float
         Scaling factor for the sharpness of the boundaries based on cell size.
         Using this option, we set *a = slopeFact / dh*.
+    indActive : numpy.ndarray
+
+        .. deprecated:: 0.23.0
+
+           Argument ``indActive`` is deprecated in favor of ``active_cells`` and will
+           be removed in SimPEG v0.24.0.
 
     Examples
     --------
@@ -1256,7 +1348,7 @@ class ParametricLayer(BaseParametric):
     >>> model = np.r_[sig0, sig1, zL, h]
 
     >>> layer_map = ParametricLayer(
-    >>>     mesh, indActive=ind_active, slope=4
+    >>>     mesh, active_cells=ind_active, slope=4
     >>> )
     >>> act_map = InjectActiveCells(mesh, ind_active, 0.)
 
@@ -1291,8 +1383,8 @@ class ParametricLayer(BaseParametric):
             and *nAct* is the number of active cells in the mesh, **shape**
             returns a tuple (*nAct* , *4*).
         """
-        if self.indActive is not None:
-            return (sum(self.indActive), self.nP)
+        if self.active_cells is not None:
+            return (sum(self.active_cells), self.nP)
         return (self.mesh.nC, self.nP)
 
     def mDict(self, m):
@@ -1484,7 +1576,7 @@ class ParametricBlock(BaseParametric):
     ----------
     mesh : discretize.BaseMesh
         A discretize mesh
-    indActive : numpy.ndarray
+    active_cells : numpy.ndarray
         Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
     slope : float
@@ -1497,6 +1589,12 @@ class ParametricBlock(BaseParametric):
         Epsilon value used in the ekblom representation of the block
     p : float
         p-value used in the ekblom representation of the block.
+    indActive : numpy.ndarray
+
+        .. deprecated:: 0.23.0
+
+           Argument ``indActive`` is deprecated in favor of ``active_cells`` and will
+           be removed in SimPEG v0.24.0.
 
     Examples
     --------
@@ -1517,7 +1615,7 @@ class ParametricBlock(BaseParametric):
     >>> sig0, sigb, xb, Lx, yb, Ly = 5., 10., 5., 4., 4., 2.
     >>> model = np.r_[sig0, sigb, xb, Lx, yb, Ly]
 
-    >>> block_map = ParametricBlock(mesh, indActive=ind_active)
+    >>> block_map = ParametricBlock(mesh, active_cells=ind_active)
     >>> act_map = InjectActiveCells(mesh, ind_active, 0.)
 
     >>> fig = plt.figure(figsize=(5, 5))
@@ -1591,8 +1689,8 @@ class ParametricBlock(BaseParametric):
             and *nAct* is the number of active cells in the mesh, **shape**
             returns a tuple (*nAct* , *nP*).
         """
-        if self.indActive is not None:
-            return (sum(self.indActive), self.nP)
+        if self.active_cells is not None:
+            return (sum(self.active_cells), self.nP)
         return (self.mesh.nC, self.nP)
 
     def _mDict1d(self, m):
@@ -1829,7 +1927,7 @@ class ParametricEllipsoid(ParametricBlock):
     ----------
     mesh : discretize.BaseMesh
         A discretize mesh
-    indActive : numpy.ndarray
+    active_cells : numpy.ndarray
         Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
     slope : float
@@ -1840,6 +1938,12 @@ class ParametricEllipsoid(ParametricBlock):
         Using this option, we set *a = slopeFact / dh*.
     epsilon : float
         Epsilon value used in the ekblom representation of the block
+    indActive : numpy.ndarray
+
+        .. deprecated:: 0.23.0
+
+           Argument ``indActive`` is deprecated in favor of ``active_cells`` and will
+           be removed in SimPEG v0.24.0.
 
     Examples
     --------
@@ -1860,7 +1964,7 @@ class ParametricEllipsoid(ParametricBlock):
     >>> sig0, sigb, xb, Lx, yb, Ly = 5., 10., 5., 4., 4., 3.
     >>> model = np.r_[sig0, sigb, xb, Lx, yb, Ly]
 
-    >>> ellipsoid_map = ParametricEllipsoid(mesh, indActive=ind_active)
+    >>> ellipsoid_map = ParametricEllipsoid(mesh, active_cells=ind_active)
     >>> act_map = InjectActiveCells(mesh, ind_active, 0.)
 
     >>> fig = plt.figure(figsize=(5, 5))
@@ -1906,8 +2010,8 @@ class ParametricCasingAndLayer(ParametricLayer):
 
     @property
     def shape(self):
-        if self.indActive is not None:
-            return (sum(self.indActive), self.nP)
+        if self.active_cells is not None:
+            return (sum(self.active_cells), self.nP)
         return (self.mesh.nC, self.nP)
 
     def mDict(self, m):
@@ -2234,7 +2338,7 @@ class ParametricBlockInLayer(ParametricLayer):
                             spacing to give the slope of the arctan
                             functions
     :param float slope: slope of the arctan function
-    :param numpy.ndarray indActive: bool vector with
+    :param numpy.ndarray active_cells: bool vector with
 
     """
 
@@ -2250,8 +2354,8 @@ class ParametricBlockInLayer(ParametricLayer):
 
     @property
     def shape(self):
-        if self.indActive is not None:
-            return (sum(self.indActive), self.nP)
+        if self.active_cells is not None:
+            return (sum(self.active_cells), self.nP)
         return (self.mesh.nC, self.nP)
 
     def _mDict2d(self, m):
