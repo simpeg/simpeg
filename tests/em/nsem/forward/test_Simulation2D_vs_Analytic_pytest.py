@@ -154,7 +154,9 @@ def test_analytic_halfspace_solution(
     n_locations = np.shape(locations)[0]
     analytic_solution = np.hstack(
         [
-            get_analytic_halfspace_solution(sigma_hs, f, survey_type, component, orientation)
+            get_analytic_halfspace_solution(
+                sigma_hs, f, survey_type, component, orientation
+            )
             for f in frequencies
         ]
     )
