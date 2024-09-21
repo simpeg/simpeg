@@ -1309,7 +1309,7 @@ class PointNaturalSource(Impedance):
             out = super().eval(src, mesh, f)
         return out
 
-    locations = property(lambda self: self._locations[0], Impedance.locations.fset)
+    # locations = property(lambda self: self._locations[0], Impedance.locations.fset)
 
 
 @deprecate_class(removal_version="0.24.0", future_warn=True, replace_docstring=False)
@@ -1371,4 +1371,4 @@ class Point3DTipper(Tipper):
             out = super().eval(src, mesh, f)
         return out
 
-    locations = property(lambda self: self._locations[0], Tipper.locations.fset)
+    # locations = property(lambda self: self._locations[0], Tipper.locations.fset)

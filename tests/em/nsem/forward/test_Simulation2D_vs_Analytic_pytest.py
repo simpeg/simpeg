@@ -85,7 +85,7 @@ def get_survey(locations, frequencies, survey_type, component, orientation):
                 )
             ]
 
-        source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
+        source_list.append(nsem.sources.Planewave(rx_list, f))
 
     return nsem.survey.Survey(source_list)
 
