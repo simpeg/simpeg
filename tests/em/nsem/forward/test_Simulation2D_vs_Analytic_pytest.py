@@ -3,7 +3,7 @@ from scipy.constants import mu_0
 import numpy as np
 from discretize import TensorMesh
 from simpeg.electromagnetics import natural_source as nsem
-from simpeg.utils import model_builder, mkvc
+from simpeg.utils import model_builder
 from simpeg import maps
 
 REL_TOLERANCE = 0.05

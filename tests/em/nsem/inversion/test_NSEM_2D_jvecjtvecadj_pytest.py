@@ -5,7 +5,7 @@ from simpeg import (
     maps,
     data_misfit,
 )
-from simpeg.utils import mkvc, model_builder
+from simpeg.utils import model_builder
 from simpeg.electromagnetics import natural_source as nsem
 
 REL_TOLERANCE = 5e-2
@@ -134,11 +134,11 @@ class TestDerivatives:
         )
 
         # Define the simulation
-        if orientation in ['xy', 'zy']:
+        if orientation in ["xy", "zy"]:
             sim = nsem.simulation.Simulation2DElectricField(
                 mesh, survey=survey, sigmaMap=mapping
             )
-        elif orientation in ['yx', 'zx']:
+        elif orientation in ["yx", "zx"]:
             sim = nsem.simulation.Simulation2DMagneticField(
                 mesh, survey=survey, sigmaMap=mapping
             )
