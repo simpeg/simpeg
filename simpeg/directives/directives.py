@@ -3488,4 +3488,3 @@ class ScaleMisfitMultipliers(InversionDirective):
 
         self.invProb.dmisfit.multipliers = multipliers.tolist()
         self.last_beta = self.invProb.beta
-
