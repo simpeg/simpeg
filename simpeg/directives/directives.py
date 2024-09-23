@@ -3468,7 +3468,7 @@ class ScaleMisfitMultipliers(InversionDirective):
 
         phi_ds = np.asarray(phi_ds)
         chi_factors = np.asarray(chi_factors)
-        scalings = chi_factors/chi_factors.max()
+        scalings = chi_factors / chi_factors.max()
 
         # Force beta ratio scaling if below target
         scalings[chi_factors < 1] *= ratio
