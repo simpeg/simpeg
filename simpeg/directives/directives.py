@@ -3169,7 +3169,7 @@ class SaveIterationsGeoH5(InversionDirective):
         with fetch_active_workspace(self._geoh5, mode="r+") as w_s:
             h5_object = w_s.get_entity(self.h5_object)[0]
 
-            for file in ["SimPEG.out", "SimPEG.log"]:
+            for file in ["SimPEG.out", "SimPEG.log", "ChiFactors.log"]:
                 filepath = dirpath / file
 
                 if not filepath.is_file():
@@ -3430,16 +3430,26 @@ class VectorInversion(InversionDirective):
 
 class ScaleMisfitMultipliers(InversionDirective):
     """
-    Scale the misfits by a factor.
+    Scale the misfits by the relative chi-factors of multiple misfit functions.
+
+    The goal is to reduce the relative influence of the misfit functions with
+    lowest chi-factors so that all functions reach a similar level of fit at
+    convergence to the global target.
+
+    Parameters
+    ----------
+
+    path : str
+        Path to save the chi-factors log file.
     """
 
-    def __init__(self, chifact_target, out_group: SimPEGGroup, **kwargs):
+    def __init__(self, path: Path | None, **kwargs):
         self.last_beta = None
-        self.chifact_target = chifact_target
-        self.out_group = out_group
 
-        dirpath = Path(self.out_group.workspace.h5file).parent
-        self.filepath = dirpath / "ChiFactors.log"
+        if path is None:
+            path = Path()
+
+        self.filepath = path / "ChiFactors.log"
 
         super().__init__(**kwargs)
 
