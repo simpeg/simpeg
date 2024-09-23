@@ -9,26 +9,45 @@ jobs:
       - checkout: self
         displayName: "Checkout repository"
 
-      - task: DownloadPipelineArtifact@2
-        inputs:
-          patterns: "coverage-*/coverage-*.xml"
-        displayName: "Download coverage artifacts"
+      # Install simpeg to generate the version.py file
+      - bash: |
+          echo "Pip version:" $(pip --version)
+          pip install --upgrade pip
+          echo "Pip version:" $(pip --version)
+          pip install -e .
+        displayName: "Install simpeg"
 
-      - bash: ls -la $(Pipeline.Workspace)/coverage-*/coverage-*.xml
-        displayName: "List downloaded coverage artifacts"
+      - bash: pip install coverage
+        displayName: "Install coverage"
 
       - bash: |
-          cp $(Pipeline.Workspace)/coverage-*/coverage-*.xml .
-          ls -la
-        displayName: "Copy coverage files"
-
-      - script: |
           curl -Os https://uploader.codecov.io/latest/linux/codecov
           chmod +x codecov
         displayName: "Install codecov cli"
 
-      - script: |
-          for report in coverage-*.xml; do
-            ./codecov --verbose upload-process -f "$report"
-          done
+      - task: DownloadPipelineArtifact@2
+        inputs:
+          patterns: "coverage-*/coverage-*"
+        displayName: "Download coverage artifacts"
+
+      - bash: ls -la $(Pipeline.Workspace)/coverage-*/coverage-*
+        displayName: "List downloaded coverage artifacts"
+
+      - bash: |
+          mkdir coverages
+          cp $(Pipeline.Workspace)/coverage-*/coverage-* coverages
+          ls -la coverages
+        displayName: "Copy coverage files"
+
+      - bash: |
+          coverage combine coverages/*
+          ls -la .coverage
+        displayName: "Combine coverages"
+
+      - bash: |
+          coverage xml
+        displayName: "Convert coverage to xml"
+
+      - bash: |
+          ./codecov --verbose upload-process -f coverage.xml
         displayName: "Upload coverage to codecov.io"
