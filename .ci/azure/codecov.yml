@@ -10,7 +10,11 @@ jobs:
         displayName: "Checkout repository"
 
       # Install simpeg to generate the version.py file
-      - bash: pip install -e .
+      - bash: |
+          echo "Pip version:" $(pip --version)
+          pip install --upgrade pip
+          echo "Pip version:" $(pip --version)
+          pip install -e .
         displayName: "Install simpeg"
 
       - bash: pip install coverage
