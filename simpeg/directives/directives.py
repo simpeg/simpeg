@@ -3449,7 +3449,10 @@ class ScaleMisfitMultipliers(InversionDirective):
 
         with open(self.filepath, "w", encoding="utf-8") as f:
             f.write(
-                "Iterations\t" + '\t'.join(f"[{objfct.name}]" for objfct in self.invProb.dmisfit.objfcts)
+                "Iterations\t"
+                + "\t".join(
+                    f"[{objfct.name}]" for objfct in self.invProb.dmisfit.objfcts
+                )
             )
             f.write("\n")
 
