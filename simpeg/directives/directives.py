@@ -3483,7 +3483,12 @@ class ScaleMisfitMultipliers(InversionDirective):
 
         with open(self.filepath, "a", encoding="utf-8") as f:
             f.write(
-                f"{self.opt.iter}\t" + '\t'.join(f"{multi:.2e}*{chi:.2e}" for multi, chi in zip(multipliers, chi_factors)) + "\n"
+                f"{self.opt.iter}\t"
+                + "\t".join(
+                    f"{multi:.2e}*{chi:.2e}"
+                    for multi, chi in zip(multipliers, chi_factors)
+                )
+                + "\n"
             )
 
         self.invProb.dmisfit.multipliers = multipliers.tolist()
