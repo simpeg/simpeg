@@ -3474,7 +3474,12 @@ class ScaleMisfitMultipliers(InversionDirective):
         scalings[chi_factors < 1] *= ratio
 
         # Normalize total phi_d with scalings
-        multipliers = self.multipliers * scalings * phi_ds.sum() / (self.multipliers * phi_ds * scalings).sum()
+        multipliers = (
+            self.multipliers
+            * scalings
+            * phi_ds.sum()
+            / (self.multipliers * phi_ds * scalings).sum()
+        )
 
         with open(self.filepath, "a", encoding="utf-8") as f:
             f.write(
