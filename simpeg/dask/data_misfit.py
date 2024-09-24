@@ -14,7 +14,7 @@ def dask_call(self, m, f=None):
     Distributed :obj:`simpeg.data_misfit.L2DataMisfit.__call__`
     """
     R = self.W * self.residual(m, f=f)
-    phi_d = 0.5 * da.dot(R, R)
+    phi_d = da.dot(R, R)
     if not isinstance(phi_d, np.ndarray):
         return compute(self, phi_d)
     return phi_d

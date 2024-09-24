@@ -3169,7 +3169,7 @@ class SaveIterationsGeoH5(InversionDirective):
         with fetch_active_workspace(self._geoh5, mode="r+") as w_s:
             h5_object = w_s.get_entity(self.h5_object)[0]
 
-            for file in ["SimPEG.out", "SimPEG.log"]:
+            for file in ["SimPEG.out", "SimPEG.log", "ChiFactors.log"]:
                 filepath = dirpath / file
 
                 if not filepath.is_file():
@@ -3426,3 +3426,80 @@ class VectorInversion(InversionDirective):
             for directive in directiveList:
                 if not isinstance(directive, SaveIterationsGeoH5):
                     directive.endIter()
+
+
+class ScaleMisfitMultipliers(InversionDirective):
+    """
+    Scale the misfits by the relative chi-factors of multiple misfit functions.
+
+    The goal is to reduce the relative influence of the misfit functions with
+    lowest chi-factors so that all functions reach a similar level of fit at
+    convergence to the global target.
+
+    Parameters
+    ----------
+
+    path : str
+        Path to save the chi-factors log file.
+    """
+
+    def __init__(self, path: Path | None, **kwargs):
+        self.last_beta = None
+
+        if path is None:
+            path = Path()
+
+        self.filepath = path / "ChiFactors.log"
+
+        super().__init__(**kwargs)
+
+    def initialize(self):
+        self.last_beta = self.invProb.beta
+        self.multipliers = self.invProb.dmisfit.multipliers
+
+        with open(self.filepath, "w", encoding="utf-8") as f:
+            f.write(
+                "Iterations\t"
+                + "\t".join(
+                    f"[{objfct.name}]" for objfct in self.invProb.dmisfit.objfcts
+                )
+            )
+            f.write("\n")
+
+    def endIter(self):
+        ratio = self.invProb.beta / self.last_beta
+        chi_factors = []
+        phi_ds = []
+        for objfct, pred in zip(self.invProb.dmisfit.objfcts, self.invProb.dpred):
+            residual = objfct.W * (objfct.data.dobs - pred)
+            phi_d = np.vdot(residual, residual)
+            chi_factors.append(phi_d / objfct.nD)
+            phi_ds.append(phi_d)
+
+        phi_ds = np.asarray(phi_ds)
+        chi_factors = np.asarray(chi_factors)
+        scalings = chi_factors / chi_factors.max()
+
+        # Force beta ratio scaling if below target
+        scalings[chi_factors < 1] *= ratio
+
+        # Normalize total phi_d with scalings
+        multipliers = (
+            self.multipliers
+            * scalings
+            * phi_ds.sum()
+            / (self.multipliers * phi_ds * scalings).sum()
+        )
+
+        with open(self.filepath, "a", encoding="utf-8") as f:
+            f.write(
+                f"{self.opt.iter}\t"
+                + "\t".join(
+                    f"{multi:.2e}*{chi:.2e}"
+                    for multi, chi in zip(multipliers, chi_factors)
+                )
+                + "\n"
+            )
+
+        self.invProb.dmisfit.multipliers = multipliers.tolist()
+        self.last_beta = self.invProb.beta

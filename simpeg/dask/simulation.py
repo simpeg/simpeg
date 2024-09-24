@@ -172,6 +172,7 @@ def Jmatrix(self):
     if getattr(self, "_Jmatrix", None) is None:
         if self.workers is None:
             self._Jmatrix = self.compute_J()
+            self._G = self._Jmatrix
         else:
             client = get_client()  # Assumes a Client already exists
 
