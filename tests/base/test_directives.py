@@ -21,7 +21,7 @@ class directivesValidation(unittest.TestCase):
     def test_validation_pass(self):
         betaest = directives.BetaEstimate_ByEig()
 
-        IRLS = directives.Update_IRLS(f_min_change=1e-4, beta_tol=1e-2)
+        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
         beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
 
         update_Jacobi = directives.UpdatePreconditioner()
