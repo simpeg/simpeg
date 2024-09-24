@@ -111,7 +111,9 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
         plt.show()
 
     # Use Exponential Map: m = log(rho)
-    actmap = maps.InjectActiveCells(mesh, indActive=actind, valInactive=np.log(1e8))
+    actmap = maps.InjectActiveCells(
+        mesh, active_cells=actind, value_inactive=np.log(1e8)
+    )
     mapping = maps.ExpMap(mesh) * actmap
 
     # Generate mtrue
