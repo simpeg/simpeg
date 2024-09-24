@@ -1,6 +1,8 @@
 import unittest
 import discretize
 from discretize.utils import active_from_xyz
+import pytest
+import matplotlib.pyplot as plt
 from simpeg import (
     utils,
     maps,
@@ -133,27 +135,30 @@ class MagInvLinProblemTest(unittest.TestCase):
         mrec = self.inv.run(self.model)
         residual = np.linalg.norm(mrec - self.model) / np.linalg.norm(self.model)
 
-        # import matplotlib.pyplot as plt
-        # plt.figure()
-        # ax = plt.subplot(1, 2, 1)
-        # midx = int(self.mesh.shape_cells[0] / 2)
-        # self.mesh.plot_slice(
-        #     self.actvMap * mrec, ax=ax, normal="Y", ind=midx, grid=True, clim=(0, 0.02)
-        # )
-        #
-        # ax = plt.subplot(1, 2, 2)
-        # midx = int(self.mesh.shape_cells[0] / 2)
-        # self.mesh.plot_slice(
-        #     self.actvMap * self.model,
-        #     ax=ax,
-        #     normal="Y",
-        #     ind=midx,
-        #     grid=True,
-        #     clim=(0, 0.02),
-        # )
-        # plt.show()
-
         self.assertTrue(residual < 0.05)
+
+    @pytest.mark.skip(reason="For validation only.")
+    def test_plot_results(self):
+        self.sim.store_sensitivities = "ram"
+        mrec = self.inv.run(self.model)
+        plt.figure()
+        ax = plt.subplot(1, 2, 1)
+        midx = int(self.mesh.shape_cells[0] / 2)
+        self.mesh.plot_slice(
+            self.actvMap * mrec, ax=ax, normal="Y", ind=midx, grid=True, clim=(0, 0.02)
+        )
+
+        ax = plt.subplot(1, 2, 2)
+        midx = int(self.mesh.shape_cells[0] / 2)
+        self.mesh.plot_slice(
+            self.actvMap * self.model,
+            ax=ax,
+            normal="Y",
+            ind=midx,
+            grid=True,
+            clim=(0, 0.02),
+        )
+        plt.show()
 
     def tearDown(self):
         # Clean up the working directory

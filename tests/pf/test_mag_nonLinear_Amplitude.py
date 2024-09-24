@@ -1,4 +1,6 @@
 import numpy as np
+import pytest
+import matplotlib.pyplot as plt
 from simpeg import (
     data,
     data_misfit,
@@ -282,36 +284,46 @@ class AmpProblemTest(unittest.TestCase):
         mrec_Amp = self.inv.run(self.mstart)
 
         residual = np.linalg.norm(mrec_Amp - self.model) / np.linalg.norm(self.model)
-        # print(residual)
-        # import matplotlib.pyplot as plt
-
-        # # Plot the amplitude model
-        # plt.figure()
-        # ax = plt.subplot(2, 1, 1)
-        # im = self.mesh.plot_slice(self.actvPlot*self.model,
-        #  ax=ax, normal='Y', ind=66,
-        #     pcolor_opts={"vmin":0., "vmax":0.01}
-        # )
-        # plt.colorbar(im[0])
-        # ax.set_xlim([-200, 200])
-        # ax.set_ylim([-100, 75])
-        # ax.set_xlabel('x')
-        # ax.set_ylabel('y')
-        # plt.gca().set_aspect('equal', adjustable='box')
-
-        # ax = plt.subplot(2, 1, 2)
-        # im = self.mesh.plot_slice(self.actvPlot*mrec_Amp, ax=ax, normal='Y', ind=66,
-        #     pcolor_opts={"vmin":0., "vmax":0.01}
-        # )
-        # plt.colorbar(im[0])
-        # ax.set_xlim([-200, 200])
-        # ax.set_ylim([-100, 75])
-        # ax.set_xlabel('x')
-        # ax.set_ylabel('y')
-        # plt.gca().set_aspect('equal', adjustable='box')
-
-        # plt.show()
         self.assertTrue(residual < 1.0)
+
+    @pytest.mark.skip(reason="For validation only.")
+    def test_plot_results(self):
+        self.sim.store_sensitivities = "ram"
+        mrec = self.inv.run(self.model)
+
+        # Plot the amplitude model
+        plt.figure()
+        ax = plt.subplot(2, 1, 1)
+        im = self.mesh.plot_slice(
+            self.actvPlot * self.model,
+            ax=ax,
+            normal="Y",
+            ind=66,
+            pcolor_opts={"vmin": 0.0, "vmax": 0.01},
+        )
+        plt.colorbar(im[0])
+        ax.set_xlim([-200, 200])
+        ax.set_ylim([-100, 75])
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        plt.gca().set_aspect("equal", adjustable="box")
+
+        ax = plt.subplot(2, 1, 2)
+        im = self.mesh.plot_slice(
+            self.actvPlot * mrec,
+            ax=ax,
+            normal="Y",
+            ind=66,
+            pcolor_opts={"vmin": 0.0, "vmax": 0.01},
+        )
+        plt.colorbar(im[0])
+        ax.set_xlim([-200, 200])
+        ax.set_ylim([-100, 75])
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        plt.gca().set_aspect("equal", adjustable="box")
+
+        plt.show()
 
     def tearDown(self):
         # Clean up the working directory
