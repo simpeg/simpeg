@@ -288,7 +288,7 @@ simulation_grav = gravity.simulation.Simulation3DIntegral(
     survey=survey_grav,
     mesh=mesh,
     rhoMap=wires.density,
-    ind_active=ind_active,
+    active_cells=ind_active,
     engine="choclo",
 )
 
@@ -297,7 +297,7 @@ simulation_mag = magnetics.simulation.Simulation3DIntegral(
     mesh=mesh,
     model_type="scalar",
     chiMap=wires.susceptibility,
-    ind_active=ind_active,
+    active_cells=ind_active,
 )
 
 
