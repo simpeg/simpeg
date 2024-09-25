@@ -103,7 +103,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e2)
 
         # Here is where the norms are applied
-        IRLS = directives.Update_IRLS(max_irls_iterations=20, chifact_start=2.0)
+        IRLS = directives.UpdateIRLS()
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
         self.inv = inversion.BaseInversion(

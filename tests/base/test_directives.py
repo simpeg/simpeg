@@ -22,8 +22,10 @@ class directivesValidation(unittest.TestCase):
         betaest = directives.BetaEstimate_ByEig()
 
         IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
+        beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
+
         update_Jacobi = directives.UpdatePreconditioner()
-        dList = [betaest, IRLS, update_Jacobi]
+        dList = [betaest, IRLS, beta_schedule, update_Jacobi]
         directiveList = directives.DirectiveList(*dList)
 
         self.assertTrue(directiveList.validate())
@@ -33,7 +35,9 @@ class directivesValidation(unittest.TestCase):
 
         IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
         update_Jacobi = directives.UpdatePreconditioner()
-        dList = [betaest, update_Jacobi, IRLS]
+        beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
+
+        dList = [betaest, update_Jacobi, IRLS, beta_schedule]
         directiveList = directives.DirectiveList(*dList)
 
         with self.assertRaises(AssertionError):
@@ -52,7 +56,8 @@ class directivesValidation(unittest.TestCase):
         betaest = directives.BetaEstimate_ByEig()
 
         IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
-        dList = [betaest, IRLS]
+        beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
+        dList = [betaest, IRLS, beta_schedule]
         directiveList = directives.DirectiveList(*dList)
 
         with pytest.warns(UserWarning):
@@ -110,7 +115,6 @@ class ValidationInInversion(unittest.TestCase):
 
         # Here is where the norms are applied
         IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
-
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights()
         with self.assertRaises(AssertionError):
