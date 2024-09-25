@@ -332,9 +332,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 update_sensitivity_weighting = directives.UpdateSensitivityWeights()
 
 # Reach target misfit for L2 solution, then use IRLS until model stops changing.
-update_IRLS = directives.Update_IRLS(
-    max_irls_iterations=25, minGNiter=1, chifact_start=1.0
-)
+update_IRLS = directives.UpdateIRLS(max_irls_iterations=25, chifact_start=1.0)
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.

@@ -2,15 +2,13 @@ name: simpeg-test
 channels:
   - conda-forge
 dependencies:
-  - numpy>=1.20
+  - numpy>=1.21
   - scipy>=1.8
-  - scikit-learn>=1.2
   - pymatsolver-base>=0.2
   - matplotlib-base
   - discretize>=0.10
   - geoana>=0.5.0
   - empymod>=2.0.0
-  - pandas
 
 # Solver
   - pydiso
@@ -22,6 +20,8 @@ dependencies:
   - choclo
   - scooby
   - plotly
+  - scikit-learn>=1.2
+  - pandas
 
 # documentation building
   - sphinx

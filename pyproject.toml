@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 name = 'simpeg'
 description = "SimPEG: Simulation and Parameter Estimation in Geophysics"
 readme = 'README.rst'
-requires-python = '>=3.8'
+requires-python = '>=3.10'
 authors = [
   {name = 'SimPEG developers', email = 'rowanc1@gmail.com'},
 ]
@@ -15,15 +15,13 @@ keywords = [
     'geophysics', 'inverse problem'
 ]
 dependencies = [
-    "numpy>=1.20",
+    "numpy>=1.21",
     "scipy>=1.8",
-    "scikit-learn>=1.2",
     "pymatsolver>=0.2",
     "matplotlib",
     "discretize>=0.10",
     "geoana>=0.5.0",
     "empymod>=2.0.0",
-    "pandas",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -55,8 +53,10 @@ dask = ["dask", "zarr", "fsspec>=0.3.3"]
 choclo = ["choclo"]
 reporting = ["scooby"]
 plotting = ["plotly"]
+sklearn = ["scikit-learn>=1.2"]
+pandas = ["pandas"]
 all = [
-    "simpeg[dask,choclo,plotting,reporting]"
+    "simpeg[dask,choclo,plotting,reporting,sklearn,pandas]"
 ] # all optional *runtime* dependencies (not related to development)
 style = [
     "black==24.3.0",

@@ -1,4 +1,5 @@
 import numpy as np
+import scipy
 import scipy.sparse as sp
 
 from .utils.solver_utils import SolverWrapI, Solver, SolverDiag
@@ -15,6 +16,23 @@ from .utils import (
 )
 
 norm = np.linalg.norm
+
+
+# Create a flag if the installed version of SciPy is newer or equal to 1.12.0
+# (Used to choose whether to pass `tol` or `rtol` to the solvers. See #1516).
+class Version:
+    def __init__(self, version):
+        self.version = version
+
+    def as_tuple(self) -> tuple[int, int]:
+        major, minor = tuple(int(p) for p in self.version.split(".")[:2])
+        return (major, minor)
+
+    def __ge__(self, other):
+        return self.as_tuple() >= other.as_tuple()
+
+
+SCIPY_1_12 = Version(scipy.__version__) >= Version("1.12.0")
 
 
 __all__ = [
@@ -892,9 +910,12 @@ class ProjectedGradient(Minimize, Remember):
             operator = sp.linalg.LinearOperator(
                 (shape[1], shape[1]), reduceHess, dtype=self.xc.dtype
             )
-            p, info = sp.linalg.cg(
-                operator, -Z.T * self.g, tol=self.tolCG, maxiter=self.maxIterCG
-            )
+
+            # Choose `rtol` or `tol` argument based on installed scipy version
+            tol_key = "rtol" if SCIPY_1_12 else "tol"
+
+            inp = {tol_key: self.tolCG, "maxiter": self.maxIterCG}
+            p, info = sp.linalg.cg(operator, -Z.T * self.g, **inp)
             p = Z * p  # bring up to full size
             # aSet_after = self.activeSet(self.xc+p)
         return p
@@ -1069,9 +1090,10 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
 
     @timeIt
     def findSearchDirection(self):
-        Hinv = SolverICG(
-            self.H, M=self.approxHinv, tol=self.tolCG, maxiter=self.maxIterCG
-        )
+        # Choose `rtol` or `tol` argument based on installed scipy version
+        tol_key = "rtol" if SCIPY_1_12 else "tol"
+        inp = {tol_key: self.tolCG, "maxiter": self.maxIterCG}
+        Hinv = SolverICG(self.H, M=self.approxHinv, **inp)
         p = Hinv * (-self.g)
         return p
 

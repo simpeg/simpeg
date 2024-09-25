@@ -12,7 +12,7 @@ jobs:
 
       - task: UsePythonVersion@0
         inputs:
-          versionSpec: "3.9"
+          versionSpec: "3.10"
         displayName: "Setup Python"
 
       - bash: |
@@ -43,7 +43,7 @@ jobs:
 
   - job: Deploy
     dependsOn: Build
-    condition: or(startsWith(variables['build.sourceBranch'], 'refs/tags/'), eq(variables['build.sourceBranch'], 'refs/heads/main'))
+    condition: or(startsWith(variables['build.sourceBranch'], 'refs/tags/'), eq(variables['Build.Reason'], 'Schedule'))
     pool:
       vmImage: ubuntu-latest
     steps:
@@ -57,7 +57,7 @@ jobs:
 
       - task: UsePythonVersion@0
         inputs:
-          versionSpec: "3.9"
+          versionSpec: "3.10"
         displayName: "Setup Python"
 
       - bash: |
@@ -68,7 +68,7 @@ jobs:
       - bash: |
           twine upload --repository testpypi dist/*
         displayName: "Upload to TestPyPI"
-        condition: eq(variables['build.sourceBranch'], 'refs/heads/main')
+        condition: eq(variables['Build.Reason'], 'Schedule')
         env:
           TWINE_USERNAME: $(twine.username)
           TWINE_PASSWORD: $(test.twine.password)
