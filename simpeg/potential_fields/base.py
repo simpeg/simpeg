@@ -518,7 +518,7 @@ def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
     """
     warnings.warn(
         "The get_dist_wgt function has been deprecated, please import "
-        "SimPEG.utils.distance_weighting. This will be removed in SimPEG 0.22.0",
+        "simpeg.utils.distance_weighting. This will be removed in SimPEG 0.24.0",
         FutureWarning,
         stacklevel=2,
     )
