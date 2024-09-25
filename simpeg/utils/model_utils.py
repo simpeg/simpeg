@@ -199,14 +199,13 @@ def _distance_weighting_numba(
         following order: _x_, _y_, _z_ (for 3D meshes) or _x_, _z_ (for 2D
         meshes).
         The coordinate of the reference location, usually the receiver locations
+    threshold : float
+        Threshold parameters used in the distance weighting.
     exponent : float, optional
         Exponent parameter for distance weighting.
         The exponent should match the natural decay power of the potential
         field. For example, for gravity acceleration, set it to 2; for magnetic
         fields, to 3.
-    threshold : float or None, optional
-        Threshold parameters used in the distance weighting.
-        If ``None``, it will be set to half of the smallest cell width.
 
     Returns
     -------
