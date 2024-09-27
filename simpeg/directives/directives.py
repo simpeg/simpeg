@@ -3458,6 +3458,7 @@ class ScaleMisfitMultipliers(InversionDirective):
         self.multipliers = self.invProb.dmisfit.multipliers
 
         with open(self.filepath, "w", encoding="utf-8") as f:
+            f.write("Logging of [scaling * chi factor] per misfit function.\n\n")
             f.write(
                 "Iterations\t"
                 + "\t".join(
@@ -3495,7 +3496,7 @@ class ScaleMisfitMultipliers(InversionDirective):
             f.write(
                 f"{self.opt.iter}\t"
                 + "\t".join(
-                    f"{multi:.2e}*{chi:.2e}"
+                    f"{multi:.2e} * {chi:.2e}"
                     for multi, chi in zip(multipliers, chi_factors)
                 )
                 + "\n"
