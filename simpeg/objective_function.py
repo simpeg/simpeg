@@ -291,7 +291,7 @@ class BaseObjectiveFunction(BaseSimPEG):
         return self + other
 
     def __mul__(self, multiplier):
-        return ComboObjectiveFunction(objfcts=[self], multipliers=[multiplier])
+        return ScaleObjectiveFunction(objfct=self, multiplier=multiplier)
 
     def __rmul__(self, multiplier):
         return self * multiplier
@@ -304,6 +304,60 @@ class BaseObjectiveFunction(BaseSimPEG):
 
     def __rdiv__(self, denominator):
         return self * (1.0 / denominator)
+
+
+class ScaleObjectiveFunction(BaseObjectiveFunction):
+    """
+    Scale an objective function by a constant factor.
+
+    This class scales an objective function by a constant factor. The objective function
+    :math:`\phi` is scaled by a constant factor :math:`c` such that
+
+    .. math::
+        \phi = c \phi_i
+
+    Parameters
+    ----------
+    objfct : simpeg.objective_function.BaseObjectiveFunction
+        Objective function to scale.
+    multiplier : float
+        Constant factor to scale the objective function.
+
+    Examples
+    --------
+    Build a scaled objective function:
+
+    >>> objective_fun = L2ObjectiveFunction(nP=3)
+    >>> scaled_objfct = ScaleObjectiveFunction(objective_fun, 2.5)
+    >>> print(scaled_objfct.multiplier)
+    2.5
+    """
+
+    def __init__(
+        self, objective_function: BaseObjectiveFunction, multiplier: float = 1.0
+    ):
+        super().__init__(nP=objective_function.nP)
+        self.objective_function = objective_function
+
+        if not isinstance(multiplier, float):
+            raise TypeError(
+                f"Invalid multiplier '{multiplier}' of type '{type(multiplier)}'. "
+                "Scaled objective functions can only be multiplied by floats."
+            )
+
+        self.multiplier = multiplier
+
+    def __call__(self, m, **kwargs):
+        """Evaluate the objective function for a given model."""
+        return self.multiplier * self.objfct(m, **kwargs)
+
+    def deriv(self, m, **kwargs):
+        # Docstring inherited from BaseObjectiveFunction
+        return self.multiplier * self.objfct.deriv(m, **kwargs)
+
+    def deriv2(self, m, **kwargs):
+        # Docstring inherited from BaseObjectiveFunction
+        return self.multiplier * self.objfct.deriv2(m, **kwargs)
 
 
 class ComboObjectiveFunction(BaseObjectiveFunction):
@@ -382,21 +436,19 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     def __init__(
         self,
-        objfcts: list[BaseObjectiveFunction] | None = None,
-        multipliers=None,
+        objfcts: list[BaseObjectiveFunction],
+        multipliers: list[float] | None = None,
         unpack_on_add=True,
     ):
-        # Define default lists if None
-        if objfcts is None:
-            objfcts = []
-        if multipliers is None:
-            multipliers = len(objfcts) * [1]
-
         # Validate inputs
-        _check_length_objective_funcs_multipliers(objfcts, multipliers)
-        _validate_objective_functions(objfcts)
-        for multiplier in multipliers:
-            _validate_multiplier(multiplier)
+        if multipliers is not None:
+            _check_length_objective_funcs_multipliers(objfcts, multipliers)
+            for multiplier in multipliers:
+                _validate_multiplier(multiplier)
+        else:
+            multipliers = [None] * len(objfcts)
+
+        objfcts = _validate_objective_functions(objfcts, multipliers)
 
         # Get number of parameters (nP) from objective functions
         number_of_parameters = [f.nP for f in objfcts if f.nP != "*"]
@@ -408,11 +460,11 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         super().__init__(nP=nP)
 
         self.objfcts = objfcts
-        self._multipliers = multipliers
+        self.multipliers = multipliers
         self._unpack_on_add = unpack_on_add
 
     def __len__(self):
-        return len(self.multipliers)
+        return len(self.objfcts)
 
     def __getitem__(self, key):
         return self.multipliers[key], self.objfcts[key]
@@ -435,57 +487,65 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         list of int
             Multipliers for the objective functions.
         """
-        return self._multipliers
+        return [function.multiplier for function in self.objfcts]
 
     @multipliers.setter
-    def multipliers(self, value):
+    def multipliers(self, value: list[float] | None):
         """Set multipliers attribute after checking if they are valid."""
+        if value is None:
+            return
+
         for multiplier in value:
             _validate_multiplier(multiplier)
         _check_length_objective_funcs_multipliers(self.objfcts, value)
-        self._multipliers = value
+
+        for function in self.objfcts:
+            function.multiplier = value
 
     def __call__(self, m, f=None):
         """Evaluate the objective functions for a given model."""
         fct = 0.0
-        for i, phi in enumerate(self):
-            multiplier, objfct = phi
-            if multiplier == 0.0:  # don't evaluate the fct
+        for i, objfct in enumerate(self.objfcts):
+
+            if objfct.multiplier == 0.0:  # don't evaluate the fct
                 continue
+
             if f is not None and objfct.has_fields:
                 objective_func_value = objfct(m, f=f[i])
             else:
                 objective_func_value = objfct(m)
-            fct += multiplier * objective_func_value
+
+            fct += objective_func_value
         return fct
 
     def deriv(self, m, f=None):
         # Docstring inherited from BaseObjectiveFunction
         g = Zero()
-        for i, phi in enumerate(self):
-            multiplier, objfct = phi
-            if multiplier == 0.0:  # don't evaluate the fct
+        for i, objfct in enumerate(self.objfcts):
+
+            if objfct.multiplier == 0.0:  # don't evaluate the fct
                 continue
             if f is not None and objfct.has_fields:
                 aux = objfct.deriv(m, f=f[i])
             else:
                 aux = objfct.deriv(m)
+
             if not isinstance(aux, Zero):
-                g += multiplier * aux
+                g += aux
         return g
 
     def deriv2(self, m, v=None, f=None):
         # Docstring inherited from BaseObjectiveFunction
         H = Zero()
-        for i, phi in enumerate(self):
-            multiplier, objfct = phi
-            if multiplier == 0.0:  # don't evaluate the fct
+        for i, objfct in enumerate(self.objfcts):
+
+            if objfct.multiplier == 0.0:  # don't evaluate the fct
                 continue
             if f is not None and objfct.has_fields:
                 objfct_H = objfct.deriv2(m, v, f=f[i])
             else:
                 objfct_H = objfct.deriv2(m, v)
-            H = H + multiplier * objfct_H
+            H = H + objfct_H
         return H
 
     # This assumes all objective functions have a W.
@@ -515,10 +575,9 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             Full weighting matrix for the combo objective function.
         """
         W = []
-        for mult, fct in self:
-            curW = np.sqrt(mult) * fct.W
-            if not isinstance(curW, Zero):
-                W.append(curW)
+        for fct in self.objfcts:
+            if not isinstance(fct, Zero):
+                W.append(fct)
         return sp.vstack(W)
 
     def get_functions_of_type(self, fun_class) -> list:
@@ -640,25 +699,32 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
         return 2 * W.T * W
 
 
-def _validate_objective_functions(objective_functions):
+def _validate_objective_functions(objective_functions, multipliers):
     """
     Validate objective functions.
 
     Check if the objective functions have the right types, and if
     they all have the same number of parameters.
     """
-    for function in objective_functions:
+    validated_list = []
+    for function, multiplier in zip(objective_functions, multipliers):
         if not isinstance(function, BaseObjectiveFunction):
             raise TypeError(
                 "Unrecognized objective function type "
                 f"{function.__class__.__name__} in 'objfcts'. "
                 "All objective functions must inherit from BaseObjectiveFunction."
             )
-    number_of_parameters = [f.nP for f in objective_functions if f.nP != "*"]
+
+        if not isinstance(function, ScaleObjectiveFunction) or multiplier is not None:
+            validated_list.append(ScaleObjectiveFunction(function, multiplier or 1.0))
+        else:
+            validated_list.append(function)
+
+    number_of_parameters = [f.nP for f in validated_list if f.nP != "*"]
     if number_of_parameters:
         all_equal = all(np.equal(number_of_parameters, number_of_parameters[0]))
         if not all_equal:
-            np_list = [f.nP for f in objective_functions]
+            np_list = [f.nP for f in validated_list]
             raise ValueError(
                 f"Invalid number of parameters '{np_list}' found in "
                 "objective functions. Except for the ones with '*', they all "
