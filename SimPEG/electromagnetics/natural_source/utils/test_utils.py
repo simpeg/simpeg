@@ -12,7 +12,6 @@ from ..sources import PlanewaveXYPrimary, Planewave
 from ..simulation import Simulation3DPrimarySecondary
 from .data_utils import appResPhs
 
-np.random.seed(1100)
 # Define the tolerances
 TOLr = 5e-2
 TOLp = 5e-2
@@ -243,7 +242,7 @@ def setupSimpegNSEM_tests_location_assign_list(
 
     # Set the mapping
     actMap = maps.InjectActiveCells(
-        mesh=mesh, indActive=active, valInactive=np.log(1e-8)
+        mesh=mesh, active_cells=active, value_inactive=np.log(1e-8)
     )
     mapping = maps.ExpMap(mesh) * actMap
     # print(survey_ns.source_list)
@@ -368,7 +367,7 @@ def setupSimpegNSEM_PrimarySecondary(inputSetup, freqs, comp="Imp", singleFreq=F
 
     # Set the mapping
     actMap = maps.InjectActiveCells(
-        mesh=mesh, indActive=active, valInactive=np.log(1e-8)
+        mesh=mesh, active_cells=active, value_inactive=np.log(1e-8)
     )
     mapping = maps.ExpMap(mesh) * actMap
     # print(survey_ns.source_list)
@@ -510,14 +509,15 @@ def getInputs():
     return M, freqs, rx_loc, elev
 
 
-def random(conds):
+def random(conds, seed=42):
     """Returns a random model based on the inputs"""
+    rng = np.random.default_rng(seed=seed)
     M, freqs, rx_loc, elev = getInputs()
 
-    # Backround
+    # Background
     sigBG = np.ones(M.nC) * conds
     # Add randomness to the model (10% of the value).
-    sig = np.exp(np.log(sigBG) + np.random.randn(M.nC) * (conds) * 1e-1)
+    sig = np.exp(np.log(sigBG) + rng.random(size=M.nC) * (conds) * 1e-1)
 
     return (M, freqs, sig, sigBG, rx_loc)
 

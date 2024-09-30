@@ -244,13 +244,13 @@ class PrimSecCasingExample(object):
             # inject casing parameters so they are included in the construction
             # of the layered background + casing
             injectCasingParams = maps.InjectActiveCells(
-                None, indActive=np.r_[0, 1, 4, 5], valInactive=valInactive, nC=10
+                None, active_cells=np.r_[0, 1, 4, 5], value_inactive=valInactive, nC=10
             )
 
             # maps a list of casing parameters to the cyl mesh (below the
             # subsurface)
             paramMapPrimary = maps.ParametricCasingAndLayer(
-                self.meshp, indActive=self.indActivePrimary, slopeFact=1e4
+                self.meshp, active_cells=self.indActivePrimary, slopeFact=1e4
             )
 
             # inject air cells
@@ -538,7 +538,9 @@ class PrimSecCasingExample(object):
         # model on our mesh
         if getattr(self, "_mapping", None) is None:
             print("building secondary mapping")
-            paramMap = maps.ParametricBlockInLayer(self.meshs, indActive=self.indActive)
+            paramMap = maps.ParametricBlockInLayer(
+                self.meshs, active_cells=self.indActive
+            )
             self._mapping = (
                 self.expMap
                 * self.injActMap  # log sigma --> sigma
@@ -555,7 +557,7 @@ class PrimSecCasingExample(object):
             # block)
             print("Building primaryMap2meshs")
             paramMapPrimaryMeshs = maps.ParametricLayer(
-                self.meshs, indActive=self.indActive
+                self.meshs, active_cells=self.indActive
             )
 
             self._primaryMap2mesh = (
@@ -935,8 +937,8 @@ class PrimSecCasingExample(object):
                 from matplotlib.colors import LogNorm
 
                 f = ax.contourf(
-                    rx_x,
-                    rx_y,
+                    self.rx_x,
+                    self.rx_y,
                     np.absolute(Jv),
                     num,
                     cmap=plt.get_cmap("viridis"),
@@ -950,7 +952,7 @@ class PrimSecCasingExample(object):
 
             if plotGrid:
                 self.meshs.plot_slice(
-                    np.nan * np.ones(mesh.nC), normal="Z", grid=True, ax=ax
+                    np.nan * np.ones(self.meshs.nC), normal="Z", grid=True, ax=ax
                 )
 
             if xlim is not None:
