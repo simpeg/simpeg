@@ -183,11 +183,10 @@ class TestBaseObjFct(unittest.TestCase):
 
         self.assertTrue(phi(m) == phi1(m) + phi2(m))
 
-        phi.multipliers[0] = utils.Zero()
+        phi.multipliers = [utils.Zero(), 1]
         self.assertTrue(phi(m) == phi2(m))
 
-        phi.multipliers[0] = 1.0
-        phi.multipliers[1] = utils.Zero()
+        phi.multipliers = [1, utils.Zero()]
 
         self.assertTrue(len(phi.objfcts) == 2)
         self.assertTrue(len(phi.multipliers) == 2)
