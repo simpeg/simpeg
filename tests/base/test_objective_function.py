@@ -5,7 +5,7 @@ import unittest
 
 from simpeg import utils, maps
 from simpeg import objective_function
-from simpeg.objective_function import _validate_multiplier
+from simpeg.objective_function import _validate_multiplier, ScaledObjectiveFunction
 from simpeg.utils import Zero
 
 np.random.seed(130)
@@ -165,7 +165,7 @@ class TestBaseObjFct(unittest.TestCase):
             objective_function.L2ObjectiveFunction(W=sp.eye(nP))
             + utils.Zero() * objective_function.L2ObjectiveFunction()
         )
-        self.assertTrue(len(phi.objfcts) == 1)
+        assert isinstance(phi, ScaledObjectiveFunction)
         self.assertTrue(phi.test(random_seed=42))
 
     def test_updateMultipliers(self):
@@ -311,7 +311,7 @@ class TestBaseObjFct(unittest.TestCase):
 
         self.assertTrue(all(phi3.multipliers == np.r_[2, 4]))
 
-        phi3.multipliers[1] = 3
+        phi3.multipliers = [2, 3]
         self.assertTrue(all(phi3.multipliers == np.r_[2, 3]))
 
         phi3.multipliers = np.r_[1.0, 5.0]
@@ -349,9 +349,9 @@ class TestOperationsComboObjectiveFunctions:
             [phi1, phi2], [2, 3], unpack_on_add=unpack_on_add
         )
         combo_mul = 3.5 * combo
-        assert len(combo_mul) == 1
-        assert combo_mul.multipliers == [3.5]
-        assert combo_mul.objfcts == [combo]
+        assert isinstance(combo_mul, ScaledObjectiveFunction)
+        assert combo_mul.multiplier == 3.5
+        assert combo_mul.objective_function == combo
 
     @pytest.mark.parametrize("unpack_on_add", (True, False))
     def test_add(self, unpack_on_add):

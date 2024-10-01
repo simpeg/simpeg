@@ -277,15 +277,13 @@ class BaseObjectiveFunction(BaseSimPEG):
         objective_functions = []
         for instance in (self, other):
             if isinstance(instance, ComboObjectiveFunction) and instance._unpack_on_add:
-                objective_functions += instance.objfcts
+                objective_functions += instance.components
             elif isinstance(instance, ScaledObjectiveFunction):
                 objective_functions.append(instance)
             else:
                 objective_functions.append(ScaledObjectiveFunction(instance))
 
-        combo = ComboObjectiveFunction(
-            objfcts=objective_functions
-        )
+        combo = ComboObjectiveFunction(objfcts=objective_functions)
         return combo
 
     def __radd__(self, other):
@@ -360,8 +358,49 @@ class ScaledObjectiveFunction(BaseObjectiveFunction):
         # Docstring inherited from BaseObjectiveFunction
         return self.multiplier * self.objective_function.deriv2(*args, **kwargs)
 
+    @property
     def W(self):
-        return self.multiplier * self.objective_function.W
+        return np.sqrt(self.multiplier) * self.objective_function.W
+
+    @property
+    def multiplier(self):
+        """Constant factor to scale the objective function.
+
+        Returns
+        -------
+        float
+            Constant factor to scale the objective function.
+        """
+        return self._multiplier
+
+    @multiplier.setter
+    def multiplier(self, value):
+        if not isinstance(value, VALID_MULTIPLIERS):
+            raise TypeError(
+                f"Invalid multiplier '{value}' of type '{type(value)}'. "
+                "Scaled objective functions can only be multiplied by floats."
+            )
+        self._multiplier = value
+
+    @property
+    def objective_function(self):
+        """Objective function to scale.
+
+        Returns
+        -------
+        simpeg.objective_function.BaseObjectiveFunction
+            Objective function to scale.
+        """
+        return self._objective_function
+
+    @objective_function.setter
+    def objective_function(self, value):
+        if not isinstance(value, BaseObjectiveFunction):
+            raise TypeError(
+                f"Unrecognized objective function type {value.__class__.__name}. "
+                "All objective functions must inherit from BaseObjectiveFunction."
+            )
+        self._objective_function = value
 
 
 class ComboObjectiveFunction(BaseObjectiveFunction):
@@ -440,10 +479,13 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
     def __init__(
         self,
-        objfcts: list[BaseObjectiveFunction],
+        objfcts: list[BaseObjectiveFunction] | None = None,
         multipliers: list[float] | None = None,
         unpack_on_add=True,
     ):
+        if objfcts is None:
+            objfcts = []
+
         # Validate inputs
         if multipliers is not None:
             _check_length_objective_funcs_multipliers(objfcts, multipliers)
@@ -452,7 +494,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         else:
             multipliers = [None] * len(objfcts)
 
-        objfcts = _validate_objective_functions(objfcts, multipliers)
+        objfcts, multipliers = _validate_objective_functions(objfcts, multipliers)
 
         # Get number of parameters (nP) from objective functions
         number_of_parameters = [f.nP for f in objfcts if f.nP != "*"]
@@ -463,7 +505,8 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         super().__init__(nP=nP)
 
-        self.objfcts = objfcts
+        self.components = objfcts
+        self._multipliers = Multipliers(multipliers, self)
         self._unpack_on_add = unpack_on_add
 
     def __len__(self):
@@ -490,7 +533,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         list of int
             Multipliers for the objective functions.
         """
-        return [function.multiplier for function in self.objfcts]
+        return self._multipliers
 
     @multipliers.setter
     def multipliers(self, values: list[float] | None):
@@ -500,15 +543,17 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         for multiplier in values:
             _validate_multiplier(multiplier)
-        _check_length_objective_funcs_multipliers(self.objfcts, values)
+        _check_length_objective_funcs_multipliers(self.components, values)
 
-        for function, multiplier in zip(self.objfcts, values):
+        for function, multiplier in zip(self.components, values):
             function.multiplier = multiplier
+
+        self._multipliers = Multipliers(values, self)
 
     def __call__(self, m, f=None):
         """Evaluate the objective functions for a given model."""
         fct = 0.0
-        for i, objfct in enumerate(self.objfcts):
+        for i, objfct in enumerate(self.components):
 
             if objfct.multiplier == 0.0:  # don't evaluate the fct
                 continue
@@ -524,7 +569,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     def deriv(self, m, f=None):
         # Docstring inherited from BaseObjectiveFunction
         g = Zero()
-        for i, objfct in enumerate(self.objfcts):
+        for i, objfct in enumerate(self.components):
 
             if objfct.multiplier == 0.0:  # don't evaluate the fct
                 continue
@@ -540,7 +585,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     def deriv2(self, m, v=None, f=None):
         # Docstring inherited from BaseObjectiveFunction
         H = Zero()
-        for i, objfct in enumerate(self.objfcts):
+        for i, objfct in enumerate(self.components):
 
             if objfct.multiplier == 0.0:  # don't evaluate the fct
                 continue
@@ -578,9 +623,10 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             Full weighting matrix for the combo objective function.
         """
         W = []
-        for fct in self.objfcts:
-            if not isinstance(fct, Zero):
-                W.append(fct)
+        for fct in self.components:
+            curW = fct.W
+            if not isinstance(curW, Zero):
+                W.append(curW)
         return sp.vstack(W)
 
     def get_functions_of_type(self, fun_class) -> list:
@@ -607,6 +653,17 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
                     target += [fct]
 
         return [fun for fun in target if fun]
+
+    @property
+    def objfcts(self):
+        """Objective functions that live inside the composite class.
+
+        Returns
+        -------
+        list of simpeg.objective_function.BaseObjectiveFunction
+            Objective functions that live inside the composite class.
+        """
+        return [component.objective_function for component in self.components]
 
 
 class L2ObjectiveFunction(BaseObjectiveFunction):
@@ -702,6 +759,19 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
         return 2 * W.T * W
 
 
+class Multipliers(list):
+
+    def __init__(self, multipliers, combo):
+        super().__init__(multipliers)
+        self._parent = combo
+
+    def __getitem__(self, key):
+        return self._parent.components[key].multiplier
+
+    def __setitem__(self, key, value):
+        self._parent.components[key].multiplier = value
+
+
 def _validate_objective_functions(objective_functions, multipliers):
     """
     Validate objective functions.
@@ -710,6 +780,7 @@ def _validate_objective_functions(objective_functions, multipliers):
     they all have the same number of parameters.
     """
     validated_list = []
+    multipliers_validated = []
     for function, multiplier in zip(objective_functions, multipliers):
         if not isinstance(function, BaseObjectiveFunction):
             raise TypeError(
@@ -723,6 +794,8 @@ def _validate_objective_functions(objective_functions, multipliers):
         else:
             validated_list.append(function)
 
+        multipliers_validated.append(validated_list[-1].multiplier)
+
     number_of_parameters = [f.nP for f in validated_list if f.nP != "*"]
     if number_of_parameters:
         all_equal = all(np.equal(number_of_parameters, number_of_parameters[0]))
@@ -734,7 +807,7 @@ def _validate_objective_functions(objective_functions, multipliers):
                 "must have the same number of parameters."
             )
 
-    return validated_list
+    return validated_list, multipliers_validated
 
 
 def _validate_multiplier(multiplier):
