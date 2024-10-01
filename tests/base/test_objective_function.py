@@ -5,7 +5,7 @@ import unittest
 
 from simpeg import utils, maps
 from simpeg import objective_function
-from simpeg.objective_function import _validate_multiplier, ScaledObjectiveFunction
+from simpeg.objective_function import _validate_multiplier, ScaledComponent
 from simpeg.utils import Zero
 
 np.random.seed(130)
@@ -165,7 +165,7 @@ class TestBaseObjFct(unittest.TestCase):
             objective_function.L2ObjectiveFunction(W=sp.eye(nP))
             + utils.Zero() * objective_function.L2ObjectiveFunction()
         )
-        assert isinstance(phi, ScaledObjectiveFunction)
+        assert isinstance(phi, ScaledComponent)
         self.assertTrue(phi.test(random_seed=42))
 
     def test_updateMultipliers(self):
@@ -349,7 +349,7 @@ class TestOperationsComboObjectiveFunctions:
             [phi1, phi2], [2, 3], unpack_on_add=unpack_on_add
         )
         combo_mul = 3.5 * combo
-        assert isinstance(combo_mul, ScaledObjectiveFunction)
+        assert isinstance(combo_mul, ScaledComponent)
         assert combo_mul.multiplier == 3.5
         assert combo_mul.objective_function == combo
 

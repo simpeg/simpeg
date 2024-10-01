@@ -278,10 +278,10 @@ class BaseObjectiveFunction(BaseSimPEG):
         for instance in (self, other):
             if isinstance(instance, ComboObjectiveFunction) and instance._unpack_on_add:
                 objective_functions += instance.components
-            elif isinstance(instance, ScaledObjectiveFunction):
+            elif isinstance(instance, ScaledComponent):
                 objective_functions.append(instance)
             else:
-                objective_functions.append(ScaledObjectiveFunction(instance))
+                objective_functions.append(ScaledComponent(instance))
 
         combo = ComboObjectiveFunction(objfcts=objective_functions)
         return combo
@@ -290,7 +290,7 @@ class BaseObjectiveFunction(BaseSimPEG):
         return self + other
 
     def __mul__(self, multiplier):
-        return ScaledObjectiveFunction(self, multiplier=multiplier)
+        return ScaledComponent(self, multiplier=multiplier)
 
     def __rmul__(self, multiplier):
         return self * multiplier
@@ -305,7 +305,7 @@ class BaseObjectiveFunction(BaseSimPEG):
         return self * (1.0 / denominator)
 
 
-class ScaledObjectiveFunction(BaseObjectiveFunction):
+class ScaledComponent(BaseObjectiveFunction):
     """
     Scale an objective function by a constant factor.
 
@@ -327,7 +327,7 @@ class ScaledObjectiveFunction(BaseObjectiveFunction):
     Build a scaled objective function:
 
     >>> objective_fun = L2ObjectiveFunction(nP=3)
-    >>> scaled_objfct = ScaledObjectiveFunction(objective_fun, 2.5)
+    >>> scaled_objfct = ScaledComponent(objective_fun, 2.5)
     >>> print(scaled_objfct.multiplier)
     2.5
     """
@@ -789,8 +789,8 @@ def _validate_objective_functions(objective_functions, multipliers):
                 "All objective functions must inherit from BaseObjectiveFunction."
             )
 
-        if not isinstance(function, ScaledObjectiveFunction) or multiplier is not None:
-            validated_list.append(ScaledObjectiveFunction(function, multiplier or 1.0))
+        if not isinstance(function, ScaledComponent) or multiplier is not None:
+            validated_list.append(ScaledComponent(function, multiplier or 1.0))
         else:
             validated_list.append(function)
 
