@@ -772,10 +772,11 @@ class Multipliers(list):
         self._parent = parent
 
     def __getitem__(self, key):
-        return self._parent.components[key].multiplier
+        return [comp.multiplier for comp in self._parent.components][key]
 
     def __setitem__(self, key, value):
-        self._parent.components[key].multiplier = value
+        for comp in self._parent.components[key]:
+            comp.multiplier = value
 
 
 def _validate_objective_functions(objective_functions, multipliers):
