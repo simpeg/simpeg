@@ -351,7 +351,7 @@ class TestOperationsComboObjectiveFunctions:
         combo_mul = 3.5 * combo
         assert isinstance(combo_mul, ScaledComponent)
         assert combo_mul.multiplier == 3.5
-        assert combo_mul.objective_function == combo
+        assert combo_mul.function == combo
 
     @pytest.mark.parametrize("unpack_on_add", (True, False))
     def test_add(self, unpack_on_add):

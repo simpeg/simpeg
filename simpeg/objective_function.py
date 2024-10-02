@@ -309,15 +309,15 @@ class ScaledComponent(BaseObjectiveFunction):
     r"""
     Scale an objective function by a constant factor.
 
-    This class scales an objective function by a constant factor. The objective function
-    :math:`\phi` is scaled by a constant factor :math:`c` such that
+    The objective function :math:`\phi` is scaled by a constant factor :math:`c`
+    such that
 
     .. math::
         \phi = c \phi_i
 
     Parameters
     ----------
-    objfct : simpeg.objective_function.BaseObjectiveFunction
+    function : simpeg.objective_function.BaseObjectiveFunction
         Objective function to scale.
     multiplier : float
         Constant factor to scale the objective function.
@@ -333,10 +333,10 @@ class ScaledComponent(BaseObjectiveFunction):
     """
 
     def __init__(
-        self, objective_function: BaseObjectiveFunction, multiplier: float = 1.0
+        self, function: BaseObjectiveFunction, multiplier: VALID_MULTIPLIERS = 1.0
     ):
-        super().__init__(nP=objective_function.nP)
-        self.objective_function = objective_function
+        super().__init__(nP=function.nP)
+        self.function = function
 
         if not isinstance(multiplier, float | int):
             raise TypeError(
@@ -348,22 +348,22 @@ class ScaledComponent(BaseObjectiveFunction):
 
     def __call__(self, *args, **kwargs):
         """Evaluate the objective function for a given model."""
-        return self.multiplier * self.objective_function(*args, **kwargs)
+        return self.multiplier * self.function(*args, **kwargs)
 
     def deriv(self, *args, **kwargs):
         # Docstring inherited from BaseObjectiveFunction
-        return self.multiplier * self.objective_function.deriv(*args, **kwargs)
+        return self.multiplier * self.function.deriv(*args, **kwargs)
 
     def deriv2(self, *args, **kwargs):
         # Docstring inherited from BaseObjectiveFunction
-        return self.multiplier * self.objective_function.deriv2(*args, **kwargs)
+        return self.multiplier * self.function.deriv2(*args, **kwargs)
 
     @property
     def W(self):
-        return np.sqrt(self.multiplier) * self.objective_function.W
+        return np.sqrt(self.multiplier) * self.function.W
 
     @property
-    def multiplier(self):
+    def multiplier(self) -> VALID_MULTIPLIERS:
         """Constant factor to scale the objective function.
 
         Returns
@@ -383,7 +383,7 @@ class ScaledComponent(BaseObjectiveFunction):
         self._multiplier = value
 
     @property
-    def objective_function(self):
+    def function(self) -> BaseObjectiveFunction:
         """Objective function to scale.
 
         Returns
@@ -391,16 +391,16 @@ class ScaledComponent(BaseObjectiveFunction):
         simpeg.objective_function.BaseObjectiveFunction
             Objective function to scale.
         """
-        return self._objective_function
+        return self._function
 
-    @objective_function.setter
-    def objective_function(self, value):
+    @function.setter
+    def function(self, value: BaseObjectiveFunction):
         if not isinstance(value, BaseObjectiveFunction):
             raise TypeError(
                 f"Unrecognized objective function type {value.__class__.__name}. "
                 "All objective functions must inherit from BaseObjectiveFunction."
             )
-        self._objective_function = value
+        self._function = value
 
 
 class ComboObjectiveFunction(BaseObjectiveFunction):
@@ -663,7 +663,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         list of simpeg.objective_function.BaseObjectiveFunction
             Objective functions that live inside the composite class.
         """
-        return [component.objective_function for component in self.components]
+        return [component.function for component in self.components]
 
 
 class L2ObjectiveFunction(BaseObjectiveFunction):
@@ -760,10 +760,16 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
 
 
 class Multipliers(list):
+    """
+    Accessor of multipliers from the list of ScaledFunction
+    stored under a ComboObjectiveFunction.
+    """
 
-    def __init__(self, multipliers, combo):
+    def __init__(
+        self, multipliers: list[VALID_MULTIPLIERS], parent: ComboObjectiveFunction
+    ):
         super().__init__(multipliers)
-        self._parent = combo
+        self._parent = parent
 
     def __getitem__(self, key):
         return self._parent.components[key].multiplier
