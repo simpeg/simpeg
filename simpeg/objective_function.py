@@ -306,7 +306,7 @@ class BaseObjectiveFunction(BaseSimPEG):
 
 
 class ScaledComponent(BaseObjectiveFunction):
-    """
+    r"""
     Scale an objective function by a constant factor.
 
     This class scales an objective function by a constant factor. The objective function
