@@ -190,13 +190,12 @@ def eigenvalue_by_power_iteration(
     x0 = x0 / np.linalg.norm(x0)
 
     # transform to ComboObjectiveFunction if required
-    if getattr(combo_objfct, "objfcts", None) is None:
-        combo_objfct = 1.0 * combo_objfct
+    fun_list = getattr(combo_objfct, "objfcts", [combo_objfct])
 
     # create Field for data misfit if necessary and not provided
     if fields_list is None:
         fields_list = []
-        for obj in combo_objfct.objfcts:
+        for obj in fun_list:
             if hasattr(obj, "simulation"):
                 fields_list += [obj.simulation.fields(model)]
             else:
