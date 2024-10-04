@@ -87,7 +87,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
         .. deprecated:: 0.23.0
 
-           Keyword argument ``ind_active`` is deprecated in favor of
+           Argument ``ind_active`` is deprecated in favor of
            ``active_cells`` and will be removed in SimPEG v0.24.0.
     """
 
