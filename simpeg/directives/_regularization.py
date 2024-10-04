@@ -262,15 +262,15 @@ class UpdateIRLS(InversionDirective):
         """
         Check on progress of the inversion and start/update the IRLS process.
         """
+        # Check if misfit is within the tolerance, otherwise scale beta
+        self.adjust_cooling_schedule()
+
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
         if (
             self.metrics.start_irls_iter is None
             and self.invProb.phi_d < self.misfit_from_chi_factor(self.chifact_start)
         ):
             self.start_irls()
-
-        # Check if misfit is within the tolerance, otherwise scale beta
-        self.adjust_cooling_schedule()
 
         # Only update after GN iterations
         if (
@@ -345,16 +345,19 @@ class UpdateIRLS(InversionDirective):
         # Save l2-model
         self.invProb.l2model = self.invProb.model.copy()
 
+        self.cooling_factor = 1.0
+
     def validate(self, directiveList=None):
         directive_list = directiveList.dList
         self_ind = directive_list.index(self)
         lin_precond_ind = [isinstance(d, UpdatePreconditioner) for d in directive_list]
 
-        if any(lin_precond_ind) and lin_precond_ind.index(True) < self_ind:
-            raise AssertionError(
-                "The directive 'UpdatePreconditioner' must be after Update_IRLS "
-                "in the directiveList"
-            )
+        if any(lin_precond_ind):
+            if lin_precond_ind.index(True) < self_ind:
+                raise AssertionError(
+                    "The directive 'UpdatePreconditioner' must be after UpdateIRLS "
+                    "in the directiveList"
+                )
         else:
             warnings.warn(
                 "Without a Linear preconditioner, convergence may be slow. "
