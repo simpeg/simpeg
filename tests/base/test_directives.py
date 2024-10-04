@@ -602,8 +602,10 @@ class TestDeprecateSeedProperty:
         Test if warning is raised after passing ``seed`` to the constructor.
         """
         msg = self.get_message_deprecated_warning("seed", "random_seed")
+        seed = 42135
         with pytest.warns(FutureWarning, match=msg):
-            directive(seed=42)
+            directive_instance = directive(seed=42135)
+        assert directive_instance.random_seed == seed
 
     @pytest.mark.parametrize("directive", CLASSES)
     def test_error_duplicated_argument(self, directive):

@@ -169,7 +169,14 @@ class TestDeprecatedSeed:
         combo = mock_objfun(nP=n_params) + 3.0 * mock_objfun(nP=n_params)
         model = np.ones(n_params)
         with pytest.warns(FutureWarning, match=msg):
-            eigenvalue_by_power_iteration(combo_objfct=combo, model=model, seed=42)
+            result_seed = eigenvalue_by_power_iteration(
+                combo_objfct=combo, model=model, seed=42
+            )
+        # Ensure that using `seed` and `random_seed` generate the same output
+        result_random_seed = eigenvalue_by_power_iteration(
+            combo_objfct=combo, model=model, random_seed=42
+        )
+        np.testing.assert_allclose(result_seed, result_random_seed)
 
     def test_error_duplicated_argument(self):
         """
