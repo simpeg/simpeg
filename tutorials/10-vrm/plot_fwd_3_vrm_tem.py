@@ -256,7 +256,7 @@ ind_active = np.ones(mesh.nC, dtype="bool")
 vrm_simulation = vrm.Simulation3DLogUniform(
     mesh,
     survey=vrm_survey,
-    indActive=ind_active,
+    active_cells=ind_active,
     refinement_factor=1,
     refinement_distance=[100.0],
     chi0=chi0_model,
