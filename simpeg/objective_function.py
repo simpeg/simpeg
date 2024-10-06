@@ -278,10 +278,10 @@ class BaseObjectiveFunction(BaseSimPEG):
         for instance in (self, other):
             if isinstance(instance, ComboObjectiveFunction) and instance._unpack_on_add:
                 objective_functions += instance.components
-            elif isinstance(instance, ScaledComponent):
+            elif isinstance(instance, WeightedObjectiveFunction):
                 objective_functions.append(instance)
             else:
-                objective_functions.append(ScaledComponent(instance))
+                objective_functions.append(WeightedObjectiveFunction(instance))
 
         combo = ComboObjectiveFunction(objfcts=objective_functions)
         return combo
@@ -290,7 +290,7 @@ class BaseObjectiveFunction(BaseSimPEG):
         return self + other
 
     def __mul__(self, multiplier):
-        return ScaledComponent(self, multiplier=multiplier)
+        return WeightedObjectiveFunction(self, multiplier=multiplier)
 
     def __rmul__(self, multiplier):
         return self * multiplier
@@ -305,7 +305,7 @@ class BaseObjectiveFunction(BaseSimPEG):
         return self * (1.0 / denominator)
 
 
-class ScaledComponent(BaseObjectiveFunction):
+class WeightedObjectiveFunction(BaseObjectiveFunction):
     r"""
     Scale an objective function by a constant factor.
 
@@ -327,7 +327,7 @@ class ScaledComponent(BaseObjectiveFunction):
     Build a scaled objective function:
 
     >>> objective_fun = L2ObjectiveFunction(nP=3)
-    >>> scaled_objfct = ScaledComponent(objective_fun, 2.5)
+    >>> scaled_objfct = WeightedObjectiveFunction(objective_fun, 2.5)
     >>> print(scaled_objfct.multiplier)
     2.5
     """
@@ -510,10 +510,10 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         self._unpack_on_add = unpack_on_add
 
     def __len__(self):
-        return len(self.objfcts)
+        return len(self.components)
 
     def __getitem__(self, key):
-        return self.multipliers[key], self.objfcts[key]
+        return self.components[key]
 
     @property
     def multipliers(self):
@@ -775,7 +775,11 @@ class Multipliers(list):
         return [comp.multiplier for comp in self._parent.components][key]
 
     def __setitem__(self, key, value):
-        for comp in self._parent.components[key]:
+        comp_list = self._parent[key]
+        if not isinstance(comp_list, list):
+            comp_list = [comp_list]
+
+        for comp in comp_list:
             comp.multiplier = value
 
 
@@ -796,8 +800,13 @@ def _validate_objective_functions(objective_functions, multipliers):
                 "All objective functions must inherit from BaseObjectiveFunction."
             )
 
-        if not isinstance(function, ScaledComponent) or multiplier is not None:
-            validated_list.append(ScaledComponent(function, multiplier or 1.0))
+        if (
+            not isinstance(function, WeightedObjectiveFunction)
+            or multiplier is not None
+        ):
+            validated_list.append(
+                WeightedObjectiveFunction(function, multiplier or 1.0)
+            )
         else:
             validated_list.append(function)
 
