@@ -1,0 +1,17 @@
+name: Deploy python package in production
+
+on:
+  release:
+    types: [published] # Trigger for draft release
+
+jobs:
+  call-workflow-conda-publish:
+    name: Publish development conda package on JFrog Artifactory
+    uses: MiraGeoscience/CI-tools/.github/workflows/reusable-python-publish_conda_package.yml@DEVOPS-504
+    with:
+      package-name: 'mira-omf'
+      python-version: '3.10'
+      virtual-repo-name: 'public-conda-prod'
+    secrets:
+      JFROG_ARTIFACTORY_URL: ${{ secrets.JFROG_ARTIFACTORY_URL }}
+      JFROG_ARTIFACTORY_TOKEN: ${{ secrets.JFROG_ARTIFACTORY_TOKEN }}
