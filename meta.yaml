@@ -23,10 +23,10 @@ requirements:
     - pip
   run:
     - python >=3.7
-    - discretize >=0.8.0
+    - discretize >=0.10.0
     - empymod >=2.0.0
-    - geoana
-    - geoh5py
+    - geoana >=0.5.0
+    - geoh5py >=0.9.1,<0.11
     - matplotlib-base
     - numpy >=1.20
     - pandas
