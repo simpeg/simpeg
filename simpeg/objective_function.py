@@ -380,6 +380,11 @@ class WeightedObjectiveFunction(BaseObjectiveFunction):
                 f"Invalid multiplier '{value}' of type '{type(value)}'. "
                 "Scaled objective functions can only be multiplied by floats."
             )
+        if value < 0:
+            raise ValueError(
+                f"Value for 'multiplier' must be non-negative, not {value}"
+            )
+
         self._multiplier = value
 
     @property
@@ -494,8 +499,6 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         else:
             multipliers = [None] * len(objfcts)
 
-        objfcts, multipliers = _validate_objective_functions(objfcts, multipliers)
-
         # Get number of parameters (nP) from objective functions
         number_of_parameters = [f.nP for f in objfcts if f.nP != "*"]
         if number_of_parameters:
@@ -505,7 +508,9 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         super().__init__(nP=nP)
 
-        self.components = objfcts
+        objfcts, multipliers = _validate_objective_functions(objfcts, multipliers)
+
+        self.components: list[WeightedObjectiveFunction] = objfcts
         self._multipliers = Multipliers(multipliers, self)
         self._unpack_on_add = unpack_on_add
 
@@ -783,7 +788,9 @@ class Multipliers(list):
             comp.multiplier = value
 
 
-def _validate_objective_functions(objective_functions, multipliers):
+def _validate_objective_functions(
+    objective_functions, multipliers
+) -> tuple[list[WeightedObjectiveFunction], list[float]]:
     """
     Validate objective functions.
 

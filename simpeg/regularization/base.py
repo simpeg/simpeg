@@ -1571,6 +1571,45 @@ class WeightedLeastSquares(ComboObjectiveFunction):
                 f"'{key}' argument has been removed. Please use 'weights' instead."
             )
 
+        # do this to allow child classes to also pass a list of objfcts to this constructor
+        if "objfcts" not in kwargs:
+            objfcts = [
+                Smallness(mesh=self.regularization_mesh),
+                SmoothnessFirstOrder(mesh=self.regularization_mesh, orientation="x"),
+                SmoothnessSecondOrder(mesh=self.regularization_mesh, orientation="x"),
+            ]
+
+            if mesh.dim > 1:
+                objfcts.extend(
+                    [
+                        SmoothnessFirstOrder(
+                            mesh=self.regularization_mesh, orientation="y"
+                        ),
+                        SmoothnessSecondOrder(
+                            mesh=self.regularization_mesh, orientation="y"
+                        ),
+                    ]
+                )
+
+            if mesh.dim > 2:
+                objfcts.extend(
+                    [
+                        SmoothnessFirstOrder(
+                            mesh=self.regularization_mesh, orientation="z"
+                        ),
+                        SmoothnessSecondOrder(
+                            mesh=self.regularization_mesh, orientation="z"
+                        ),
+                    ]
+                )
+        else:
+            objfcts = kwargs.pop("objfcts")
+
+        for fun in objfcts:
+            fun.parent = self
+
+        super().__init__(objfcts=objfcts, unpack_on_add=False, **kwargs)
+
         self.alpha_s = alpha_s
         if alpha_x is not None:
             if length_scale_x is not None:
@@ -1608,45 +1647,6 @@ class WeightedLeastSquares(ComboObjectiveFunction):
                 f"Invalid 'weights' of type '{type(weights)}'. "
                 "It must be a dictionary with strings as keys and arrays as values."
             )
-
-        # do this to allow child classes to also pass a list of objfcts to this constructor
-        if "objfcts" not in kwargs:
-            objfcts = [
-                Smallness(mesh=self.regularization_mesh),
-                SmoothnessFirstOrder(mesh=self.regularization_mesh, orientation="x"),
-                SmoothnessSecondOrder(mesh=self.regularization_mesh, orientation="x"),
-            ]
-
-            if mesh.dim > 1:
-                objfcts.extend(
-                    [
-                        SmoothnessFirstOrder(
-                            mesh=self.regularization_mesh, orientation="y"
-                        ),
-                        SmoothnessSecondOrder(
-                            mesh=self.regularization_mesh, orientation="y"
-                        ),
-                    ]
-                )
-
-            if mesh.dim > 2:
-                objfcts.extend(
-                    [
-                        SmoothnessFirstOrder(
-                            mesh=self.regularization_mesh, orientation="z"
-                        ),
-                        SmoothnessSecondOrder(
-                            mesh=self.regularization_mesh, orientation="z"
-                        ),
-                    ]
-                )
-        else:
-            objfcts = kwargs.pop("objfcts")
-
-        super().__init__(objfcts=objfcts, unpack_on_add=False, **kwargs)
-
-        for fun in objfcts:
-            fun.parent = self
 
         if active_cells is not None:
             self.active_cells = active_cells
@@ -1721,6 +1721,19 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             "`remove_weights` methods."
         )
 
+    def get_multiplier_pair(self, name):
+        ind = self._index_from_multiplier_pair(name)
+        if ind is None:
+            return None
+
+        return self.multipliers[ind]
+
+    def set_multiplier_pair(self, name, value):
+        ind = self._index_from_multiplier_pair(name)
+
+        if ind is not None:
+            self.multipliers[ind] = value
+
     @property
     def alpha_s(self):
         """Multiplier constant for the smallness term.
@@ -1730,19 +1743,11 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         float
             Multiplier constant for the smallness term.
         """
-        return self._alpha_s
+        return self.get_multiplier_pair("alpha_s")
 
     @alpha_s.setter
     def alpha_s(self, value):
-        if value is None:
-            value = 1.0
-        try:
-            value = float(value)
-        except (ValueError, TypeError):
-            raise TypeError(f"alpha_s must be a real number, saw type{type(value)}")
-        if value < 0:
-            raise ValueError(f"alpha_s must be non-negative, not {value}")
-        self._alpha_s = value
+        self.set_multiplier_pair("alpha_s", value)
 
     @property
     def alpha_x(self):
@@ -1753,17 +1758,11 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         float
             Multiplier constant for first-order smoothness along x.
         """
-        return self._alpha_x
+        return self.get_multiplier_pair("alpha_x")
 
     @alpha_x.setter
     def alpha_x(self, value):
-        try:
-            value = float(value)
-        except (ValueError, TypeError):
-            raise TypeError(f"alpha_x must be a real number, saw type{type(value)}")
-        if value < 0:
-            raise ValueError(f"alpha_x must be non-negative, not {value}")
-        self._alpha_x = value
+        self.set_multiplier_pair("alpha_x", value)
 
     @property
     def alpha_y(self):
@@ -1774,17 +1773,11 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         float
             Multiplier constant for first-order smoothness along y.
         """
-        return self._alpha_y
+        return self.get_multiplier_pair("alpha_y")
 
     @alpha_y.setter
     def alpha_y(self, value):
-        try:
-            value = float(value)
-        except (ValueError, TypeError):
-            raise TypeError(f"alpha_y must be a real number, saw type{type(value)}")
-        if value < 0:
-            raise ValueError(f"alpha_y must be non-negative, not {value}")
-        self._alpha_y = value
+        self.set_multiplier_pair("alpha_y", value)
 
     @property
     def alpha_z(self):
@@ -1795,17 +1788,11 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         float
             Multiplier constant for first-order smoothness along z.
         """
-        return self._alpha_z
+        return self.get_multiplier_pair("alpha_z")
 
     @alpha_z.setter
     def alpha_z(self, value):
-        try:
-            value = float(value)
-        except (ValueError, TypeError):
-            raise TypeError(f"alpha_z must be a real number, saw type{type(value)}")
-        if value < 0:
-            raise ValueError(f"alpha_z must be non-negative, not {value}")
-        self._alpha_z = value
+        self.set_multiplier_pair("alpha_z", value)
 
     @property
     def alpha_xx(self):
@@ -1816,19 +1803,14 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         float
             Multiplier constant for second-order smoothness along x.
         """
-        return self._alpha_xx
+        return self.get_multiplier_pair("alpha_xx")
 
     @alpha_xx.setter
     def alpha_xx(self, value):
         if value is None:
             value = (self.length_scale_x * self.regularization_mesh.base_length) ** 4.0
-        try:
-            value = float(value)
-        except (ValueError, TypeError):
-            raise TypeError(f"alpha_xx must be a real number, saw type{type(value)}")
-        if value < 0:
-            raise ValueError(f"alpha_xx must be non-negative, not {value}")
-        self._alpha_xx = value
+
+        self.set_multiplier_pair("alpha_xx", value)
 
     @property
     def alpha_yy(self):
@@ -1839,19 +1821,14 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         float
             Multiplier constant for second-order smoothness along y.
         """
-        return self._alpha_yy
+        return self.get_multiplier_pair("alpha_yy")
 
     @alpha_yy.setter
     def alpha_yy(self, value):
         if value is None:
             value = (self.length_scale_y * self.regularization_mesh.base_length) ** 4.0
-        try:
-            value = float(value)
-        except (ValueError, TypeError):
-            raise TypeError(f"alpha_yy must be a real number, saw type{type(value)}")
-        if value < 0:
-            raise ValueError(f"alpha_yy must be non-negative, not {value}")
-        self._alpha_yy = value
+
+        self.set_multiplier_pair("alpha_yy", value)
 
     @property
     def alpha_zz(self):
@@ -1862,19 +1839,14 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         float
             Multiplier constant for second-order smoothness along z.
         """
-        return self._alpha_zz
+        return self.get_multiplier_pair("alpha_zz")
 
     @alpha_zz.setter
     def alpha_zz(self, value):
         if value is None:
             value = (self.length_scale_z * self.regularization_mesh.base_length) ** 4.0
-        try:
-            value = float(value)
-        except (ValueError, TypeError):
-            raise TypeError(f"alpha_zz must be a real number, saw type{type(value)}")
-        if value < 0:
-            raise ValueError(f"alpha_zz must be non-negative, not {value}")
-        self._alpha_zz = value
+
+        self.set_multiplier_pair("alpha_zz", value)
 
     @property
     def length_scale_x(self):
@@ -1989,6 +1961,14 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             if getattr(fct, "reference_model_in_smooth", None) is not None:
                 fct.reference_model_in_smooth = value
 
+    def _index_from_multiplier_pair(self, name: str) -> int | None:
+        for i, component in enumerate(self.components):
+            pair = getattr(component.function, "_multiplier_pair", None)
+            if name == pair:
+                return i
+
+        return None
+
     # Other properties and methods
     @property
     def nP(self):
@@ -2029,26 +2009,6 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         if self.reference_model is None:
             return m
         return m - self.reference_model
-
-    @property
-    def multipliers(self):
-        r"""Multiplier constants for weighted sum of objective functions.
-
-        For a model objective function :math:`\phi_m (\mathbf{m})` constructed using
-        a weighted sum of objective functions :math:`\phi_i (\mathbf{m})`, i.e.:
-
-        .. math::
-            \phi_m (\mathbf{m}) = \sum_i \alpha_i \, \phi_i (\mathbf{m})
-
-        the `multipliers` property returns the list of multiplier constants :math:`alpha_i`
-        in order.
-
-        Returns
-        -------
-        list of float
-            Multiplier constants for weighted sum of objective functions.
-        """
-        return [getattr(self, objfct._multiplier_pair) for objfct in self.objfcts]
 
     @property
     def active_cells(self) -> np.ndarray:
