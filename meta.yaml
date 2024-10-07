@@ -41,7 +41,7 @@ requirements:
 
 test:
   imports:
-    - SimPEG
+    - simpeg
   commands:
     - pip check
   requires:
