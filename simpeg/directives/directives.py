@@ -2987,23 +2987,22 @@ class SaveIterationsGeoH5(InversionDirective):
     Saves inversion results to a geoh5 file
     """
 
-    def __init__(self, h5_object, **kwargs):
+    def __init__(self, h5_object, dmisfit=None, **kwargs):
         self.data_type = {}
         self._association = None
         self.attribute_type = "model"
         self._label = None
         self.channels = [""]
         self.components = [""]
-        self._h5_object = None
-        self._workspace = None
         self._transforms: list = []
         self.save_objective_function = False
         self.sorting = None
         self._reshape = None
         self.h5_object = h5_object
         self._joint_index = None
+
         super().__init__(
-            inversion=None, dmisfit=None, reg=None, verbose=False, **kwargs
+            inversion=None, dmisfit=dmisfit, reg=None, verbose=False, **kwargs
         )
 
     def initialize(self):
@@ -3085,9 +3084,10 @@ class SaveIterationsGeoH5(InversionDirective):
 
             prop = self.stack_channels(dpred)
         elif self.attribute_type == "sensitivities":
-            for directive in self.inversion.directiveList.dList:
-                if isinstance(directive, directives.UpdateSensitivityWeights):
-                    prop = self.reshape(np.sum(directive.JtJdiag, axis=0) ** 0.5)
+
+            prop = np.zeros_like(self.invProb.model)
+            for fun in self.dmisfit.objfcts:
+                prop += fun.getJtJdiag(self.invProb.model)
 
         return prop
 
