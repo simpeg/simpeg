@@ -586,9 +586,9 @@ class SimulationEquivalentSourceLayer(
         # Get cells in the 2D mesh
         cells_bounds = _get_cell_bounds(self.mesh)
         # Keep only active cells
-        cells_bounds_active = cells_bounds[self.ind_active]
-        top_active = self.cell_z_top[self.ind_active]
-        bottom_active = self.cell_z_bottom[self.ind_active]
+        cells_bounds_active = cells_bounds[self.active_cells]
+        top_active = self.cell_z_top[self.active_cells]
+        bottom_active = self.cell_z_bottom[self.active_cells]
 
         # Allocate fields array
         fields = np.zeros(self.survey.nD, dtype=self.sensitivity_dtype)
@@ -628,9 +628,9 @@ class SimulationEquivalentSourceLayer(
         # Get cells in the 2D mesh
         cells_bounds = _get_cell_bounds(self.mesh)
         # Keep only active cells
-        cells_bounds_active = cells_bounds[self.ind_active]
-        top_active = self.cell_z_top[self.ind_active]
-        bottom_active = self.cell_z_bottom[self.ind_active]
+        cells_bounds_active = cells_bounds[self.active_cells]
+        top_active = self.cell_z_top[self.active_cells]
+        bottom_active = self.cell_z_bottom[self.active_cells]
 
         # Allocate sensitivity matrix
         shape = (self.survey.nD, self.nC)
