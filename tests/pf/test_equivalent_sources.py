@@ -300,12 +300,16 @@ class TestGravityEquivalentSources:
         np.testing.assert_allclose(sim_parallel.dpred(model), sim_serial.dpred(model))
 
     @pytest.mark.parametrize("engine", ("geoana", "choclo"))
+    @pytest.mark.parametrize(
+        "top_bottom_as_array",
+        (False, True),
+        ids=("top-bottom-float", "top-bottom-array"),
+    )
     def test_predictions_on_data_points(
         self,
         tree_mesh,
-        mesh_top,
-        mesh_bottom,
         survey,
+        top_bottom_as_array,
         engine,
     ):
         """
@@ -314,6 +318,10 @@ class TestGravityEquivalentSources:
         The equivalent sources should be able to reproduce the same data with
         which they were trained.
         """
+        # Get mesh top and bottom
+        mesh_top, mesh_bottom = self._get_mesh_top_bottom(
+            tree_mesh, array=top_bottom_as_array
+        )
         # Build simulation
         mapping = get_mapping(tree_mesh)
         simulation = gravity.SimulationEquivalentSourceLayer(
