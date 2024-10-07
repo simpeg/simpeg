@@ -8,7 +8,7 @@ package:
 source:
   # url: https://github.com/MiraGeoscience/simpeg/archive/v0.19.0.8+mira.tar.gz
   # sha256: f48e21e1e3d1df79be0baad2bc0b91f83714ddf53780a6849f9a60f9418a735b
-  path: ../{{ name }}
+  path: ../simpeg
 
 build:
   noarch: python
