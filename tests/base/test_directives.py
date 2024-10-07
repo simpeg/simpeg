@@ -88,7 +88,7 @@ class ValidationInInversion(unittest.TestCase):
 
         m = np.random.rand(mesh.nC)
 
-        data = sim.make_synthetic_data(m, add_noise=True)
+        data = sim.make_synthetic_data(m, add_noise=True, random_seed=19)
         dmis = data_misfit.L2DataMisfit(data=data, simulation=sim)
         dmis.W = 1.0 / data.relative_error
 
@@ -391,7 +391,9 @@ def test_save_output_dict(RegClass):
     sim = simulation.ExponentialSinusoidSimulation(
         mesh=mesh, model_map=maps.IdentityMap()
     )
-    data = sim.make_synthetic_data(np.ones(mesh.n_cells), add_noise=True)
+    data = sim.make_synthetic_data(
+        np.ones(mesh.n_cells), add_noise=True, random_seed=20
+    )
     dmis = data_misfit.L2DataMisfit(data, sim)
 
     opt = optimization.InexactGaussNewton(maxIter=1)
