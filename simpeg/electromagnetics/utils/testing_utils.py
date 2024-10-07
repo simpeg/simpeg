@@ -279,7 +279,7 @@ def crossCheckTest(
     if sigma_only:
         prb1 = getFDEMProblem(fdemType1, comp, SrcList, freq, useMu, verbose)
     else:
-        prb1 = getFDEMProblem_FaceEdgeConductivity(
+        prb1 = get_FDEM_hierarchical_problem(
             fdemType1, comp, SrcList, freq, useMu, verbose
         )
 
@@ -320,7 +320,7 @@ def crossCheckTest(
     if sigma_only:
         prb2 = getFDEMProblem(fdemType2, comp, SrcList, freq, useMu, verbose)
     else:
-        prb2 = getFDEMProblem_FaceEdgeConductivity(
+        prb2 = get_FDEM_hierarchical_problem(
             fdemType2, comp, SrcList, freq, useMu, verbose
         )
 
