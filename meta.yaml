@@ -42,8 +42,32 @@ requirements:
 test:
   imports:
     - simpeg
+    - simpeg.electromagnetics
+    - simpeg.electromagnetics.analytics
+    - simpeg.electromagnetics.frequency_domain
+    - simpeg.electromagnetics.natural_source
+    - simpeg.electromagnetics.natural_source.utils
+    - simpeg.electromagnetics.static
+    - simpeg.electromagnetics.static.resistivity
+    - simpeg.electromagnetics.static.induced_polarization
+    - simpeg.electromagnetics.static.spectral_induced_polarization
+    - simpeg.electromagnetics.static.utils
+    - simpeg.electromagnetics.time_domain
+    - simpeg.electromagnetics.utils
+    - simpeg.electromagnetics.viscous_remanent_magnetization
+    - simpeg.flow
+    - simpeg.flow.richards
+    - simpeg.potential_fields
+    - simpeg.potential_fields.gravity
+    - simpeg.potential_fields.magnetics
+    - simpeg.seismic
+    - simpeg.seismic.straight_ray_tomography
+    - simpeg.utils
+    - simpeg.utils.drivers
+    - simpeg.regularization
+    - simpeg.meta
   commands:
-    - pip check
+    - pip install .
   requires:
     - pip
 
