@@ -43,8 +43,8 @@ def test_forward():
         mesh=mesh, survey=dc_survey, sigma=conductivity
     )
 
-    dc_dpred = sim_dc.make_synthetic_data(None, add_noise=False)
-    sp_dpred = sim.make_synthetic_data(q, add_noise=False)
+    dc_dpred = sim_dc.make_synthetic_data(None, add_noise=False, random_seed=40)
+    sp_dpred = sim.make_synthetic_data(q, add_noise=False, random_seed=40)
 
     np.testing.assert_allclose(dc_dpred.dobs, sp_dpred.dobs)
 
