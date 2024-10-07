@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 name = 'simpeg'
 description = "SimPEG: Simulation and Parameter Estimation in Geophysics"
 readme = 'README.rst'
-requires-python = '>=3.8'
+requires-python = '>=3.10'
 authors = [
   {name = 'SimPEG developers', email = 'rowanc1@gmail.com'},
 ]
@@ -15,7 +15,7 @@ keywords = [
     'geophysics', 'inverse problem'
 ]
 dependencies = [
-    "numpy>=1.20",
+    "numpy>=1.21",
     "scipy>=1.8",
     "pymatsolver>=0.2",
     "matplotlib",

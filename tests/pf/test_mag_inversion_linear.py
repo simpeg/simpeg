@@ -1,6 +1,8 @@
 import unittest
 import discretize
 from discretize.utils import active_from_xyz
+import pytest
+import matplotlib.pyplot as plt
 from simpeg import (
     utils,
     maps,
@@ -83,7 +85,7 @@ class MagInvLinProblemTest(unittest.TestCase):
             self.mesh,
             survey=survey,
             chiMap=idenMap,
-            ind_active=actv,
+            active_cells=actv,
             store_sensitivities="disk",
             n_processes=None,
         )
@@ -93,7 +95,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         data = sim.make_synthetic_data(
             self.model,
             relative_error=0.0,
-            noise_floor=1.0,
+            noise_floor=2.0,
             add_noise=True,
             random_seed=2,
         )
@@ -115,11 +117,17 @@ class MagInvLinProblemTest(unittest.TestCase):
         betaest = directives.BetaEstimate_ByEig()
 
         # Here is where the norms are applied
-        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=1)
+        IRLS = directives.UpdateIRLS(f_min_change=1e-4)
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
         self.inv = inversion.BaseInversion(
-            invProb, directiveList=[IRLS, sensitivity_weights, betaest, update_Jacobi]
+            invProb,
+            directiveList=[
+                IRLS,
+                sensitivity_weights,
+                betaest,
+                update_Jacobi,
+            ],
         )
 
     def test_mag_inverse(self):
@@ -127,19 +135,30 @@ class MagInvLinProblemTest(unittest.TestCase):
         mrec = self.inv.run(self.model)
         residual = np.linalg.norm(mrec - self.model) / np.linalg.norm(self.model)
 
-        # plt.figure()
-        # ax = plt.subplot(1, 2, 1)
-        # midx = int(self.mesh.shape_cells[0]/2)
-        # self.mesh.plot_slice(self.actvMap*mrec, ax=ax, normal='Y', ind=midx,
-        #                grid=True, clim=(0, 0.02))
-
-        # ax = plt.subplot(1, 2, 2)
-        # midx = int(self.mesh.shape_cells[0]/2)
-        # self.mesh.plot_slice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
-        #                grid=True, clim=(0, 0.02))
-        # plt.show()
-
         self.assertTrue(residual < 0.05)
+
+    @pytest.mark.skip(reason="For validation only.")
+    def test_plot_results(self):
+        self.sim.store_sensitivities = "ram"
+        mrec = self.inv.run(self.model)
+        plt.figure()
+        ax = plt.subplot(1, 2, 1)
+        midx = int(self.mesh.shape_cells[0] / 2)
+        self.mesh.plot_slice(
+            self.actvMap * mrec, ax=ax, normal="Y", ind=midx, grid=True, clim=(0, 0.02)
+        )
+
+        ax = plt.subplot(1, 2, 2)
+        midx = int(self.mesh.shape_cells[0] / 2)
+        self.mesh.plot_slice(
+            self.actvMap * self.model,
+            ax=ax,
+            normal="Y",
+            ind=midx,
+            grid=True,
+            clim=(0, 0.02),
+        )
+        plt.show()
 
     def tearDown(self):
         # Clean up the working directory

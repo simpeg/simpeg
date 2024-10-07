@@ -178,7 +178,7 @@ class Simulation3DIntegral(BasePFSimulation):
         Mesh use to run the gravity simulation.
     survey : simpeg.potential_fields.gravity.Survey
         Gravity survey with information of the receivers.
-    ind_active : (n_cells) numpy.ndarray, optional
+    active_cells : (n_cells) numpy.ndarray, optional
         Array that indicates which cells in ``mesh`` are active cells.
     rho : numpy.ndarray, optional
         Density array for the active cells in the mesh.
@@ -203,6 +203,12 @@ class Simulation3DIntegral(BasePFSimulation):
         If True, the simulation will run in parallel. If False, it will
         run in serial. If ``engine`` is not ``"choclo"`` this argument will be
         ignored.
+    ind_active : np.ndarray of int or bool
+
+        .. deprecated:: 0.23.0
+
+           Argument ``ind_active`` is deprecated in favor of
+           ``active_cells`` and will be removed in SimPEG v0.24.0.
     """
 
     rho, rhoMap, rhoDeriv = props.Invertible("Density")
