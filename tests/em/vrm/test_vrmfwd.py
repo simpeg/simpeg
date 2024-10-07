@@ -569,7 +569,8 @@ class TestDeprecatedIndActive:
         """
         msg = self.get_message_deprecated_warning(self.OLD_NAME, self.NEW_NAME)
         with pytest.warns(FutureWarning, match=msg):
-            simulation(mesh, indActive=active_cells)
+            sim = simulation(mesh, indActive=active_cells)
+        np.testing.assert_allclose(sim.active_cells, active_cells)
 
     @pytest.mark.parametrize("simulation", CLASSES)
     def test_error_duplicated_argument(self, mesh, active_cells, simulation):
