@@ -51,6 +51,7 @@ class TestEigenvalues(unittest.TestCase):
             relative_error=relative_error,
             noise_floor=noise_floor,
             add_noise=True,
+            random_seed=40,
         )
         dmis = data_misfit.L2DataMisfit(simulation=sim, data=data_obj)
         self.dmis = dmis

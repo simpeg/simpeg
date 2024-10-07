@@ -113,7 +113,11 @@ class MagInvLinProblemTest(unittest.TestCase):
         )
         self.sim = sim
         data = sim.make_synthetic_data(
-            self.model, relative_error=0.0, noise_floor=1.0, add_noise=True
+            self.model,
+            relative_error=0.0,
+            noise_floor=1.0,
+            add_noise=True,
+            random_seed=40,
         )
 
         # Create a regularization
