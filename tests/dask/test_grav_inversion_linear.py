@@ -86,7 +86,11 @@ class GravInvLinProblemTest(unittest.TestCase):
         # computing sensitivities to ram is best using dask processes
         with dask.config.set(scheduler="processes"):
             data = sim.make_synthetic_data(
-                self.model, relative_error=0.0, noise_floor=0.0005, add_noise=True
+                self.model,
+                relative_error=0.0,
+                noise_floor=0.0005,
+                add_noise=True,
+                random_seed=42,
             )
         # Create a regularization
         reg = regularization.Sparse(self.mesh, active_cells=actv, mapping=idenMap)
