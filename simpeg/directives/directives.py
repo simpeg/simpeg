@@ -2987,10 +2987,10 @@ class SaveIterationsGeoH5(InversionDirective):
     Saves inversion results to a geoh5 file
     """
 
-    def __init__(self, h5_object, dmisfit=None, **kwargs):
+    def __init__(self, h5_object, dmisfit=None, attribute_type: str = "model", **kwargs):
         self.data_type = {}
         self._association = None
-        self.attribute_type = "model"
+        self.attribute_type = attribute_type
         self._label = None
         self.channels = [""]
         self.components = [""]
@@ -3000,6 +3000,11 @@ class SaveIterationsGeoH5(InversionDirective):
         self._reshape = None
         self.h5_object = h5_object
         self._joint_index = None
+
+        if attribute_type == "sensitivities" and dmisfit is None:
+            raise ValueError(
+                "To save sensitivities, the data misfit object must be provided."
+            )
 
         super().__init__(
             inversion=None, dmisfit=dmisfit, reg=None, verbose=False, **kwargs
