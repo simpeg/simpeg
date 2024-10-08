@@ -204,8 +204,16 @@ class TestGravityEquivalentSourcesForward:
         mesh_3d = TensorMesh(h=h, origin=origin)
         return mesh_3d
 
+    @pytest.mark.parametrize("engine", ("geoana", "choclo"))
+    @pytest.mark.parametrize("store_sensitivities", ("ram", "forward_only"))
     def test_forward_vs_simulation(
-        self, tensor_mesh, mesh_bottom, mesh_top, gravity_survey
+        self,
+        tensor_mesh,
+        mesh_bottom,
+        mesh_top,
+        gravity_survey,
+        engine,
+        store_sensitivities,
     ):
         """
         Test forward of the eq sources vs. using the integral 3d simulation.
@@ -223,16 +231,154 @@ class TestGravityEquivalentSourcesForward:
             cell_z_bottom=mesh_bottom,
             survey=gravity_survey,
             rhoMap=mapping,
+            engine=engine,
+            store_sensitivities=store_sensitivities,
+        )
+        # Compare predictions of both simulations
+        model = get_block_model(tensor_mesh, 2.67)
+        np.testing.assert_allclose(
+            sim_3d.dpred(model), eq_sources.dpred(model), atol=1e-7
+        )
+
+    @pytest.mark.parametrize("engine", ("geoana", "choclo"))
+    @pytest.mark.parametrize("store_sensitivities", ("ram", "forward_only"))
+    @pytest.mark.parametrize("components", COMPONENTS + [["gz", "gzz"]])
+    def test_forward_vs_simulation_with_components(
+        self,
+        coordinates,
+        tensor_mesh,
+        mesh_bottom,
+        mesh_top,
+        engine,
+        store_sensitivities,
+        components,
+    ):
+        """
+        Test forward vs simulation using different gravity components.
+        """
+        # Build survey
+        survey = build_gravity_survey(coordinates, components)
+        # Build 3D mesh that is analogous to the 2D mesh with bottom and top
+        mesh_3d = self.get_mesh_3d(tensor_mesh, top=mesh_top, bottom=mesh_bottom)
+        # Build simulations
+        mapping = get_mapping(tensor_mesh)
+        sim_3d = gravity.Simulation3DIntegral(
+            survey=survey, mesh=mesh_3d, rhoMap=mapping
+        )
+        eq_sources = gravity.SimulationEquivalentSourceLayer(
+            mesh=tensor_mesh,
+            cell_z_top=mesh_top,
+            cell_z_bottom=mesh_bottom,
+            survey=survey,
+            rhoMap=mapping,
+            engine=engine,
+            store_sensitivities=store_sensitivities,
+        )
+        # Compare predictions of both simulations
+        model = get_block_model(tensor_mesh, 2.67)
+        np.testing.assert_allclose(
+            sim_3d.dpred(model), eq_sources.dpred(model), atol=5e-6
+        )
+
+    @pytest.mark.parametrize("engine", ("geoana", "choclo"))
+    def test_forward_vs_simulation_on_disk(
+        self,
+        tensor_mesh,
+        mesh_bottom,
+        mesh_top,
+        gravity_survey,
+        engine,
+        tmp_path,
+    ):
+        """
+        Test forward vs simulation storing sensitivities on disk.
+        """
+        # Build 3D mesh that is analogous to the 2D mesh with bottom and top
+        mesh_3d = self.get_mesh_3d(tensor_mesh, top=mesh_top, bottom=mesh_bottom)
+        # Define sensitivity_dir
+        if engine == "geoana":
+            sensitivity_path = tmp_path / "sensitivities_geoana"
+            sensitivity_path.mkdir()
+        elif engine == "choclo":
+            sensitivity_path = tmp_path / "sensitivities_choclo"
+        # Build simulations
+        mapping = get_mapping(tensor_mesh)
+        sim_3d = gravity.Simulation3DIntegral(
+            survey=gravity_survey, mesh=mesh_3d, rhoMap=mapping
+        )
+        eq_sources = gravity.SimulationEquivalentSourceLayer(
+            mesh=tensor_mesh,
+            cell_z_top=mesh_top,
+            cell_z_bottom=mesh_bottom,
+            survey=gravity_survey,
+            rhoMap=mapping,
+            engine=engine,
+            store_sensitivities="disk",
+            sensitivity_path=str(sensitivity_path),
         )
         # Compare predictions of both simulations
         model = get_block_model(tensor_mesh, 2.67)
         np.testing.assert_allclose(sim_3d.dpred(model), eq_sources.dpred(model))
 
+    @pytest.mark.parametrize("engine", ("geoana", "choclo"))
+    @pytest.mark.parametrize("store_sensitivities", ("ram", "forward_only"))
+    def test_forward_vs_simulation_with_active_cells(
+        self,
+        tensor_mesh,
+        mesh_bottom,
+        mesh_top,
+        gravity_survey,
+        engine,
+        store_sensitivities,
+    ):
+        """
+        Test forward vs simulation using active cells.
+        """
+        model = get_block_model(tensor_mesh, 2.67)
+
+        # Define some inactive cells inside the block
+        block_cells_indices = np.indices(model.shape).ravel()[model != 0]
+        inactive_indices = block_cells_indices[
+            : block_cells_indices.size // 2
+        ]  # mark half of the cells in the block as inactive
+        active_cells = np.ones_like(model, dtype=bool)
+        active_cells[inactive_indices] = False
+        assert not np.all(active_cells)  # check we do have inactive cells
+
+        # Keep only values of the model in the active cells
+        model = model[active_cells]
+
+        # Build 3D mesh that is analogous to the 2D mesh with bottom and top
+        mesh_3d = self.get_mesh_3d(tensor_mesh, top=mesh_top, bottom=mesh_bottom)
+
+        # Build simulations
+        mapping = simpeg.maps.IdentityMap(nP=model.size)
+        sim_3d = gravity.Simulation3DIntegral(
+            survey=gravity_survey,
+            mesh=mesh_3d,
+            rhoMap=mapping,
+            active_cells=active_cells,
+        )
+        eq_sources = gravity.SimulationEquivalentSourceLayer(
+            mesh=tensor_mesh,
+            cell_z_top=mesh_top,
+            cell_z_bottom=mesh_bottom,
+            survey=gravity_survey,
+            rhoMap=mapping,
+            engine=engine,
+            store_sensitivities=store_sensitivities,
+            active_cells=active_cells,
+        )
+        # Compare predictions of both simulations
+        np.testing.assert_allclose(
+            sim_3d.dpred(model), eq_sources.dpred(model), atol=1e-7
+        )
+
     @pytest.mark.parametrize("store_sensitivities", ("ram", "forward_only"))
     def test_forward_geoana_choclo(
         self, mesh, mesh_bottom, mesh_top, gravity_survey, store_sensitivities
     ):
-        """Test forward using geoana and choclo varying how to store sensitivity."""
+        """Compare forwards using geoana and choclo."""
         # Build simulations
         mapping = get_mapping(mesh)
         kwargs = dict(
@@ -246,81 +392,6 @@ class TestGravityEquivalentSourcesForward:
         sim_geoana = gravity.SimulationEquivalentSourceLayer(engine="geoana", **kwargs)
         sim_choclo = gravity.SimulationEquivalentSourceLayer(engine="choclo", **kwargs)
         model = get_block_model(mesh, 2.67)
-        np.testing.assert_allclose(sim_geoana.dpred(model), sim_choclo.dpred(model))
-
-    def test_forward_geoana_choclo_on_disk(
-        self, mesh, mesh_bottom, mesh_top, gravity_survey, tmp_path
-    ):
-        """Test forward using geoana and choclo varying how to store sensitivity."""
-        # Build simulations
-        mapping = get_mapping(mesh)
-        kwargs = dict(
-            mesh=mesh,
-            cell_z_top=mesh_top,
-            cell_z_bottom=mesh_bottom,
-            survey=gravity_survey,
-            rhoMap=mapping,
-            store_sensitivities="disk",
-        )
-        # Create directory for geoana
-        sensitivity_dir = tmp_path / "sensitivities_geoana"
-        sensitivity_dir.mkdir()
-        # Define fname for choclo
-        sensitivity_fname = tmp_path / "sensitivities_choclo"
-        sim_geoana = gravity.SimulationEquivalentSourceLayer(
-            engine="geoana", sensitivity_path=str(sensitivity_dir), **kwargs
-        )
-        sim_choclo = gravity.SimulationEquivalentSourceLayer(
-            engine="choclo", sensitivity_path=str(sensitivity_fname), **kwargs
-        )
-        model = get_block_model(mesh, 2.67)
-        np.testing.assert_allclose(sim_geoana.dpred(model), sim_choclo.dpred(model))
-
-    @pytest.mark.parametrize("components", COMPONENTS + [["gz", "gzz"]])
-    def test_forward_geoana_choclo_with_components(
-        self, coordinates, mesh, mesh_bottom, mesh_top, components
-    ):
-        """Test forward using geoana and choclo with different components."""
-        # Build survey
-        survey = build_gravity_survey(coordinates, components)
-        # Build simulations
-        mapping = get_mapping(mesh)
-        kwargs = dict(
-            mesh=mesh,
-            cell_z_top=mesh_top,
-            cell_z_bottom=mesh_bottom,
-            survey=survey,
-            rhoMap=mapping,
-        )
-        sim_geoana = gravity.SimulationEquivalentSourceLayer(engine="geoana", **kwargs)
-        sim_choclo = gravity.SimulationEquivalentSourceLayer(engine="choclo", **kwargs)
-        model = get_block_model(mesh, 2.67)
-        np.testing.assert_allclose(sim_geoana.dpred(model), sim_choclo.dpred(model))
-
-    def test_forward_geoana_choclo_active_cells(
-        self, mesh, mesh_bottom, mesh_top, gravity_survey
-    ):
-        """Test forward using geoana and choclo passing active cells."""
-        model = get_block_model(mesh, 2.67)
-        # Define some inactive cells inside the block
-        block_cells_indices = np.indices(model.shape).ravel()[model != 0]
-        inactive_indices = block_cells_indices[
-            : block_cells_indices.size // 2
-        ]  # mark half of the cells in the block as inactive
-        active_cells = np.ones_like(model, dtype=bool)
-        active_cells[inactive_indices] = False
-        assert not np.all(active_cells)  # check we do have inactive cells
-        # Build simulations
-        mapping = get_mapping(mesh)
-        kwargs = dict(
-            mesh=mesh,
-            cell_z_top=mesh_top,
-            cell_z_bottom=mesh_bottom,
-            survey=gravity_survey,
-            rhoMap=mapping,
-        )
-        sim_geoana = gravity.SimulationEquivalentSourceLayer(engine="geoana", **kwargs)
-        sim_choclo = gravity.SimulationEquivalentSourceLayer(engine="choclo", **kwargs)
         np.testing.assert_allclose(sim_geoana.dpred(model), sim_choclo.dpred(model))
 
     def test_forward_choclo_serial_parallel(
