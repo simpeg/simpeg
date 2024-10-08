@@ -255,6 +255,37 @@ class TestGravityEquivalentSources:
         inversion = simpeg.inversion.BaseInversion(inverse_problem, directives)
         return inversion
 
+    def get_mesh_3d(self, mesh, top: float, bottom: float):
+        """
+        Build a 3D mesh analogous to the 2D mesh + the top and bottom bounds.
+        """
+        origin = (*mesh.origin, bottom)
+        h = (*mesh.h, np.array([top - bottom], dtype=np.float64))
+        mesh_3d = TensorMesh(h=h, origin=origin)
+        return mesh_3d
+
+    def test_forward_vs_simulation(self, tensor_mesh, mesh_bottom, mesh_top, survey):
+        """
+        Test forward of the eq sources vs. using the integral 3d simulation.
+        """
+        # Build 3D mesh that is analogous to the 2D mesh with bottom and top
+        mesh_3d = self.get_mesh_3d(tensor_mesh, top=mesh_top, bottom=mesh_bottom)
+        # Build simulations
+        mapping = get_mapping(tensor_mesh)
+        sim_3d = gravity.Simulation3DIntegral(
+            survey=survey, mesh=mesh_3d, rhoMap=mapping
+        )
+        eq_sources = gravity.SimulationEquivalentSourceLayer(
+            mesh=tensor_mesh,
+            cell_z_top=mesh_top,
+            cell_z_bottom=mesh_bottom,
+            survey=survey,
+            rhoMap=mapping,
+        )
+        # Compare predictions of both simulations
+        model = get_block_model(tensor_mesh, 2.67)
+        np.testing.assert_allclose(sim_3d.dpred(model), eq_sources.dpred(model))
+
     @pytest.mark.parametrize("store_sensitivities", ("ram", "forward_only"))
     def test_forward_geoana_choclo(
         self, mesh, mesh_bottom, mesh_top, survey, store_sensitivities
