@@ -1,7 +1,9 @@
+import pytest
 import unittest
 import numpy as np
 from scipy.sparse.linalg import eigsh
 from discretize import TensorMesh
+from simpeg.objective_function import BaseObjectiveFunction
 from simpeg import simulation, data_misfit
 from simpeg.maps import IdentityMap
 from simpeg.regularization import WeightedLeastSquares
@@ -80,7 +82,7 @@ class TestEigenvalues(unittest.TestCase):
         field = self.dmis.simulation.fields(self.true_model)
         max_eigenvalue_numpy, _ = eigsh(dmis_matrix, k=1)
         max_eigenvalue_directive = eigenvalue_by_power_iteration(
-            self.dmis, self.true_model, fields_list=field, n_pw_iter=30, seed=42
+            self.dmis, self.true_model, fields_list=field, n_pw_iter=30, random_seed=42
         )
         passed = np.isclose(max_eigenvalue_numpy, max_eigenvalue_directive, rtol=1e-2)
         self.assertTrue(passed, True)
@@ -93,7 +95,7 @@ class TestEigenvalues(unittest.TestCase):
         dmiscombo_matrix = 2 * self.G.T.dot(WtW.dot(self.G))
         max_eigenvalue_numpy, _ = eigsh(dmiscombo_matrix, k=1)
         max_eigenvalue_directive = eigenvalue_by_power_iteration(
-            self.dmiscombo, self.true_model, n_pw_iter=30, seed=42
+            self.dmiscombo, self.true_model, n_pw_iter=30, random_seed=42
         )
         passed = np.isclose(max_eigenvalue_numpy, max_eigenvalue_directive, rtol=1e-2)
         self.assertTrue(passed, True)
@@ -103,7 +105,7 @@ class TestEigenvalues(unittest.TestCase):
         reg_maxtrix = self.reg.deriv2(self.true_model)
         max_eigenvalue_numpy, _ = eigsh(reg_maxtrix, k=1)
         max_eigenvalue_directive = eigenvalue_by_power_iteration(
-            self.reg, self.true_model, n_pw_iter=100, seed=42
+            self.reg, self.true_model, n_pw_iter=100, random_seed=42
         )
         passed = np.isclose(max_eigenvalue_numpy, max_eigenvalue_directive, rtol=1e-2)
         self.assertTrue(passed, True)
@@ -115,11 +117,71 @@ class TestEigenvalues(unittest.TestCase):
         combo_matrix = dmis_matrix + self.beta * reg_maxtrix
         max_eigenvalue_numpy, _ = eigsh(combo_matrix, k=1)
         max_eigenvalue_directive = eigenvalue_by_power_iteration(
-            self.mixcombo, self.true_model, n_pw_iter=100, seed=42
+            self.mixcombo, self.true_model, n_pw_iter=100, random_seed=42
         )
         passed = np.isclose(max_eigenvalue_numpy, max_eigenvalue_directive, rtol=1e-2)
         self.assertTrue(passed, True)
         print("Eigenvalue Utils for a mixed ComboObjectiveFunction is validated.")
+
+
+class TestDeprecatedSeed:
+    """Test deprecation of ``seed`` argument."""
+
+    @pytest.fixture
+    def mock_objfun(self):
+        """
+        Mock objective function class as child of ``BaseObjectiveFunction``
+        """
+
+        class MockObjectiveFunction(BaseObjectiveFunction):
+
+            def deriv2(self, m, v=None, **kwargs):
+                return np.ones(self.nP)
+
+        return MockObjectiveFunction
+
+    def get_message_duplicated_error(self, old_name, new_name, version="v0.24.0"):
+        msg = (
+            f"Cannot pass both '{new_name}' and '{old_name}'."
+            f"'{old_name}' has been deprecated and will be removed in "
+            f" SimPEG {version}, please use '{new_name}' instead."
+        )
+        return msg
+
+    def get_message_deprecated_warning(self, old_name, new_name, version="v0.24.0"):
+        msg = (
+            f"'{old_name}' has been deprecated and will be removed in "
+            f" SimPEG {version}, please use '{new_name}' instead."
+        )
+        return msg
+
+    def test_warning_argument(self, mock_objfun):
+        """
+        Test if warning is raised after passing ``seed``.
+        """
+        msg = self.get_message_deprecated_warning("seed", "random_seed")
+        n_params = 5
+        combo = mock_objfun(nP=n_params) + 3.0 * mock_objfun(nP=n_params)
+        model = np.ones(n_params)
+        with pytest.warns(FutureWarning, match=msg):
+            result_seed = eigenvalue_by_power_iteration(
+                combo_objfct=combo, model=model, seed=42
+            )
+        # Ensure that using `seed` and `random_seed` generate the same output
+        result_random_seed = eigenvalue_by_power_iteration(
+            combo_objfct=combo, model=model, random_seed=42
+        )
+        np.testing.assert_allclose(result_seed, result_random_seed)
+
+    def test_error_duplicated_argument(self):
+        """
+        Test error after passing ``seed`` and ``random_seed``.
+        """
+        msg = self.get_message_duplicated_error("seed", "random_seed")
+        with pytest.raises(TypeError, match=msg):
+            eigenvalue_by_power_iteration(
+                combo_objfct=None, model=None, random_seed=42, seed=42
+            )
 
 
 if __name__ == "__main__":
