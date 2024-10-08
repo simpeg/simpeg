@@ -7,14 +7,17 @@ from simpeg import (
     maps,
     directives,
     regularization,
-    data_misfit,
     optimization,
     inversion,
     inverse_problem,
     simulation,
 )
+from simpeg.data_misfit import L2DataMisfit
 from simpeg.potential_fields import magnetics as mag
 import shutil
+
+from simpeg.regularization.base import Smallness
+from simpeg.regularization.sparse import Sparse
 
 
 class directivesValidation(unittest.TestCase):
@@ -89,7 +92,7 @@ class ValidationInInversion(unittest.TestCase):
         m = np.random.rand(mesh.nC)
 
         data = sim.make_synthetic_data(m, add_noise=True, random_seed=19)
-        dmis = data_misfit.L2DataMisfit(data=data, simulation=sim)
+        dmis = L2DataMisfit(data=data, simulation=sim)
         dmis.W = 1.0 / data.relative_error
 
         # Add directives to the inversion
@@ -394,7 +397,7 @@ def test_save_output_dict(RegClass):
     data = sim.make_synthetic_data(
         np.ones(mesh.n_cells), add_noise=True, random_seed=20
     )
-    dmis = data_misfit.L2DataMisfit(data, sim)
+    dmis = L2DataMisfit(data, sim)
 
     opt = optimization.InexactGaussNewton(maxIter=1)
 
@@ -644,6 +647,68 @@ class TestDeprecateSeedProperty:
         with pytest.warns(FutureWarning, match=msg):
             directive_obj.seed = new_seed
         np.testing.assert_allclose(directive_obj.random_seed, new_seed)
+
+
+class TestUpdateIRLS:
+    """
+    Additional tests to UpdateIRLS directive.
+    """
+
+    @pytest.fixture
+    def mesh(self):
+        """Sample tensor mesh."""
+        return discretize.TensorMesh([4, 4, 4])
+
+    @pytest.fixture
+    def data_misfit(self, mesh):
+        rx = mag.Point(np.vstack([[0.25, 0.25, 0.25], [-0.25, -0.25, 0.25]]))
+        igrf = mag.UniformBackgroundField(
+            receiver_list=[rx], amplitude=5000, inclination=90, declination=0
+        )
+        survey = mag.Survey(igrf)
+        sim = mag.Simulation3DIntegral(
+            mesh, survey=survey, chiMap=maps.IdentityMap(mesh)
+        )
+        model = np.random.default_rng(seed=42).normal(size=mesh.n_cells)
+        data = sim.make_synthetic_data(model, add_noise=True)
+        dmisfit = L2DataMisfit(data=data, simulation=sim)
+        return dmisfit
+
+    def test_end_iter_irls_threshold(self, mesh, data_misfit):
+        """
+        Test if irls_threshold is modified in every regularization term after
+        the IRLS process started.
+        """
+        # Define a regularization combo with sparse and non-sparse terms
+        irls_threshold = 4.5
+        sparse_regularization = Sparse(
+            mesh, norms=[1, 1, 1, 1], irls_threshold=irls_threshold
+        )
+        non_sparse_regularization = Smallness(mesh)
+        reg = 0.1 * sparse_regularization + 0.5 * non_sparse_regularization
+        # Define inversion
+        opt = optimization.ProjectedGNCG()
+        opt.iter = 0  # manually set iter to zero
+        inv_prob = inverse_problem.BaseInvProblem(data_misfit, reg, opt)
+        inv_prob.phi_d = np.nan  # manually set value for phi_d
+        inv_prob.model = np.zeros(mesh.n_cells)  # manually set the model
+        # Define inversion
+        inv = inversion.BaseInversion(inv_prob)
+        irls_cooling_factor = 1.2
+        update_irls = directives.UpdateIRLS(
+            irls_cooling_factor=irls_cooling_factor,
+            inversion=inv,
+            dmisfit=data_misfit,
+            reg=reg,
+        )
+        # Modify metrics to kick in the IRLS process
+        update_irls.metrics.start_irls_iter = 0
+        # Check irls_threshold of the objective function terms after running endIter
+        update_irls.endIter()
+        for obj_fun in sparse_regularization.objfcts:
+            assert obj_fun.irls_threshold == irls_threshold / irls_cooling_factor
+        # The irls_threshold for the sparse_regularization should not be changed
+        assert sparse_regularization.irls_threshold == irls_threshold
 
 
 if __name__ == "__main__":
