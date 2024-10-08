@@ -587,12 +587,8 @@ class SimulationEquivalentSourceLayer(
         cells_bounds = _get_cell_bounds(self.mesh)
         # Keep only active cells
         cells_bounds_active = cells_bounds[self.active_cells]
-        top_active = self.cell_z_top[self.active_cells]
-        bottom_active = self.cell_z_bottom[self.active_cells]
-
         # Allocate fields array
         fields = np.zeros(self.survey.nD, dtype=self.sensitivity_dtype)
-
         # Compute fields
         index_offset = 0
         for components, receivers in self._get_components_and_receivers():
@@ -607,8 +603,8 @@ class SimulationEquivalentSourceLayer(
                 self._forward_gravity(
                     receivers,
                     cells_bounds_active,
-                    top_active,
-                    bottom_active,
+                    self.cell_z_top,
+                    self.cell_z_bottom,
                     densities,
                     fields[vector_slice],
                     forward_func,
@@ -629,9 +625,6 @@ class SimulationEquivalentSourceLayer(
         cells_bounds = _get_cell_bounds(self.mesh)
         # Keep only active cells
         cells_bounds_active = cells_bounds[self.active_cells]
-        top_active = self.cell_z_top[self.active_cells]
-        bottom_active = self.cell_z_bottom[self.active_cells]
-
         # Allocate sensitivity matrix
         shape = (self.survey.nD, self.nC)
         if self.store_sensitivities == "disk":
@@ -658,8 +651,8 @@ class SimulationEquivalentSourceLayer(
                 self._sensitivity_gravity(
                     receivers,
                     cells_bounds_active,
-                    top_active,
-                    bottom_active,
+                    self.cell_z_top,
+                    self.cell_z_bottom,
                     sensitivity_matrix[matrix_slice, :],
                     forward_func,
                     conversion_factor,
