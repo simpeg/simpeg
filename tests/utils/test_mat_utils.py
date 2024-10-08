@@ -135,12 +135,6 @@ class TestDeprecatedSeed:
 
         class MockObjectiveFunction(BaseObjectiveFunction):
 
-            def __call__(self, m, f=None):
-                return np.sum(m)
-
-            def deriv(self, m, **kwargs):
-                return np.ones(self.nP)
-
             def deriv2(self, m, v=None, **kwargs):
                 return np.ones(self.nP)
 
