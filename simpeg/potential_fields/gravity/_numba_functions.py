@@ -207,7 +207,7 @@ def _forward_gravity_2d_mesh(
 
     This function is designed to be used with equivalent sources, where the
     mesh is a 2D mesh (prism layer). The top and bottom boundaries of each cell
-    is passed through the ``top`` and ``bottom`` arrays.
+    are passed through the ``top`` and ``bottom`` arrays.
 
     This function should be used with a `numba.jit` decorator, for example:
 

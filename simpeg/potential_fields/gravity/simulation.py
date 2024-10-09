@@ -535,7 +535,7 @@ class SimulationEquivalentSourceLayer(
         Define the elevations for the bottom face of all cells in the layer.
         If an array it should be the same size as the active cell set.
     engine : {"geoana", "choclo"}, optional
-       Choose which engine should be used to run the forward model.
+        Choose which engine should be used to run the forward model.
     numba_parallel : bool, optional
         If True, the simulation will run in parallel. If False, it will
         run in serial. If ``engine`` is not ``"choclo"`` this argument will be
