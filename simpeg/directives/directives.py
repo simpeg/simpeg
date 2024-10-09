@@ -2987,7 +2987,9 @@ class SaveIterationsGeoH5(InversionDirective):
     Saves inversion results to a geoh5 file
     """
 
-    def __init__(self, h5_object, dmisfit=None, attribute_type: str = "model", **kwargs):
+    def __init__(
+        self, h5_object, dmisfit=None, attribute_type: str = "model", **kwargs
+    ):
         self.data_type = {}
         self._association = None
         self.attribute_type = attribute_type
