@@ -12,7 +12,19 @@ jobs:
     with:
       package-name: 'mira-simpeg'
       python-version: '3.10'
-      virtual-repo-name: 'public-conda-dev'
+      virtual-repo-nameS: '["public-conda-dev"]'
+    secrets:
+      JFROG_ARTIFACTORY_URL: ${{ secrets.JFROG_ARTIFACTORY_URL }}
+      JFROG_ARTIFACTORY_TOKEN: ${{ secrets.JFROG_ARTIFACTORY_TOKEN }}
+  call-workflow-pypi-publish:
+    name: Publish development pypi package on JFrog Artifactory
+    uses: MiraGeoscience/CI-tools/.github/workflows/reusable-python-publish_pypi_package.yml@DEVOPS-504
+    with:
+      package-manager: 'setuptools'
+      package-name: 'mira-simpeg'
+      version-tag: ${{ github.ref_name }}
+      python-version: '3.10'
+      virtual-repo-names: '["public-pypi-dev"]'
     secrets:
       JFROG_ARTIFACTORY_URL: ${{ secrets.JFROG_ARTIFACTORY_URL }}
       JFROG_ARTIFACTORY_TOKEN: ${{ secrets.JFROG_ARTIFACTORY_TOKEN }}
