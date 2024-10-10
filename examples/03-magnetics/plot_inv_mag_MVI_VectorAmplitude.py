@@ -2,11 +2,11 @@
 Magnetic inversion on a TreeMesh
 ================================
 
-In this example, we demonstrate the use of a Magnetic Vector Inverison
+In this example, we demonstrate the use of a Magnetic Vector Inversion
 on 3D TreeMesh for the inversion of magnetic data.
 
-The inverse problem uses the :class:'simpeg.regularization.VectorAmplitude'
-regularization borrowed from ...
+The inverse problem uses the :class:`simpeg.regularization.VectorAmplitude`
+regularization.
 
 """
 
