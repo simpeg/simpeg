@@ -270,7 +270,7 @@ class PairedBetaEstimate_ByEig(InversionDirective):
                     dmis,
                     m,
                     n_pw_iter=self.n_pw_iter,
-                    seed=rng,
+                    random_seed=rng,
                 )
             )
 
@@ -279,7 +279,7 @@ class PairedBetaEstimate_ByEig(InversionDirective):
                     reg,
                     m,
                     n_pw_iter=self.n_pw_iter,
-                    seed=rng,
+                    random_seed=rng,
                 )
             )
 

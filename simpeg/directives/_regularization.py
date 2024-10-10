@@ -262,7 +262,7 @@ class UpdateIRLS(InversionDirective):
         """
         Check on progress of the inversion and start/update the IRLS process.
         """
-        # Check if misfit is within the tolerance, otherwise scale beta
+        # Update the cooling factor (only after IRLS has started)
         self.adjust_cooling_schedule()
 
         # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
@@ -272,7 +272,7 @@ class UpdateIRLS(InversionDirective):
         ):
             self.start_irls()
 
-        # Only update after GN iterations
+        # Perform IRLS (only after `self.cooling_rate` iterations)
         if (
             self.metrics.start_irls_iter is not None
             and (self.opt.iter - self.metrics.start_irls_iter) % self.cooling_rate == 0
@@ -283,14 +283,13 @@ class UpdateIRLS(InversionDirective):
             else:
                 self.opt.stopNextIteration = False
 
-            # Print to screen
+            # Cool irls thresholds
             for reg in self.reg.objfcts:
                 if not isinstance(reg, Sparse):
                     continue
 
                 for obj in reg.objfcts:
-                    if isinstance(reg, (Sparse, BaseSparse)):
-                        obj.irls_threshold /= self.irls_cooling_factor
+                    obj.irls_threshold /= self.irls_cooling_factor
 
             self.metrics.irls_iteration_count += 1
 
