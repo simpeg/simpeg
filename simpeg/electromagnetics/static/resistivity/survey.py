@@ -316,7 +316,7 @@ class Survey(BaseSurvey):
             inv_m, inv_n = inv[: len(loc_m)], inv[len(loc_m) :]
 
             electrodes_shifted = drapeTopotoLoc(
-                mesh, unique_electrodes, ind_active=ind_active, option=option
+                mesh, unique_electrodes, active_cells=ind_active, option=option
             )
             a_shifted = electrodes_shifted[inv_a]
             b_shifted = electrodes_shifted[inv_b]
