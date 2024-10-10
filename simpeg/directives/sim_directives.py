@@ -245,8 +245,7 @@ class PairedBetaEstimate_ByEig(InversionDirective):
         :rtype: float
         :return: beta0
         """
-        if self.seed is not None:
-            np.random.seed(self.seed)
+        rng = np.random.default_rng(seed=self.seed)
 
         if self.verbose:
             print("Calculating the beta0 parameter.")
@@ -271,6 +270,7 @@ class PairedBetaEstimate_ByEig(InversionDirective):
                     dmis,
                     m,
                     n_pw_iter=self.n_pw_iter,
+                    random_seed=rng,
                 )
             )
 
@@ -279,6 +279,7 @@ class PairedBetaEstimate_ByEig(InversionDirective):
                     reg,
                     m,
                     n_pw_iter=self.n_pw_iter,
+                    random_seed=rng,
                 )
             )
 

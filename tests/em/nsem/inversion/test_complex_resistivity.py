@@ -79,7 +79,7 @@ class ComplexResistivityTest(unittest.TestCase):
 
         # Set the mapping
         actMap = maps.InjectActiveCells(
-            mesh=self.mesh, indActive=self.active, valInactive=np.log(1e-8)
+            mesh=self.mesh, active_cells=self.active, value_inactive=np.log(1e-8)
         )
         mapping = maps.ExpMap(self.mesh) * actMap
         # print(survey_ns.source_list)
@@ -121,7 +121,7 @@ class ComplexResistivityTest(unittest.TestCase):
 
         # Set the mapping
         actMap = maps.InjectActiveCells(
-            mesh=self.mesh, indActive=self.active, valInactive=np.log(1e-8)
+            mesh=self.mesh, active_cells=self.active, value_inactive=np.log(1e-8)
         )
         mapping = maps.ExpMap(self.mesh) * actMap
         # print(survey_ns.source_list)
@@ -173,7 +173,7 @@ class ComplexResistivityTest(unittest.TestCase):
 
         # Set the mapping
         actMap = maps.InjectActiveCells(
-            mesh=self.mesh, indActive=self.active, valInactive=np.log(1e-8)
+            mesh=self.mesh, active_cells=self.active, value_inactive=np.log(1e-8)
         )
         mapping = maps.ExpMap(self.mesh) * actMap
         # print(survey_ns.source_list)
@@ -212,7 +212,7 @@ class ComplexResistivityTest(unittest.TestCase):
 
         # Set the mapping
         actMap = maps.InjectActiveCells(
-            mesh=self.mesh, indActive=self.active, valInactive=np.log(1e-8)
+            mesh=self.mesh, active_cells=self.active, value_inactive=np.log(1e-8)
         )
         mapping = maps.ExpMap(self.mesh) * actMap
         # print(survey_ns.source_list)
@@ -229,12 +229,14 @@ class ComplexResistivityTest(unittest.TestCase):
         def fun(x):
             return sim.dpred(x), lambda x: sim.Jvec(self.model, x)
 
+        np.random.seed(1983)  # set a random seed for check_derivative
         passed = tests.check_derivative(fun, self.model, num=3, plotIt=False)
         self.assertTrue(passed)
 
     def check_adjoint(self, sim):
-        w = np.random.rand(len(self.model))
-        v = np.random.rand(sim.survey.nD)
+        rng = np.random.default_rng(seed=42)
+        w = rng.uniform(size=len(self.model))
+        v = rng.uniform(size=sim.survey.nD)
         f = sim.fields(self.model)
 
         vJw = v.ravel().dot(sim.Jvec(self.model, w, f))

@@ -153,7 +153,7 @@ survey = DC.Survey(survey1.source_list + survey2.source_list + survey3.source_li
 
 # Setup Problem with exponential mapping and Active cells only in the core mesh
 expmap = maps.ExpMap(mesh)
-mapactive = maps.InjectActiveCells(mesh=mesh, indActive=actind, valInactive=-5.0)
+mapactive = maps.InjectActiveCells(mesh=mesh, active_cells=actind, value_inactive=-5.0)
 mapping = expmap * mapactive
 problem = DC.Simulation3DCellCentered(
     mesh, survey=survey, sigmaMap=mapping, solver=Solver, bc_type="Neumann"

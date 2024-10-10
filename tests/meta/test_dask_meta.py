@@ -5,6 +5,7 @@ from simpeg import maps
 from discretize import TensorMesh
 import scipy.sparse as sp
 import pytest
+import time
 
 from simpeg.meta import (
     MetaSimulation,
@@ -289,6 +290,7 @@ def test_dask_meta_errors(cluster):
         # incompatible length of mappings and simulations lists
         with pytest.raises(ValueError):
             DaskMetaSimulation(sims[:-1], mappings, client)
+        time.sleep(0.1)  # sleep for a bit to let the communicator catch up
 
         # Bad Simulation type?
         with pytest.raises(TypeError):
@@ -300,16 +302,19 @@ def test_dask_meta_errors(cluster):
                 mappings,
                 client,
             )
+        time.sleep(0.1)  # sleep for a bit to let the communicator catch up
 
         # mappings have incompatible input lengths:
         mappings[0] = maps.Projection(mesh.n_cells + 10, np.arange(mesh.n_cells) + 1)
         with pytest.raises(ValueError):
             DaskMetaSimulation(sims, mappings, client)
+        time.sleep(0.1)  # sleep for a bit to let the communicator catch up
 
         # incompatible mapping and simulation
         mappings[0] = maps.Projection(mesh.n_cells, [0, 1, 3, 5, 10])
         with pytest.raises(ValueError):
             DaskMetaSimulation(sims, mappings, client)
+        time.sleep(0.1)  # sleep for a bit to let the communicator catch up
 
 
 def test_sum_errors(cluster):
@@ -351,6 +356,7 @@ def test_sum_errors(cluster):
         # Test simulations with different numbers of data.
         with pytest.raises(ValueError):
             DaskSumMetaSimulation(sims, mappings, client)
+        time.sleep(0.1)  # sleep for a half second to let the communicator catch up
 
 
 def test_repeat_errors(cluster):
@@ -382,12 +388,15 @@ def test_repeat_errors(cluster):
         mappings[0] = maps.Projection(mesh.n_cells + 1, np.arange(mesh.n_cells) + 1)
         with pytest.raises(ValueError):
             DaskRepeatedSimulation(sim, mappings, client)
+        time.sleep(0.1)  # sleep for a half second to let the communicator catch up
 
         # incompatible mappings and simulations
         mappings[0] = maps.Projection(mesh.n_cells, [0, 1, 3, 5, 10])
         with pytest.raises(ValueError):
             DaskRepeatedSimulation(sim, mappings, client)
+        time.sleep(0.1)  # sleep for a half second to let the communicator catch up
 
         # Bad Simulation type?
         with pytest.raises(TypeError):
             DaskRepeatedSimulation(lambda x: x * 2, mappings, client)
+        time.sleep(0.1)  # sleep for a half second to let the communicator catch up

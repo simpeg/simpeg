@@ -4,14 +4,9 @@ import discretize
 from simpeg import survey, simulation, utils, fields, data
 
 import numpy as np
-import sys
 
 np.random.seed(32)
-
-if sys.version_info < (3,):
-    zero_types = [0, 0.0, np.r_[0], long(0)]
-else:
-    zero_types = [0, 0.0, np.r_[0]]
+zero_types = [0, 0.0, np.r_[0]]
 
 
 class FieldsTest(unittest.TestCase):

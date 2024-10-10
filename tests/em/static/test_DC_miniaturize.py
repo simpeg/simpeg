@@ -198,13 +198,15 @@ class DC2DMiniaturizeTest(unittest.TestCase):
         self.assertTrue(np.allclose(d1, d2))
 
     def test_Jvec(self):
-        u = np.random.rand(*self.model.shape)
+        rng = np.random.default_rng(seed=42)
+        u = rng.uniform(size=self.model.shape)
         J1u = self.sim1.Jvec(self.model, u, f=self.f1)
         J2u = self.sim2.Jvec(self.model, u, f=self.f2)
         self.assertTrue(np.allclose(J1u, J2u))
 
     def test_Jtvec(self):
-        v = np.random.rand(self.survey.nD)
+        rng = np.random.default_rng(seed=42)
+        v = rng.uniform(size=self.survey.nD)
         J1tv = self.sim1.Jtvec(self.model, v, f=self.f1)
         J2tv = self.sim2.Jtvec(self.model, v, f=self.f2)
         self.assertTrue(np.allclose(J1tv, J2tv))
@@ -295,13 +297,15 @@ class DC3DMiniaturizeTest(unittest.TestCase):
         self.assertTrue(np.allclose(d1, d2))
 
     def test_Jvec(self):
-        u = np.random.rand(*self.model.shape)
+        rng = np.random.default_rng(seed=42)
+        u = rng.uniform(size=self.model.shape)
         J1u = self.sim1.Jvec(self.model, u, f=self.f1)
         J2u = self.sim2.Jvec(self.model, u, f=self.f2)
         self.assertTrue(np.allclose(J1u, J2u))
 
     def test_Jtvec(self):
-        v = np.random.rand(self.survey.nD)
+        rng = np.random.default_rng(seed=42)
+        v = rng.uniform(size=self.survey.nD)
         J1tv = self.sim1.Jtvec(self.model, v, f=self.f1)
         J2tv = self.sim2.Jtvec(self.model, v, f=self.f2)
         self.assertTrue(np.allclose(J1tv, J2tv))

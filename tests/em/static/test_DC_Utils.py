@@ -83,8 +83,6 @@ class DCUtilsTests_halfspace(unittest.TestCase):
                 dim=self.mesh.dim,
             )
 
-            self.assertEqual(survey_type, survey.survey_type)
-
             # Setup Problem with exponential mapping
             expmap = maps.ExpMap(self.mesh)
             problem = dc.Simulation3DCellCentered(
@@ -93,7 +91,9 @@ class DCUtilsTests_halfspace(unittest.TestCase):
             problem.solver = Solver
 
             # Create synthetic data
-            dobs = problem.make_synthetic_data(self.model, relative_error=0.0)
+            dobs = problem.make_synthetic_data(
+                self.model, relative_error=0.0, random_seed=40
+            )
             dobs.noise_floor = 1e-5
 
             # Testing IO

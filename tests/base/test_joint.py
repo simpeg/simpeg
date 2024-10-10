@@ -53,8 +53,9 @@ class DataMisfitTest(unittest.TestCase):
             mesh=mesh, survey=survey1, rhoMap=maps.ExpMap(mesh)
         )
 
-        dobs0 = simulation0.make_synthetic_data(model)
-        dobs1 = simulation1.make_synthetic_data(model)
+        rng = np.random.default_rng(seed=42)
+        dobs0 = simulation0.make_synthetic_data(model, random_seed=rng)
+        dobs1 = simulation1.make_synthetic_data(model, random_seed=rng)
 
         self.mesh = mesh
         self.model = model
@@ -72,8 +73,8 @@ class DataMisfitTest(unittest.TestCase):
         self.dmiscombo = self.dmis0 + self.dmis1
 
     def test_multiDataMisfit(self):
-        self.dmis0.test()
-        self.dmis1.test()
+        self.dmis0.test(random_seed=42)
+        self.dmis1.test(random_seed=42)
         self.dmiscombo.test(x=self.model)
 
     def test_inv(self):

@@ -1,7 +1,5 @@
-import os
 import warnings
 import numpy as np
-import discretize
 import scipy.constants as constants
 from geoana.kernels import prism_fz, prism_fzx, prism_fzy, prism_fzz
 from scipy.constants import G as NewtG
@@ -83,15 +81,15 @@ class Simulation3DIntegral(BasePFSimulation):
         Mesh use to run the gravity simulation.
     survey : simpeg.potential_fields.gravity.Survey
         Gravity survey with information of the receivers.
-    ind_active : (n_cells) numpy.ndarray, optional
+    active_cells : (n_cells) numpy.ndarray, optional
         Array that indicates which cells in ``mesh`` are active cells.
-    rho : numpy.ndarray (optional)
+    rho : numpy.ndarray, optional
         Density array for the active cells in the mesh.
-    rhoMap : Mapping (optional)
+    rhoMap : Mapping, optional
         Model mapping.
     sensitivity_dtype : numpy.dtype, optional
         Data type that will be used to build the sensitivity matrix.
-    store_sensitivities : str
+    store_sensitivities : {"ram", "disk", "forward_only"}
         Options for storing sensitivity matrix. There are 3 options
 
         - 'ram': sensitivities are stored in the computer's RAM
@@ -102,13 +100,18 @@ class Simulation3DIntegral(BasePFSimulation):
     sensitivity_path : str, optional
         Path to store the sensitivity matrix if ``store_sensitivities`` is set
         to ``"disk"``. Default to "./sensitivities".
-    engine : str, optional
-       Choose which engine should be used to run the forward model:
-       ``"geoana"`` or "``choclo``".
+    engine : {"geoana", "choclo"}, optional
+       Choose which engine should be used to run the forward model.
     numba_parallel : bool, optional
         If True, the simulation will run in parallel. If False, it will
         run in serial. If ``engine`` is not ``"choclo"`` this argument will be
         ignored.
+    ind_active : np.ndarray of int or bool
+
+        .. deprecated:: 0.23.0
+
+           Argument ``ind_active`` is deprecated in favor of
+           ``active_cells`` and will be removed in SimPEG v0.24.0.
     """
 
     rho, rhoMap, rhoDeriv = props.Invertible("Density")
@@ -122,51 +125,13 @@ class Simulation3DIntegral(BasePFSimulation):
         numba_parallel=True,
         **kwargs,
     ):
-        super().__init__(mesh, **kwargs)
+        super().__init__(mesh, engine=engine, numba_parallel=numba_parallel, **kwargs)
         self.rho = rho
         self.rhoMap = rhoMap
         self._G = None
         self._gtg_diagonal = None
         self.modelMap = self.rhoMap
-        self.numba_parallel = numba_parallel
-        self.engine = engine
-        self._sanity_checks_engine(kwargs)
-        if self.engine == "choclo":
-            # Check dimensions of the mesh
-            if self.mesh.dim != 3:
-                raise ValueError(
-                    f"Invalid mesh with {self.mesh.dim} dimensions. "
-                    "Only 3D meshes are supported when using 'choclo' as engine."
-                )
-            # Define jit functions
-            if numba_parallel:
-                self._sensitivity_gravity = _sensitivity_gravity_parallel
-                self._forward_gravity = _forward_gravity_parallel
-            else:
-                self._sensitivity_gravity = _sensitivity_gravity_serial
-                self._forward_gravity = _forward_gravity_serial
 
-    def _sanity_checks_engine(self, kwargs):
-        """
-        Sanity checks for the engine parameter.
-
-        Needs the kwargs passed to the __init__ method to raise some warnings.
-        Will set n_processes to None if it's present in kwargs.
-        """
-        if self.engine not in ("choclo", "geoana"):
-            raise ValueError(
-                f"Invalid engine '{self.engine}'. Choose from 'geoana' or 'choclo'."
-            )
-        if self.engine == "choclo" and choclo is None:
-            raise ImportError(
-                "The choclo package couldn't be found."
-                "Running a gravity simulation with 'engine=\"choclo\"' needs "
-                "choclo to be installed."
-                "\nTry installing choclo with:"
-                "\n    pip install choclo"
-                "\nor:"
-                "\n    conda install choclo"
-            )
         # Warn if n_processes has been passed
         if self.engine == "choclo" and "n_processes" in kwargs:
             warnings.warn(
@@ -176,15 +141,15 @@ class Simulation3DIntegral(BasePFSimulation):
                 stacklevel=1,
             )
             self.n_processes = None
-        # Sanity checks for sensitivity_path when using choclo and storing in disk
-        if self.engine == "choclo" and self.store_sensitivities == "disk":
-            if os.path.isdir(self.sensitivity_path):
-                raise ValueError(
-                    f"The passed sensitivity_path '{self.sensitivity_path}' is "
-                    "a directory. "
-                    "When using 'choclo' as the engine, 'senstivity_path' "
-                    "should be the path to a new or existing file."
-                )
+
+        # Define jit functions
+        if self.engine == "choclo":
+            if self.numba_parallel:
+                self._sensitivity_gravity = _sensitivity_gravity_parallel
+                self._forward_gravity = _forward_gravity_parallel
+            else:
+                self._sensitivity_gravity = _sensitivity_gravity_serial
+                self._forward_gravity = _forward_gravity_serial
 
     def fields(self, m):
         """
@@ -454,45 +419,6 @@ class Simulation3DIntegral(BasePFSimulation):
                 )
             index_offset += n_rows
         return sensitivity_matrix
-
-    def _get_active_nodes(self):
-        """
-        Return locations of nodes only for active cells
-
-        Also return an array containing the indices of the "active nodes" for
-        each active cell in the mesh
-        """
-        # Get all nodes in the mesh
-        if isinstance(self.mesh, discretize.TreeMesh):
-            nodes = self.mesh.total_nodes
-        elif isinstance(self.mesh, discretize.TensorMesh):
-            nodes = self.mesh.nodes
-        else:
-            raise TypeError(f"Invalid mesh of type {self.mesh.__class__.__name__}.")
-        # Get original cell_nodes but only for active cells
-        cell_nodes = self.mesh.cell_nodes
-        # If all cells in the mesh are active, return nodes and cell_nodes
-        if self.nC == self.mesh.n_cells:
-            return nodes, cell_nodes
-        # Keep only the cell_nodes for active cells
-        cell_nodes = cell_nodes[self.ind_active]
-        # Get the unique indices of the nodes that belong to every active cell
-        # (these indices correspond to the original `nodes` array)
-        unique_nodes, active_cell_nodes = np.unique(cell_nodes, return_inverse=True)
-        # Select only the nodes that belong to the active cells (active nodes)
-        active_nodes = nodes[unique_nodes]
-        # Reshape indices of active cell nodes for each active cell in the mesh
-        active_cell_nodes = active_cell_nodes.reshape(cell_nodes.shape)
-        return active_nodes, active_cell_nodes
-
-    def _get_components_and_receivers(self):
-        """Generator for receiver locations and their field components."""
-        if not hasattr(self.survey, "source_field"):
-            raise AttributeError(
-                f"The survey '{self.survey}' has no 'source_field' attribute."
-            )
-        for receiver_object in self.survey.source_field.receiver_list:
-            yield receiver_object.components, receiver_object.locations
 
 
 class SimulationEquivalentSourceLayer(

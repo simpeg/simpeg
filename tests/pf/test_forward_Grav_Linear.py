@@ -143,7 +143,7 @@ class TestsGravitySimulation:
             mesh,
             survey=survey,
             rhoMap=idenMap,
-            ind_active=active_cells,
+            active_cells=active_cells,
             store_sensitivities=store_sensitivities,
             engine=engine,
             sensitivity_path=str(sensitivity_path),
@@ -199,7 +199,7 @@ class TestsGravitySimulation:
             mesh,
             survey=survey,
             rhoMap=idenMap,
-            ind_active=active_cells,
+            active_cells=active_cells,
             store_sensitivities=store_sensitivities,
             engine=engine,
             sensitivity_path=str(sensitivity_path),
@@ -259,7 +259,7 @@ class TestsGravitySimulation:
             mesh,
             survey=survey,
             rhoMap=idenMap,
-            ind_active=active_cells,
+            active_cells=active_cells,
             store_sensitivities=store_sensitivities,
             engine=engine,
             sensitivity_path=str(sensitivity_path),
@@ -301,7 +301,7 @@ class TestsGravitySimulation:
             simple_mesh,
             survey=survey,
             rhoMap=idenMap,
-            ind_active=active_cells,
+            active_cells=active_cells,
             engine=engine,
             store_sensitivities=store_sensitivities,
             sensitivity_path=str(sensitivity_path),
@@ -329,7 +329,8 @@ class TestsGravitySimulation:
     def test_invalid_engine(self, simple_mesh):
         """Test if error is raised after invalid engine."""
         engine = "invalid engine"
-        with pytest.raises(ValueError, match=f"Invalid engine '{engine}'"):
+        msg = rf"'engine' must be in \('geoana', 'choclo'\). Got '{engine}'"
+        with pytest.raises(ValueError, match=msg):
             gravity.Simulation3DIntegral(simple_mesh, engine=engine)
 
     def test_choclo_and_n_proceesses(self, simple_mesh):
@@ -405,7 +406,7 @@ class TestsGravitySimulation:
         Check if error is raised when choclo is missing and chosen as engine.
         """
         # Monkeypatch choclo in simpeg.potential_fields.base
-        monkeypatch.setattr(simpeg.potential_fields.gravity.simulation, "choclo", None)
+        monkeypatch.setattr(simpeg.potential_fields.base, "choclo", None)
         # Check if error is raised
         msg = "The choclo package couldn't be found."
         with pytest.raises(ImportError, match=msg):

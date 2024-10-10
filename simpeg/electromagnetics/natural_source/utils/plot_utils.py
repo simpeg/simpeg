@@ -691,7 +691,7 @@ def _get_map_data(data, frequency, orientation, component, plot_error=False):
     else:
         if plot_error:
             freqs, plot_data, std_data, floor_data = _extract_frequency_data(
-                data, frequency, orientation, component, return_uncert=error
+                data, frequency, orientation, component, return_uncert=True
             )
             attr_uncert = std_data * np.abs(plot_data) + floor_data
             errorbars = [attr_uncert, attr_uncert]

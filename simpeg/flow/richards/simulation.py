@@ -33,7 +33,7 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         do_newton=False,
         root_finder_max_iter=30,
         root_finder_tol=1e-4,
-        **kwargs
+        **kwargs,
     ):
         debug = kwargs.pop("debug", None)
         if debug is not None:

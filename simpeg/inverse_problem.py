@@ -14,13 +14,22 @@ from .utils import (
     validate_ndarray_with_shape,
 )
 from .simulation import DefaultSolver
+from .version import __version__ as simpeg_version
 
 
 class BaseInvProblem:
     """BaseInvProblem(dmisfit, reg, opt)"""
 
     def __init__(
-        self, dmisfit, reg, opt, beta=1.0, debug=False, counter=None, **kwargs
+        self,
+        dmisfit,
+        reg,
+        opt,
+        beta=1.0,
+        debug=False,
+        counter=None,
+        print_version=True,
+        **kwargs,
     ):
         super().__init__(**kwargs)
         assert isinstance(reg, BaseRegularization) or isinstance(
@@ -35,6 +44,7 @@ class BaseInvProblem:
         self.debug = debug
         self.counter = counter
         self.model = None
+        self.print_version = print_version
         # TODO: Remove: (and make iteration printers better!)
         self.opt.parent = self
         self.reg.parent = self
@@ -86,7 +96,7 @@ class BaseInvProblem:
         self._counter = value
 
     @property
-    def dmisfit(self):
+    def dmisfit(self) -> ComboObjectiveFunction:
         """The data misfit.
 
         Returns
@@ -103,7 +113,7 @@ class BaseInvProblem:
         self._dmisfit = value
 
     @property
-    def reg(self):
+    def reg(self) -> ComboObjectiveFunction:
         """The regularization object for the inversion
 
         Returns
@@ -173,6 +183,9 @@ class BaseInvProblem:
         """
         if self.debug:
             print("Calling InvProblem.startup")
+
+        if self.print_version:
+            print(f"\nRunning inversion with SimPEG v{simpeg_version}")
 
         for fct in self.reg.objfcts:
             if (
