@@ -13,6 +13,7 @@ from pymatsolver import (
 from pymatsolver.solvers import Base
 from .code_utils import deprecate_function
 import warnings
+from typing import Type
 
 __all__ = [
     "Solver",
@@ -48,12 +49,12 @@ class DefaultSolverWarning(UserWarning):
     pass
 
 
-def get_default_solver():
+def get_default_solver() -> Type[Base]:
     """Return the default solver used by simpeg.
 
     Returns
     -------
-    solver : type
+    solver
         The default solver class used by simpeg's simulations.
     """
     warnings.warn(
@@ -64,23 +65,21 @@ def get_default_solver():
     return _DEFAULT_SOLVER
 
 
-def set_default_solver(solver):
+def set_default_solver(solver_class: Type[Base]):
     """Set the default solver used by simpeg.
 
     Parameters
     ----------
-    solver : type
-        A solver class used to construct an object
-        that acts os the inverse of a sparse matrix, and
-        supports the `__mul__` operation (at a miniumum)
-        with both single and multiple right hand sides.
+    solver_class
+        A ``pymatsolver.solvers.Base`` subclass used to construct an object
+        that acts os the inverse of a sparse matrix.
     """
     global _DEFAULT_SOLVER
-    if not issubclass(solver, Base):
+    if not issubclass(solver_class, Base):
         raise TypeError(
             "Default solver must be a subclass of pymatsolver.solvers.Base."
         )
-    _DEFAULT_SOLVER = solver
+    _DEFAULT_SOLVER = solver_class
 
 
 # should likely deprecate these classes in favor of the pymatsolver versions.
