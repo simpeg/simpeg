@@ -2,8 +2,6 @@
 Base and general map classes.
 """
 
-from __future__ import annotations  # needed to use type operands in Python 3.8
-
 from collections import namedtuple
 import discretize
 import numpy as np
@@ -11,6 +9,7 @@ import scipy.sparse as sp
 from scipy.sparse import csr_matrix as csr
 from discretize.tests import check_derivative
 from discretize.utils import Zero, Identity, mkvc, speye, sdiag
+import uuid
 
 from ..utils import (
     mat_utils,
@@ -70,6 +69,8 @@ class IdentityMap:
                 ) from err
         self.mesh = mesh
         self._nP = nP
+
+        self._uuid = uuid.uuid4()
 
         super().__init__(**kwargs)
 

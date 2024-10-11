@@ -15,7 +15,6 @@ from simpeg.utils import mkvc
 from simpeg.electromagnetics import resistivity as dc
 import shutil
 
-np.random.seed(40)
 
 TOL = 1e-5
 FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
@@ -45,7 +44,7 @@ class DCProblemTestsCC(unittest.TestCase):
         )
 
         mSynth = np.ones(mesh.nC)
-        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
@@ -189,7 +188,7 @@ class DCProblemTestsN(unittest.TestCase):
         )
 
         mSynth = np.ones(mesh.nC)
-        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
@@ -337,7 +336,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         )
 
         mSynth = np.ones(mesh.nC)
-        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
@@ -418,7 +417,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
         )
 
         mSynth = np.ones(mesh.nC)
-        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
@@ -503,7 +502,7 @@ class DCProblemTestsN_storeJ_Robin(unittest.TestCase):
         )
 
         mSynth = np.ones(mesh.nC)
-        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)

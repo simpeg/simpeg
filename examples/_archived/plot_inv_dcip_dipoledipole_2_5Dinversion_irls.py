@@ -106,7 +106,9 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
         plt.show()
 
     # Use Exponential Map: m = log(rho)
-    actmap = maps.InjectActiveCells(mesh, indActive=actind, valInactive=np.log(1e8))
+    actmap = maps.InjectActiveCells(
+        mesh, active_cells=actind, value_inactive=np.log(1e8)
+    )
     mapping = maps.ExpMap(mesh) * actmap
 
     # Generate mtrue
@@ -153,14 +155,13 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
         mesh, active_cells=actind, mapping=regmap, gradient_type="components"
     )
     reg.norms = [p, qx, qz, 0.0]
-    IRLS = directives.Update_IRLS(
-        max_irls_iterations=20, minGNiter=1, beta_search=False, fix_Jmatrix=True
+    irls = directives.UpdateIRLS(
+        max_irls_iterations=20,
     )
-
     opt = optimization.InexactGaussNewton(maxIter=40)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
     betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
-    inv = inversion.BaseInversion(invProb, directiveList=[betaest, IRLS])
+    inv = inversion.BaseInversion(invProb, directiveList=[betaest, irls])
     prb.counter = opt.counter = utils.Counter()
     opt.LSshorten = 0.5
     opt.remember("xc")

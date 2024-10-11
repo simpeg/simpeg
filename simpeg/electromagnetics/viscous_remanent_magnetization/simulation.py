@@ -1,3 +1,4 @@
+import warnings
 import discretize
 import numpy as np
 import scipy.sparse as sp
@@ -15,6 +16,7 @@ from ...utils import (
 from .survey import SurveyVRM
 from .receivers import Point, SquareLoop
 
+from ...utils.code_utils import deprecate_property
 
 ############################################
 # BASE VRM PROBLEM CLASS
@@ -32,6 +34,7 @@ class BaseVRMSimulation(BaseSimulation):
         survey=None,
         refinement_factor=None,
         refinement_distance=None,
+        active_cells=None,
         indActive=None,
         **kwargs,
     ):
@@ -48,9 +51,26 @@ class BaseVRMSimulation(BaseSimulation):
                 * np.arange(1, refinement_factor + 1)
             )
         self.refinement_distance = refinement_distance
-        if indActive is None:
-            indActive = np.ones(self.mesh.n_cells, dtype=bool)
-        self.indActive = indActive
+
+        # Deprecate indActive argument
+        if indActive is not None:
+            if active_cells is not None:
+                raise TypeError(
+                    "Cannot pass both 'active_cells' and 'indActive'."
+                    "'indActive' has been deprecated and will be removed in "
+                    " SimPEG v0.24.0, please use 'active_cells' instead.",
+                )
+            warnings.warn(
+                "'indActive' has been deprecated and will be removed in "
+                " SimPEG v0.24.0, please use 'active_cells' instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            active_cells = indActive
+
+        if active_cells is None:
+            active_cells = np.ones(self.mesh.n_cells, dtype=bool)
+        self.active_cells = active_cells
 
     @BaseSimulation.mesh.setter
     def mesh(self, value):
@@ -108,18 +128,29 @@ class BaseVRMSimulation(BaseSimulation):
         )
 
     @property
-    def indActive(self):
+    def active_cells(self):
         """Topography active cells.
 
         Returns
         -------
         (mesh.n_cells) numpy.ndarray of bool
         """
-        return self._indActive
+        return self._active_cells
 
-    @indActive.setter
-    def indActive(self, value):
-        self._indActive = validate_active_indices("indActive", value, self.mesh.n_cells)
+    @active_cells.setter
+    def active_cells(self, value):
+        self._active_cells = validate_active_indices(
+            "active_cells", value, self.mesh.n_cells
+        )
+
+    indActive = deprecate_property(
+        active_cells,
+        "indActive",
+        "active_cells",
+        removal_version="0.24.0",
+        future_warn=True,
+        error=False,
+    )
 
     def _getH0matrix(self, xyz, pp):
         """
@@ -697,12 +728,12 @@ class BaseVRMSimulation(BaseSimulation):
     def _getAMatricies(self):
         """Returns the full geometric operator"""
 
-        indActive = self.indActive
+        active_cells = self.active_cells
 
         # GET CELL INFORMATION FOR FORWARD MODELING
         meshObj = self.mesh
-        xyzc = meshObj.gridCC[indActive, :]
-        xyzh = meshObj.h_gridded[indActive, :]
+        xyzc = meshObj.gridCC[active_cells, :]
+        xyzh = meshObj.h_gridded[active_cells, :]
 
         # GET LIST OF A MATRICIES
         A = []
@@ -811,7 +842,7 @@ class Simulation3DLinear(BaseVRMSimulation):
         self.xi = xi
         self.xiMap = xiMap
 
-        nAct = list(self.indActive).count(True)
+        nAct = list(self.active_cells).count(True)
         if self.xiMap is None:
             self.xiMap = maps.IdentityMap(nP=nAct)
 

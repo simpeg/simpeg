@@ -41,12 +41,14 @@ def spectral_ip_mappings(
         indActive = np.ones(mesh.nC, dtype=bool)
 
     actmap_eta = maps.InjectActiveCells(
-        mesh, indActive=indActive, valInactive=inactive_eta
+        mesh, active_cells=indActive, value_inactive=inactive_eta
     )
     actmap_tau = maps.InjectActiveCells(
-        mesh, indActive=indActive, valInactive=inactive_tau
+        mesh, active_cells=indActive, value_inactive=inactive_tau
     )
-    actmap_c = maps.InjectActiveCells(mesh, indActive=indActive, valInactive=inactive_c)
+    actmap_c = maps.InjectActiveCells(
+        mesh, active_cells=indActive, value_inactive=inactive_c
+    )
 
     wires = maps.Wires(
         ("eta", indActive.sum()), ("tau", indActive.sum()), ("c", indActive.sum())

@@ -66,7 +66,7 @@ class SIPProblemTestsCC(unittest.TestCase):
         )
         mSynth = np.r_[eta, 1.0 / tau]
         problem.model = mSynth
-        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.WeightedLeastSquares(mesh)
@@ -165,7 +165,7 @@ class SIPProblemTestsN(unittest.TestCase):
         print(survey.nD)
         mSynth = np.r_[eta, 1.0 / tau]
         print(survey.nD)
-        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         print(survey.nD)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
@@ -275,7 +275,7 @@ class SIPProblemTestsN_air(unittest.TestCase):
         )
 
         mSynth = np.r_[eta[~airind], 1.0 / tau[~airind], c[~airind]]
-        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg_eta = regularization.Sparse(mesh, mapping=wires.eta, active_cells=~airind)

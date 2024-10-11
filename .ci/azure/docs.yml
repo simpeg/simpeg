@@ -5,7 +5,7 @@ jobs:
     pool:
       vmImage: ubuntu-latest
     variables:
-      python.version: "3.8"
+      python.version: "3.10"
     timeoutInMinutes: 240
     steps:
       # Checkout simpeg repo.

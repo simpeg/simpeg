@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import discretize
 import numpy as np
 import pytest
@@ -232,7 +230,7 @@ class TestsMagSimulation:
             mag_mesh,
             survey=survey,
             chiMap=identity_map,
-            ind_active=active_cells,
+            active_cells=active_cells,
             sensitivity_path=str(tmp_path / f"{engine}"),
             store_sensitivities=store_sensitivities,
             engine=engine,
@@ -313,45 +311,40 @@ class TestsMagSimulation:
             mag_mesh,
             survey=survey,
             chiMap=identity_map,
-            ind_active=active_cells,
+            active_cells=active_cells,
             sensitivity_path=str(tmp_path / f"{engine}"),
             store_sensitivities=store_sensitivities,
             engine=engine,
             **parallel_kwargs,
         )
-        if engine == "choclo":
-            # gradient simulation not implemented for choclo yet
-            with pytest.raises(NotImplementedError):
-                data = sim.dpred(model_reduced)
-        else:
-            data = sim.dpred(model_reduced)
-            d_xx = data[0::6]
-            d_xy = data[1::6]
-            d_xz = data[2::6]
-            d_yy = data[3::6]
-            d_yz = data[4::6]
-            d_zz = data[5::6]
+        data = sim.dpred(model_reduced)
+        d_xx = data[0::6]
+        d_xy = data[1::6]
+        d_xz = data[2::6]
+        d_yy = data[3::6]
+        d_yz = data[4::6]
+        d_zz = data[5::6]
 
-            # Compute analytical response from magnetic prism
-            block1, block2 = two_blocks
-            prism_1 = MagneticPrism(block1[:, 0], block1[:, 1], chi1 * b0 / mu_0)
-            prism_2 = MagneticPrism(block2[:, 0], block2[:, 1], -chi1 * b0 / mu_0)
-            prism_3 = MagneticPrism(block2[:, 0], block2[:, 1], chi2 * b0 / mu_0)
+        # Compute analytical response from magnetic prism
+        block1, block2 = two_blocks
+        prism_1 = MagneticPrism(block1[:, 0], block1[:, 1], chi1 * b0 / mu_0)
+        prism_2 = MagneticPrism(block2[:, 0], block2[:, 1], -chi1 * b0 / mu_0)
+        prism_3 = MagneticPrism(block2[:, 0], block2[:, 1], chi2 * b0 / mu_0)
 
-            d = (
-                prism_1.magnetic_field_gradient(receiver_locations)
-                + prism_2.magnetic_field_gradient(receiver_locations)
-                + prism_3.magnetic_field_gradient(receiver_locations)
-            ) * mu_0
+        d = (
+            prism_1.magnetic_field_gradient(receiver_locations)
+            + prism_2.magnetic_field_gradient(receiver_locations)
+            + prism_3.magnetic_field_gradient(receiver_locations)
+        ) * mu_0
 
-            # Check results
-            rtol, atol = 5e-7, 1e-6
-            np.testing.assert_allclose(d_xx, d[..., 0, 0], rtol=rtol, atol=atol)
-            np.testing.assert_allclose(d_xy, d[..., 0, 1], rtol=rtol, atol=atol)
-            np.testing.assert_allclose(d_xz, d[..., 0, 2], rtol=rtol, atol=atol)
-            np.testing.assert_allclose(d_yy, d[..., 1, 1], rtol=rtol, atol=atol)
-            np.testing.assert_allclose(d_yz, d[..., 1, 2], rtol=rtol, atol=atol)
-            np.testing.assert_allclose(d_zz, d[..., 2, 2], rtol=rtol, atol=atol)
+        # Check results
+        rtol, atol = 5e-7, 1e-6
+        np.testing.assert_allclose(d_xx, d[..., 0, 0], rtol=rtol, atol=atol)
+        np.testing.assert_allclose(d_xy, d[..., 0, 1], rtol=rtol, atol=atol)
+        np.testing.assert_allclose(d_xz, d[..., 0, 2], rtol=rtol, atol=atol)
+        np.testing.assert_allclose(d_yy, d[..., 1, 1], rtol=rtol, atol=atol)
+        np.testing.assert_allclose(d_yz, d[..., 1, 2], rtol=rtol, atol=atol)
+        np.testing.assert_allclose(d_zz, d[..., 2, 2], rtol=rtol, atol=atol)
 
     @pytest.mark.parametrize(
         "engine, parallel_kwargs",
@@ -397,7 +390,7 @@ class TestsMagSimulation:
             mag_mesh,
             survey=survey,
             chiMap=identity_map,
-            ind_active=active_cells,
+            active_cells=active_cells,
             sensitivity_path=str(tmp_path / f"{engine}"),
             store_sensitivities=store_sensitivities,
             model_type="vector",
@@ -477,7 +470,7 @@ class TestsMagSimulation:
             mag_mesh,
             survey=survey,
             chiMap=identity_map,
-            ind_active=active_cells,
+            active_cells=active_cells,
             sensitivity_path=str(tmp_path / f"{engine}"),
             store_sensitivities=store_sensitivities,
             model_type="vector",
@@ -539,7 +532,7 @@ class TestsMagSimulation:
             mag_mesh,
             survey=survey,
             chiMap=idenMap,
-            ind_active=active_cells,
+            active_cells=active_cells,
             engine=engine,
             store_sensitivities=store_sensitivities,
             sensitivity_path=str(sensitivity_path),
@@ -620,7 +613,7 @@ class TestsMagSimulation:
         assert sensitivities_path.is_file()
         assert type(simulation.G) is np.memmap
 
-    def test_sensitivities_on_ram(self, mag_mesh, receiver_locations, tmp_path):
+    def test_sensitivities_on_ram(self, mag_mesh, receiver_locations):
         """
         Test if sensitivity matrix is correctly being allocated in memory when asked
         """
@@ -725,7 +718,7 @@ def test_ana_mag_tmi_grad_forward():
         mesh,
         survey=survey,
         chiMap=idenMap,
-        ind_active=active_cells,
+        active_cells=active_cells,
         store_sensitivities="forward_only",
         n_processes=None,
     )

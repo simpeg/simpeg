@@ -243,7 +243,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data_resolve)
 
     # Regularization
-    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
+    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].active_cells]])
     reg = regularization.WeightedLeastSquares(
         regMesh, mapping=maps.IdentityMap(regMesh)
     )
@@ -357,7 +357,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     dmisfit = data_misfit.L2DataMisfit(simulation=prob, data=data_sky)
 
     # Regularization
-    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
+    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].active_cells]])
     reg = regularization.WeightedLeastSquares(
         regMesh, mapping=maps.IdentityMap(regMesh)
     )

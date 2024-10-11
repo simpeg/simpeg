@@ -306,7 +306,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 # IRLS = directives.Update_IRLS(max_irls_iterations=40, minGNiter=1, f_min_change=1e-5, chifact_start=2)
 # IRLS = directives.Update_IRLS(
 #    max_irls_iterations=20, minGNiter=1, fix_Jmatrix=True, coolingRate=2,
-#    beta_tol=1e-2, f_min_change=1e-5,
+#    misfit_tolerance=1e-2, f_min_change=1e-5,
 #    chifact_start = 1.
 # )
 
@@ -324,13 +324,11 @@ update_Jacobi = directives.UpdatePreconditioner()
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 
-update_IRLS = directives.Update_IRLS(
+update_IRLS = directives.UpdateIRLS(
     max_irls_iterations=20,
-    minGNiter=1,
-    fix_Jmatrix=True,
     f_min_change=1e-3,
-    coolingRate=3,
 )
+
 
 # Updating the preconditionner if it is model dependent.
 update_jacobi = directives.UpdatePreconditioner()
@@ -345,13 +343,10 @@ target = directives.TargetMisfit()
 
 # The directives are defined as a list.
 directives_list = [
-    # sensitivity_weights,
     starting_beta,
-    beta_schedule,
     save_iteration,
-    # target_misfit,
     update_IRLS,
-    # update_jacobi,
+    beta_schedule,
 ]
 
 #####################################################################

@@ -85,7 +85,9 @@ class DCUtilsTests_halfspace(unittest.TestCase):
             )
 
             # Create synthetic data
-            dobs = problem.make_synthetic_data(self.model, relative_error=0.0)
+            dobs = problem.make_synthetic_data(
+                self.model, relative_error=0.0, random_seed=40
+            )
             dobs.noise_floor = 1e-5
 
             # Testing IO
