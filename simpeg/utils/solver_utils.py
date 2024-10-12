@@ -84,7 +84,7 @@ def set_default_solver(solver_class: Type[Base]):
 
 # should likely deprecate these classes in favor of the pymatsolver versions.
 SolverWrapD = deprecate_function(
-    wrap_iterative,
+    wrap_direct,
     old_name="SolverWrapD",
     removal_version="0.24.0",
     new_location="pymatsolver",
