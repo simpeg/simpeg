@@ -175,7 +175,7 @@ class PointNaturalSource(BaseRx):
         if mesh.dim < 3:
             return super().getP(mesh, projected_grid)
 
-        if (mesh, projected_grid) in self._Ps:
+        if (mesh, projected_grid, field) in self._Ps:
             return self._Ps[(mesh, projected_grid, field)]
 
         if field == "e":
