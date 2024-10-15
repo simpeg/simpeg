@@ -119,6 +119,7 @@ from .directives import (
     UpdateSensitivityWeights,
     VectorInversion,
     SaveIterationsGeoH5,
+    SaveLogFilesGeoH5,
     ProjectSphericalBounds,
     ScaleMisfitMultipliers,
 )
