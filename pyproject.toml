@@ -251,3 +251,9 @@ rst-roles = [
     'meth',
     'ref',
 ]
+
+# pyproject.toml
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::DefaultSolverWarning",
+]
