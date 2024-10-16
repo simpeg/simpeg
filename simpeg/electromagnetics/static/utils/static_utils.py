@@ -1660,22 +1660,22 @@ def drapeTopotoLoc(
     else:
         raise ValueError("Unsupported mesh dimension")
 
-    if ind_active is None:
-        ind_active = discretize.utils.active_from_xyz(mesh, topo)
+    if active_cells is None:
+        active_cells = discretize.utils.active_from_xyz(mesh, topo)
 
     if mesh._meshType == "TENSOR":
-        meshtemp, topoCC = gettopoCC(mesh, ind_active, option=option)
+        meshtemp, topoCC = gettopoCC(mesh, active_cells, option=option)
         inds = meshtemp.closest_points_index(pts)
         topo = topoCC[inds]
         out = np.c_[pts, topo]
 
     elif mesh._meshType == "TREE":
         if mesh.dim == 3:
-            uniqXYlocs, topoCC = gettopoCC(mesh, ind_active, option=option)
+            uniqXYlocs, topoCC = gettopoCC(mesh, active_cells, option=option)
             inds = closestPointsGrid(uniqXYlocs, pts)
             out = np.c_[uniqXYlocs[inds, :], topoCC[inds]]
         else:
-            uniqXlocs, topoCC = gettopoCC(mesh, ind_active, option=option)
+            uniqXlocs, topoCC = gettopoCC(mesh, active_cells, option=option)
             inds = closestPointsGrid(uniqXlocs, pts, dim=1)
             out = np.c_[uniqXlocs[inds], topoCC[inds]]
     else:
