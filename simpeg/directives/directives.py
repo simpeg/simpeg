@@ -50,7 +50,7 @@ from ..utils.code_utils import (
 )
 
 from geoh5py.groups.property_group import GroupTypeEnum
-from geoh5py.groups import UIJsonGroup
+from geoh5py.groups import PropertyGroup, UIJsonGroup
 from geoh5py.objects import ObjectBase
 from geoh5py.ui_json.utils import fetch_active_workspace
 
@@ -2992,7 +2992,7 @@ class BaseSaveGeoH5(InversionDirective, ABC):
         attribute_type: str = "model",
         channels: list[str] = ("",),
         components: list[str] = ("",),
-        **kwargs
+        **kwargs,
     ):
         self.data_type = {}
         self._association = None
@@ -3042,9 +3042,7 @@ class BaseSaveGeoH5(InversionDirective, ABC):
         return channel_name, base_name
 
     @abstractmethod
-    def write(  # flake8: noqa
-        self, iteration: int, values: list[np.ndarray] = None
-    ):
+    def write(self, iteration: int, values: list[np.ndarray] = None):  # flake8: noqa
         """
         Save the components of the inversion.
         """
@@ -3146,6 +3144,7 @@ class SaveIterationsGeoH5(BaseSaveGeoH5, ABC):
     """
     Saves inversion results to a geoh5 file
     """
+
     def stack_channels(self, dpred: list):
         """
         Regroup channel values along rows.
@@ -3179,9 +3178,7 @@ class SaveIterationsGeoH5(BaseSaveGeoH5, ABC):
         Get values for the inversion depending on the output type.
         """
 
-    def write(  # flake8: noqa
-        self, iteration: int, values: list[np.ndarray] = None
-    ):
+    def write(self, iteration: int, values: list[np.ndarray] = None):  # flake8: noqa
         """
         Sort, transform and store data per components and channels.
         """
@@ -3236,6 +3233,7 @@ class SaveModelGeoH5(SaveIterationsGeoH5):
     """
     Save the model at the current iteration to a geoh5 file.
     """
+
     def get_values(self, values: list[np.ndarray] | None):
         if values is None:
             values = self.invProb.model
@@ -3247,6 +3245,7 @@ class SaveSensitivityGeoH5(SaveIterationsGeoH5):
     """
     Save the model at the current iteration to a geoh5 file.
     """
+
     def get_values(self, values: list[np.ndarray] | None):
         if values is None:
             values = np.zeros_like(self.invProb.model)
@@ -3324,44 +3323,55 @@ class SaveLogFilesGeoH5(BaseSaveGeoH5):
                 file_entity.file_bytes = raw_file
 
 
-# class SavePropertyGroup(BaseSaveGeoH5):
-#     """
-#     Save the model as a property group in the geoh5 file
-#     """
-#
-#     def __init__(
-#             self,
-#             h5_object,
-#             dmisfit=None,
-#             attribute_type: str = "property_group",
-#             group_type: GroupTypeEnum = "Dip direction & dip",
-#             **kwargs
-#     ):
-#         self.group_type = group_type
-#
-#         super().__init__(h5_object, dmisfit=dmisfit, attribute_type=attribute_type, **kwargs)
-#
-#
-#     def write(self, iteration: int):
-#         """
-#         Save the model to the geoh5 file
-#         """
-#         with fetch_active_workspace(self._geoh5, mode="r+") as w_s:
-#             h5_object = w_s.get_entity(self.h5_object)[0]
-#             properties = []
-#             for channel in self.channels:
-#                 for component in self.components:
-#                     channel_name, base_name = self.get_names(
-#                         component, channel, iteration
-#                     )
-#                     child = h5_object.get_entity(channel_name)[0]
-#
-#                     if child is not None:
-#                         properties.append(child)
-#
-#
-#             group = PropertyGroup(parent=h5_object, name=base_name, properties=properties, property_group_type=self.group_type)
+class SavePropertyGroup(BaseSaveGeoH5):
+    """
+    Save the model as a property group in the geoh5 file
+    """
 
+    def __init__(
+        self,
+        h5_object,
+        dmisfit=None,
+        attribute_type: str = "property_group",
+        group_type: GroupTypeEnum = "Dip direction & dip",
+        **kwargs,
+    ):
+        self.group_type = group_type
+
+        super().__init__(
+            h5_object, dmisfit=dmisfit, attribute_type=attribute_type, **kwargs
+        )
+
+    def write(self, iteration: int, **_):
+        """
+        Save the model to the geoh5 file
+        """
+        with fetch_active_workspace(self._geoh5, mode="r+") as w_s:
+            h5_object = w_s.get_entity(self.h5_object)[0]
+            properties = []
+            for channel in self.channels:
+                for component in self.components:
+                    channel_name, base_name = self.get_names(
+                        component, channel, iteration
+                    )
+                    child = [
+                        child
+                        for child in h5_object.children
+                        if channel_name in child.name
+                    ][0]
+
+                    if child is not None:
+                        properties.append(child)
+
+            if len(properties) == 0:
+                return
+
+            PropertyGroup(
+                parent=h5_object,
+                name=base_name,
+                properties=properties,
+                property_group_type=self.group_type,
+            )
 
 
 class VectorInversion(InversionDirective):
