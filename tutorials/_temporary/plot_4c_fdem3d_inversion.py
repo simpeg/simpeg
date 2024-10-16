@@ -46,11 +46,6 @@ from simpeg import (
     utils,
 )
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import SolverLU as Solver
-
 # sphinx_gallery_thumbnail_number = 3
 
 #############################################
@@ -289,7 +284,9 @@ starting_model = background_conductivity * np.ones(nC)
 #
 
 simulation = fdem.simulation.Simulation3DMagneticFluxDensity(
-    mesh, survey=survey, sigmaMap=model_map, Solver=Solver
+    mesh,
+    survey=survey,
+    sigmaMap=model_map,
 )
 
 

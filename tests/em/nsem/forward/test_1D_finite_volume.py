@@ -2,7 +2,6 @@ import numpy as np
 from discretize import TensorMesh
 from simpeg.electromagnetics import natural_source as nsem
 from simpeg import maps
-from pymatsolver import Pardiso
 import unittest
 
 
@@ -50,14 +49,12 @@ class FiniteVolume1DTest(unittest.TestCase):
         if formulation == "e":
             return nsem.simulation.Simulation1DElectricField(
                 mesh=self.mesh,
-                solver=Pardiso,
                 survey=self.survey,
                 sigmaMap=maps.IdentityMap(),
             )
         elif formulation == "h":
             return nsem.simulation.Simulation1DMagneticField(
                 mesh=self.mesh,
-                solver=Pardiso,
                 survey=self.survey,
                 sigmaMap=maps.IdentityMap(),
             )
