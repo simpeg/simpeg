@@ -255,5 +255,5 @@ rst-roles = [
 # pyproject.toml
 [tool.pytest.ini_options]
 filterwarnings = [
-    "ignore::DefaultSolverWarning",
+    "ignore::simpeg.utils.solver_utils.DefaultSolverWarning",
 ]
