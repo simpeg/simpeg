@@ -3367,7 +3367,7 @@ class SavePropertyGroup(BaseSaveGeoH5):
     def __init__(
         self,
         h5_object,
-        group_type: GroupTypeEnum = "Dip direction & dip",
+        group_type: GroupTypeEnum = GroupTypeEnum.MULTI,
         **kwargs,
     ):
         self.group_type = group_type
@@ -3380,9 +3380,11 @@ class SavePropertyGroup(BaseSaveGeoH5):
         """
         with fetch_active_workspace(self._geoh5, mode="r+") as w_s:
             h5_object = w_s.get_entity(self.h5_object)[0]
-            properties = []
+
             for component in self.components:
+                properties = []
                 for channel in self.channels:
+
                     channel_name, base_name = self.get_names(
                         component, channel, iteration
                     )
@@ -3395,15 +3397,15 @@ class SavePropertyGroup(BaseSaveGeoH5):
                     if child is not None:
                         properties.append(child)
 
-            if len(properties) == 0:
-                return
+                if len(properties) == 0:
+                    return
 
-            PropertyGroup(
-                parent=h5_object,
-                name=base_name,
-                properties=properties,
-                property_group_type=self.group_type,
-            )
+                PropertyGroup(
+                    parent=h5_object,
+                    name=base_name,
+                    properties=properties,
+                    property_group_type=self.group_type,
+                )
 
 
 class VectorInversion(InversionDirective):
