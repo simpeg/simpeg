@@ -3,7 +3,9 @@ Tests for resistivity (DC) survey objects.
 """
 
 import pytest
+import numpy as np
 
+from discretize import TensorMesh
 from simpeg.electromagnetics.static.resistivity import Survey
 from simpeg.electromagnetics.static.resistivity import sources
 from simpeg.electromagnetics.static.resistivity import receivers
@@ -34,6 +36,28 @@ class TestRemovedSourceType:
             survey.survey_type
         with pytest.warns(FutureWarning, match=msg):
             survey.survey_type = "dipole-dipole"
+
+
+class TestDeprecatedIndActive:
+    """
+    Test the deprecated ``ind_active`` argument in ``drape_electrodes_on_topography``.
+    """
+
+    @pytest.fixture
+    def mesh(self):
+        return TensorMesh((5, 5, 5))
+
+    def test_error(self, mesh):
+        """
+        Test if error is raised after passing ``ind_active`` as argument.
+        """
+        survey = Survey(source_list=[])
+        msg = "'ind_active' has been deprecated and will be removed in "
+        active_cells = np.ones(mesh.n_cells, dtype=bool)
+        with pytest.raises(TypeError, match=msg):
+            survey.drape_electrodes_on_topography(
+                mesh, active_cells, ind_active=active_cells
+            )
 
 
 def test_repr():
