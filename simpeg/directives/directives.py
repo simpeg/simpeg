@@ -2985,31 +2985,27 @@ class ProjectSphericalBounds(InversionDirective):
 
 
 class BaseSaveGeoH5(InversionDirective, ABC):
+    """
+    Base class for saving inversion results to a geoh5 file
+    """
+
     def __init__(
         self,
         h5_object,
         dmisfit=None,
-        attribute_type: str = "model",
+        label: str | None = None,
         channels: list[str] = ("",),
         components: list[str] = ("",),
+        association: str | None = None,
         **kwargs,
     ):
-        self.data_type = {}
-        self._association = None
-        self.attribute_type = attribute_type
-        self._label = None
+        self.label = label
         self.channels = channels
         self.components = components
-        self._transforms: list = []
-        self.sorting = None
-        self._reshape = None
         self.h5_object = h5_object
-        self._joint_index = None
 
-        if attribute_type == "sensitivities" and dmisfit is None:
-            raise ValueError(
-                "To save sensitivities, the data misfit object must be provided."
-            )
+        if association is not None:
+            self.association = association
 
         super().__init__(
             inversion=None, dmisfit=dmisfit, reg=None, verbose=False, **kwargs
@@ -3048,64 +3044,15 @@ class BaseSaveGeoH5(InversionDirective, ABC):
         """
 
     @property
-    def joint_index(self):
-        """
-        Index for joint inversions defining the element in the list of predicted data.
-        """
-        return self._joint_index
-
-    @joint_index.setter
-    def joint_index(self, value: list[int]):
-        if not isinstance(value, list):
-            raise TypeError("Input 'joint_index' should be a list of int")
-
-        self._joint_index = value
-
-    @property
     def label(self):
         return self._label
 
     @label.setter
-    def label(self, value: str):
-        assert isinstance(value, str), "'label' must be a string"
+    def label(self, value: str | None):
+        if not isinstance(value, str | type(None)):
+            raise TypeError("'label' must be a string or None")
 
         self._label = value
-
-    @property
-    def reshape(self):
-        """
-        Reshape function
-        """
-        if getattr(self, "_reshape", None) is None:
-            self._reshape = lambda x: x.reshape(
-                (len(self.channels), len(self.components), -1), order="F"
-            )
-
-        return self._reshape
-
-    @reshape.setter
-    def reshape(self, fun):
-        self._reshape = fun
-
-    @property
-    def transforms(self):
-        return self._transforms
-
-    @transforms.setter
-    def transforms(self, funcs: list):
-        if not isinstance(funcs, list):
-            funcs = [funcs]
-
-        for fun in funcs:
-            if not any(
-                [isinstance(fun, (IdentityMap, np.ndarray, float)), callable(fun)]
-            ):
-                raise TypeError(
-                    "Input transformation must be of type"
-                    + "SimPEG.maps, numpy.ndarray or callable function"
-                )
-
-        self._transforms = funcs
 
     @property
     def h5_object(self):
@@ -3140,10 +3087,70 @@ class BaseSaveGeoH5(InversionDirective, ABC):
         self._association = value.upper()
 
 
-class SaveIterationsGeoH5(BaseSaveGeoH5, ABC):
+class SaveArrayGeoH5(BaseSaveGeoH5, ABC):
     """
-    Saves inversion results to a geoh5 file
+    Saves array-based inversion results (model, data) to a geoh5 file.
+
+    Parameters
+    ----------
+
+    transforms: List of transformations applied to the values before save.
+    sorting: Special re-indexing of the vector values.
+    reshape: Re-ordering applied to the data before slicing.
     """
+
+    _attribute_type = None
+
+    def __init__(
+        self,
+        h5_object,
+        transforms: list | tuple = (),
+        reshape=None,
+        sorting=None,
+        **kwargs,
+    ):
+        self.data_type = {}
+        self.transforms = transforms
+        self.sorting = sorting
+        self.reshape = reshape
+
+        super().__init__(h5_object, **kwargs)
+
+    @property
+    def reshape(self):
+        """
+        Reshape function
+        """
+        if getattr(self, "_reshape", None) is None:
+            self._reshape = lambda x: x.reshape(
+                (len(self.channels), len(self.components), -1), order="F"
+            )
+
+        return self._reshape
+
+    @reshape.setter
+    def reshape(self, fun):
+        self._reshape = fun
+
+    @property
+    def transforms(self):
+        return self._transforms
+
+    @transforms.setter
+    def transforms(self, funcs: list | tuple):
+        if not isinstance(funcs, list | tuple):
+            funcs = [funcs]
+
+        for fun in funcs:
+            if not any(
+                [isinstance(fun, (IdentityMap, np.ndarray, float)), callable(fun)]
+            ):
+                raise TypeError(
+                    "Input transformation must be of type"
+                    + "SimPEG.maps, numpy.ndarray or callable function"
+                )
+
+        self._transforms = funcs
 
     def stack_channels(self, dpred: list):
         """
@@ -3215,7 +3222,7 @@ class SaveIterationsGeoH5(BaseSaveGeoH5, ABC):
                     # Re-assign the data type
                     if channel not in self.data_type[component].keys():
                         self.data_type[component][channel] = data.entity_type
-                        type_name = f"{self.attribute_type}_{component}"
+                        type_name = f"{self._attribute_type}_{component}"
                         if channel:
                             type_name += f"_{channel}"
                         data.entity_type.name = type_name
@@ -3225,14 +3232,13 @@ class SaveIterationsGeoH5(BaseSaveGeoH5, ABC):
                             type(self.data_type[component][channel]),
                         )
 
-                    if len(self.channels) > 1 and self.attribute_type == "predicted":
-                        h5_object.add_data_to_group(data, base_name)
 
-
-class SaveModelGeoH5(SaveIterationsGeoH5):
+class SaveModelGeoH5(SaveArrayGeoH5):
     """
     Save the model at the current iteration to a geoh5 file.
     """
+
+    _attribute_type = "model"
 
     def get_values(self, values: list[np.ndarray] | None):
         if values is None:
@@ -3241,10 +3247,19 @@ class SaveModelGeoH5(SaveIterationsGeoH5):
         return values
 
 
-class SaveSensitivityGeoH5(SaveIterationsGeoH5):
+class SaveSensitivityGeoH5(SaveArrayGeoH5):
     """
     Save the model at the current iteration to a geoh5 file.
     """
+
+    _attribute_type = "sensitivities"
+
+    def __init__(self, h5_object, dmisfit=None, **kwargs):
+        if dmisfit is None:
+            raise ValueError(
+                "To save sensitivities, the data misfit object must be provided."
+            )
+        super().__init__(h5_object, dmisfit=dmisfit, **kwargs)
 
     def get_values(self, values: list[np.ndarray] | None):
         if values is None:
@@ -3255,10 +3270,17 @@ class SaveSensitivityGeoH5(SaveIterationsGeoH5):
         return values
 
 
-class SaveDataGeoH5(SaveIterationsGeoH5):
+class SaveDataGeoH5(SaveArrayGeoH5):
     """
     Save the model at the current iteration to a geoh5 file.
     """
+
+    _attribute_type = "predicted"
+
+    def __init__(self, h5_object, joint_index: list[int] | None = None, **kwargs):
+        self.joint_index = joint_index
+
+        super().__init__(h5_object, **kwargs)
 
     def get_values(self, values: list[np.ndarray] | None):
 
@@ -3277,6 +3299,20 @@ class SaveDataGeoH5(SaveIterationsGeoH5):
             prop = self.stack_channels(dpred)
 
         return prop
+
+    @property
+    def joint_index(self):
+        """
+        Index for joint inversions defining the element in the list of predicted data.
+        """
+        return self._joint_index
+
+    @joint_index.setter
+    def joint_index(self, value: list[int] | None):
+        if not isinstance(value, list | type(None)):
+            raise TypeError("Input 'joint_index' should be a list of int")
+
+        self._joint_index = value
 
 
 class SaveLogFilesGeoH5(BaseSaveGeoH5):
@@ -3331,16 +3367,12 @@ class SavePropertyGroup(BaseSaveGeoH5):
     def __init__(
         self,
         h5_object,
-        dmisfit=None,
-        attribute_type: str = "property_group",
         group_type: GroupTypeEnum = "Dip direction & dip",
         **kwargs,
     ):
         self.group_type = group_type
 
-        super().__init__(
-            h5_object, dmisfit=dmisfit, attribute_type=attribute_type, **kwargs
-        )
+        super().__init__(h5_object, **kwargs)
 
     def write(self, iteration: int, **_):
         """
@@ -3349,8 +3381,8 @@ class SavePropertyGroup(BaseSaveGeoH5):
         with fetch_active_workspace(self._geoh5, mode="r+") as w_s:
             h5_object = w_s.get_entity(self.h5_object)[0]
             properties = []
-            for channel in self.channels:
-                for component in self.components:
+            for component in self.components:
+                for channel in self.channels:
                     channel_name, base_name = self.get_names(
                         component, channel, iteration
                     )
@@ -3493,18 +3525,18 @@ class VectorInversion(InversionDirective):
 
             # Add and update directives
             for directive in self.inversion.directiveList.dList:
-                if isinstance(directive, SaveIterationsGeoH5):
+                if (
+                    isinstance(directive, SaveModelGeoH5)
+                    and cartesian2amplitude_dip_azimuth in directive.transforms
+                ):
                     transforms = []
-                    if (
-                        directive.attribute_type == "model"
-                        and cartesian2amplitude_dip_azimuth in directive.transforms
-                    ):
-                        for fun in directive.transforms:
-                            if fun is cartesian2amplitude_dip_azimuth:
-                                transforms += [spherical2cartesian]
-                            transforms += [fun]
 
-                        directive.transforms = transforms
+                    for fun in directive.transforms:
+                        if fun is cartesian2amplitude_dip_azimuth:
+                            transforms += [spherical2cartesian]
+                        transforms += [fun]
+
+                    directive.transforms = transforms
 
                 elif isinstance(directive, Update_IRLS):
                     directive.sphericalDomain = True
@@ -3520,7 +3552,7 @@ class VectorInversion(InversionDirective):
             self.inversion.directiveList = directiveList
 
             for directive in directiveList:
-                if not isinstance(directive, SaveIterationsGeoH5):
+                if not isinstance(directive, BaseSaveGeoH5):
                     directive.endIter()
 
 
