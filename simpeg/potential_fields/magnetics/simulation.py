@@ -34,11 +34,52 @@ from ._numba_functions import (
 )
 
 if choclo is not None:
-    CHOCLO_SUPPORTED_COMPONENTS = {"tmi", "bx", "by", "bz"}
+    CHOCLO_SUPPORTED_COMPONENTS = {
+        "tmi",
+        "bx",
+        "by",
+        "bz",
+        "bxx",
+        "byy",
+        "bzz",
+        "bxy",
+        "bxz",
+        "byz",
+    }
     CHOCLO_KERNELS = {
         "bx": (choclo.prism.kernel_ee, choclo.prism.kernel_en, choclo.prism.kernel_eu),
         "by": (choclo.prism.kernel_en, choclo.prism.kernel_nn, choclo.prism.kernel_nu),
         "bz": (choclo.prism.kernel_eu, choclo.prism.kernel_nu, choclo.prism.kernel_uu),
+        "bxx": (
+            choclo.prism.kernel_eee,
+            choclo.prism.kernel_een,
+            choclo.prism.kernel_eeu,
+        ),
+        "byy": (
+            choclo.prism.kernel_enn,
+            choclo.prism.kernel_nnn,
+            choclo.prism.kernel_nnu,
+        ),
+        "bzz": (
+            choclo.prism.kernel_euu,
+            choclo.prism.kernel_nuu,
+            choclo.prism.kernel_uuu,
+        ),
+        "bxy": (
+            choclo.prism.kernel_een,
+            choclo.prism.kernel_enn,
+            choclo.prism.kernel_enu,
+        ),
+        "bxz": (
+            choclo.prism.kernel_eeu,
+            choclo.prism.kernel_enu,
+            choclo.prism.kernel_euu,
+        ),
+        "byz": (
+            choclo.prism.kernel_enu,
+            choclo.prism.kernel_nnu,
+            choclo.prism.kernel_nuu,
+        ),
     }
 
 
