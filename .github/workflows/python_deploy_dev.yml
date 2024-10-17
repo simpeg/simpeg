@@ -1,0 +1,30 @@
+name: Deploy python package in development
+
+on:
+  push:
+    tags:
+      - 'v*' # Push events to every version tag (eg. v1.0.0)
+
+jobs:
+  call-workflow-conda-publish:
+    name: Publish development conda package on JFrog Artifactory
+    uses: MiraGeoscience/CI-tools/.github/workflows/reusable-python-publish_conda_package.yml@main
+    with:
+      package-name: 'mira-simpeg'
+      python-version: '3.10'
+      virtual-repo-nameS: '["public-conda-dev"]'
+    secrets:
+      JFROG_ARTIFACTORY_URL: ${{ secrets.JFROG_ARTIFACTORY_URL }}
+      JFROG_ARTIFACTORY_TOKEN: ${{ secrets.JFROG_ARTIFACTORY_TOKEN }}
+  call-workflow-pypi-publish:
+    name: Publish development pypi package on JFrog Artifactory
+    uses: MiraGeoscience/CI-tools/.github/workflows/reusable-python-publish_pypi_package.yml@main
+    with:
+      package-manager: 'setuptools'
+      package-name: 'mira-simpeg'
+      version-tag: ${{ github.ref_name }}
+      python-version: '3.10'
+      virtual-repo-names: '["public-pypi-dev"]'
+    secrets:
+      JFROG_ARTIFACTORY_URL: ${{ secrets.JFROG_ARTIFACTORY_URL }}
+      JFROG_ARTIFACTORY_TOKEN: ${{ secrets.JFROG_ARTIFACTORY_TOKEN }}
