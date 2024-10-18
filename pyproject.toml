@@ -24,7 +24,7 @@ dependencies = [
     "matplotlib",
     "numpy>=1.20",
     "pandas",
-    "pymatsolver>=0.2",
+    "pymatsolver>=0.2, <0.3.0",
     "scikit-learn>=1.2",
     "scipy>=1.8.0",
 ]

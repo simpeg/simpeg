@@ -118,7 +118,11 @@ from .directives import (
     JointScalingSchedule,
     UpdateSensitivityWeights,
     VectorInversion,
-    SaveIterationsGeoH5,
+    SaveDataGeoH5,
+    SaveLogFilesGeoH5,
+    SaveModelGeoH5,
+    SavePropertyGroup,
+    SaveSensitivityGeoH5,
     ProjectSphericalBounds,
     ScaleMisfitMultipliers,
 )
