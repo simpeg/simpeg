@@ -20,6 +20,7 @@ from ...base import BaseMagneticPDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
 from .analytics import CongruousMagBC
 from .survey import Survey
+from ..gravity.simulation import _get_cell_bounds
 
 from ._numba_functions import (
     choclo,
@@ -31,6 +32,10 @@ from ._numba_functions import (
     _forward_tmi_serial,
     _forward_mag_parallel,
     _forward_mag_serial,
+    _forward_tmi_2d_mesh_serial,
+    _forward_tmi_2d_mesh_parallel,
+    _forward_mag_2d_mesh_parallel,
+    _forward_mag_2d_mesh_serial,
 )
 
 if choclo is not None:
@@ -80,6 +85,17 @@ if choclo is not None:
             choclo.prism.kernel_nnu,
             choclo.prism.kernel_nuu,
         ),
+    }
+    CHOCLO_FORWARD_FUNCS = {
+        "bx": choclo.prism.magnetic_e,
+        "by": choclo.prism.magnetic_n,
+        "bz": choclo.prism.magnetic_u,
+        "bxx": choclo.prism.magnetic_ee,
+        "byy": choclo.prism.magnetic_nn,
+        "bzz": choclo.prism.magnetic_uu,
+        "bxy": choclo.prism.magnetic_en,
+        "bxz": choclo.prism.magnetic_eu,
+        "byz": choclo.prism.magnetic_nu,
     }
 
 
@@ -786,9 +802,17 @@ class SimulationEquivalentSourceLayer(
     mesh : discretize.BaseMesh
         A 2D tensor or tree mesh defining discretization along the x and y directions
     cell_z_top : numpy.ndarray or float
-        Define the elevations for the top face of all cells in the layer
+        Define the elevations for the top face of all cells in the layer.
+        If an array it should be the same size as the active cell set.
     cell_z_bottom : numpy.ndarray or float
-        Define the elevations for the bottom face of all cells in the layer
+        Define the elevations for the bottom face of all cells in the layer.
+        If an array it should be the same size as the active cell set.
+    engine : {"geoana", "choclo"}, optional
+        Choose which engine should be used to run the forward model.
+    numba_parallel : bool, optional
+        If True, the simulation will run in parallel. If False, it will
+        run in serial. If ``engine`` is not ``"choclo"`` this argument will be
+        ignored.
 
     """
 
@@ -801,11 +825,6 @@ class SimulationEquivalentSourceLayer(
         numba_parallel=True,
         **kwargs,
     ):
-        if engine == "choclo":
-            raise NotImplementedError(
-                "Magnetic equivalent sources with choclo as engine has not been"
-                " implemented yet. Use 'geoana' instead."
-            )
         super().__init__(
             mesh,
             cell_z_top,
@@ -814,6 +833,89 @@ class SimulationEquivalentSourceLayer(
             numba_parallel=numba_parallel,
             **kwargs,
         )
+
+        if self.engine == "choclo":
+            if self.numba_parallel:
+                self._sensitivity_tmi = None
+                self._sensitivity_mag = None
+                self._forward_tmi = _forward_tmi_2d_mesh_parallel
+                self._forward_mag = _forward_mag_2d_mesh_parallel
+            else:
+                self._sensitivity_tmi = None
+                self._sensitivity_mag = None
+                self._forward_tmi = _forward_tmi_2d_mesh_serial
+                self._forward_mag = _forward_mag_2d_mesh_serial
+
+    def _forward(self, model):
+        """
+        Forward model the fields of active cells in the mesh on receivers.
+
+        Parameters
+        ----------
+        model : (n_active_cells) or (3 * n_active_cells) array
+            Array containing the susceptibilities (scalar) or effective
+            susceptibilities (vector) of the active cells in the mesh, in SI
+            units.
+            Susceptibilities are expected if ``model_type`` is ``"scalar"``,
+            and the array should have ``n_active_cells`` elements.
+            Effective susceptibilities are expected if ``model_type`` is
+            ``"vector"``, and the array should have ``3 * n_active_cells``
+            elements.
+
+        Returns
+        -------
+        (nD, ) array
+            Always return a ``np.float64`` array.
+        """
+        # Get cells in the 2D mesh
+        cells_bounds = _get_cell_bounds(self.mesh)
+        # Keep only active cells
+        cells_bounds_active = cells_bounds[self.active_cells]
+        # Get regional field
+        regional_field = self.survey.source_field.b0
+        # Allocate fields array
+        fields = np.zeros(self.survey.nD, dtype=self.sensitivity_dtype)
+        # Start computing the fields
+        index_offset = 0
+        scalar_model = self.model_type == "scalar"
+        for components, receivers in self._get_components_and_receivers():
+            if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
+                raise NotImplementedError(
+                    f"Other components besides {CHOCLO_SUPPORTED_COMPONENTS} "
+                    "aren't implemented yet."
+                )
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                vector_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
+                )
+                if component == "tmi":
+                    self._forward_tmi(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        model,
+                        fields[vector_slice],
+                        regional_field,
+                        scalar_model,
+                    )
+                else:
+                    forward_func = CHOCLO_FORWARD_FUNCS[component]
+                    self._forward_mag(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        model,
+                        fields[vector_slice],
+                        regional_field,
+                        forward_func,
+                        scalar_model,
+                    )
+            index_offset += n_rows
+        return fields
 
 
 class Simulation3DDifferential(BaseMagneticPDESimulation):

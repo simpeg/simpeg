@@ -649,6 +649,243 @@ def _forward_tmi(
                 )
 
 
+def _forward_mag_2d_mesh(
+    receivers,
+    cells_bounds,
+    top,
+    bottom,
+    model,
+    fields,
+    regional_field,
+    forward_func,
+    scalar_model,
+):
+    """
+    Forward model single magnetic component for 2D meshes.
+
+    This function is designed to be used with equivalent sources, where the
+    mesh is a 2D mesh (prism layer). The top and bottom boundaries of each cell
+    are passed through the ``top`` and ``bottom`` arrays.
+
+    This function should be used with a `numba.jit` decorator, for example:
+
+    .. code::
+
+        from numba import jit
+
+        jit_forward = jit(nopython=True, parallel=True)(_forward_mag_2d_mesh)
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    cells_bounds : (n_active_cells, 4) numpy.ndarray
+        Array with the bounds of each active cell in the 2D mesh. For each row, the
+        bounds should be passed in the following order: ``x_min``, ``x_max``,
+        ``y_min``, ``y_max``.
+    top : (n_active_cells) np.ndarray
+        Array with the top boundaries of each active cell in the 2D mesh.
+    bottom : (n_active_cells) np.ndarray
+        Array with the bottom boundaries of each active cell in the 2D mesh.
+    model : (n_active_cells) or (3 * n_active_cells) array
+        Array containing the susceptibilities (scalar) or effective
+        susceptibilities (vector) of the active cells in the mesh, in SI
+        units.
+        Susceptibilities are expected if ``scalar_model`` is True,
+        and the array should have ``n_active_cells`` elements.
+        Effective susceptibilities are expected if ``scalar_model`` is False,
+        and the array should have ``3 * n_active_cells`` elements.
+    fields : (n_receivers) array
+        Array full of zeros where the magnetic component on each receiver will
+        be stored. This could be a preallocated array or a slice of it.
+    regional_field : (3,) array
+        Array containing the x, y and z components of the regional magnetic
+        field (uniform background field).
+    forward_func : callable
+        Forward function that will be evaluated on each node of the mesh. Choose
+        one of the forward functions in ``choclo.prism``.
+    scalar_model : bool
+        If True, the forward will be computing assuming that the ``model`` has
+        susceptibilities (scalar model) for each active cell.
+        If False, the forward will be computing assuming that the ``model`` has
+        effective susceptibilities (vector model) for each active cell.
+
+    Notes
+    -----
+
+    About the model array
+    ^^^^^^^^^^^^^^^^^^^^^
+
+    The ``model`` must always be a 1d array:
+
+    * If ``scalar_model`` is ``True``, then ``model`` should be a 1d array with
+      the same number of elements as active cells in the mesh. It should store
+      the magnetic susceptibilities of each active cell in SI units.
+    * If ``scalar_model`` is ``False``, then ``model`` should be a 1d array
+      with a number of elements equal to three times the active cells in the
+      mesh. It should store the components of the magnetization vector of each
+      active cell in :math:`Am^{-1}`. The order in which the components should
+      be passed are:
+          * every _easting_ component of each active cell,
+          * then every _northing_ component of each active cell,
+          * and finally every _upward_ component of each active cell.
+
+    """
+    n_receivers = receivers.shape[0]
+    n_cells = cells_bounds.shape[0]
+    # Forward model the magnetic component of each cell on each receiver location
+    for i in prange(n_receivers):
+        for j in range(n_cells):
+            # Define magnetization vector of the cell
+            # (we we'll divide by mu_0 when adding the forward modelled field)
+            if scalar_model:
+                # model is susceptibility, so the vector is parallel to the
+                # regional field
+                magnetization_x = model[j] * regional_field[0]
+                magnetization_y = model[j] * regional_field[1]
+                magnetization_z = model[j] * regional_field[2]
+            else:
+                # model is effective susceptibility (vector)
+                magnetization_x = model[j]
+                magnetization_y = model[j + n_cells]
+                magnetization_z = model[j + 2 * n_cells]
+            # Forward the magnetic component
+            fields[i] += (
+                forward_func(
+                    receivers[i, 0],
+                    receivers[i, 1],
+                    receivers[i, 2],
+                    cells_bounds[j, 0],
+                    cells_bounds[j, 1],
+                    cells_bounds[j, 2],
+                    cells_bounds[j, 3],
+                    bottom[j],
+                    top[j],
+                    magnetization_x,
+                    magnetization_y,
+                    magnetization_z,
+                )
+                / choclo.constants.VACUUM_MAGNETIC_PERMEABILITY
+            )
+
+
+def _forward_tmi_2d_mesh(
+    receivers,
+    cells_bounds,
+    top,
+    bottom,
+    model,
+    fields,
+    regional_field,
+    scalar_model,
+):
+    """
+    Forward model the TMI for 2D meshes.
+
+    This function is designed to be used with equivalent sources, where the
+    mesh is a 2D mesh (prism layer). The top and bottom boundaries of each cell
+    are passed through the ``top`` and ``bottom`` arrays.
+
+    This function should be used with a `numba.jit` decorator, for example:
+
+    .. code::
+
+        from numba import jit
+
+        jit_forward = jit(nopython=True, parallel=True)(_forward_tmi_2d_mesh)
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    cells_bounds : (n_active_cells, 4) numpy.ndarray
+        Array with the bounds of each active cell in the 2D mesh. For each row, the
+        bounds should be passed in the following order: ``x_min``, ``x_max``,
+        ``y_min``, ``y_max``.
+    top : (n_active_cells) np.ndarray
+        Array with the top boundaries of each active cell in the 2D mesh.
+    bottom : (n_active_cells) np.ndarray
+        Array with the bottom boundaries of each active cell in the 2D mesh.
+    model : (n_active_cells) or (3 * n_active_cells)
+        Array with the susceptibility (scalar model) or the effective
+        susceptibility (vector model) of each active cell in the mesh.
+        If the model is scalar, the ``model`` array should have
+        ``n_active_cells`` elements and ``scalar_model`` should be True.
+        If the model is vector, the ``model`` array should have
+        ``3 * n_active_cells`` elements and ``scalar_model`` should be False.
+    fields : (n_receivers) array
+        Array full of zeros where the TMI on each receiver will be stored. This
+        could be a preallocated array or a slice of it.
+    regional_field : (3,) array
+        Array containing the x, y and z components of the regional magnetic
+        field (uniform background field).
+    scalar_model : bool
+        If True, the sensitivity matrix is build to work with scalar models
+        (susceptibilities).
+        If False, the sensitivity matrix is build to work with vector models
+        (effective susceptibilities).
+
+    Notes
+    -----
+
+    The ``model`` must always be a 1d array:
+
+    * If ``scalar_model`` is ``True``, then ``model`` should be a 1d array with
+      the same number of elements as active cells in the mesh. It should store
+      the magnetic susceptibilities of each active cell in SI units.
+    * If ``scalar_model`` is ``False``, then ``model`` should be a 1d array
+      with a number of elements equal to three times the active cells in the
+      mesh. It should store the components of the magnetization vector of each
+      active cell in :math:`Am^{-1}`. The order in which the components should
+      be passed are:
+          * every _easting_ component of each active cell,
+          * then every _northing_ component of each active cell,
+          * and finally every _upward_ component of each active cell.
+
+    """
+    n_receivers = receivers.shape[0]
+    n_cells = cells_bounds.shape[0]
+    fx, fy, fz = regional_field
+    regional_field_amplitude = np.sqrt(fx**2 + fy**2 + fz**2)
+    fx /= regional_field_amplitude
+    fy /= regional_field_amplitude
+    fz /= regional_field_amplitude
+    # Forward model the magnetic component of each cell on each receiver location
+    for i in prange(n_receivers):
+        for j in range(n_cells):
+            # Define magnetization vector of the cell
+            # (we we'll divide by mu_0 when adding the forward modelled field)
+            if scalar_model:
+                # model is susceptibility, so the vector is parallel to the
+                # regional field
+                magnetization_x = model[j] * regional_field[0]
+                magnetization_y = model[j] * regional_field[1]
+                magnetization_z = model[j] * regional_field[2]
+            else:
+                # model is effective susceptibility (vector)
+                magnetization_x = model[j]
+                magnetization_y = model[j + n_cells]
+                magnetization_z = model[j + 2 * n_cells]
+            # Forward the magnetic field vector and compute tmi
+            bx, by, bz = choclo.prism.magnetic_field(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                magnetization_x,
+                magnetization_y,
+                magnetization_z,
+            )
+            fields[i] += (
+                bx * fx + by * fy + bz * fz
+            ) / choclo.constants.VACUUM_MAGNETIC_PERMEABILITY
+
+
 _sensitivity_tmi_serial = jit(nopython=True, parallel=False)(_sensitivity_tmi)
 _sensitivity_tmi_parallel = jit(nopython=True, parallel=True)(_sensitivity_tmi)
 _forward_tmi_serial = jit(nopython=True, parallel=False)(_forward_tmi)
@@ -657,3 +894,7 @@ _forward_mag_serial = jit(nopython=True, parallel=False)(_forward_mag)
 _forward_mag_parallel = jit(nopython=True, parallel=True)(_forward_mag)
 _sensitivity_mag_serial = jit(nopython=True, parallel=False)(_sensitivity_mag)
 _sensitivity_mag_parallel = jit(nopython=True, parallel=True)(_sensitivity_mag)
+_forward_tmi_2d_mesh_serial = jit(nopython=True, parallel=False)(_forward_tmi_2d_mesh)
+_forward_tmi_2d_mesh_parallel = jit(nopython=True, parallel=True)(_forward_tmi_2d_mesh)
+_forward_mag_2d_mesh_serial = jit(nopython=True, parallel=False)(_forward_mag_2d_mesh)
+_forward_mag_2d_mesh_parallel = jit(nopython=True, parallel=True)(_forward_mag_2d_mesh)
