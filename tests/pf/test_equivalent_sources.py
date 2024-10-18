@@ -470,7 +470,9 @@ class TestGravityEquivalentSources:
             data_misfit, regularization, optimization
         )
         # Define directives
-        starting_beta = simpeg.directives.BetaEstimate_ByEig(beta0_ratio=1e-1, seed=42)
+        starting_beta = simpeg.directives.BetaEstimate_ByEig(
+            beta0_ratio=1e-1, random_seed=42
+        )
         beta_schedule = simpeg.directives.BetaSchedule(coolingFactor=3, coolingRate=1)
         update_jacobi = simpeg.directives.UpdatePreconditioner()
         target_misfit = simpeg.directives.TargetMisfit(chifact=1)
