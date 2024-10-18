@@ -42,7 +42,7 @@ def tensor_mesh(mesh_params, coordinates):
 
 @pytest.fixture()
 def tree_mesh(mesh_params, coordinates):
-    """Sample 2D tensor mesh to use with equivalent sources."""
+    """Sample 2D tree mesh to use with equivalent sources."""
     mesh_type = "tree"
     h, padding_distance = mesh_params
     mesh = mesh_builder_xyz(
