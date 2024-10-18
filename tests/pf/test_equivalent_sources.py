@@ -579,7 +579,7 @@ class TestGravityEquivalentSources:
 
 class TestMagneticEquivalentSourcesForward:
     """
-    Test the forward capabilities of the gravity equivalent sources.
+    Test the forward capabilities of the magnetic equivalent sources.
     """
 
     @pytest.mark.parametrize("engine", ("geoana", "choclo"))
@@ -657,3 +657,144 @@ class TestMagneticEquivalentSourcesForward:
         np.testing.assert_allclose(
             sim_3d.dpred(model), eq_sources.dpred(model), atol=1e-7
         )
+
+    @pytest.mark.parametrize("engine", ("geoana", "choclo"))
+    def test_forward_vs_simulation_on_disk(
+        self,
+        tensor_mesh,
+        mesh_bottom,
+        mesh_top,
+        magnetic_survey,
+        engine,
+        tmp_path,
+    ):
+        """
+        Test forward vs simulation storing sensitivities on disk.
+        """
+        # Build 3D mesh that is analogous to the 2D mesh with bottom and top
+        mesh_3d = get_mesh_3d(tensor_mesh, top=mesh_top, bottom=mesh_bottom)
+        # Define sensitivity_dir
+        if engine == "geoana":
+            sensitivity_path = tmp_path / "sensitivities_geoana"
+            sensitivity_path.mkdir()
+        elif engine == "choclo":
+            sensitivity_path = tmp_path / "sensitivities_choclo"
+        # Build simulations
+        mapping = get_mapping(tensor_mesh)
+        sim_3d = magnetics.Simulation3DIntegral(
+            survey=magnetic_survey, mesh=mesh_3d, chiMap=mapping
+        )
+        eq_sources = magnetics.SimulationEquivalentSourceLayer(
+            mesh=tensor_mesh,
+            cell_z_top=mesh_top,
+            cell_z_bottom=mesh_bottom,
+            survey=magnetic_survey,
+            chiMap=mapping,
+            engine=engine,
+            store_sensitivities="disk",
+            sensitivity_path=str(sensitivity_path),
+        )
+        # Compare predictions of both simulations
+        model = get_block_model(tensor_mesh, 0.2e-3)
+        np.testing.assert_allclose(sim_3d.dpred(model), eq_sources.dpred(model))
+
+    @pytest.mark.parametrize("engine", ("geoana", "choclo"))
+    @pytest.mark.parametrize("store_sensitivities", ("ram", "forward_only"))
+    def test_forward_vs_simulation_with_active_cells(
+        self,
+        tensor_mesh,
+        mesh_bottom,
+        mesh_top,
+        magnetic_survey,
+        engine,
+        store_sensitivities,
+    ):
+        """
+        Test forward vs simulation using active cells.
+        """
+        model = get_block_model(tensor_mesh, 0.2e-3)
+
+        # Define some inactive cells inside the block
+        block_cells_indices = np.indices(model.shape).ravel()[model != 0]
+        inactive_indices = block_cells_indices[
+            : block_cells_indices.size // 2
+        ]  # mark half of the cells in the block as inactive
+        active_cells = np.ones_like(model, dtype=bool)
+        active_cells[inactive_indices] = False
+        assert not np.all(active_cells)  # check we do have inactive cells
+
+        # Keep only values of the model in the active cells
+        model = model[active_cells]
+
+        # Build 3D mesh that is analogous to the 2D mesh with bottom and top
+        mesh_3d = get_mesh_3d(tensor_mesh, top=mesh_top, bottom=mesh_bottom)
+
+        # Build simulations
+        mapping = simpeg.maps.IdentityMap(nP=model.size)
+        sim_3d = magnetics.Simulation3DIntegral(
+            survey=magnetic_survey,
+            mesh=mesh_3d,
+            chiMap=mapping,
+            active_cells=active_cells,
+        )
+        eq_sources = magnetics.SimulationEquivalentSourceLayer(
+            mesh=tensor_mesh,
+            cell_z_top=mesh_top,
+            cell_z_bottom=mesh_bottom,
+            survey=magnetic_survey,
+            chiMap=mapping,
+            engine=engine,
+            store_sensitivities=store_sensitivities,
+            active_cells=active_cells,
+        )
+        # Compare predictions of both simulations
+        np.testing.assert_allclose(
+            sim_3d.dpred(model), eq_sources.dpred(model), atol=1e-7
+        )
+
+    @pytest.mark.parametrize("store_sensitivities", ("ram", "forward_only"))
+    def test_forward_geoana_choclo(
+        self, mesh, mesh_bottom, mesh_top, magnetic_survey, store_sensitivities
+    ):
+        """Compare forwards using geoana and choclo."""
+        # Build simulations
+        mapping = get_mapping(mesh)
+        kwargs = dict(
+            mesh=mesh,
+            cell_z_top=mesh_top,
+            cell_z_bottom=mesh_bottom,
+            survey=magnetic_survey,
+            chiMap=mapping,
+            store_sensitivities=store_sensitivities,
+        )
+        sim_geoana = magnetics.SimulationEquivalentSourceLayer(
+            engine="geoana", **kwargs
+        )
+        sim_choclo = magnetics.SimulationEquivalentSourceLayer(
+            engine="choclo", **kwargs
+        )
+        model = get_block_model(mesh, 0.2e-3)
+        np.testing.assert_allclose(sim_geoana.dpred(model), sim_choclo.dpred(model))
+
+    def test_forward_choclo_serial_parallel(
+        self, mesh, mesh_bottom, mesh_top, magnetic_survey
+    ):
+        """Test forward using choclo in serial and in parallel."""
+        # Build simulations
+        mapping = get_mapping(mesh)
+        kwargs = dict(
+            mesh=mesh,
+            cell_z_top=mesh_top,
+            cell_z_bottom=mesh_bottom,
+            survey=magnetic_survey,
+            chiMap=mapping,
+            engine="choclo",
+        )
+        sim_parallel = magnetics.SimulationEquivalentSourceLayer(
+            numba_parallel=True, **kwargs
+        )
+        sim_serial = magnetics.SimulationEquivalentSourceLayer(
+            numba_parallel=False, **kwargs
+        )
+        model = get_block_model(mesh, 0.2e-3)
+        np.testing.assert_allclose(sim_parallel.dpred(model), sim_serial.dpred(model))

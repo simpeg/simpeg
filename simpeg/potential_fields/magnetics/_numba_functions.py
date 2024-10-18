@@ -15,7 +15,7 @@ except ImportError:
 else:
     from numba import jit, prange
 
-from .._numba_utils import kernels_in_nodes_to_cell
+from .._numba_utils import kernels_in_nodes_to_cell, evaluate_kernels_on_cell
 
 
 def _sensitivity_mag(
@@ -886,6 +886,370 @@ def _forward_tmi_2d_mesh(
             ) / choclo.constants.VACUUM_MAGNETIC_PERMEABILITY
 
 
+def _sensitivity_mag_2d_mesh(
+    receivers,
+    cells_bounds,
+    top,
+    bottom,
+    sensitivity_matrix,
+    regional_field,
+    kernel_x,
+    kernel_y,
+    kernel_z,
+    scalar_model,
+):
+    r"""
+    Fill the sensitivity matrix for single mag component for 2d meshes.
+
+    This function is designed to be used with equivalent sources, where the
+    mesh is a 2D mesh (prism layer). The top and bottom boundaries of each cell
+    are passed through the ``top`` and ``bottom`` arrays.
+
+    This function should be used with a `numba.jit` decorator, for example:
+
+    .. code::
+
+        from numba import jit
+
+        jit_sensitivity = jit(nopython=True, parallel=True)(_sensitivity_mag_2d_mesh)
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    cells_bounds : (n_active_cells, 4) numpy.ndarray
+        Array with the bounds of each active cell in the 2D mesh. For each row, the
+        bounds should be passed in the following order: ``x_min``, ``x_max``,
+        ``y_min``, ``y_max``.
+    top : (n_active_cells) np.ndarray
+        Array with the top boundaries of each active cell in the 2D mesh.
+    bottom : (n_active_cells) np.ndarray
+        Array with the bottom boundaries of each active cell in the 2D mesh.
+    sensitivity_matrix : (n_receivers, n_active_nodes) array
+        Empty 2d array where the sensitivity matrix elements will be filled.
+        This could be a preallocated empty array or a slice of it.
+    regional_field : (3,) array
+        Array containing the x, y and z components of the regional magnetic
+        field (uniform background field).
+    kernel_x, kernel_y, kernel_z : callable
+        Kernels used to compute the desired magnetic component. For example,
+        for computing bx we need to use ``kernel_x=kernel_ee``,
+        ``kernel_y=kernel_en``, ``kernel_z=kernel_eu``.
+    scalar_model : bool
+        If True, the sensitivity matrix is built to work with scalar models
+        (susceptibilities).
+        If False, the sensitivity matrix is built to work with vector models
+        (effective susceptibilities).
+
+    Notes
+    -----
+
+    About the kernel functions
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    For computing the ``bx`` component of the magnetic field we need to use the
+    following kernels:
+
+    .. code::
+
+        kernel_x=kernel_ee, kernel_y=kernel_en, kernel_z=kernel_eu
+
+
+    For computing the ``by`` component of the magnetic field we need to use the
+    following kernels:
+
+    .. code::
+
+        kernel_x=kernel_en, kernel_y=kernel_nn, kernel_z=kernel_nu
+
+    For computing the ``bz`` component of the magnetic field we need to use the
+    following kernels:
+
+    .. code::
+
+        kernel_x=kernel_eu, kernel_y=kernel_nu, kernel_z=kernel_uu
+
+
+    About the model array
+    ^^^^^^^^^^^^^^^^^^^^^
+
+    The ``model`` must always be a 1d array:
+
+    * If ``scalar_model`` is ``True``, then ``model`` should be a 1d array with
+      the same number of elements as active cells in the mesh. It should store
+      the magnetic susceptibilities of each active cell in SI units.
+    * If ``scalar_model`` is ``False``, then ``model`` should be a 1d array
+      with a number of elements equal to three times the active cells in the
+      mesh. It should store the components of the magnetization vector of each
+      active cell in :math:`Am^{-1}`. The order in which the components should
+      be passed are:
+          * every _easting_ component of each active cell,
+          * then every _northing_ component of each active cell,
+          * and finally every _upward_ component of each active cell.
+
+    About the sensitivity matrix
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    Each row of the sensitivity matrix corresponds to a single receiver
+    location.
+
+    If ``scalar_model`` is True, then each element of the row will
+    correspond to the partial derivative of the selected magnetic component
+    with respect to the susceptibility of each cell in the mesh.
+
+    If ``scalar_model`` is False, then each row can be split in three sections
+    containing:
+
+    * the partial derivatives of the selected magnetic component with respect
+      to the _x_ component of the effective susceptibility of each cell; then
+    * the partial derivatives of the selected magnetic component with respect
+      to the _y_ component of the effective susceptibility of each cell; and then
+    * the partial derivatives of the selected magnetic component with respect
+      to the _z_ component of the effective susceptibility of each cell.
+
+    So, if we call :math:`B_j` the magnetic field component on the receiver
+    :math:`j`, and :math:`\bar{\chi}^{(i)} = (\chi_x^{(i)}, \chi_y^{(i)},
+    \chi_z^{(i)})` the effective susceptibility of the active cell :math:`i`,
+    then each row of the sensitivity matrix will be:
+
+    .. math::
+
+        \left[
+            \frac{\partial B_j}{\partial \chi_x^{(1)}},
+            \dots,
+            \frac{\partial B_j}{\partial \chi_x^{(N)}},
+            \frac{\partial B_j}{\partial \chi_y^{(1)}},
+            \dots,
+            \frac{\partial B_j}{\partial \chi_y^{(N)}},
+            \frac{\partial B_j}{\partial \chi_z^{(1)}},
+            \dots,
+            \frac{\partial B_j}{\partial \chi_z^{(N)}}
+        \right]
+
+    where :math:`N` is the total number of active cells.
+    """
+    fx, fy, fz = regional_field
+    regional_field_amplitude = np.sqrt(fx**2 + fy**2 + fz**2)
+    fx /= regional_field_amplitude
+    fy /= regional_field_amplitude
+    fz /= regional_field_amplitude
+
+    constant_factor = 1 / 4 / np.pi
+
+    # Fill the sensitivity matrix
+    n_receivers = receivers.shape[0]
+    n_cells = cells_bounds.shape[0]
+    for i in prange(n_receivers):
+        for j in range(n_cells):
+            # Evaluate kernels for the current cell and receiver
+            ux, uy, uz = evaluate_kernels_on_cell(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                kernel_x,
+                kernel_y,
+                kernel_z,
+            )
+            if scalar_model:
+                sensitivity_matrix[i, j] = (
+                    constant_factor
+                    * regional_field_amplitude
+                    * (ux * fx + uy * fy + uz * fz)
+                )
+            else:
+                sensitivity_matrix[i, j] = (
+                    constant_factor * regional_field_amplitude * ux
+                )
+                sensitivity_matrix[i, j + n_cells] = (
+                    constant_factor * regional_field_amplitude * uy
+                )
+                sensitivity_matrix[i, j + 2 * n_cells] = (
+                    constant_factor * regional_field_amplitude * uz
+                )
+
+
+def _sensitivity_tmi_2d_mesh(
+    receivers,
+    cells_bounds,
+    top,
+    bottom,
+    sensitivity_matrix,
+    regional_field,
+    scalar_model,
+):
+    r"""
+    Fill the sensitivity matrix TMI for 2d meshes.
+
+    This function is designed to be used with equivalent sources, where the
+    mesh is a 2D mesh (prism layer). The top and bottom boundaries of each cell
+    are passed through the ``top`` and ``bottom`` arrays.
+
+    This function should be used with a `numba.jit` decorator, for example:
+
+    .. code::
+
+        from numba import jit
+
+        jit_tmi = jit(nopython=True, parallel=True)(_sensitivity_tmi_2d_mesh)
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    cells_bounds : (n_active_cells, 4) numpy.ndarray
+        Array with the bounds of each active cell in the 2D mesh. For each row, the
+        bounds should be passed in the following order: ``x_min``, ``x_max``,
+        ``y_min``, ``y_max``.
+    top : (n_active_cells) np.ndarray
+        Array with the top boundaries of each active cell in the 2D mesh.
+    bottom : (n_active_cells) np.ndarray
+        Array with the bottom boundaries of each active cell in the 2D mesh.
+    sensitivity_matrix : array
+        Empty 2d array where the sensitivity matrix elements will be filled.
+        This could be a preallocated empty array or a slice of it.
+        The array should have a shape of ``(n_receivers, n_active_nodes)``
+        if ``scalar_model`` is True.
+        The array should have a shape of ``(n_receivers, 3 * n_active_nodes)``
+        if ``scalar_model`` is False.
+    regional_field : (3,) array
+        Array containing the x, y and z components of the regional magnetic
+        field (uniform background field).
+    scalar_model : bool
+        If True, the sensitivity matrix is build to work with scalar models
+        (susceptibilities).
+        If False, the sensitivity matrix is build to work with vector models
+        (effective susceptibilities).
+
+    Notes
+    -----
+
+    About the model array
+    ^^^^^^^^^^^^^^^^^^^^^
+
+    The ``model`` must always be a 1d array:
+
+    * If ``scalar_model`` is ``True``, then ``model`` should be a 1d array with
+      the same number of elements as active cells in the mesh. It should store
+      the magnetic susceptibilities of each active cell in SI units.
+    * If ``scalar_model`` is ``False``, then ``model`` should be a 1d array
+      with a number of elements equal to three times the active cells in the
+      mesh. It should store the components of the magnetization vector of each
+      active cell in :math:`Am^{-1}`. The order in which the components should
+      be passed are:
+          * every _easting_ component of each active cell,
+          * then every _northing_ component of each active cell,
+          * and finally every _upward_ component of each active cell.
+
+    About the sensitivity matrix
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    Each row of the sensitivity matrix corresponds to a single receiver
+    location.
+
+    If ``scalar_model`` is True, then each element of the row will
+    correspond to the partial derivative of the tmi
+    with respect to the susceptibility of each cell in the mesh.
+
+    If ``scalar_model`` is False, then each row can be split in three sections
+    containing:
+
+    * the partial derivatives of the tmi with respect
+      to the _x_ component of the effective susceptibility of each cell; then
+    * the partial derivatives of the tmi with respect
+      to the _y_ component of the effective susceptibility of each cell; and then
+    * the partial derivatives of the tmi with respect
+      to the _z_ component of the effective susceptibility of each cell.
+
+    So, if we call :math:`T_j` the tmi on the receiver
+    :math:`j`, and :math:`\bar{\chi}^{(i)} = (\chi_x^{(i)}, \chi_y^{(i)},
+    \chi_z^{(i)})` the effective susceptibility of the active cell :math:`i`,
+    then each row of the sensitivity matrix will be:
+
+    .. math::
+
+        \left[
+            \frac{\partial T_j}{\partial \chi_x^{(1)}},
+            \dots,
+            \frac{\partial T_j}{\partial \chi_x^{(N)}},
+            \frac{\partial T_j}{\partial \chi_y^{(1)}},
+            \dots,
+            \frac{\partial T_j}{\partial \chi_y^{(N)}},
+            \frac{\partial T_j}{\partial \chi_z^{(1)}},
+            \dots,
+            \frac{\partial T_j}{\partial \chi_z^{(N)}}
+        \right]
+
+    where :math:`N` is the total number of active cells.
+    """
+    fx, fy, fz = regional_field
+    regional_field_amplitude = np.sqrt(fx**2 + fy**2 + fz**2)
+    fx /= regional_field_amplitude
+    fy /= regional_field_amplitude
+    fz /= regional_field_amplitude
+
+    constant_factor = 1 / 4 / np.pi
+
+    # Fill the sensitivity matrix
+    n_receivers = receivers.shape[0]
+    n_cells = cells_bounds.shape[0]
+    for i in prange(n_receivers):
+        for j in range(n_cells):
+            # Evaluate kernels for the current cell and receiver
+            uxx, uyy, uzz = evaluate_kernels_on_cell(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                choclo.prism.kernel_ee,
+                choclo.prism.kernel_nn,
+                choclo.prism.kernel_uu,
+            )
+            uxy, uxz, uyz = evaluate_kernels_on_cell(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                choclo.prism.kernel_en,
+                choclo.prism.kernel_eu,
+                choclo.prism.kernel_nu,
+            )
+            bx = uxx * fx + uxy * fy + uxz * fz
+            by = uxy * fx + uyy * fy + uyz * fz
+            bz = uxz * fx + uyz * fy + uzz * fz
+            if scalar_model:
+                sensitivity_matrix[i, j] = (
+                    constant_factor
+                    * regional_field_amplitude
+                    * (bx * fx + by * fy + bz * fz)
+                )
+            else:
+                sensitivity_matrix[i, j] = (
+                    constant_factor * regional_field_amplitude * bx
+                )
+                sensitivity_matrix[i, j + n_cells] = (
+                    constant_factor * regional_field_amplitude * by
+                )
+                sensitivity_matrix[i, j + 2 * n_cells] = (
+                    constant_factor * regional_field_amplitude * bz
+                )
+
+
 _sensitivity_tmi_serial = jit(nopython=True, parallel=False)(_sensitivity_tmi)
 _sensitivity_tmi_parallel = jit(nopython=True, parallel=True)(_sensitivity_tmi)
 _forward_tmi_serial = jit(nopython=True, parallel=False)(_forward_tmi)
@@ -898,3 +1262,15 @@ _forward_tmi_2d_mesh_serial = jit(nopython=True, parallel=False)(_forward_tmi_2d
 _forward_tmi_2d_mesh_parallel = jit(nopython=True, parallel=True)(_forward_tmi_2d_mesh)
 _forward_mag_2d_mesh_serial = jit(nopython=True, parallel=False)(_forward_mag_2d_mesh)
 _forward_mag_2d_mesh_parallel = jit(nopython=True, parallel=True)(_forward_mag_2d_mesh)
+_sensitivity_mag_2d_mesh_serial = jit(nopython=True, parallel=False)(
+    _sensitivity_mag_2d_mesh
+)
+_sensitivity_mag_2d_mesh_parallel = jit(nopython=True, parallel=True)(
+    _sensitivity_mag_2d_mesh
+)
+_sensitivity_tmi_2d_mesh_serial = jit(nopython=True, parallel=False)(
+    _sensitivity_tmi_2d_mesh
+)
+_sensitivity_tmi_2d_mesh_parallel = jit(nopython=True, parallel=True)(
+    _sensitivity_tmi_2d_mesh
+)

@@ -34,8 +34,12 @@ from ._numba_functions import (
     _forward_mag_serial,
     _forward_tmi_2d_mesh_serial,
     _forward_tmi_2d_mesh_parallel,
-    _forward_mag_2d_mesh_parallel,
     _forward_mag_2d_mesh_serial,
+    _forward_mag_2d_mesh_parallel,
+    _sensitivity_mag_2d_mesh_serial,
+    _sensitivity_mag_2d_mesh_parallel,
+    _sensitivity_tmi_2d_mesh_serial,
+    _sensitivity_tmi_2d_mesh_parallel,
 )
 
 if choclo is not None:
@@ -836,13 +840,13 @@ class SimulationEquivalentSourceLayer(
 
         if self.engine == "choclo":
             if self.numba_parallel:
-                self._sensitivity_tmi = None
-                self._sensitivity_mag = None
+                self._sensitivity_tmi = _sensitivity_tmi_2d_mesh_parallel
+                self._sensitivity_mag = _sensitivity_mag_2d_mesh_parallel
                 self._forward_tmi = _forward_tmi_2d_mesh_parallel
                 self._forward_mag = _forward_mag_2d_mesh_parallel
             else:
-                self._sensitivity_tmi = None
-                self._sensitivity_mag = None
+                self._sensitivity_tmi = _sensitivity_tmi_2d_mesh_serial
+                self._sensitivity_mag = _sensitivity_mag_2d_mesh_serial
                 self._forward_tmi = _forward_tmi_2d_mesh_serial
                 self._forward_mag = _forward_mag_2d_mesh_serial
 
@@ -916,6 +920,78 @@ class SimulationEquivalentSourceLayer(
                     )
             index_offset += n_rows
         return fields
+
+    def _sensitivity_matrix(self):
+        """
+        Compute the sensitivity matrix G
+
+        Returns
+        -------
+        (nD, n_active_cells) array
+        """
+        # Get cells in the 2D mesh
+        cells_bounds = _get_cell_bounds(self.mesh)
+        # Keep only active cells
+        cells_bounds_active = cells_bounds[self.active_cells]
+        # Get regional field
+        regional_field = self.survey.source_field.b0
+        # Allocate sensitivity matrix
+        if self.model_type == "scalar":
+            n_columns = self.nC
+        else:
+            n_columns = 3 * self.nC
+        shape = (self.survey.nD, n_columns)
+        if self.store_sensitivities == "disk":
+            sensitivity_matrix = np.memmap(
+                self.sensitivity_path,
+                shape=shape,
+                dtype=self.sensitivity_dtype,
+                order="C",  # it's more efficient to write in row major
+                mode="w+",
+            )
+        else:
+            sensitivity_matrix = np.empty(shape, dtype=self.sensitivity_dtype)
+        # Start filling the sensitivity matrix
+        index_offset = 0
+        scalar_model = self.model_type == "scalar"
+        for components, receivers in self._get_components_and_receivers():
+            if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
+                raise NotImplementedError(
+                    f"Other components besides {CHOCLO_SUPPORTED_COMPONENTS} "
+                    "aren't implemented yet."
+                )
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                matrix_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
+                )
+                if component == "tmi":
+                    self._sensitivity_tmi(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        sensitivity_matrix[matrix_slice, :],
+                        regional_field,
+                        scalar_model,
+                    )
+                else:
+                    kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
+                    self._sensitivity_mag(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        sensitivity_matrix[matrix_slice, :],
+                        regional_field,
+                        kernel_x,
+                        kernel_y,
+                        kernel_z,
+                        scalar_model,
+                    )
+            index_offset += n_rows
+        return sensitivity_matrix
 
 
 class Simulation3DDifferential(BaseMagneticPDESimulation):
