@@ -102,14 +102,14 @@ def run(plotIt=True, saveFig=False):
     # FDEM inversion
     np.random.seed(1)
     dmisfit = data_misfit.L2DataMisfit(simulation=prbFD, data=dataFD)
-    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
+    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].active_cells]])
     reg = regularization.WeightedLeastSquares(regMesh)
     opt = optimization.InexactGaussNewton(maxIterCG=10)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
     # Inversion Directives
     beta = directives.BetaSchedule(coolingFactor=4, coolingRate=3)
-    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1.0, seed=518936)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1.0, random_seed=518936)
     target = directives.TargetMisfit()
     directiveList = [beta, betaest, target]
 
@@ -148,14 +148,14 @@ def run(plotIt=True, saveFig=False):
 
     # TDEM inversion
     dmisfit = data_misfit.L2DataMisfit(simulation=prbTD, data=dataTD)
-    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
+    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].active_cells]])
     reg = regularization.WeightedLeastSquares(regMesh)
     opt = optimization.InexactGaussNewton(maxIterCG=10)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
     # directives
     beta = directives.BetaSchedule(coolingFactor=4, coolingRate=3)
-    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1.0, seed=518936)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1.0, random_seed=518936)
     target = directives.TargetMisfit()
     directiveList = [beta, betaest, target]
 

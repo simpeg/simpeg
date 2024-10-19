@@ -1,10 +1,10 @@
-from __future__ import annotations
 import types
 import numpy as np
 from functools import wraps
 import warnings
 
 from discretize.utils import as_array_n_by_dim  # noqa: F401
+from discretize.utils import requires as module_requires
 
 # scooby is a soft dependency for simpeg
 try:
@@ -18,6 +18,12 @@ except ImportError:
                 "\n           Install it via `pip install scooby` or"
                 "\n           `conda install -c conda-forge scooby`.\n"
             )
+
+
+try:
+    import memory_profiler
+except ImportError:
+    memory_profiler = False
 
 
 def requires(var):
@@ -80,7 +86,7 @@ def requires(var):
     return requiresVar
 
 
-@requires("memory_profiler")
+@module_requires({"memory_profiler": memory_profiler})
 def mem_profile_class(input_class, *args):
     """Creates a new class from the target class with memory profiled methods.
 
@@ -471,11 +477,9 @@ class Report(ScoobyReport):
             "pymatsolver",
             "numpy",
             "scipy",
-            "sklearn",
             "matplotlib",
             "empymod",
             "geoana",
-            "pandas",
         ]
 
         # Optional packages.
@@ -484,6 +488,8 @@ class Report(ScoobyReport):
             "pydiso",
             "numba",
             "dask",
+            "sklearn",
+            "pandas",
             "sympy",
             "IPython",
             "ipywidgets",
@@ -1028,7 +1034,10 @@ def validate_ndarray_with_shape(property_name, var, shape=None, dtype=float):
         dtypes = dtype
     for dtype in dtypes:
         try:
-            var = np.asarray(var, dtype=dtype)
+            if isinstance(var, np.ndarray):
+                var = var.astype(dtype, casting="safe", copy=False)
+            else:
+                var = np.asarray(var, dtype=dtype)
             bad_type = False
             break
         except (TypeError, ValueError) as err:

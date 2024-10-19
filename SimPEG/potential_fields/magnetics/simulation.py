@@ -34,11 +34,52 @@ from ._numba_functions import (
 )
 
 if choclo is not None:
-    CHOCLO_SUPPORTED_COMPONENTS = {"tmi", "bx", "by", "bz"}
+    CHOCLO_SUPPORTED_COMPONENTS = {
+        "tmi",
+        "bx",
+        "by",
+        "bz",
+        "bxx",
+        "byy",
+        "bzz",
+        "bxy",
+        "bxz",
+        "byz",
+    }
     CHOCLO_KERNELS = {
         "bx": (choclo.prism.kernel_ee, choclo.prism.kernel_en, choclo.prism.kernel_eu),
         "by": (choclo.prism.kernel_en, choclo.prism.kernel_nn, choclo.prism.kernel_nu),
         "bz": (choclo.prism.kernel_eu, choclo.prism.kernel_nu, choclo.prism.kernel_uu),
+        "bxx": (
+            choclo.prism.kernel_eee,
+            choclo.prism.kernel_een,
+            choclo.prism.kernel_eeu,
+        ),
+        "byy": (
+            choclo.prism.kernel_enn,
+            choclo.prism.kernel_nnn,
+            choclo.prism.kernel_nnu,
+        ),
+        "bzz": (
+            choclo.prism.kernel_euu,
+            choclo.prism.kernel_nuu,
+            choclo.prism.kernel_uuu,
+        ),
+        "bxy": (
+            choclo.prism.kernel_een,
+            choclo.prism.kernel_enn,
+            choclo.prism.kernel_enu,
+        ),
+        "bxz": (
+            choclo.prism.kernel_eeu,
+            choclo.prism.kernel_enu,
+            choclo.prism.kernel_euu,
+        ),
+        "byz": (
+            choclo.prism.kernel_enu,
+            choclo.prism.kernel_nnu,
+            choclo.prism.kernel_nuu,
+        ),
     }
 
 
@@ -52,7 +93,7 @@ class Simulation3DIntegral(BasePFSimulation):
         Mesh use to run the magnetic simulation.
     survey : simpeg.potential_fields.magnetics.Survey
         Magnetic survey with information of the receivers.
-    ind_active : (n_cells) numpy.ndarray, optional
+    active_cells : (n_cells) numpy.ndarray, optional
         Array that indicates which cells in ``mesh`` are active cells.
     chi : numpy.ndarray, optional
         Susceptibility array for the active cells in the mesh.
@@ -83,6 +124,12 @@ class Simulation3DIntegral(BasePFSimulation):
         If True, the simulation will run in parallel. If False, it will
         run in serial. If ``engine`` is not ``"choclo"`` this argument will be
         ignored.
+    ind_active : np.ndarray of int or bool
+
+        .. deprecated:: 0.23.0
+
+           Argument ``ind_active`` is deprecated in favor of
+           ``active_cells`` and will be removed in SimPEG v0.24.0.
     """
 
     chi, chiMap, chiDeriv = props.Invertible("Magnetic Susceptibility (SI)")
@@ -744,6 +791,29 @@ class SimulationEquivalentSourceLayer(
         Define the elevations for the bottom face of all cells in the layer
 
     """
+
+    def __init__(
+        self,
+        mesh,
+        cell_z_top,
+        cell_z_bottom,
+        engine="geoana",
+        numba_parallel=True,
+        **kwargs,
+    ):
+        if engine == "choclo":
+            raise NotImplementedError(
+                "Magnetic equivalent sources with choclo as engine has not been"
+                " implemented yet. Use 'geoana' instead."
+            )
+        super().__init__(
+            mesh,
+            cell_z_top,
+            cell_z_bottom,
+            engine=engine,
+            numba_parallel=numba_parallel,
+            **kwargs,
+        )
 
 
 class Simulation3DDifferential(BaseMagneticPDESimulation):
