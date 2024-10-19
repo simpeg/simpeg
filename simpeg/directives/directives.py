@@ -164,8 +164,10 @@ class InversionDirective:
                 [isinstance(value, regtype) for regtype in self._regPair]
             ), "Regularization must be in {}, not {}".format(self._regPair, type(value))
 
-            if isinstance(value, WeightedLeastSquares):
-                value = 1 * value  # turn it into a combo objective function
+            if not isinstance(value, ComboObjectiveFunction):
+                value = ComboObjectiveFunction(
+                    objfcts=[value]
+                )  # turn it into a combo objective function
         self._reg = value
 
     @property
@@ -189,7 +191,9 @@ class InversionDirective:
             ), "Misfit must be in {}, not {}".format(self._dmisfitPair, type(value))
 
             if not isinstance(value, ComboObjectiveFunction):
-                value = 1 * value  # turn it into a combo objective function
+                value = ComboObjectiveFunction(
+                    objfcts=[value]
+                )  # turn it into a combo objective function
         self._dmisfit = value
 
     @property
