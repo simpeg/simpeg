@@ -15,3 +15,8 @@ repos:
           - flake8-mutable==1.2.0
           - flake8-rst-docstrings==0.3.0
           - flake8-docstrings==1.7.0
+  - repo: https://github.com/MiraGeoscience/pre-commit-hooks
+    rev: v1.0.1
+    hooks:
+      - id: prepare-commit-msg
+      - id: check-commit-msg
