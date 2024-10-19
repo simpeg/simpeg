@@ -649,6 +649,82 @@ def _forward_tmi(
                 )
 
 
+def _forward_tmi_derivative(
+    receivers,
+    nodes,
+    model,
+    fields,
+    cell_nodes,
+    regional_field,
+    kernel_xx,
+    kernel_yy,
+    kernel_zz,
+    kernel_xy,
+    kernel_xz,
+    kernel_yz,
+    constant_factor,
+    scalar_model,
+):
+    """
+    Forward model a TMI derivative.
+    """
+    n_receivers = receivers.shape[0]
+    n_nodes = nodes.shape[0]
+    n_cells = cell_nodes.shape[0]
+    fx, fy, fz = regional_field
+    regional_field_amplitude = np.sqrt(fx**2 + fy**2 + fz**2)
+    fx /= regional_field_amplitude
+    fy /= regional_field_amplitude
+    fz /= regional_field_amplitude
+    # Evaluate kernel function on each node, for each receiver location
+    for i in prange(n_receivers):
+        # Allocate vectors for kernels evaluated on mesh nodes
+        kxx, kyy, kzz = np.empty(n_nodes), np.empty(n_nodes), np.empty(n_nodes)
+        kxy, kxz, kyz = np.empty(n_nodes), np.empty(n_nodes), np.empty(n_nodes)
+        # Allocate small vector for the nodes indices for a given cell
+        nodes_indices = np.empty(8, dtype=cell_nodes.dtype)
+        for j in range(n_nodes):
+            dx = nodes[j, 0] - receivers[i, 0]
+            dy = nodes[j, 1] - receivers[i, 1]
+            dz = nodes[j, 2] - receivers[i, 2]
+            distance = np.sqrt(dx**2 + dy**2 + dz**2)
+            kxx[j] = kernel_xx(dx, dy, dz, distance)
+            kyy[j] = kernel_yy(dx, dy, dz, distance)
+            kzz[j] = kernel_zz(dx, dy, dz, distance)
+            kxy[j] = kernel_xy(dx, dy, dz, distance)
+            kxz[j] = kernel_xz(dx, dy, dz, distance)
+            kyz[j] = kernel_yz(dx, dy, dz, distance)
+        # Compute sensitivity matrix elements from the kernel values
+        for k in range(n_cells):
+            nodes_indices = cell_nodes[k, :]
+            uxx = kernels_in_nodes_to_cell(kxx, nodes_indices)
+            uyy = kernels_in_nodes_to_cell(kyy, nodes_indices)
+            uzz = kernels_in_nodes_to_cell(kzz, nodes_indices)
+            uxy = kernels_in_nodes_to_cell(kxy, nodes_indices)
+            uxz = kernels_in_nodes_to_cell(kxz, nodes_indices)
+            uyz = kernels_in_nodes_to_cell(kyz, nodes_indices)
+            bx = uxx * fx + uxy * fy + uxz * fz
+            by = uxy * fx + uyy * fy + uyz * fz
+            bz = uxz * fx + uyz * fy + uzz * fz
+            if scalar_model:
+                fields[i] += (
+                    constant_factor
+                    * model[k]
+                    * regional_field_amplitude
+                    * (bx * fx + by * fy + bz * fz)
+                )
+            else:
+                fields[i] += (
+                    constant_factor
+                    * regional_field_amplitude
+                    * (
+                        bx * model[k]
+                        + by * model[k + n_cells]
+                        + bz * model[k + 2 * n_cells]
+                    )
+                )
+
+
 _sensitivity_tmi_serial = jit(nopython=True, parallel=False)(_sensitivity_tmi)
 _sensitivity_tmi_parallel = jit(nopython=True, parallel=True)(_sensitivity_tmi)
 _forward_tmi_serial = jit(nopython=True, parallel=False)(_forward_tmi)
@@ -657,3 +733,9 @@ _forward_mag_serial = jit(nopython=True, parallel=False)(_forward_mag)
 _forward_mag_parallel = jit(nopython=True, parallel=True)(_forward_mag)
 _sensitivity_mag_serial = jit(nopython=True, parallel=False)(_sensitivity_mag)
 _sensitivity_mag_parallel = jit(nopython=True, parallel=True)(_sensitivity_mag)
+_forward_tmi_derivative_parallel = jit(nopython=True, parallel=True)(
+    _forward_tmi_derivative
+)
+_forward_tmi_derivative_serial = jit(nopython=True, parallel=False)(
+    _forward_tmi_derivative
+)
