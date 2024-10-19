@@ -69,7 +69,7 @@ class MagFwdProblemTests(unittest.TestCase):
             *self.sphere_center,
             self.chiblk,
             self.b0,
-            "secondary"
+            "secondary",
         )
 
         n_obs, n_comp = self.rxLoc.shape[0], len(self.survey.components)
