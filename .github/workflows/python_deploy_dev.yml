@@ -24,7 +24,8 @@ jobs:
       package-name: 'mira-simpeg'
       version-tag: ${{ github.ref_name }}
       python-version: '3.10'
-      virtual-repo-names: '["public-pypi-dev"]'
+      virtual-repo-names: '["public-pypi-dev", "test-pypi"]'
     secrets:
       JFROG_ARTIFACTORY_URL: ${{ secrets.JFROG_ARTIFACTORY_URL }}
       JFROG_ARTIFACTORY_TOKEN: ${{ secrets.JFROG_ARTIFACTORY_TOKEN }}
+      PYPI_TOKEN: ${{ secrets.TEST_PYPI_TOKEN }}
