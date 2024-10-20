@@ -5,7 +5,7 @@ from discretize import TensorMesh
 from simpeg import simulation, data_misfit
 from simpeg.maps import IdentityMap
 from simpeg.regularization import WeightedLeastSquares
-from simpeg.utils.mat_utils import eigenvalue_by_power_iteration
+from simpeg.directives.directives import eigenvalue_by_power_iteration
 
 
 class TestEigenvalues(unittest.TestCase):

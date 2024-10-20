@@ -1,6 +1,5 @@
 import numpy as np
 from .code_utils import deprecate_function
-from ..typing import RandomSeed
 from discretize.utils import (  # noqa: F401
     Zero,
     Identity,
@@ -127,117 +126,6 @@ def unique_rows(M):
     _, invInd = np.unique(b, return_inverse=True)
     unqM = M[unqInd]
     return unqM, unqInd, invInd
-
-
-def eigenvalue_by_power_iteration(
-    combo_objfct,
-    model,
-    n_pw_iter=4,
-    fields_list=None,
-    seed: RandomSeed | None = None,
-):
-    r"""Estimate largest eigenvalue in absolute value using power iteration.
-
-    Uses the power iteration approach to estimate the largest eigenvalue in absolute
-    value for a single :class:`simpeg.BaseObjectiveFunction` or a combination of
-    objective functions stored in a :class:`simpeg.ComboObjectiveFunction`.
-
-    Parameters
-    ----------
-    combo_objfct : simpeg.BaseObjectiveFunction
-        Objective function or a combo objective function
-    model : numpy.ndarray
-        Current model
-    n_pw_iter : int
-        Number of power iterations used to estimate the highest eigenvalue
-    fields_list : list (optional)
-        ``list`` of fields objects for each data misfit term in combo_objfct. If none given,
-        they will be evaluated within the function. If combo_objfct mixs data misfit and regularization
-        terms, the list should contains simpeg.fields for the data misfit terms and None for the
-        regularization term.
-    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
-        Random seed for the initial random guess of eigenvector. It can either
-        be an int, a predefined Numpy random number generator, or any valid
-        input to ``numpy.random.default_rng``.
-
-    Returns
-    -------
-    float
-        Estimated value of the highest eigenvalue in absolute value
-
-    Notes
-    -----
-    After *k* power iterations, the largest eigenvalue in absolute value is
-    approximated by the Rayleigh quotient:
-
-    .. math::
-        \lambda_k = \frac{\mathbf{x_k^T A x_k}}{\mathbf{x_k^T x_k}}
-
-    where :math:`\mathfb{A}` is our matrix and :math:`\mathfb{x_k}` is computed
-    recursively according to:
-
-    .. math::
-        \mathbf{x_{k+1}} = \frac{\mathbf{A x_k}}{\| \mathbf{Ax_k} \|}
-
-    The elements of the initial vector :math:`\mathbf{x_0}` are randomly
-    selected from a uniform distribution.
-
-    """
-    rng = np.random.default_rng(seed=seed)
-
-    # Initial guess for eigen-vector
-    x0 = rng.random(size=model.shape)
-    x0 = x0 / np.linalg.norm(x0)
-
-    # transform to ComboObjectiveFunction if required
-    fun_list = getattr(combo_objfct, "objfcts", [combo_objfct])
-
-    # create Field for data misfit if necessary and not provided
-    if fields_list is None:
-        fields_list = []
-        for obj in fun_list:
-            if hasattr(obj, "simulation"):
-                fields_list += [obj.simulation.fields(model)]
-            else:
-                # required to put None to conserve it in the list
-                # The idea is that the function can have a mixed of dmis and reg terms
-                # (see test)
-                fields_list += [None]
-    elif not isinstance(fields_list, (list, tuple, np.ndarray)):
-        fields_list = [fields_list]
-
-    # Power iteration: estimate eigenvector
-    for _ in range(n_pw_iter):
-        x1 = 0.0
-        for j, (mult, obj) in enumerate(
-            zip(combo_objfct.multipliers, combo_objfct.objfcts)
-        ):
-            if hasattr(obj, "simulation"):  # if data misfit term
-                aux = obj.deriv2(model, v=x0, f=fields_list[j])
-                if not isinstance(aux, Zero):
-                    x1 += mult * aux
-            else:
-                aux = obj.deriv2(model, v=x0)
-                if not isinstance(aux, Zero):
-                    x1 += mult * aux
-        x0 = x1 / np.linalg.norm(x1)
-
-    # Compute highest eigenvalue from estimated eigenvector
-    eigenvalue = 0.0
-    for j, (mult, obj) in enumerate(
-        zip(combo_objfct.multipliers, combo_objfct.objfcts)
-    ):
-        if hasattr(obj, "simulation"):  # if data misfit term
-            eigenvalue += mult * x0.dot(obj.deriv2(model, v=x0, f=fields_list[j]))
-        else:
-            eigenvalue += mult * x0.dot(
-                obj.deriv2(
-                    model,
-                    v=x0,
-                )
-            )
-
-    return eigenvalue
 
 
 def cartesian2spherical(m):

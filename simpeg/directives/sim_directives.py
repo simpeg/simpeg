@@ -1,8 +1,7 @@
 import numpy as np
 from ..regularization import BaseSimilarityMeasure
-from ..utils import eigenvalue_by_power_iteration
 from ..optimization import IterationPrinters, StoppingCriteria
-from .directives import InversionDirective, SaveEveryIteration
+from .directives import InversionDirective, SaveEveryIteration, BetaEstimate_ByEig
 
 
 ###############################################################################
@@ -266,7 +265,7 @@ class PairedBetaEstimate_ByEig(InversionDirective):
             )
         for dmis, reg in zip(dmis_objs, reg_objs):
             dmis_eigenvalues.append(
-                eigenvalue_by_power_iteration(
+                BetaEstimate_ByEig.eigenvalue_by_power_iteration(
                     dmis,
                     m,
                     n_pw_iter=self.n_pw_iter,
@@ -275,7 +274,7 @@ class PairedBetaEstimate_ByEig(InversionDirective):
             )
 
             reg_eigenvalues.append(
-                eigenvalue_by_power_iteration(
+                BetaEstimate_ByEig.eigenvalue_by_power_iteration(
                     reg,
                     m,
                     n_pw_iter=self.n_pw_iter,
