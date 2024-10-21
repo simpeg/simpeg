@@ -32,7 +32,16 @@ from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz
 from SimPEG import dask
 from SimPEG.utils import plot2Ddata, surface2ind_topo, model_builder
-from SimPEG import data, data_misfit, directives, maps, optimization, regularization, inverse_problem, inversion
+from SimPEG import (
+    data,
+    data_misfit,
+    directives,
+    maps,
+    optimization,
+    regularization,
+    inverse_problem,
+    inversion,
+)
 import SimPEG.electromagnetics.time_domain as tdem
 from geoh5py.workspace import Workspace
 from geoh5py.objects import Curve
@@ -42,6 +51,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import os
 from time import time
+
 try:
     from pymatsolver import Pardiso as Solver
 except ImportError:
@@ -237,7 +247,7 @@ octree = treemesh_2_octree(ws, mesh)
 # Conductivity in S/m
 air_conductivity = np.log(1e-8)
 background_conductivity = np.log(1e-3)
-block_conductivity = np.log(1e+0)
+block_conductivity = np.log(1e0)
 
 # Active cells are cells below the surface.
 ind_active = surface2ind_topo(mesh, topo_xyz)
@@ -255,19 +265,15 @@ model = background_conductivity * np.ones(nC)
 #     & (mesh.gridCC[ind_active, 2] < -150.0)
 # )
 
-face =  np.r_[
+face = np.r_[
     np.c_[-50, -100, -50],
     np.c_[-50, 100, -50],
     np.c_[50, 100, -50],
-    np.c_[50, -100, -50]
+    np.c_[50, -100, -50],
 ]
 
 ind_block = model_builder.get_indices_polygon(
-    mesh,
-    np.r_[
-        face + np.c_[100, 0, 0],
-        face + np.c_[-150, 0, -225]
-    ]
+    mesh, np.r_[face + np.c_[100, 0, 0], face + np.c_[-150, 0, -225]]
 )
 model[ind_block[ind_active]] = block_conductivity
 
@@ -284,7 +290,7 @@ mesh.plotSlice(
 ax1.set_title("Conductivity Model at Y = 0 m")
 ax1.set_xlim([-500, 500])
 ax1.set_ylim([-500, 0])
-ax1.set_aspect('equal')
+ax1.set_aspect("equal")
 plt.show()
 ######################################################
 # Define the Time-Stepping
@@ -320,19 +326,21 @@ simulation.time_steps = time_steps
 # ---------------------
 #
 
+
 def reshape(values):
     data = np.zeros((len(time_channels), 1, nrx))
     data[value_sortings[:, 0], value_sortings[:, 1], value_sortings[:, 2]] = values
     return data
 
+
 # Predict data for a given model
 dpred = simulation.dpred(model)
 floors = (
-    np.ones_like(reshape(np.abs(dpred))) * np.median(reshape(np.abs(dpred)), axis=2).flatten()[:, None, None]*0.75
+    np.ones_like(reshape(np.abs(dpred)))
+    * np.median(reshape(np.abs(dpred)), axis=2).flatten()[:, None, None]
+    * 0.75
 ) + 1e-16
-noise = np.random.randn(dpred.shape[0]) * ( #1e-15)
-            np.abs(dpred) * 0.02
-)
+noise = np.random.randn(dpred.shape[0]) * (np.abs(dpred) * 0.02)  # 1e-15)
 
 data_object = data.Data(
     survey,
@@ -349,13 +357,16 @@ data_object = data.Data(
     # noise_floor=np.abs(dpred) * 0.1 + 1e-13
 )
 
-dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object, model_map=maps.IdentityMap(nP=nC))
+dmis = data_misfit.L2DataMisfit(
+    simulation=simulation, data=data_object, model_map=maps.IdentityMap(nP=nC)
+)
 
 reg = regularization.Sparse(
-    mesh, alpha_s=0.,
+    mesh,
+    alpha_s=0.0,
     active_cells=ind_active,
     mapping=maps.IdentityMap(nP=nC),
-    gradient_type="total"
+    gradient_type="total",
 )
 m0 = np.log(2e-3) * np.ones(nC)
 reg.mref = np.log(1e-3) * np.ones(nC)
@@ -368,12 +379,14 @@ opt = optimization.ProjectedGNCG(
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 directive_list = [
     directives.UpdateSensitivityWeights(threshold=5),
-    directives.SaveIterationsGeoH5(octree, transforms=[plotting_map], sorting=mesh._ubc_order),
+    directives.SaveIterationsGeoH5(
+        octree, transforms=[plotting_map], sorting=mesh._ubc_order
+    ),
     directives.SaveIterationsGeoH5(
         tem_survey,
         attribute_type="predicted",
         channels=[f"{val:.2e}" for val in time_channels],
-        association="VERTEX"
+        association="VERTEX",
     ),
     directives.Update_IRLS(
         max_irls_iterations=2,
@@ -384,12 +397,10 @@ directive_list = [
         chifact_target=1.0,
     ),
     directives.UpdatePreconditioner(),
-    directives.BetaEstimate_ByEig(beta0_ratio=5e+2, method="old")
+    directives.BetaEstimate_ByEig(beta0_ratio=5e2, method="old"),
 ]
 
-inv = inversion.BaseInversion(
-    inv_prob, directiveList=directive_list
-)
+inv = inversion.BaseInversion(inv_prob, directiveList=directive_list)
 
 # Run the inversion
 mrec = inv.run(m0)
@@ -400,7 +411,7 @@ recovered_conductivity_model_log10 = np.log10(plotting_map * mrec)
 
 fig = plt.figure(figsize=(10, 8))
 
-ax1 = plt.subplot(2,1,2)
+ax1 = plt.subplot(2, 1, 2)
 im = mesh.plotSlice(
     recovered_conductivity_model_log10,
     ax=ax1,
@@ -415,11 +426,11 @@ plt.colorbar(im[0])
 ax1.set_ylabel("z (m)")
 ax1.set_xlim([-500, 500])
 ax1.set_ylim([-500, 0])
-ax1.set_aspect('equal')
+ax1.set_aspect("equal")
 plt.show()
 
 if hasattr(inv_prob, "l2model"):
-    ax2 = plt.subplot(2,1,1)
+    ax2 = plt.subplot(2, 1, 1)
     im = mesh.plotSlice(
         np.log10(plotting_map * inv_prob.l2model),
         normal="Y",
@@ -434,7 +445,7 @@ if hasattr(inv_prob, "l2model"):
     plt.colorbar(im[0])
     ax2.set_xlim([-500, 500])
     ax2.set_ylim([-500, 0])
-    ax2.set_aspect('equal')
+    ax2.set_aspect("equal")
     plt.show()
 #######################################################
 # Optional: Export Data
@@ -444,7 +455,7 @@ if hasattr(inv_prob, "l2model"):
 #
 
 plt.figure()
-axs = plt.subplot(2,1,2)
+axs = plt.subplot(2, 1, 2)
 plt.plot(reshape(dpred).squeeze().T, "k")
 plt.plot(reshape(data_object.dobs).squeeze().T, "b")
 plt.plot(reshape(np.r_[inv_prob.dpred]).squeeze().T, "r")
@@ -455,7 +466,7 @@ axs.set_title("LP Predicted")
 axs.set_ylim([-1e-10, 0])
 
 if hasattr(inv_prob, "l2model"):
-    axs = plt.subplot(2,1,1)
+    axs = plt.subplot(2, 1, 1)
     plt.plot(reshape(dpred).squeeze().T, "k")
     plt.plot(reshape(data_object.dobs).squeeze().T, "b")
     plt.plot(reshape(simulation.dpred(inv_prob.l2model)).squeeze().T, "r")

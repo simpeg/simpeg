@@ -70,7 +70,7 @@ class BaseIPSimulation(BasePDESimulation):
         etaMap=None,
         Ainv=None,  # A DC's Ainv
         _f=None,  # A pre-computed DC field
-        **kwargs
+        **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.sigma = sigma

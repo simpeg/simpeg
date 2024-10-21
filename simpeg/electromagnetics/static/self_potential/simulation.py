@@ -64,7 +64,7 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
             rho=rho,
             sigmaMap=None,
             rhoMap=None,
-            **kwargs
+            **kwargs,
         )
         self.q = q
         self.qMap = qMap
