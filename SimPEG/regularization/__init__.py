@@ -157,12 +157,13 @@ from .base import (
     SmoothnessFirstOrder,
     SmoothnessSecondOrder,
 )
-from .regularization_mesh import RegularizationMesh
+from .regularization_mesh import RegularizationMesh, FaceRegularizationMesh
 from .sparse import BaseSparse, SparseSmallness, SparseSmoothness, Sparse
 from .pgi import PGIsmallness, PGI
 from .cross_gradient import CrossGradient
 from .correspondence import LinearCorrespondence
 from .jtv import JointTotalVariation
+from .hierarchical import BaseFaceRegularization, FaceSmallness
 from .vector import (
     BaseVectorRegularization,
     CrossReferenceRegularization,

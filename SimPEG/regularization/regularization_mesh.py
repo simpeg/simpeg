@@ -589,5 +589,148 @@ class RegularizationMesh(props.BaseSimPEG):
         return self._cell_distances_z
 
 
+class FaceRegularizationMesh(props.BaseSimPEG):
+    """Face Regularization Mesh.
+
+    The ``FaceRegularizationMesh`` class is used to construct differencing and averaging operators
+    for the objective function(s) defining the regularization. In practice, these operators are
+    not constructed by creating instances of ``FaceRegularizationMesh``. The operators are instead
+    constructed (and sometimes stored) when called as a property of the mesh.
+    The ``FaceRegularizationMesh`` class is built using much of the functionality from the
+    :py:class:`discretize.operators.differential_operators.DiffOperators` class.
+    However, operators constructed using the ``FaceRegularizationMesh`` class have been modified to
+    act only on interior faces and active cells in the inversion, thus reducing computational cost.
+
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        Mesh on which the discrete set of model parameters are defined.
+    active_faces : None, (n_faces, ) numpy.ndarray of bool
+        Boolean array defining the set of mesh faces that are active in the inversion.
+        If ``None``, all faces are active.
+    """
+
+    regularization_type = None  # or 'Base'
+    _active_faces = None
+
+    def __init__(self, mesh, active_faces=None, **kwargs):
+        self.mesh = mesh
+        self.active_faces = active_faces
+        utils.set_kwargs(self, **kwargs)
+
+    @property
+    def active_faces(self) -> np.ndarray:
+        """Active faces on the regularization mesh.
+
+        A boolean array defining the faces in the regularization mesh that are active
+        (i.e. updated) throughout the inversion. The values of inactive faces
+        remain equal to their starting model values.
+
+        Returns
+        -------
+        (n_faces, ) array of bool
+
+        Notes
+        -----
+        If the property is set using a ``numpy.ndarray`` of ``int``, the setter interprets the
+        array as representing the indices of the active faces. When called however, the quantity
+        will have been internally converted to a boolean array.
+        """
+        return self._active_faces
+
+    @active_faces.setter
+    def active_faces(self, values: np.ndarray):
+        if getattr(self, "_active_faces", None) is not None and not all(
+            self._active_faces == values
+        ):
+            raise AttributeError(
+                "The RegulatizationMesh already has an 'active_faces' property set."
+            )
+        if values is not None:
+            values = validate_active_indices("values", values, self.mesh.n_faces)
+            # Ensure any cached operators created when
+            # active_faces was None are deleted
+            self._active_areas = None
+            self._Pac = None
+            # self._Pafx = None
+            # self._Pafy = None
+            # self._Pafz = None
+            # self._aveFx2CC = None
+            # self._aveFy2CC = None
+            # self._aveFz2CC = None
+            # self._aveCC2Fx = None
+            # self._aveCC2Fy = None
+            # self._aveCC2Fz = None
+            # self._cell_gradient_x = None
+            # self._cell_gradient_y = None
+            # self._cell_gradient_z = None
+            # self._faceDiffx = None
+            # self._faceDiffy = None
+            # self._faceDiffz = None
+            # self._cell_distances_x = None
+            # self._cell_distances_y = None
+            # self._cell_distances_z = None
+        self._active_faces = values
+
+    @property
+    def active_areas(self) -> np.ndarray:
+        """Areas of active mesh face.
+
+        Returns
+        -------
+        (n_active, ) numpy.ndarray of float
+            Areas of active mesh faces.
+        """
+        if self.active_faces is None:
+            return self.mesh.face_areas
+        if getattr(self, "_active_areas", None) is None:
+            self._active_areas = self.mesh.face_areas[self.active_faces]
+        return self._active_areas
+
+    @property
+    def n_faces(self) -> int:
+        """Number of active faces.
+
+        Returns
+        -------
+        int
+            Number of active faces.
+        """
+        if self.active_faces is not None:
+            return int(self.active_faces.sum())
+        return self.mesh.n_faces
+
+    nF = n_faces
+
+    @property
+    def dim(self) -> int:
+        """Dimension of regularization mesh.
+
+        Returns
+        -------
+        {1, 2, 3}
+            Dimension of the regularization mesh.
+        """
+        return self.mesh.dim
+
+    @property
+    def Pac(self) -> sp.csr_matrix:
+        """Projection matrix from active faces to all mesh faces.
+
+        Returns
+        -------
+        (n_faces, n_active) scipy.sparse.csr_matrix
+            Projection matrix from active faces to all mesh faces.
+        """
+        if getattr(self, "_Pac", None) is None:
+            if self.active_faces is None:
+                self._Pac = utils.speye(self.mesh.n_faces)
+            else:
+                self._Pac = utils.speye(self.mesh.n_faces)[:, self.active_faces]
+        return self._Pac
+
+
+
 # Make it look like it's in the regularization module
 RegularizationMesh.__module__ = "simpeg.regularization"
+FaceRegularizationMesh.__module__ = "simpeg.regularization"

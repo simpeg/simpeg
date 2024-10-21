@@ -619,7 +619,8 @@ class Smallness(BaseRegularization):
 
     def __init__(self, mesh, **kwargs):
         super().__init__(mesh, **kwargs)
-        self.set_weights(volume=self.regularization_mesh.vol)
+        vol = self.regularization_mesh.vol
+        self.set_weights(volume=vol)
 
     def f_m(self, m) -> np.ndarray:
         r"""Evaluate the regularization kernel function.
