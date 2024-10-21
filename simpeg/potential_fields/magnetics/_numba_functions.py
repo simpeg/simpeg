@@ -743,9 +743,6 @@ def _forward_tmi_derivative(
         kernel_xy=kernel_enu, kernel_xz=kernel_euu, kernel_yz=kernel_nuu
 
 
-
-
-
     About the model array
     ^^^^^^^^^^^^^^^^^^^^^
 
