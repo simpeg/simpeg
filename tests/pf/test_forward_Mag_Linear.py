@@ -138,7 +138,10 @@ class TestsMagSimulation:
     @pytest.fixture
     def two_blocks(self) -> tuple[np.ndarray, np.ndarray]:
         """
-        The parameters defining two blocks
+        The parameters defining two blocks.
+
+        The boundaries of the prism should match nodes in the mesh, otherwise
+        these blocks won't be exactly represented in the mesh model.
 
         Returns
         -------
@@ -146,8 +149,8 @@ class TestsMagSimulation:
             Tuple of (3, 2) arrays of (xmin, xmax), (ymin, ymax), (zmin, zmax)
             dimensions of each block.
         """
-        block1 = np.array([[-1.5, 1.5], [-1.5, 1.5], [-1.5, 1.5]])
-        block2 = np.array([[-0.7, 0.7], [-0.7, 0.7], [-0.7, 0.7]])
+        block1 = np.array([[-2.5, 0.5], [-3.1, 1.3], [-3.7, 1.5]])
+        block2 = np.array([[0.7, 1.9], [-0.7, 2.7], [-1.7, 0.7]])
         return block1, block2
 
     @pytest.fixture
@@ -246,14 +249,11 @@ class TestsMagSimulation:
         # Compute analytical response from magnetic prism
         block1, block2 = two_blocks
         prism_1 = MagneticPrism(block1[:, 0], block1[:, 1], chi1 * b0 / mu_0)
-        prism_2 = MagneticPrism(block2[:, 0], block2[:, 1], -chi1 * b0 / mu_0)
-        prism_3 = MagneticPrism(block2[:, 0], block2[:, 1], chi2 * b0 / mu_0)
+        prism_2 = MagneticPrism(block2[:, 0], block2[:, 1], chi2 * b0 / mu_0)
 
-        d = (
-            prism_1.magnetic_flux_density(receiver_locations)
-            + prism_2.magnetic_flux_density(receiver_locations)
-            + prism_3.magnetic_flux_density(receiver_locations)
-        )
+        d = prism_1.magnetic_flux_density(
+            receiver_locations
+        ) + prism_2.magnetic_flux_density(receiver_locations)
 
         # TMI projection
         tmi = sim.tmi_projection
@@ -328,13 +328,11 @@ class TestsMagSimulation:
         # Compute analytical response from magnetic prism
         block1, block2 = two_blocks
         prism_1 = MagneticPrism(block1[:, 0], block1[:, 1], chi1 * b0 / mu_0)
-        prism_2 = MagneticPrism(block2[:, 0], block2[:, 1], -chi1 * b0 / mu_0)
-        prism_3 = MagneticPrism(block2[:, 0], block2[:, 1], chi2 * b0 / mu_0)
+        prism_2 = MagneticPrism(block2[:, 0], block2[:, 1], chi2 * b0 / mu_0)
 
         d = (
             prism_1.magnetic_field_gradient(receiver_locations)
             + prism_2.magnetic_field_gradient(receiver_locations)
-            + prism_3.magnetic_field_gradient(receiver_locations)
         ) * mu_0
 
         # Check results
@@ -403,13 +401,11 @@ class TestsMagSimulation:
         # Compute analytical response from magnetic prism
         block1, block2 = two_blocks
         prism_1 = MagneticPrism(block1[:, 0], block1[:, 1], chi1 * b0 / mu_0)
-        prism_2 = MagneticPrism(block2[:, 0], block2[:, 1], -chi1 * b0 / mu_0)
-        prism_3 = MagneticPrism(block2[:, 0], block2[:, 1], chi2 * b0 / mu_0)
+        prism_2 = MagneticPrism(block2[:, 0], block2[:, 1], chi2 * b0 / mu_0)
 
         d = (
             prism_1.magnetic_field_gradient(receiver_locations)
             + prism_2.magnetic_field_gradient(receiver_locations)
-            + prism_3.magnetic_field_gradient(receiver_locations)
         ) * mu_0
 
         # Check results
@@ -487,17 +483,12 @@ class TestsMagSimulation:
             block1[:, 0], block1[:, 1], M1 * np.linalg.norm(b0) / mu_0
         )
         prism_2 = MagneticPrism(
-            block2[:, 0], block2[:, 1], -M1 * np.linalg.norm(b0) / mu_0
-        )
-        prism_3 = MagneticPrism(
             block2[:, 0], block2[:, 1], M2 * np.linalg.norm(b0) / mu_0
         )
 
-        d = (
-            prism_1.magnetic_flux_density(receiver_locations)
-            + prism_2.magnetic_flux_density(receiver_locations)
-            + prism_3.magnetic_flux_density(receiver_locations)
-        )
+        d = prism_1.magnetic_flux_density(
+            receiver_locations
+        ) + prism_2.magnetic_flux_density(receiver_locations)
         tmi = sim.tmi_projection
 
         # Check results
@@ -571,16 +562,12 @@ class TestsMagSimulation:
             block1[:, 0], block1[:, 1], M1 * np.linalg.norm(b0) / mu_0
         )
         prism_2 = MagneticPrism(
-            block2[:, 0], block2[:, 1], -M1 * np.linalg.norm(b0) / mu_0
-        )
-        prism_3 = MagneticPrism(
             block2[:, 0], block2[:, 1], M2 * np.linalg.norm(b0) / mu_0
         )
 
         d = (
             prism_1.magnetic_field_gradient(receiver_locations)
             + prism_2.magnetic_field_gradient(receiver_locations)
-            + prism_3.magnetic_field_gradient(receiver_locations)
         ) * mu_0
 
         # Check results
@@ -659,17 +646,12 @@ class TestsMagSimulation:
             block1[:, 0], block1[:, 1], M1 * np.linalg.norm(b0) / mu_0
         )
         prism_2 = MagneticPrism(
-            block2[:, 0], block2[:, 1], -M1 * np.linalg.norm(b0) / mu_0
-        )
-        prism_3 = MagneticPrism(
             block2[:, 0], block2[:, 1], M2 * np.linalg.norm(b0) / mu_0
         )
 
-        d = (
-            prism_1.magnetic_flux_density(receiver_locations)
-            + prism_2.magnetic_flux_density(receiver_locations)
-            + prism_3.magnetic_flux_density(receiver_locations)
-        )
+        d = prism_1.magnetic_flux_density(
+            receiver_locations
+        ) + prism_2.magnetic_flux_density(receiver_locations)
         d_amp = np.linalg.norm(d, axis=1)
 
         # Check results
