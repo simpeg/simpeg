@@ -368,6 +368,191 @@ def _sensitivity_tmi(
                 )
 
 
+def _sensitivity_tmi_derivative(
+    receivers,
+    nodes,
+    sensitivity_matrix,
+    cell_nodes,
+    regional_field,
+    kernel_xx,
+    kernel_yy,
+    kernel_zz,
+    kernel_xy,
+    kernel_xz,
+    kernel_yz,
+    constant_factor,
+    scalar_model,
+):
+    r"""
+    Fill the sensitivity matrix for a TMI derivative.
+
+    This function should be used with a `numba.jit` decorator, for example:
+
+    .. code::
+
+        from numba import jit
+
+        jit_sens = jit(nopython=True, parallel=True)(_sensitivity_tmi_derivative)
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) array
+        Array with the locations of the receivers
+    nodes : (n_active_nodes, 3) array
+        Array with the location of the mesh nodes.
+    sensitivity_matrix : array
+        Empty 2d array where the sensitivity matrix elements will be filled.
+        This could be a preallocated empty array or a slice of it.
+        The array should have a shape of ``(n_receivers, n_active_nodes)``
+        if ``scalar_model`` is True.
+        The array should have a shape of ``(n_receivers, 3 * n_active_nodes)``
+        if ``scalar_model`` is False.
+    cell_nodes : (n_active_cells, 8) array
+        Array of integers, where each row contains the indices of the nodes for
+        each active cell in the mesh.
+    regional_field : (3,) array
+        Array containing the x, y and z components of the regional magnetic
+        field (uniform background field).
+    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz : callables
+        Kernel functions used for computing the desired TMI derivative.
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+    scalar_model : bool
+        If True, the sensitivity matrix is build to work with scalar models
+        (susceptibilities).
+        If False, the sensitivity matrix is build to work with vector models
+        (effective susceptibilities).
+
+    Notes
+    -----
+
+    About the kernel functions
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    To compute the :math:`\alpha` derivative of the TMI :math:`\Delta T` (with
+    :math:`\alpha \in \{x, y, z\}` we need to evaluate third order kernels
+    functions for the prism. The kernels we need to evaluate can be obtained by
+    fixing one of the subindices to the direction of the derivative
+    (:math:`\alpha`) and cycle through combinations of the other two.
+
+    For ``tmi_x`` we need to pass:
+
+    .. code::
+
+        kernel_xx=kernel_eee, kernel_yy=kernel_enn, kernel_zz=kernel_euu,
+        kernel_xy=kernel_een, kernel_xz=kernel_eeu, kernel_yz=kernel_enu
+
+    For ``tmi_y`` we need to pass:
+
+    .. code::
+
+        kernel_xx=kernel_een, kernel_yy=kernel_nnn, kernel_zz=kernel_nuu,
+        kernel_xy=kernel_enn, kernel_xz=kernel_enu, kernel_yz=kernel_nnu
+
+    For ``tmi_z`` we need to pass:
+
+    .. code::
+
+        kernel_xx=kernel_eeu, kernel_yy=kernel_nnu, kernel_zz=kernel_uuu,
+        kernel_xy=kernel_enu, kernel_xz=kernel_euu, kernel_yz=kernel_nuu
+
+
+    About the model array
+    ^^^^^^^^^^^^^^^^^^^^^
+
+    The ``model`` must always be a 1d array:
+
+    * If ``scalar_model`` is ``True``, then ``model`` should be a 1d array with
+      the same number of elements as active cells in the mesh. It should store
+      the magnetic susceptibilities of each active cell in SI units.
+    * If ``scalar_model`` is ``False``, then ``model`` should be a 1d array
+      with a number of elements equal to three times the active cells in the
+      mesh. It should store the components of the magnetization vector of each
+      active cell in :math:`Am^{-1}`. The order in which the components should
+      be passed are:
+          * every _easting_ component of each active cell,
+          * then every _northing_ component of each active cell,
+          * and finally every _upward_ component of each active cell.
+
+    About the sensitivity matrix
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    Each row of the sensitivity matrix corresponds to a single receiver
+    location.
+
+    If ``scalar_model`` is True, then each element of the row will
+    correspond to the partial derivative of the tmi derivative (spatial)
+    with respect to the susceptibility of each cell in the mesh.
+
+    If ``scalar_model`` is False, then each row can be split in three sections
+    containing:
+
+    * the partial derivatives of the tmi derivative with respect
+      to the _x_ component of the effective susceptibility of each cell; then
+    * the partial derivatives of the tmi derivative with respect
+      to the _y_ component of the effective susceptibility of each cell; and then
+    * the partial derivatives of the tmi derivative with respect
+      to the _z_ component of the effective susceptibility of each cell.
+    """
+    n_receivers = receivers.shape[0]
+    n_nodes = nodes.shape[0]
+    n_cells = cell_nodes.shape[0]
+    fx, fy, fz = regional_field
+    regional_field_amplitude = np.sqrt(fx**2 + fy**2 + fz**2)
+    fx /= regional_field_amplitude
+    fy /= regional_field_amplitude
+    fz /= regional_field_amplitude
+    # Evaluate kernel function on each node, for each receiver location
+    for i in prange(n_receivers):
+        # Allocate vectors for kernels evaluated on mesh nodes
+        kxx, kyy, kzz = np.empty(n_nodes), np.empty(n_nodes), np.empty(n_nodes)
+        kxy, kxz, kyz = np.empty(n_nodes), np.empty(n_nodes), np.empty(n_nodes)
+        # Allocate small vector for the nodes indices for a given cell
+        nodes_indices = np.empty(8, dtype=cell_nodes.dtype)
+        for j in range(n_nodes):
+            dx = nodes[j, 0] - receivers[i, 0]
+            dy = nodes[j, 1] - receivers[i, 1]
+            dz = nodes[j, 2] - receivers[i, 2]
+            distance = np.sqrt(dx**2 + dy**2 + dz**2)
+            kxx[j] = kernel_xx(dx, dy, dz, distance)
+            kyy[j] = kernel_yy(dx, dy, dz, distance)
+            kzz[j] = kernel_zz(dx, dy, dz, distance)
+            kxy[j] = kernel_xy(dx, dy, dz, distance)
+            kxz[j] = kernel_xz(dx, dy, dz, distance)
+            kyz[j] = kernel_yz(dx, dy, dz, distance)
+        # Compute sensitivity matrix elements from the kernel values
+        for k in range(n_cells):
+            nodes_indices = cell_nodes[k, :]
+            uxx = kernels_in_nodes_to_cell(kxx, nodes_indices)
+            uyy = kernels_in_nodes_to_cell(kyy, nodes_indices)
+            uzz = kernels_in_nodes_to_cell(kzz, nodes_indices)
+            uxy = kernels_in_nodes_to_cell(kxy, nodes_indices)
+            uxz = kernels_in_nodes_to_cell(kxz, nodes_indices)
+            uyz = kernels_in_nodes_to_cell(kyz, nodes_indices)
+            bx = uxx * fx + uxy * fy + uxz * fz
+            by = uxy * fx + uyy * fy + uyz * fz
+            bz = uxz * fx + uyz * fy + uzz * fz
+            # Fill the sensitivity matrix element(s) that correspond to the
+            # current active cell
+            if scalar_model:
+                sensitivity_matrix[i, k] = (
+                    constant_factor
+                    * regional_field_amplitude
+                    * (bx * fx + by * fy + bz * fz)
+                )
+            else:
+                sensitivity_matrix[i, k] = (
+                    constant_factor * regional_field_amplitude * bx
+                )
+                sensitivity_matrix[i, k + n_cells] = (
+                    constant_factor * regional_field_amplitude * by
+                )
+                sensitivity_matrix[i, k + 2 * n_cells] = (
+                    constant_factor * regional_field_amplitude * bz
+                )
+
+
 def _forward_mag(
     receivers,
     nodes,
@@ -674,7 +859,7 @@ def _forward_tmi_derivative(
 
         from numba import jit
 
-        jit_forward = jit(nopython=True, parallel=True)(_forward_tmi)
+        jit_forward = jit(nopython=True, parallel=True)(_forward_tmi_derivative)
 
     Parameters
     ----------
@@ -690,8 +875,8 @@ def _forward_tmi_derivative(
         If the model is vector, the ``model`` array should have
         ``3 * n_active_cells`` elements and ``scalar_model`` should be False.
     fields : (n_receivers) array
-        Array full of zeros where the TMI on each receiver will be stored. This
-        could be a preallocated array or a slice of it.
+        Array full of zeros where the TMI derivative on each receiver will be
+        stored. This could be a preallocated array or a slice of it.
     cell_nodes : (n_active_cells, 8) array
         Array of integers, where each row contains the indices of the nodes for
         each active cell in the mesh.
@@ -831,4 +1016,10 @@ _forward_tmi_derivative_parallel = jit(nopython=True, parallel=True)(
 )
 _forward_tmi_derivative_serial = jit(nopython=True, parallel=False)(
     _forward_tmi_derivative
+)
+_sensitivity_tmi_derivative_parallel = jit(nopython=True, parallel=True)(
+    _sensitivity_tmi_derivative
+)
+_sensitivity_tmi_derivative_serial = jit(nopython=True, parallel=False)(
+    _sensitivity_tmi_derivative
 )

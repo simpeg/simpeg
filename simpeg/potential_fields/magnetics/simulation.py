@@ -33,6 +33,8 @@ from ._numba_functions import (
     _forward_mag_serial,
     _forward_tmi_derivative_parallel,
     _forward_tmi_derivative_serial,
+    _sensitivity_tmi_derivative_parallel,
+    _sensitivity_tmi_derivative_serial,
 )
 
 if choclo is not None:
@@ -202,12 +204,14 @@ class Simulation3DIntegral(BasePFSimulation):
                 self._forward_tmi = _forward_tmi_parallel
                 self._forward_mag = _forward_mag_parallel
                 self._forward_tmi_derivative = _forward_tmi_derivative_parallel
+                self._sensitivity_tmi_derivative = _sensitivity_tmi_derivative_parallel
             else:
                 self._sensitivity_tmi = _sensitivity_tmi_serial
                 self._sensitivity_mag = _sensitivity_mag_serial
                 self._forward_tmi = _forward_tmi_serial
                 self._forward_mag = _forward_mag_serial
                 self._forward_tmi_derivative = _forward_tmi_derivative_serial
+                self._sensitivity_tmi_derivative = _sensitivity_tmi_derivative_serial
 
     @property
     def model_type(self):
@@ -805,6 +809,25 @@ class Simulation3DIntegral(BasePFSimulation):
                         sensitivity_matrix[matrix_slice, :],
                         active_cell_nodes,
                         regional_field,
+                        constant_factor,
+                        scalar_model,
+                    )
+                elif component in ("tmi_x", "tmi_y", "tmi_z"):
+                    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
+                        CHOCLO_KERNELS[component]
+                    )
+                    self._sensitivity_tmi_derivative(
+                        receivers,
+                        active_nodes,
+                        sensitivity_matrix[matrix_slice, :],
+                        active_cell_nodes,
+                        regional_field,
+                        kernel_xx,
+                        kernel_yy,
+                        kernel_zz,
+                        kernel_xy,
+                        kernel_xz,
+                        kernel_yz,
                         constant_factor,
                         scalar_model,
                     )
