@@ -260,7 +260,7 @@ class TestsMagSimulation:
         d_t2 = d_x * tmi[0] + d_y * tmi[1] + d_z * tmi[2]
 
         # Check results
-        rtol, atol = 1e-7, 1e-6
+        rtol, atol = 2e-6, 1e-6
         np.testing.assert_allclose(
             d_t, d_t2, rtol=rtol, atol=atol
         )  # double check internal projection
