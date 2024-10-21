@@ -1,5 +1,6 @@
 import pytest
 
+from collections.abc import Iterable
 import numpy as np
 from discretize import TensorMesh
 from discretize.utils import mesh_builder_xyz, mkvc
@@ -95,15 +96,41 @@ def coordinates():
     return np.c_[mkvc(x), mkvc(y), mkvc(z)]
 
 
-def get_block_model(mesh, phys_property: float):
-    """Build a block model."""
-    model = simpeg.utils.model_builder.add_block(
-        mesh.cell_centers,
-        np.zeros(mesh.n_cells),
-        np.r_[-20, -20],
-        np.r_[20, 20],
-        phys_property,
-    )
+def get_block_model(mesh, phys_property: float | tuple):
+    """
+    Build a block model.
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        Mesh.
+    phys_property : float or tuple of floats
+        Pass a tuple of floats if you want to generate a vector model.
+
+    Returns
+    -------
+    model : np.ndarray
+    """
+    if not isinstance(phys_property, Iterable):
+        model = simpeg.utils.model_builder.add_block(
+            mesh.cell_centers,
+            np.zeros(mesh.n_cells),
+            np.r_[-20, -20],
+            np.r_[20, 20],
+            phys_property,
+        )
+    else:
+        models = tuple(
+            simpeg.utils.model_builder.add_block(
+                mesh.cell_centers,
+                np.zeros(mesh.n_cells),
+                np.r_[-20, -20],
+                np.r_[20, 20],
+                p,
+            )
+            for p in phys_property
+        )
+        model = np.hstack(models)
     return model
 
 
@@ -584,6 +611,7 @@ class TestMagneticEquivalentSourcesForward:
 
     @pytest.mark.parametrize("engine", ("geoana", "choclo"))
     @pytest.mark.parametrize("store_sensitivities", ("ram", "forward_only"))
+    @pytest.mark.parametrize("model_type", ("scalar", "vector"))
     def test_forward_vs_simulation(
         self,
         tensor_mesh,
@@ -592,16 +620,25 @@ class TestMagneticEquivalentSourcesForward:
         magnetic_survey,
         engine,
         store_sensitivities,
+        model_type,
     ):
         """
         Test forward of the eq sources vs. using the integral 3d simulation.
         """
         # Build 3D mesh that is analogous to the 2D mesh with bottom and top
         mesh_3d = get_mesh_3d(tensor_mesh, top=mesh_top, bottom=mesh_bottom)
+        # Build model and mapping
+        if model_type == "scalar":
+            model = get_block_model(tensor_mesh, 0.2e-3)
+        else:
+            model = get_block_model(tensor_mesh, (0.2e-3, -0.1e-3, 0.5e-3))
+        mapping = simpeg.maps.IdentityMap(nP=model.size)
         # Build simulations
-        mapping = get_mapping(tensor_mesh)
         sim_3d = magnetics.Simulation3DIntegral(
-            survey=magnetic_survey, mesh=mesh_3d, chiMap=mapping
+            survey=magnetic_survey,
+            mesh=mesh_3d,
+            chiMap=mapping,
+            model_type=model_type,
         )
         eq_sources = magnetics.SimulationEquivalentSourceLayer(
             mesh=tensor_mesh,
@@ -611,9 +648,9 @@ class TestMagneticEquivalentSourcesForward:
             chiMap=mapping,
             engine=engine,
             store_sensitivities=store_sensitivities,
+            model_type=model_type,
         )
         # Compare predictions of both simulations
-        model = get_block_model(tensor_mesh, 0.2e-3)
         np.testing.assert_allclose(
             sim_3d.dpred(model), eq_sources.dpred(model), atol=1e-7
         )
