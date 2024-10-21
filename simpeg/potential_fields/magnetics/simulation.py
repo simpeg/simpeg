@@ -48,6 +48,8 @@ if choclo is not None:
         "bxz",
         "byz",
         "tmi_x",
+        "tmi_y",
+        "tmi_z",
     }
     CHOCLO_KERNELS = {
         "bx": (choclo.prism.kernel_ee, choclo.prism.kernel_en, choclo.prism.kernel_eu),
@@ -90,6 +92,22 @@ if choclo is not None:
             choclo.prism.kernel_een,
             choclo.prism.kernel_eeu,
             choclo.prism.kernel_enu,
+        ),
+        "tmi_y": (
+            choclo.prism.kernel_een,
+            choclo.prism.kernel_nnn,
+            choclo.prism.kernel_nuu,
+            choclo.prism.kernel_enn,
+            choclo.prism.kernel_enu,
+            choclo.prism.kernel_nnu,
+        ),
+        "tmi_z": (
+            choclo.prism.kernel_eeu,
+            choclo.prism.kernel_nnu,
+            choclo.prism.kernel_uuu,
+            choclo.prism.kernel_enu,
+            choclo.prism.kernel_euu,
+            choclo.prism.kernel_nuu,
         ),
     }
 

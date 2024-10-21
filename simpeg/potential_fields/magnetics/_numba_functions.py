@@ -665,8 +665,104 @@ def _forward_tmi_derivative(
     constant_factor,
     scalar_model,
 ):
-    """
+    r"""
     Forward model a TMI derivative.
+
+    This function should be used with a `numba.jit` decorator, for example:
+
+    .. code::
+
+        from numba import jit
+
+        jit_forward = jit(nopython=True, parallel=True)(_forward_tmi)
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) array
+        Array with the locations of the receivers
+    nodes : (n_active_nodes, 3) array
+        Array with the location of the mesh nodes.
+    model : (n_active_cells) or (3 * n_active_cells)
+        Array with the susceptibility (scalar model) or the effective
+        susceptibility (vector model) of each active cell in the mesh.
+        If the model is scalar, the ``model`` array should have
+        ``n_active_cells`` elements and ``scalar_model`` should be True.
+        If the model is vector, the ``model`` array should have
+        ``3 * n_active_cells`` elements and ``scalar_model`` should be False.
+    fields : (n_receivers) array
+        Array full of zeros where the TMI on each receiver will be stored. This
+        could be a preallocated array or a slice of it.
+    cell_nodes : (n_active_cells, 8) array
+        Array of integers, where each row contains the indices of the nodes for
+        each active cell in the mesh.
+    regional_field : (3,) array
+        Array containing the x, y and z components of the regional magnetic
+        field (uniform background field).
+    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz : callables
+        Kernel functions used for computing the desired TMI derivative.
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+    scalar_model : bool
+        If True, the sensitivity matrix is build to work with scalar models
+        (susceptibilities).
+        If False, the sensitivity matrix is build to work with vector models
+        (effective susceptibilities).
+
+    Notes
+    -----
+
+    About the kernel functions
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    To compute the :math:`\alpha` derivative of the TMI :math:`\Delta T` (with
+    :math:`\alpha \in \{x, y, z\}` we need to evaluate third order kernels
+    functions for the prism. The kernels we need to evaluate can be obtained by
+    fixing one of the subindices to the direction of the derivative
+    (:math:`\alpha`) and cycle through combinations of the other two.
+
+    For ``tmi_x`` we need to pass:
+
+    .. code::
+
+        kernel_xx=kernel_eee, kernel_yy=kernel_enn, kernel_zz=kernel_euu,
+        kernel_xy=kernel_een, kernel_xz=kernel_eeu, kernel_yz=kernel_enu
+
+    For ``tmi_y`` we need to pass:
+
+    .. code::
+
+        kernel_xx=kernel_een, kernel_yy=kernel_nnn, kernel_zz=kernel_nuu,
+        kernel_xy=kernel_enn, kernel_xz=kernel_enu, kernel_yz=kernel_nnu
+
+    For ``tmi_z`` we need to pass:
+
+    .. code::
+
+        kernel_xx=kernel_eeu, kernel_yy=kernel_nnu, kernel_zz=kernel_uuu,
+        kernel_xy=kernel_enu, kernel_xz=kernel_euu, kernel_yz=kernel_nuu
+
+
+
+
+
+    About the model array
+    ^^^^^^^^^^^^^^^^^^^^^
+
+    The ``model`` must always be a 1d array:
+
+    * If ``scalar_model`` is ``True``, then ``model`` should be a 1d array with
+      the same number of elements as active cells in the mesh. It should store
+      the magnetic susceptibilities of each active cell in SI units.
+    * If ``scalar_model`` is ``False``, then ``model`` should be a 1d array
+      with a number of elements equal to three times the active cells in the
+      mesh. It should store the components of the magnetization vector of each
+      active cell in :math:`Am^{-1}`. The order in which the components should
+      be passed are:
+          * every _easting_ component of each active cell,
+          * then every _northing_ component of each active cell,
+          * and finally every _upward_ component of each active cell.
+
     """
     n_receivers = receivers.shape[0]
     n_nodes = nodes.shape[0]

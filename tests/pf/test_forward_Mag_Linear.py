@@ -357,6 +357,87 @@ class TestsMagSimulation:
         ids=["geoana_serial", "geoana_parallel", "choclo_serial", "choclo_parallel"],
     )
     @pytest.mark.parametrize("store_sensitivities", ("ram", "disk", "forward_only"))
+    def test_tmi_derivatives_w_susceptibility(
+        self,
+        engine,
+        parallel_kwargs,
+        store_sensitivities,
+        tmp_path,
+        mag_mesh,
+        two_blocks,
+        receiver_locations,
+        inducing_field,
+    ):
+        """
+        Test TMI derivatives (with susceptibility as model)
+        """
+        (h0_amplitude, h0_inclination, h0_declination), b0 = inducing_field
+        chi1 = 0.01
+        chi2 = 0.02
+        model, active_cells = create_block_model(mag_mesh, two_blocks, (chi1, chi2))
+        model_reduced = model[active_cells]
+        # Create reduced identity map for Linear Problem
+        identity_map = maps.IdentityMap(nP=int(sum(active_cells)))
+
+        components = ["tmi_x", "tmi_y", "tmi_z"]
+        survey = create_mag_survey(
+            components=components,
+            receiver_locations=receiver_locations,
+            inducing_field_params=(h0_amplitude, h0_inclination, h0_declination),
+        )
+        sim = mag.Simulation3DIntegral(
+            mag_mesh,
+            survey=survey,
+            chiMap=identity_map,
+            active_cells=active_cells,
+            sensitivity_path=str(tmp_path / f"{engine}"),
+            store_sensitivities=store_sensitivities,
+            engine=engine,
+            **parallel_kwargs,
+        )
+        data = sim.dpred(model_reduced)
+        tmi_x = data[0 :: len(components)]
+        tmi_y = data[1 :: len(components)]
+        tmi_z = data[2 :: len(components)]
+
+        # Compute analytical response from magnetic prism
+        block1, block2 = two_blocks
+        prism_1 = MagneticPrism(block1[:, 0], block1[:, 1], chi1 * b0 / mu_0)
+        prism_2 = MagneticPrism(block2[:, 0], block2[:, 1], -chi1 * b0 / mu_0)
+        prism_3 = MagneticPrism(block2[:, 0], block2[:, 1], chi2 * b0 / mu_0)
+
+        d = (
+            prism_1.magnetic_field_gradient(receiver_locations)
+            + prism_2.magnetic_field_gradient(receiver_locations)
+            + prism_3.magnetic_field_gradient(receiver_locations)
+        ) * mu_0
+
+        # Check results
+        rtol, atol = 5e-7, 1e-6
+        expected_tmi_x = (
+            d[:, 0, 0] * b0[0] + d[:, 0, 1] * b0[1] + d[:, 0, 2] * b0[2]
+        ) / h0_amplitude
+        expected_tmi_y = (
+            d[:, 1, 0] * b0[0] + d[:, 1, 1] * b0[1] + d[:, 1, 2] * b0[2]
+        ) / h0_amplitude
+        expected_tmi_z = (
+            d[:, 2, 0] * b0[0] + d[:, 2, 1] * b0[1] + d[:, 2, 2] * b0[2]
+        ) / h0_amplitude
+        np.testing.assert_allclose(tmi_x, expected_tmi_x, rtol=rtol, atol=atol)
+        np.testing.assert_allclose(tmi_y, expected_tmi_y, rtol=rtol, atol=atol)
+        np.testing.assert_allclose(tmi_z, expected_tmi_z, rtol=rtol, atol=atol)
+
+    @pytest.mark.parametrize(
+        "engine, parallel_kwargs",
+        [
+            ("geoana", {"n_processes": None}),
+            ("geoana", {"n_processes": 1}),
+            ("choclo", {"numba_parallel": False}),
+            ("choclo", {"numba_parallel": True}),
+        ],
+        ids=["geoana_serial", "geoana_parallel", "choclo_serial", "choclo_parallel"],
+    )
+    @pytest.mark.parametrize("store_sensitivities", ("ram", "disk", "forward_only"))
     def test_magnetic_vector_and_tmi_w_magnetization(
         self,
         engine,
