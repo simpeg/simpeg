@@ -36,6 +36,8 @@ from ._numba_functions import (
     _forward_tmi_2d_mesh_parallel,
     _forward_mag_2d_mesh_serial,
     _forward_mag_2d_mesh_parallel,
+    _forward_tmi_derivative_2d_mesh_serial,
+    _forward_tmi_derivative_2d_mesh_parallel,
     _sensitivity_mag_2d_mesh_serial,
     _sensitivity_mag_2d_mesh_parallel,
     _sensitivity_tmi_2d_mesh_serial,
@@ -918,11 +920,13 @@ class SimulationEquivalentSourceLayer(
                 self._sensitivity_mag = _sensitivity_mag_2d_mesh_parallel
                 self._forward_tmi = _forward_tmi_2d_mesh_parallel
                 self._forward_mag = _forward_mag_2d_mesh_parallel
+                self._forward_tmi_derivative = _forward_tmi_derivative_2d_mesh_parallel
             else:
                 self._sensitivity_tmi = _sensitivity_tmi_2d_mesh_serial
                 self._sensitivity_mag = _sensitivity_mag_2d_mesh_serial
                 self._forward_tmi = _forward_tmi_2d_mesh_serial
                 self._forward_mag = _forward_mag_2d_mesh_serial
+                self._forward_tmi_derivative = _forward_tmi_derivative_2d_mesh_serial
 
     def _forward(self, model):
         """
@@ -977,6 +981,26 @@ class SimulationEquivalentSourceLayer(
                         model,
                         fields[vector_slice],
                         regional_field,
+                        scalar_model,
+                    )
+                elif component in ("tmi_x", "tmi_y", "tmi_z"):
+                    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
+                        CHOCLO_KERNELS[component]
+                    )
+                    self._forward_tmi_derivative(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        model,
+                        fields[vector_slice],
+                        regional_field,
+                        kernel_xx,
+                        kernel_yy,
+                        kernel_zz,
+                        kernel_xy,
+                        kernel_xz,
+                        kernel_yz,
                         scalar_model,
                     )
                 else:

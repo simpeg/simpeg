@@ -20,6 +20,9 @@ MAGNETIC_COMPONENTS = [
     "bxy",
     "bxz",
     "byz",
+    "tmi_x",
+    "tmi_y",
+    "tmi_z",
 ]
 
 
