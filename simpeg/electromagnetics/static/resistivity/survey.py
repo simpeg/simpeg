@@ -285,7 +285,13 @@ class Survey(BaseSurvey):
         )
 
     def drape_electrodes_on_topography(
-        self, mesh, ind_active, option="top", topography=None, force=False
+        self,
+        mesh,
+        active_cells,
+        option="top",
+        topography=None,
+        force=False,
+        ind_active=None,
     ):
         """Shift electrode locations to discrete surface topography.
 
@@ -293,7 +299,7 @@ class Survey(BaseSurvey):
         ----------
         mesh : discretize.TensorMesh or discretize.TreeMesh
             The mesh on which the discretized fields are computed
-        ind_active : numpy.ndarray of int or bool
+        active_cells : numpy.ndarray of int or bool
             Active topography cells
         option :{"top", "center"}
             Define topography at tops of cells or cell centers.
@@ -301,8 +307,21 @@ class Survey(BaseSurvey):
             Surface topography
         force : bool, default = ``False``
             If ``True`` force electrodes to surface even if borehole
+        ind_active : numpy.ndarray of int or bool, optional
+
+            .. deprecated:: 0.23.0
+
+               Argument ``ind_active`` is deprecated in favor of ``active_cells``
+               and will be removed in SimPEG v0.24.0.
 
         """
+        # Deprecate ind_active argument
+        if ind_active is not None:
+            raise TypeError(
+                "'ind_active' has been deprecated and will be removed in "
+                " SimPEG v0.24.0, please use 'active_cells' instead."
+            )
+
         if self.survey_geometry == "surface":
             loc_a = self.locations_a[:, :2]
             loc_b = self.locations_b[:, :2]
@@ -316,7 +335,7 @@ class Survey(BaseSurvey):
             inv_m, inv_n = inv[: len(loc_m)], inv[len(loc_m) :]
 
             electrodes_shifted = drapeTopotoLoc(
-                mesh, unique_electrodes, ind_active=ind_active, option=option
+                mesh, unique_electrodes, active_cells=active_cells, option=option
             )
             a_shifted = electrodes_shifted[inv_a]
             b_shifted = electrodes_shifted[inv_b]
