@@ -101,7 +101,6 @@ def create_mag_survey(
     mag.Survey
         a magnetic Survey instance
     """
-
     receivers = mag.Point(receiver_locations, components=components)
     strenght, inclination, declination = inducing_field_params
     source_field = mag.UniformBackgroundField(
