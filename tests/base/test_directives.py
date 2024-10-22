@@ -7,14 +7,17 @@ from simpeg import (
     maps,
     directives,
     regularization,
-    data_misfit,
     optimization,
     inversion,
     inverse_problem,
     simulation,
 )
+from simpeg.data_misfit import L2DataMisfit
 from simpeg.potential_fields import magnetics as mag
 import shutil
+
+from simpeg.regularization.base import Smallness
+from simpeg.regularization.sparse import Sparse
 
 
 class directivesValidation(unittest.TestCase):
@@ -88,8 +91,8 @@ class ValidationInInversion(unittest.TestCase):
 
         m = np.random.rand(mesh.nC)
 
-        data = sim.make_synthetic_data(m, add_noise=True)
-        dmis = data_misfit.L2DataMisfit(data=data, simulation=sim)
+        data = sim.make_synthetic_data(m, add_noise=True, random_seed=19)
+        dmis = L2DataMisfit(data=data, simulation=sim)
         dmis.W = 1.0 / data.relative_error
 
         # Add directives to the inversion
@@ -391,8 +394,10 @@ def test_save_output_dict(RegClass):
     sim = simulation.ExponentialSinusoidSimulation(
         mesh=mesh, model_map=maps.IdentityMap()
     )
-    data = sim.make_synthetic_data(np.ones(mesh.n_cells), add_noise=True)
-    dmis = data_misfit.L2DataMisfit(data, sim)
+    data = sim.make_synthetic_data(
+        np.ones(mesh.n_cells), add_noise=True, random_seed=20
+    )
+    dmis = L2DataMisfit(data, sim)
 
     opt = optimization.InexactGaussNewton(maxIter=1)
 
@@ -512,9 +517,9 @@ class TestUpdateSensitivityNormalization:
             d_temp.normalization_method = normalization_method
 
 
-class TestSeedProperty:
+class TestRandomSeedProperty:
     """
-    Test ``seed`` setter methods of directives.
+    Test ``random_seed`` setter methods of directives.
     """
 
     directive_classes = (
@@ -526,22 +531,22 @@ class TestSeedProperty:
 
     @pytest.mark.parametrize("directive_class", directive_classes)
     @pytest.mark.parametrize(
-        "seed",
+        "random_seed",
         (42, np.random.default_rng(seed=1), np.array([1, 2])),
         ids=("int", "rng", "array"),
     )
-    def test_valid_seed(self, directive_class, seed):
+    def test_valid_seed(self, directive_class, random_seed):
         "Test if seed setter works as expected on valid seed arguments."
-        directive = directive_class(seed=seed)
-        assert directive.seed is seed
+        directive = directive_class(random_seed=random_seed)
+        assert directive.random_seed is random_seed
 
     @pytest.mark.parametrize("directive_class", directive_classes)
-    @pytest.mark.parametrize("seed", (42.1, np.array([1.0, 2.0])))
-    def test_invalid_seed(self, directive_class, seed):
+    @pytest.mark.parametrize("random_seed", (42.1, np.array([1.0, 2.0])))
+    def test_invalid_seed(self, directive_class, random_seed):
         "Test if seed setter works as expected on valid seed arguments."
         msg = "Unable to initialize the random number generator with "
         with pytest.raises(TypeError, match=msg):
-            directive_class(seed=seed)
+            directive_class(random_seed=random_seed)
 
 
 class TestBetaEstimatorArguments:
@@ -554,23 +559,156 @@ class TestBetaEstimatorArguments:
         """Test on directives.BetaEstimate_ByEig."""
         beta0_ratio = 3.0
         n_pw_iter = 3
-        seed = 42
+        random_seed = 42
         directive = directives.BetaEstimate_ByEig(
-            beta0_ratio=beta0_ratio, n_pw_iter=n_pw_iter, seed=seed
+            beta0_ratio=beta0_ratio, n_pw_iter=n_pw_iter, random_seed=random_seed
         )
         assert directive.beta0_ratio == beta0_ratio
         assert directive.n_pw_iter == n_pw_iter
-        assert directive.seed == seed
+        assert directive.random_seed == random_seed
 
     def test_beta_estimate_max_derivative(self):
         """Test on directives.BetaEstimateMaxDerivative."""
         beta0_ratio = 3.0
-        seed = 42
+        random_seed = 42
         directive = directives.BetaEstimateMaxDerivative(
-            beta0_ratio=beta0_ratio, seed=seed
+            beta0_ratio=beta0_ratio, random_seed=random_seed
         )
         assert directive.beta0_ratio == beta0_ratio
-        assert directive.seed == seed
+        assert directive.random_seed == random_seed
+
+
+class TestDeprecateSeedProperty:
+    """
+    Test deprecation of seed property.
+    """
+
+    CLASSES = (
+        directives.AlphasSmoothEstimate_ByEig,
+        directives.BetaEstimate_ByEig,
+        directives.BetaEstimateMaxDerivative,
+        directives.ScalingMultipleDataMisfits_ByEig,
+    )
+
+    def get_message_duplicated_error(self, old_name, new_name, version="v0.24.0"):
+        msg = (
+            f"Cannot pass both '{new_name}' and '{old_name}'."
+            f"'{old_name}' has been deprecated and will be removed in "
+            f" SimPEG {version}, please use '{new_name}' instead."
+        )
+        return msg
+
+    def get_message_deprecated_warning(self, old_name, new_name, version="v0.24.0"):
+        msg = (
+            f"'{old_name}' has been deprecated and will be removed in "
+            f" SimPEG {version}, please use '{new_name}' instead."
+        )
+        return msg
+
+    @pytest.mark.parametrize("directive", CLASSES)
+    def test_warning_argument(self, directive):
+        """
+        Test if warning is raised after passing ``seed`` to the constructor.
+        """
+        msg = self.get_message_deprecated_warning("seed", "random_seed")
+        seed = 42135
+        with pytest.warns(FutureWarning, match=msg):
+            directive_instance = directive(seed=42135)
+        assert directive_instance.random_seed == seed
+
+    @pytest.mark.parametrize("directive", CLASSES)
+    def test_error_duplicated_argument(self, directive):
+        """
+        Test error after passing ``seed`` and ``random_seed`` to the constructor.
+        """
+        msg = self.get_message_duplicated_error("seed", "random_seed")
+        with pytest.raises(TypeError, match=msg):
+            directive(seed=42, random_seed=42)
+
+    @pytest.mark.parametrize("directive", CLASSES)
+    def test_warning_accessing_property(self, directive):
+        """
+        Test warning when trying to access the ``seed`` property.
+        """
+        directive_obj = directive(random_seed=42)
+        msg = "seed has been deprecated, please use random_seed"
+        with pytest.warns(FutureWarning, match=msg):
+            seed = directive_obj.seed
+        np.testing.assert_allclose(seed, directive_obj.random_seed)
+
+    @pytest.mark.parametrize("directive", CLASSES)
+    def test_warning_setter(self, directive):
+        """
+        Test warning when trying to set the ``seed`` property.
+        """
+        directive_obj = directive(random_seed=42)
+        msg = "seed has been deprecated, please use random_seed"
+        new_seed = 35
+        with pytest.warns(FutureWarning, match=msg):
+            directive_obj.seed = new_seed
+        np.testing.assert_allclose(directive_obj.random_seed, new_seed)
+
+
+class TestUpdateIRLS:
+    """
+    Additional tests to UpdateIRLS directive.
+    """
+
+    @pytest.fixture
+    def mesh(self):
+        """Sample tensor mesh."""
+        return discretize.TensorMesh([4, 4, 4])
+
+    @pytest.fixture
+    def data_misfit(self, mesh):
+        rx = mag.Point(np.vstack([[0.25, 0.25, 0.25], [-0.25, -0.25, 0.25]]))
+        igrf = mag.UniformBackgroundField(
+            receiver_list=[rx], amplitude=5000, inclination=90, declination=0
+        )
+        survey = mag.Survey(igrf)
+        sim = mag.Simulation3DIntegral(
+            mesh, survey=survey, chiMap=maps.IdentityMap(mesh)
+        )
+        model = np.random.default_rng(seed=42).normal(size=mesh.n_cells)
+        data = sim.make_synthetic_data(model, add_noise=True)
+        dmisfit = L2DataMisfit(data=data, simulation=sim)
+        return dmisfit
+
+    def test_end_iter_irls_threshold(self, mesh, data_misfit):
+        """
+        Test if irls_threshold is modified in every regularization term after
+        the IRLS process started.
+        """
+        # Define a regularization combo with sparse and non-sparse terms
+        irls_threshold = 4.5
+        sparse_regularization = Sparse(
+            mesh, norms=[1, 1, 1, 1], irls_threshold=irls_threshold
+        )
+        non_sparse_regularization = Smallness(mesh)
+        reg = 0.1 * sparse_regularization + 0.5 * non_sparse_regularization
+        # Define inversion
+        opt = optimization.ProjectedGNCG()
+        opt.iter = 0  # manually set iter to zero
+        inv_prob = inverse_problem.BaseInvProblem(data_misfit, reg, opt)
+        inv_prob.phi_d = np.nan  # manually set value for phi_d
+        inv_prob.model = np.zeros(mesh.n_cells)  # manually set the model
+        # Define inversion
+        inv = inversion.BaseInversion(inv_prob)
+        irls_cooling_factor = 1.2
+        update_irls = directives.UpdateIRLS(
+            irls_cooling_factor=irls_cooling_factor,
+            inversion=inv,
+            dmisfit=data_misfit,
+            reg=reg,
+        )
+        # Modify metrics to kick in the IRLS process
+        update_irls.metrics.start_irls_iter = 0
+        # Check irls_threshold of the objective function terms after running endIter
+        update_irls.endIter()
+        for obj_fun in sparse_regularization.objfcts:
+            assert obj_fun.irls_threshold == irls_threshold / irls_cooling_factor
+        # The irls_threshold for the sparse_regularization should not be changed
+        assert sparse_regularization.irls_threshold == irls_threshold
 
 
 if __name__ == "__main__":

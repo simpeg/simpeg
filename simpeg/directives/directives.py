@@ -358,22 +358,45 @@ class BaseBetaEstimator(InversionDirective):
     ----------
     beta0_ratio : float
         Desired ratio between data misfit and model objective function at initial beta iteration.
-    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
+    random_seed : None or :class:`~simpeg.typing.RandomSeed`, optional
         Random seed used for random sampling. It can either be an int,
         a predefined Numpy random number generator, or any valid input to
         ``numpy.random.default_rng``.
+    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
+
+        .. deprecated:: 0.23.0
+
+           Argument ``seed`` is deprecated in favor of ``random_seed`` and will
+           be removed in SimPEG v0.24.0.
 
     """
 
     def __init__(
         self,
         beta0_ratio=1.0,
+        random_seed: RandomSeed | None = None,
         seed: RandomSeed | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.beta0_ratio = beta0_ratio
-        self.seed = seed
+
+        # Deprecate seed argument
+        if seed is not None:
+            if random_seed is not None:
+                raise TypeError(
+                    "Cannot pass both 'random_seed' and 'seed'."
+                    "'seed' has been deprecated and will be removed in "
+                    " SimPEG v0.24.0, please use 'random_seed' instead.",
+                )
+            warnings.warn(
+                "'seed' has been deprecated and will be removed in "
+                " SimPEG v0.24.0, please use 'random_seed' instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            random_seed = seed
+        self.random_seed = random_seed
 
     @property
     def beta0_ratio(self):
@@ -392,17 +415,17 @@ class BaseBetaEstimator(InversionDirective):
         )
 
     @property
-    def seed(self):
+    def random_seed(self):
         """Random seed to initialize with.
 
         Returns
         -------
         int, numpy.random.Generator or None
         """
-        return self._seed
+        return self._random_seed
 
-    @seed.setter
-    def seed(self, value):
+    @random_seed.setter
+    def random_seed(self, value):
         try:
             np.random.default_rng(value)
         except TypeError as err:
@@ -411,7 +434,7 @@ class BaseBetaEstimator(InversionDirective):
                 f"a {type(value).__name__}"
             )
             raise TypeError(msg) from err
-        self._seed = value
+        self._random_seed = value
 
     def validate(self, directive_list):
         ind = [isinstance(d, BaseBetaEstimator) for d in directive_list.dList]
@@ -421,6 +444,15 @@ class BaseBetaEstimator(InversionDirective):
         )
 
         return True
+
+    seed = deprecate_property(
+        random_seed,
+        "seed",
+        "random_seed",
+        removal_version="0.24.0",
+        future_warn=True,
+        error=False,
+    )
 
 
 class BetaEstimateMaxDerivative(BaseBetaEstimator):
@@ -437,10 +469,16 @@ class BetaEstimateMaxDerivative(BaseBetaEstimator):
     ----------
     beta0_ratio: float
         Desired ratio between data misfit and model objective function at initial beta iteration.
-    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
+    random_seed : None or :class:`~simpeg.typing.RandomSeed`, optional
         Random seed used for random sampling. It can either be an int,
         a predefined Numpy random number generator, or any valid input to
         ``numpy.random.default_rng``.
+    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
+
+        .. deprecated:: 0.23.0
+
+           Argument ``seed`` is deprecated in favor of ``random_seed`` and will
+           be removed in SimPEG v0.24.0.
 
     Notes
     -----
@@ -470,11 +508,13 @@ class BetaEstimateMaxDerivative(BaseBetaEstimator):
 
     """
 
-    def __init__(self, beta0_ratio=1.0, seed: RandomSeed | None = None, **kwargs):
-        super().__init__(beta0_ratio=beta0_ratio, seed=seed, **kwargs)
+    def __init__(
+        self, beta0_ratio=1.0, random_seed: RandomSeed | None = None, **kwargs
+    ):
+        super().__init__(beta0_ratio=beta0_ratio, random_seed=random_seed, **kwargs)
 
     def initialize(self):
-        rng = np.random.default_rng(seed=self.seed)
+        rng = np.random.default_rng(seed=self.random_seed)
 
         if self.verbose:
             print("Calculating the beta0 parameter.")
@@ -509,10 +549,16 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
         Desired ratio between data misfit and model objective function at initial beta iteration.
     n_pw_iter : int
         Number of power iterations used to estimate largest eigenvalues.
-    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
+    random_seed : None or :class:`~simpeg.typing.RandomSeed`, optional
         Random seed used for random sampling. It can either be an int,
         a predefined Numpy random number generator, or any valid input to
         ``numpy.random.default_rng``.
+    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
+
+        .. deprecated:: 0.23.0
+
+           Argument ``seed`` is deprecated in favor of ``random_seed`` and will
+           be removed in SimPEG v0.24.0.
 
     Notes
     -----
@@ -545,10 +591,13 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
         self,
         beta0_ratio=1.0,
         n_pw_iter=4,
+        random_seed: RandomSeed | None = None,
         seed: RandomSeed | None = None,
         **kwargs,
     ):
-        super().__init__(beta0_ratio=beta0_ratio, seed=seed, **kwargs)
+        super().__init__(
+            beta0_ratio=beta0_ratio, random_seed=random_seed, seed=seed, **kwargs
+        )
         self.n_pw_iter = n_pw_iter
 
     @property
@@ -567,7 +616,7 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
         self._n_pw_iter = validate_integer("n_pw_iter", value, min_val=1)
 
     def initialize(self):
-        rng = np.random.default_rng(seed=self.seed)
+        rng = np.random.default_rng(seed=self.random_seed)
 
         if self.verbose:
             print("Calculating the beta0 parameter.")
@@ -578,13 +627,13 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
             self.dmisfit,
             m,
             n_pw_iter=self.n_pw_iter,
-            seed=rng,
+            random_seed=rng,
         )
         reg_eigenvalue = BetaEstimate_ByEig.eigenvalue_by_power_iteration(
             self.reg,
             m,
             n_pw_iter=self.n_pw_iter,
-            seed=rng,
+            random_seed=rng,
         )
 
         self.ratio = np.asarray(dm_eigenvalue / reg_eigenvalue)
@@ -597,6 +646,7 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
         model,
         n_pw_iter=4,
         fields_list=None,
+        random_seed: RandomSeed | None = None,
         seed: RandomSeed | None = None,
     ):
         r"""Estimate largest eigenvalue in absolute value using power iteration.
@@ -618,10 +668,16 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
             they will be evaluated within the function. If combo_objfct mixs data misfit and regularization
             terms, the list should contains simpeg.fields for the data misfit terms and None for the
             regularization term.
-        seed : None or :class:`~simpeg.typing.RandomSeed`, optional
+        random_seed : None or :class:`~simpeg.typing.RandomSeed`, optional
             Random seed for the initial random guess of eigenvector. It can either
             be an int, a predefined Numpy random number generator, or any valid
             input to ``numpy.random.default_rng``.
+        seed : None or :class:`~simpeg.typing.RandomSeed`, optional
+
+            .. deprecated:: 0.23.0
+
+               Argument ``seed`` is deprecated in favor of ``random_seed`` and will
+               be removed in SimPEG v0.24.0.
 
         Returns
         -------
@@ -646,7 +702,22 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
         selected from a uniform distribution.
 
         """
-        rng = np.random.default_rng(seed=seed)
+        # Deprecate seed argument
+        if seed is not None:
+            if random_seed is not None:
+                raise TypeError(
+                    "Cannot pass both 'random_seed' and 'seed'."
+                    "'seed' has been deprecated and will be removed in "
+                    " SimPEG v0.24.0, please use 'random_seed' instead.",
+                )
+            warnings.warn(
+                "'seed' has been deprecated and will be removed in "
+                " SimPEG v0.24.0, please use 'random_seed' instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            random_seed = seed
+        rng = np.random.default_rng(seed=random_seed)
 
         # Initial guess for eigen-vector
         x0 = rng.random(size=model.shape)
@@ -673,27 +744,34 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
         # Power iteration: estimate eigenvector
         for _ in range(n_pw_iter):
             x1 = 0.0
-            for j, component in enumerate(combo_objfct.components):
-                if hasattr(component.function, "simulation"):  # if data misfit term
-                    aux = component.deriv2(model, v=x0, f=fields_list[j])
+            for j, (mult, obj) in enumerate(
+                zip(combo_objfct.multipliers, combo_objfct.objfcts)
+            ):
+                if hasattr(obj, "simulation"):  # if data misfit term
+                    aux = obj.deriv2(model, v=x0, f=fields_list[j])
+                    if not isinstance(aux, Zero):
+                        x1 += mult * aux
                 else:
-                    aux = component.deriv2(model, v=x0)
-
-                x1 += aux
+                    aux = obj.deriv2(model, v=x0)
+                    if not isinstance(aux, Zero):
+                        x1 += mult * aux
             x0 = x1 / np.linalg.norm(x1)
 
         # Compute highest eigenvalue from estimated eigenvector
         eigenvalue = 0.0
-        for j, component in enumerate(combo_objfct.components):
-            if hasattr(component.function, "simulation"):  # if data misfit term
-                eigenvalue += x0.dot(component.deriv2(model, v=x0, f=fields_list[j]))
+        for j, (mult, obj) in enumerate(
+            zip(combo_objfct.multipliers, combo_objfct.objfcts)
+        ):
+            if hasattr(obj, "simulation"):  # if data misfit term
+                eigenvalue += mult * x0.dot(obj.deriv2(model, v=x0, f=fields_list[j]))
             else:
-                eigenvalue += x0.dot(
-                    component.deriv2(
+                eigenvalue += mult * x0.dot(
+                    obj.deriv2(
                         model,
                         v=x0,
                     )
                 )
+
         return eigenvalue
 
 
@@ -777,13 +855,30 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
         self,
         alpha0_ratio=1.0,
         n_pw_iter=4,
+        random_seed: RandomSeed | None = None,
         seed: RandomSeed | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.alpha0_ratio = alpha0_ratio
         self.n_pw_iter = n_pw_iter
-        self.seed = seed
+
+        # Deprecate seed argument
+        if seed is not None:
+            if random_seed is not None:
+                raise TypeError(
+                    "Cannot pass both 'random_seed' and 'seed'."
+                    "'seed' has been deprecated and will be removed in "
+                    " SimPEG v0.24.0, please use 'random_seed' instead.",
+                )
+            warnings.warn(
+                "'seed' has been deprecated and will be removed in "
+                " SimPEG v0.24.0, please use 'random_seed' instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            random_seed = seed
+        self.random_seed = random_seed
 
     @property
     def alpha0_ratio(self):
@@ -816,17 +911,17 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
         self._n_pw_iter = validate_integer("n_pw_iter", value, min_val=1)
 
     @property
-    def seed(self):
+    def random_seed(self):
         """Random seed to initialize with.
 
         Returns
         -------
         int, numpy.random.Generator or None
         """
-        return self._seed
+        return self._random_seed
 
-    @seed.setter
-    def seed(self, value):
+    @random_seed.setter
+    def random_seed(self, value):
         try:
             np.random.default_rng(value)
         except TypeError as err:
@@ -835,11 +930,20 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                 f"a {type(value).__name__}"
             )
             raise TypeError(msg) from err
-        self._seed = value
+        self._random_seed = value
+
+    seed = deprecate_property(
+        random_seed,
+        "seed",
+        "random_seed",
+        removal_version="0.24.0",
+        future_warn=True,
+        error=False,
+    )
 
     def initialize(self):
         """"""
-        rng = np.random.default_rng(seed=self.seed)
+        rng = np.random.default_rng(seed=self.random_seed)
 
         smoothness = []
         smallness = []
@@ -874,7 +978,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
             smallness[0],
             self.invProb.model,
             n_pw_iter=self.n_pw_iter,
-            seed=rng,
+            random_seed=rng,
         )
 
         self.alpha0_ratio = self.alpha0_ratio * np.ones(len(smoothness))
@@ -890,7 +994,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                 obj,
                 self.invProb.model,
                 n_pw_iter=self.n_pw_iter,
-                seed=rng,
+                random_seed=rng,
             )
             ratio = smallness_eigenvalue / smooth_i_eigenvalue
 
@@ -916,13 +1020,30 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
         self,
         chi0_ratio=None,
         n_pw_iter=4,
+        random_seed: RandomSeed | None = None,
         seed: RandomSeed | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.chi0_ratio = chi0_ratio
         self.n_pw_iter = n_pw_iter
-        self.seed = seed
+
+        # Deprecate seed argument
+        if seed is not None:
+            if random_seed is not None:
+                raise TypeError(
+                    "Cannot pass both 'random_seed' and 'seed'."
+                    "'seed' has been deprecated and will be removed in "
+                    " SimPEG v0.24.0, please use 'random_seed' instead.",
+                )
+            warnings.warn(
+                "'seed' has been deprecated and will be removed in "
+                " SimPEG v0.24.0, please use 'random_seed' instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            random_seed = seed
+        self.random_seed = random_seed
 
     @property
     def chi0_ratio(self):
@@ -955,17 +1076,17 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
         self._n_pw_iter = validate_integer("n_pw_iter", value, min_val=1)
 
     @property
-    def seed(self):
+    def random_seed(self):
         """Random seed to initialize with
 
         Returns
         -------
         int, numpy.random.Generator or None
         """
-        return self._seed
+        return self._random_seed
 
-    @seed.setter
-    def seed(self, value):
+    @random_seed.setter
+    def random_seed(self, value):
         try:
             np.random.default_rng(value)
         except TypeError as err:
@@ -974,11 +1095,20 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
                 f"a {type(value).__name__}"
             )
             raise TypeError(msg) from err
-        self._seed = value
+        self._random_seed = value
+
+    seed = deprecate_property(
+        random_seed,
+        "seed",
+        "random_seed",
+        removal_version="0.24.0",
+        future_warn=True,
+        error=False,
+    )
 
     def initialize(self):
         """"""
-        rng = np.random.default_rng(seed=self.seed)
+        rng = np.random.default_rng(seed=self.random_seed)
 
         if self.verbose:
             print("Calculating the scaling parameter.")
@@ -1002,7 +1132,7 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
         dm_eigenvalue_list = []
         for dm in self.dmisfit.objfcts:
             dm_eigenvalue_list += [
-                BetaEstimate_ByEig.eigenvalue_by_power_iteration(dm, m, seed=rng)
+                BetaEstimate_ByEig.eigenvalue_by_power_iteration(dm, m, random_seed=rng)
             ]
 
         self.chi0 = self.chi0_ratio / np.r_[dm_eigenvalue_list]

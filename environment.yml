@@ -20,7 +20,7 @@ dependencies:
   - dask
   - zarr
   - fsspec>=0.3.3
-  - choclo
+  - choclo>=0.3.0
   - scooby
   - plotly
   - scikit-learn>=1.2
