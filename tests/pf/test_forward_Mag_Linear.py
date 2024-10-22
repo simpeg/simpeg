@@ -1,3 +1,4 @@
+from __future__ import annotations
 import discretize
 import numpy as np
 import pytest
@@ -110,6 +111,26 @@ def create_mag_survey(
         declination=declination,
     )
     return mag.Survey(source_field)
+
+
+def get_shifted_locations(
+    receiver_locations: np.ndarray, delta: float, direction: str
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Shift the locations of receivers along a particular direction.
+    """
+    if direction == "x":
+        index = 0
+    elif direction == "y":
+        index = 1
+    elif direction == "z":
+        index = 2
+    else:
+        raise ValueError(f"Invalid direction '{direction}'")
+    plus, minus = receiver_locations.copy(), receiver_locations.copy()
+    plus[:, index] += delta / 2.0
+    minus[:, index] -= delta / 2.0
+    return plus, minus
 
 
 class TestsMagSimulation:
@@ -657,6 +678,73 @@ class TestsMagSimulation:
         # Check results
         rtol, atol = 5e-7, 1e-6
         np.testing.assert_allclose(data, d_amp, rtol=rtol, atol=atol)
+
+    @pytest.mark.parametrize("engine", ("geoana", "choclo"))
+    @pytest.mark.parametrize("direction", ("x", "y", "z"))
+    def test_tmi_derivatives_finite_diff(
+        self,
+        engine,
+        direction,
+        mag_mesh,
+        two_blocks,
+        receiver_locations,
+        inducing_field,
+    ):
+        """
+        Test tmi derivatives against finite differences.
+
+        Use float64 elements in the sensitivity matrix to avoid numerical
+        instabilities due to small values of delta.
+        """
+        # Get inducing field and two blocks model
+        inducing_field_params, b0 = inducing_field
+        chi1, chi2 = 0.01, 0.02
+        model, active_cells = create_block_model(mag_mesh, two_blocks, (chi1, chi2))
+        model_reduced = model[active_cells]
+        identity_map = maps.IdentityMap(nP=int(sum(active_cells)))
+        # Create survey to compute tmi derivative through analytic solution
+        survey = create_mag_survey(
+            components=f"tmi_{direction}",
+            receiver_locations=receiver_locations,
+            inducing_field_params=inducing_field_params,
+        )
+        kwargs = dict(
+            chiMap=identity_map,
+            active_cells=active_cells,
+            engine=engine,
+            sensitivity_dtype=np.float64,
+        )
+        simulation = mag.Simulation3DIntegral(
+            mag_mesh,
+            survey=survey,
+            **kwargs,
+        )
+        # Create shifted surveys to compute tmi derivatives through finite differences
+        delta = 1e-6
+        shifted_surveys = [
+            create_mag_survey(
+                components="tmi",
+                receiver_locations=shifted_locations,
+                inducing_field_params=inducing_field_params,
+            )
+            for shifted_locations in get_shifted_locations(
+                receiver_locations, delta, direction
+            )
+        ]
+        simulations_tmi = [
+            mag.Simulation3DIntegral(mag_mesh, survey=shifted_survey, **kwargs)
+            for shifted_survey in shifted_surveys
+        ]
+        # Compute tmi derivatives
+        tmi_derivative = simulation.dpred(model_reduced)
+        # Compute tmi derivatives with finite differences
+        tmis = [sim.dpred(model_reduced) for sim in simulations_tmi]
+        tmi_derivative_finite_diff = (tmis[0] - tmis[1]) / delta
+        # Compare results
+        rtol, atol = 1e-6, 5e-6
+        np.testing.assert_allclose(
+            tmi_derivative, tmi_derivative_finite_diff, rtol=rtol, atol=atol
+        )
 
     @pytest.mark.parametrize("engine", ("choclo", "geoana"))
     @pytest.mark.parametrize("store_sensitivities", ("ram", "disk", "forward_only"))
