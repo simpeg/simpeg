@@ -490,19 +490,23 @@ class TestMagneticEquivalentSourcesForward:
     @pytest.mark.parametrize("engine", ("geoana", "choclo"))
     @pytest.mark.parametrize("store_sensitivities", ("ram", "forward_only"))
     @pytest.mark.parametrize("model_type", ("scalar", "vector"))
+    @pytest.mark.parametrize("components", MAGNETIC_COMPONENTS + [["tmi", "bx"]])
     def test_forward_vs_simulation(
         self,
+        coordinates,
         tensor_mesh,
         mesh_bottom,
         mesh_top,
-        magnetic_survey,
         engine,
         store_sensitivities,
         model_type,
+        components,
     ):
         """
         Test forward of the eq sources vs. using the integral 3d simulation.
         """
+        # Build survey
+        survey = build_magnetic_survey(coordinates, components)
         # Build 3D mesh that is analogous to the 2D mesh with bottom and top
         mesh_3d = get_mesh_3d(tensor_mesh, top=mesh_top, bottom=mesh_bottom)
         # Build model and mapping
@@ -513,50 +517,10 @@ class TestMagneticEquivalentSourcesForward:
         mapping = simpeg.maps.IdentityMap(nP=model.size)
         # Build simulations
         sim_3d = magnetics.Simulation3DIntegral(
-            survey=magnetic_survey,
+            survey=survey,
             mesh=mesh_3d,
             chiMap=mapping,
             model_type=model_type,
-        )
-        eq_sources = magnetics.SimulationEquivalentSourceLayer(
-            mesh=tensor_mesh,
-            cell_z_top=mesh_top,
-            cell_z_bottom=mesh_bottom,
-            survey=magnetic_survey,
-            chiMap=mapping,
-            engine=engine,
-            store_sensitivities=store_sensitivities,
-            model_type=model_type,
-        )
-        # Compare predictions of both simulations
-        np.testing.assert_allclose(
-            sim_3d.dpred(model), eq_sources.dpred(model), atol=1e-7
-        )
-
-    @pytest.mark.parametrize("engine", ("geoana", "choclo"))
-    @pytest.mark.parametrize("store_sensitivities", ("ram", "forward_only"))
-    @pytest.mark.parametrize("components", MAGNETIC_COMPONENTS + [["tmi", "bx"]])
-    def test_forward_vs_simulation_with_components(
-        self,
-        coordinates,
-        tensor_mesh,
-        mesh_bottom,
-        mesh_top,
-        engine,
-        store_sensitivities,
-        components,
-    ):
-        """
-        Test forward vs simulation using different magnetic components.
-        """
-        # Build survey
-        survey = build_magnetic_survey(coordinates, components)
-        # Build 3D mesh that is analogous to the 2D mesh with bottom and top
-        mesh_3d = get_mesh_3d(tensor_mesh, top=mesh_top, bottom=mesh_bottom)
-        # Build simulations
-        mapping = get_mapping(tensor_mesh)
-        sim_3d = magnetics.Simulation3DIntegral(
-            survey=survey, mesh=mesh_3d, chiMap=mapping
         )
         eq_sources = magnetics.SimulationEquivalentSourceLayer(
             mesh=tensor_mesh,
@@ -566,9 +530,9 @@ class TestMagneticEquivalentSourcesForward:
             chiMap=mapping,
             engine=engine,
             store_sensitivities=store_sensitivities,
+            model_type=model_type,
         )
         # Compare predictions of both simulations
-        model = get_block_model(tensor_mesh, 0.2e-3)
         np.testing.assert_allclose(
             sim_3d.dpred(model), eq_sources.dpred(model), atol=1e-7
         )
@@ -691,8 +655,9 @@ class TestMagneticEquivalentSourcesForward:
         model = get_block_model(mesh, 0.2e-3)
         np.testing.assert_allclose(sim_geoana.dpred(model), sim_choclo.dpred(model))
 
+    @pytest.mark.parametrize("store_sensitivities", ("ram", "forward_only"))
     def test_forward_choclo_serial_parallel(
-        self, mesh, mesh_bottom, mesh_top, magnetic_survey
+        self, mesh, mesh_bottom, mesh_top, magnetic_survey, store_sensitivities
     ):
         """Test forward using choclo in serial and in parallel."""
         # Build simulations
@@ -704,6 +669,7 @@ class TestMagneticEquivalentSourcesForward:
             survey=magnetic_survey,
             chiMap=mapping,
             engine="choclo",
+            store_sensitivities=store_sensitivities,
         )
         sim_parallel = magnetics.SimulationEquivalentSourceLayer(
             numba_parallel=True, **kwargs
