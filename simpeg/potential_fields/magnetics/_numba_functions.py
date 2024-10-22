@@ -733,6 +733,11 @@ def _forward_mag_2d_mesh(
     """
     n_receivers = receivers.shape[0]
     n_cells = cells_bounds.shape[0]
+    fx, fy, fz = regional_field
+    regional_field_amplitude = np.sqrt(fx**2 + fy**2 + fz**2)
+    fx /= regional_field_amplitude
+    fy /= regional_field_amplitude
+    fz /= regional_field_amplitude
     # Forward model the magnetic component of each cell on each receiver location
     for i in prange(n_receivers):
         for j in range(n_cells):
@@ -741,9 +746,9 @@ def _forward_mag_2d_mesh(
             if scalar_model:
                 # model is susceptibility, so the vector is parallel to the
                 # regional field
-                magnetization_x = model[j] * regional_field[0]
-                magnetization_y = model[j] * regional_field[1]
-                magnetization_z = model[j] * regional_field[2]
+                magnetization_x = model[j] * fx
+                magnetization_y = model[j] * fy
+                magnetization_z = model[j] * fz
             else:
                 # model is effective susceptibility (vector)
                 magnetization_x = model[j]
@@ -751,7 +756,8 @@ def _forward_mag_2d_mesh(
                 magnetization_z = model[j + 2 * n_cells]
             # Forward the magnetic component
             fields[i] += (
-                forward_func(
+                regional_field_amplitude
+                * forward_func(
                     receivers[i, 0],
                     receivers[i, 1],
                     receivers[i, 2],
@@ -858,9 +864,9 @@ def _forward_tmi_2d_mesh(
             if scalar_model:
                 # model is susceptibility, so the vector is parallel to the
                 # regional field
-                magnetization_x = model[j] * regional_field[0]
-                magnetization_y = model[j] * regional_field[1]
-                magnetization_z = model[j] * regional_field[2]
+                magnetization_x = model[j] * fx
+                magnetization_y = model[j] * fy
+                magnetization_z = model[j] * fz
             else:
                 # model is effective susceptibility (vector)
                 magnetization_x = model[j]
@@ -882,8 +888,10 @@ def _forward_tmi_2d_mesh(
                 magnetization_z,
             )
             fields[i] += (
-                bx * fx + by * fy + bz * fz
-            ) / choclo.constants.VACUUM_MAGNETIC_PERMEABILITY
+                regional_field_amplitude
+                * (bx * fx + by * fy + bz * fz)
+                / choclo.constants.VACUUM_MAGNETIC_PERMEABILITY
+            )
 
 
 def _sensitivity_mag_2d_mesh(
