@@ -715,9 +715,9 @@ class TestMagneticEquivalentSourcesForward:
         np.testing.assert_allclose(sim_parallel.dpred(model), sim_serial.dpred(model))
 
 
-class TestGravityEquivalentSources:
+class BaseFittingEquivalentSources:
     """
-    Test fitting equivalent sources with synthetic data.
+    Base class to test the fitting of equivalent sources with synthetic data.
     """
 
     def get_mesh_top_bottom(self, mesh, array=False):
@@ -787,6 +787,12 @@ class TestGravityEquivalentSources:
         inversion = simpeg.inversion.BaseInversion(inverse_problem, directives)
         return inversion
 
+
+class TestGravityEquivalentSources(BaseFittingEquivalentSources):
+    """
+    Test fitting gravity equivalent sources with synthetic data.
+    """
+
     @pytest.mark.parametrize("engine", ("geoana", "choclo"))
     @pytest.mark.parametrize(
         "top_bottom_as_array",
@@ -822,6 +828,61 @@ class TestGravityEquivalentSources:
         )
         # Generate synthetic data
         model = get_block_model(tree_mesh, 2.67)
+        synthetic_data = self.build_synthetic_data(simulation, model)
+        # Build inversion
+        inversion = self.build_inversion(tree_mesh, simulation, synthetic_data)
+        # Run inversion
+        starting_model = np.zeros(tree_mesh.n_cells)
+        recovered_model = inversion.run(starting_model)
+        # Predict data
+        prediction = simulation.dpred(recovered_model)
+        # Check if prediction is close to the synthetic data
+        atol, rtol = 0.005, 1e-5
+        np.testing.assert_allclose(
+            prediction, synthetic_data.dobs, atol=atol, rtol=rtol
+        )
+
+
+class TestMagneticEquivalentSources(BaseFittingEquivalentSources):
+    """
+    Test fitting magnetic equivalent sources with synthetic data.
+    """
+
+    @pytest.mark.parametrize("engine", ("geoana", "choclo"))
+    @pytest.mark.parametrize(
+        "top_bottom_as_array",
+        (False, True),
+        ids=("top-bottom-float", "top-bottom-array"),
+    )
+    def test_predictions_on_data_points(
+        self,
+        tree_mesh,
+        magnetic_survey,
+        top_bottom_as_array,
+        engine,
+    ):
+        """
+        Test eq sources predictions on the same data points.
+
+        The equivalent sources should be able to reproduce the same data with
+        which they were trained.
+        """
+        # Get mesh top and bottom
+        mesh_top, mesh_bottom = self.get_mesh_top_bottom(
+            tree_mesh, array=top_bottom_as_array
+        )
+        # Build simulation
+        mapping = get_mapping(tree_mesh)
+        simulation = magnetics.SimulationEquivalentSourceLayer(
+            tree_mesh,
+            mesh_top,
+            mesh_bottom,
+            survey=magnetic_survey,
+            chiMap=mapping,
+            engine=engine,
+        )
+        # Generate synthetic data
+        model = get_block_model(tree_mesh, 1e-3)
         synthetic_data = self.build_synthetic_data(simulation, model)
         # Build inversion
         inversion = self.build_inversion(tree_mesh, simulation, synthetic_data)
