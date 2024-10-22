@@ -1788,6 +1788,149 @@ def _sensitivity_tmi_2d_mesh(
                 )
 
 
+def _sensitivity_tmi_derivative_2d_mesh(
+    receivers,
+    cells_bounds,
+    top,
+    bottom,
+    sensitivity_matrix,
+    regional_field,
+    kernel_xx,
+    kernel_yy,
+    kernel_zz,
+    kernel_xy,
+    kernel_xz,
+    kernel_yz,
+    scalar_model,
+):
+    r"""
+    Fill the sensitivity matrix TMI for 2d meshes.
+
+    This function is designed to be used with equivalent sources, where the
+    mesh is a 2D mesh (prism layer). The top and bottom boundaries of each cell
+    are passed through the ``top`` and ``bottom`` arrays.
+
+    This function should be used with a `numba.jit` decorator, for example:
+
+    .. code::
+
+        from numba import jit
+
+        jit_tmi = jit(nopython=True, parallel=True)(_sensitivity_tmi_2d_mesh)
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    cells_bounds : (n_active_cells, 4) numpy.ndarray
+        Array with the bounds of each active cell in the 2D mesh. For each row, the
+        bounds should be passed in the following order: ``x_min``, ``x_max``,
+        ``y_min``, ``y_max``.
+    top : (n_active_cells) np.ndarray
+        Array with the top boundaries of each active cell in the 2D mesh.
+    bottom : (n_active_cells) np.ndarray
+        Array with the bottom boundaries of each active cell in the 2D mesh.
+    sensitivity_matrix : array
+        Empty 2d array where the sensitivity matrix elements will be filled.
+        This could be a preallocated empty array or a slice of it.
+        The array should have a shape of ``(n_receivers, n_active_nodes)``
+        if ``scalar_model`` is True.
+        The array should have a shape of ``(n_receivers, 3 * n_active_nodes)``
+        if ``scalar_model`` is False.
+    regional_field : (3,) array
+        Array containing the x, y and z components of the regional magnetic
+        field (uniform background field).
+    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz : callables
+        Kernel functions used for computing the desired TMI derivative.
+    scalar_model : bool
+        If True, the sensitivity matrix is build to work with scalar models
+        (susceptibilities).
+        If False, the sensitivity matrix is build to work with vector models
+        (effective susceptibilities).
+
+    Notes
+    -----
+
+    About the model array
+    ^^^^^^^^^^^^^^^^^^^^^
+
+    The ``model`` must always be a 1d array:
+
+    * If ``scalar_model`` is ``True``, then ``model`` should be a 1d array with
+      the same number of elements as active cells in the mesh. It should store
+      the magnetic susceptibilities of each active cell in SI units.
+    * If ``scalar_model`` is ``False``, then ``model`` should be a 1d array
+      with a number of elements equal to three times the active cells in the
+      mesh. It should store the components of the magnetization vector of each
+      active cell in :math:`Am^{-1}`. The order in which the components should
+      be passed are:
+          * every _easting_ component of each active cell,
+          * then every _northing_ component of each active cell,
+          * and finally every _upward_ component of each active cell.
+    """
+    fx, fy, fz = regional_field
+    regional_field_amplitude = np.sqrt(fx**2 + fy**2 + fz**2)
+    fx /= regional_field_amplitude
+    fy /= regional_field_amplitude
+    fz /= regional_field_amplitude
+
+    constant_factor = 1 / 4 / np.pi
+
+    # Fill the sensitivity matrix
+    n_receivers = receivers.shape[0]
+    n_cells = cells_bounds.shape[0]
+    for i in prange(n_receivers):
+        for j in range(n_cells):
+            # Evaluate kernels for the current cell and receiver
+            uxx, uyy, uzz = evaluate_kernels_on_cell(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                kernel_xx,
+                kernel_yy,
+                kernel_zz,
+            )
+            uxy, uxz, uyz = evaluate_kernels_on_cell(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                kernel_xy,
+                kernel_xz,
+                kernel_yz,
+            )
+            bx = uxx * fx + uxy * fy + uxz * fz
+            by = uxy * fx + uyy * fy + uyz * fz
+            bz = uxz * fx + uyz * fy + uzz * fz
+            if scalar_model:
+                sensitivity_matrix[i, j] = (
+                    constant_factor
+                    * regional_field_amplitude
+                    * (bx * fx + by * fy + bz * fz)
+                )
+            else:
+                sensitivity_matrix[i, j] = (
+                    constant_factor * regional_field_amplitude * bx
+                )
+                sensitivity_matrix[i, j + n_cells] = (
+                    constant_factor * regional_field_amplitude * by
+                )
+                sensitivity_matrix[i, j + 2 * n_cells] = (
+                    constant_factor * regional_field_amplitude * bz
+                )
+
+
 _sensitivity_tmi_serial = jit(nopython=True, parallel=False)(_sensitivity_tmi)
 _sensitivity_tmi_parallel = jit(nopython=True, parallel=True)(_sensitivity_tmi)
 _forward_tmi_serial = jit(nopython=True, parallel=False)(_forward_tmi)
@@ -1829,4 +1972,10 @@ _sensitivity_tmi_2d_mesh_serial = jit(nopython=True, parallel=False)(
 )
 _sensitivity_tmi_2d_mesh_parallel = jit(nopython=True, parallel=True)(
     _sensitivity_tmi_2d_mesh
+)
+_sensitivity_tmi_derivative_2d_mesh_serial = jit(nopython=True, parallel=False)(
+    _sensitivity_tmi_derivative_2d_mesh
+)
+_sensitivity_tmi_derivative_2d_mesh_parallel = jit(nopython=True, parallel=True)(
+    _sensitivity_tmi_derivative_2d_mesh
 )
