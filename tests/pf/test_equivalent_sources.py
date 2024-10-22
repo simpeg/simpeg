@@ -482,128 +482,6 @@ class TestGravityEquivalentSourcesForward:
         np.testing.assert_allclose(sim_parallel.dpred(model), sim_serial.dpred(model))
 
 
-class TestGravityEquivalentSources:
-    """
-    Test fitting equivalent sources with synthetic data.
-    """
-
-    def get_mesh_top_bottom(self, mesh, array=False):
-        """Build the top and bottom boundaries of the mesh.
-
-        If array is True, the outputs are going to be arrays, otherwise they'll
-        be floats.
-        """
-        top, bottom = -20.0, -50.0
-        if array:
-            rng = np.random.default_rng(seed=42)
-            mesh_top = np.full(mesh.n_cells, fill_value=top) + rng.normal(
-                scale=0.5, size=mesh.n_cells
-            )
-            mesh_bottom = np.full(mesh.n_cells, fill_value=bottom) + rng.normal(
-                scale=0.5, size=mesh.n_cells
-            )
-        else:
-            mesh_top, mesh_bottom = top, bottom
-        return mesh_top, mesh_bottom
-
-    def build_synthetic_data(self, simulation, model):
-        data = simulation.make_synthetic_data(
-            model,
-            relative_error=0.0,
-            noise_floor=1e-3,
-            add_noise=True,
-            random_seed=1,
-        )
-        return data
-
-    def build_inversion(self, mesh, simulation, synthetic_data):
-        """Build inversion problem."""
-        # Build data misfit and regularization terms
-        data_misfit = simpeg.data_misfit.L2DataMisfit(
-            simulation=simulation, data=synthetic_data
-        )
-        regularization = simpeg.regularization.WeightedLeastSquares(mesh=mesh)
-        # Choose optimization
-        optimization = ProjectedGNCG(
-            maxIterLS=5,
-            maxIterCG=20,
-            tolCG=1e-4,
-        )
-        # Build inverse problem
-        inverse_problem = simpeg.inverse_problem.BaseInvProblem(
-            data_misfit, regularization, optimization
-        )
-        # Define directives
-        starting_beta = simpeg.directives.BetaEstimate_ByEig(
-            beta0_ratio=1e-1, random_seed=42
-        )
-        beta_schedule = simpeg.directives.BetaSchedule(coolingFactor=3, coolingRate=1)
-        update_jacobi = simpeg.directives.UpdatePreconditioner()
-        target_misfit = simpeg.directives.TargetMisfit(chifact=1)
-        sensitivity_weights = simpeg.directives.UpdateSensitivityWeights(
-            every_iteration=False
-        )
-        directives = [
-            sensitivity_weights,
-            starting_beta,
-            beta_schedule,
-            update_jacobi,
-            target_misfit,
-        ]
-        # Define inversion
-        inversion = simpeg.inversion.BaseInversion(inverse_problem, directives)
-        return inversion
-
-    @pytest.mark.parametrize("engine", ("geoana", "choclo"))
-    @pytest.mark.parametrize(
-        "top_bottom_as_array",
-        (False, True),
-        ids=("top-bottom-float", "top-bottom-array"),
-    )
-    def test_predictions_on_data_points(
-        self,
-        tree_mesh,
-        gravity_survey,
-        top_bottom_as_array,
-        engine,
-    ):
-        """
-        Test eq sources predictions on the same data points.
-
-        The equivalent sources should be able to reproduce the same data with
-        which they were trained.
-        """
-        # Get mesh top and bottom
-        mesh_top, mesh_bottom = self.get_mesh_top_bottom(
-            tree_mesh, array=top_bottom_as_array
-        )
-        # Build simulation
-        mapping = get_mapping(tree_mesh)
-        simulation = gravity.SimulationEquivalentSourceLayer(
-            tree_mesh,
-            mesh_top,
-            mesh_bottom,
-            survey=gravity_survey,
-            rhoMap=mapping,
-            engine=engine,
-        )
-        # Generate synthetic data
-        model = get_block_model(tree_mesh, 2.67)
-        synthetic_data = self.build_synthetic_data(simulation, model)
-        # Build inversion
-        inversion = self.build_inversion(tree_mesh, simulation, synthetic_data)
-        # Run inversion
-        starting_model = np.zeros(tree_mesh.n_cells)
-        recovered_model = inversion.run(starting_model)
-        # Predict data
-        prediction = simulation.dpred(recovered_model)
-        # Check if prediction is close to the synthetic data
-        atol, rtol = 0.005, 1e-5
-        np.testing.assert_allclose(
-            prediction, synthetic_data.dobs, atol=atol, rtol=rtol
-        )
-
-
 class TestMagneticEquivalentSourcesForward:
     """
     Test the forward capabilities of the magnetic equivalent sources.
@@ -835,3 +713,125 @@ class TestMagneticEquivalentSourcesForward:
         )
         model = get_block_model(mesh, 0.2e-3)
         np.testing.assert_allclose(sim_parallel.dpred(model), sim_serial.dpred(model))
+
+
+class TestGravityEquivalentSources:
+    """
+    Test fitting equivalent sources with synthetic data.
+    """
+
+    def get_mesh_top_bottom(self, mesh, array=False):
+        """Build the top and bottom boundaries of the mesh.
+
+        If array is True, the outputs are going to be arrays, otherwise they'll
+        be floats.
+        """
+        top, bottom = -20.0, -50.0
+        if array:
+            rng = np.random.default_rng(seed=42)
+            mesh_top = np.full(mesh.n_cells, fill_value=top) + rng.normal(
+                scale=0.5, size=mesh.n_cells
+            )
+            mesh_bottom = np.full(mesh.n_cells, fill_value=bottom) + rng.normal(
+                scale=0.5, size=mesh.n_cells
+            )
+        else:
+            mesh_top, mesh_bottom = top, bottom
+        return mesh_top, mesh_bottom
+
+    def build_synthetic_data(self, simulation, model):
+        data = simulation.make_synthetic_data(
+            model,
+            relative_error=0.0,
+            noise_floor=1e-3,
+            add_noise=True,
+            random_seed=1,
+        )
+        return data
+
+    def build_inversion(self, mesh, simulation, synthetic_data):
+        """Build inversion problem."""
+        # Build data misfit and regularization terms
+        data_misfit = simpeg.data_misfit.L2DataMisfit(
+            simulation=simulation, data=synthetic_data
+        )
+        regularization = simpeg.regularization.WeightedLeastSquares(mesh=mesh)
+        # Choose optimization
+        optimization = ProjectedGNCG(
+            maxIterLS=5,
+            maxIterCG=20,
+            tolCG=1e-4,
+        )
+        # Build inverse problem
+        inverse_problem = simpeg.inverse_problem.BaseInvProblem(
+            data_misfit, regularization, optimization
+        )
+        # Define directives
+        starting_beta = simpeg.directives.BetaEstimate_ByEig(
+            beta0_ratio=1e-1, random_seed=42
+        )
+        beta_schedule = simpeg.directives.BetaSchedule(coolingFactor=3, coolingRate=1)
+        update_jacobi = simpeg.directives.UpdatePreconditioner()
+        target_misfit = simpeg.directives.TargetMisfit(chifact=1)
+        sensitivity_weights = simpeg.directives.UpdateSensitivityWeights(
+            every_iteration=False
+        )
+        directives = [
+            sensitivity_weights,
+            starting_beta,
+            beta_schedule,
+            update_jacobi,
+            target_misfit,
+        ]
+        # Define inversion
+        inversion = simpeg.inversion.BaseInversion(inverse_problem, directives)
+        return inversion
+
+    @pytest.mark.parametrize("engine", ("geoana", "choclo"))
+    @pytest.mark.parametrize(
+        "top_bottom_as_array",
+        (False, True),
+        ids=("top-bottom-float", "top-bottom-array"),
+    )
+    def test_predictions_on_data_points(
+        self,
+        tree_mesh,
+        gravity_survey,
+        top_bottom_as_array,
+        engine,
+    ):
+        """
+        Test eq sources predictions on the same data points.
+
+        The equivalent sources should be able to reproduce the same data with
+        which they were trained.
+        """
+        # Get mesh top and bottom
+        mesh_top, mesh_bottom = self.get_mesh_top_bottom(
+            tree_mesh, array=top_bottom_as_array
+        )
+        # Build simulation
+        mapping = get_mapping(tree_mesh)
+        simulation = gravity.SimulationEquivalentSourceLayer(
+            tree_mesh,
+            mesh_top,
+            mesh_bottom,
+            survey=gravity_survey,
+            rhoMap=mapping,
+            engine=engine,
+        )
+        # Generate synthetic data
+        model = get_block_model(tree_mesh, 2.67)
+        synthetic_data = self.build_synthetic_data(simulation, model)
+        # Build inversion
+        inversion = self.build_inversion(tree_mesh, simulation, synthetic_data)
+        # Run inversion
+        starting_model = np.zeros(tree_mesh.n_cells)
+        recovered_model = inversion.run(starting_model)
+        # Predict data
+        prediction = simulation.dpred(recovered_model)
+        # Check if prediction is close to the synthetic data
+        atol, rtol = 0.005, 1e-5
+        np.testing.assert_allclose(
+            prediction, synthetic_data.dobs, atol=atol, rtol=rtol
+        )
