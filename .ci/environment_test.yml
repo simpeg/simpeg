@@ -10,9 +10,6 @@ dependencies:
   - geoana>=0.5.0
   - empymod>=2.0.0
 
-# Solver
-  - pydiso
-
 # optional dependencies
   - dask
   - zarr
