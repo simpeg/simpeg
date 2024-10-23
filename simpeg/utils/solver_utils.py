@@ -58,7 +58,10 @@ def get_default_solver() -> Type[Base]:
         The default solver class used by simpeg's simulations.
     """
     warnings.warn(
-        f"Using the default solver: {_DEFAULT_SOLVER.__name__}",
+        f"Using the default solver: {_DEFAULT_SOLVER.__name__}. \n\n"
+        f"If you would like to suppress this notification, add \n"
+        f"warnings.filterwarnings('ignore', simpeg.utils.solver_utils.DefaultSolverWarning)\n"
+        f" to your script.",
         DefaultSolverWarning,
         stacklevel=2,
     )

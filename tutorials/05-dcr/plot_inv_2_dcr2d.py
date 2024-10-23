@@ -367,7 +367,7 @@ true_conductivity_model[ind_conductor] = true_conductor_conductivity
 ind_resistor = model_builder.get_indices_sphere(np.r_[120.0, -180.0], 60.0, mesh.gridCC)
 true_conductivity_model[ind_resistor] = true_resistor_conductivity
 
-true_conductivity_model[~ind_active] = np.NaN
+true_conductivity_model[~ind_active] = np.nan
 
 ############################################################
 # Plotting True and Recovered Conductivity Model
@@ -398,7 +398,7 @@ plt.show()
 fig = plt.figure(figsize=(9, 4))
 
 recovered_conductivity = conductivity_map * recovered_conductivity_model
-recovered_conductivity[~ind_active] = np.NaN
+recovered_conductivity[~ind_active] = np.nan
 
 ax1 = fig.add_axes([0.14, 0.17, 0.68, 0.7])
 mesh.plot_image(

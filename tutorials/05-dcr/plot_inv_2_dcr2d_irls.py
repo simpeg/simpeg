@@ -380,7 +380,7 @@ true_conductivity_model[ind_conductor] = true_conductor_conductivity
 ind_resistor = model_builder.get_indices_sphere(np.r_[120.0, -180.0], 60.0, mesh.gridCC)
 true_conductivity_model[ind_resistor] = true_resistor_conductivity
 
-true_conductivity_model[~ind_active] = np.NaN
+true_conductivity_model[~ind_active] = np.nan
 
 ############################################################
 # Plotting True and Recovered Conductivity Model
@@ -389,10 +389,10 @@ true_conductivity_model[~ind_active] = np.NaN
 
 # Get L2 and sparse recovered model in base 10
 l2_conductivity = conductivity_map * inv_prob.l2model
-l2_conductivity[~ind_active] = np.NaN
+l2_conductivity[~ind_active] = np.nan
 
 recovered_conductivity = conductivity_map * recovered_conductivity_model
-recovered_conductivity[~ind_active] = np.NaN
+recovered_conductivity[~ind_active] = np.nan
 
 # Plot True Model
 norm = LogNorm(vmin=1e-3, vmax=1e-1)
