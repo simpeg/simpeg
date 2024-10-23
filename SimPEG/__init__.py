@@ -157,7 +157,6 @@ from . import utils
 from .utils import mkvc
 from .utils import Report
 from .utils.solver_utils import (
-    _checkAccuracy,
     SolverWrapD,
     SolverWrapI,
     Solver,

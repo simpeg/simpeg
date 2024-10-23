@@ -12,14 +12,16 @@ from geoana.kernels import (
 )
 from scipy.constants import mu_0
 
-from simpeg import Solver, props, utils
+from simpeg import props, utils
 from simpeg.utils import mat_utils, mkvc, sdiag
 from simpeg.utils.code_utils import deprecate_property, validate_string, validate_type
+from simpeg.utils.solver_utils import get_default_solver
 
 from ...base import BaseMagneticPDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
 from .analytics import CongruousMagBC
 from .survey import Survey
+from ..gravity.simulation import _get_cell_bounds
 
 from ._numba_functions import (
     choclo,
@@ -31,6 +33,22 @@ from ._numba_functions import (
     _forward_tmi_serial,
     _forward_mag_parallel,
     _forward_mag_serial,
+    _forward_tmi_2d_mesh_serial,
+    _forward_tmi_2d_mesh_parallel,
+    _forward_mag_2d_mesh_serial,
+    _forward_mag_2d_mesh_parallel,
+    _forward_tmi_derivative_2d_mesh_serial,
+    _forward_tmi_derivative_2d_mesh_parallel,
+    _sensitivity_mag_2d_mesh_serial,
+    _sensitivity_mag_2d_mesh_parallel,
+    _sensitivity_tmi_2d_mesh_serial,
+    _sensitivity_tmi_2d_mesh_parallel,
+    _forward_tmi_derivative_parallel,
+    _forward_tmi_derivative_serial,
+    _sensitivity_tmi_derivative_parallel,
+    _sensitivity_tmi_derivative_serial,
+    _sensitivity_tmi_derivative_2d_mesh_serial,
+    _sensitivity_tmi_derivative_2d_mesh_parallel,
 )
 
 if choclo is not None:
@@ -45,6 +63,9 @@ if choclo is not None:
         "bxy",
         "bxz",
         "byz",
+        "tmi_x",
+        "tmi_y",
+        "tmi_z",
     }
     CHOCLO_KERNELS = {
         "bx": (choclo.prism.kernel_ee, choclo.prism.kernel_en, choclo.prism.kernel_eu),
@@ -80,6 +101,41 @@ if choclo is not None:
             choclo.prism.kernel_nnu,
             choclo.prism.kernel_nuu,
         ),
+        "tmi_x": (
+            choclo.prism.kernel_eee,
+            choclo.prism.kernel_enn,
+            choclo.prism.kernel_euu,
+            choclo.prism.kernel_een,
+            choclo.prism.kernel_eeu,
+            choclo.prism.kernel_enu,
+        ),
+        "tmi_y": (
+            choclo.prism.kernel_een,
+            choclo.prism.kernel_nnn,
+            choclo.prism.kernel_nuu,
+            choclo.prism.kernel_enn,
+            choclo.prism.kernel_enu,
+            choclo.prism.kernel_nnu,
+        ),
+        "tmi_z": (
+            choclo.prism.kernel_eeu,
+            choclo.prism.kernel_nnu,
+            choclo.prism.kernel_uuu,
+            choclo.prism.kernel_enu,
+            choclo.prism.kernel_euu,
+            choclo.prism.kernel_nuu,
+        ),
+    }
+    CHOCLO_FORWARD_FUNCS = {
+        "bx": choclo.prism.magnetic_e,
+        "by": choclo.prism.magnetic_n,
+        "bz": choclo.prism.magnetic_u,
+        "bxx": choclo.prism.magnetic_ee,
+        "byy": choclo.prism.magnetic_nn,
+        "bzz": choclo.prism.magnetic_uu,
+        "bxy": choclo.prism.magnetic_en,
+        "bxz": choclo.prism.magnetic_eu,
+        "byz": choclo.prism.magnetic_nu,
     }
 
 
@@ -172,11 +228,15 @@ class Simulation3DIntegral(BasePFSimulation):
                 self._sensitivity_mag = _sensitivity_mag_parallel
                 self._forward_tmi = _forward_tmi_parallel
                 self._forward_mag = _forward_mag_parallel
+                self._forward_tmi_derivative = _forward_tmi_derivative_parallel
+                self._sensitivity_tmi_derivative = _sensitivity_tmi_derivative_parallel
             else:
                 self._sensitivity_tmi = _sensitivity_tmi_serial
                 self._sensitivity_mag = _sensitivity_mag_serial
                 self._forward_tmi = _forward_tmi_serial
                 self._forward_mag = _forward_mag_serial
+                self._forward_tmi_derivative = _forward_tmi_derivative_serial
+                self._sensitivity_tmi_derivative = _sensitivity_tmi_derivative_serial
 
     @property
     def model_type(self):
@@ -684,6 +744,26 @@ class Simulation3DIntegral(BasePFSimulation):
                         constant_factor,
                         scalar_model,
                     )
+                elif component in ("tmi_x", "tmi_y", "tmi_z"):
+                    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
+                        CHOCLO_KERNELS[component]
+                    )
+                    self._forward_tmi_derivative(
+                        receivers,
+                        active_nodes,
+                        model,
+                        fields[vector_slice],
+                        active_cell_nodes,
+                        regional_field,
+                        kernel_xx,
+                        kernel_yy,
+                        kernel_zz,
+                        kernel_xy,
+                        kernel_xz,
+                        kernel_yz,
+                        constant_factor,
+                        scalar_model,
+                    )
                 else:
                     kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
                     self._forward_mag(
@@ -757,6 +837,25 @@ class Simulation3DIntegral(BasePFSimulation):
                         constant_factor,
                         scalar_model,
                     )
+                elif component in ("tmi_x", "tmi_y", "tmi_z"):
+                    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
+                        CHOCLO_KERNELS[component]
+                    )
+                    self._sensitivity_tmi_derivative(
+                        receivers,
+                        active_nodes,
+                        sensitivity_matrix[matrix_slice, :],
+                        active_cell_nodes,
+                        regional_field,
+                        kernel_xx,
+                        kernel_yy,
+                        kernel_zz,
+                        kernel_xy,
+                        kernel_xz,
+                        kernel_yz,
+                        constant_factor,
+                        scalar_model,
+                    )
                 else:
                     kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
                     self._sensitivity_mag(
@@ -786,9 +885,17 @@ class SimulationEquivalentSourceLayer(
     mesh : discretize.BaseMesh
         A 2D tensor or tree mesh defining discretization along the x and y directions
     cell_z_top : numpy.ndarray or float
-        Define the elevations for the top face of all cells in the layer
+        Define the elevations for the top face of all cells in the layer.
+        If an array it should be the same size as the active cell set.
     cell_z_bottom : numpy.ndarray or float
-        Define the elevations for the bottom face of all cells in the layer
+        Define the elevations for the bottom face of all cells in the layer.
+        If an array it should be the same size as the active cell set.
+    engine : {"geoana", "choclo"}, optional
+        Choose which engine should be used to run the forward model.
+    numba_parallel : bool, optional
+        If True, the simulation will run in parallel. If False, it will
+        run in serial. If ``engine`` is not ``"choclo"`` this argument will be
+        ignored.
 
     """
 
@@ -801,11 +908,6 @@ class SimulationEquivalentSourceLayer(
         numba_parallel=True,
         **kwargs,
     ):
-        if engine == "choclo":
-            raise NotImplementedError(
-                "Magnetic equivalent sources with choclo as engine has not been"
-                " implemented yet. Use 'geoana' instead."
-            )
         super().__init__(
             mesh,
             cell_z_top,
@@ -814,6 +916,208 @@ class SimulationEquivalentSourceLayer(
             numba_parallel=numba_parallel,
             **kwargs,
         )
+
+        if self.engine == "choclo":
+            if self.numba_parallel:
+                self._sensitivity_tmi = _sensitivity_tmi_2d_mesh_parallel
+                self._sensitivity_mag = _sensitivity_mag_2d_mesh_parallel
+                self._forward_tmi = _forward_tmi_2d_mesh_parallel
+                self._forward_mag = _forward_mag_2d_mesh_parallel
+                self._forward_tmi_derivative = _forward_tmi_derivative_2d_mesh_parallel
+                self._sensitivity_tmi_derivative = (
+                    _sensitivity_tmi_derivative_2d_mesh_parallel
+                )
+            else:
+                self._sensitivity_tmi = _sensitivity_tmi_2d_mesh_serial
+                self._sensitivity_mag = _sensitivity_mag_2d_mesh_serial
+                self._forward_tmi = _forward_tmi_2d_mesh_serial
+                self._forward_mag = _forward_mag_2d_mesh_serial
+                self._forward_tmi_derivative = _forward_tmi_derivative_2d_mesh_serial
+                self._sensitivity_tmi_derivative = (
+                    _sensitivity_tmi_derivative_2d_mesh_serial
+                )
+
+    def _forward(self, model):
+        """
+        Forward model the fields of active cells in the mesh on receivers.
+
+        Parameters
+        ----------
+        model : (n_active_cells) or (3 * n_active_cells) array
+            Array containing the susceptibilities (scalar) or effective
+            susceptibilities (vector) of the active cells in the mesh, in SI
+            units.
+            Susceptibilities are expected if ``model_type`` is ``"scalar"``,
+            and the array should have ``n_active_cells`` elements.
+            Effective susceptibilities are expected if ``model_type`` is
+            ``"vector"``, and the array should have ``3 * n_active_cells``
+            elements.
+
+        Returns
+        -------
+        (nD, ) array
+            Always return a ``np.float64`` array.
+        """
+        # Get cells in the 2D mesh
+        cells_bounds = _get_cell_bounds(self.mesh)
+        # Keep only active cells
+        cells_bounds_active = cells_bounds[self.active_cells]
+        # Get regional field
+        regional_field = self.survey.source_field.b0
+        # Allocate fields array
+        fields = np.zeros(self.survey.nD, dtype=self.sensitivity_dtype)
+        # Start computing the fields
+        index_offset = 0
+        scalar_model = self.model_type == "scalar"
+        for components, receivers in self._get_components_and_receivers():
+            if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
+                raise NotImplementedError(
+                    f"Other components besides {CHOCLO_SUPPORTED_COMPONENTS} "
+                    "aren't implemented yet."
+                )
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                vector_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
+                )
+                if component == "tmi":
+                    self._forward_tmi(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        model,
+                        fields[vector_slice],
+                        regional_field,
+                        scalar_model,
+                    )
+                elif component in ("tmi_x", "tmi_y", "tmi_z"):
+                    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
+                        CHOCLO_KERNELS[component]
+                    )
+                    self._forward_tmi_derivative(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        model,
+                        fields[vector_slice],
+                        regional_field,
+                        kernel_xx,
+                        kernel_yy,
+                        kernel_zz,
+                        kernel_xy,
+                        kernel_xz,
+                        kernel_yz,
+                        scalar_model,
+                    )
+                else:
+                    forward_func = CHOCLO_FORWARD_FUNCS[component]
+                    self._forward_mag(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        model,
+                        fields[vector_slice],
+                        regional_field,
+                        forward_func,
+                        scalar_model,
+                    )
+            index_offset += n_rows
+        return fields
+
+    def _sensitivity_matrix(self):
+        """
+        Compute the sensitivity matrix G
+
+        Returns
+        -------
+        (nD, n_active_cells) array
+        """
+        # Get cells in the 2D mesh
+        cells_bounds = _get_cell_bounds(self.mesh)
+        # Keep only active cells
+        cells_bounds_active = cells_bounds[self.active_cells]
+        # Get regional field
+        regional_field = self.survey.source_field.b0
+        # Allocate sensitivity matrix
+        if self.model_type == "scalar":
+            n_columns = self.nC
+        else:
+            n_columns = 3 * self.nC
+        shape = (self.survey.nD, n_columns)
+        if self.store_sensitivities == "disk":
+            sensitivity_matrix = np.memmap(
+                self.sensitivity_path,
+                shape=shape,
+                dtype=self.sensitivity_dtype,
+                order="C",  # it's more efficient to write in row major
+                mode="w+",
+            )
+        else:
+            sensitivity_matrix = np.empty(shape, dtype=self.sensitivity_dtype)
+        # Start filling the sensitivity matrix
+        index_offset = 0
+        scalar_model = self.model_type == "scalar"
+        for components, receivers in self._get_components_and_receivers():
+            if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
+                raise NotImplementedError(
+                    f"Other components besides {CHOCLO_SUPPORTED_COMPONENTS} "
+                    "aren't implemented yet."
+                )
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                matrix_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
+                )
+                if component == "tmi":
+                    self._sensitivity_tmi(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        sensitivity_matrix[matrix_slice, :],
+                        regional_field,
+                        scalar_model,
+                    )
+                elif component in ("tmi_x", "tmi_y", "tmi_z"):
+                    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
+                        CHOCLO_KERNELS[component]
+                    )
+                    self._sensitivity_tmi_derivative(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        sensitivity_matrix[matrix_slice, :],
+                        regional_field,
+                        kernel_xx,
+                        kernel_yy,
+                        kernel_zz,
+                        kernel_xy,
+                        kernel_xz,
+                        kernel_yz,
+                        scalar_model,
+                    )
+                else:
+                    kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
+                    self._sensitivity_mag(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        sensitivity_matrix[matrix_slice, :],
+                        regional_field,
+                        kernel_x,
+                        kernel_y,
+                        kernel_z,
+                        scalar_model,
+                    )
+            index_offset += n_rows
+        return sensitivity_matrix
 
 
 class Simulation3DDifferential(BaseMagneticPDESimulation):
@@ -1313,7 +1617,7 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
 
     # Create an optimization program
     opt = optimization.InexactGaussNewton(maxIter=miter)
-    opt.bfgsH0 = Solver(sp.identity(model.nP), flag="D")
+    opt.bfgsH0 = get_default_solver()(sp.identity(model.nP), flag="D")
     # Create a regularization program
     reg = regularization.WeightedLeastSquares(model)
     # Create an objective function
