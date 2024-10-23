@@ -191,12 +191,14 @@ class BaseSimulation(props.HasModel):
         pymatsolver.base.Base
             Numerical solver used to solve the forward problem.
         """
+        if self._solver is None:
+            # do not cache this, in case the user wants to
+            # change it after the first time it is requested.
+            return get_default_solver()
         return self._solver
 
     @solver.setter
     def solver(self, cls):
-        if cls is None:
-            cls = get_default_solver()
         if cls is not None:
             if not inspect.isclass(cls):
                 raise TypeError(f"solver must be a class, not a {type(cls)}")
