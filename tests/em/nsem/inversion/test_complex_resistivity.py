@@ -31,7 +31,7 @@ class ComplexResistivityTest(unittest.TestCase):
 
         # create background conductivity model
         sigma_back = 1e-2
-        sigma_background = np.zeros(mesh.nC) * sigma_back
+        sigma_background = np.ones(mesh.nC) * sigma_back
         sigma_background[~active] = 1e-8
 
         # create a model to test with
