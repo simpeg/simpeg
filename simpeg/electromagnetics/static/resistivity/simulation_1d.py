@@ -225,8 +225,8 @@ class Simulation1DLayers(BaseSimulation):
             return
         survey = self.survey
 
-        r_min = np.infty
-        r_max = -np.infty
+        r_min = np.inf
+        r_max = -np.inf
 
         for src in survey.source_list:
             src_loc = src.location

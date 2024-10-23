@@ -12,9 +12,10 @@ from geoana.kernels import (
 )
 from scipy.constants import mu_0
 
-from simpeg import Solver, props, utils
+from simpeg import props, utils
 from simpeg.utils import mat_utils, mkvc, sdiag
 from simpeg.utils.code_utils import deprecate_property, validate_string, validate_type
+from simpeg.utils.solver_utils import get_default_solver
 
 from ...base import BaseMagneticPDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
@@ -1616,7 +1617,7 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
 
     # Create an optimization program
     opt = optimization.InexactGaussNewton(maxIter=miter)
-    opt.bfgsH0 = Solver(sp.identity(model.nP), flag="D")
+    opt.bfgsH0 = get_default_solver()(sp.identity(model.nP), flag="D")
     # Create a regularization program
     reg = regularization.WeightedLeastSquares(model)
     # Create an objective function

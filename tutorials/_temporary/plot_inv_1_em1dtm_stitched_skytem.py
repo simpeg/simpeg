@@ -18,7 +18,6 @@ import tarfile
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 from discretize import TensorMesh
-from pymatsolver import PardisoSolver
 
 from simpeg.utils import mkvc
 from simpeg import (
@@ -224,12 +223,11 @@ simulation = em1d.simulation.StitchedEM1DTMSimulation(
     thicknesses=thicknesses,
     sigmaMap=mapping,
     topo=topo,
-    Solver=PardisoSolver,
 )
 
 # simulation = em1d.simulation.StitchedEM1DTMSimulation(
 #     survey=survey, thicknesses=thicknesses, sigmaMap=mapping,
-#     topo=topo, parallel=True, n_cpu=4, verbose=True, Solver=PardisoSolver
+#     topo=topo, parallel=True, n_cpu=4, verbose=True
 # )
 
 
