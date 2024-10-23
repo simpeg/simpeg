@@ -50,7 +50,7 @@ Repository = 'http://github.com/simpeg/simpeg.git'
 
 [project.optional-dependencies]
 dask = ["dask", "zarr", "fsspec>=0.3.3"]
-choclo = ["choclo"]
+choclo = ["choclo>=0.3.0"]
 reporting = ["scooby"]
 plotting = ["plotly"]
 sklearn = ["scikit-learn>=1.2"]
