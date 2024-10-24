@@ -91,13 +91,13 @@ class DistancehWeightingTest(unittest.TestCase):
         )
 
         # distance weighting
-        wz_numpy = utils.distance_weighting(
-            mesh, reference_locs, active_cells=actv, exponent=3, engine="cdist"
+        wz_scipy = utils.distance_weighting(
+            mesh, reference_locs, active_cells=actv, exponent=3, engine="scipy"
         )
         wz_numba = utils.distance_weighting(
-            mesh, reference_locs, active_cells=actv, exponent=3, engine="loop"
+            mesh, reference_locs, active_cells=actv, exponent=3, engine="numba"
         )
-        np.testing.assert_allclose(wz_numpy, wz_numba)
+        np.testing.assert_allclose(wz_scipy, wz_numba)
 
         with self.assertRaises(ValueError):
             utils.distance_weighting(
@@ -119,13 +119,13 @@ class DistancehWeightingTest(unittest.TestCase):
         )
 
         # distance weighting
-        wz_numpy = utils.distance_weighting(
-            mesh, reference_locs, active_cells=actv, exponent=3, engine="cdist"
+        wz_scipy = utils.distance_weighting(
+            mesh, reference_locs, active_cells=actv, exponent=3, engine="scipy"
         )
         wz_numba = utils.distance_weighting(
-            mesh, reference_locs, active_cells=actv, exponent=3, engine="loop"
+            mesh, reference_locs, active_cells=actv, exponent=3, engine="numba"
         )
-        np.testing.assert_allclose(wz_numpy, wz_numba)
+        np.testing.assert_allclose(wz_scipy, wz_numba)
 
     def test_distance_weighting_1D(self):
         # Mesh
@@ -141,13 +141,13 @@ class DistancehWeightingTest(unittest.TestCase):
         )
 
         # distance weighting
-        wz_numpy = utils.distance_weighting(
-            mesh, reference_locs, active_cells=actv, exponent=3, engine="cdist"
+        wz_scipy = utils.distance_weighting(
+            mesh, reference_locs, active_cells=actv, exponent=3, engine="scipy"
         )
         wz_numba = utils.distance_weighting(
-            mesh, reference_locs, active_cells=actv, exponent=3, engine="loop"
+            mesh, reference_locs, active_cells=actv, exponent=3, engine="numba"
         )
-        np.testing.assert_allclose(wz_numpy, wz_numba)
+        np.testing.assert_allclose(wz_scipy, wz_numba)
 
 
 @pytest.fixture
