@@ -124,6 +124,7 @@ class BasePFSimulation(LinearSimulation):
         self.engine = engine
         self.numba_parallel = numba_parallel
         super().__init__(mesh, **kwargs)
+        self.solver = None
         self.n_processes = n_processes
 
         # Check sensitivity_path when engine is "choclo"

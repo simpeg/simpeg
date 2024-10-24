@@ -9,7 +9,7 @@ import warnings
 
 from discretize.base import BaseMesh
 from discretize import TensorMesh
-from discretize.utils import unpack_widths, sdiag, mkvc
+from discretize.utils import unpack_widths, sdiag
 
 from . import props
 from .typing import RandomSeed
@@ -19,6 +19,7 @@ from .utils import (
     Counter,
     timeIt,
     count,
+    mkvc,
     validate_ndarray_with_shape,
     validate_float,
     validate_type,
@@ -27,7 +28,10 @@ from .utils import (
 )
 import uuid
 
-from .utils.solver_utils import get_default_solver
+try:
+    from pymatsolver import Pardiso as DefaultSolver
+except ImportError:
+    from .utils.solver_utils import SolverLU as DefaultSolver
 
 __all__ = ["LinearSimulation", "ExponentialSinusoidSimulation"]
 
@@ -87,6 +91,8 @@ class BaseSimulation(props.HasModel):
     ):
         self.mesh = mesh
         self.survey = survey
+        if solver is None:
+            solver = DefaultSolver
         self.solver = solver
         if solver_opts is None:
             solver_opts = {}
@@ -191,10 +197,6 @@ class BaseSimulation(props.HasModel):
         pymatsolver.base.Base
             Numerical solver used to solve the forward problem.
         """
-        if self._solver is None:
-            # do not cache this, in case the user wants to
-            # change it after the first time it is requested.
-            return get_default_solver()
         return self._solver
 
     @solver.setter
@@ -754,13 +756,11 @@ class LinearSimulation(BaseSimulation):
         "The model for a linear problem"
     )
 
-    # linear simulations do not have a solver so set it to `None` here
-    solver = None
-
     def __init__(self, mesh=None, linear_model=None, model_map=None, G=None, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
         self.linear_model = linear_model
         self.model_map = model_map
+        self.solver = None
         if G is not None:
             self.G = G
 
