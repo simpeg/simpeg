@@ -4,6 +4,7 @@ import scipy.sparse as sp
 from ...data import Data
 from ...simulation import BaseTimeSimulation
 from ...utils import mkvc, sdiag, speye, Zero, validate_type, validate_float
+from ...base import BaseHierarchicalElectricalSimulation
 from ..base import BaseEMSimulation
 from .survey import Survey
 from .fields import (
@@ -798,7 +799,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
         A = 1.0 / dt * I + (C * (MeSigmaI * (C.T.tocsr() * MfMui)))
 
-        if self._makeASymmetric is True:
+        if self._makeASymmetric:
             return MfMui.T.tocsr() * A
         return A
 
@@ -858,13 +859,13 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         MfMui = self.MfMui
 
         if adjoint:
-            if self._makeASymmetric is True:
-                v = MfMui * v
+            if self._makeASymmetric:
+                v *= MfMui
             return self.MeSigmaIDeriv(C.T * (MfMui * u), C.T * v, adjoint)
 
         ADeriv = C * (self.MeSigmaIDeriv(C.T * (MfMui * u), v, adjoint))
 
-        if self._makeASymmetric is True:
+        if self._makeASymmetric:
             return MfMui.T * ADeriv
         return ADeriv
 
@@ -896,7 +897,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         MfMui = self.MfMui
         Asubdiag = -1.0 / dt * sp.eye(self.mesh.n_faces)
 
-        if self._makeASymmetric is True:
+        if self._makeASymmetric:
             return MfMui.T * Asubdiag
 
         return Asubdiag
@@ -986,7 +987,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         s_m, s_e = self.getSourceTerm(tInd)
 
         rhs = C * (MeSigmaI * s_e) + s_m
-        if self._makeASymmetric is True:
+        if self._makeASymmetric:
             return MfMui.T * rhs
         return rhs
 
@@ -1045,8 +1046,8 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         s_mDeriv, s_eDeriv = src.evalDeriv(self, self.times[tInd], adjoint=adjoint)
 
         if adjoint:
-            if self._makeASymmetric is True:
-                v = self.MfMui * v
+            if self._makeASymmetric:
+                v *= self.MfMui
             if isinstance(s_e, Zero):
                 MeSigmaIDerivT_v = Zero()
             else:
@@ -1063,7 +1064,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
         RHSDeriv = C * MeSigmaIDeriv_v + C * MeSigmaI * s_eDeriv(v) + s_mDeriv(v)
 
-        if self._makeASymmetric is True:
+        if self._makeASymmetric:
             return self.MfMui.T * RHSDeriv
         return RHSDeriv
 
@@ -1380,7 +1381,8 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         (n_edges, n_edges) sp.sparse.csr_matrix
             The diagonal system matrix.
         """
-        assert tInd >= 0 and tInd < self.nT
+        if not 0 <= tInd < self.nT:
+            raise ValueError("Time step index must be within [0, nT]")
 
         dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
@@ -1437,13 +1439,10 @@ class Simulation3DElectricField(BaseTDEMSimulation):
             Derivative of system matrix times a vector. (n_edges,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
-        assert tInd >= 0 and tInd < self.nT
+        if not 0 <= tInd < self.nT:
+            raise ValueError("Time step index must be within [0, nT]")
 
         dt = self.time_steps[tInd]
-        # MeSigmaDeriv = self.MeSigmaDeriv(u)
-
-        if adjoint:
-            return 1.0 / dt * self.MeSigmaDeriv(u, v, adjoint)
 
         return 1.0 / dt * self.MeSigmaDeriv(u, v, adjoint)
 
@@ -1471,7 +1470,8 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         (n_edges, n_edges) sp.sparse.csr_matrix
             The sub-diagonal system matrix.
         """
-        assert tInd >= 0 and tInd < self.nT
+        if not 0 <= tInd < self.nT:
+            raise ValueError("Time step index must be within [0, nT]")
 
         dt = self.time_steps[tInd]
 
@@ -1521,10 +1521,10 @@ class Simulation3DElectricField(BaseTDEMSimulation):
             Derivative of system matrix times a vector. (n_edges,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
-        dt = self.time_steps[tInd]
+        if not 0 <= tInd < self.nT:
+            raise ValueError("Time step index must be within [0, nT]")
 
-        if adjoint:
-            return -1.0 / dt * self.MeSigmaDeriv(u, v, adjoint)
+        dt = self.time_steps[tInd]
 
         return -1.0 / dt * self.MeSigmaDeriv(u, v, adjoint)
 
@@ -1869,7 +1869,8 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         (n_edges, n_edges) sp.sparse.csr_matrix
             The diagonal system matrix.
         """
-        assert tInd >= 0 and tInd < self.nT
+        if not 0 <= tInd < self.nT:
+            raise ValueError("Time step index must be within [0, nT]")
 
         dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
@@ -2096,7 +2097,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         C = self.mesh.edge_curl
         s_m, s_e = src.eval(self, self.times[tInd])
 
-        if adjoint is True:
+        if adjoint:
             return self.MfRhoDeriv(s_e, C * v, adjoint)
         # assumes no source derivs
         return C.T * self.MfRhoDeriv(s_e, v, adjoint)
@@ -2342,7 +2343,8 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         (n_faces, n_faces) sp.sparse.csr_matrix
             The diagonal system matrix.
         """
-        assert tInd >= 0 and tInd < self.nT
+        if not 0 <= tInd < self.nT:
+            raise ValueError("Time step index must be within [0, nT]")
 
         dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
@@ -2677,3 +2679,116 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
             #      self.MfRhoIDeriv(G * u, D.T * v, adjoint=True)
             return self.MfRhoIDeriv(G * u, G * v, adjoint=True)
         return D * self.MfRhoIDeriv(G * u, v)
+
+
+###############################################################################
+#                               Hierarchical                                  #
+###############################################################################
+class Simulation3DHierarchicalElectricField(
+    BaseHierarchicalElectricalSimulation, Simulation3DMagneticFluxDensity
+):
+    r"""
+    Solve the EB-formulation of Maxwell's equations for the electric field, e.
+    Takes into account volume, face and edge conductivities.
+
+    Starting with
+
+    .. math::
+
+        \nabla \times \mathbf{e} + \frac{\partial \mathbf{b}}{\partial t} = \mathbf{s_m} \
+        \nabla \times \mu^{-1} \mathbf{b} - \sigma \mathbf{e} = \mathbf{s_e}
+
+
+    we eliminate :math:`\frac{\partial b}{\partial t}` using
+
+    .. math::
+
+        \frac{\partial \mathbf{b}}{\partial t} = - \nabla \times \mathbf{e} + \mathbf{s_m}
+
+
+    taking the time-derivative of Ampere's law, we see
+
+    .. math::
+
+        \frac{\partial}{\partial t}\left( \nabla \times \mu^{-1} \mathbf{b} - \sigma \mathbf{e} \right) = \frac{\partial \mathbf{s_e}}{\partial t} \
+        \nabla \times \mu^{-1} \frac{\partial \mathbf{b}}{\partial t} - \sigma \frac{\partial\mathbf{e}}{\partial t} = \frac{\partial \mathbf{s_e}}{\partial t}
+
+
+    which gives us
+
+    .. math::
+        \nabla \times \mu^{-1} \nabla \times \mathbf{e} + \sigma \frac{\partial\mathbf{e}}{\partial t} = \nabla \times \mu^{-1} \mathbf{s_m} + \frac{\partial \mathbf{s_e}}{\partial t}
+
+    """
+
+    pass
+
+
+class Simulation3DHierarchicalMagneticFluxDensity(
+    BaseHierarchicalElectricalSimulation, Simulation3DMagneticFluxDensity
+):
+    r"""
+    Starting from the quasi-static E-B formulation of Maxwell's equations
+    (semi-discretized)
+
+    .. math::
+
+        \mathbf{C} \mathbf{e} + \frac{\partial \mathbf{b}}{\partial t} =
+        \mathbf{s_m} \\
+        \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
+        \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )
+        \mathbf{e} = \mathbf{s_e}
+
+
+    where :math:`\mathbf{s_e}` is an integrated quantity, we eliminate
+    :math:`\mathbf{e}` using
+
+    .. math::
+
+        \mathbf{e} = \mathbf{M_{\sigma}^e}^{-1} \mathbf{C}^{\top}
+        \mathbf{M_{\mu^{-1}}^f} \mathbf{b} -
+        \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1} \mathbf{s_e}
+
+
+    to obtain a second order semi-discretized system in :math:`\mathbf{b}`
+
+    .. math::
+
+        \mathbf{C} \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1}
+        \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f} \mathbf{b}  +
+        \frac{\partial \mathbf{b}}{\partial t} = \mathbf{C}
+        \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1} \mathbf{s_e} + \mathbf{s_m}
+
+
+    and moving everything except the time derivative to the rhs gives
+
+    .. math::
+        \frac{\partial \mathbf{b}}{\partial t} =
+        -\mathbf{C} \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1} \mathbf{C}^{\top}
+        \mathbf{M_{\mu^{-1}}^f} \mathbf{b} +
+        \mathbf{C} \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1} \mathbf{s_e} + \mathbf{s_m}
+
+    For the time discretization, we use backward euler. To solve for the
+    :math:`n+1` th time step, we have
+
+    .. math::
+
+        \frac{\mathbf{b}^{n+1} - \mathbf{b}^{n}}{\mathbf{dt}} =
+        -\mathbf{C} \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1} \mathbf{C}^{\top}
+        \mathbf{M_{\mu^{-1}}^f} \mathbf{b}^{n+1} +
+        \mathbf{C} \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1} \mathbf{s_e}^{n+1} +
+        \mathbf{s_m}^{n+1}
+
+
+    re-arranging to put :math:`\mathbf{b}^{n+1}` on the left hand side gives
+
+    .. math::
+
+        (\mathbf{I} + \mathbf{dt} \mathbf{C} \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1}
+         \mathbf{C}^{\top} \mathbf{M_{\mu^{-1}}^f}) \mathbf{b}^{n+1} =
+         \mathbf{b}^{n} + \mathbf{dt}(\mathbf{C} \left ( \mathbf{M_{\sigma}^e + M_{\tau}^e + M_{\kappa}^e} \right )^{-1}
+         \mathbf{s_e}^{n+1} + \mathbf{s_m}^{n+1})
+
+    """
+
+    pass

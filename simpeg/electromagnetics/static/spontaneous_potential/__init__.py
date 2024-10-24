@@ -36,7 +36,7 @@ Surveys
 
 Maps
 ====
-The spontaneous potential simulation provides two specialized maps to extend to inversions
+The self potential simulation provides two specialized maps to extend to inversions
 with different types of model sources.
 
 .. autosummary::
