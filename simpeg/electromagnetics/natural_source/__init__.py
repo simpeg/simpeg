@@ -23,6 +23,10 @@ Receivers
 .. autosummary::
   :toctree: generated/
 
+  receivers.Impedance
+  receivers.Admittance
+  receivers.ApparentConductivity
+  receivers.Tipper
   receivers.PointNaturalSource
   receivers.Point3DTipper
 
