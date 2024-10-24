@@ -4,14 +4,11 @@ channels:
 dependencies:
   - numpy>=1.21
   - scipy>=1.8
-  - pymatsolver-base>=0.2
+  - pymatsolver>=0.3
   - matplotlib-base
   - discretize>=0.10
   - geoana>=0.5.0
   - empymod>=2.0.0
-
-# Solver
-  - pydiso
 
 # optional dependencies
   - dask

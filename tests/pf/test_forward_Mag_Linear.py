@@ -1,3 +1,4 @@
+from __future__ import annotations
 import discretize
 import numpy as np
 import pytest
@@ -100,7 +101,6 @@ def create_mag_survey(
     mag.Survey
         a magnetic Survey instance
     """
-
     receivers = mag.Point(receiver_locations, components=components)
     strenght, inclination, declination = inducing_field_params
     source_field = mag.UniformBackgroundField(
@@ -110,6 +110,26 @@ def create_mag_survey(
         declination=declination,
     )
     return mag.Survey(source_field)
+
+
+def get_shifted_locations(
+    receiver_locations: np.ndarray, delta: float, direction: str
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Shift the locations of receivers along a particular direction.
+    """
+    if direction == "x":
+        index = 0
+    elif direction == "y":
+        index = 1
+    elif direction == "z":
+        index = 2
+    else:
+        raise ValueError(f"Invalid direction '{direction}'")
+    plus, minus = receiver_locations.copy(), receiver_locations.copy()
+    plus[:, index] += delta / 2.0
+    minus[:, index] -= delta / 2.0
+    return plus, minus
 
 
 class TestsMagSimulation:
@@ -138,7 +158,10 @@ class TestsMagSimulation:
     @pytest.fixture
     def two_blocks(self) -> tuple[np.ndarray, np.ndarray]:
         """
-        The parameters defining two blocks
+        The parameters defining two blocks.
+
+        The boundaries of the prism should match nodes in the mesh, otherwise
+        these blocks won't be exactly represented in the mesh model.
 
         Returns
         -------
@@ -146,8 +169,8 @@ class TestsMagSimulation:
             Tuple of (3, 2) arrays of (xmin, xmax), (ymin, ymax), (zmin, zmax)
             dimensions of each block.
         """
-        block1 = np.array([[-1.5, 1.5], [-1.5, 1.5], [-1.5, 1.5]])
-        block2 = np.array([[-0.7, 0.7], [-0.7, 0.7], [-0.7, 0.7]])
+        block1 = np.array([[-2.5, 0.5], [-3.1, 1.3], [-3.7, 1.5]])
+        block2 = np.array([[0.7, 1.9], [-0.7, 2.7], [-1.7, 0.7]])
         return block1, block2
 
     @pytest.fixture
@@ -246,21 +269,18 @@ class TestsMagSimulation:
         # Compute analytical response from magnetic prism
         block1, block2 = two_blocks
         prism_1 = MagneticPrism(block1[:, 0], block1[:, 1], chi1 * b0 / mu_0)
-        prism_2 = MagneticPrism(block2[:, 0], block2[:, 1], -chi1 * b0 / mu_0)
-        prism_3 = MagneticPrism(block2[:, 0], block2[:, 1], chi2 * b0 / mu_0)
+        prism_2 = MagneticPrism(block2[:, 0], block2[:, 1], chi2 * b0 / mu_0)
 
-        d = (
-            prism_1.magnetic_flux_density(receiver_locations)
-            + prism_2.magnetic_flux_density(receiver_locations)
-            + prism_3.magnetic_flux_density(receiver_locations)
-        )
+        d = prism_1.magnetic_flux_density(
+            receiver_locations
+        ) + prism_2.magnetic_flux_density(receiver_locations)
 
         # TMI projection
         tmi = sim.tmi_projection
         d_t2 = d_x * tmi[0] + d_y * tmi[1] + d_z * tmi[2]
 
         # Check results
-        rtol, atol = 1e-7, 1e-6
+        rtol, atol = 2e-6, 1e-6
         np.testing.assert_allclose(
             d_t, d_t2, rtol=rtol, atol=atol
         )  # double check internal projection
@@ -328,13 +348,11 @@ class TestsMagSimulation:
         # Compute analytical response from magnetic prism
         block1, block2 = two_blocks
         prism_1 = MagneticPrism(block1[:, 0], block1[:, 1], chi1 * b0 / mu_0)
-        prism_2 = MagneticPrism(block2[:, 0], block2[:, 1], -chi1 * b0 / mu_0)
-        prism_3 = MagneticPrism(block2[:, 0], block2[:, 1], chi2 * b0 / mu_0)
+        prism_2 = MagneticPrism(block2[:, 0], block2[:, 1], chi2 * b0 / mu_0)
 
         d = (
             prism_1.magnetic_field_gradient(receiver_locations)
             + prism_2.magnetic_field_gradient(receiver_locations)
-            + prism_3.magnetic_field_gradient(receiver_locations)
         ) * mu_0
 
         # Check results
@@ -345,6 +363,85 @@ class TestsMagSimulation:
         np.testing.assert_allclose(d_yy, d[..., 1, 1], rtol=rtol, atol=atol)
         np.testing.assert_allclose(d_yz, d[..., 1, 2], rtol=rtol, atol=atol)
         np.testing.assert_allclose(d_zz, d[..., 2, 2], rtol=rtol, atol=atol)
+
+    @pytest.mark.parametrize(
+        "engine, parallel_kwargs",
+        [
+            ("geoana", {"n_processes": None}),
+            ("geoana", {"n_processes": 1}),
+            ("choclo", {"numba_parallel": False}),
+            ("choclo", {"numba_parallel": True}),
+        ],
+        ids=["geoana_serial", "geoana_parallel", "choclo_serial", "choclo_parallel"],
+    )
+    @pytest.mark.parametrize("store_sensitivities", ("ram", "disk", "forward_only"))
+    def test_tmi_derivatives_w_susceptibility(
+        self,
+        engine,
+        parallel_kwargs,
+        store_sensitivities,
+        tmp_path,
+        mag_mesh,
+        two_blocks,
+        receiver_locations,
+        inducing_field,
+    ):
+        """
+        Test TMI derivatives (with susceptibility as model)
+        """
+        (h0_amplitude, h0_inclination, h0_declination), b0 = inducing_field
+        chi1 = 0.01
+        chi2 = 0.02
+        model, active_cells = create_block_model(mag_mesh, two_blocks, (chi1, chi2))
+        model_reduced = model[active_cells]
+        # Create reduced identity map for Linear Problem
+        identity_map = maps.IdentityMap(nP=int(sum(active_cells)))
+
+        components = ["tmi_x", "tmi_y", "tmi_z"]
+        survey = create_mag_survey(
+            components=components,
+            receiver_locations=receiver_locations,
+            inducing_field_params=(h0_amplitude, h0_inclination, h0_declination),
+        )
+        sim = mag.Simulation3DIntegral(
+            mag_mesh,
+            survey=survey,
+            chiMap=identity_map,
+            active_cells=active_cells,
+            sensitivity_path=str(tmp_path / f"{engine}"),
+            store_sensitivities=store_sensitivities,
+            engine=engine,
+            **parallel_kwargs,
+        )
+        data = sim.dpred(model_reduced).reshape(-1, len(components))
+        tmi_x = data[:, 0]
+        tmi_y = data[:, 1]
+        tmi_z = data[:, 2]
+
+        # Compute analytical response from magnetic prism
+        block1, block2 = two_blocks
+        prism_1 = MagneticPrism(block1[:, 0], block1[:, 1], chi1 * b0 / mu_0)
+        prism_2 = MagneticPrism(block2[:, 0], block2[:, 1], chi2 * b0 / mu_0)
+
+        d = (
+            prism_1.magnetic_field_gradient(receiver_locations)
+            + prism_2.magnetic_field_gradient(receiver_locations)
+        ) * mu_0
+
+        # Check results
+        rtol, atol = 5e-7, 1e-6
+        expected_tmi_x = (
+            d[:, 0, 0] * b0[0] + d[:, 0, 1] * b0[1] + d[:, 0, 2] * b0[2]
+        ) / h0_amplitude
+        expected_tmi_y = (
+            d[:, 1, 0] * b0[0] + d[:, 1, 1] * b0[1] + d[:, 1, 2] * b0[2]
+        ) / h0_amplitude
+        expected_tmi_z = (
+            d[:, 2, 0] * b0[0] + d[:, 2, 1] * b0[1] + d[:, 2, 2] * b0[2]
+        ) / h0_amplitude
+        np.testing.assert_allclose(tmi_x, expected_tmi_x, rtol=rtol, atol=atol)
+        np.testing.assert_allclose(tmi_y, expected_tmi_y, rtol=rtol, atol=atol)
+        np.testing.assert_allclose(tmi_z, expected_tmi_z, rtol=rtol, atol=atol)
 
     @pytest.mark.parametrize(
         "engine, parallel_kwargs",
@@ -406,17 +503,12 @@ class TestsMagSimulation:
             block1[:, 0], block1[:, 1], M1 * np.linalg.norm(b0) / mu_0
         )
         prism_2 = MagneticPrism(
-            block2[:, 0], block2[:, 1], -M1 * np.linalg.norm(b0) / mu_0
-        )
-        prism_3 = MagneticPrism(
             block2[:, 0], block2[:, 1], M2 * np.linalg.norm(b0) / mu_0
         )
 
-        d = (
-            prism_1.magnetic_flux_density(receiver_locations)
-            + prism_2.magnetic_flux_density(receiver_locations)
-            + prism_3.magnetic_flux_density(receiver_locations)
-        )
+        d = prism_1.magnetic_flux_density(
+            receiver_locations
+        ) + prism_2.magnetic_flux_density(receiver_locations)
         tmi = sim.tmi_projection
 
         # Check results
@@ -425,6 +517,93 @@ class TestsMagSimulation:
         np.testing.assert_allclose(data[:, 1], d[:, 1], rtol=rtol, atol=atol)
         np.testing.assert_allclose(data[:, 2], d[:, 2], rtol=rtol, atol=atol)
         np.testing.assert_allclose(data[:, 3], d @ tmi, rtol=rtol, atol=atol)
+
+    @pytest.mark.parametrize(
+        "engine, parallel_kwargs",
+        [
+            ("geoana", {"n_processes": None}),
+            ("geoana", {"n_processes": 1}),
+            ("choclo", {"numba_parallel": False}),
+            ("choclo", {"numba_parallel": True}),
+        ],
+        ids=["geoana_serial", "geoana_parallel", "choclo_serial", "choclo_parallel"],
+    )
+    @pytest.mark.parametrize("store_sensitivities", ("ram", "disk", "forward_only"))
+    def test_tmi_derivatives_w_magnetization(
+        self,
+        engine,
+        parallel_kwargs,
+        store_sensitivities,
+        tmp_path,
+        mag_mesh,
+        two_blocks,
+        receiver_locations,
+        inducing_field,
+    ):
+        """
+        Test TMI derivatives (using magnetization vectors as model)
+        """
+        (h0_amplitude, h0_inclination, h0_declination), b0 = inducing_field
+        M1 = (utils.mat_utils.dip_azimuth2cartesian(45, -40) * 0.05).squeeze()
+        M2 = (utils.mat_utils.dip_azimuth2cartesian(120, 32) * 0.1).squeeze()
+
+        model, active_cells = create_block_model(mag_mesh, two_blocks, (M1, M2))
+        model_reduced = model[active_cells].reshape(-1, order="F")
+        # Create reduced identity map for Linear Problem
+        identity_map = maps.IdentityMap(nP=int(sum(active_cells)) * 3)
+
+        components = ["tmi_x", "tmi_y", "tmi_z"]
+        survey = create_mag_survey(
+            components=components,
+            receiver_locations=receiver_locations,
+            inducing_field_params=(h0_amplitude, h0_inclination, h0_declination),
+        )
+
+        sim = mag.Simulation3DIntegral(
+            mag_mesh,
+            survey=survey,
+            chiMap=identity_map,
+            active_cells=active_cells,
+            sensitivity_path=str(tmp_path / f"{engine}"),
+            store_sensitivities=store_sensitivities,
+            model_type="vector",
+            engine=engine,
+            **parallel_kwargs,
+        )
+
+        data = sim.dpred(model_reduced).reshape(-1, len(components))
+        tmi_x = data[:, 0]
+        tmi_y = data[:, 1]
+        tmi_z = data[:, 2]
+
+        # Compute analytical response from magnetic prism
+        block1, block2 = two_blocks
+        prism_1 = MagneticPrism(
+            block1[:, 0], block1[:, 1], M1 * np.linalg.norm(b0) / mu_0
+        )
+        prism_2 = MagneticPrism(
+            block2[:, 0], block2[:, 1], M2 * np.linalg.norm(b0) / mu_0
+        )
+
+        d = (
+            prism_1.magnetic_field_gradient(receiver_locations)
+            + prism_2.magnetic_field_gradient(receiver_locations)
+        ) * mu_0
+
+        # Check results
+        rtol, atol = 5e-7, 1e-6
+        expected_tmi_x = (
+            d[:, 0, 0] * b0[0] + d[:, 0, 1] * b0[1] + d[:, 0, 2] * b0[2]
+        ) / h0_amplitude
+        expected_tmi_y = (
+            d[:, 1, 0] * b0[0] + d[:, 1, 1] * b0[1] + d[:, 1, 2] * b0[2]
+        ) / h0_amplitude
+        expected_tmi_z = (
+            d[:, 2, 0] * b0[0] + d[:, 2, 1] * b0[1] + d[:, 2, 2] * b0[2]
+        ) / h0_amplitude
+        np.testing.assert_allclose(tmi_x, expected_tmi_x, rtol=rtol, atol=atol)
+        np.testing.assert_allclose(tmi_y, expected_tmi_y, rtol=rtol, atol=atol)
+        np.testing.assert_allclose(tmi_z, expected_tmi_z, rtol=rtol, atol=atol)
 
     @pytest.mark.parametrize(
         "engine, parallel_kwargs",
@@ -487,22 +666,84 @@ class TestsMagSimulation:
             block1[:, 0], block1[:, 1], M1 * np.linalg.norm(b0) / mu_0
         )
         prism_2 = MagneticPrism(
-            block2[:, 0], block2[:, 1], -M1 * np.linalg.norm(b0) / mu_0
-        )
-        prism_3 = MagneticPrism(
             block2[:, 0], block2[:, 1], M2 * np.linalg.norm(b0) / mu_0
         )
 
-        d = (
-            prism_1.magnetic_flux_density(receiver_locations)
-            + prism_2.magnetic_flux_density(receiver_locations)
-            + prism_3.magnetic_flux_density(receiver_locations)
-        )
+        d = prism_1.magnetic_flux_density(
+            receiver_locations
+        ) + prism_2.magnetic_flux_density(receiver_locations)
         d_amp = np.linalg.norm(d, axis=1)
 
         # Check results
         rtol, atol = 5e-7, 1e-6
         np.testing.assert_allclose(data, d_amp, rtol=rtol, atol=atol)
+
+    @pytest.mark.parametrize("engine", ("geoana", "choclo"))
+    @pytest.mark.parametrize("direction", ("x", "y", "z"))
+    def test_tmi_derivatives_finite_diff(
+        self,
+        engine,
+        direction,
+        mag_mesh,
+        two_blocks,
+        receiver_locations,
+        inducing_field,
+    ):
+        """
+        Test tmi derivatives against finite differences.
+
+        Use float64 elements in the sensitivity matrix to avoid numerical
+        instabilities due to small values of delta.
+        """
+        # Get inducing field and two blocks model
+        inducing_field_params, b0 = inducing_field
+        chi1, chi2 = 0.01, 0.02
+        model, active_cells = create_block_model(mag_mesh, two_blocks, (chi1, chi2))
+        model_reduced = model[active_cells]
+        identity_map = maps.IdentityMap(nP=int(sum(active_cells)))
+        # Create survey to compute tmi derivative through analytic solution
+        survey = create_mag_survey(
+            components=f"tmi_{direction}",
+            receiver_locations=receiver_locations,
+            inducing_field_params=inducing_field_params,
+        )
+        kwargs = dict(
+            chiMap=identity_map,
+            active_cells=active_cells,
+            engine=engine,
+            sensitivity_dtype=np.float64,
+        )
+        simulation = mag.Simulation3DIntegral(
+            mag_mesh,
+            survey=survey,
+            **kwargs,
+        )
+        # Create shifted surveys to compute tmi derivatives through finite differences
+        delta = 1e-6
+        shifted_surveys = [
+            create_mag_survey(
+                components="tmi",
+                receiver_locations=shifted_locations,
+                inducing_field_params=inducing_field_params,
+            )
+            for shifted_locations in get_shifted_locations(
+                receiver_locations, delta, direction
+            )
+        ]
+        simulations_tmi = [
+            mag.Simulation3DIntegral(mag_mesh, survey=shifted_survey, **kwargs)
+            for shifted_survey in shifted_surveys
+        ]
+        # Compute tmi derivatives
+        tmi_derivative = simulation.dpred(model_reduced)
+        # Compute tmi derivatives with finite differences
+        tmis = [sim.dpred(model_reduced) for sim in simulations_tmi]
+        tmi_derivative_finite_diff = (tmis[0] - tmis[1]) / delta
+        # Compare results
+        rtol, atol = 1e-6, 5e-6
+        np.testing.assert_allclose(
+            tmi_derivative, tmi_derivative_finite_diff, rtol=rtol, atol=atol
+        )
 
     @pytest.mark.parametrize("engine", ("choclo", "geoana"))
     @pytest.mark.parametrize("store_sensitivities", ("ram", "disk", "forward_only"))
@@ -644,128 +885,6 @@ class TestsMagSimulation:
         msg = "The choclo package couldn't be found."
         with pytest.raises(ImportError, match=msg):
             mag.Simulation3DIntegral(mag_mesh, engine="choclo")
-
-
-def test_ana_mag_tmi_grad_forward():
-    """
-    Test TMI gradiometry using susceptibilities as model
-    """
-    nx = 61
-    ny = 61
-
-    h0_amplitude, h0_inclination, h0_declination = (50000.0, 60.0, 250.0)
-    b0 = mag.analytics.IDTtoxyz(-h0_inclination, h0_declination, h0_amplitude)
-    chi1 = 0.01
-    chi2 = 0.02
-
-    # Define a mesh
-    cs = 0.2
-    hxind = [(cs, 41)]
-    hyind = [(cs, 41)]
-    hzind = [(cs, 41)]
-    mesh = discretize.TensorMesh([hxind, hyind, hzind], "CCC")
-
-    # create a model of two blocks, 1 inside the other
-    block1 = np.array([[-1.5, 1.5], [-1.5, 1.5], [-1.5, 1.5]])
-    block2 = np.array([[-0.7, 0.7], [-0.7, 0.7], [-0.7, 0.7]])
-
-    def get_block_inds(grid, block):
-        return np.where(
-            (grid[:, 0] > block[0, 0])
-            & (grid[:, 0] < block[0, 1])
-            & (grid[:, 1] > block[1, 0])
-            & (grid[:, 1] < block[1, 1])
-            & (grid[:, 2] > block[2, 0])
-            & (grid[:, 2] < block[2, 1])
-        )
-
-    block1_inds = get_block_inds(mesh.cell_centers, block1)
-    block2_inds = get_block_inds(mesh.cell_centers, block2)
-
-    model = np.zeros(mesh.n_cells)
-    model[block1_inds] = chi1
-    model[block2_inds] = chi2
-
-    active_cells = model != 0.0
-    model_reduced = model[active_cells]
-
-    # Create reduced identity map for Linear Problem
-    idenMap = maps.IdentityMap(nP=int(sum(active_cells)))
-
-    # Create plane of observations
-    xr = np.linspace(-20, 20, nx)
-    dxr = xr[1] - xr[0]
-    yr = np.linspace(-20, 20, ny)
-    dyr = yr[1] - yr[0]
-    X, Y = np.meshgrid(xr, yr)
-    Z = np.ones_like(X) * 3.0
-    locXyz = np.c_[X.reshape(-1), Y.reshape(-1), Z.reshape(-1)]
-    components = ["tmi", "tmi_x", "tmi_y", "tmi_z"]
-
-    rxLoc = mag.Point(locXyz, components=components)
-    srcField = mag.UniformBackgroundField(
-        receiver_list=[rxLoc],
-        amplitude=h0_amplitude,
-        inclination=h0_inclination,
-        declination=h0_declination,
-    )
-    survey = mag.Survey(srcField)
-
-    # Create reduced identity map for Linear Problem
-    idenMap = maps.IdentityMap(nP=int(sum(active_cells)))
-
-    sim = mag.Simulation3DIntegral(
-        mesh,
-        survey=survey,
-        chiMap=idenMap,
-        active_cells=active_cells,
-        store_sensitivities="forward_only",
-        n_processes=None,
-    )
-
-    data = sim.dpred(model_reduced)
-    tmi = data[0::4]
-    d_x = data[1::4]
-    d_y = data[2::4]
-    d_z = data[3::4]
-
-    # Compute analytical response from magnetic prism
-    prism_1 = MagneticPrism(block1[:, 0], block1[:, 1], chi1 * b0 / mu_0)
-    prism_2 = MagneticPrism(block2[:, 0], block2[:, 1], -chi1 * b0 / mu_0)
-    prism_3 = MagneticPrism(block2[:, 0], block2[:, 1], chi2 * b0 / mu_0)
-
-    d = (
-        prism_1.magnetic_field_gradient(locXyz)
-        + prism_2.magnetic_field_gradient(locXyz)
-        + prism_3.magnetic_field_gradient(locXyz)
-    ) * mu_0
-    tmi_x = (
-        d[:, 0, 0] * b0[0] + d[:, 0, 1] * b0[1] + d[:, 0, 2] * b0[2]
-    ) / h0_amplitude
-    tmi_y = (
-        d[:, 1, 0] * b0[0] + d[:, 1, 1] * b0[1] + d[:, 1, 2] * b0[2]
-    ) / h0_amplitude
-    tmi_z = (
-        d[:, 2, 0] * b0[0] + d[:, 2, 1] * b0[1] + d[:, 2, 2] * b0[2]
-    ) / h0_amplitude
-    np.testing.assert_allclose(d_x, tmi_x, rtol=1e-10, atol=1e-12)
-    np.testing.assert_allclose(d_y, tmi_y, rtol=1e-10, atol=1e-12)
-    np.testing.assert_allclose(d_z, tmi_z, rtol=1e-10, atol=1e-12)
-
-    # finite difference test y-grad
-    np.testing.assert_allclose(
-        np.diff(tmi.reshape(nx, ny, order="F")[:, ::2], axis=1) / (2 * dyr),
-        tmi_y.reshape(nx, ny, order="F")[:, 1::2],
-        atol=1.0,
-        rtol=1e-1,
-    )
-    # finite difference test x-grad
-    np.testing.assert_allclose(
-        np.diff(tmi.reshape(nx, ny, order="F")[::2, :], axis=0) / (2 * dxr),
-        tmi_x.reshape(nx, ny, order="F")[1::2, :],
-        atol=1.0,
-        rtol=1e-1,
-    )
 
 
 class TestInvalidMeshChoclo:
