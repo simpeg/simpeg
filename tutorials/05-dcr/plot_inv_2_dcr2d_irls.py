@@ -49,6 +49,11 @@ from simpeg.electromagnetics.static.utils.static_utils import (
 )
 from simpeg.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
 
+try:
+    from pymatsolver import Pardiso as Solver
+except ImportError:
+    from simpeg import SolverLU as Solver
+
 mpl.rcParams.update({"font.size": 16})
 # sphinx_gallery_thumbnail_number = 3
 
@@ -263,7 +268,7 @@ starting_conductivity_model = background_conductivity * np.ones(nC)
 
 # Define the problem. Define the cells below topography and the mapping
 simulation = dc.simulation_2d.Simulation2DNodal(
-    mesh, survey=survey, sigmaMap=conductivity_map, storeJ=True
+    mesh, survey=survey, sigmaMap=conductivity_map, solver=Solver, storeJ=True
 )
 
 #######################################################################
@@ -380,7 +385,7 @@ true_conductivity_model[ind_conductor] = true_conductor_conductivity
 ind_resistor = model_builder.get_indices_sphere(np.r_[120.0, -180.0], 60.0, mesh.gridCC)
 true_conductivity_model[ind_resistor] = true_resistor_conductivity
 
-true_conductivity_model[~ind_active] = np.nan
+true_conductivity_model[~ind_active] = np.NaN
 
 ############################################################
 # Plotting True and Recovered Conductivity Model
@@ -389,10 +394,10 @@ true_conductivity_model[~ind_active] = np.nan
 
 # Get L2 and sparse recovered model in base 10
 l2_conductivity = conductivity_map * inv_prob.l2model
-l2_conductivity[~ind_active] = np.nan
+l2_conductivity[~ind_active] = np.NaN
 
 recovered_conductivity = conductivity_map * recovered_conductivity_model
-recovered_conductivity[~ind_active] = np.nan
+recovered_conductivity[~ind_active] = np.NaN
 
 # Plot True Model
 norm = LogNorm(vmin=1e-3, vmax=1e-1)

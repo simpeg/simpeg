@@ -6,6 +6,11 @@ import numpy as np
 from simpeg.electromagnetics import resistivity as dc
 from simpeg.electromagnetics import induced_polarization as ip
 
+try:
+    from pymatsolver import Pardiso as Solver
+except ImportError:
+    from simpeg import SolverLU as Solver
+
 
 class IPProblemAnalyticTests(unittest.TestCase):
     def setUp(self):
@@ -52,6 +57,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         problemDC = dc.Simulation2DNodal(
             self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
         )
+        problemDC.solver = Solver
         data0 = problemDC.dpred(self.sigma0)
         datainf = problemDC.dpred(self.sigmaInf)
 
@@ -63,6 +69,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
             sigma=self.sigmaInf,
             etaMap=maps.IdentityMap(self.mesh),
         )
+        problemIP.solver = Solver
 
         data_full = data0 - datainf
         data = problemIP.dpred(self.eta)
@@ -80,6 +87,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         problemDC = dc.Simulation2DCellCentered(
             self.mesh, survey=self.surveyDC, rhoMap=maps.IdentityMap(self.mesh)
         )
+        problemDC.solver = Solver
         data0 = problemDC.dpred(1.0 / self.sigma0)
         finf = problemDC.fields(1.0 / self.sigmaInf)
         datainf = problemDC.dpred(1.0 / self.sigmaInf, f=finf)
@@ -92,6 +100,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
             rho=1.0 / self.sigmaInf,
             etaMap=maps.IdentityMap(self.mesh),
         )
+        problemIP.solver = Solver
         data_full = data0 - datainf
         data = problemIP.dpred(self.eta)
         err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
@@ -156,6 +165,7 @@ class ApparentChargeability2DTest(unittest.TestCase):
         simDC = dc.Simulation2DNodal(
             self.mesh,
             sigmaMap=maps.IdentityMap(self.mesh),
+            solver=Solver,
             survey=self.survey_dc,
         )
         data0 = simDC.dpred(self.sigma0)
@@ -166,6 +176,7 @@ class ApparentChargeability2DTest(unittest.TestCase):
             self.mesh,
             sigma=self.sigmaInf,
             etaMap=maps.IdentityMap(self.mesh),
+            solver=Solver,
             survey=self.survey_ip,
         )
         data = simIP.dpred(self.eta)
@@ -174,6 +185,7 @@ class ApparentChargeability2DTest(unittest.TestCase):
             self.mesh,
             sigma=self.sigmaInf,
             etaMap=maps.IdentityMap(self.mesh),
+            solver=Solver,
             survey=self.survey_ip,
             storeJ=True,
         )
@@ -197,6 +209,7 @@ class ApparentChargeability2DTest(unittest.TestCase):
         simDC = dc.Simulation2DCellCentered(
             self.mesh,
             sigmaMap=maps.IdentityMap(self.mesh),
+            solver=Solver,
             survey=self.survey_dc,
         )
         data0 = simDC.dpred(self.sigma0)
@@ -207,6 +220,7 @@ class ApparentChargeability2DTest(unittest.TestCase):
             self.mesh,
             sigma=self.sigmaInf,
             etaMap=maps.IdentityMap(self.mesh),
+            solver=Solver,
             survey=self.survey_ip,
         )
         data = simIP.dpred(self.eta)

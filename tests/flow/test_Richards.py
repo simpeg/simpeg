@@ -8,6 +8,12 @@ from simpeg import maps
 from simpeg import utils
 from simpeg.flow import richards
 
+try:
+    from pymatsolver import Pardiso as Solver
+except Exception:
+    from simpeg import Solver
+
+
 TOL = 1e-8
 
 np.random.seed(0)
@@ -40,6 +46,7 @@ class BaseRichardsTest(unittest.TestCase):
             method="mixed",
         )
         prob.time_steps = time_steps
+        prob.solver = Solver
 
         self.h0 = h
         self.mesh = mesh

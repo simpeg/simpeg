@@ -5,6 +5,10 @@ from simpeg import utils
 import numpy as np
 from simpeg.electromagnetics import resistivity as dc
 
+try:
+    from pymatsolver import Pardiso as Solver
+except ImportError:
+    from simpeg import SolverLU as Solver
 
 from geoana.em import fdem
 from scipy.constants import mu_0, epsilon_0
@@ -99,6 +103,7 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         simulation = dc.Simulation3DCellCentered(
             self.mesh, survey=self.survey, sigma=self.sigma, bc_type="Dirichlet"
         )
+        simulation.solver = Solver
 
         f = simulation.fields()
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
@@ -131,6 +136,7 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         simulation = dc.simulation.Simulation3DCellCentered(
             self.mesh, survey=self.survey, sigma=self.sigma, bc_type="Mixed"
         )
+        simulation.solver = Solver
 
         f = simulation.fields()
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
@@ -159,6 +165,7 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
         simulation = dc.Simulation3DCellCentered(
             self.mesh, survey=self.survey, sigma=self.sigma, bc_type="Neumann"
         )
+        simulation.solver = Solver
 
         f = simulation.fields()
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
@@ -269,6 +276,7 @@ class DC_N_DipoleFullspaceTests(unittest.TestCase):
         simulation = dc.simulation.Simulation3DNodal(
             self.mesh, survey=self.survey, sigma=self.sigma
         )
+        simulation.solver = Solver
 
         f = simulation.fields()
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])

@@ -33,6 +33,7 @@ import shutil
 import matplotlib
 import matplotlib.pyplot as plt
 from scipy.constants import mu_0
+from pymatsolver import Pardiso as Solver
 
 import discretize
 from simpeg import (
@@ -213,7 +214,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Set FDEM survey (In-phase and Quadrature)
     survey = FDEM.Survey(source_list)
-    prb = FDEM.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping)
+    prb = FDEM.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping, solver=Solver)
     prb.survey = survey
 
     # ------------------ RESOLVE Inversion ------------------ #
@@ -316,7 +317,9 @@ def run(plotIt=True, saveFig=False, cleanup=True):
         (1e-4, 10),
         (5e-4, 15),
     ]
-    prob = TDEM.Simulation3DElectricField(mesh, time_steps=timeSteps, sigmaMap=mapping)
+    prob = TDEM.Simulation3DElectricField(
+        mesh, time_steps=timeSteps, sigmaMap=mapping, solver=Solver
+    )
     survey = TDEM.Survey(source_list)
     prob.survey = survey
 

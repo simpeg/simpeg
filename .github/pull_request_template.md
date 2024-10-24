@@ -18,10 +18,10 @@ Feel free to remove lines from this template that do not apply to you pull reque
 
 #### PR Checklist
 * [ ] If this is a work in progress PR, set as a Draft PR
-* [ ] Linted my code according to the [style guides](https://docs.simpeg.xyz/latest/content/getting_started/contributing/code-style.html).
-* [ ] Added [tests](https://docs.simpeg.xyz/latest/content/getting_started/contributing/testing.html) to verify changes to the code.
+* [ ] Linted my code according to the [style guides](https://docs.simpeg.xyz/content/getting_started/contributing/code-style.html).
+* [ ] Added [tests](https://docs.simpeg.xyz/content/getting_started/practices.html#testing) to verify changes to the code.
 * [ ] Added necessary documentation to any new functions/classes following the
-      expect [style](https://docs.simpeg.xyz/latest/content/getting_started/contributing/documentation.html).
+      expect [style](https://docs.simpeg.xyz/content/getting_started/practices.html#documentation).
 * [ ] Marked as ready for review (if this is was a draft PR), and converted 
       to a Pull Request
 * [ ] Tagged ``@simpeg/simpeg-developers`` when ready for review.

@@ -16,6 +16,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
+try:
+    from pymatsolver import Pardiso as Solver
+except ImportError:
+    from simpeg import SolverLU as Solver
 
 import discretize
 from simpeg import (
@@ -204,7 +208,9 @@ for x in src_locations:
 
 # create the survey and problem objects for running the forward simulation
 survey = FDEM.Survey(source_list)
-prob = FDEM.Simulation3DMagneticFluxDensity(mesh, survey=survey, sigmaMap=mapping)
+prob = FDEM.Simulation3DMagneticFluxDensity(
+    mesh, survey=survey, sigmaMap=mapping, solver=Solver
+)
 
 ###############################################################################
 # Set up data for inversion

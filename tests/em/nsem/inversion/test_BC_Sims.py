@@ -6,6 +6,7 @@ from discretize.tests import check_derivative
 from simpeg.electromagnetics import natural_source as nsem
 from simpeg import maps
 from discretize import TensorMesh, TreeMesh, CylindricalMesh
+from pymatsolver import Pardiso
 
 
 def check_deriv(sim, test_mod, **kwargs):
@@ -89,12 +90,14 @@ def create_simulation_1d(sim_type, deriv_type):
             mesh,
             survey=survey,
             **sim_kwargs,
+            solver=Pardiso,
         )
     else:
         sim = nsem.simulation.Simulation1DMagneticField(
             mesh,
             survey=survey,
             **sim_kwargs,
+            solver=Pardiso,
         )
     return sim, test_mod
 
@@ -190,6 +193,7 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
             mesh,
             survey=survey,
             **sim_kwargs,
+            solver=Pardiso,
         )
     else:
         if fixed_boundary:
@@ -240,6 +244,7 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
             mesh,
             survey=survey,
             **sim_kwargs,
+            solver=Pardiso,
         )
     return sim, test_mod
 

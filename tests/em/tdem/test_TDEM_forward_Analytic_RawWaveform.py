@@ -3,6 +3,7 @@ import unittest
 import discretize
 import matplotlib.pyplot as plt
 import numpy as np
+from pymatsolver import Pardiso as Solver
 from scipy.constants import mu_0
 from scipy.interpolate import interp1d
 from simpeg import maps
@@ -78,6 +79,7 @@ def halfSpaceProblemAnaDiff(
     prb = tdem.Simulation3DMagneticFluxDensity(
         mesh, survey=survey, sigmaMap=mapping, time_steps=time_steps
     )
+    prb.solver = Solver
 
     sigma = np.ones(mesh.shape_cells[2]) * 1e-8
     sigma[active] = sig_half

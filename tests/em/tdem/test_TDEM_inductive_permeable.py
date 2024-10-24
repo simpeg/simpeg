@@ -10,6 +10,7 @@ import time
 from simpeg.electromagnetics import time_domain as tdem
 from simpeg import utils, maps
 
+from pymatsolver import Pardiso
 
 plotIt = False
 TOL = 1e-4
@@ -157,12 +158,14 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             survey=survey,
             time_steps=time_steps,
             sigmaMap=maps.IdentityMap(mesh),
+            solver=Pardiso,
         )
         prob_late_ontime = tdem.Simulation3DMagneticFluxDensity(
             mesh=mesh,
             survey=survey_late_ontime,
             time_steps=time_steps,
             sigmaMap=maps.IdentityMap(mesh),
+            solver=Pardiso,
         )
 
         fields_dict = {}

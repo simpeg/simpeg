@@ -472,6 +472,12 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
         )
         problem.model = sig
     problem.verbose = False
+    try:
+        from pymatsolver import Pardiso
+
+        problem.solver = Pardiso
+    except ImportError:
+        pass
 
     return (survey, problem)
 

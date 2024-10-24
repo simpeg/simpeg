@@ -52,6 +52,11 @@ from simpeg import maps, utils
 from simpeg.electromagnetics import frequency_domain as FDEM
 import time
 
+try:
+    from pymatsolver import Pardiso as Solver
+except Exception:
+    from simpeg import SolverLU as Solver
+
 
 def run(plotIt=True):
     # ------------------ MODEL ------------------
@@ -224,9 +229,7 @@ def run(plotIt=True):
     # ------------ Problem and Survey ---------------
     survey = FDEM.Survey(sg_p + dg_p)
     problem = FDEM.Simulation3DMagneticField(
-        mesh,
-        survey=survey,
-        sigmaMap=maps.IdentityMap(mesh),
+        mesh, survey=survey, sigmaMap=maps.IdentityMap(mesh), solver=Solver
     )
 
     # ------------- Solve ---------------------------

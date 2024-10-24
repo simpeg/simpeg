@@ -63,6 +63,11 @@ except ImportError:
     has_plotly = False
     pass
 
+try:
+    from pymatsolver import Pardiso as Solver
+except ImportError:
+    from simpeg import SolverLU as Solver
+
 mpl.rcParams.update({"font.size": 16})
 
 # sphinx_gallery_thumbnail_number = 7
@@ -318,7 +323,7 @@ starting_conductivity_model = background_conductivity * np.ones(nC)
 #
 
 dc_simulation = dc.Simulation3DNodal(
-    mesh, survey=dc_survey, sigmaMap=conductivity_map, storeJ=True
+    mesh, survey=dc_survey, sigmaMap=conductivity_map, solver=Solver, storeJ=True
 )
 
 #################################################################
@@ -586,6 +591,7 @@ ip_simulation = ip.Simulation3DNodal(
     survey=ip_survey,
     etaMap=chargeability_map,
     sigma=conductivity_map * recovered_conductivity_model,
+    solver=Solver,
     storeJ=True,
 )
 

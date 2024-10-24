@@ -5,6 +5,8 @@ import discretize
 from simpeg import maps, tests
 from simpeg.electromagnetics import time_domain as tdem
 
+from pymatsolver import Pardiso as Solver
+
 testDeriv = True
 testAdjoint = True
 
@@ -78,6 +80,7 @@ def get_prob(mesh, formulation, sigma_map, **kwargs):
         mesh, sigmaMap=sigma_map, **kwargs
     )
     prb.time_steps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
+    prb.solver = Solver
     return prb
 
 
@@ -88,6 +91,7 @@ def get_hierarchical_prob(
         mesh, sigmaMap=sigma_map, tauMap=tau_map, kappaMap=kappa_map, **kwargs
     )
     prb.time_steps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
+    prb.solver = Solver
     return prb
 
 
@@ -133,10 +137,10 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         else:
             sigma_map = get_sigma_mapping(mesh)
             self.prob = get_prob(mesh, self.formulation, sigma_map, survey=self.survey)
-            rng = np.random.default_rng(seed=42)
-            self.m = np.log(1e-1) * np.ones(self.prob.sigmaMap.nP) + 1e-3 * rng.normal(
-                size=self.prob.sigmaMap.nP
-            )
+            self.m = np.log(1e-1) * np.ones(
+                self.prob.sigmaMap.nP
+            ) + 1e-3 * np.random.randn(self.prob.sigmaMap.nP)
+
         print("Solving Fields for problem {}".format(self.formulation))
         t = time.time()
         self.fields = self.prob.fields(self.m)

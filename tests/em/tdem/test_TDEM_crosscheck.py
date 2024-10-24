@@ -5,6 +5,8 @@ from simpeg import maps
 from simpeg.electromagnetics import time_domain as tdem
 import numpy as np
 
+from pymatsolver import Pardiso as Solver
+
 TOL = 1e-4
 FLR = 1e-20
 
@@ -68,6 +70,7 @@ def setUp_TDEM(
     prb = getattr(tdem, "Simulation3D{}".format(prbtype))(
         mesh, survey=survey, time_steps=time_steps, sigmaMap=mapping
     )
+    prb.solver = Solver
 
     rng = np.random.default_rng(seed=42)
     m = np.log(1e-1) * np.ones(prb.sigmaMap.nP) + 1e-2 * rng.uniform(

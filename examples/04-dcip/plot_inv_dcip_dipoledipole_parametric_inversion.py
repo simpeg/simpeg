@@ -34,6 +34,11 @@ from matplotlib import colors
 import numpy as np
 from pylab import hist
 
+try:
+    from pymatsolver import PardisoSolver as Solver
+except ImportError:
+    from simpeg import SolverLU as Solver
+
 
 def run(
     plotIt=True,
@@ -144,10 +149,7 @@ def run(
     # Generate 2.5D DC problem
     # "N" means potential is defined at nodes
     prb = DC.Simulation2DNodal(
-        mesh,
-        survey=survey,
-        rhoMap=mapping,
-        storeJ=True,
+        mesh, survey=survey, rhoMap=mapping, storeJ=True, solver=Solver
     )
 
     # Make synthetic DC data with 5% Gaussian noise

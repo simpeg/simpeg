@@ -3,6 +3,7 @@ import numpy as np
 import discretize
 from simpeg import maps, tests
 from simpeg.electromagnetics import time_domain as tdem
+from pymatsolver import Pardiso as Solver
 
 plotIt = False
 
@@ -59,6 +60,7 @@ def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx", src_z=0.0):
     prb = getattr(tdem, "Simulation3D{}".format(prbtype))(
         mesh, survey=survey, time_steps=time_steps, sigmaMap=mapping
     )
+    prb.solver = Solver
 
     return prb, m, mesh
 

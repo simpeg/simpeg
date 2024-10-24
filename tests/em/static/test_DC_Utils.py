@@ -12,6 +12,11 @@ from simpeg.utils import io_utils
 import shutil
 import os
 
+try:
+    from pymatsolver import Pardiso as Solver
+except ImportError:
+    from simpeg import SolverLU as Solver
+
 
 class DCUtilsTests_halfspace(unittest.TestCase):
     def setUp(self):
@@ -83,6 +88,7 @@ class DCUtilsTests_halfspace(unittest.TestCase):
             problem = dc.Simulation3DCellCentered(
                 self.mesh, sigmaMap=expmap, survey=survey, bc_type="Neumann"
             )
+            problem.solver = Solver
 
             # Create synthetic data
             dobs = problem.make_synthetic_data(

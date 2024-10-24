@@ -12,6 +12,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from simpeg.electromagnetics.static import resistivity as DC
 
+try:
+    from pymatsolver import Pardiso as Solver
+except ImportError:
+    from simpeg import SolverLU as Solver
+
 
 cs = 25.0
 hx = [(cs, 7, -1.3), (cs, 21), (cs, 7, 1.3)]
@@ -30,7 +35,9 @@ xyz_rxM = utils.ndgrid(xtemp, ytemp, np.r_[0.0])
 rx = DC.Rx.Dipole(xyz_rxP, xyz_rxN)
 src = DC.Src.Dipole([rx], np.r_[-200, 0, -12.5], np.r_[+200, 0, -12.5])
 survey = DC.Survey([src])
-sim = DC.Simulation3DCellCentered(mesh, survey=survey, sigma=sigma, bc_type="Neumann")
+sim = DC.Simulation3DCellCentered(
+    mesh, survey=survey, solver=Solver, sigma=sigma, bc_type="Neumann"
+)
 
 data = sim.dpred()
 

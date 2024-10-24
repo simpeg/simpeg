@@ -36,6 +36,11 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+try:
+    from pymatsolver import Pardiso as Solver
+except ImportError:
+    from simpeg import SolverLU as Solver
+
 write_file = False
 
 # sphinx_gallery_thumbnail_number = 2
@@ -199,7 +204,7 @@ time_steps = [(5e-06, 20), (0.0001, 20), (0.001, 21)]
 #
 
 simulation = tdem.simulation.Simulation3DMagneticFluxDensity(
-    mesh, survey=survey, sigmaMap=model_map
+    mesh, survey=survey, sigmaMap=model_map, solver=Solver
 )
 
 # Set the time-stepping for the simulation
