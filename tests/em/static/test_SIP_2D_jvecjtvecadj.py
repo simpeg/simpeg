@@ -14,11 +14,6 @@ from simpeg import (
 import numpy as np
 from simpeg.electromagnetics import spectral_induced_polarization as sip
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import SolverLU as Solver
-
 
 class SIPProblemTestsCC(unittest.TestCase):
     def setUp(self):
@@ -61,12 +56,11 @@ class SIPProblemTestsCC(unittest.TestCase):
             etaMap=wires.eta,
             tauiMap=wires.taui,
             verbose=False,
-            solver=Solver,
             survey=survey,
         )
         mSynth = np.r_[eta, 1.0 / tau]
         problem.model = mSynth
-        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.WeightedLeastSquares(mesh)
@@ -156,12 +150,11 @@ class SIPProblemTestsN(unittest.TestCase):
             etaMap=wires.eta,
             tauiMap=wires.taui,
             verbose=False,
-            solver=Solver,
             survey=survey,
         )
         mSynth = np.r_[eta, 1.0 / tau]
         problem.model = mSynth
-        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.WeightedLeastSquares(mesh)
@@ -261,11 +254,10 @@ class SIPProblemTestsN_air(unittest.TestCase):
             tauiMap=actmaptau * wires.taui,
             cMap=actmapc * wires.c,
             actinds=~airind,
-            solver=Solver,
             survey=survey,
         )
         mSynth = np.r_[eta[~airind], 1.0 / tau[~airind], c[~airind]]
-        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg_eta = regularization.WeightedLeastSquares(

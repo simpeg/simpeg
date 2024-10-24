@@ -1597,7 +1597,9 @@ def gettopoCC(mesh, ind_active, option="top"):
         raise NotImplementedError(f"{type(mesh)} mesh is not supported.")
 
 
-def drapeTopotoLoc(mesh, pts, ind_active=None, option="top", topo=None, **kwargs):
+def drapeTopotoLoc(
+    mesh, pts, active_cells=None, option="top", topo=None, ind_active=None
+):
     """Drape locations right below discretized surface topography
 
     This function projects the set of locations provided to the discrete
@@ -1609,7 +1611,7 @@ def drapeTopotoLoc(mesh, pts, ind_active=None, option="top", topo=None, **kwargs
         A 2D tensor or tree mesh
     pts : (n, dim) numpy.ndarray
         The set of points being projected to the discretize surface topography
-    ind_active : numpy.ndarray of int or bool, optional
+    active_cells : numpy.ndarray of int or bool, optional
         Index array for all cells lying below the surface topography. Surface topography
         can be specified using the 'ind_active' or 'topo' input parameters.
     option : {"top", "center"}
@@ -1618,10 +1620,28 @@ def drapeTopotoLoc(mesh, pts, ind_active=None, option="top", topo=None, **kwargs
     topo : (n, dim) numpy.ndarray
         Surface topography. Can be used if an active indices array cannot be provided
         for the input parameter 'ind_active'
-    """
+    ind_active : numpy.ndarray of int or bool, optional
 
-    if "actind" in kwargs:
-        ind_active = kwargs.pop("actind")
+        .. deprecated:: 0.23.0
+
+           Argument ``ind_active`` is deprecated in favor of ``active_cells``
+           and will be removed in SimPEG v0.24.0.
+    """
+    # Deprecate ind_active argument
+    if ind_active is not None:
+        if active_cells is not None:
+            raise TypeError(
+                "Cannot pass both 'active_cells' and 'ind_active'."
+                "'ind_active' has been deprecated and will be removed in "
+                " SimPEG v0.24.0, please use 'active_cells' instead.",
+            )
+        warnings.warn(
+            "'ind_active' has been deprecated and will be removed in "
+            " SimPEG v0.24.0, please use 'active_cells' instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        active_cells = ind_active
 
     if isinstance(mesh, discretize.CurvilinearMesh):
         raise ValueError("Curvilinear mesh is not supported.")
@@ -1640,22 +1660,22 @@ def drapeTopotoLoc(mesh, pts, ind_active=None, option="top", topo=None, **kwargs
     else:
         raise ValueError("Unsupported mesh dimension")
 
-    if ind_active is None:
-        ind_active = discretize.utils.active_from_xyz(mesh, topo)
+    if active_cells is None:
+        active_cells = discretize.utils.active_from_xyz(mesh, topo)
 
     if mesh._meshType == "TENSOR":
-        meshtemp, topoCC = gettopoCC(mesh, ind_active, option=option)
+        meshtemp, topoCC = gettopoCC(mesh, active_cells, option=option)
         inds = meshtemp.closest_points_index(pts)
         topo = topoCC[inds]
         out = np.c_[pts, topo]
 
     elif mesh._meshType == "TREE":
         if mesh.dim == 3:
-            uniqXYlocs, topoCC = gettopoCC(mesh, ind_active, option=option)
+            uniqXYlocs, topoCC = gettopoCC(mesh, active_cells, option=option)
             inds = closestPointsGrid(uniqXYlocs, pts)
             out = np.c_[uniqXYlocs[inds, :], topoCC[inds]]
         else:
-            uniqXlocs, topoCC = gettopoCC(mesh, ind_active, option=option)
+            uniqXlocs, topoCC = gettopoCC(mesh, active_cells, option=option)
             inds = closestPointsGrid(uniqXlocs, pts, dim=1)
             out = np.c_[uniqXlocs[inds], topoCC[inds]]
     else:
@@ -1691,13 +1711,21 @@ def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
             [mesh.h[0], mesh.h[1]], x0=[mesh.x0[0], mesh.x0[1]]
         )
         out = model_builder.create_random_model(
-            mesh.vnC[:2], bounds=[zmin, zmax], its=its, seed=seed, anisotropy=anisotropy
+            mesh.vnC[:2],
+            bounds=[zmin, zmax],
+            its=its,
+            random_seed=seed,
+            anisotropy=anisotropy,
         )
         return out, mesh2D
     elif mesh.dim == 2:
         mesh1D = discretize.TensorMesh([mesh.h[0]], x0=[mesh.x0[0]])
         out = model_builder.create_random_model(
-            mesh.vnC[:1], bounds=[zmin, zmax], its=its, seed=seed, anisotropy=anisotropy
+            mesh.vnC[:1],
+            bounds=[zmin, zmax],
+            its=its,
+            random_seed=seed,
+            anisotropy=anisotropy,
         )
         return out, mesh1D
     else:

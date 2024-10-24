@@ -832,7 +832,8 @@ class TestParametricPolyMap(DeprecatedIndActive):
         """
         msg = self.get_message_deprecated_warning("actInd", "active_cells")
         with pytest.warns(FutureWarning, match=msg):
-            maps.ParametricPolyMap(mesh, 2, actInd=active_cells)
+            map_instance = maps.ParametricPolyMap(mesh, 2, actInd=active_cells)
+        np.testing.assert_allclose(map_instance.active_cells, active_cells)
 
     def test_error_duplicated_argument(self, mesh, active_cells):
         """
@@ -881,7 +882,8 @@ class TestMesh2Mesh(DeprecatedIndActive):
         """
         msg = self.get_message_deprecated_warning("indActive", "active_cells")
         with pytest.warns(FutureWarning, match=msg):
-            maps.Mesh2Mesh(meshes, indActive=active_cells)
+            mapping_instance = maps.Mesh2Mesh(meshes, indActive=active_cells)
+        np.testing.assert_allclose(mapping_instance.active_cells, active_cells)
 
     def test_error_duplicated_argument(self, meshes, active_cells):
         """
@@ -924,7 +926,8 @@ class TestInjectActiveCells(DeprecatedIndActive):
         """
         msg = self.get_message_deprecated_warning("indActive", "active_cells")
         with pytest.warns(FutureWarning, match=msg):
-            maps.InjectActiveCells(mesh, indActive=active_cells)
+            mapping_instance = maps.InjectActiveCells(mesh, indActive=active_cells)
+        np.testing.assert_allclose(mapping_instance.active_cells, active_cells)
 
     def test_indactive_error_duplicated_argument(self, mesh, active_cells):
         """
@@ -959,16 +962,20 @@ class TestInjectActiveCells(DeprecatedIndActive):
             mapping.indActive = new_active_cells
         np.testing.assert_allclose(mapping.active_cells, new_active_cells)
 
-    @pytest.mark.parametrize("valInactive", (3.14, np.array([1])))
-    def test_valinactive_warning_argument(self, mesh, active_cells, valInactive):
+    @pytest.mark.parametrize("value_inactive", (3.14, np.array([1])))
+    def test_valinactive_warning_argument(self, mesh, active_cells, value_inactive):
         """
         Test if warning is raised after passing ``valInactive`` to the constructor.
         """
         msg = self.get_message_deprecated_warning("valInactive", "value_inactive")
         with pytest.warns(FutureWarning, match=msg):
-            maps.InjectActiveCells(
-                mesh, active_cells=active_cells, valInactive=valInactive
+            mapping_instance = maps.InjectActiveCells(
+                mesh, active_cells=active_cells, valInactive=value_inactive
             )
+        # Ensure that the value passed to valInactive was correctly used
+        expected = np.zeros_like(active_cells, dtype=np.float64)
+        expected[~active_cells] = value_inactive
+        np.testing.assert_allclose(mapping_instance.value_inactive, expected)
 
     @pytest.mark.parametrize("valInactive", (3.14, np.array([3.14])))
     @pytest.mark.parametrize("value_inactive", (3.14, np.array([3.14])))
@@ -1025,7 +1032,8 @@ class TestParametric(DeprecatedIndActive):
         """
         msg = self.get_message_deprecated_warning("indActive", "active_cells")
         with pytest.warns(FutureWarning, match=msg):
-            map_class(mesh, indActive=active_cells)
+            mapping_instance = map_class(mesh, indActive=active_cells)
+        np.testing.assert_allclose(mapping_instance.active_cells, active_cells)
 
     @pytest.mark.parametrize("map_class", CLASSES)
     def test_indactive_error_duplicated_argument(self, mesh, active_cells, map_class):
