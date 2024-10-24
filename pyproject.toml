@@ -17,7 +17,7 @@ keywords = [
 dependencies = [
     "numpy>=1.21",
     "scipy>=1.8",
-    "pymatsolver>=0.2",
+    "pymatsolver>=0.3",
     "matplotlib",
     "discretize>=0.10",
     "geoana>=0.5.0",
@@ -120,6 +120,9 @@ exclude_also = [
     # Don't complain if non-runnable code isn't run:
     "if 0:",
     "if __name__ == .__main__.:",
+
+    # Don't complain about default solver choices:
+    'if AvailableSolvers["Pardiso"]:',
 
     # Don't complain about abstract methods, they aren't run:
     "@(abc\\.)?abstractmethod",
@@ -247,4 +250,10 @@ rst-roles = [
     'mod',
     'meth',
     'ref',
+]
+
+# pyproject.toml
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::simpeg.utils.solver_utils.DefaultSolverWarning",
 ]
