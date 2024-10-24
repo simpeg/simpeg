@@ -27,7 +27,6 @@ import shutil
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pymatsolver import PardisoSolver
 from scipy.constants import mu_0
 from scipy.spatial import cKDTree
 
@@ -113,9 +112,7 @@ def resolve_1Dinversions(
 
     # construct a forward simulation
     survey = FDEM.Survey(source_list)
-    prb = FDEM.Simulation3DMagneticFluxDensity(
-        mesh, sigmaMap=mapping, Solver=PardisoSolver
-    )
+    prb = FDEM.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping)
     prb.survey = survey
 
     # ------------------- Inversion ------------------- #

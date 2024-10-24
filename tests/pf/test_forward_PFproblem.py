@@ -4,7 +4,6 @@ from simpeg import utils, maps
 from simpeg.utils.model_builder import get_indices_sphere
 from simpeg.potential_fields import magnetics as mag
 import numpy as np
-from pymatsolver import Pardiso
 
 
 class MagFwdProblemTests(unittest.TestCase):
@@ -52,7 +51,6 @@ class MagFwdProblemTests(unittest.TestCase):
             M,
             survey=self.survey,
             muMap=maps.ChiMap(M),
-            solver=Pardiso,
         )
         self.M = M
         self.chi = chi

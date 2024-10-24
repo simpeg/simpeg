@@ -54,10 +54,6 @@ except ImportError:
     has_plotly = False
     pass
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import SolverLU as Solver
 
 mpl.rcParams.update({"font.size": 16})
 write_output = False
@@ -257,7 +253,9 @@ survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 
 # Define the DC simulation
 simulation = dc.simulation.Simulation3DNodal(
-    mesh, survey=survey, sigmaMap=conductivity_map, solver=Solver
+    mesh,
+    survey=survey,
+    sigmaMap=conductivity_map,
 )
 
 # Predict the data by running the simulation. The data are the measured voltage
