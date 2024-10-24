@@ -805,7 +805,7 @@ class Fields3DCurrentDensity(FieldsTDEM):
         dhdt = -MeMuI * (C.T * (MfRho * jSolution))
         for i, src in enumerate(source_list):
             s_m = src.s_m(self.simulation, self.simulation.times[tInd])
-            dhdt[:, i] = dhdt[:, i] + MeMuI * s_m
+            dhdt[:, i] = MeMuI * s_m + dhdt[:, i]
         return dhdt
 
     def _dhdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):

@@ -455,17 +455,14 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         Parameters
         ----------
         tInd : int
-            The time index. Value between [0, n_steps].
+            The time index. Value between ``[0, n_steps]``.
 
         Returns
         -------
-        tuple of numpy.ndarray
-            The source terms for the time index provided. The method returns
-            a ``tuple`` (s_m, s_e), where:
-
-            * s_m is a (n_faces, n_sources) numpy.ndarray and s_e is a (n_edges, n_sources) numpy.ndarray when the formulation defines electric fields on edges and magnetic flux densities on faces.
-            * s_m is a (n_edges, n_sources) numpy.ndarray and s_e is a (n_faces, n_sources) numpy.ndarray when the formulation defines magnetic fields on edges and current densities on faces.
-
+        s_m : numpy.ndarray
+            The magnetic sources terms. (n_faces, n_sources) for EB-formulations. (n_edges, n_sources) for HJ-formulations.
+        s_e : numpy.ndarray
+            The electric sources terms. (n_edges, n_sources) for EB-formulations. (n_faces, n_sources) for HJ-formulations.
         """
 
         Srcs = self.survey.source_list
@@ -2359,6 +2356,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
         if self._makeASymmetric:
             return MfRho.T * A
+
         return A
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
@@ -2417,7 +2415,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
         if adjoint:
             if self._makeASymmetric:
-                v *= MfRho
+                v = MfRho * v
             return self.MfRhoDeriv(u, C * (MeMuI.T * (C.T * v)), adjoint)
 
         ADeriv = C * (MeMuI * (C.T * self.MfRhoDeriv(u, v, adjoint)))

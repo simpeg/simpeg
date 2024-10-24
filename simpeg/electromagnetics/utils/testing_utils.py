@@ -4,7 +4,6 @@ from scipy.constants import mu_0
 from discretize import TensorMesh
 from ... import maps, utils
 
-from simpeg import SolverLU
 from simpeg.electromagnetics import frequency_domain as fdem
 
 FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
@@ -127,14 +126,6 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
     else:
         raise NotImplementedError()
 
-    try:
-        from pymatsolver import Pardiso
-
-        prb.solver = Pardiso
-    except ImportError:
-        prb.solver = SolverLU
-    # prb.solver_opts = dict(check_accuracy=True)
-
     return prb
 
 
@@ -250,14 +241,6 @@ def get_FDEM_hierarchical_problem(
 
     else:
         raise NotImplementedError("NO SIMULATION FOR H OR J FORMULATION")
-
-    try:
-        from pymatsolver import Pardiso
-
-        prb.solver = Pardiso
-    except ImportError:
-        prb.solver = SolverLU
-    # prb.solver_opts = dict(check_accuracy=True)
 
     return prb
 
