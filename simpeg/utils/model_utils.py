@@ -174,7 +174,6 @@ def depth_weighting(
 @njit(parallel=True)
 def _distance_weighting_numba(
     cell_centers: np.ndarray,
-    cell_volumes: np.ndarray,
     reference_locs: np.ndarray,
     threshold: float,
     exponent: float = 2.0,
@@ -188,17 +187,15 @@ def _distance_weighting_numba(
     ----------
     cell_centers : np.ndarray
         cell centers of the mesh.
-    cell_volumes : np.ndarray
-        cell volumes of the mesh.
     reference_locs : float or (n, ndim) numpy.ndarray
-        Reference location for the distance weighting.
+        The coordinate of the reference location, usually the receiver locations,
+        for the distance weighting.
         It can be a ``float``, which value is the component for
         the reference location.
         Or it can be a 2d array, with multiple reference locations, where each
         row should contain the coordinates of a single location point in the
         following order: _x_, _y_, _z_ (for 3D meshes) or _x_, _z_ (for 2D
         meshes).
-        The coordinate of the reference location, usually the receiver locations
     threshold : float
         Threshold parameters used in the distance weighting.
     exponent : float, optional
@@ -213,21 +210,19 @@ def _distance_weighting_numba(
         Normalized distance weights for the mesh at every active cell as
         a 1d-array.
     """
-
-    distance_weights = np.zeros(len(cell_centers))
+    n_active_cells = cell_centers.shape[0]
     n_reference_locs = len(reference_locs)
-    for i in prange(n_reference_locs):
-        rl = reference_locs[i]
-        dst_wgt = (
-            np.sqrt(((cell_centers - rl) ** 2).sum(axis=1)) + threshold
-        ) ** exponent
-        dst_wgt = (cell_volumes / dst_wgt) ** 2
-        distance_weights += dst_wgt
 
-    distance_weights = distance_weights**0.5
-    distance_weights /= cell_volumes
+    distance_weights = np.zeros(n_active_cells)
+    for j in prange(n_active_cells):
+        cell_center = cell_centers[j]
+        for i in range(n_reference_locs):
+            reference_loc = reference_locs[i]
+            distance = np.sqrt(((cell_center - reference_loc) ** 2).sum())
+            distance_weights[j] += (distance + threshold) ** (-2 * exponent)
+
+    distance_weights = np.sqrt(distance_weights)
     distance_weights /= np.nanmax(distance_weights)
-
     return distance_weights
 
 
@@ -237,7 +232,7 @@ def distance_weighting(
     active_cells: Optional[np.ndarray] = None,
     exponent: float = 2.0,
     threshold: Optional[float] = None,
-    engine: Literal["loop", "cdist"] = "loop",
+    engine: Literal["numba", "scipy"] = "numba",
     cdist_opts: Optional[dict] = None,
 ):
     r"""
@@ -254,14 +249,14 @@ def distance_weighting(
     mesh : discretize.base.BaseMesh
         Discretized model space.
     reference_locs : float or (n, ndim) numpy.ndarray
-        Reference location for the distance weighting.
+        The coordinate of the reference location, usually the receiver locations,
+        for the distance weighting.
         It can be a ``float``, which value is the component for
         the reference location.
         Or it can be a 2d array, with multiple reference locations, where each
         row should contain the coordinates of a single location point in the
         following order: _x_, _y_, _z_ (for 3D meshes) or _x_, _z_ (for 2D
         meshes).
-        The coordinate of the reference location, usually the receiver locations
     active_cells : (mesh.n_cells) numpy.ndarray of bool, optional
         Index vector for the active cells on the mesh.
         If ``None``, every cell will be assumed to be active.
@@ -273,11 +268,11 @@ def distance_weighting(
     threshold : float or None, optional
         Threshold parameters used in the distance weighting.
         If ``None``, it will be set to half of the smallest cell width.
-    engine: str, 'loop' or 'cdist'
+    engine: str, 'numba' or 'scipy'
         pick between a `scipy.spatial.distance.cdist` computation (memory intensive) or `for` loop implementation,
-        parallelized with numba if available. Default to 'loop'.
+        parallelized with numba if available. Default to 'numba'.
     cdist_opts: dct, optional
-        Only valid with `engine=='cdist'`. Options to pass to scipy.spatial.distance.cdist. Default to None.
+        Only valid with `engine=='scipy'`. Options to pass to scipy.spatial.distance.cdist. Default to None.
 
     Returns
     -------
@@ -295,54 +290,48 @@ def distance_weighting(
         threshold = 0.5 * mesh.h_gridded.min()
 
     reference_locs = np.asarray(reference_locs)
-
     cell_centers = mesh.cell_centers[active_cells]
-    cell_volumes = mesh.cell_volumes[active_cells]
 
     # address 1D case
     if mesh.dim == 1:
         cell_centers = cell_centers.reshape(-1, 1)
         reference_locs = reference_locs.reshape(-1, 1)
 
-    if engine == "loop":
+    if engine == "numba":
         if numba is None:
             warnings.warn(
-                "numba is not installed. 'loop' computations might be slower.",
+                "numba is not installed. 'numba' computations might be slower.",
                 stacklevel=2,
             )
         if cdist_opts is not None:
             warnings.warn(
-                f"`cdist_opts` is only valid with `engine=='cdist'`, currently {engine=}",
+                f"`cdist_opts` is only valid with `engine=='scipy'`, currently {engine=}",
                 stacklevel=2,
             )
         distance_weights = _distance_weighting_numba(
             cell_centers,
-            cell_volumes,
             reference_locs,
             exponent=exponent,
             threshold=threshold,
         )
 
-    elif engine == "cdist":
+    elif engine == "scipy":
         warnings.warn(
-            "scipy.spatial.distance.cdist computations can be memory intensive. Consider switching to `engine='loop'` "
+            "scipy.spatial.distance.cdist computations can be memory intensive. Consider switching to `engine='numba'` "
             "if you run into memory overflow issues",
             stacklevel=2,
         )
         cdist_opts = cdist_opts or dict()
         distance = cdist(cell_centers, reference_locs, **cdist_opts)
 
-        distance_weights = (
-            (cell_volumes.reshape(-1, 1) / ((distance + threshold) ** exponent)) ** 2
-        ).sum(axis=1)
+        distance_weights = (((distance + threshold) ** exponent) ** -2).sum(axis=1)
 
         distance_weights = distance_weights**0.5
-        distance_weights /= cell_volumes
         distance_weights /= np.nanmax(distance_weights)
 
     else:
         raise ValueError(
-            f"engine should be either 'cdist' or 'loop', instead {engine=}"
+            f"engine should be either 'scipy' or 'numba', instead {engine=}"
         )
 
     return distance_weights
