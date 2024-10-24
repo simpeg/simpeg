@@ -320,7 +320,8 @@ class TestDeprecationIndActive:
             f" SimPEG {version_regex}, please use 'active_cells' instead."
         )
         with pytest.warns(FutureWarning, match=msg):
-            mock_simulation_class(tensor_mesh, ind_active=ind_active)
+            sim = mock_simulation_class(tensor_mesh, ind_active=ind_active)
+        np.testing.assert_allclose(sim.active_cells, ind_active)
 
     def test_error_both_args(self, tensor_mesh, mock_simulation_class):
         """Test if passing both ind_active and active_cells raises error."""

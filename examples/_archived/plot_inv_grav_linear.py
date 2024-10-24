@@ -120,11 +120,11 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a threshold parameter empirically based on the distribution of
     # model parameters
-    update_IRLS = directives.Update_IRLS(
+    update_IRLS = directives.UpdateIRLS(
         f_min_change=1e-4,
         max_irls_iterations=30,
-        coolEpsFact=1.5,
-        beta_tol=1e-2,
+        irls_cooling_factor=1.5,
+        misfit_tolerance=1e-2,
     )
     saveDict = directives.SaveOutputEveryIteration(save_txt=False)
     update_Jacobi = directives.UpdatePreconditioner()
@@ -261,7 +261,9 @@ def run(plotIt=True):
         axs = plt.subplot()
         axs.plot(saveDict.phi_d, "k", lw=2)
         axs.plot(
-            np.r_[update_IRLS.iterStart, update_IRLS.iterStart],
+            np.r_[
+                update_IRLS.metrics.start_irls_iter, update_IRLS.metrics.start_irls_iter
+            ],
             np.r_[0, np.max(saveDict.phi_d)],
             "k:",
         )
@@ -269,7 +271,7 @@ def run(plotIt=True):
         twin = axs.twinx()
         twin.plot(saveDict.phi_m, "k--", lw=2)
         axs.text(
-            update_IRLS.iterStart,
+            update_IRLS.metrics.start_irls_iter,
             np.max(saveDict.phi_d) / 2.0,
             "IRLS Steps",
             va="bottom",

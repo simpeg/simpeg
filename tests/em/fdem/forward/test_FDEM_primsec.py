@@ -5,7 +5,6 @@ import discretize
 from simpeg import maps, tests, utils
 from simpeg.electromagnetics import frequency_domain as fdem
 
-from pymatsolver import Pardiso as Solver
 
 import numpy as np
 import unittest
@@ -169,7 +168,6 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
         self.primarySimulation = fdem.Simulation3DMagneticFluxDensity(
             meshp, sigmaMap=primaryMapping
         )
-        self.primarySimulation.solver = Solver
         primarySrc = fdem.Src.MagDipole(self.rxlist, frequency=freq, location=src_loc)
         self.primarySurvey = fdem.Survey([primarySrc])
 
@@ -185,7 +183,6 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
         self.secondarySimulation = fdem.Simulation3DMagneticFluxDensity(
             meshs, survey=self.secondarySurvey, sigmaMap=mapping
         )
-        self.secondarySimulation.solver = Solver
 
         # Full 3D problem to compare with
         self.survey3D = fdem.Survey([primarySrc])
@@ -193,7 +190,6 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
         self.simulation3D = fdem.Simulation3DMagneticFluxDensity(
             meshs, survey=self.survey3D, sigmaMap=mapping
         )
-        self.simulation3D.solver = Solver
 
         # solve and store fields
         print("   solving primary - secondary")
@@ -236,7 +232,6 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         self.primarySimulation = fdem.Simulation3DCurrentDensity(
             meshp, sigmaMap=primaryMapping
         )
-        self.primarySimulation.solver = Solver
         s_e = np.zeros(meshp.nF)
         inds = meshp.nFx + meshp.closest_points_index(src_loc, grid_loc="Fz")
         s_e[inds] = 1.0 / csz
@@ -260,7 +255,6 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
             survey=self.secondarySurvey,
             sigmaMap=mapping,
         )
-        self.secondarySimulation.solver = Solver
 
         # Full 3D problem to compare with
 
@@ -276,7 +270,6 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         self.simulation3D = fdem.Simulation3DElectricField(
             meshs, survey=self.survey3D, sigmaMap=mapping
         )
-        self.simulation3D.solver = Solver
         self.simulation3D.model = model
 
         # solve and store fields

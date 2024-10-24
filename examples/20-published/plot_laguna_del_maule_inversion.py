@@ -121,13 +121,16 @@ def run(plotIt=True, cleanAfterRun=True):
     invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
     # Specify how the initial beta is found
-    betaest = directives.BetaEstimate_ByEig(beta0_ratio=0.5, seed=518936)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=0.5, random_seed=518936)
 
     # IRLS sets up the Lp inversion problem
     # Set the eps parameter parameter in Line 11 of the
     # input file based on the distribution of model (DEFAULT = 95th %ile)
-    IRLS = directives.Update_IRLS(
-        f_min_change=1e-4, max_irls_iterations=40, coolEpsFact=1.5, beta_tol=5e-1
+    IRLS = directives.UpdateIRLS(
+        f_min_change=1e-4,
+        max_irls_iterations=40,
+        irls_cooling_factor=1.5,
+        misfit_tolerance=5e-1,
     )
 
     # Preconditioning refreshing for each IRLS iteration

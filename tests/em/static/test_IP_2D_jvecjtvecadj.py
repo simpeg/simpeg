@@ -47,7 +47,7 @@ class IPProblemTestsCC(unittest.TestCase):
         )
 
         mSynth = np.ones(mesh.nC) * 0.1
-        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.WeightedLeastSquares(mesh)
@@ -127,7 +127,7 @@ class IPProblemTestsN(unittest.TestCase):
         )
 
         mSynth = np.ones(mesh.nC) * 0.1
-        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.WeightedLeastSquares(mesh)

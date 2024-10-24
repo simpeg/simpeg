@@ -13,11 +13,6 @@ from simpeg import (
 )
 from simpeg.electromagnetics import resistivity as dc
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import SolverLU as Solver
-
 
 class DCProblem_2DTests(unittest.TestCase):
     formulation = "Simulation2DCellCentered"
@@ -47,12 +42,11 @@ class DCProblem_2DTests(unittest.TestCase):
             mesh,
             rhoMap=maps.IdentityMap(mesh),
             storeJ=self.storeJ,
-            solver=Solver,
             survey=survey,
             bc_type=self.bc_type,
         )
         mSynth = np.ones(mesh.nC) * 1.0
-        data = simulation.make_synthetic_data(mSynth, add_noise=True)
+        data = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data)
