@@ -1294,7 +1294,7 @@ class TileMap(IdentityMap):
         Set the projection matrix with partial volumes
         """
         if getattr(self, "_P", None) is None:
-            in_local = self.local_mesh._get_containing_cell_indexes(
+            in_local = self.local_mesh.get_containing_cells(
                 self.global_mesh.cell_centers
             )
 
