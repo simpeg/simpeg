@@ -73,8 +73,7 @@ def test_deriv(q_map):
 
     rng = np.random.default_rng(seed=42)
     m0 = rng.normal(size=q_map.shape[1])
-    np.random.seed(40)  # set a random seed for check_derivative
-    check_derivative(func, m0, plotIt=False)
+    check_derivative(func, m0, plotIt=False, random_seed=rng)
 
 
 @pytest.mark.parametrize(
@@ -99,7 +98,9 @@ def test_adjoint(q_map):
     def Jtvec(v):
         return sim.Jtvec(model, v, f=f)
 
-    assert_isadjoint(Jvec, Jtvec, shape_u=(q_map.shape[1],), shape_v=(survey.nD))
+    assert_isadjoint(
+        Jvec, Jtvec, shape_u=(q_map.shape[1],), shape_v=(survey.nD), random_seed=rng
+    )
 
 
 def test_errors():
