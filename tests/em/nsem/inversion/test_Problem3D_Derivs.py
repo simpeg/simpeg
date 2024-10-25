@@ -88,8 +88,9 @@ def DerivJvecTest(inputSetup, comp="All", freq=False, expMap=True):
     def fun(x):
         return simulation.dpred(x), lambda x: simulation.Jvec(m, x)
 
-    np.random.seed(1983)  # use seed for check_derivative
-    return tests.check_derivative(fun, m, num=3, plotIt=False, eps=FLR)
+    return tests.check_derivative(
+        fun, m, num=3, plotIt=False, eps=FLR, random_seed=1512
+    )
 
 
 class NSEM_DerivTests(unittest.TestCase):

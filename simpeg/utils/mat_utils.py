@@ -123,11 +123,7 @@ def unique_rows(M):
         Indices to project from output array to input array
 
     """
-    b = np.ascontiguousarray(M).view(np.dtype((np.void, M.dtype.itemsize * M.shape[1])))
-    _, unqInd = np.unique(b, return_index=True)
-    _, invInd = np.unique(b, return_inverse=True)
-    unqM = M[unqInd]
-    return unqM, unqInd, invInd
+    return np.unique(M, return_index=True, return_inverse=True, axis=0)
 
 
 def eigenvalue_by_power_iteration(
