@@ -51,7 +51,7 @@ def DerivJvecTest_1D(halfspace_value, freq=False, expMap=True):
         return simulation.dpred(x), lambda x: simulation.Jvec(x0, x)
 
     return tests.check_derivative(
-        fun, x0, num=6, plotIt=False, eps=FLR, random_seed=561
+        fun, x0, num=6, plotIt=False, eps=FLR, random_seed=298376
     )
 
 

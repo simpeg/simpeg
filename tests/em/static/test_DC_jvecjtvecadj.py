@@ -238,7 +238,7 @@ class DCProblemTestsN(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
-            random_seed=98637541,
+            random_seed=3456845,
         )
         self.assertTrue(passed)
 
