@@ -76,8 +76,9 @@ class TDEM_DerivTests(unittest.TestCase):
 
             print("test_Jvec_{prbtype}_{rxcomp}".format(prbtype=prbtype, rxcomp=rxcomp))
 
-            np.random.seed(10)  # use seed for check_derivative
-            tests.check_derivative(derChk, m, plotIt=False, num=2, eps=1e-20)
+            tests.check_derivative(
+                derChk, m, plotIt=False, num=2, eps=1e-20, random_seed=52135
+            )
 
         def test_Jvec_e_dbzdt(self):
             self.JvecTest("ElectricField", "MagneticFluxTimeDerivativez")

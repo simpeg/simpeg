@@ -66,7 +66,7 @@ class DataMisfitTest(unittest.TestCase):
     def test_DataMisfitOrder(self):
         self.data.relative_error = self.relative
         self.data.noise_floor = self.noise_floor
-        self.dmis.test(x=self.model)
+        self.dmis.test(x=self.model, random_seed=17)
 
 
 if __name__ == "__main__":

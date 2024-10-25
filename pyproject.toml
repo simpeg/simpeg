@@ -15,11 +15,11 @@ keywords = [
     'geophysics', 'inverse problem'
 ]
 dependencies = [
-    "numpy>=1.21",
+    "numpy>=1.22",
     "scipy>=1.8",
     "pymatsolver>=0.3",
     "matplotlib",
-    "discretize>=0.10",
+    "discretize>=0.11",
     "geoana>=0.7",
     "empymod>=2.0.0",
 ]

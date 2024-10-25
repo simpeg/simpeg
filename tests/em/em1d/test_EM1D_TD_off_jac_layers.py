@@ -116,7 +116,7 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
             return [fwdfun(m), lambda mx: jacfun(m, mx)]
 
         passed = tests.check_derivative(
-            derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
+            derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15, random_seed=51234
         )
         self.assertTrue(passed)
         if passed:
