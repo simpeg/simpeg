@@ -2,7 +2,6 @@ from __future__ import annotations
 import warnings
 import numpy as np
 import scipy.constants as constants
-from discretize import TensorMesh, TreeMesh
 from geoana.kernels import prism_fz, prism_fzx, prism_fzy, prism_fzz
 from scipy.constants import G as NewtG
 
@@ -116,42 +115,6 @@ def _get_conversion_factor(component):
     else:
         raise ValueError(f"Invalid component '{component}'.")
     return conversion_factor
-
-
-def _get_cell_bounds(mesh: TensorMesh | TreeMesh):
-    """
-    Bounds of each cell in a 2D TensorMesh or TreeMesh.
-
-    The bounds are defined as ``x_min``, ``x_max``, ``y_min``, ``y_max``.
-
-    ..note:
-
-        This private function could be replaced by calling some `cell_bounds`
-        method of the meshes directly from discretize.
-
-    Parameters
-    ----------
-    mesh : discretize.TensorMesh or discretize.TreeMesh
-        A 2D mesh.
-
-    Returns
-    -------
-    bounds : (n_cells, 4) array
-        Array with the bounds of each cell in the mesh.
-    """
-    if not isinstance(mesh, (TensorMesh, TreeMesh)):
-        raise TypeError(f"Invalid mesh of type {mesh.__class__}.")
-    if mesh.dim != 2:
-        raise TypeError(
-            f"Invalid mesh with '{mesh.dim}' dimensions. Only 2D meshes can be passed."
-        )
-    centers, widths = mesh.cell_centers, mesh.h_gridded
-    xmin = centers[:, 0] - widths[:, 0] / 2
-    xmax = centers[:, 0] + widths[:, 0] / 2
-    ymin = centers[:, 1] - widths[:, 1] / 2
-    ymax = centers[:, 1] + widths[:, 1] / 2
-    bounds = np.hstack(tuple(v[:, np.newaxis] for v in (xmin, xmax, ymin, ymax)))
-    return bounds
 
 
 class Simulation3DIntegral(BasePFSimulation):
@@ -584,7 +547,7 @@ class SimulationEquivalentSourceLayer(
             Always return a ``np.float64`` array.
         """
         # Get cells in the 2D mesh
-        cells_bounds = _get_cell_bounds(self.mesh)
+        cells_bounds = self.mesh.cell_bounds
         # Keep only active cells
         cells_bounds_active = cells_bounds[self.active_cells]
         # Allocate fields array
@@ -622,7 +585,7 @@ class SimulationEquivalentSourceLayer(
         (nD, n_active_cells) numpy.ndarray
         """
         # Get cells in the 2D mesh
-        cells_bounds = _get_cell_bounds(self.mesh)
+        cells_bounds = self.mesh.cell_bounds
         # Keep only active cells
         cells_bounds_active = cells_bounds[self.active_cells]
         # Allocate sensitivity matrix

@@ -21,7 +21,6 @@ from ...base import BaseMagneticPDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
 from .analytics import CongruousMagBC
 from .survey import Survey
-from ..gravity.simulation import _get_cell_bounds
 
 from ._numba_functions import (
     choclo,
@@ -959,7 +958,7 @@ class SimulationEquivalentSourceLayer(
             Always return a ``np.float64`` array.
         """
         # Get cells in the 2D mesh
-        cells_bounds = _get_cell_bounds(self.mesh)
+        cells_bounds = self.mesh.cell_bounds
         # Keep only active cells
         cells_bounds_active = cells_bounds[self.active_cells]
         # Get regional field
@@ -1037,7 +1036,7 @@ class SimulationEquivalentSourceLayer(
         (nD, n_active_cells) array
         """
         # Get cells in the 2D mesh
-        cells_bounds = _get_cell_bounds(self.mesh)
+        cells_bounds = self.mesh.cell_bounds
         # Keep only active cells
         cells_bounds_active = cells_bounds[self.active_cells]
         # Get regional field
