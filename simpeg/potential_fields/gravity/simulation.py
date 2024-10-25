@@ -546,10 +546,8 @@ class SimulationEquivalentSourceLayer(
         (nD,) numpy.ndarray
             Always return a ``np.float64`` array.
         """
-        # Get cells in the 2D mesh
-        cells_bounds = self.mesh.cell_bounds
-        # Keep only active cells
-        cells_bounds_active = cells_bounds[self.active_cells]
+        # Get cells in the 2D mesh and keep only active cells
+        cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
         # Allocate fields array
         fields = np.zeros(self.survey.nD, dtype=self.sensitivity_dtype)
         # Compute fields
@@ -584,10 +582,8 @@ class SimulationEquivalentSourceLayer(
         -------
         (nD, n_active_cells) numpy.ndarray
         """
-        # Get cells in the 2D mesh
-        cells_bounds = self.mesh.cell_bounds
-        # Keep only active cells
-        cells_bounds_active = cells_bounds[self.active_cells]
+        # Get cells in the 2D mesh and keep only active cells
+        cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
         # Allocate sensitivity matrix
         shape = (self.survey.nD, self.nC)
         if self.store_sensitivities == "disk":

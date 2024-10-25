@@ -957,10 +957,8 @@ class SimulationEquivalentSourceLayer(
         (nD, ) array
             Always return a ``np.float64`` array.
         """
-        # Get cells in the 2D mesh
-        cells_bounds = self.mesh.cell_bounds
-        # Keep only active cells
-        cells_bounds_active = cells_bounds[self.active_cells]
+        # Get cells in the 2D mesh and keep only active cells
+        cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
         # Get regional field
         regional_field = self.survey.source_field.b0
         # Allocate fields array
@@ -1035,10 +1033,8 @@ class SimulationEquivalentSourceLayer(
         -------
         (nD, n_active_cells) array
         """
-        # Get cells in the 2D mesh
-        cells_bounds = self.mesh.cell_bounds
-        # Keep only active cells
-        cells_bounds_active = cells_bounds[self.active_cells]
+        # Get cells in the 2D mesh and keep only active cells
+        cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
         # Get regional field
         regional_field = self.survey.source_field.b0
         # Allocate sensitivity matrix
