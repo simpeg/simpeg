@@ -117,6 +117,7 @@ class IPProblemTests2DN(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=66346,
         )
         self.assertTrue(passed)
 

@@ -192,63 +192,26 @@ class MapTests(unittest.TestCase):
     def test_ParametricCasingAndLayer(self):
         mapping = maps.ParametricCasingAndLayer(self.meshCyl)
         m = np.r_[-2.0, 1.0, 6.0, 2.0, -0.1, 0.2, 0.5, 0.2, -0.2, 0.2]
-        self.assertTrue(mapping.test(m=m))
+        self.assertTrue(mapping.test(m=m, random_seed=42))
 
     def test_ParametricBlock2D(self):
         mesh = discretize.TensorMesh([np.ones(30), np.ones(20)], x0=np.array([-15, -5]))
         mapping = maps.ParametricBlock(mesh)
         # val_background,val_block, block_x0, block_dx, block_y0, block_dy
         m = np.r_[-2.0, 1.0, -5, 10, 5, 4]
-        self.assertTrue(mapping.test(m=m))
+        self.assertTrue(mapping.test(m=m, random_seed=42))
 
     def test_transforms_logMap_reciprocalMap(self):
-        # Note that log/reciprocal maps can be kinda finicky, so we are being
-        # explicit about the random seed.
-
-        v2 = np.r_[
-            0.40077291, 0.1441044, 0.58452314, 0.96323738, 0.01198519, 0.79754415
-        ]
-        dv2 = np.r_[
-            0.80653921, 0.13132446, 0.4901117, 0.03358737, 0.65473762, 0.44252488
-        ]
-        v3 = np.r_[
-            0.96084865,
-            0.34385186,
-            0.39430044,
-            0.81671285,
-            0.65929109,
-            0.2235217,
-            0.87897526,
-            0.5784033,
-            0.96876393,
-            0.63535864,
-            0.84130763,
-            0.22123854,
-        ]
-        dv3 = np.r_[
-            0.96827838,
-            0.26072111,
-            0.45090749,
-            0.10573893,
-            0.65276365,
-            0.15646586,
-            0.51679682,
-            0.23071984,
-            0.95106218,
-            0.14201845,
-            0.25093564,
-            0.3732866,
-        ]
 
         mapping = maps.LogMap(self.mesh2)
-        self.assertTrue(mapping.test(m=v2, dx=dv2))
+        self.assertTrue(mapping.test(random_seed=42))
         mapping = maps.LogMap(self.mesh3)
-        self.assertTrue(mapping.test(m=v3, dx=dv3))
+        self.assertTrue(mapping.test(random_seed=42))
 
         mapping = maps.ReciprocalMap(self.mesh2)
-        self.assertTrue(mapping.test(m=v2, dx=dv2))
+        self.assertTrue(mapping.test(random_seed=42))
         mapping = maps.ReciprocalMap(self.mesh3)
-        self.assertTrue(mapping.test(m=v3, dx=dv3))
+        self.assertTrue(mapping.test(random_seed=42))
 
     def test_Mesh2MeshMap(self):
         mapping = maps.Mesh2Mesh([self.mesh22, self.mesh2])
@@ -381,7 +344,9 @@ class MapTests(unittest.TestCase):
     def test_ParametricPolyMap(self):
         M2 = discretize.TensorMesh([np.ones(10), np.ones(10)], "CN")
         mParamPoly = maps.ParametricPolyMap(M2, 2, logSigma=True, normal="Y")
-        self.assertTrue(mParamPoly.test(m=np.r_[1.0, 1.0, 0.0, 0.0, 0.0]))
+        self.assertTrue(
+            mParamPoly.test(m=np.r_[1.0, 1.0, 0.0, 0.0, 0.0], random_seed=42)
+        )
 
     def test_ParametricSplineMap(self):
         M2 = discretize.TensorMesh([np.ones(10), np.ones(10)], "CN")
@@ -394,7 +359,8 @@ class MapTests(unittest.TestCase):
         block = maps.ParametricBlock(M1)
         self.assertTrue(
             block.test(
-                m=np.hstack([np.random.rand(2), np.r_[M1.x0, 2 * M1.h[0].min()]])
+                m=np.hstack([np.random.rand(2), np.r_[M1.x0, 2 * M1.h[0].min()]]),
+                random_seed=42,
             )
         )
 
@@ -408,7 +374,8 @@ class MapTests(unittest.TestCase):
                         np.r_[M2.x0[0], 2 * M2.h[0].min()],
                         np.r_[M2.x0[1], 4 * M2.h[1].min()],
                     ]
-                )
+                ),
+                random_seed=42,
             )
         )
 
@@ -423,7 +390,8 @@ class MapTests(unittest.TestCase):
                         np.r_[M3.x0[1], 4 * M3.h[1].min()],
                         np.r_[M3.x0[2], 5 * M3.h[2].min()],
                     ]
-                )
+                ),
+                random_seed=42,
             )
         )
 
@@ -438,7 +406,8 @@ class MapTests(unittest.TestCase):
                         np.r_[M2.x0[0], 2 * M2.h[0].min()],
                         np.r_[M2.x0[1], 4 * M2.h[1].min()],
                     ]
-                )
+                ),
+                random_seed=42,
             )
         )
 
@@ -453,7 +422,8 @@ class MapTests(unittest.TestCase):
                         np.r_[M3.x0[1], 4 * M3.h[1].min()],
                         np.r_[M3.x0[2], 5 * M3.h[2].min()],
                     ]
-                )
+                ),
+                random_seed=42,
             )
         )
 
@@ -479,8 +449,8 @@ class MapTests(unittest.TestCase):
 
         self.assertTrue(np.all(summap0 * m0 == summap1 * m0))
 
-        self.assertTrue(summap0.test(m=m0))
-        self.assertTrue(summap1.test(m=m0))
+        self.assertTrue(summap0.test(m=m0, random_seed=42))
+        self.assertTrue(summap1.test(m=m0, random_seed=42))
 
     def test_surject_units(self):
         M2 = discretize.TensorMesh([np.ones(10), np.ones(20)], "CC")
@@ -494,7 +464,7 @@ class MapTests(unittest.TestCase):
 
         self.assertTrue(np.all(m1[unit1] == 0))
         self.assertTrue(np.all(m1[unit2] == 1))
-        self.assertTrue(surject_units.test(m=m0))
+        self.assertTrue(surject_units.test(m=m0, random_seed=42))
 
     def test_Projection(self):
         nP = 10
@@ -642,16 +612,14 @@ class TestSCEMT(unittest.TestCase):
     def test_sphericalInclusions(self):
         mesh = discretize.TensorMesh([4, 5, 3])
         mapping = maps.SelfConsistentEffectiveMedium(mesh, sigma0=1e-1, sigma1=1.0)
-        m = np.random.default_rng(seed=0).random(mesh.n_cells)
-        mapping.test(m=m, dx=0.05 * np.ones(mesh.n_cells), num=3)
+        mapping.test(num=3, random_seed=42)
 
     def test_spheroidalInclusions(self):
         mesh = discretize.TensorMesh([4, 3, 2])
         mapping = maps.SelfConsistentEffectiveMedium(
             mesh, sigma0=1e-1, sigma1=1.0, alpha0=0.8, alpha1=0.9, rel_tol=1e-8
         )
-        m = np.abs(np.random.rand(mesh.nC))
-        mapping.test(m=m, dx=0.05 * np.ones(mesh.n_cells), num=3)
+        mapping.test(num=3, random_seed=42)
 
 
 @pytest.mark.parametrize(

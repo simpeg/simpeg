@@ -226,9 +226,9 @@ class ComplexResistivityTest(unittest.TestCase):
             d = sim.dpred(x)
             return d, lambda y: sim.Jvec(x, y)
 
-        rng = np.random.default_rng(seed=1983)  # set a random seed for check_derivative
-        dx = -rng.uniform(size=len(self.model)) * 0.01 * np.abs(self.model).max()
-        passed = tests.check_derivative(fun, self.model, dx=dx, num=3, plotIt=False)
+        passed = tests.check_derivative(
+            fun, self.model, num=3, plotIt=False, random_seed=1983
+        )
         self.assertTrue(passed)
 
     def check_adjoint(self, sim):
