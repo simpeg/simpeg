@@ -1597,7 +1597,9 @@ class CircularLoop(MagDipole):
                 radius=self.radius,
                 current=self.current,
             )
-        return self.n_turns * self._loop.vector_potential(obsLoc, coordinates)
+        out = self._loop.vector_potential(obsLoc, coordinates)
+        out[np.isnan(out)] = 0
+        return self.n_turns * out
 
     N = deprecate_property(
         n_turns, "N", "n_turns", removal_version="0.19.0", error=True
