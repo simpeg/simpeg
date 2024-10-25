@@ -1239,7 +1239,9 @@ class MagDipole(BaseTDEMSrc):
                 location=self.location,
                 moment=self.moment,
             )
-        return self._dipole.vector_potential(obsLoc, coordinates=coordinates)
+        out = self._dipole.vector_potential(obsLoc, coordinates=coordinates)
+        out[np.isnan(out)] = 0
+        return out
 
     def _aSrc(self, simulation):
         coordinates = "cartesian"
