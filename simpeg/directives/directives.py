@@ -164,7 +164,7 @@ class InversionDirective:
                 [isinstance(value, regtype) for regtype in self._regPair]
             ), "Regularization must be in {}, not {}".format(self._regPair, type(value))
 
-            if not isinstance(value, ComboObjectiveFunction):
+            if isinstance(value, WeightedLeastSquares):
                 value = ComboObjectiveFunction(
                     objfcts=[value]
                 )  # turn it into a combo objective function
