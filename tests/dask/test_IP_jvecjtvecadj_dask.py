@@ -134,7 +134,11 @@ class IPProblemTests2DN(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -188,6 +192,7 @@ class IPProblemTestsCC(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -204,7 +209,11 @@ class IPProblemTestsCC(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -257,6 +266,7 @@ class IPProblemTestsN(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -273,7 +283,11 @@ class IPProblemTestsN(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -330,6 +344,7 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -346,7 +361,11 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -410,6 +429,7 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -426,7 +446,11 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
