@@ -506,7 +506,9 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             multipliers = [None] * len(objfcts)
 
         # Get number of parameters (nP) from objective functions
-        number_of_parameters = [f.nP for f in objfcts if f.nP != "*"]
+        number_of_parameters = [
+            f.nP for f in objfcts if hasattr(f, "nP") and f.nP != "*"
+        ]
         if number_of_parameters:
             nP = number_of_parameters[0]
         else:
