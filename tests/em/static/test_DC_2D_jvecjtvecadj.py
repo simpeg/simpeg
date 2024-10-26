@@ -13,11 +13,6 @@ from simpeg import (
 )
 from simpeg.electromagnetics import resistivity as dc
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import SolverLU as Solver
-
 
 class DCProblem_2DTests(unittest.TestCase):
     formulation = "Simulation2DCellCentered"
@@ -47,7 +42,6 @@ class DCProblem_2DTests(unittest.TestCase):
             mesh,
             rhoMap=maps.IdentityMap(mesh),
             storeJ=self.storeJ,
-            solver=Solver,
             survey=survey,
             bc_type=self.bc_type,
         )
@@ -73,12 +67,12 @@ class DCProblem_2DTests(unittest.TestCase):
         self.data = data
 
     def test_misfit(self):
-        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: (self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)),
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=9582376,
         )
         self.assertTrue(passed)
 
@@ -94,9 +88,12 @@ class DCProblem_2DTests(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=23,
         )
         self.assertTrue(passed)
 

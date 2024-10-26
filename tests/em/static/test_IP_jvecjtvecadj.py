@@ -59,12 +59,12 @@ class IPProblemTestsCC(unittest.TestCase):
         # self.dobe = dobs
 
     def test_misfit(self):
-        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=63426,
         )
         self.assertTrue(passed)
 
@@ -81,9 +81,12 @@ class IPProblemTestsCC(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=234623,
         )
         self.assertTrue(passed)
 
@@ -131,12 +134,12 @@ class IPProblemTestsN(unittest.TestCase):
         self.dmis = dmis
 
     def test_misfit(self):
-        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=63462,
         )
         self.assertTrue(passed)
 
@@ -153,9 +156,12 @@ class IPProblemTestsN(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=5234,
         )
         self.assertTrue(passed)
 
@@ -207,12 +213,12 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
         self.dmis = dmis
 
     def test_misfit(self):
-        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=4512,
         )
         self.assertTrue(passed)
 
@@ -229,9 +235,12 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=541,
         )
         self.assertTrue(passed)
 
@@ -290,12 +299,12 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
         self.dmis = dmis
 
     def test_misfit(self):
-        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=512,
         )
         self.assertTrue(passed)
 
@@ -312,9 +321,12 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=87623,
         )
         self.assertTrue(passed)
 

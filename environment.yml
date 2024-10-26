@@ -4,17 +4,19 @@ channels:
 dependencies:
 # dependencies
   - python=3.11
-  - numpy>=1.21
+  - numpy>=1.22
   - scipy>=1.8
-  - pymatsolver-base>=0.2
+  - pymatsolver>=0.3
   - matplotlib-base
-  - discretize>=0.10
-  - geoana>=0.5.0
+  - discretize>=0.11
+  - geoana>=0.7
   - empymod>=2.0.0
 
 # solver
 # uncomment the next line if you are on an intel platform
 #  - pydiso # if on intel pc
+# uncomment this line if you want to install mumps solvers
+#  - python-mumps
 
 # optional dependencies
   - dask

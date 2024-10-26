@@ -418,10 +418,10 @@ recovered_model = inv.run(starting_model)
 # values on active cells.
 
 true_model_dens = np.loadtxt(dir_path + "true_model_dens.txt")
-true_model_dens[~ind_active] = np.NaN
+true_model_dens[~ind_active] = np.nan
 
 true_model_susc = np.loadtxt(dir_path + "true_model_susc.txt")
-true_model_susc[~ind_active] = np.NaN
+true_model_susc[~ind_active] = np.nan
 
 # Plot True Model
 fig = plt.figure(figsize=(9, 8))

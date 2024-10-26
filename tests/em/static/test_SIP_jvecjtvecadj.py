@@ -13,11 +13,6 @@ from simpeg import (
 import numpy as np
 from simpeg.electromagnetics import spectral_induced_polarization as sip
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import SolverLU as Solver
-
 
 class SIPProblemTestsCC(unittest.TestCase):
     def setUp(self):
@@ -69,7 +64,6 @@ class SIPProblemTestsCC(unittest.TestCase):
             tauiMap=wires.taui,
             storeJ=False,
         )
-        problem.solver = Solver
         mSynth = np.r_[eta, 1.0 / tau]
         problem.model = mSynth
         dobs = problem.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
@@ -92,12 +86,12 @@ class SIPProblemTestsCC(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=51,
         )
         self.assertTrue(passed)
 
@@ -114,9 +108,12 @@ class SIPProblemTestsCC(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=51,
         )
         self.assertTrue(passed)
 
@@ -169,7 +166,6 @@ class SIPProblemTestsN(unittest.TestCase):
             storeJ=False,
         )
         print(survey.nD)
-        problem.solver = Solver
         mSynth = np.r_[eta, 1.0 / tau]
         print(survey.nD)
         dobs = problem.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
@@ -193,12 +189,12 @@ class SIPProblemTestsN(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=5432,
         )
         self.assertTrue(passed)
 
@@ -214,9 +210,12 @@ class SIPProblemTestsN(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=553254,
         )
         self.assertTrue(passed)
 
@@ -281,7 +280,6 @@ class SIPProblemTestsN_air(unittest.TestCase):
             verbose=False,
         )
 
-        problem.solver = Solver
         mSynth = np.r_[eta[~airind], 1.0 / tau[~airind], c[~airind]]
         dobs = problem.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         # Now set up the problem to do some minimization
@@ -306,12 +304,12 @@ class SIPProblemTestsN_air(unittest.TestCase):
         self.dobs = dobs
 
     def test_misfit(self):
-        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
             lambda m: [self.p.dpred(m), lambda mx: self.p.Jvec(self.m0, mx)],
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=754,
         )
         self.assertTrue(passed)
 
@@ -327,9 +325,12 @@ class SIPProblemTestsN_air(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_dataObj(self):
-        np.random.seed(40)  # set a random seed for check_derivative
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=2234,
         )
         self.assertTrue(passed)
 
