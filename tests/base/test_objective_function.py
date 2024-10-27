@@ -194,6 +194,21 @@ class TestBaseObjFct(unittest.TestCase):
 
         self.assertTrue(phi(m) == phi1(m))
 
+    def test_setting_multipliers_by_index(self):
+        """
+        Test to check the setting by index the multipliers updates the
+        underlying list class.
+        """
+        phi1 = objective_function.L2ObjectiveFunction()
+        phi2 = objective_function.L2ObjectiveFunction()
+
+        phi = phi1 + phi2
+
+        phi_nested = phi + phi1
+
+        phi_nested.multipliers[1] = 0.1
+        np.testing.assert_allclose(phi_nested.multipliers, [1.0, 0.1, 1.0])
+
     def test_invalid_mapping(self):
         """Test if setting mapping of wrong type raises errors."""
 
