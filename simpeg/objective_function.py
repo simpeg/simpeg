@@ -282,7 +282,7 @@ class BaseObjectiveFunction(BaseSimPEG):
             )
         objective_functions = []
         for instance in (self, other):
-            if isinstance(instance, ComboObjectiveFunction) and instance._unpack_on_add:
+            if isinstance(instance, ComboObjectiveFunction) and instance.unpack_on_add:
                 objective_functions += instance.components
             elif isinstance(instance, WeightedObjectiveFunction):
                 objective_functions.append(instance)
@@ -677,6 +677,11 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             Objective functions that live inside the composite class.
         """
         return [component.function for component in self.components]
+
+    @property
+    def unpack_on_add(self):
+        """Whether to unpack the multiple objective functions when adding them to another objective function."""
+        return self._unpack_on_add
 
 
 class L2ObjectiveFunction(BaseObjectiveFunction):
