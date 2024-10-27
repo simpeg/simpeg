@@ -1,3 +1,5 @@
+from typing import Sequence
+
 import numbers
 import numpy as np
 import scipy.sparse as sp
@@ -793,13 +795,22 @@ class Multipliers(list):
         return [comp.multiplier for comp in self._parent.components][key]
 
     def __setitem__(self, key, value):
+
+        # Special care for slice assignment
         comp_list = self._parent[key]
+
         if not isinstance(comp_list, list):
             comp_list = [comp_list]
 
-        for comp in comp_list:
-            comp.multiplier = value
+        if not isinstance(value, Sequence | np.ndarray) or len(value) != len(comp_list):
+            values = [value] * len(comp_list)
+        else:
+            values = value
 
+        for comp, val in zip(comp_list, values):
+            comp.multiplier = val
+
+        # Call the parent setter to update the list of multipliers
         super().__setitem__(key, value)
 
 
