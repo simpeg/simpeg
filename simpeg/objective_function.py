@@ -795,6 +795,8 @@ class Multipliers(list):
         for comp in comp_list:
             comp.multiplier = value
 
+        super().__setitem__(key, value)
+
 
 def _validate_objective_functions(
     objective_functions, multipliers
