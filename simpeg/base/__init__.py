@@ -1,7 +1,7 @@
-from .doc_inherit import DoceratorMeta
+import docerator
 
 
-class BaseSimPEG(metaclass=DoceratorMeta):
+class BaseSimPEG(metaclass=docerator.DoceratorMeta):
     """Base class for simpeg classes."""
 
     # Developer note:

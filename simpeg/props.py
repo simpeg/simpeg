@@ -5,7 +5,8 @@ import numpy.typing as npt
 
 from .maps import IdentityMap, ReciprocalMap
 from .utils import Zero, validate_type, validate_ndarray_with_shape
-from .base import BaseSimPEG, DoceratorMeta
+from .base import BaseSimPEG
+from docerator import DoceratorMeta
 
 
 class Mapping:
