@@ -175,12 +175,14 @@ def eigenvalue_by_power_iteration(
     approximated by the Rayleigh quotient:
 
     .. math::
+
         \lambda_k = \frac{\mathbf{x_k^T A x_k}}{\mathbf{x_k^T x_k}}
 
-    where :math:`\mathfb{A}` is our matrix and :math:`\mathfb{x_k}` is computed
+    where :math:`\mathbf{A}` is our matrix and :math:`\mathbf{x_k}` is computed
     recursively according to:
 
     .. math::
+
         \mathbf{x_{k+1}} = \frac{\mathbf{A x_k}}{\| \mathbf{Ax_k} \|}
 
     The elements of the initial vector :math:`\mathbf{x_0}` are randomly
