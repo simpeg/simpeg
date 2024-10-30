@@ -19,7 +19,6 @@ def check_deriv(sim, test_mod, **kwargs):
 
         return d, J_func
 
-    np.random.seed(1983)  # use seed for check_derivative
     passed = check_derivative(func, x0, plotIt=False, **kwargs)
     return passed
 
@@ -256,19 +255,19 @@ class Sim_1D(unittest.TestCase):
 
     def test_e_sigma_deriv(self):
         sim, test_mod = create_simulation_1d("e", "sigma")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=235)
 
     def test_h_sigma_deriv(self):
         sim, test_mod = create_simulation_1d("h", "sigma")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=5212)
 
     def test_e_mu_deriv(self):
         sim, test_mod = create_simulation_1d("e", "mu")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=63246)
 
     def test_h_mu_deriv(self):
         sim, test_mod = create_simulation_1d("h", "mu")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=124)
 
     def test_e_sigma_adjoint(self):
         sim, test_mod = create_simulation_1d("e", "sigma")
@@ -366,19 +365,19 @@ class Sim_2D(unittest.TestCase):
 
     def test_e_sigma_deriv(self):
         sim, test_mod = create_simulation_2d("e", "sigma", "TensorMesh")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=125)
 
     def test_h_sigma_deriv(self):
         sim, test_mod = create_simulation_2d("h", "sigma", "TensorMesh")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=7425)
 
     def test_e_mu_deriv(self):
         sim, test_mod = create_simulation_2d("e", "mu", "TensorMesh")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=236423)
 
     def test_h_mu_deriv(self):
         sim, test_mod = create_simulation_2d("h", "mu", "TensorMesh")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=34632)
 
     def test_e_sigma_adjoint(self):
         sim, test_mod = create_simulation_2d("e", "sigma", "TensorMesh")
@@ -408,13 +407,13 @@ class Sim_2D(unittest.TestCase):
         sim, test_mod = create_simulation_2d(
             "e", "sigma", "TensorMesh", fixed_boundary=True
         )
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=2634)
 
     def test_h_sigma_deriv_fixed(self):
         sim, test_mod = create_simulation_2d(
             "h", "sigma", "TensorMesh", fixed_boundary=True
         )
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=3651326)
 
     def test_e_sigma_adjoint_fixed(self):
         sim, test_mod = create_simulation_2d(

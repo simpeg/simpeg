@@ -1239,7 +1239,9 @@ class MagDipole(BaseTDEMSrc):
                 location=self.location,
                 moment=self.moment,
             )
-        return self._dipole.vector_potential(obsLoc, coordinates=coordinates)
+        out = self._dipole.vector_potential(obsLoc, coordinates=coordinates)
+        out[np.isnan(out)] = 0
+        return out
 
     def _aSrc(self, simulation):
         coordinates = "cartesian"
@@ -1597,7 +1599,9 @@ class CircularLoop(MagDipole):
                 radius=self.radius,
                 current=self.current,
             )
-        return self.n_turns * self._loop.vector_potential(obsLoc, coordinates)
+        out = self._loop.vector_potential(obsLoc, coordinates)
+        out[np.isnan(out)] = 0
+        return self.n_turns * out
 
     N = deprecate_property(
         n_turns, "N", "n_turns", removal_version="0.19.0", error=True
