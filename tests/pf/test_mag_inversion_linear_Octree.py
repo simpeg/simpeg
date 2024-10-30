@@ -1,7 +1,8 @@
 import shutil
 import unittest
 import numpy as np
-
+import pytest
+import matplotlib.pyplot as plt
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 from simpeg import (
     directives,
@@ -103,7 +104,7 @@ class MagInvLinProblemTest(unittest.TestCase):
             self.mesh,
             survey=survey,
             chiMap=idenMap,
-            ind_active=actv,
+            active_cells=actv,
             store_sensitivities="ram",
             n_processes=None,
         )
@@ -136,7 +137,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         )
 
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e6)
-        IRLS = directives.Update_IRLS()
+        IRLS = directives.UpdateIRLS()
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights()
         self.inv = inversion.BaseInversion(
@@ -147,16 +148,19 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Run the inversion
         mrec = self.inv.run(self.model * 1e-4)
         residual = np.linalg.norm(mrec - self.model) / np.linalg.norm(self.model)
-
-        # import matplotlib.pyplot as plt
-        # plt.figure()
-        # ax = plt.subplot(1, 2, 1)
-        # self.mesh.plot_slice(self.actvMap*mrec, ax=ax, normal="Y", grid=True)
-        # ax = plt.subplot(1, 2, 2)
-        # self.mesh.plot_slice(self.actvMap*self.model, ax=ax, normal="Y", grid=True)
-        # plt.show()
-
         self.assertLess(residual, 0.5)
+
+    @pytest.mark.skip(reason="For validation only.")
+    def test_plot_results(self):
+        self.sim.store_sensitivities = "ram"
+        mrec = self.inv.run(self.model * 1e-4)
+
+        plt.figure()
+        ax = plt.subplot(1, 2, 1)
+        self.mesh.plot_slice(self.actvMap * mrec, ax=ax, normal="Y", grid=True)
+        ax = plt.subplot(1, 2, 2)
+        self.mesh.plot_slice(self.actvMap * self.model, ax=ax, normal="Y", grid=True)
+        plt.show()
 
     def tearDown(self):
         # Clean up the working directory

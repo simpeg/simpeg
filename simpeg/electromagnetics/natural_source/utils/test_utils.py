@@ -242,7 +242,7 @@ def setupSimpegNSEM_tests_location_assign_list(
 
     # Set the mapping
     actMap = maps.InjectActiveCells(
-        mesh=mesh, indActive=active, valInactive=np.log(1e-8)
+        mesh=mesh, active_cells=active, value_inactive=np.log(1e-8)
     )
     mapping = maps.ExpMap(mesh) * actMap
     # print(survey_ns.source_list)
@@ -367,7 +367,7 @@ def setupSimpegNSEM_PrimarySecondary(inputSetup, freqs, comp="Imp", singleFreq=F
 
     # Set the mapping
     actMap = maps.InjectActiveCells(
-        mesh=mesh, indActive=active, valInactive=np.log(1e-8)
+        mesh=mesh, active_cells=active, value_inactive=np.log(1e-8)
     )
     mapping = maps.ExpMap(mesh) * actMap
     # print(survey_ns.source_list)
@@ -472,12 +472,6 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
         )
         problem.model = sig
     problem.verbose = False
-    try:
-        from pymatsolver import Pardiso
-
-        problem.solver = Pardiso
-    except ImportError:
-        pass
 
     return (survey, problem)
 

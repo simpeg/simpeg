@@ -8,12 +8,6 @@ from simpeg import maps
 from simpeg import utils
 from simpeg.flow import richards
 
-try:
-    from pymatsolver import Pardiso as Solver
-except Exception:
-    from simpeg import Solver
-
-
 TOL = 1e-8
 
 np.random.seed(0)
@@ -46,7 +40,6 @@ class BaseRichardsTest(unittest.TestCase):
             method="mixed",
         )
         prob.time_steps = time_steps
-        prob.solver = Solver
 
         self.h0 = h
         self.mesh = mesh
@@ -75,6 +68,7 @@ class BaseRichardsTest(unittest.TestCase):
             self.h0,
             expectedOrder=2 if newton else 1,
             plotIt=False,
+            random_seed=142,
         )
         self.assertTrue(passed, True)
 
@@ -101,6 +95,7 @@ class BaseRichardsTest(unittest.TestCase):
             self.mtrue,
             num=3,
             plotIt=False,
+            random_seed=6184726,
         )
         self.assertTrue(passed, True)
 
@@ -108,7 +103,11 @@ class BaseRichardsTest(unittest.TestCase):
         print("Testing Richards Derivative FULL dim={}".format(self.mesh.dim))
         J = self.prob.Jfull(self.mtrue)
         passed = check_derivative(
-            lambda m: [self.prob.dpred(m), J], self.mtrue, num=3, plotIt=False
+            lambda m: [self.prob.dpred(m), J],
+            self.mtrue,
+            num=3,
+            plotIt=False,
+            random_seed=97861534,
         )
         self.assertTrue(passed, True)
 

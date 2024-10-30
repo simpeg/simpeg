@@ -3,12 +3,14 @@ import unittest
 
 import discretize
 import numpy as np
-from pymatsolver import SolverLU
 from scipy.stats import multivariate_normal
 
 from simpeg import regularization
 from simpeg.maps import Wires
 from simpeg.utils import WeightedGaussianMixture, mkvc
+from simpeg.utils.solver_utils import get_default_solver
+
+Solver = get_default_solver()
 
 
 class TestPGI(unittest.TestCase):
@@ -104,7 +106,7 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & Full Cov. are ok.")
 
-        Hinv = SolverLU(reg.deriv2(self.model))
+        Hinv = Solver(reg.deriv2(self.model))
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
@@ -209,7 +211,7 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & tied Cov. are ok.")
 
-        Hinv = SolverLU(reg.deriv2(self.model))
+        Hinv = Solver(reg.deriv2(self.model))
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
@@ -312,7 +314,7 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & diag Cov. are ok.")
 
-        Hinv = SolverLU(reg.deriv2(self.model))
+        Hinv = Solver(reg.deriv2(self.model))
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
@@ -415,7 +417,7 @@ class TestPGI(unittest.TestCase):
         self.assertTrue(passed_deriv1)
         print("1st derivatives for PGI & spherical Cov. are ok.")
 
-        Hinv = SolverLU(reg.deriv2(self.model))
+        Hinv = Solver(reg.deriv2(self.model))
         p = Hinv * deriv
         direction2 = np.c_[self.wires * p]
         passed_derivative = np.allclose(
@@ -482,6 +484,86 @@ def test_removed_mref():
     message = "mref has been removed, please use reference_model."
     with pytest.raises(NotImplementedError, match=message):
         pgi.mref
+
+
+class TestCheckWeights:
+    """Test the ``WeightedGaussianMixture._check_weights`` method."""
+
+    VALID_ARGS = {
+        "1d-array": (np.array([0.5, 0.2, 0.3]), 3, None),
+        "2d-array": (np.array([[0.5, 0.2, 0.3], [0.25, 0.70, 0.05]]), 3, 2),
+        "1d-list": ([0.5, 0.2, 0.3], 3, None),
+        "2d-list": ([[0.5, 0.2, 0.3], [0.25, 0.70, 0.05]], 3, 2),
+    }
+    INVALID_SHAPE = {
+        "1d-array": (np.array([0.5, 0.2, 0.3]), 5, None),
+        "2d-array": (np.array([[0.5, 0.2, 0.3], [0.25, 0.70, 0.05]]), 5, 13),
+        "1d-list": ([0.5, 0.2, 0.3], 5, None),
+        "2d-list": ([[0.5, 0.2, 0.3], [0.25, 0.70, 0.05]], 5, 13),
+    }
+    INVALID_RANGE = {
+        "1d-greater": (np.array([10.5, 0.2, 0.3]), 3, None),
+        "1d-lower": (np.array([-1.0, 0.2, 0.3]), 3, None),
+        "2d-greater": (np.array([[0.5, 0.2, 0.3], [10.25, 0.70, 0.05]]), 3, 2),
+        "2d-lower": (np.array([[0.5, 0.2, 0.3], [0.25, -0.70, 0.05]]), 3, 2),
+    }
+    INVALID_NORM = {
+        "1d-lower": (np.array([0.001, 0.2, 0.3]), 3, None),
+        "1d-greater": (np.array([0.99, 0.2, 0.3]), 3, None),
+        "2d-lower": (np.array([[0.001, 0.2, 0.3], [0.25, 0.70, 0.05]]), 3, 2),
+        "2d-greater": (np.array([[0.99, 0.2, 0.3], [0.25, 0.70, 0.05]]), 3, 2),
+    }
+
+    @pytest.fixture
+    def mesh(self):
+        mesh = discretize.TensorMesh([2, 2, 2])
+        return mesh
+
+    @pytest.mark.parametrize("args", VALID_ARGS.values(), ids=VALID_ARGS.keys())
+    def test_valid_arguments(self, mesh, args):
+        """
+        Check if method doesn't fail if arguments are valid.
+        """
+        weights, n_components, n_samples = args
+        WeightedGaussianMixture(n_components=1, mesh=mesh)._check_weights(
+            weights, n_components, n_samples
+        )
+
+    @pytest.mark.parametrize("args", INVALID_SHAPE.values(), ids=INVALID_SHAPE.keys())
+    def test_invalid_shape(self, mesh, args):
+        """
+        Check if method raise error upon weights with invalid shape.
+        """
+        weights, n_components, n_samples = args
+        msg = "The parameter 'weights' should have the shape of"
+        with pytest.raises(ValueError, match=msg):
+            WeightedGaussianMixture(n_components=1, mesh=mesh)._check_weights(
+                weights, n_components, n_samples
+            )
+
+    @pytest.mark.parametrize("args", INVALID_RANGE.values(), ids=INVALID_RANGE.keys())
+    def test_invalid_range(self, mesh, args):
+        """
+        Check if method raise error upon weights with invalid range.
+        """
+        weights, n_components, n_samples = args
+        msg = r"The parameter 'weights' should be in the range \[0, 1\]"
+        with pytest.raises(ValueError, match=msg):
+            WeightedGaussianMixture(n_components=1, mesh=mesh)._check_weights(
+                weights, n_components, n_samples
+            )
+
+    @pytest.mark.parametrize("args", INVALID_NORM.values(), ids=INVALID_NORM.keys())
+    def test_non_normalized(self, mesh, args):
+        """
+        Check if method raise error upon non-normalized weights.
+        """
+        weights, n_components, n_samples = args
+        msg = r"The parameter 'weights' should be normalized"
+        with pytest.raises(ValueError, match=msg):
+            WeightedGaussianMixture(n_components=1, mesh=mesh)._check_weights(
+                weights, n_components, n_samples
+            )
 
 
 if __name__ == "__main__":

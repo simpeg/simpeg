@@ -6,7 +6,6 @@ from discretize.tests import check_derivative
 from simpeg.electromagnetics import natural_source as nsem
 from simpeg import maps
 from discretize import TensorMesh, TreeMesh, CylindricalMesh
-from pymatsolver import Pardiso
 
 
 def check_deriv(sim, test_mod, **kwargs):
@@ -20,7 +19,6 @@ def check_deriv(sim, test_mod, **kwargs):
 
         return d, J_func
 
-    np.random.seed(1983)  # use seed for check_derivative
     passed = check_derivative(func, x0, plotIt=False, **kwargs)
     return passed
 
@@ -90,14 +88,12 @@ def create_simulation_1d(sim_type, deriv_type):
             mesh,
             survey=survey,
             **sim_kwargs,
-            solver=Pardiso,
         )
     else:
         sim = nsem.simulation.Simulation1DMagneticField(
             mesh,
             survey=survey,
             **sim_kwargs,
-            solver=Pardiso,
         )
     return sim, test_mod
 
@@ -193,7 +189,6 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
             mesh,
             survey=survey,
             **sim_kwargs,
-            solver=Pardiso,
         )
     else:
         if fixed_boundary:
@@ -244,7 +239,6 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
             mesh,
             survey=survey,
             **sim_kwargs,
-            solver=Pardiso,
         )
     return sim, test_mod
 
@@ -261,19 +255,19 @@ class Sim_1D(unittest.TestCase):
 
     def test_e_sigma_deriv(self):
         sim, test_mod = create_simulation_1d("e", "sigma")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=235)
 
     def test_h_sigma_deriv(self):
         sim, test_mod = create_simulation_1d("h", "sigma")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=5212)
 
     def test_e_mu_deriv(self):
         sim, test_mod = create_simulation_1d("e", "mu")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=63246)
 
     def test_h_mu_deriv(self):
         sim, test_mod = create_simulation_1d("h", "mu")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=124)
 
     def test_e_sigma_adjoint(self):
         sim, test_mod = create_simulation_1d("e", "sigma")
@@ -371,19 +365,19 @@ class Sim_2D(unittest.TestCase):
 
     def test_e_sigma_deriv(self):
         sim, test_mod = create_simulation_2d("e", "sigma", "TensorMesh")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=125)
 
     def test_h_sigma_deriv(self):
         sim, test_mod = create_simulation_2d("h", "sigma", "TensorMesh")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=7425)
 
     def test_e_mu_deriv(self):
         sim, test_mod = create_simulation_2d("e", "mu", "TensorMesh")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=236423)
 
     def test_h_mu_deriv(self):
         sim, test_mod = create_simulation_2d("h", "mu", "TensorMesh")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=34632)
 
     def test_e_sigma_adjoint(self):
         sim, test_mod = create_simulation_2d("e", "sigma", "TensorMesh")
@@ -413,13 +407,13 @@ class Sim_2D(unittest.TestCase):
         sim, test_mod = create_simulation_2d(
             "e", "sigma", "TensorMesh", fixed_boundary=True
         )
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=2634)
 
     def test_h_sigma_deriv_fixed(self):
         sim, test_mod = create_simulation_2d(
             "h", "sigma", "TensorMesh", fixed_boundary=True
         )
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=3651326)
 
     def test_e_sigma_adjoint_fixed(self):
         sim, test_mod = create_simulation_2d(

@@ -2,7 +2,6 @@
 Define simulation classes.
 """
 
-from __future__ import annotations  # needed to use type operands in Python 3.8
 import os
 import inspect
 from typing import Optional, Dict, Any
@@ -13,8 +12,8 @@ import warnings
 
 from discretize.base import BaseMesh
 from discretize import TensorMesh
-from discretize.utils import unpack_widths, sdiag
-from pymatsolver.solvers import Base as BaseSolver
+from discretize.utils import unpack_widths, sdiag, mkvc
+from pymatsolver.solvers import Base
 
 from . import props
 from . import maps
@@ -25,18 +24,15 @@ from .utils import (
     Counter,
     timeIt,
     count,
-    mkvc,
     validate_ndarray_with_shape,
     validate_float,
     validate_type,
     validate_string,
     validate_integer,
 )
+import uuid
 
-try:
-    from pymatsolver import Pardiso as DefaultSolver
-except ImportError:
-    from .utils.solver_utils import SolverLU as DefaultSolver
+from .utils.solver_utils import get_default_solver
 
 __all__ = ["LinearSimulation", "ExponentialSinusoidSimulation"]
 
@@ -88,7 +84,7 @@ class BaseSimulation(props.HasModel):
         self,
         mesh: Optional[BaseMesh] = None,
         survey: Optional[BaseSurvey] = None,
-        solver: Optional[BaseSolver] = None,
+        solver: Optional[type[Base]] = None,
         solver_opts: Optional[Dict[str, Any]] = None,
         sensitivity_path: Optional[str] = None,
         counter: Optional[Counter] = None,
@@ -97,8 +93,6 @@ class BaseSimulation(props.HasModel):
     ):
         self.mesh = mesh
         self.survey = survey
-        if solver is None:
-            solver = DefaultSolver
         self.solver = solver
         if solver_opts is None:
             solver_opts = {}
@@ -108,6 +102,8 @@ class BaseSimulation(props.HasModel):
         self.sensitivity_path = sensitivity_path
         self.counter = counter
         self.verbose = verbose
+
+        self._uuid = uuid.uuid4()
 
         super().__init__(**kwargs)
 
@@ -201,6 +197,10 @@ class BaseSimulation(props.HasModel):
         pymatsolver.base.Base
             Numerical solver used to solve the forward problem.
         """
+        if self._solver is None:
+            # do not cache this, in case the user wants to
+            # change it after the first time it is requested.
+            return get_default_solver()
         return self._solver
 
     @solver.setter
@@ -761,6 +761,9 @@ class LinearSimulation(BaseSimulation, star_excludes=["solver", "solver_opts"]):
         "The model for a linear problem"
     )
 
+    # linear simulations do not have a solver so set it to `None` here
+    solver = None
+
     def __init__(
         self,
         mesh: Optional[BaseMesh] = None,
@@ -773,8 +776,6 @@ class LinearSimulation(BaseSimulation, star_excludes=["solver", "solver_opts"]):
         super().__init__(mesh=mesh, **kwargs)
         self.linear_model = linear_model
         self.model_map = model_map
-        self.solver = None
-
         if G is not None:
             self.G = G
 

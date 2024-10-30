@@ -493,7 +493,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=8672354)
 
     def test_Mn_deriv(self):
         u = np.random.randn(self.mesh.n_nodes)
@@ -510,7 +510,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=523876)
 
     def test_Me_deriv(self):
         u = np.random.randn(self.mesh.n_edges)
@@ -527,7 +527,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=9875163)
 
     def test_Me_diagonal_anisotropy_deriv(self):
         u = np.random.randn(self.mesh.n_edges)
@@ -544,7 +544,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=1658372)
 
     def test_Me_full_anisotropy_deriv(self):
         u = np.random.randn(self.mesh.n_edges)
@@ -561,7 +561,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=9867234)
 
     def test_Mf_deriv(self):
         u = np.random.randn(self.mesh.n_faces)
@@ -578,7 +578,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=10523687)
 
     def test_Mf_diagonal_anisotropy_deriv(self):
         u = np.random.randn(self.mesh.n_faces)
@@ -595,7 +595,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=19876354)
 
     def test_Mf_full_anisotropy_deriv(self):
         u = np.random.randn(self.mesh.n_faces)
@@ -612,7 +612,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=102309487)
 
     def test_MccI_deriv(self):
         u = np.random.randn(self.mesh.n_cells)
@@ -629,7 +629,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=89726354)
 
     def test_MnI_deriv(self):
         u = np.random.randn(self.mesh.n_nodes)
@@ -646,7 +646,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=12503698)
 
     def test_MeI_deriv(self):
         u = np.random.randn(self.mesh.n_edges)
@@ -663,7 +663,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=5674129834)
 
     def test_MfI_deriv(self):
         u = np.random.randn(self.mesh.n_faces)
@@ -680,7 +680,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=532349)
 
     def test_Mcc_adjoint(self):
         n_items = self.mesh.n_cells
