@@ -3586,7 +3586,7 @@ class ScaleMisfitMultipliers(InversionDirective):
     def initialize(self):
         self.last_beta = self.invProb.beta
         self.multipliers = self.invProb.dmisfit.multipliers
-
+        self.scalings = np.ones_like(self.multipliers)
         with open(self.filepath, "w", encoding="utf-8") as f:
             f.write("Logging of [scaling * chi factor] per misfit function.\n\n")
             f.write(
@@ -3599,28 +3599,31 @@ class ScaleMisfitMultipliers(InversionDirective):
 
     def endIter(self):
         ratio = self.invProb.beta / self.last_beta
+
+        if ratio > 1:
+            return
+
         chi_factors = []
-        phi_ds = []
         for objfct, pred in zip(self.invProb.dmisfit.objfcts, self.invProb.dpred):
             residual = objfct.W * (objfct.data.dobs - pred)
             phi_d = np.vdot(residual, residual)
             chi_factors.append(phi_d / objfct.nD)
-            phi_ds.append(phi_d)
 
-        phi_ds = np.asarray(phi_ds)
         chi_factors = np.asarray(chi_factors)
-        scalings = chi_factors / chi_factors.max()
 
-        # Force beta ratio scaling if below target
-        scalings[chi_factors < 1] *= ratio
+        # Normalize scaling between [ratio, 1]
+        scalings = (
+            1 - (1 - ratio) * (chi_factors.max() - chi_factors) / chi_factors.max()
+        )
+
+        # Force the ones that overshot target
+        scalings[chi_factors < 1] = ratio * chi_factors[chi_factors < 1]
+
+        # Update the scaling
+        self.scalings *= scalings
 
         # Normalize total phi_d with scalings
-        multipliers = (
-            self.multipliers
-            * scalings
-            * phi_ds.sum()
-            / (self.multipliers * phi_ds * scalings).sum()
-        )
+        multipliers = self.multipliers * self.scalings
 
         with open(self.filepath, "a", encoding="utf-8") as f:
             f.write(
