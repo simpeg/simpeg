@@ -7,6 +7,10 @@ import zarr
 
 import numcodecs
 
+import warnings
+
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 numcodecs.blosc.use_threads = False
 
 Sim.sensitivity_path = "./sensitivity/"
