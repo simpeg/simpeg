@@ -16,7 +16,7 @@ jobs:
       JFROG_ARTIFACTORY_URL: ${{ secrets.JFROG_ARTIFACTORY_URL }}
       JFROG_ARTIFACTORY_TOKEN: ${{ secrets.JFROG_ARTIFACTORY_TOKEN }}
   call-workflow-pypi-publish:
-    name: Publish production pypi package on JFrog Artifactory
+    name: Publish production pypi package (JFrog Artifactory and PyPI)
     uses: MiraGeoscience/CI-tools/.github/workflows/reusable-python-publish_pypi_package.yml@main
     with:
       package-manager: 'setuptools'
