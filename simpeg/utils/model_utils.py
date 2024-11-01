@@ -190,12 +190,9 @@ def _distance_weighting_numba(
     reference_locs : (n, ndim) numpy.ndarray
         The coordinate of the reference location, usually the receiver locations,
         for the distance weighting.
-        It can be a ``float``, which value is the component for
-        the reference location.
-        Or it can be a 2d array, with multiple reference locations, where each
-        row should contain the coordinates of a single location point in the
-        following order: _x_, _y_, _z_ (for 3D meshes) or _x_, _z_ (for 2D
-        meshes).
+        A 2d array, with multiple reference locations, where each row should
+        contain the coordinates of a single location point in the following
+        order: _x_, _y_, _z_ (for 3D meshes) or _x_, _z_ (for 2D meshes).
     threshold : float
         Threshold parameters used in the distance weighting.
     exponent : float, optional
@@ -228,9 +225,9 @@ def _distance_weighting_numba(
 
 def distance_weighting(
     mesh: discretize.base.BaseMesh,
-    reference_locs: np.ndarray,
+    reference_locs: float | np.ndarray,
     active_cells: Optional[np.ndarray] = None,
-    exponent: float = 2.0,
+    exponent: Optional[float] = 2.0,
     threshold: Optional[float] = None,
     engine: Literal["numba", "scipy"] = "numba",
     cdist_opts: Optional[dict] = None,
@@ -260,7 +257,7 @@ def distance_weighting(
     active_cells : (mesh.n_cells) numpy.ndarray of bool, optional
         Index vector for the active cells on the mesh.
         If ``None``, every cell will be assumed to be active.
-    exponent : float, optional
+    exponent : float or None, optional
         Exponent parameter for distance weighting.
         The exponent should match the natural decay power of the potential
         field. For example, for gravity acceleration, set it to 2; for magnetic
@@ -269,10 +266,12 @@ def distance_weighting(
         Threshold parameters used in the distance weighting.
         If ``None``, it will be set to half of the smallest cell width.
     engine: str, 'numba' or 'scipy'
-        pick between a `scipy.spatial.distance.cdist` computation (memory intensive) or `for` loop implementation,
-        parallelized with numba if available. Default to 'numba'.
-    cdist_opts: dct, optional
-        Only valid with `engine=='scipy'`. Options to pass to scipy.spatial.distance.cdist. Default to None.
+        Pick between a ``scipy.spatial.distance.cdist`` computation (memory
+        intensive) or `for` loop implementation, parallelized with numba if
+        available. Default to ``"numba"``.
+    cdist_opts: dict, optional
+        Only valid with ``engine=="scipy"``. Options to pass to
+        ``scipy.spatial.distance.cdist``. Default to None.
 
     Returns
     -------
@@ -297,15 +296,16 @@ def distance_weighting(
         cell_centers = cell_centers.reshape(-1, 1)
         reference_locs = reference_locs.reshape(-1, 1)
 
+    if engine == "numba" and cdist_opts is not None:
+        raise TypeError(
+            "The `cdist_opts` is valid only when engine is 'scipy'."
+            "The current engine is 'choclo'."
+        )
+
     if engine == "numba":
         if numba is None:
             warnings.warn(
-                "numba is not installed. 'numba' computations might be slower.",
-                stacklevel=2,
-            )
-        if cdist_opts is not None:
-            warnings.warn(
-                f"`cdist_opts` is only valid with `engine=='scipy'`, currently {engine=}",
+                "Numba is not installed. Distance computations will be slower.",
                 stacklevel=2,
             )
         distance_weights = _distance_weighting_numba(
@@ -317,8 +317,9 @@ def distance_weighting(
 
     elif engine == "scipy":
         warnings.warn(
-            "scipy.spatial.distance.cdist computations can be memory intensive. Consider switching to `engine='numba'` "
-            "if you run into memory overflow issues",
+            "``scipy.spatial.distance.cdist`` computations can be memory intensive. "
+            "Consider switching to `engine='numba'` "
+            "if you run into memory overflow issues.",
             stacklevel=2,
         )
         cdist_opts = cdist_opts or dict()
@@ -331,7 +332,7 @@ def distance_weighting(
 
     else:
         raise ValueError(
-            f"engine should be either 'scipy' or 'numba', instead {engine=}"
+            f"Invalid engine '{engine}'. Engine should be either 'scipy' or 'numba'."
         )
 
     return distance_weights
