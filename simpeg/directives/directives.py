@@ -3600,7 +3600,8 @@ class ScaleMisfitMultipliers(InversionDirective):
     def endIter(self):
         ratio = self.invProb.beta / self.last_beta
 
-        if ratio > 1:
+        if ratio >= 1:
+            self.last_beta = self.invProb.beta
             return
 
         chi_factors = []
@@ -3617,7 +3618,7 @@ class ScaleMisfitMultipliers(InversionDirective):
         )
 
         # Force the ones that overshot target
-        scalings[chi_factors < 1] = ratio * chi_factors[chi_factors < 1]
+        scalings[chi_factors < 1] = ratio  # * chi_factors[chi_factors < 1]
 
         # Update the scaling
         self.scalings *= scalings
