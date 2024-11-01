@@ -92,7 +92,7 @@ def depth_weighting(
     ----------
     mesh : discretize.base.BaseMesh
         Discretized model space.
-    reference_locs : float or (n, ndim) numpy.ndarray
+    reference_locs : (n, ndim) numpy.ndarray
         Reference location for the depth weighting.
         It can be a ``float``, which value is the vertical component for
         the reference location.
