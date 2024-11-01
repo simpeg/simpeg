@@ -5,6 +5,7 @@ from ...simulation import BaseSimulation
 from ... import props
 from ...utils import validate_type
 from ..frequency_domain.survey import Survey
+from .receivers import Impedance
 
 
 class Simulation1DRecursive(BaseSimulation):
@@ -81,6 +82,12 @@ class Simulation1DRecursive(BaseSimulation):
     def survey(self, value):
         if value is not None:
             value = validate_type("survey", value, Survey, cast=False)
+            for src in value.source_list:
+                for rx in src.receiver_list:
+                    if not isinstance(rx, Impedance):
+                        raise NotImplementedError(
+                            f"{type(self).__name__} does not support {type(rx).__name__} receivers, only implemented for 'Impedance'."
+                        )
         self._survey = value
 
     @property
