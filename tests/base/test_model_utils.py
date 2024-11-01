@@ -152,6 +152,19 @@ class TestDistancehWeighting:
         )
         np.testing.assert_allclose(wz_scipy, wz_numba)
 
+    @pytest.mark.parametrize("ndim", (2, 3))
+    def test_invalid_reference_locs(self, ndim):
+        """
+        Test if errors are raised when invalid reference_locs are passed.
+        """
+        hx = [5.0, 10]
+        h = [hx] * ndim
+        origin = "CCN" if ndim == 3 else "CC"
+        reference_locs = [1.0, 2.0] if ndim == 3 else [1.0]
+        mesh = TensorMesh(h, origin)
+        with pytest.raises(ValueError):
+            utils.distance_weighting(mesh, reference_locs)
+
 
 @pytest.fixture
 def mesh():

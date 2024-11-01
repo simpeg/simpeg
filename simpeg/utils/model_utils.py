@@ -285,13 +285,20 @@ def distance_weighting(
     if threshold is None:
         threshold = 0.5 * mesh.h_gridded.min()
 
-    reference_locs = np.asarray(reference_locs)
+    reference_locs = np.atleast_2d(reference_locs)
     cell_centers = mesh.cell_centers[active_cells]
 
     # address 1D case
     if mesh.dim == 1:
         cell_centers = cell_centers.reshape(-1, 1)
         reference_locs = reference_locs.reshape(-1, 1)
+
+    if reference_locs.shape[1] != mesh.dim:
+        raise ValueError(
+            f"Invalid 'reference_locs' with shape '{reference_locs.shape}'. "
+            "The number of columns of the reference_locs array should match "
+            f"the dimensions of the mesh ({mesh.dim})."
+        )
 
     if engine == "numba" and cdist_opts is not None:
         raise TypeError(
