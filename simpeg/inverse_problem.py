@@ -1,23 +1,19 @@
-import gc
-
 import numpy as np
 import scipy.sparse as sp
-
+import gc
 from .data_misfit import BaseDataMisfit
+from .regularization import BaseRegularization, WeightedLeastSquares, Sparse
 from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from .optimization import Minimize
-from .regularization import BaseRegularization, Sparse, WeightedLeastSquares
 from .utils import (
-    Counter,
     call_hooks,
     timeIt,
+    Counter,
     validate_float,
-    validate_ndarray_with_shape,
     validate_type,
+    validate_ndarray_with_shape,
 )
-
-# from .version import __version__ as simpeg_version
-simpeg_version = 22
+from .version import __version__ as simpeg_version
 from .utils.solver_utils import get_default_solver
 
 
@@ -218,7 +214,9 @@ class BaseInvProblem:
                     """
                         simpeg.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
                         ***Done using same Solver, and solver_opts as the {} problem***
-                        """.format(objfct.simulation.__class__.__name__)
+                        """.format(
+                        objfct.simulation.__class__.__name__
+                    )
                 )
                 set_default = False
                 break
@@ -228,7 +226,9 @@ class BaseInvProblem:
                 """
                     simpeg.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
                     ***Done using the default solver {} and no solver_opts.***
-                    """.format(solver.__name__)
+                    """.format(
+                    solver.__name__
+                )
             )
             solver_opts = {}
 

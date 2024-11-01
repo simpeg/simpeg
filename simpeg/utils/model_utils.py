@@ -187,7 +187,7 @@ def _distance_weighting_numba(
     ----------
     cell_centers : np.ndarray
         cell centers of the mesh.
-    reference_locs : (n, ndim) numpy.ndarray
+    reference_locs : float or (n, ndim) numpy.ndarray
         The coordinate of the reference location, usually the receiver locations,
         for the distance weighting.
         It can be a ``float``, which value is the component for
@@ -248,7 +248,7 @@ def distance_weighting(
     ----------
     mesh : discretize.base.BaseMesh
         Discretized model space.
-    reference_locs : (n, ndim) numpy.ndarray
+    reference_locs : float or (n, ndim) numpy.ndarray
         The coordinate of the reference location, usually the receiver locations,
         for the distance weighting.
         It can be a ``float``, which value is the component for
