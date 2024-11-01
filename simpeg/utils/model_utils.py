@@ -225,7 +225,7 @@ def _distance_weighting_numba(
 
 def distance_weighting(
     mesh: discretize.base.BaseMesh,
-    reference_locs: float | np.ndarray,
+    reference_locs: np.ndarray,
     active_cells: Optional[np.ndarray] = None,
     exponent: Optional[float] = 2.0,
     threshold: Optional[float] = None,
@@ -248,12 +248,9 @@ def distance_weighting(
     reference_locs : (n, ndim) numpy.ndarray
         The coordinate of the reference location, usually the receiver locations,
         for the distance weighting.
-        It can be a ``float``, which value is the component for
-        the reference location.
-        Or it can be a 2d array, with multiple reference locations, where each
-        row should contain the coordinates of a single location point in the
-        following order: _x_, _y_, _z_ (for 3D meshes) or _x_, _z_ (for 2D
-        meshes).
+        A 2d array, with multiple reference locations, where each row should
+        contain the coordinates of a single location point in the following
+        order: _x_, _y_, _z_ (for 3D meshes) or _x_, _z_ (for 2D meshes).
     active_cells : (mesh.n_cells) numpy.ndarray of bool, optional
         Index vector for the active cells on the mesh.
         If ``None``, every cell will be assumed to be active.
