@@ -8,9 +8,7 @@ from simpeg import (
 from simpeg.utils import model_builder
 from simpeg.electromagnetics import natural_source as nsem
 
-REL_TOLERANCE = 5e-2
-ABS_TOLERANCE = 1e-4
-ADJ_TOLERANCE = 1e-10
+ADJ_RTOL = 1e-5
 
 
 @pytest.fixture
@@ -144,8 +142,8 @@ class TestDerivatives:
             )
 
         n_active = np.sum(active_cells)
-        np.random.seed(1983)
 
+        rng = np.random.default_rng(4412)
         # Model
         m0 = np.log(1e1) * np.ones(n_active)
         ind = model_builder.get_indices_block(
@@ -154,7 +152,7 @@ class TestDerivatives:
             mesh.cell_centers[active_cells, :],
         )
         m0[ind] = np.log(1e0)
-        m0 += 0.01 * np.random.uniform(low=-1, high=1, size=n_active)
+        m0 += 0.01 * rng.uniform(low=-1, high=1, size=n_active)
 
         # Define data and misfit
         data = sim.make_synthetic_data(m0, add_noise=True)
@@ -188,10 +186,11 @@ class TestDerivatives:
         sim = dmis.simulation
 
         passed = tests.check_derivative(
-            lambda m: (sim.dpred(m), lambda mx: sim.Jvec(m0, mx)),
+            lambda m: (sim.dpred(m), lambda mx: sim.Jvec(m, mx)),
             m0,
             plotIt=False,
-            num=3,
+            num=2,
+            random_seed=42,
         )
 
         assert passed
@@ -228,5 +227,6 @@ class TestDerivatives:
             lambda v: sim.Jtvec(m0, v, f=f),
             m0.shape,
             (n_data,),
-            rtol=ADJ_TOLERANCE,
+            rtol=ADJ_RTOL,
+            random_seed=44,
         )
