@@ -1287,7 +1287,7 @@ class PointNaturalSource(Impedance):
                     locations_e = locations[0]
                     locations_h = locations[0]
                 else:
-                    raise Exception("incorrect size of list, must be length of 1 or 2")
+                    raise ValueError("incorrect size of list, must be length of 1 or 2")
             else:
                 locations_e = locations_h = locations
 

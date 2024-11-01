@@ -199,6 +199,9 @@ def test_imp_location_initialization():
     npt.assert_equal(rx1.locations_e, rx2.locations_e)
     npt.assert_equal(rx1.locations_h, rx2.locations_h)
 
+    with pytest.raises(ValueError, match="incorrect size of list, must be length .*"):
+        nsem.receivers.PointNaturalSource(locations=[loc_1, loc_2, loc_1])
+
 
 def test_tip_location_initialization():
     loc_1 = np.empty((2, 3))
