@@ -1,0 +1,125 @@
+.. _0.23.0_notes:
+
+===========================
+SimPEG 0.23.0 Release Notes
+===========================
+
+November 1st, 2024
+
+.. contents:: Highlights
+    :depth: 3
+
+Updates
+=======
+
+New features
+------------
+
+..
+    list new features under subheadings, include link to related PRs
+
+Documentation
+-------------
+
+..
+    list improvements to documentation
+
+Bugfixes
+--------
+
+..
+    list bugfixes, include link to related PRs
+
+Breaking changes
+----------------
+
+..
+    list breaking changes introduced in this new release, include link to
+    releated PRs
+
+Contributors
+============
+
+* `@domfournier <https://github.com/domfournier>`__
+* `@jcapriot <https://github.com/jcapriot>`__
+* `@prisae <https://github.com/prisae>`__
+* `@santisoler <https://github.com/santisoler>`__
+
+Pull Requests
+=============
+
+- Minor fixes to disclaimer in ``pgi_utils.py`` by `@prisae <https://github.com/prisae>`__ in
+  https://github.com/simpeg/simpeg/pull/1512
+- Fix misuse of the ``requires`` decorator in ``code_utils.py`` by
+  `@prisae <https://github.com/prisae>`__ in https://github.com/simpeg/simpeg/pull/1513
+- Use lowercase simpeg in a few missing docstrings by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1519
+- Pass ``rtol`` to SciPy solvers for SciPy>=1.12 by `@prisae <https://github.com/prisae>`__ in
+  https://github.com/simpeg/simpeg/pull/1517
+- Make ``pandas`` & ``scikit-learn`` optional dependencies by `@prisae <https://github.com/prisae>`__ in
+  https://github.com/simpeg/simpeg/pull/1514
+- Dask races by `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1469
+- Fix validate_ndarray_with_shape by `@prisae <https://github.com/prisae>`__ in
+  https://github.com/simpeg/simpeg/pull/1523
+- Irls refactor by `@domfournier <https://github.com/domfournier>`__ in
+  https://github.com/simpeg/simpeg/pull/1349
+- Fix bug in GMM’s ``_check_weights`` by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1526
+- Add release notes after v0.22.2 by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1533
+- Minimum python version update by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1522
+- Replace ``ind_active`` for ``active_cells`` in pf simulations by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1520
+- Move push to codecov to its own stage by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1493
+- Minor fix in deprecation notice in docstrings by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1535
+- Replace ``indActive`` and ``actInd`` for ``active_cells`` in maps by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1534
+- Update tests and examples to use the new ``UpdateIRLS`` by
+  `@domfournier <https://github.com/domfournier>`__ in https://github.com/simpeg/simpeg/pull/1472
+- Replace ``indActive`` in VRM simulations for ``active_cells`` by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1536
+- Test assigned values when passing deprecated args by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1544
+- Use random seed when using ``make_synthetic_data`` in tests by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1545
+- Minor improvements to ``UpdateIRLS`` class by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1529
+- Replace ``seed`` for ``random_seed`` in directives by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1538
+- Minor fixes to magnetic examples by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1547
+- Support magnetic gradiometry using Choclo as engine by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1543
+- Update usage of ``random_seed`` in one example by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1549
+- Replace ``seed`` for ``random_seed`` in ``model_builder`` by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1548
+- Replace old args for ``active_cells`` in EM static functions by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1550
+- Implement gravity equivalent sources with Choclo as engine by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1527
+- Implement tmi derivatives with Choclo in magnetic simulation by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1553
+- Implement magnetic eq sources with Choclo by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1552
+- Update links in PR template by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1554
+- Default solver by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1511
+- Fixes for most recent geoana 0.7 by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1557
+- Numpy2.0 and discretize 0.11.0 updates by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1558
+- Add missing seeds by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1560
+- Make use of meshes’ ``cell_bounds`` property by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1559
+- Fix docstring of ``SmoothnessFullGradient`` by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1562
+- Fix math in docstring of eigenvalue_by_power_iteration by `@santisoler <https://github.com/santisoler>`__
+  in https://github.com/simpeg/simpeg/pull/1564
+- Only warn about default solver when set in simulations by `@santisoler <https://github.com/santisoler>`__
+  in https://github.com/simpeg/simpeg/pull/1565
