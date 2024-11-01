@@ -516,7 +516,11 @@ class Report(ScoobyReport):
 
 
 def deprecate_class(
-    removal_version=None, new_location=None, future_warn=False, error=False
+    removal_version=None,
+    new_location=None,
+    future_warn=False,
+    error=False,
+    replace_docstring=True,
 ):
     """Utility function to deprecate a class
 
@@ -563,7 +567,8 @@ def deprecate_class(
         cls.__init__ = __init__
         if new_location is not None:
             parent_name = f"{new_location}.{parent_name}"
-        cls.__doc__ = f""" This class has been deprecated, see `{parent_name}` for documentation"""
+        if replace_docstring:
+            cls.__doc__ = f""" This class has been deprecated, see `{parent_name}` for documentation"""
         return cls
 
     return decorator
