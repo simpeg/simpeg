@@ -5,6 +5,10 @@ on:
     tags:
       - 'v*' # Push events to every version tag (eg. v1.0.0)
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   call-workflow-conda-publish:
     name: Publish development conda package on JFrog Artifactory
