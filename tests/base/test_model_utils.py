@@ -74,7 +74,7 @@ class DepthWeightingTest(unittest.TestCase):
         np.testing.assert_allclose(wz, wz2)
 
 
-class DistancehWeightingTest(unittest.TestCase):
+class TestDistancehWeighting:
     def test_distance_weighting_3D(self):
         # Mesh
         dh = 5.0
@@ -91,15 +91,16 @@ class DistancehWeightingTest(unittest.TestCase):
         )
 
         # distance weighting
-        wz_scipy = utils.distance_weighting(
-            mesh, reference_locs, active_cells=actv, exponent=3, engine="scipy"
-        )
+        with pytest.warns():
+            wz_scipy = utils.distance_weighting(
+                mesh, reference_locs, active_cells=actv, exponent=3, engine="scipy"
+            )
         wz_numba = utils.distance_weighting(
             mesh, reference_locs, active_cells=actv, exponent=3, engine="numba"
         )
         np.testing.assert_allclose(wz_scipy, wz_numba)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             utils.distance_weighting(
                 mesh, reference_locs, active_cells=actv, exponent=3, engine="test"
             )
@@ -119,9 +120,10 @@ class DistancehWeightingTest(unittest.TestCase):
         )
 
         # distance weighting
-        wz_scipy = utils.distance_weighting(
-            mesh, reference_locs, active_cells=actv, exponent=3, engine="scipy"
-        )
+        with pytest.warns():
+            wz_scipy = utils.distance_weighting(
+                mesh, reference_locs, active_cells=actv, exponent=3, engine="scipy"
+            )
         wz_numba = utils.distance_weighting(
             mesh, reference_locs, active_cells=actv, exponent=3, engine="numba"
         )
@@ -141,9 +143,10 @@ class DistancehWeightingTest(unittest.TestCase):
         )
 
         # distance weighting
-        wz_scipy = utils.distance_weighting(
-            mesh, reference_locs, active_cells=actv, exponent=3, engine="scipy"
-        )
+        with pytest.warns():
+            wz_scipy = utils.distance_weighting(
+                mesh, reference_locs, active_cells=actv, exponent=3, engine="scipy"
+            )
         wz_numba = utils.distance_weighting(
             mesh, reference_locs, active_cells=actv, exponent=3, engine="numba"
         )
