@@ -34,6 +34,7 @@ dependencies:
   - h5py
 
 # testing
+  - empymod>=2.0.0
   - pytest
   - pytest-cov
 

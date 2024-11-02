@@ -82,6 +82,7 @@ docs = [
 ]
 tests = [
     "simpeg[all,docs]",
+    "empymod>=2.0.0",
     "pytest",
     "pytest-cov",
 ]
