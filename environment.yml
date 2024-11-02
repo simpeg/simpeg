@@ -33,6 +33,7 @@ dependencies:
   - sphinx-gallery>=0.1.13
   - sphinxcontrib-apidoc
   - pydata-sphinx-theme
+  - empymod>=2.0.0
   - nbsphinx
   - numpydoc
   - pillow
@@ -44,7 +45,6 @@ dependencies:
 # testing
   - pytest
   - pytest-cov
-  - empymod>=2.0.0
 
 # style checking
   - pre-commit

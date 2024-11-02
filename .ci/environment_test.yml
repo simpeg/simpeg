@@ -28,13 +28,13 @@ dependencies:
   - nbsphinx
   - numpydoc
   - pillow
+  - empymod>=2.0.0
   - sympy
   - memory_profiler
   - python-kaleido
   - h5py
 
 # testing
-  - empymod>=2.0.0
   - pytest
   - pytest-cov
 
