@@ -76,6 +76,7 @@ Model Utility Functions
   :toctree: generated/
 
   depth_weighting
+  distance_weighting
   model_builder.add_block
   model_builder.create_2_layer_model
   model_builder.create_block_in_wholespace
