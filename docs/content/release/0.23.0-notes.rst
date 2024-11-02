@@ -134,6 +134,7 @@ Contributors
 * `@jcapriot <https://github.com/jcapriot>`__
 * `@prisae <https://github.com/prisae>`__
 * `@santisoler <https://github.com/santisoler>`__
+* `@thibaut-kobold <https://github.com/thibaut-kobold>`__
 
 Pull Requests
 =============
@@ -201,3 +202,4 @@ Pull Requests
   in https://github.com/simpeg/simpeg/pull/1565
 - Augmented receivers for airborne NSEM by `@dccowan <https://github.com/dccowan>`__ in https://github.com/simpeg/simpeg/pull/1454
 - Try uploading all the coverage files at once. by `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1569
+- Re-implement distance weighting and add a strategy comparison by `@thibaut-kobold <https://github.com/thibaut-kobold>`__ in https://github.com/simpeg/simpeg/pull/1310
