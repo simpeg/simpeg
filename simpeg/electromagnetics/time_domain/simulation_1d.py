@@ -12,11 +12,11 @@ from scipy.constants import mu_0
 from scipy.interpolate import InterpolatedUnivariateSpline as iuSpline
 from scipy.special import roots_legendre
 
-from empymod import filters
-from empymod.transform import get_dlf_points
+import libdlf
 
 from geoana.kernels.tranverse_electric_reflections import rTE_forward, rTE_gradient
 
+from ..utils.em1d_utils import get_splined_dlf_points
 from ...utils import validate_type, validate_string
 
 
@@ -57,15 +57,10 @@ class Simulation1DLayered(BaseEM1DSimulation):
         self._time_filter = validate_string(
             "time_filter",
             value,
-            ["key_81_CosSin_2009", "key_201_CosSin_2012", "key_601_CosSin_2009"],
+            libdlf.fourier.__all__,
         )
-
-        if self._time_filter == "key_81_CosSin_2009":
-            self._fftfilt = filters.key_81_CosSin_2009()
-        elif self._time_filter == "key_201_CosSin_2012":
-            self._fftfilt = filters.key_201_CosSin_2012()
-        elif self._time_filter == "key_601_CosSin_2009":
-            self._fftfilt = filters.key_601_CosSin_2009()
+        self._fftfilt = getattr(libdlf.fourier, value)()
+        self._coefficients_set = False
 
     def get_coefficients(self):
         if self._coefficients_set is False:
@@ -123,8 +118,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
                             f"Unsupported source waveform object of {src.waveform}"
                         )
 
-        omegas, t_spline_points = get_dlf_points(self._fftfilt, np.r_[t_min, t_max], -1)
-        omegas = omegas.reshape(-1)
+        omegas, t_spline_points = get_splined_dlf_points(self._fftfilt, t_min, t_max)
+
         n_omega = len(omegas)
         n_t = len(t_spline_points)
 

@@ -478,8 +478,8 @@ class Report(ScoobyReport):
             "numpy",
             "scipy",
             "matplotlib",
-            "empymod",
             "geoana",
+            "libdlf",
         ]
 
         # Optional packages.

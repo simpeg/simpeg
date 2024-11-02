@@ -2,7 +2,6 @@ from scipy.constants import mu_0
 import numpy as np
 from scipy import sparse as sp
 from scipy.special import roots_legendre
-from empymod.transform import get_dlf_points
 
 from ..simulation import BaseSimulation
 
@@ -17,7 +16,7 @@ from ..utils import (
     validate_integer,
 )
 from .. import props
-from empymod.utils import check_hankel
+import libdlf
 
 __all__ = ["BaseEM1DSimulation"]
 
@@ -137,30 +136,31 @@ class BaseEM1DSimulation(BaseSimulation):
 
         self.hankel_filter = hankel_filter
         self.fix_Jmatrix = fix_Jmatrix
-        # Check input arguments. If self.hankel_filter is not a valid filter,
-        # it will set it to the default (key_201_2009).
-        ht, htarg = check_hankel(
-            "dlf", {"dlf": self.hankel_filter, "pts_per_dec": 0}, 1
-        )
-
-        self._fhtfilt = htarg["dlf"]  # Store filter
-        # self.hankel_pts_per_dec = htarg["pts_per_dec"]  # Store pts_per_dec
         if self.verbose:
             print(">> Use " + self.hankel_filter + " filter for Hankel Transform")
 
     @property
     def hankel_filter(self):
-        """The hankely filter to use.
+        """The hankel filter used.
 
         Returns
         -------
         str
+
+        See Also
+        --------
+        libdlf.hankel
+            The package housing the filter values.
         """
         return self._hankel_filter
 
     @hankel_filter.setter
     def hankel_filter(self, value):
-        self._hankel_filter = validate_string("hankel_filter", value)
+        self._hankel_filter = validate_string(
+            "hankel_filter", value, libdlf.hankel.__all__
+        )
+        self._fhtfilt = getattr(libdlf.hankel, value)()
+        self._coefficients_set = False
 
     _hankel_pts_per_dec = 0  # Default: Standard DLF
 
@@ -430,9 +430,8 @@ class BaseEM1DSimulation(BaseSimulation):
                     offsets = src.radius * np.ones(rx.locations.shape[0])
 
                 # computations for hankel transform...
-                lambd, _ = get_dlf_points(
-                    self._fhtfilt, offsets, self._hankel_pts_per_dec
-                )
+                lambd = self._fhtfilt.base / offsets[:, None]
+
                 # calculate the source-rx coefficients for the hankel transform
                 C0 = 0.0
                 C1 = 0.0

@@ -8,7 +8,7 @@ dependencies:
   - matplotlib-base
   - discretize>=0.11
   - geoana>=0.7
-  - empymod>=2.0.0
+  - libdlf
 
 # optional dependencies
   - dask

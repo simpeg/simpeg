@@ -10,7 +10,7 @@ dependencies:
   - matplotlib-base
   - discretize>=0.11
   - geoana>=0.7
-  - empymod>=2.0.0
+  - libdlf
 
 # solver
 # uncomment the next line if you are on an intel platform
