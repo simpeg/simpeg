@@ -15,27 +15,117 @@ Updates
 New features
 ------------
 
-..
-    list new features under subheadings, include link to related PRs
+Full support for Numpy 2.0
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+With this release SimPEG is fully compatible with Numpy 2.0.
+
+Augmented receivers for airborne NSEM
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We added new type of receivers intended to be used for airborne natural-source
+EM simulations:
+
+- :class:`~simpeg.electromagnetics.natural_source.receivers.Impedance`
+- :class:`~simpeg.electromagnetics.natural_source.receivers.Admittance`
+- :class:`~simpeg.electromagnetics.natural_source.receivers.ApparentConductivity`
+- :class:`~simpeg.electromagnetics.natural_source.receivers.Tipper`
+
+They extend the type of airborne NSEM surveys that can be simulated in SimPEG.
+
+See https://github.com/simpeg/simpeg/pull/1454 for more details.
+
+Automatic selection of Solver
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This release includes a new
+:func:`~simpeg.utils.solver_utils.get_default_solver` function that
+automatically selects the best solver available based on our system.
+For example, it'll select Pardiso as the solver if you are running an Intel
+CPU and have PARDISO installed in your system. Alternatively, it can choose
+Mumps if you are using Apple silicon. If no fast solver is available, it'll
+choose the SciPy's ``SparseLU`` solver.
+
+Moreover, simulations will use this function to get the default solver if no
+solver is being provided by the user, making easier to run efficient
+finite volume simulations.
+
+See https://github.com/simpeg/simpeg/pull/1511 for more information.
+
+Support for magnetic gradiometry in Choclo-based magnetic simulations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Now the magnetic simulation with ``engine="choclo"`` support forward modelling
+the magnetic gradiometry components and TMI derivatives. This fully extend the
+support of the Numba-based simulations to every field that can also be
+computed using ``engine="geoana"``.
+
+See https://github.com/simpeg/simpeg/pull/1543 and
+https://github.com/simpeg/simpeg/pull/1553 for more information.
+
+Numba-based implementation of gravity and equivalent sources
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This release includes new implementations of the gravity and magnetic
+equivalent sources using `Choclo <https://fatiando.org/choclo>`__'s kernels and
+forward modelling functions and `Numba <https://numba.pydata.org/>`__ to
+just-in-time compilations and parallelization, making them faster and more
+memory efficient.
+
+See https://github.com/simpeg/simpeg/pull/1552 and
+https://github.com/simpeg/simpeg/pull/1527.
+
+New ``UpdateIRLS`` directive
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We have renamed the :class:`simpeg.directives.UpdateIRLS` directive for
+applying the Iterative Re-weighted Least-Squares during sparse norm inversions,
+that includes better argument names and an improved implementation.
+See https://github.com/simpeg/simpeg/pull/1349 for more details.
+
+Standardize arguments for active cells and random seeds
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We have standardize the name of the arguments for active cells in meshes through
+all functions and methods in SimPEG. We deprecated the old
+names like ``indAct``, ``ind_active`` and ``indActive`` in favor of
+``active_cells``.
+
+The arguments for passing random seeds has also been standardize to
+``random_seed``. These arguments generalize a way to specify random states,
+allowing to take seeds as integers or instances of
+:class:`numpy.random.Generator`.
+
+
+Upgraded dependencies
+---------------------
+
+In SimPEG v0.23.0 we dropped support for Python versions <= 3.9. Python 3.8 met
+its end-of-life this year (October 2024). Python 3.10 is the minimum required
+version for Numpy 2.1.0. To keep up with the latest updates in the scientific
+Python ecosystem, we decided to set Python 3.10 as the minimum required version
+for SimPEG as well.
+
+Moreover, we have increased the minimum required versions ``discretize``,
+``geoana`` and ``pymatsolver`` in order to support Numpy 2.0.
+Lastly, now ``pandas`` and ``scikit-learn`` are optional dependencies
+(instead of required ones).
+
 
 Documentation
 -------------
 
-..
-    list improvements to documentation
+This release includes a few fixes to the documentation pages, like improvements
+to some magnetic examples, and fixes to docstrings and math of a few classes.
+
 
 Bugfixes
 --------
 
-..
-    list bugfixes, include link to related PRs
+We have fixed some issues of Dask-based simulations that were running into
+race-conditions after one of the latest Dask updates. See
+https://github.com/simpeg/simpeg/pull/1469 for more information.
 
-Breaking changes
-----------------
-
-..
-    list breaking changes introduced in this new release, include link to
-    releated PRs
 
 Contributors
 ============
@@ -53,8 +143,6 @@ Pull Requests
 - Dask races by `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1469
 - Irls refactor by `@domfournier <https://github.com/domfournier>`__ in
   https://github.com/simpeg/simpeg/pull/1349
-- Add release notes after v0.22.2 by `@santisoler <https://github.com/santisoler>`__ in
-  https://github.com/simpeg/simpeg/pull/1533
 - Minimum python version update by `@jcapriot <https://github.com/jcapriot>`__ in
   https://github.com/simpeg/simpeg/pull/1522
 - Replace ``ind_active`` for ``active_cells`` in pf simulations by
