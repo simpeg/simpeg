@@ -28,7 +28,7 @@ jobs:
         displayName: "Install codecov cli"
 
       - bash: |
-          cc_file_args = ()
+          cc_file_args=()
           for report in coverage-*.xml; do
               cc_file_args+=( " --file " "$report" )
           done
