@@ -303,7 +303,7 @@ def distance_weighting(
     if engine == "numba" and cdist_opts is not None:
         raise TypeError(
             "The `cdist_opts` is valid only when engine is 'scipy'."
-            "The current engine is 'choclo'."
+            "The current engine is 'numba'."
         )
 
     if engine == "numba":

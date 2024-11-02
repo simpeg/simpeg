@@ -168,6 +168,14 @@ class TestDistancehWeighting:
         with pytest.raises(ValueError):
             utils.distance_weighting(mesh, reference_locs)
 
+    def test_numba_and_cdist_opts_error(self):
+        """Test error when passing numba and cdist_opts."""
+        hx = [5.0, 10]
+        mesh = TensorMesh([hx, hx, hx])
+        msg = "The `cdist_opts` is valid only when engine is 'scipy'."
+        with pytest.raises(TypeError, match=msg):
+            utils.distance_weighting(mesh, [1.0, 2.0, 3.0], cdist_opts={"foo": "bar"})
+
 
 @pytest.fixture
 def mesh():
