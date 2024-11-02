@@ -226,8 +226,8 @@ def get_splined_dlf_points(filt, v_min, v_max):
 
     Parameters
     ----------
-    filt : dict of numpy.ndarray
-        The filter parameters loaded from libdlf.
+    filt : namedtuple of numpy.ndarray
+        The filter parameters loaded from libdlf, in a named tuple containing a `.base` property.
     v_min, v_max : float
         The minimum and maximum points needed
 
@@ -242,7 +242,9 @@ def get_splined_dlf_points(filt, v_min, v_max):
     outmax = filt.base[-1] / v_min
     outmin = filt.base[0] / v_max
 
-    pts_per_dec = np.squeeze(1 / np.log(filt.factor))
+    factor = np.around([filt.base[1] / filt.base[0]], 15)
+
+    pts_per_dec = np.squeeze(1 / np.log(factor))
 
     nout = int(np.ceil(np.log(outmax / outmin) * pts_per_dec) + 1)
     if nout - filt.base.size < 3:

@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 from scipy.constants import mu_0
 import numpy as np
 from scipy import sparse as sp
@@ -159,7 +161,9 @@ class BaseEM1DSimulation(BaseSimulation):
         self._hankel_filter = validate_string(
             "hankel_filter", value, libdlf.hankel.__all__
         )
-        self._fhtfilt = getattr(libdlf.hankel, value)()
+        base, j0, j1 = getattr(libdlf.hankel, value)()
+        hank = namedtuple("HankelFilter", "base j0 j1")
+        self._fhtfilt = hank(base, j0, j1)
         self._coefficients_set = False
 
     _hankel_pts_per_dec = 0  # Default: Standard DLF

@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 from ..base_1d import BaseEM1DSimulation
 from .sources import StepOffWaveform
 from .receivers import (
@@ -26,7 +28,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
     for a single sounding.
     """
 
-    def __init__(self, survey=None, time_filter="key_81_CosSin_2009", **kwargs):
+    def __init__(self, survey=None, time_filter="key_81_2009", **kwargs):
         super().__init__(survey=survey, **kwargs)
         self._coefficients_set = False
         self.time_filter = time_filter
@@ -54,12 +56,21 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
     @time_filter.setter
     def time_filter(self, value):
+        # translate old accepted keys to the names in libdlf for compatibility.
+        if value in [
+            "key_81_CosSin_2009",
+            "key_201_CosSin_2012",
+            "key_601_CosSin_2009",
+        ]:
+            value = value.replace("CosSin_", "")
         self._time_filter = validate_string(
             "time_filter",
             value,
             libdlf.fourier.__all__,
         )
-        self._fftfilt = getattr(libdlf.fourier, value)()
+        base, sin, cos = getattr(libdlf.fourier, value)()
+        cos_filt = namedtuple("CosineFilter", "base sin cos")
+        self._fftfilt = cos_filt(base, sin, cos)
         self._coefficients_set = False
 
     def get_coefficients(self):

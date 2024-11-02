@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 import libdlf
 import numpy as np
 
@@ -188,7 +190,9 @@ class Simulation1DLayers(BaseSimulation):
         self._hankel_filter = validate_string(
             "hankel_filter", value, libdlf.hankel.__all__
         )
-        self._fhtfilt = getattr(libdlf.hankel, value)()
+        base, j0, j1 = getattr(libdlf.hankel, value)()
+        hank = namedtuple("HankelFilter", "base j0 j1")
+        self._fhtfilt = hank(base, j0, j1)
         self._coefficients_set = False
 
     @property
