@@ -23,7 +23,7 @@ With this release SimPEG is fully compatible with Numpy 2.0.
 Augmented receivers for airborne NSEM
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We added new type of receivers intended to be used for airborne natural-source
+We added new types of receivers intended to be used for airborne natural-source
 EM simulations:
 
 - :class:`~simpeg.electromagnetics.natural_source.receivers.Impedance`
@@ -40,23 +40,27 @@ Automatic selection of Solver
 
 This release includes a new
 :func:`~simpeg.utils.solver_utils.get_default_solver` function that
-automatically selects the best solver available based on our system.
-For example, it'll select Pardiso as the solver if you are running an Intel
-CPU and have PARDISO installed in your system. Alternatively, it can choose
-Mumps if you are using Apple silicon. If no fast solver is available, it'll
-choose the SciPy's ``SparseLU`` solver.
+automatically selects a solver based on what you have installed on
+your system.
+For example, it'll select ``Pardiso`` as the solver if you are running an Intel
+CPU and have `pydiso` installed in your system. Alternatively, it can choose
+``Mumps`` if you are using Apple silicon and the `python-mumps` package is installed.
+If no fast solver is available, it'll choose SciPy's ``SparseLU`` solver.
 
-Moreover, simulations will use this function to get the default solver if no
-solver is being provided by the user, making easier to run efficient
-finite volume simulations.
+.. note::
+    For those installing through `conda-forge`, ``conda install simpeg`` will now also grab
+    better solvers for your system as well, consistent with `simpeg`'s solver priority.
 
+Moreover, simulations will also use this function to get the default solver if no
+solver is being provided by the user, making it easier to run efficient
+finite volume simulations out of the box.
 See https://github.com/simpeg/simpeg/pull/1511 for more information.
 
 Support for magnetic gradiometry in Choclo-based magnetic simulations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Now the magnetic simulation with ``engine="choclo"`` support forward modelling
-the magnetic gradiometry components and TMI derivatives. This fully extend the
+Now the magnetic simulations with ``engine="choclo"`` support forward modelling
+the magnetic gradiometry components and TMI derivatives. This fully extends the
 support of the Numba-based simulations to every field that can also be
 computed using ``engine="geoana"``.
 
@@ -87,11 +91,11 @@ Standardize arguments for active cells and random seeds
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We have standardize the name of the arguments for active cells in meshes through
-all functions and methods in SimPEG. We deprecated the old
+all functions and methods in SimPEG. We have deprecated the old
 names like ``indAct``, ``ind_active`` and ``indActive`` in favor of
 ``active_cells``.
 
-The arguments for passing random seeds has also been standardize to
+The arguments for passing random seeds have also been standardized to
 ``random_seed``. These arguments generalize a way to specify random states,
 allowing to take seeds as integers or instances of
 :class:`numpy.random.Generator`.
@@ -106,7 +110,7 @@ version for Numpy 2.1.0. To keep up with the latest updates in the scientific
 Python ecosystem, we decided to set Python 3.10 as the minimum required version
 for SimPEG as well.
 
-Moreover, we have increased the minimum required versions ``discretize``,
+Moreover, we have increased the minimum required versions of ``discretize``,
 ``geoana`` and ``pymatsolver`` in order to support Numpy 2.0.
 Lastly, now ``pandas`` and ``scikit-learn`` are optional dependencies
 (instead of required ones).
