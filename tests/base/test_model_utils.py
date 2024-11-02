@@ -83,11 +83,12 @@ class TestDistancehWeighting:
         hz = [(dh, 15)]
         mesh = TensorMesh([hx, hy, hz], "CCN")
 
-        actv = np.random.randint(0, 2, mesh.n_cells) == 1
+        rng = np.random.default_rng(seed=42)
+        actv = rng.integers(low=0, high=2, size=mesh.n_cells, dtype=bool)
 
-        reference_locs = (
-            np.random.rand(1000, 3) * (mesh.nodes.max(axis=0) - mesh.nodes.min(axis=0))
-            + mesh.origin
+        # Define reference locs at random locations
+        reference_locs = rng.uniform(
+            low=mesh.nodes.min(axis=0), high=mesh.nodes.max(axis=0), size=(1000, 3)
         )
 
         # distance weighting
@@ -112,11 +113,12 @@ class TestDistancehWeighting:
         hz = [(dh, 15)]
         mesh = TensorMesh([hx, hz], "CN")
 
-        actv = np.random.randint(0, 2, mesh.n_cells) == 1
+        rng = np.random.default_rng(seed=42)
+        actv = rng.integers(low=0, high=2, size=mesh.n_cells, dtype=bool)
 
-        reference_locs = (
-            np.random.rand(1000, 2) * (mesh.nodes.max(axis=0) - mesh.nodes.min(axis=0))
-            + mesh.origin
+        # Define reference locs at random locations
+        reference_locs = rng.uniform(
+            low=mesh.nodes.min(axis=0), high=mesh.nodes.max(axis=0), size=(1000, 2)
         )
 
         # distance weighting
@@ -135,11 +137,12 @@ class TestDistancehWeighting:
         hx = [(dh, 5, -1.3), (dh, 40), (dh, 5, 1.3)]
         mesh = TensorMesh([hx], "C")
 
-        actv = np.random.randint(0, 2, mesh.n_cells) == 1
+        rng = np.random.default_rng(seed=42)
+        actv = rng.integers(low=0, high=2, size=mesh.n_cells, dtype=bool)
 
-        reference_locs = (
-            np.random.rand(1000, 1) * (mesh.nodes.max(axis=0) - mesh.nodes.min(axis=0))
-            + mesh.origin
+        # Define reference locs at random locations
+        reference_locs = rng.uniform(
+            low=mesh.nodes.min(axis=0), high=mesh.nodes.max(axis=0), size=(1000, 1)
         )
 
         # distance weighting
