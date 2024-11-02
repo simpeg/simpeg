@@ -48,23 +48,11 @@ Contributors
 Pull Requests
 =============
 
-- Minor fixes to disclaimer in ``pgi_utils.py`` by `@prisae <https://github.com/prisae>`__ in
-  https://github.com/simpeg/simpeg/pull/1512
-- Fix misuse of the ``requires`` decorator in ``code_utils.py`` by
-  `@prisae <https://github.com/prisae>`__ in https://github.com/simpeg/simpeg/pull/1513
-- Use lowercase simpeg in a few missing docstrings by `@santisoler <https://github.com/santisoler>`__ in
-  https://github.com/simpeg/simpeg/pull/1519
-- Pass ``rtol`` to SciPy solvers for SciPy>=1.12 by `@prisae <https://github.com/prisae>`__ in
-  https://github.com/simpeg/simpeg/pull/1517
 - Make ``pandas`` & ``scikit-learn`` optional dependencies by `@prisae <https://github.com/prisae>`__ in
   https://github.com/simpeg/simpeg/pull/1514
 - Dask races by `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1469
-- Fix validate_ndarray_with_shape by `@prisae <https://github.com/prisae>`__ in
-  https://github.com/simpeg/simpeg/pull/1523
 - Irls refactor by `@domfournier <https://github.com/domfournier>`__ in
   https://github.com/simpeg/simpeg/pull/1349
-- Fix bug in GMM’s ``_check_weights`` by `@santisoler <https://github.com/santisoler>`__ in
-  https://github.com/simpeg/simpeg/pull/1526
 - Add release notes after v0.22.2 by `@santisoler <https://github.com/santisoler>`__ in
   https://github.com/simpeg/simpeg/pull/1533
 - Minimum python version update by `@jcapriot <https://github.com/jcapriot>`__ in
