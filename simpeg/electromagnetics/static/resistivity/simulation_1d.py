@@ -12,6 +12,12 @@ from .survey import Survey
 from ....utils import validate_type, validate_string
 from scipy.interpolate import InterpolatedUnivariateSpline as iuSpline
 
+HANKEL_FILTERS = {}
+for filter_name in libdlf.hankel.__all__:
+    hankel_filter = getattr(libdlf.hankel, filter_name)
+    if "j0" in hankel_filter.values:
+        HANKEL_FILTERS[filter_name] = hankel_filter
+
 
 def _phi_tilde(rho, thicknesses, lambdas):
     """Calculate potential in the hankel domain.
@@ -188,11 +194,11 @@ class Simulation1DLayers(BaseSimulation):
     @hankel_filter.setter
     def hankel_filter(self, value):
         self._hankel_filter = validate_string(
-            "hankel_filter", value, libdlf.hankel.__all__
+            "hankel_filter", value, list(HANKEL_FILTERS.keys())
         )
-        base, j0, j1 = getattr(libdlf.hankel, value)()
-        hank = namedtuple("HankelFilter", "base j0 j1")
-        self._fhtfilt = hank(base, j0, j1)
+        filt = HANKEL_FILTERS[self._hankel_filter]()
+        hank = namedtuple("HankelFilter", "base j0")
+        self._fhtfilt = hank(filt[0], filt[1])
         self._coefficients_set = False
 
     @property

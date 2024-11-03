@@ -21,6 +21,12 @@ from geoana.kernels.tranverse_electric_reflections import rTE_forward, rTE_gradi
 from ..utils.em1d_utils import get_splined_dlf_points
 from ...utils import validate_type, validate_string
 
+COS_FILTERS = {}
+for filter_name in libdlf.fourier.__all__:
+    fourier_filter = getattr(libdlf.fourier, filter_name)
+    if "cos" in fourier_filter.values:
+        COS_FILTERS[filter_name] = fourier_filter
+
 
 class Simulation1DLayered(BaseEM1DSimulation):
     """
@@ -64,13 +70,11 @@ class Simulation1DLayered(BaseEM1DSimulation):
         ]:
             value = value.replace("CosSin_", "")
         self._time_filter = validate_string(
-            "time_filter",
-            value,
-            libdlf.fourier.__all__,
+            "time_filter", value, list(COS_FILTERS.keys())
         )
-        base, sin, cos = getattr(libdlf.fourier, value)()
-        cos_filt = namedtuple("CosineFilter", "base sin cos")
-        self._fftfilt = cos_filt(base, sin, cos)
+        filt = COS_FILTERS[self._time_filter]()
+        cos_filt = namedtuple("CosineFilter", "base cos")
+        self._fftfilt = cos_filt(filt[0], filt[-1])
         self._coefficients_set = False
 
     def get_coefficients(self):

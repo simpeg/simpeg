@@ -22,6 +22,12 @@ import libdlf
 
 __all__ = ["BaseEM1DSimulation"]
 
+HANKEL_FILTERS = {}
+for filter_name in libdlf.hankel.__all__:
+    hankel_filter = getattr(libdlf.hankel, filter_name)
+    if "j0" in hankel_filter.values and "j1" in hankel_filter.values:
+        HANKEL_FILTERS[filter_name] = hankel_filter
+
 ###############################################################################
 #                                                                             #
 #                             Base EM1D Simulation                            #
@@ -159,9 +165,9 @@ class BaseEM1DSimulation(BaseSimulation):
     @hankel_filter.setter
     def hankel_filter(self, value):
         self._hankel_filter = validate_string(
-            "hankel_filter", value, libdlf.hankel.__all__
+            "hankel_filter", value, list(HANKEL_FILTERS.keys())
         )
-        base, j0, j1 = getattr(libdlf.hankel, value)()
+        base, j0, j1 = HANKEL_FILTERS[self._hankel_filter]()
         hank = namedtuple("HankelFilter", "base j0 j1")
         self._fhtfilt = hank(base, j0, j1)
         self._coefficients_set = False
