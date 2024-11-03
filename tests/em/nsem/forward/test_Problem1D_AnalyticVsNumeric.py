@@ -34,7 +34,7 @@ def calculateAnalyticSolution(source_list, mesh, model):
     surveyAna = nsem.Survey(source_list)
     data1D = nsem.Data(surveyAna)
     for src in surveyAna.source_list:
-        elev = src.receiver_list[0].locations[0]
+        elev = src.receiver_list[0].locations_e[0]
         anaEd, anaEu, anaHd, anaHu = nsem.utils.analytic_1d.getEHfields(
             mesh, model, src.frequency, elev
         )
