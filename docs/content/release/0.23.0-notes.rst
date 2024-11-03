@@ -112,8 +112,8 @@ for SimPEG as well.
 
 Moreover, we have increased the minimum required versions of ``discretize``,
 ``geoana`` and ``pymatsolver`` in order to support Numpy 2.0.
-Lastly, now ``pandas`` and ``scikit-learn`` are optional dependencies
-(instead of required ones).
+Lastly, now ``pandas``, ``scikit-learn`` and ``empymod`` are optional
+dependencies (instead of required ones).
 
 
 Documentation
@@ -207,3 +207,4 @@ Pull Requests
 - Augmented receivers for airborne NSEM by `@dccowan <https://github.com/dccowan>`__ in https://github.com/simpeg/simpeg/pull/1454
 - Try uploading all the coverage files at once. by `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1569
 - Re-implement distance weighting and add a strategy comparison by `@thibaut-kobold <https://github.com/thibaut-kobold>`__ in https://github.com/simpeg/simpeg/pull/1310
+- Remove empymod dependency by `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1571
