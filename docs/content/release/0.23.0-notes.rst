@@ -4,7 +4,7 @@
 SimPEG 0.23.0 Release Notes
 ===========================
 
-November 1st, 2024
+November 3rd, 2024
 
 .. contents:: Highlights
     :depth: 3
