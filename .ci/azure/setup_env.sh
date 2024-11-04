@@ -24,6 +24,8 @@ else
   conda activate simpeg-test
 fi
 
+pip install git+https://github.com/jcapriot/docerator
+
 pip install --no-deps --editable .
 
 echo "Conda Environment:"
