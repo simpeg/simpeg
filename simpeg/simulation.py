@@ -200,7 +200,7 @@ class BaseSimulation(props.HasModel):
         if self._solver is None:
             # do not cache this, in case the user wants to
             # change it after the first time it is requested.
-            return get_default_solver()
+            return get_default_solver(warn=True)
         return self._solver
 
     @solver.setter
