@@ -101,7 +101,7 @@ class AmpProblemTest(unittest.TestCase):
             survey=survey,
             mesh=mesh,
             chiMap=idenMap,
-            ind_active=actv,
+            active_cells=actv,
             store_sensitivities="forward_only",
         )
         simulation.M = M_xyz
@@ -135,7 +135,7 @@ class AmpProblemTest(unittest.TestCase):
             mesh=mesh,
             survey=survey,
             chiMap=idenMap,
-            ind_active=surf,
+            active_cells=surf,
             store_sensitivities="ram",
         )
         simulation.model = mstart
@@ -167,8 +167,8 @@ class AmpProblemTest(unittest.TestCase):
 
         # Target misfit to stop the inversion,
         # try to fit as much as possible of the signal, we don't want to lose anything
-        IRLS = directives.Update_IRLS(
-            f_min_change=1e-3, minGNiter=1, beta_tol=1e-1, max_irls_iterations=5
+        IRLS = directives.UpdateIRLS(
+            f_min_change=1e-3, misfit_tolerance=1e-1, max_irls_iterations=5
         )
         update_Jacobi = directives.UpdatePreconditioner()
         # Put all the parts together
@@ -201,7 +201,7 @@ class AmpProblemTest(unittest.TestCase):
             mesh=mesh,
             survey=surveyAmp,
             chiMap=idenMap,
-            ind_active=surf,
+            active_cells=surf,
             is_amplitude_data=True,
             store_sensitivities="forward_only",
         )
@@ -228,7 +228,7 @@ class AmpProblemTest(unittest.TestCase):
             survey=surveyAmp,
             mesh=mesh,
             chiMap=idenMap,
-            ind_active=actv,
+            active_cells=actv,
             is_amplitude_data=True,
         )
 
@@ -253,13 +253,7 @@ class AmpProblemTest(unittest.TestCase):
         betaest = directives.BetaEstimate_ByEig(beta0_ratio=1)
 
         # Specify the sparse norms
-        IRLS = directives.Update_IRLS(
-            max_irls_iterations=5,
-            f_min_change=1e-3,
-            minGNiter=1,
-            coolingRate=1,
-            beta_search=False,
-        )
+        IRLS = directives.UpdateIRLS(max_irls_iterations=5, f_min_change=1e-3)
 
         # Special directive specific to the mag amplitude problem. The sensitivity
         # weights are update between each iteration.
@@ -268,7 +262,13 @@ class AmpProblemTest(unittest.TestCase):
 
         # Put all together
         self.inv = inversion.BaseInversion(
-            invProb, directiveList=[update_SensWeight, betaest, IRLS, update_Jacobi]
+            invProb,
+            directiveList=[
+                update_SensWeight,
+                betaest,
+                IRLS,
+                update_Jacobi,
+            ],
         )
 
         self.mstart = mstart

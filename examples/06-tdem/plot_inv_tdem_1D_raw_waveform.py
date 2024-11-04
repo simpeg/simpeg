@@ -23,11 +23,6 @@ from simpeg.electromagnetics import time_domain as TDEM, utils as EMutils
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import SolverLU as Solver
-
 
 def run(plotIt=True):
     cs, ncx, ncz, npad = 5.0, 25, 24, 15
@@ -50,7 +45,7 @@ def run(plotIt=True):
     x = np.r_[30, 50, 70, 90]
     rxloc = np.c_[x, x * 0.0, np.zeros_like(x)]
 
-    prb = TDEM.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping, solver=Solver)
+    prb = TDEM.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping)
     prb.time_steps = [
         (1e-3, 5),
         (1e-4, 5),
@@ -80,7 +75,7 @@ def run(plotIt=True):
     data = prb.make_synthetic_data(mtrue, relative_error=0.02, noise_floor=1e-11)
 
     dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data)
-    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
+    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].active_cells]])
     reg = regularization.WeightedLeastSquares(regMesh)
     opt = optimization.InexactGaussNewton(maxIter=5, LSshorten=0.5)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)

@@ -76,7 +76,7 @@ class BaseNaturalSourceRx(BaseRx):
             Number of data associated with the receiver object.
         """
 
-        return self.locations[0].shape[0]
+        return self._locations[0].shape[0]
 
     def getP(self, mesh, projected_grid, location_id=0):
         """Get projection matrix from mesh to specified receiver locations.
@@ -119,7 +119,7 @@ class BaseNaturalSourceRx(BaseRx):
         key = (mesh, projected_grid, location_id)
         if key in self._Ps:
             return self._Ps[key]
-        locs = self.locations[location_id]
+        locs = self._locations[location_id]
         P = mesh.get_interpolation_matrix(locs, projected_grid)
         if self.storeProjections:
             self._Ps[key] = P
@@ -1371,4 +1371,4 @@ class Point3DTipper(Tipper):
             out = super().eval(src, mesh, f)
         return out
 
-    locations = property(lambda self: self._locations[0], Tipper.locations.fset)
+    # locations = property(lambda self: self._locations[0], Tipper.locations.fset)

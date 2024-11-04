@@ -5,7 +5,7 @@ from simpeg import (
     maps,
     data_misfit,
 )
-from simpeg.utils import mkvc
+from simpeg.utils import mkvc, model_builder
 from simpeg.electromagnetics import natural_source as nsem
 
 REL_TOLERANCE = 5e-2
@@ -102,7 +102,8 @@ def get_survey(
                 rx_list.extend(
                     [
                         nsem.receivers.Tipper(
-                            locations,
+                            locations_h=locations,
+                            locations_base=np.zeros_like(locations),
                             orientation=orient,
                             component=comp,
                         )
@@ -143,7 +144,8 @@ CASES_LIST = [
     ("impedance", ["xx", "yy"], ["app_res"]),
     ("impedance", ["xy", "yx"], ["phase"]),
     ("tipper", ["zx", "zy"], ["real", "imag"]),
-    ("tipper", ["xx", "yx", "xy", "yy"], ["real", "imag"]),
+    ("tipper", ["xx", "yy"], ["real", "imag"]),
+    ("tipper", ["xy", "yx"], ["real", "imag"]),
     ("admittance", ["xy", "yx"], ["real", "imag"]),
     ("admittance", ["xx", "yy"], ["real", "imag"]),
     ("admittance", ["zx", "zy"], ["real", "imag"]),
@@ -182,7 +184,17 @@ class TestDerivativesPrimarySecondary:
         n_active = np.sum(active_cells)
         np.random.seed(1983)
 
-        m0 = np.log(1e1) + 0.01 * np.random.uniform(low=-1, high=1, size=n_active)
+        # Model
+        m0 = np.log(1e1) * np.ones(n_active)
+        ind = model_builder.get_indices_block(
+            np.r_[-200.0, -200.0, -600.0],
+            np.r_[200.0, 200.0, -200.0],
+            mesh.cell_centers[active_cells, :],
+        )
+        m0[ind] = np.log(1e0)
+        m0 += 0.01 * np.random.uniform(low=-1, high=1, size=n_active)
+
+        # Define data and misfit
         data = sim.make_synthetic_data(m0, add_noise=True)
         dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
 

@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.constants import mu_0
 
-from .... import Solver
+from pymatsolver import Solver
 from ....utils import sdiag
 
 from .analytic_1d import getEHfields
