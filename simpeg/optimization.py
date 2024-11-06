@@ -303,7 +303,6 @@ class Minimize(object):
         ]
 
         if self.print_type == "ubc":
-            self.factor = 2.0
             self.stoppers = [StoppingCriteria.iteration]
             self.printers = [
                 IterationPrinters.iteration,
