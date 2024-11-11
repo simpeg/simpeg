@@ -70,12 +70,12 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
         self.qMap = qMap
 
     def getRHS(self):
-        return self.Vol @ self.q
+        return self._Mcc @ self.q
 
     def getRHSDeriv(self, source, v, adjoint=False):
         if adjoint:
-            return self.qDeriv.T @ (self.Vol @ v)
-        return self.Vol @ (self.qDeriv @ v)
+            return self.qDeriv.T @ (self._Mcc @ v)
+        return self._Mcc @ (self.qDeriv @ v)
 
     @property
     def deleteTheseOnModelUpdate(self):

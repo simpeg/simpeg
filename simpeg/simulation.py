@@ -4,10 +4,10 @@ Define simulation classes.
 
 import os
 import inspect
+
 import numpy as np
 import warnings
 
-from discretize.base import BaseMesh
 from discretize import TensorMesh
 from discretize.utils import unpack_widths, sdiag, mkvc
 
@@ -51,19 +51,8 @@ class BaseSimulation(props.HasModel):
 
     Parameters
     ----------
-    mesh : discretize.base.BaseMesh, optional
-        Mesh on which the forward problem is discretized.
     survey : simpeg.survey.BaseSurvey, optional
         The survey for the simulation.
-    solver : None or pymatsolver.base.Base, optional
-        Numerical solver used to solve the forward problem. If ``None``,
-        an appropriate solver specific to the simulation class is set by default.
-    solver_opts : dict, optional
-        Solver-specific parameters. If ``None``, default parameters are used for
-        the solver set by ``solver``. Otherwise, the ``dict`` must contain appropriate
-        pairs of keyword arguments and parameter values for the solver. Please visit
-        `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__ to learn more
-        about solvers and their parameters.
     sensitivity_path : str, optional
         Path to directory where sensitivity file is stored.
     counter : None or simpeg.utils.Counter
@@ -76,21 +65,13 @@ class BaseSimulation(props.HasModel):
 
     def __init__(
         self,
-        mesh=None,
         survey=None,
-        solver=None,
-        solver_opts=None,
         sensitivity_path=None,
         counter=None,
         verbose=False,
         **kwargs,
     ):
-        self.mesh = mesh
         self.survey = survey
-        self.solver = solver
-        if solver_opts is None:
-            solver_opts = {}
-        self.solver_opts = solver_opts
         if sensitivity_path is None:
             sensitivity_path = os.path.join(".", "sensitivity")
         self.sensitivity_path = sensitivity_path
@@ -100,25 +81,6 @@ class BaseSimulation(props.HasModel):
         self._uuid = uuid.uuid4()
 
         super().__init__(**kwargs)
-
-    @property
-    def mesh(self):
-        """Mesh for the simulation.
-
-        For more on meshes, visit :py:class:`discretize.base.BaseMesh`.
-
-        Returns
-        -------
-        discretize.base.BaseMesh
-            Mesh on which the forward problem is discretized.
-        """
-        return self._mesh
-
-    @mesh.setter
-    def mesh(self, value):
-        if value is not None:
-            value = validate_type("mesh", value, BaseMesh, cast=False)
-        self._mesh = value
 
     @property
     def survey(self):

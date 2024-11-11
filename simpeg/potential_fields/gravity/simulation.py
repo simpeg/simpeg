@@ -652,7 +652,7 @@ class Simulation3DDifferential(BasePDESimulation):
 
     def getRHS(self):
         """Return right-hand side for the linear system"""
-        Mc = self.Mcc
+        Mc = self._Mcc
         rho = self.rho
         return -Mc * rho
 

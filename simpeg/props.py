@@ -1,3 +1,6 @@
+import abc
+from collections import defaultdict
+
 import numpy as np
 
 from .maps import IdentityMap, ReciprocalMap
@@ -66,6 +69,7 @@ class Mapping:
 
 class PhysicalProperty:
     reciprocal = None
+    cached_items = set()
 
     def __init__(
         self,
@@ -163,7 +167,8 @@ class PhysicalProperty:
                     )
             if self.model is None:
                 raise AttributeError(
-                    f"A `model` is required for physical property {scope.name}"
+                    f"A `model` is required for physical property {scope.name}",
+                    name=None,
                 )
             return mapping * self.model
 
@@ -178,9 +183,16 @@ class PhysicalProperty:
                 if scope.reciprocal:
                     delattr(self, scope.reciprocal.name)
                 scope.clear_mappings(self)
+
+            # clear cached items associated with this value
+            for item in scope.cached_items:
+                self._cache.pop(item, None)
             setattr(self, f"_{scope.name}", value)
 
         def fdel(self):
+            # clear cached items associated with this value
+            for item in scope.cached_items:
+                self._cache.pop(item, None)
             setattr(self, f"_{scope.name}", None)
 
         return property(fget=fget, fset=fset, fdel=fdel, doc=doc)
@@ -275,9 +287,9 @@ class BaseSimPEG:
     """"""
 
 
-class PhysicalPropertyMetaclass(type):
+class PhysicalPropertyMetaclass(abc.ABCMeta):
     def __new__(mcs, name, bases, classdict):
-        # set the phyiscal properties list.
+        # set the physical properties list.
 
         property_dict = {
             key: value
@@ -299,9 +311,11 @@ class PhysicalPropertyMetaclass(type):
         }
 
         # set the physical properties as @properties
+        _physical_properties = classdict.get("_physical_properties", {})
         for key, value in property_dict.items():
             value.name = key
             classdict[key] = value.get_property()
+            _physical_properties[key] = value
 
         map_names = classdict.get("_all_map_names", set())
         # set the mappings as @properties
@@ -328,6 +342,7 @@ class PhysicalPropertyMetaclass(type):
             map_names.update(getattr(parent, "_all_map_names", set()))
             nested_modelers.update(getattr(parent, "_nested_modelers", set()))
 
+        newcls._physical_properties = _physical_properties
         newcls._all_map_names = map_names
         newcls._nested_modelers = nested_modelers
 
@@ -337,6 +352,7 @@ class PhysicalPropertyMetaclass(type):
 class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
     def __init__(self, model=None, **kwargs):
         self.model = model
+        self._cache = defaultdict(lambda: None)
         super().__init__(**kwargs)
 
     @property
@@ -358,24 +374,13 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
 
     # TODO: rename to _delete_on_model_update
     @property
-    def deleteTheseOnModelUpdate(self):
-        """A list of properties stored on this object to delete when the model is updated
+    def _delete_on_model_change(self):
+        """Items in this object's cache to delete when the model is updated.
 
         Returns
         -------
         list of str
-            For example `['_MeSigma', '_MeSigmaI']`.
-        """
-        return []
-
-    #: List of matrix names to have their factors cleared on a model update
-    @property
-    def clean_on_model_update(self):
-        """A list of solver objects to clean when the model is updated
-
-        Returns
-        -------
-        list of str
+            For example `['_Me_conductivity', '_inv_Me_conductivity']`.
         """
         return []
 
@@ -447,15 +452,8 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                 and np.allclose(previous_value, value)
             ):
                 # cached properties to delete
-                for prop in self.deleteTheseOnModelUpdate:
-                    if hasattr(self, prop):
-                        delattr(self, prop)
-
-                # matrix factors to clear
-                for mat in self.clean_on_model_update:
-                    if getattr(self, mat, None) is not None:
-                        getattr(self, mat).clean()  # clean factors
-                        setattr(self, mat, None)  # set to none
+                for item in self._delete_on_model_change:
+                    self._cache.pop(item, None)
                 updated = True
 
         self._model = value
@@ -469,12 +467,5 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
     def model(self):
         self._model = (None,)
         # cached properties to delete
-        for prop in self.deleteTheseOnModelUpdate:
-            if hasattr(self, prop):
-                delattr(self, prop)
-
-        # matrix factors to clear
-        for mat in self.clean_on_model_update:
-            if getattr(self, mat, None) is not None:
-                getattr(self, mat).clean()  # clean factors
-                setattr(self, mat, None)  # set to none
+        for item in self._delete_on_model_change:
+            self._cache.pop(item, None)
