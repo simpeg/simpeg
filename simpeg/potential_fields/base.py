@@ -8,7 +8,7 @@ from scipy.sparse import csr_matrix as csr
 
 from simpeg.utils import mkvc
 
-from ..simulation import LinearSimulation
+from ..simulation import BaseLinearSimulation
 from ..utils import validate_active_indices, validate_integer, validate_string
 from ..utils.code_utils import deprecate_property
 
@@ -24,7 +24,7 @@ except ImportError:
 ###############################################################################
 
 
-class BasePFSimulation(LinearSimulation):
+class BasePFSimulation(BaseLinearSimulation):
     r"""Base class for potential field simulations that use integral formulations.
 
     For integral formulations, the forward simulation for a set of voxel cells

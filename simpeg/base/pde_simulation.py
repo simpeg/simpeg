@@ -1,15 +1,19 @@
+from abc import abstractmethod
+
 import discretize.base
 import numpy as np
+import pymatsolver
 import scipy.sparse as sp
 from discretize.base import BaseMesh
 from discretize.utils import Zero, TensorType
 
 from ..props import PhysicalPropertyMetaclass, PhysicalProperty
-from ..simulation import BaseSimulation
-from .. import props
+from ..simulation import BaseSimulation, BaseTimeSimulation
+from .. import props, Data
 from scipy.constants import mu_0
 
 from ..utils import validate_type
+from ..utils.solver_utils import get_default_solver
 
 AXIS_ALIGNED_MESH_TYPES = (
     discretize.TensorMesh,
@@ -471,7 +475,83 @@ class BasePDESimulation(BaseSimulation, metaclass=MassMatrixMeta):
 
     @mesh.setter
     def mesh(self, value):
-        self._mesh = validate_type("mesh", value, BaseMesh, cast=False)
+        self._mesh = validate_type("mesh", value, BaseMesh, cast=False)    @property
+
+
+    def solver(self) -> type[pymatsolver.solvers.Base]:
+        r"""Numerical solver used in the forward simulation.
+
+        Many forward simulations in SimPEG require solutions to discrete linear
+        systems of the form:
+
+        .. math::
+            \mathbf{A}(\mathbf{m}) \, \mathbf{u} = \mathbf{q}
+
+        where :math:`\mathbf{A}` is an invertible matrix that depends on the
+        model :math:`\mathbf{m}`. The numerical solver can be set using the
+        ``solver`` property. In SimPEG, the
+        `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__ package
+        is used to create solver objects. Parameters specific to each solver
+        can be set manually using the ``solver_opts`` property.
+
+        Returns
+        -------
+        type[pymatsolver.base.Base]
+            Numerical solver class used to solve the forward problem.
+        """
+        if self._solver is None:
+            # do not cache this, in case the user wants to
+            # change it after the first time it is requested.
+            return get_default_solver(warn=True)
+        return self._solver
+
+    @solver.setter
+    def solver(self, cls):
+        if cls is not None:
+            if not issubclass(cls, pymatsolver.solvers.Base):
+                raise TypeError(f"Solver, {cls.__name__} is not a subclass of pymatsolver.solvers.Base")
+        self._solver = cls
+
+    @property
+    def solver_opts(self):
+        """Solver-specific parameters.
+
+        The parameters specific to the solver set with the ``solver`` property are set
+        upon instantiation. The ``solver_opts`` property is used to set solver-specific properties.
+        This is done by providing a ``dict`` that contains appropriate pairs of keyword arguments
+        and parameter values. Please visit `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__
+        to learn more about solvers and their parameters.
+
+        Returns
+        -------
+        dict
+            keyword arguments and parameters passed to the solver.
+        """
+        return self._solver_opts
+
+    @solver_opts.setter
+    def solver_opts(self, value):
+        self._solver_opts = validate_type("solver_opts", value, dict, cast=False)
+
+    def dpred(self, m=None, f=None):
+        if self.survey is None:
+            raise AttributeError(
+                "The survey has not yet been set and is required to compute "
+                "data. Please set the survey for the simulation: "
+                "simulation.survey = survey"
+            )
+
+        if f is None:
+            if m is None:
+                m = self.model
+
+            f = self.fields(m)
+
+        data = Data(self.survey)
+        for src in self.survey.source_list:
+            for rx in src.receiver_list:
+                data[src, rx] = rx.eval(src, self.mesh, f)
+        return data.tovec()
 
     @property
     def _Mcc(self):
@@ -557,6 +637,32 @@ class BasePDESimulation(BaseSimulation, metaclass=MassMatrixMeta):
                 MeI = self.solver(self._Me, symmetric=True, positive_definite=True)
             self._cache["_MeI"] = MeI
         return self._MeI
+
+
+class BaseTimePDESimulation(BaseTimeSimulation, BasePDESimulation):
+
+    def __init__(self, mesh, time_steps, **kwargs):
+        super().__init__(mesh=mesh, time_steps=time_steps, **kwargs)
+
+
+    def dpred(self, m=None, f=None):
+        # Docstring inherited from BaseSimulation.
+        if self.survey is None:
+            raise AttributeError(
+                "The survey has not yet been set and is required to compute "
+                "data. Please set the survey for the simulation: "
+                "simulation.survey = survey"
+            )
+
+        if f is None:
+            f = self.fields(m)
+
+        data = Data(self.survey)
+        for src in self.survey.source_list:
+            for rx in src.receiver_list:
+                data[src, rx] = rx.eval(src, self.mesh, self.time_mesh, f)
+        return data.dobs
+
 
 
 class BaseElectricalSimulation(BaseSimulation):

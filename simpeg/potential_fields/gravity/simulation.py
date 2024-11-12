@@ -211,7 +211,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 self._sensitivity_gravity = _sensitivity_gravity_serial
                 self._forward_gravity = _forward_gravity_serial
 
-    def fields(self, m):
+    def dpred(self, m, f=None):
         """
         Forward model the gravity field of the mesh on the receivers in the survey
 

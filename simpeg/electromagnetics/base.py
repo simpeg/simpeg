@@ -1,3 +1,6 @@
+import warnings
+
+from ..base.pde_simulation import BaseElectricalSimulation, BaseMagneticSimulation
 from ..survey import BaseSrc
 from ..utils import Zero, validate_type
 from ..base import BaseElectricalPDESimulation, BaseMagneticPDESimulation
@@ -12,36 +15,22 @@ __all__ = ["BaseEMSimulation", "BaseEMSrc"]
 ###############################################################################
 
 
-class BaseEMSimulation(BaseElectricalPDESimulation, BaseMagneticPDESimulation):
+class BaseEMSimulation(BaseElectricalSimulation, BaseMagneticSimulation):
     """Base electromagnetic simulation class"""
 
-    def __init__(self, mesh, storeInnerProduct=True, **kwargs):
+    def __init__(self, mesh, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
-        self.storeInnerProduct = storeInnerProduct
+        if kwargs.pop('storeInnerProductMatrices', None) is not None:
+            warnings.warn('storeInnerProductMatrices was unused and is now deprecated.')
 
-    @property
-    def storeInnerProduct(self):
-        """Whether to store inner product matrices
 
-        Returns
-        -------
-        bool
-        """
-        return self._storeInnerProduct
+class BaseEMPDESimulation(BaseElectricalPDESimulation, BaseMagneticPDESimulation):
+    """Base electromagnetic simulation class"""
 
-    @storeInnerProduct.setter
-    def storeInnerProduct(self, value):
-        self._storeInnerProduct = validate_type("storeInnerProduct", value, bool)
-
-    ####################################################
-    # Make A Symmetric
-    ####################################################
-    @property
-    def _makeASymmetric(self):
-        if getattr(self, "__makeASymmetric", None) is None:
-            self.__makeASymmetric = True
-        return self.__makeASymmetric
-
+    def __init__(self, mesh, survey, **kwargs):
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        if kwargs.pop('storeInnerProductMatrices', None) is not None:
+            warnings.warn('storeInnerProductMatrices was unused and is now deprecated.')
 
 ###############################################################################
 #                                                                             #

@@ -574,3 +574,11 @@ class BaseTimeSurvey(BaseSurvey):
                     rx_times.append(receiver.times)
             self._unique_times = np.unique(np.hstack(rx_times))
         return self._unique_times
+
+
+class SimpleSurvey(BaseSurvey):
+
+    def __init__(self, n_data, **kwargs):
+        self._vnD = np.array([n_data])
+        source_list = kwargs.pop("source_list", [])
+        super().__init__(source_list=source_list, **kwargs)
