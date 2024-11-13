@@ -599,12 +599,12 @@ class TestWires(unittest.TestCase):
 
         model = np.arange(mesh.shape_cells[2] + 1)
 
-        assert isinstance(wires.sigma, maps.Projection)
+        assert isinstance(wires.conductivity, maps.Projection)
         assert wires.nP == mesh.shape_cells[2] + 1
 
         named_model = wires * model
 
-        np.testing.assert_equal(named_model.sigma, model[: mesh.shape_cells[2]])
+        np.testing.assert_equal(named_model.conductivity, model[: mesh.shape_cells[2]])
         np.testing.assert_equal(named_model.mu_casing, 10)
 
 

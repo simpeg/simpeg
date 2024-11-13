@@ -57,7 +57,7 @@ def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx", src_z=0.0):
     m = np.log(5e-1) * np.ones(mapping.nP) + 1e-3 * rng.normal(size=mapping.nP)
 
     prb = getattr(tdem, "Simulation3D{}".format(prbtype))(
-        mesh, survey=survey, time_steps=time_steps, sigmaMap=mapping
+        mesh, survey=survey, time_steps=time_steps, conductivity_map=mapping
     )
 
     return prb, m, mesh
@@ -109,7 +109,7 @@ class TDEM_DerivTests(unittest.TestCase):
 
             prb, m0, mesh = setUp_TDEM(prbtype, rxcomp, src_z)
             rng = np.random.default_rng(seed=42)
-            m = rng.uniform(size=prb.sigmaMap.nP)
+            m = rng.uniform(size=prb.conductivityMap.nP)
             d = rng.normal(size=prb.survey.nD)
 
             print(m.shape, d.shape, m0.shape)

@@ -88,17 +88,17 @@ def setupProblem(
         wires = maps.Wires(("mu", mesh.nC), ("sigma", mesh.nC))
 
         muMap = maps.MuRelative(mesh) * wires.mu
-        sigmaMap = maps.ExpMap(mesh) * wires.sigma
+        conductivity_map = maps.ExpMap(mesh) * wires.conductivity
 
         if invertMui:
             muiMap = maps.ReciprocalMap(mesh) * muMap
             prob = getattr(fdem, "Simulation3D{}".format(prbtype))(
-                mesh, muiMap=muiMap, sigmaMap=sigmaMap
+                mesh, muiMap=muiMap, conductivity_map=conductivity_map
             )
             # m0 = np.hstack([1./muMod, sigmaMod])
         else:
             prob = getattr(fdem, "Simulation3D{}".format(prbtype))(
-                mesh, muMap=muMap, sigmaMap=sigmaMap
+                mesh, muMap=muMap, conductivity_map=conductivity_map
             )
         m0 = np.hstack([muMod, sigmaMod])
 

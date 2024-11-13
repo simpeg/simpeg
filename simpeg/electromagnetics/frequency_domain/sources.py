@@ -1005,7 +1005,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         # Ainv = self.primarySimulation.solver(A, **self.primarySimulation.solver_opts) # create the concept of Ainv (actually a solve)
 
         if f is None:
-            f = self._primaryFields(simulation.sigma, f=f)
+            f = self._primaryFields(simulation.conductivity, f=f)
 
         freq = self.frequency
 
@@ -1014,7 +1014,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         u_src = mkvc(f[src, self.primarySimulation._solutionType])
 
         if adjoint is True:
-            Jtv = np.zeros(simulation.sigmaMap.nP, dtype=complex)
+            Jtv = np.zeros(simulation.conductivityMap.nP, dtype=complex)
             ATinv = self.primarySimulation.solver(
                 A.T, **self.primarySimulation.solver_opts
             )

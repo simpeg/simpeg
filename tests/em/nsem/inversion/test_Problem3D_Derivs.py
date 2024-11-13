@@ -77,11 +77,11 @@ def DerivJvecTest(inputSetup, comp="All", freq=False, expMap=True):
         )
     )
     # simulation.mapping = Maps.ExpMap(simulation.mesh)
-    # simulation.sigmaPrimary = np.log(sigBG)
-    # x0 = np.log(simulation.sigmaPrimary)
+    # simulation.conductivityPrimary = np.log(sigBG)
+    # x0 = np.log(simulation.conductivityPrimary)
     # cond = sig[0]
     # x0 = np.log(np.ones(simulation.mesh.nC)*cond)
-    # simulation.sigmaPrimary = x0
+    # simulation.conductivityPrimary = x0
     # if True:
     #     x0  = x0 + np.random.randn(simulation.mesh.nC)*cond*1e-1
 

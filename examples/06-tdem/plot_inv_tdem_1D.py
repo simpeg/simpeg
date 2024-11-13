@@ -47,7 +47,7 @@ def run(plotIt=True):
     survey = time_domain.Survey([src])
     time_steps = [(1e-06, 20), (1e-05, 20), (0.0001, 20)]
     simulation = time_domain.Simulation3DElectricField(
-        mesh, sigmaMap=mapping, survey=survey, time_steps=time_steps
+        mesh, conductivity_map=mapping, survey=survey, time_steps=time_steps
     )
     # d_true = simulation.dpred(mtrue)
 

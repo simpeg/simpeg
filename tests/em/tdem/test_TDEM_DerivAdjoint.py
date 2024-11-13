@@ -41,7 +41,7 @@ def get_mapping(mesh):
 
 def get_prob(mesh, mapping, formulation, **kwargs):
     prb = getattr(tdem, "Simulation3D{}".format(formulation))(
-        mesh, sigmaMap=mapping, **kwargs
+        mesh, conductivity_map=mapping, **kwargs
     )
     prb.time_steps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
     return prb
@@ -65,9 +65,9 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         self.survey = get_survey()
         self.prob = get_prob(mesh, mapping, self.formulation, survey=self.survey)
         rng = np.random.default_rng(seed=42)
-        self.m = np.log(1e-1) * np.ones(self.prob.sigmaMap.nP) + 1e-3 * rng.normal(
-            size=self.prob.sigmaMap.nP
-        )
+        self.m = np.log(1e-1) * np.ones(
+            self.prob.conductivityMap.nP
+        ) + 1e-3 * rng.normal(size=self.prob.conductivityMap.nP)
         print("Solving Fields for problem {}".format(self.formulation))
         t = time.time()
         self.fields = self.prob.fields(self.m)
@@ -125,7 +125,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         )
 
         rng = np.random.default_rng(seed=42)
-        m = rng.uniform(size=self.prob.sigmaMap.nP)
+        m = rng.uniform(size=self.prob.conductivityMap.nP)
         d = rng.normal(size=self.prob.survey.nD)
         V1 = d.dot(self.prob.Jvec(self.m, m, f=self.fields))
         V2 = m.dot(self.prob.Jtvec(self.m, d, f=self.fields))

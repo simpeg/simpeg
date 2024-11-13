@@ -280,7 +280,7 @@ time_steps = [(1e-4, 20), (1e-5, 10), (1e-4, 10)]
 #
 
 simulation = tdem.simulation.Simulation3DMagneticFluxDensity(
-    mesh, survey=survey, sigmaMap=model_map, t0=-0.002
+    mesh, survey=survey, conductivity_map=model_map, t0=-0.002
 )
 
 # Set the time-stepping for the simulation

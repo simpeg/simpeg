@@ -141,9 +141,9 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     def _get_admittivity(self, freq):
         if self.permittivity is not None:
-            return self.sigma + 1j * self.permittivity * omega(freq)
+            return self.conductivity + 1j * self.permittivity * omega(freq)
         else:
-            return self.sigma
+            return self.conductivity
 
     def _get_face_admittivity_property_matrix(
         self, freq, invert_model=False, invert_matrix=False

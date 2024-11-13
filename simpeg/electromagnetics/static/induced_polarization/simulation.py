@@ -18,11 +18,11 @@ class BaseIPSimulation(BasePDESimulation):
     props.Reciprocal(sigma, rho)
 
     @property
-    def sigmaMap(self):
+    def conductivity_map(self):
         return maps.IdentityMap()
 
-    @sigmaMap.setter
-    def sigmaMap(self, arg):
+    @conductivity_map.setter
+    def conductivity_map(self, arg):
         pass
 
     @property
@@ -34,8 +34,8 @@ class BaseIPSimulation(BasePDESimulation):
         pass
 
     @property
-    def sigmaDeriv(self):
-        return -sp.diags(self.sigma) @ self.etaDeriv
+    def _con_deriv(self):
+        return -sp.diags(self.conductivity) @ self.etaDeriv
 
     @property
     def rhoDeriv(self):
@@ -73,7 +73,7 @@ class BaseIPSimulation(BasePDESimulation):
         **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
-        self.sigma = sigma
+        self.conductivity = sigma
         self.rho = rho
         self.eta = eta
         self.etaMap = etaMap

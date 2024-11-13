@@ -14,17 +14,19 @@ import pytest
 @with_property_mass_matrices("sigma")
 @with_property_mass_matrices("mu")
 class SimpleSim(BasePDESimulation):
-    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
+    sigma, conductivity_map, _con_deriv = props.Invertible(
+        "Electrical conductivity (S/m)"
+    )
 
     mu, muMap, muDeriv = props.Invertible("Magnetic Permeability")
 
     def __init__(
-        self, mesh, survey=None, sigma=None, sigmaMap=None, mu=mu_0, muMap=None
+        self, mesh, survey=None, sigma=None, conductivity_map=None, mu=mu_0, muMap=None
     ):
         super().__init__(mesh=mesh, survey=survey)
-        self.sigma = sigma
+        self.conductivity = sigma
         self.mu = mu
-        self.conductivity_map = sigmaMap
+        self.conductivity_map = conductivity_map
         self.muMap = muMap
 
     @property
@@ -42,7 +44,7 @@ class TestSim(unittest.TestCase):
     def setUp(self):
         self.mesh = discretize.TensorMesh([5, 6, 7])
 
-        self.sim = SimpleSim(self.mesh, sigmaMap=maps.ExpMap())
+        self.sim = SimpleSim(self.mesh, conductivity_map=maps.ExpMap())
         n_cells = self.mesh.n_cells
         self.start_mod = np.log(np.full(n_cells, 1e-2)) + np.random.randn(n_cells)
         self.start_diag_mod = np.r_[
@@ -51,7 +53,7 @@ class TestSim(unittest.TestCase):
             np.log(np.full(n_cells, 3e-2)),
         ] + np.random.randn(3 * n_cells)
 
-        self.sim_full_aniso = SimpleSim(self.mesh, sigmaMap=maps.IdentityMap())
+        self.sim_full_aniso = SimpleSim(self.mesh, conductivity_map=maps.IdentityMap())
 
         self.start_full_mod = np.r_[
             np.full(n_cells, 1),
@@ -789,7 +791,7 @@ class TestSim(unittest.TestCase):
 
 def test_bad_derivative_stash():
     mesh = discretize.TensorMesh([5, 6, 7])
-    sim = SimpleSim(mesh, sigmaMap=maps.ExpMap())
+    sim = SimpleSim(mesh, conductivity_map=maps.ExpMap())
     sim.model = np.random.rand(mesh.n_cells)
 
     u = np.random.rand(mesh.n_edges)

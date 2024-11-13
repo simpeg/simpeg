@@ -140,11 +140,11 @@ def test_analytic_halfspace_solution(
     model_hs = get_model(mesh, "halfspace")  # 1e-2 halfspace
     if orientation in ["xy", "zx"]:
         sim = nsem.simulation.Simulation2DElectricField(
-            mesh, survey=survey, sigmaMap=mapping
+            mesh, survey=survey, conductivity_map=mapping
         )
     elif orientation in ["yx", "zy"]:
         sim = nsem.simulation.Simulation2DMagneticField(
-            mesh, survey=survey, sigmaMap=mapping
+            mesh, survey=survey, conductivity_map=mapping
         )
 
     numeric_solution = sim.dpred(model_hs)

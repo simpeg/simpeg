@@ -175,13 +175,13 @@ cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 # measuring the magnetic flux density and working with a conductivity model,
 # the EB formulation is the most natural. We must also remember to define
 # the mapping for the conductivity model. If you defined a resistivity model,
-# use the kwarg *rhoMap* instead of *sigmaMap*
+# use the kwarg *rhoMap* instead of *conductivity_map*
 #
 
 simulation = fdem.simulation.Simulation3DMagneticFluxDensity(
     mesh,
     survey=survey,
-    sigmaMap=model_map,
+    conductivity_map=model_map,
 )
 
 ######################################################

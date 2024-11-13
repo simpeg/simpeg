@@ -76,7 +76,7 @@ def halfSpaceProblemAnaDiff(
 
     survey = tdem.Survey([src])
     prb = tdem.Simulation3DMagneticFluxDensity(
-        mesh, survey=survey, sigmaMap=mapping, time_steps=time_steps
+        mesh, survey=survey, conductivity_map=mapping, time_steps=time_steps
     )
 
     sigma = np.ones(mesh.shape_cells[2]) * 1e-8

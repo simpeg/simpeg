@@ -50,13 +50,13 @@ class FiniteVolume1DTest(unittest.TestCase):
             return nsem.simulation.Simulation1DElectricField(
                 mesh=self.mesh,
                 survey=self.survey,
-                sigmaMap=maps.IdentityMap(),
+                conductivity_map=maps.IdentityMap(),
             )
         elif formulation == "h":
             return nsem.simulation.Simulation1DMagneticField(
                 mesh=self.mesh,
                 survey=self.survey,
-                sigmaMap=maps.IdentityMap(),
+                conductivity_map=maps.IdentityMap(),
             )
 
     def get_sigma(self, sigma_back):

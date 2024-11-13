@@ -666,9 +666,9 @@ class Simulation2DNodal(BaseDCSimulation2D):
 
         if self.bc_type != "Neumann":
             try:
-                A = A + sdiag(self._AvgBC[ky] @ self.sigma)
+                A = A + sdiag(self._AvgBC[ky] @ self.conductivity)
             except ValueError as err:
-                if len(self.sigma) != len(self.mesh):
+                if len(self.conductivity) != len(self.mesh):
                     raise NotImplementedError(
                         "Anisotropic conductivity is not supported for Robin boundary "
                         "conditions, please use 'Neumann'."

@@ -116,21 +116,23 @@ def run(plotIt=True):
 
     if plotIt:
         fig, ax = plt.subplots(1, 1)
-        sigmaMapTest = maps.SelfConsistentEffectiveMedium(
+        conductivity_mapTest = maps.SelfConsistentEffectiveMedium(
             nP=1000, sigma0=sigma0, sigma1=sigma1, rel_tol=1e-1, maxIter=150
         )
         testphis = np.linspace(0.0, 1.0, 1000)
 
-        sigetest = sigmaMapTest * testphis
+        sigetest = conductivity_mapTest * testphis
         ax.semilogy(testphis, sigetest)
         ax.set_title("Model Transform")
         ax.set_xlabel(r"$\varphi$")
         ax.set_ylabel(r"$\sigma$")
 
-    sigmaMap = maps.SelfConsistentEffectiveMedium(M, sigma0=sigma0, sigma1=sigma1)
+    conductivity_map = maps.SelfConsistentEffectiveMedium(
+        M, sigma0=sigma0, sigma1=sigma1
+    )
 
     # scale the slowness so it is on a ~linear scale
-    slownessMap = maps.LogMap(M) * sigmaMap
+    slownessMap = maps.LogMap(M) * conductivity_map
 
     # set up the problem and survey
     survey = tomo.Survey(source_list)

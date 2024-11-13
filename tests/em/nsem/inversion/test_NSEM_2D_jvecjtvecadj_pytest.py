@@ -134,11 +134,11 @@ class TestDerivatives:
         # Define the simulation
         if orientation in ["xy", "zy"]:
             sim = nsem.simulation.Simulation2DElectricField(
-                mesh, survey=survey, sigmaMap=mapping
+                mesh, survey=survey, conductivity_map=mapping
             )
         elif orientation in ["yx", "zx"]:
             sim = nsem.simulation.Simulation2DMagneticField(
-                mesh, survey=survey, sigmaMap=mapping
+                mesh, survey=survey, conductivity_map=mapping
             )
 
         n_active = np.sum(active_cells)

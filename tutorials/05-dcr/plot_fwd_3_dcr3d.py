@@ -244,7 +244,7 @@ survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 # Predict DC Resistivity Data
 # ---------------------------
 #
-# Here we predict DC resistivity data. If the keyword argument *sigmaMap* is
+# Here we predict DC resistivity data. If the keyword argument *conductivity_map* is
 # defined, the simulation will expect a conductivity model. If the keyword
 # argument *rhoMap* is defined, the simulation will expect a resistivity model.
 #
@@ -255,7 +255,7 @@ survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 simulation = dc.simulation.Simulation3DNodal(
     mesh,
     survey=survey,
-    sigmaMap=conductivity_map,
+    conductivity_map=conductivity_map,
 )
 
 # Predict the data by running the simulation. The data are the measured voltage

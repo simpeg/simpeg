@@ -45,7 +45,7 @@ def run(plotIt=True):
     x = np.r_[30, 50, 70, 90]
     rxloc = np.c_[x, x * 0.0, np.zeros_like(x)]
 
-    prb = TDEM.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping)
+    prb = TDEM.Simulation3DMagneticFluxDensity(mesh, conductivity_map=mapping)
     prb.time_steps = [
         (1e-3, 5),
         (1e-4, 5),

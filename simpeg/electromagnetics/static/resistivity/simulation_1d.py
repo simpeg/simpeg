@@ -107,7 +107,9 @@ class Simulation1DLayers(BaseSimulation):
     1D DC Simulation
     """
 
-    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
+    sigma, conductivity_map, _con_deriv = props.Invertible(
+        "Electrical conductivity (S/m)"
+    )
     rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
     props.Reciprocal(sigma, rho)
 
@@ -119,7 +121,7 @@ class Simulation1DLayers(BaseSimulation):
         self,
         survey=None,
         sigma=None,
-        sigmaMap=None,
+        conductivity_map=None,
         rho=None,
         rhoMap=None,
         thicknesses=None,
@@ -142,10 +144,10 @@ class Simulation1DLayers(BaseSimulation):
                 "receiver."
             )
         super().__init__(survey=survey, **kwargs)
-        self.sigma = sigma
+        self.conductivity = sigma
         self.rho = rho
         self.thicknesses = thicknesses
-        self.conductivity_map = sigmaMap
+        self.conductivity_map = conductivity_map
         self.rhoMap = rhoMap
         self.thicknessesMap = thicknessesMap
         self.fix_Jmatrix = fix_Jmatrix

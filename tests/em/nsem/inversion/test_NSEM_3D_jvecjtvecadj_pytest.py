@@ -158,7 +158,7 @@ class TestDerivatives:
 
         # Define the simulation
         sim = nsem.simulation.Simulation3DPrimarySecondary(
-            mesh, survey=survey, sigmaMap=mapping, sigmaPrimary=sigma_hs
+            mesh, survey=survey, conductivity_map=mapping, sigmaPrimary=sigma_hs
         )
 
         n_active = np.sum(active_cells)

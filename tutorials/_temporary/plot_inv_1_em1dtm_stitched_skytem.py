@@ -221,12 +221,12 @@ starting_model = np.log(conductivity)
 simulation = em1d.simulation.StitchedEM1DTMSimulation(
     survey=survey,
     thicknesses=thicknesses,
-    sigmaMap=mapping,
+    conductivity_map=mapping,
     topo=topo,
 )
 
 # simulation = em1d.simulation.StitchedEM1DTMSimulation(
-#     survey=survey, thicknesses=thicknesses, sigmaMap=mapping,
+#     survey=survey, thicknesses=thicknesses, conductivity_map=mapping,
 #     topo=topo, parallel=True, n_cpu=4, verbose=True
 # )
 

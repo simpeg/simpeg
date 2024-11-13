@@ -54,7 +54,7 @@ class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
         self.topo = topo
         self.survey = survey
         self.showIt = False
-        self.sigma = sigma
+        self.conductivity = sigma
         self.times = times
         self.thicknesses = thicknesses
         self.nlayers = len(thicknesses) + 1
@@ -65,11 +65,11 @@ class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
         sim = tdem.Simulation1DLayered(
             survey=self.survey,
             thicknesses=self.thicknesses,
-            sigmaMap=sigma_map,
+            conductivity_map=sigma_map,
             topo=self.topo,
         )
 
-        m_1D = np.log(np.ones(self.nlayers) * self.sigma)
+        m_1D = np.log(np.ones(self.nlayers) * self.conductivity)
 
         def fwdfun(m):
             resp = sim.dpred(m)
@@ -94,18 +94,18 @@ class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
         sim = tdem.Simulation1DLayered(
             survey=self.survey,
             thicknesses=self.thicknesses,
-            sigmaMap=sigma_map,
+            conductivity_map=sigma_map,
             topo=self.topo,
         )
 
         sigma_layer = 0.1
-        sigma = np.ones(self.nlayers) * self.sigma
+        sigma = np.ones(self.nlayers) * self.conductivity
         sigma[3] = sigma_layer
         m_true = np.log(sigma)
 
         dobs = sim.dpred(m_true)
 
-        m_ini = np.log(np.ones(self.nlayers) * self.sigma)
+        m_ini = np.log(np.ones(self.nlayers) * self.conductivity)
         resp_ini = sim.dpred(m_ini)
         dr = resp_ini - dobs
 
@@ -239,7 +239,7 @@ class EM1D_TD_LineCurrent_Jac_layers_ProblemTests(unittest.TestCase):
         thicknesses = np.array([30.0])
 
         self.survey = survey
-        self.sigma = sigma
+        self.conductivity = sigma
         self.thicknesses = thicknesses
         self.nlayers = len(thicknesses) + 1
 
@@ -248,10 +248,10 @@ class EM1D_TD_LineCurrent_Jac_layers_ProblemTests(unittest.TestCase):
         sim = tdem.Simulation1DLayered(
             survey=self.survey,
             thicknesses=self.thicknesses,
-            sigmaMap=sigma_map,
+            conductivity_map=sigma_map,
         )
 
-        m_1D = np.log(np.ones(self.nlayers) * self.sigma)
+        m_1D = np.log(np.ones(self.nlayers) * self.conductivity)
 
         def fwdfun(m):
             resp = sim.dpred(m)
@@ -276,17 +276,17 @@ class EM1D_TD_LineCurrent_Jac_layers_ProblemTests(unittest.TestCase):
         sim = tdem.Simulation1DLayered(
             survey=self.survey,
             thicknesses=self.thicknesses,
-            sigmaMap=sigma_map,
+            conductivity_map=sigma_map,
         )
 
         sigma_layer = 0.1
-        sigma = np.ones(self.nlayers) * self.sigma
+        sigma = np.ones(self.nlayers) * self.conductivity
         sigma[1] = sigma_layer
         m_true = np.log(sigma)
 
         dobs = sim.dpred(m_true)
 
-        m_ini = np.log(np.ones(self.nlayers) * self.sigma)
+        m_ini = np.log(np.ones(self.nlayers) * self.conductivity)
         resp_ini = sim.dpred(m_ini)
         dr = resp_ini - dobs
 

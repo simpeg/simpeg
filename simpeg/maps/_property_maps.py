@@ -1068,8 +1068,8 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         **kwargs,
     ):
         self._sigstart = None
-        self.sigma0 = sigma0
-        self.sigma1 = sigma1
+        self.conductivity0 = sigma0
+        self.conductivity1 = sigma1
         self.alpha0 = alpha0
         self.alpha1 = alpha1
         self.orientation0 = orientation0
@@ -1214,7 +1214,7 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         calc
         """
         if getattr(self, "_tol", None) is None:
-            self._tol = self.rel_tol * min(self.sigma0, self.sigma1)
+            self._tol = self.rel_tol * min(self.conductivity0, self.conductivity1)
         return self._tol
 
     @property
@@ -1236,8 +1236,8 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         See Torquato, 2002
         """
         phi0 = 1.0 - phi1
-        sigWup = phi0 * self.sigma0 + phi1 * self.sigma1
-        sigWlo = 1.0 / (phi0 / self.sigma0 + phi1 / self.sigma1)
+        sigWup = phi0 * self.conductivity0 + phi1 * self.conductivity1
+        sigWlo = 1.0 / (phi0 / self.conductivity0 + phi1 / self.conductivity1)
         W = np.array([sigWlo, sigWup])
 
         return W
@@ -1251,17 +1251,17 @@ class SelfConsistentEffectiveMedium(IdentityMap):
 
         phi0 = 1.0 - phi1
         sigWu = self.wiener_bounds(phi1)[1]
-        sig_tilde = phi0 * self.sigma1 + phi1 * self.sigma0
+        sig_tilde = phi0 * self.conductivity1 + phi1 * self.conductivity0
 
-        sigma_min = np.min([self.sigma0, self.sigma1])
-        sigma_max = np.max([self.sigma0, self.sigma1])
+        sigma_min = np.min([self.conductivity0, self.conductivity1])
+        sigma_max = np.max([self.conductivity0, self.conductivity1])
 
         sigHSlo = sigWu - (
-            (phi0 * phi1 * (self.sigma0 - self.sigma1) ** 2)
+            (phi0 * phi1 * (self.conductivity0 - self.conductivity1) ** 2)
             / (sig_tilde + 2 * sigma_max)
         )
         sigHSup = sigWu - (
-            (phi0 * phi1 * (self.sigma0 - self.sigma1) ** 2)
+            (phi0 * phi1 * (self.conductivity0 - self.conductivity1) ** 2)
             / (sig_tilde + 2 * sigma_min)
         )
 
@@ -1275,18 +1275,22 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         phi0 = 1.0 - phi1
         sigWu = self.wiener_bounds(phi1)[1]
 
-        sigma_min = np.min([self.sigma0, self.sigma1])
-        sigma_max = np.max([self.sigma0, self.sigma1])
+        sigma_min = np.min([self.conductivity0, self.conductivity1])
+        sigma_max = np.max([self.conductivity0, self.conductivity1])
 
-        phi_min = phi0 if self.sigma1 > self.sigma0 else phi1
-        phi_max = phi1 if self.sigma1 > self.sigma0 else phi0
+        phi_min = phi0 if self.conductivity1 > self.conductivity0 else phi1
+        phi_max = phi1 if self.conductivity1 > self.conductivity0 else phi0
 
         amax = (
             -phi0
             * phi1
             * self.getA(
-                self.alpha1 if self.sigma1 > self.sigma0 else self.alpha0,
-                self.orientation1 if self.sigma1 > self.sigma0 else self.orientation0,
+                self.alpha1 if self.conductivity1 > self.conductivity0 else self.alpha0,
+                (
+                    self.orientation1
+                    if self.conductivity1 > self.conductivity0
+                    else self.orientation0
+                ),
             )
         )
         I = np.eye(3)
@@ -1401,11 +1405,11 @@ class SelfConsistentEffectiveMedium(IdentityMap):
             sige1 = sige1 * np.eye(3)
 
         for _ in range(self.maxIter):
-            R0 = self.getR(self.sigma0, sige1, self.alpha0, self.orientation0)
-            R1 = self.getR(self.sigma1, sige1, self.alpha1, self.orientation1)
+            R0 = self.getR(self.conductivity0, sige1, self.alpha0, self.orientation0)
+            R1 = self.getR(self.conductivity1, sige1, self.alpha1, self.orientation1)
 
             den = phi0 * R0 + phi1 * R1
-            num = phi0 * self.sigma0 * R0 + phi1 * self.sigma1 * R1
+            num = phi0 * self.conductivity0 * R0 + phi1 * self.conductivity1 * R1
 
             if self.random is True:
                 sige2 = num / den
@@ -1428,26 +1432,26 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         return sige2
 
     def _sc2phaseEMTSpheroidsinversetransform(self, sige):
-        R0 = self.getR(self.sigma0, sige, self.alpha0, self.orientation0)
-        R1 = self.getR(self.sigma1, sige, self.alpha1, self.orientation1)
+        R0 = self.getR(self.conductivity0, sige, self.alpha0, self.orientation0)
+        R1 = self.getR(self.conductivity1, sige, self.alpha1, self.orientation1)
 
-        num = -(self.sigma0 - sige) * R0
-        den = (self.sigma1 - sige) * R1 - (self.sigma0 - sige) * R0
+        num = -(self.conductivity0 - sige) * R0
+        den = (self.conductivity1 - sige) * R1 - (self.conductivity0 - sige) * R0
 
         return num / den
 
     def _sc2phaseEMTSpheroidstransformDeriv(self, sige, phi1):
         phi0 = 1.0 - phi1
 
-        R0 = self.getR(self.sigma0, sige, self.alpha0, self.orientation0)
-        R1 = self.getR(self.sigma1, sige, self.alpha1, self.orientation1)
+        R0 = self.getR(self.conductivity0, sige, self.alpha0, self.orientation0)
+        R1 = self.getR(self.conductivity1, sige, self.alpha1, self.orientation1)
 
-        dR0 = self.getdR(self.sigma0, sige, self.alpha0, self.orientation0)
-        dR1 = self.getdR(self.sigma1, sige, self.alpha1, self.orientation1)
+        dR0 = self.getdR(self.conductivity0, sige, self.alpha0, self.orientation0)
+        dR1 = self.getdR(self.conductivity1, sige, self.alpha1, self.orientation1)
 
-        num = (sige - self.sigma0) * R0 - (sige - self.sigma1) * R1
-        den = phi0 * (R0 + (sige - self.sigma0) * dR0) + phi1 * (
-            R1 + (sige - self.sigma1) * dR1
+        num = (sige - self.conductivity0) * R0 - (sige - self.conductivity1) * R1
+        den = phi0 * (R0 + (sige - self.conductivity0) * dR0) + phi1 * (
+            R1 + (sige - self.conductivity1) * dR1
         )
 
         return sdiag(num / den)

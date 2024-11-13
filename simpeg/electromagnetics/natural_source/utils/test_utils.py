@@ -248,7 +248,7 @@ def setupSimpegNSEM_tests_location_assign_list(
     # print(survey_ns.source_list)
     # # Setup the problem object
     sim = Simulation3DPrimarySecondary(
-        mesh, survey=survey_ns, sigmaPrimary=sigBG, sigmaMap=mapping
+        mesh, survey=survey_ns, sigmaPrimary=sigBG, conductivity_map=mapping
     )
 
     # create the test model
@@ -373,7 +373,7 @@ def setupSimpegNSEM_PrimarySecondary(inputSetup, freqs, comp="Imp", singleFreq=F
     # print(survey_ns.source_list)
     # # Setup the problem object
     sim = Simulation3DPrimarySecondary(
-        mesh, survey=survey_ns, sigmaPrimary=sigBG, sigmaMap=mapping
+        mesh, survey=survey_ns, sigmaPrimary=sigBG, conductivity_map=mapping
     )
 
     # create the test model
@@ -463,12 +463,15 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
     # Setup the problem object
     if expMap:
         problem = Simulation3DPrimarySecondary(
-            M, survey=survey, sigmaPrimary=np.log(sigBG), sigmaMap=maps.ExpMap(M)
+            M,
+            survey=survey,
+            sigmaPrimary=np.log(sigBG),
+            conductivity_map=maps.ExpMap(M),
         )
         problem.model = np.log(sig)
     else:
         problem = Simulation3DPrimarySecondary(
-            M, survey=survey, sigmaPrimary=sigBG, sigmaMap=maps.IdentityMap(M)
+            M, survey=survey, sigmaPrimary=sigBG, conductivity_map=maps.IdentityMap(M)
         )
         problem.model = sig
     problem.verbose = False

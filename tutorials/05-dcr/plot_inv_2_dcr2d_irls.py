@@ -263,7 +263,7 @@ starting_conductivity_model = background_conductivity * np.ones(nC)
 
 # Define the problem. Define the cells below topography and the mapping
 simulation = dc.simulation_2d.Simulation2DNodal(
-    mesh, survey=survey, sigmaMap=conductivity_map, storeJ=True
+    mesh, survey=survey, conductivity_map=conductivity_map, storeJ=True
 )
 
 #######################################################################

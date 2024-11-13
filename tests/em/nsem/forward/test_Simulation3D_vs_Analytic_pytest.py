@@ -169,7 +169,7 @@ def test_analytic_halfspace_solution(
     survey = get_survey(locations, frequencies, survey_type, component)
     model_hs = get_model(mesh, "halfspace")  # 1e-2 halfspace
     sim = nsem.simulation.Simulation3DPrimarySecondary(
-        mesh, survey=survey, sigmaPrimary=model_hs, sigmaMap=mapping
+        mesh, survey=survey, sigmaPrimary=model_hs, conductivity_map=mapping
     )
     numeric_solution = sim.dpred(model_hs)
 

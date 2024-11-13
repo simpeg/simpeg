@@ -42,14 +42,14 @@ class DCProblemAnalyticTests(unittest.TestCase):
 
         self.survey = survey
         self.mesh = mesh
-        self.sigma = sigma
+        self.conductivity = sigma
         self.data_ana = data_ana
 
     def test_Simulation3DNodal(self, tolerance=0.05):
         simulation = dc.simulation.Simulation3DNodal(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            sigma=self.conductivity,
             bc_type="Neumann",
         )
         data = simulation.dpred()
@@ -70,7 +70,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
         simulation = dc.simulation.Simulation3DNodal(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            sigma=self.conductivity,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -84,7 +84,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
         simulation = dc.Simulation3DCellCentered(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            sigma=self.conductivity,
             bc_type="Mixed",
         )
         data = simulation.dpred()
@@ -106,7 +106,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
         simulation = dc.simulation.Simulation3DCellCentered(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            sigma=self.conductivity,
             bc_type="Neumann",
         )
         data = simulation.dpred()
@@ -160,14 +160,14 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
 
         self.survey = survey
         self.mesh = mesh
-        self.sigma = sigma
+        self.conductivity = sigma
         self.data_ana = data_ana
 
     def test_Simulation3DCellCentered_Dirichlet(self, tolerance=0.05):
         simulation = dc.simulation.Simulation3DCellCentered(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            sigma=self.conductivity,
             bc_type="Dirichlet",
         )
 
@@ -215,14 +215,14 @@ class DCProblemAnalyticTests_Mixed(unittest.TestCase):
 
         self.survey = survey
         self.mesh = mesh
-        self.sigma = sigma
+        self.conductivity = sigma
         self.data_ana = data_ana
 
     def test_Simulation3DCellCentered_Mixed(self, tolerance=0.05):
         simulation = dc.simulation.Simulation3DCellCentered(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            sigma=self.conductivity,
             bc_type="Mixed",
         )
         data = simulation.dpred()

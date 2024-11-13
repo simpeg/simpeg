@@ -41,23 +41,25 @@ class IPProblemAnalyticTests(unittest.TestCase):
 
         self.surveyDC = surveyDC
         self.mesh = mesh
-        self.sigmaInf = sigmaInf
-        self.sigma0 = sigma0
+        self.conductivityInf = sigmaInf
+        self.conductivity0 = sigma0
         self.src = src
         self.eta = eta
 
     def test_Simulation3DNodal(self):
         simulationdc = dc.simulation.Simulation3DNodal(
-            mesh=self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
+            mesh=self.mesh,
+            survey=self.surveyDC,
+            conductivity_map=maps.IdentityMap(self.mesh),
         )
-        data0 = simulationdc.dpred(self.sigma0)
-        finf = simulationdc.fields(self.sigmaInf)
-        datainf = simulationdc.dpred(self.sigmaInf, f=finf)
+        data0 = simulationdc.dpred(self.conductivity0)
+        finf = simulationdc.fields(self.conductivityInf)
+        datainf = simulationdc.dpred(self.conductivityInf, f=finf)
         surveyip = ip.survey.Survey([self.src])
         simulationip = ip.simulation.Simulation3DNodal(
             mesh=self.mesh,
             survey=surveyip,
-            sigma=self.sigmaInf,
+            sigma=self.conductivityInf,
             etaMap=maps.IdentityMap(self.mesh),
             Ainv=simulationdc.Ainv,
             _f=finf,
@@ -75,16 +77,18 @@ class IPProblemAnalyticTests(unittest.TestCase):
 
     def test_Simulation3DCellCentered(self):
         simulationdc = dc.simulation.Simulation3DCellCentered(
-            mesh=self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
+            mesh=self.mesh,
+            survey=self.surveyDC,
+            conductivity_map=maps.IdentityMap(self.mesh),
         )
-        data0 = simulationdc.dpred(self.sigma0)
-        finf = simulationdc.fields(self.sigmaInf)
-        datainf = simulationdc.dpred(self.sigmaInf, f=finf)
+        data0 = simulationdc.dpred(self.conductivity0)
+        finf = simulationdc.fields(self.conductivityInf)
+        datainf = simulationdc.dpred(self.conductivityInf, f=finf)
         surveyip = ip.survey.Survey([self.src])
         simulationip = ip.simulation.Simulation3DCellCentered(
             mesh=self.mesh,
             survey=surveyip,
-            rho=1.0 / self.sigmaInf,
+            rho=1.0 / self.conductivityInf,
             etaMap=maps.IdentityMap(self.mesh),
             Ainv=simulationdc.Ainv,
             _f=finf,
@@ -139,25 +143,25 @@ class ApparentChargeability3DTest(unittest.TestCase):
         self.survey_dc = survey_dc
         self.survey_ip = survey_ip
         self.mesh = mesh
-        self.sigmaInf = sigmaInf
-        self.sigma0 = sigma0
+        self.conductivityInf = sigmaInf
+        self.conductivity0 = sigma0
         self.src = src
         self.eta = eta
 
     def test_Simulation3DNodal(self):
         simulationdc = dc.simulation.Simulation3DNodal(
             self.mesh,
-            sigmaMap=maps.IdentityMap(self.mesh),
+            conductivity_map=maps.IdentityMap(self.mesh),
             survey=self.survey_dc,
         )
-        data0 = simulationdc.dpred(self.sigma0)
-        datainf = simulationdc.dpred(self.sigmaInf)
+        data0 = simulationdc.dpred(self.conductivity0)
+        datainf = simulationdc.dpred(self.conductivityInf)
         data_full = (data0 - datainf) / datainf
 
         simulationip = ip.simulation.Simulation3DNodal(
             mesh=self.mesh,
             survey=self.survey_ip,
-            sigma=self.sigmaInf,
+            sigma=self.conductivityInf,
             etaMap=maps.IdentityMap(self.mesh),
             Ainv=simulationdc.Ainv,
         )
@@ -166,7 +170,7 @@ class ApparentChargeability3DTest(unittest.TestCase):
         simulationip_stored = ip.simulation.Simulation3DNodal(
             mesh=self.mesh,
             survey=self.survey_ip,
-            sigma=self.sigmaInf,
+            sigma=self.conductivityInf,
             etaMap=maps.IdentityMap(self.mesh),
             Ainv=simulationdc.Ainv,
             storeJ=True,
@@ -190,17 +194,17 @@ class ApparentChargeability3DTest(unittest.TestCase):
     def test_Simulation3DCellCentered(self):
         simulationdc = dc.simulation.Simulation3DCellCentered(
             self.mesh,
-            sigmaMap=maps.IdentityMap(self.mesh),
+            conductivity_map=maps.IdentityMap(self.mesh),
             survey=self.survey_dc,
         )
-        data0 = simulationdc.dpred(self.sigma0)
-        datainf = simulationdc.dpred(self.sigmaInf)
+        data0 = simulationdc.dpred(self.conductivity0)
+        datainf = simulationdc.dpred(self.conductivityInf)
         data_full = (data0 - datainf) / datainf
 
         simulationip = ip.simulation.Simulation3DCellCentered(
             mesh=self.mesh,
             survey=self.survey_ip,
-            sigma=self.sigmaInf,
+            sigma=self.conductivityInf,
             etaMap=maps.IdentityMap(self.mesh),
             Ainv=simulationdc.Ainv,
         )

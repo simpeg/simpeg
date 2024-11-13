@@ -112,7 +112,7 @@ def resolve_1Dinversions(
 
     # construct a forward simulation
     survey = FDEM.Survey(source_list)
-    prb = FDEM.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping)
+    prb = FDEM.Simulation3DMagneticFluxDensity(mesh, conductivity_map=mapping)
     prb.survey = survey
 
     # ------------------- Inversion ------------------- #

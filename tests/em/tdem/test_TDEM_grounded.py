@@ -74,7 +74,7 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
             mesh,
             time_steps=time_steps,
             mu=mu,
-            sigmaMap=maps.ExpMap(mesh),
+            conductivity_map=maps.ExpMap(mesh),
         )
         survey = tdem.Survey([src])
 
@@ -85,18 +85,18 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         self.survey = survey
         self.src = src
 
-        self.sigma = sigma
+        self.conductivity = sigma
         self.mu = mu
 
         print("Testing problem {} \n\n".format(self.prob_type))
 
     def derivtest(self, deriv_fct):
         rng = np.random.default_rng(seed=42)
-        m0 = np.log(self.sigma) + rng.uniform(size=self.mesh.nC)
+        m0 = np.log(self.conductivity) + rng.uniform(size=self.mesh.nC)
         self.prob.model = m0
 
         return tests.check_derivative(
-            deriv_fct, np.log(self.sigma), num=3, plotIt=False, random_seed=521
+            deriv_fct, np.log(self.conductivity), num=3, plotIt=False, random_seed=521
         )
 
     def test_deriv_phi(self):

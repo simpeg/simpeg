@@ -42,25 +42,27 @@ class IPProblemAnalyticTests(unittest.TestCase):
 
         self.surveyDC = surveyDC
         self.mesh = mesh
-        self.sigmaInf = sigmaInf
-        self.sigma0 = sigma0
+        self.conductivityInf = sigmaInf
+        self.conductivity0 = sigma0
         self.source_lists = source_lists
         self.source_lists_ip = source_lists_ip
         self.eta = eta
 
     def test_Simulation2DNodal(self):
         problemDC = dc.Simulation2DNodal(
-            self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
+            self.mesh,
+            survey=self.surveyDC,
+            conductivity_map=maps.IdentityMap(self.mesh),
         )
-        data0 = problemDC.dpred(self.sigma0)
-        datainf = problemDC.dpred(self.sigmaInf)
+        data0 = problemDC.dpred(self.conductivity0)
+        datainf = problemDC.dpred(self.conductivityInf)
 
         surveyIP = ip.Survey(self.source_lists_ip)
 
         problemIP = ip.Simulation2DNodal(
             self.mesh,
             survey=surveyIP,
-            sigma=self.sigmaInf,
+            sigma=self.conductivityInf,
             etaMap=maps.IdentityMap(self.mesh),
         )
 
@@ -80,16 +82,16 @@ class IPProblemAnalyticTests(unittest.TestCase):
         problemDC = dc.Simulation2DCellCentered(
             self.mesh, survey=self.surveyDC, rhoMap=maps.IdentityMap(self.mesh)
         )
-        data0 = problemDC.dpred(1.0 / self.sigma0)
-        finf = problemDC.fields(1.0 / self.sigmaInf)
-        datainf = problemDC.dpred(1.0 / self.sigmaInf, f=finf)
+        data0 = problemDC.dpred(1.0 / self.conductivity0)
+        finf = problemDC.fields(1.0 / self.conductivityInf)
+        datainf = problemDC.dpred(1.0 / self.conductivityInf, f=finf)
 
         surveyIP = ip.Survey(self.source_lists_ip)
 
         problemIP = ip.Simulation2DCellCentered(
             self.mesh,
             survey=surveyIP,
-            rho=1.0 / self.sigmaInf,
+            rho=1.0 / self.conductivityInf,
             etaMap=maps.IdentityMap(self.mesh),
         )
         data_full = data0 - datainf
@@ -148,23 +150,23 @@ class ApparentChargeability2DTest(unittest.TestCase):
         self.survey_dc = survey_dc
         self.survey_ip = survey_ip
         self.mesh = mesh
-        self.sigmaInf = sigmaInf
-        self.sigma0 = sigma0
+        self.conductivityInf = sigmaInf
+        self.conductivity0 = sigma0
         self.eta = eta
 
     def test_Simulation2DNodal(self):
         simDC = dc.Simulation2DNodal(
             self.mesh,
-            sigmaMap=maps.IdentityMap(self.mesh),
+            conductivity_map=maps.IdentityMap(self.mesh),
             survey=self.survey_dc,
         )
-        data0 = simDC.dpred(self.sigma0)
-        datainf = simDC.dpred(self.sigmaInf)
+        data0 = simDC.dpred(self.conductivity0)
+        datainf = simDC.dpred(self.conductivityInf)
         data_full = (data0 - datainf) / datainf
 
         simIP = ip.Simulation2DNodal(
             self.mesh,
-            sigma=self.sigmaInf,
+            sigma=self.conductivityInf,
             etaMap=maps.IdentityMap(self.mesh),
             survey=self.survey_ip,
         )
@@ -172,7 +174,7 @@ class ApparentChargeability2DTest(unittest.TestCase):
 
         simIP_store = ip.Simulation2DNodal(
             self.mesh,
-            sigma=self.sigmaInf,
+            sigma=self.conductivityInf,
             etaMap=maps.IdentityMap(self.mesh),
             survey=self.survey_ip,
             storeJ=True,
@@ -196,16 +198,16 @@ class ApparentChargeability2DTest(unittest.TestCase):
     def test_Simulation2DCellCentered(self):
         simDC = dc.Simulation2DCellCentered(
             self.mesh,
-            sigmaMap=maps.IdentityMap(self.mesh),
+            conductivity_map=maps.IdentityMap(self.mesh),
             survey=self.survey_dc,
         )
-        data0 = simDC.dpred(self.sigma0)
-        datainf = simDC.dpred(self.sigmaInf)
+        data0 = simDC.dpred(self.conductivity0)
+        datainf = simDC.dpred(self.conductivityInf)
         data_full = (data0 - datainf) / datainf
 
         simIP = ip.Simulation2DCellCentered(
             self.mesh,
-            sigma=self.sigmaInf,
+            sigma=self.conductivityInf,
             etaMap=maps.IdentityMap(self.mesh),
             survey=self.survey_ip,
         )

@@ -58,7 +58,7 @@ class EM1D_TD_CircularLoop_FwdProblemTests(unittest.TestCase):
         self.topo = topo
         self.survey = survey
         self.showIt = False
-        self.sigma = sigma
+        self.conductivity = sigma
         self.times = times
         self.thicknesses = thicknesses
         self.nlayers = len(thicknesses) + 1
@@ -70,11 +70,11 @@ class EM1D_TD_CircularLoop_FwdProblemTests(unittest.TestCase):
         sim = tdem.Simulation1DLayered(
             survey=self.survey,
             thicknesses=self.thicknesses,
-            sigmaMap=sigma_map,
+            conductivity_map=sigma_map,
             topo=self.topo,
         )
 
-        m_1D = np.log(np.ones(self.nlayers) * self.sigma)
+        m_1D = np.log(np.ones(self.nlayers) * self.conductivity)
         d = sim.dpred(m_1D)
         bz = d[0 : len(self.times)]
         dbdt = d[len(self.times) :]
@@ -83,7 +83,7 @@ class EM1D_TD_CircularLoop_FwdProblemTests(unittest.TestCase):
             b_loop,
             self.waveform,
             self.times,
-            fkwargs={"sigma": self.sigma, "radius": self.a},
+            fkwargs={"sigma": self.conductivity, "radius": self.a},
         )
 
         np.testing.assert_allclose(bz, bz_analytic, atol=0.0, rtol=1e-5)
@@ -92,7 +92,7 @@ class EM1D_TD_CircularLoop_FwdProblemTests(unittest.TestCase):
             dbdt_loop,
             self.waveform,
             self.times,
-            fkwargs={"sigma": self.sigma, "radius": self.a},
+            fkwargs={"sigma": self.conductivity, "radius": self.a},
         )
 
         np.testing.assert_allclose(dbdt, dbdt_analytic, atol=0.0, rtol=1e-2)
@@ -219,7 +219,7 @@ class EM1D_TD_LineCurrent_FwdProblemTests(unittest.TestCase):
         simulation = tdem.Simulation1DLayered(
             survey=survey,
             thicknesses=thicknesses,
-            sigmaMap=model_mapping,
+            conductivity_map=model_mapping,
         )
 
         self.bzdt = simulation.dpred(model)

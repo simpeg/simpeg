@@ -213,7 +213,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Set FDEM survey (In-phase and Quadrature)
     survey = FDEM.Survey(source_list)
-    prb = FDEM.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping)
+    prb = FDEM.Simulation3DMagneticFluxDensity(mesh, conductivity_map=mapping)
     prb.survey = survey
 
     # ------------------ RESOLVE Inversion ------------------ #
@@ -316,7 +316,9 @@ def run(plotIt=True, saveFig=False, cleanup=True):
         (1e-4, 10),
         (5e-4, 15),
     ]
-    prob = TDEM.Simulation3DElectricField(mesh, time_steps=timeSteps, sigmaMap=mapping)
+    prob = TDEM.Simulation3DElectricField(
+        mesh, time_steps=timeSteps, conductivity_map=mapping
+    )
     survey = TDEM.Survey(source_list)
     prob.survey = survey
 

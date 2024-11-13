@@ -537,9 +537,9 @@ class Simulation3DNodal(BaseDCSimulation):
             # Dirichlet BC type should already have failed
             # Also, this will fail if sigma is anisotropic
             try:
-                A = A + sp.diags(self._AvgBC @ self.sigma, format="csr")
+                A = A + sp.diags(self._AvgBC @ self.conductivity, format="csr")
             except ValueError as err:
-                if len(self.sigma) != len(self.mesh):
+                if len(self.conductivity) != len(self.mesh):
                     raise NotImplementedError(
                         "Anisotropic conductivity is not supported for Robin boundary "
                         "conditions, please use 'Neumann'."

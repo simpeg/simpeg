@@ -27,7 +27,7 @@ def test_multi_sim_correctness():
     ]
     survey_full = dc.Survey(src_list)
     full_sim = dc.Simulation3DNodal(
-        mesh, survey=survey_full, sigmaMap=maps.IdentityMap()
+        mesh, survey=survey_full, conductivity_map=maps.IdentityMap()
     )
 
     m_test = np.arange(mesh.n_cells) / mesh.n_cells + 0.1
@@ -42,7 +42,9 @@ def test_multi_sim_correctness():
             break
         survey_chunk = dc.Survey(src_list[i:end])
         sims.append(
-            dc.Simulation3DNodal(mesh, survey=survey_chunk, sigmaMap=maps.IdentityMap())
+            dc.Simulation3DNodal(
+                mesh, survey=survey_chunk, conductivity_map=maps.IdentityMap()
+            )
         )
         mappings.append(maps.IdentityMap())
 
@@ -278,7 +280,7 @@ def test_multi_errors():
         survey_chunk = dc.Survey(src_list[i:end])
         sims.append(
             dc.Simulation3DNodal(
-                mesh, survey=survey_chunk, sigmaMap=maps.IdentityMap(mesh)
+                mesh, survey=survey_chunk, conductivity_map=maps.IdentityMap(mesh)
             )
         )
         mappings.append(maps.IdentityMap(mesh))
@@ -349,7 +351,9 @@ def test_repeat_errors():
         for loc in source_locs
     ]
     survey = dc.Survey(src_list)
-    sim = dc.Simulation3DNodal(mesh, survey=survey, sigmaMap=maps.IdentityMap(mesh))
+    sim = dc.Simulation3DNodal(
+        mesh, survey=survey, conductivity_map=maps.IdentityMap(mesh)
+    )
 
     # split by chunks of sources
     mappings = []
@@ -396,7 +400,9 @@ def test_cache_clear_on_model_clear():
             break
         survey_chunk = dc.Survey(src_list[i:end])
         sims.append(
-            dc.Simulation3DNodal(mesh, survey=survey_chunk, sigmaMap=maps.IdentityMap())
+            dc.Simulation3DNodal(
+                mesh, survey=survey_chunk, conductivity_map=maps.IdentityMap()
+            )
         )
         mappings.append(maps.IdentityMap())
 

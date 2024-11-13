@@ -120,7 +120,7 @@ ax.set_xlabel(r"Resistivity ($\Omega m$)")
 #
 # Here we predict DC resistivity data. If the keyword argument *rhoMap* is
 # defined, the simulation will expect a resistivity model. If the keyword
-# argument *sigmaMap* is defined, the simulation will expect a conductivity model.
+# argument *conductivity_map* is defined, the simulation will expect a conductivity model.
 #
 
 simulation = dc.simulation_1d.Simulation1DLayers(

@@ -193,7 +193,7 @@ ax.legend(
 
 # Simulate response for static conductivity
 simulation_conductive = tdem.Simulation1DLayered(
-    survey=survey, thicknesses=thicknesses, sigmaMap=model_mapping
+    survey=survey, thicknesses=thicknesses, conductivity_map=model_mapping
 )
 
 dpred_conductive = simulation_conductive.dpred(sigma_model)
@@ -202,7 +202,7 @@ dpred_conductive = simulation_conductive.dpred(sigma_model)
 simulation_chargeable = tdem.Simulation1DLayered(
     survey=survey,
     thicknesses=thicknesses,
-    sigmaMap=model_mapping,
+    conductivity_map=model_mapping,
     eta=eta,
     tau=tau,
     c=c,
@@ -216,7 +216,7 @@ mu = mu0 * (1 + chi)
 simulation_vrm = tdem.Simulation1DLayered(
     survey=survey,
     thicknesses=thicknesses,
-    sigmaMap=model_mapping,
+    conductivity_map=model_mapping,
     mu=mu,
     dchi=dchi,
     tau1=tau1,

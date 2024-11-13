@@ -67,7 +67,7 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
             ("thicknesses", self.nlayers - 1),
             ("h", 1),
         )
-        self.sigma_map = maps.ExpMap(nP=self.nlayers) * wire_map.sigma
+        self.conductivity_map = maps.ExpMap(nP=self.nlayers) * wire_map.conductivity
         self.mu_map = maps.ExpMap(nP=self.nlayers) * wire_map.mu
         self.thicknesses_map = maps.ExpMap(nP=self.nlayers - 1) * wire_map.thicknesses
         nP = len(source_list)
@@ -76,7 +76,7 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
 
         sim = fdem.Simulation1DLayered(
             survey=self.survey,
-            sigmaMap=self.sigma_map,
+            conductivity_map=self.conductivity_map,
             muMap=self.mu_map,
             thicknessesMap=self.thicknesses_map,
             hMap=self.h_map,
@@ -231,7 +231,7 @@ class EM1D_FD_Jacobian_Test_CircularLoop(unittest.TestCase):
             ("thicknesses", self.nlayers - 1),
             ("h", 1),
         )
-        self.sigma_map = maps.ExpMap(nP=self.nlayers) * wire_map.sigma
+        self.conductivity_map = maps.ExpMap(nP=self.nlayers) * wire_map.conductivity
         self.mu_map = maps.ExpMap(nP=self.nlayers) * wire_map.mu
         self.thicknesses_map = maps.ExpMap(nP=self.nlayers - 1) * wire_map.thicknesses
         surject_mesh = TensorMesh([np.ones(nP)])
@@ -239,7 +239,7 @@ class EM1D_FD_Jacobian_Test_CircularLoop(unittest.TestCase):
 
         sim = fdem.Simulation1DLayered(
             survey=self.survey,
-            sigmaMap=self.sigma_map,
+            conductivity_map=self.conductivity_map,
             muMap=self.mu_map,
             thicknessesMap=self.thicknesses_map,
             hMap=self.h_map,
@@ -380,13 +380,13 @@ class EM1D_FD_Jacobian_Test_LineCurrent(unittest.TestCase):
             ("mu", self.nlayers),
             ("thicknesses", self.nlayers - 1),
         )
-        self.sigma_map = maps.ExpMap(nP=self.nlayers) * wire_map.sigma
+        self.conductivity_map = maps.ExpMap(nP=self.nlayers) * wire_map.conductivity
         self.mu_map = maps.ExpMap(nP=self.nlayers) * wire_map.mu
         self.thicknesses_map = maps.ExpMap(nP=self.nlayers - 1) * wire_map.thicknesses
 
         sim = fdem.Simulation1DLayered(
             survey=survey,
-            sigmaMap=self.sigma_map,
+            conductivity_map=self.conductivity_map,
             muMap=self.mu_map,
             thicknessesMap=self.thicknesses_map,
         )

@@ -39,7 +39,7 @@ class DCProblemAnalyticTests_DPDP(unittest.TestCase):
 
         self.survey = survey
         self.mesh = mesh
-        self.sigma = sigma
+        self.conductivity = sigma
         self.data_ana = data_ana
         self.plotIt = False
 
@@ -47,7 +47,7 @@ class DCProblemAnalyticTests_DPDP(unittest.TestCase):
         simulation = dc.simulation_2d.Simulation2DNodal(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            sigma=self.conductivity,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -62,7 +62,7 @@ class DCProblemAnalyticTests_DPDP(unittest.TestCase):
         simulation = dc.simulation_2d.Simulation2DCellCentered(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            sigma=self.conductivity,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -101,7 +101,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
 
         self.survey = survey
         self.mesh = mesh
-        self.sigma = sigma
+        self.conductivity = sigma
         self.data_ana = data_ana
         self.plotIt = False
 
@@ -109,7 +109,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         simulation = dc.simulation_2d.Simulation2DNodal(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            sigma=self.conductivity,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -124,7 +124,7 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         simulation = dc.simulation_2d.Simulation2DCellCentered(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            sigma=self.conductivity,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -165,7 +165,7 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
 
         self.survey = survey
         self.mesh = mesh
-        self.sigma = sigma
+        self.conductivity = sigma
         self.data_ana = data_ana
         self.plotIt = False
 
@@ -173,7 +173,7 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         simulation = dc.simulation_2d.Simulation2DNodal(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            sigma=self.conductivity,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -188,7 +188,7 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         simulation = dc.simulation_2d.Simulation2DCellCentered(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            sigma=self.conductivity,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -229,14 +229,14 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
 
         self.survey = survey
         self.mesh = mesh
-        self.sigma = sigma
+        self.conductivity = sigma
         self.data_ana = data_ana
 
     def test_Simulation2DCellCentered(self, tolerance=0.05):
         simulation = dc.simulation_2d.Simulation2DCellCentered(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            sigma=self.conductivity,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -251,7 +251,7 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
         simulation = dc.simulation_2d.Simulation2DNodal(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            sigma=self.conductivity,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -305,7 +305,7 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
         self.data_ana = data_ana
         self.survey = survey
         self.mesh = mesh
-        self.sigma = sigma
+        self.conductivity = sigma
         self.plotIt = False
         self.ROI_inds = ROI_inds
 
@@ -313,7 +313,7 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
         simulation = dc.simulation_2d.Simulation2DCellCentered(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            sigma=self.conductivity,
         )
         field = simulation.fields()
 
@@ -329,7 +329,7 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
         simulation = dc.simulation_2d.Simulation2DCellCentered(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            sigma=self.conductivity,
             bc_type="Dirichlet",
         )
         field = simulation.fields()
@@ -346,7 +346,7 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
         simulation = dc.simulation_2d.Simulation2DNodal(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            sigma=self.conductivity,
         )
         field = simulation.fields()
         data = field[:, "phi"][:, 0]
@@ -387,15 +387,15 @@ class DCSimulationAppResTests(unittest.TestCase):
 
         self.survey = survey
         self.mesh = mesh
-        self.sigma = sigma
-        self.sigma_half = sighalf
+        self.conductivity = sigma
+        self.conductivity_half = sighalf
         self.plotIt = False
 
     def test_Simulation2DNodal(self, tolerance=0.05):
         simulation = dc.simulation_2d.Simulation2DNodal(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            sigma=self.conductivity,
             bc_type="Robin",
         )
         with self.assertRaises(KeyError):
@@ -404,7 +404,7 @@ class DCSimulationAppResTests(unittest.TestCase):
         self.survey.set_geometric_factor()
         data = simulation.dpred()
 
-        rhohalf = 1.0 / self.sigma_half
+        rhohalf = 1.0 / self.conductivity_half
         err = np.sqrt(np.linalg.norm((data - rhohalf) / rhohalf) ** 2 / data.size)
         print(f"DPDP N err: {err}")
         self.assertLess(err, tolerance)
@@ -413,7 +413,7 @@ class DCSimulationAppResTests(unittest.TestCase):
         simulation = dc.simulation_2d.Simulation2DCellCentered(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            sigma=self.conductivity,
             bc_type="Robin",
         )
         with self.assertRaises(KeyError):
@@ -422,7 +422,7 @@ class DCSimulationAppResTests(unittest.TestCase):
         self.survey.set_geometric_factor()
         data = simulation.dpred()
 
-        rhohalf = 1.0 / self.sigma_half
+        rhohalf = 1.0 / self.conductivity_half
         err = np.sqrt(np.linalg.norm((data - rhohalf) / rhohalf) ** 2 / data.size)
         print(f"DPDP N err: {err}")
         self.assertLess(err, tolerance)

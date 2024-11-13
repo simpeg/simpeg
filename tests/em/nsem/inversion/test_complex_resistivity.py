@@ -54,7 +54,7 @@ class ComplexResistivityTest(unittest.TestCase):
         m = np.log(m[active])
 
         self.mesh = mesh
-        self.sigma_background = sigma_background
+        self.conductivity_background = sigma_background
         self.model = m
         self.active = active
 
@@ -87,8 +87,8 @@ class ComplexResistivityTest(unittest.TestCase):
         sim = ns.simulation.Simulation3DPrimarySecondary(
             self.mesh,
             survey=survey_ns,
-            sigmaPrimary=self.sigma_background,
-            sigmaMap=mapping,
+            sigmaPrimary=self.conductivity_background,
+            conductivity_map=mapping,
         )
         return sim
 
@@ -128,8 +128,8 @@ class ComplexResistivityTest(unittest.TestCase):
         sim = ns.simulation.Simulation3DPrimarySecondary(
             self.mesh,
             survey=survey_ns,
-            sigmaPrimary=self.sigma_background,
-            sigmaMap=mapping,
+            sigmaPrimary=self.conductivity_background,
+            conductivity_map=mapping,
         )
         return sim
 
@@ -156,7 +156,7 @@ class ComplexResistivityTest(unittest.TestCase):
         ]
         mesh1d = discretize.TensorMesh(hs, x0=x0)
         sigma1d = np.exp(
-            volume_average(self.mesh, mesh1d, np.log(self.sigma_background))
+            volume_average(self.mesh, mesh1d, np.log(self.conductivity_background))
         )
 
         # Source list
@@ -179,7 +179,7 @@ class ComplexResistivityTest(unittest.TestCase):
         sim = ns.simulation.Simulation3DPrimarySecondary(
             self.mesh,
             survey=survey_ns,
-            sigmaMap=mapping,
+            conductivity_map=mapping,
         )
         return sim
 
@@ -200,7 +200,9 @@ class ComplexResistivityTest(unittest.TestCase):
         # Source list
         freqs = [10, 50, 200]
         srcList = [
-            ns.Src.PlanewaveXYPrimary(rxList, freq, sigma_primary=self.sigma_background)
+            ns.Src.PlanewaveXYPrimary(
+                rxList, freq, sigma_primary=self.conductivity_background
+            )
             for freq in freqs
         ]
 
@@ -217,7 +219,7 @@ class ComplexResistivityTest(unittest.TestCase):
         sim = ns.simulation.Simulation3DPrimarySecondary(
             self.mesh,
             survey=survey_ns,
-            sigmaMap=mapping,
+            conductivity_map=mapping,
         )
         return sim
 

@@ -230,7 +230,7 @@ class BaseEM1DSimulation(BaseEMSimulation):
         n_frequency = len(frequencies)
         # n_filter = self.n_filter
 
-        sigma = np.tile(self.sigma.reshape([-1, 1]), (1, n_frequency))
+        sigma = np.tile(self.conductivity.reshape([-1, 1]), (1, n_frequency))
 
         # No IP effect
         if np.all(self.eta) == 0.0:
@@ -276,7 +276,7 @@ class BaseEM1DSimulation(BaseEMSimulation):
         """
 
         if np.isscalar(self.mu):
-            mu = np.ones_like(self.sigma) * self.mu
+            mu = np.ones_like(self.conductivity) * self.mu
         else:
             mu = self.mu
 

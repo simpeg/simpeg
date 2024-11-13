@@ -43,7 +43,7 @@ def JvecAdjointTest_1D(sigmaHalf, formulation="PrimSec"):
 
     simulation = nsem.simulation_1d.Simulation1DRecursive(
         survey=survey,
-        sigmaMap=mapping.sigma,
+        conductivity_map=mapping.conductivity,
         thicknessesMap=mapping.thicknesses,
     )
 
@@ -71,7 +71,10 @@ def JvecAdjointTest(sigmaHalf, formulation="PrimSec"):
 
     if "PrimSec" in formulation:
         problem = nsem.Simulation1DPrimarySecondary(
-            m1d, survey=survey, sigmaPrimary=sigBG, sigmaMap=maps.IdentityMap(m1d)
+            m1d,
+            survey=survey,
+            sigmaPrimary=sigBG,
+            conductivity_map=maps.IdentityMap(m1d),
         )
     else:
         raise NotImplementedError(

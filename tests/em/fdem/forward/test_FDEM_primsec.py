@@ -134,7 +134,7 @@ class PrimSecFDEMTest(object):
         f = self.fields_primsec
         rng = np.random.default_rng(seed=2016)
         v = rng.uniform(size=self.secondarySurvey.nD)
-        w = rng.uniform(size=self.secondarySimulation.sigmaMap.nP)
+        w = rng.uniform(size=self.secondarySimulation.conductivityMap.nP)
 
         vJw = v.dot(self.secondarySimulation.Jvec(m, w, f))
         wJtv = w.dot(self.secondarySimulation.Jtvec(m, v, f))
@@ -165,7 +165,7 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
 
         # primary
         self.primarySimulation = fdem.Simulation3DMagneticFluxDensity(
-            meshp, sigmaMap=primaryMapping
+            meshp, conductivity_map=primaryMapping
         )
         primarySrc = fdem.Src.MagDipole(self.rxlist, frequency=freq, location=src_loc)
         self.primarySurvey = fdem.Survey([primarySrc])
@@ -180,14 +180,14 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
         self.secondarySurvey = fdem.Survey([self.secondarySrc])
         # Secondary Problem
         self.secondarySimulation = fdem.Simulation3DMagneticFluxDensity(
-            meshs, survey=self.secondarySurvey, sigmaMap=mapping
+            meshs, survey=self.secondarySurvey, conductivity_map=mapping
         )
 
         # Full 3D problem to compare with
         self.survey3D = fdem.Survey([primarySrc])
 
         self.simulation3D = fdem.Simulation3DMagneticFluxDensity(
-            meshs, survey=self.survey3D, sigmaMap=mapping
+            meshs, survey=self.survey3D, conductivity_map=mapping
         )
 
         # solve and store fields
@@ -229,7 +229,7 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
 
         # primary
         self.primarySimulation = fdem.Simulation3DCurrentDensity(
-            meshp, sigmaMap=primaryMapping
+            meshp, conductivity_map=primaryMapping
         )
         s_e = np.zeros(meshp.nF)
         inds = meshp.nFx + meshp.closest_points_index(src_loc, grid_loc="Fz")
@@ -252,7 +252,7 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         self.secondarySimulation = fdem.Simulation3DElectricField(
             meshs,
             survey=self.secondarySurvey,
-            sigmaMap=mapping,
+            conductivity_map=mapping,
         )
 
         # Full 3D problem to compare with
@@ -267,7 +267,7 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         self.survey3D = fdem.Survey([src3D])
 
         self.simulation3D = fdem.Simulation3DElectricField(
-            meshs, survey=self.survey3D, sigmaMap=mapping
+            meshs, survey=self.survey3D, conductivity_map=mapping
         )
         self.simulation3D.model = model
 

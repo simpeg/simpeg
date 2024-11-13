@@ -270,7 +270,7 @@ class RegularizationTests(unittest.TestCase):
         wires = maps.Wires(("sigma", mesh.nC), ("mu", mesh.nC))
 
         for regType in ["WeightedLeastSquares", "Sparse"]:
-            reg1 = getattr(regularization, regType)(mesh, mapping=wires.sigma)
+            reg1 = getattr(regularization, regType)(mesh, mapping=wires.conductivity)
             reg2 = getattr(regularization, regType)(mesh, mapping=wires.mu)
 
             reg3 = reg1 + reg2
@@ -306,12 +306,12 @@ class RegularizationTests(unittest.TestCase):
 
         wires = maps.Wires(("sigma", mesh.nC), ("mu", mesh.nC))
 
-        reg = regularization.Smallness(mesh, mapping=wires.sigma)
+        reg = regularization.Smallness(mesh, mapping=wires.conductivity)
         reg.set_weights(cell_weights=cell_weights)
 
         objfct = objective_function.L2ObjectiveFunction(
             W=utils.sdiag(np.sqrt(cell_weights * mesh.cell_volumes)),
-            mapping=wires.sigma,
+            mapping=wires.conductivity,
         )
 
         self.assertTrue(reg(m) == objfct(m))

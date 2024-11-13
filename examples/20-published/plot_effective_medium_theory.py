@@ -59,7 +59,7 @@ scemt = maps.SelfConsistentEffectiveMedium(sigma0=sigma_fluid, sigma1=1)
 sige = np.zeros([phi.size, sigma1.size])
 
 for i, s in enumerate(sigma1):
-    scemt.sigma1 = s
+    scemt.conductivity1 = s
     sige[:, i] = scemt * phi
 
 ###############################################################################

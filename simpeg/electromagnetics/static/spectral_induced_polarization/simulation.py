@@ -128,11 +128,11 @@ class BaseSIPSimulation(BaseIPSimulation):
         return self.mesh.n_nodes
 
     @property
-    def sigmaDeriv(self):
+    def _con_deriv(self):
         if self.storeJ:
-            dsigma_dlogsigma = sdiag(self.sigma) * self._P
+            dsigma_dlogsigma = sdiag(self.conductivity) * self._P
         else:
-            dsigma_dlogsigma = sdiag(self.sigma)
+            dsigma_dlogsigma = sdiag(self.conductivity)
         return -dsigma_dlogsigma
 
     @property

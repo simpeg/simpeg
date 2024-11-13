@@ -103,7 +103,7 @@ class EM1D_FD_test_failures(unittest.TestCase):
             survey = fdem.Survey(source_list)
 
             sim = fdem.Simulation1DLayered(
-                survey=survey, thicknesses=self.thicknesses, sigmaMap=sigma_map
+                survey=survey, thicknesses=self.thicknesses, conductivity_map=sigma_map
             )
 
             self.assertRaises(error_type[ii], sim.dpred, m_1D)
@@ -177,7 +177,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
 
         self.topo = topo
         self.survey = survey
-        self.sigma = sigma
+        self.conductivity = sigma
         self.tau = tau
         self.eta = eta
         self.c = c
@@ -202,17 +202,17 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
     def test_EM1DFDfwd_VMD_Halfspace(self):
         sigma_map = maps.ExpMap(nP=1)
         sim = fdem.Simulation1DLayered(
-            survey=self.survey, sigmaMap=sigma_map, topo=self.topo
+            survey=self.survey, conductivity_map=sigma_map, topo=self.topo
         )
 
-        m_1D = np.array([np.log(self.sigma)])
+        m_1D = np.array([np.log(self.conductivity)])
         H = sim.dpred(m_1D)
 
         dip = MagneticDipoleHalfSpace(
             location=np.r_[0.0, 0.0, 0.0],
             orientation="z",
             frequency=self.frequencies,
-            sigma=np.asarray(self.sigma),
+            sigma=np.asarray(self.conductivity),
             quasistatic=True,
         )
         H_analytic = np.squeeze(dip.magnetic_field(np.array([[self.offset, 0.0]])))
@@ -228,18 +228,18 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         sim = fdem.Simulation1DLayered(
             survey=self.survey,
             thicknesses=self.thicknesses,
-            sigmaMap=sigma_map,
+            conductivity_map=sigma_map,
             topo=self.topo,
         )
 
-        m_1D = np.log(np.ones(self.nlayers) * self.sigma)
+        m_1D = np.log(np.ones(self.nlayers) * self.conductivity)
         H = sim.dpred(m_1D)
 
         dip = MagneticDipoleHalfSpace(
             location=np.r_[0.0, 0.0, 0.0],
             orientation="z",
             frequency=self.frequencies,
-            sigma=np.asarray(self.sigma),
+            sigma=np.asarray(self.conductivity),
             quasistatic=True,
         )
         H_analytic = np.squeeze(dip.magnetic_field(np.array([[self.offset, 0.0]])))
@@ -261,14 +261,14 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
             survey=self.survey,
             thicknesses=self.thicknesses,
             topo=self.topo,
-            sigmaMap=sigma_map,
+            conductivity_map=sigma_map,
             eta=eta,
             tau=tau,
             c=c,
             mu=mu,
         )
 
-        m_1D = self.sigma * np.ones(self.nlayers)
+        m_1D = self.conductivity * np.ones(self.nlayers)
         H = sim.dpred(m_1D)
 
         sigmas = sim.compute_complex_sigma(self.frequencies)[0, :]
@@ -324,18 +324,18 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         sim = fdem.Simulation1DLayered(
             survey=survey,
             thicknesses=self.thicknesses,
-            sigmaMap=sigma_map,
+            conductivity_map=sigma_map,
             topo=self.topo,
         )
 
-        m_1D = np.log(np.ones(self.nlayers) * self.sigma)
+        m_1D = np.log(np.ones(self.nlayers) * self.conductivity)
         Hz = sim.dpred(m_1D)
 
         dip = MagneticDipoleHalfSpace(
             location=np.r_[0.0, 0.0, 0.0],
             orientation="x",
             frequency=self.frequencies,
-            sigma=np.asarray(self.sigma),
+            sigma=np.asarray(self.conductivity),
             quasistatic=True,
         )
         H_analytic = np.squeeze(dip.magnetic_field(np.array([[self.offset, 0.0]])))[
@@ -377,14 +377,14 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         sim = fdem.Simulation1DLayered(
             survey=survey,
             thicknesses=self.thicknesses,
-            sigmaMap=sigma_map,
+            conductivity_map=sigma_map,
             topo=self.topo,
         )
 
-        m_1D = np.log(np.ones(self.nlayers) * self.sigma)
+        m_1D = np.log(np.ones(self.nlayers) * self.conductivity)
         Hz = sim.dpred(m_1D)
 
-        hz = mag_field(self.frequencies, sigma=self.sigma, radius=5.0)
+        hz = mag_field(self.frequencies, sigma=self.conductivity, radius=5.0)
         H_analytic = np.c_[hz.real, hz.imag].reshape(-1)
 
         err = np.linalg.norm(Hz - H_analytic) / np.linalg.norm(H_analytic)
@@ -427,14 +427,14 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
             survey=survey,
             thicknesses=self.thicknesses,
             topo=self.topo,
-            sigmaMap=sigma_map,
+            conductivity_map=sigma_map,
             eta=eta,
             tau=tau,
             c=c,
             mu=mu,
         )
 
-        m_1D = self.sigma * np.ones(self.nlayers)
+        m_1D = self.conductivity * np.ones(self.nlayers)
         Hz = sim.dpred(m_1D)
 
         sigma_colecole = sim.compute_complex_sigma(self.frequencies)[0, :]
@@ -480,16 +480,16 @@ class EM1D_FD_LineCurrentTest(unittest.TestCase):
 
         self.frequencies = frequencies
         self.survey = survey
-        self.sigma = sigma
+        self.conductivity = sigma
         self.thicknesses = thicknesses
 
     def test_with_empymod(self):
         sim = fdem.Simulation1DLayered(
             survey=self.survey,
-            sigmaMap=maps.IdentityMap(nP=3),
+            conductivity_map=maps.IdentityMap(nP=3),
             thicknesses=self.thicknesses,
         )
-        H = sim.dpred(self.sigma)
+        H = sim.dpred(self.conductivity)
 
         def solution(res):
             EM_left = empymod.model.bipole(
@@ -539,7 +539,7 @@ class EM1D_FD_LineCurrentTest(unittest.TestCase):
             EM = EM_left + EM_right + EM_top
             return EM
 
-        res = np.r_[2e14, 1.0 / sim.sigma]
+        res = np.r_[2e14, 1.0 / sim.conductivity]
         resBG = np.ones(4) * 2e14
         EM = solution(res) - solution(resBG)
         H_analytic = np.c_[EM.real, EM.imag].reshape(-1)

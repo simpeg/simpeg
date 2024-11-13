@@ -57,7 +57,7 @@ def test_meta_correctness(cluster):
             survey_chunk = dc.Survey(src_list[i:end])
             sims.append(
                 dc.Simulation3DNodal(
-                    mesh, survey=survey_chunk, sigmaMap=maps.IdentityMap()
+                    mesh, survey=survey_chunk, conductivity_map=maps.IdentityMap()
                 )
             )
             mappings.append(maps.IdentityMap())
@@ -282,7 +282,7 @@ def test_dask_meta_errors(cluster):
             survey_chunk = dc.Survey(src_list[i:end])
             sims.append(
                 dc.Simulation3DNodal(
-                    mesh, survey=survey_chunk, sigmaMap=maps.IdentityMap(mesh)
+                    mesh, survey=survey_chunk, conductivity_map=maps.IdentityMap(mesh)
                 )
             )
             mappings.append(maps.IdentityMap(mesh))
@@ -377,7 +377,9 @@ def test_repeat_errors(cluster):
             for loc in source_locs
         ]
         survey = dc.Survey(src_list)
-        sim = dc.Simulation3DNodal(mesh, survey=survey, sigmaMap=maps.IdentityMap(mesh))
+        sim = dc.Simulation3DNodal(
+            mesh, survey=survey, conductivity_map=maps.IdentityMap(mesh)
+        )
 
         # split by chunks of sources
         mappings = []

@@ -143,7 +143,7 @@ class EM1D_TD_MagDipole_Tests(unittest.TestCase):
         self.times = times
         self.waveform = waveform
         self.orientations = orientations
-        self.sigma = sigma
+        self.conductivity = sigma
         self.tau = tau
         self.eta = eta
         self.c = c
@@ -175,17 +175,17 @@ class EM1D_TD_MagDipole_Tests(unittest.TestCase):
             sim = tdem.Simulation1DLayered(
                 survey=survey,
                 thicknesses=self.thicknesses,
-                sigmaMap=sigma_map,
+                conductivity_map=sigma_map,
                 topo=self.topo,
             )
 
-            m_1D = np.log(np.ones(self.nlayers) * self.sigma)
+            m_1D = np.log(np.ones(self.nlayers) * self.conductivity)
             d_numeric = sim.dpred(m_1D).reshape(3, -1).T
 
             if tx_orientation == "z":
-                d_analytic = b_dipole(self.times, self.rx_location, sigma=self.sigma)[
-                    :, 0, :
-                ]
+                d_analytic = b_dipole(
+                    self.times, self.rx_location, sigma=self.conductivity
+                )[:, 0, :]
                 np.testing.assert_allclose(d_numeric, d_analytic, rtol=1e-3)
                 print(
                     (
@@ -225,16 +225,16 @@ class EM1D_TD_MagDipole_Tests(unittest.TestCase):
             sim = tdem.Simulation1DLayered(
                 survey=survey,
                 thicknesses=self.thicknesses,
-                sigmaMap=sigma_map,
+                conductivity_map=sigma_map,
                 topo=self.topo,
             )
 
-            m_1D = np.log(np.ones(self.nlayers) * self.sigma)
+            m_1D = np.log(np.ones(self.nlayers) * self.conductivity)
             d_numeric = sim.dpred(m_1D).reshape(3, -1).T
 
             if tx_orientation == "z":
                 d_analytic = dbdt_dipole(
-                    self.times, self.rx_location, sigma=self.sigma
+                    self.times, self.rx_location, sigma=self.conductivity
                 )[:, 0, :]
                 np.testing.assert_allclose(d_numeric, d_analytic, rtol=1e-2)
                 print(
@@ -286,7 +286,7 @@ class EM1D_TD_Loop_Center_Tests(unittest.TestCase):
         self.times = times
         self.waveform = waveform
         self.radius = radius
-        self.sigma = sigma
+        self.conductivity = sigma
         self.tau = tau
         self.eta = eta
         self.c = c
@@ -305,22 +305,22 @@ class EM1D_TD_Loop_Center_Tests(unittest.TestCase):
     #     wire_map = maps.Wires(
     #         ("sigma", self.nlayers), ("mu", self.nlayers)
     #     )
-    #     sigma_map = maps.ExpMap(nP=self.nlayers) * wire_map.sigma
+    #     sigma_map = maps.ExpMap(nP=self.nlayers) * wire_map.conductivity
     #     mu_map = maps.IdentityMap(nP=self.nlayers) * wire_map.mu
 
     #     sim = tdem.Simulation1DLayered(
     #         survey=survey, thicknesses=self.thicknesses, topo=self.topo,
-    #         sigmaMap=sigma_map, muMap=mu_map
+    #         conductivity_map=sigma_map, muMap=mu_map
     #     )
 
     #     mu = mu_0 * (1 + self.chi)
     #     m_1D = np.r_[
-    #         np.log(self.sigma) * np.ones(self.nlayers),
+    #         np.log(self.conductivity) * np.ones(self.nlayers),
     #         mu * np.ones(self.nlayers)
     #     ]
 
     #     d_numeric = sim.dpred(m_1D)
-    #     d_analytic = (mu_0 / mu) * dbdt_loop(self.times, radius=self.radius, sigma=self.sigma, mu=mu)
+    #     d_analytic = (mu_0 / mu) * dbdt_loop(self.times, radius=self.radius, sigma=self.conductivity, mu=mu)
 
     #     np.testing.assert_allclose(d_numeric, d_analytic, rtol=1e-2)
 
@@ -349,7 +349,7 @@ class EM1D_TD_Loop_Center_Tests(unittest.TestCase):
             survey=survey,
             thicknesses=self.thicknesses,
             topo=self.topo,
-            sigmaMap=sigma_map,
+            conductivity_map=sigma_map,
             dchi=self.dchi,
             tau1=self.tau1,
             tau2=self.tau2,

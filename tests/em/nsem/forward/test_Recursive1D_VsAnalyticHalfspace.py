@@ -44,7 +44,7 @@ def compute_simulation(freq, sigma_half):
     survey = create_survey(np.array([freq]))
 
     simulation = nsem.simulation_1d.Simulation1DRecursive(
-        survey=survey, thicknesses=layer_thicknesses, sigmaMap=model_mapping
+        survey=survey, thicknesses=layer_thicknesses, conductivity_map=model_mapping
     )
 
     dpred = simulation.dpred(conductivity_model)

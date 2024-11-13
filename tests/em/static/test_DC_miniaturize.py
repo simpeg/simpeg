@@ -54,13 +54,15 @@ class DCMini2DTestSurveyTypes(unittest.TestCase):
 
     def test_dipole_dipole_mini(self):
         sim1 = dc.Simulation2DNodal(
-            mesh=self.mesh, survey=self.d_d_survey, sigmaMap=maps.IdentityMap(self.mesh)
+            mesh=self.mesh,
+            survey=self.d_d_survey,
+            conductivity_map=maps.IdentityMap(self.mesh),
         )
 
         sim2 = dc.Simulation2DNodal(
             mesh=self.mesh,
             survey=self.d_d_survey,
-            sigmaMap=maps.IdentityMap(self.mesh),
+            conductivity_map=maps.IdentityMap(self.mesh),
             miniaturize=True,
         )
 
@@ -72,13 +74,15 @@ class DCMini2DTestSurveyTypes(unittest.TestCase):
 
     def test_dipole_pole_mini(self):
         sim1 = dc.Simulation2DNodal(
-            mesh=self.mesh, survey=self.d_p_survey, sigmaMap=maps.IdentityMap(self.mesh)
+            mesh=self.mesh,
+            survey=self.d_p_survey,
+            conductivity_map=maps.IdentityMap(self.mesh),
         )
 
         sim2 = dc.Simulation2DNodal(
             mesh=self.mesh,
             survey=self.d_p_survey,
-            sigmaMap=maps.IdentityMap(self.mesh),
+            conductivity_map=maps.IdentityMap(self.mesh),
             miniaturize=True,
         )
 
@@ -90,13 +94,15 @@ class DCMini2DTestSurveyTypes(unittest.TestCase):
 
     def test_pole_dipole_mini(self):
         sim1 = dc.Simulation2DNodal(
-            mesh=self.mesh, survey=self.p_d_survey, sigmaMap=maps.IdentityMap(self.mesh)
+            mesh=self.mesh,
+            survey=self.p_d_survey,
+            conductivity_map=maps.IdentityMap(self.mesh),
         )
 
         sim2 = dc.Simulation2DNodal(
             mesh=self.mesh,
             survey=self.p_d_survey,
-            sigmaMap=maps.IdentityMap(self.mesh),
+            conductivity_map=maps.IdentityMap(self.mesh),
             miniaturize=True,
         )
 
@@ -108,13 +114,15 @@ class DCMini2DTestSurveyTypes(unittest.TestCase):
 
     def test_pole_pole_mini(self):
         sim1 = dc.Simulation2DNodal(
-            mesh=self.mesh, survey=self.p_p_survey, sigmaMap=maps.IdentityMap(self.mesh)
+            mesh=self.mesh,
+            survey=self.p_p_survey,
+            conductivity_map=maps.IdentityMap(self.mesh),
         )
 
         sim2 = dc.Simulation2DNodal(
             mesh=self.mesh,
             survey=self.p_p_survey,
-            sigmaMap=maps.IdentityMap(self.mesh),
+            conductivity_map=maps.IdentityMap(self.mesh),
             miniaturize=True,
         )
 
@@ -173,7 +181,7 @@ class DC2DMiniaturizeTest(unittest.TestCase):
             survey=survey,
             mesh=mesh,
             storeJ=False,
-            sigmaMap=maps.IdentityMap(mesh),
+            conductivity_map=maps.IdentityMap(mesh),
             miniaturize=False,
         )
 
@@ -181,7 +189,7 @@ class DC2DMiniaturizeTest(unittest.TestCase):
             survey=survey,
             mesh=mesh,
             storeJ=False,
-            sigmaMap=maps.IdentityMap(mesh),
+            conductivity_map=maps.IdentityMap(mesh),
             miniaturize=True,
         )
 
@@ -269,7 +277,7 @@ class DC3DMiniaturizeTest(unittest.TestCase):
             survey=survey,
             mesh=mesh,
             storeJ=False,
-            sigmaMap=maps.IdentityMap(mesh),
+            conductivity_map=maps.IdentityMap(mesh),
             miniaturize=False,
         )
 
@@ -277,7 +285,7 @@ class DC3DMiniaturizeTest(unittest.TestCase):
             survey=survey,
             mesh=mesh,
             storeJ=False,
-            sigmaMap=maps.IdentityMap(mesh),
+            conductivity_map=maps.IdentityMap(mesh),
             miniaturize=True,
         )
 

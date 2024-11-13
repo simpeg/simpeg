@@ -54,7 +54,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         self.target_mur = target_mur
         self.target_l = target_l
         self.target_r = target_r
-        self.sigma_back = sigma_back
+        self.conductivity_back = sigma_back
         self.model_names = model_names
         self.mesh = mesh
 
@@ -62,7 +62,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         target_mur = self.target_mur
         target_l = self.target_l
         target_r = self.target_r
-        sigma_back = self.sigma_back
+        sigma_back = self.conductivity_back
         model_names = self.model_names
         mesh = self.mesh
 
@@ -156,13 +156,13 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             mesh=mesh,
             survey=survey,
             time_steps=time_steps,
-            sigmaMap=maps.IdentityMap(mesh),
+            conductivity_map=maps.IdentityMap(mesh),
         )
         prob_late_ontime = tdem.Simulation3DMagneticFluxDensity(
             mesh=mesh,
             survey=survey_late_ontime,
             time_steps=time_steps,
-            sigmaMap=maps.IdentityMap(mesh),
+            conductivity_map=maps.IdentityMap(mesh),
         )
 
         fields_dict = {}
@@ -182,7 +182,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
 
         for key in model_names:
             prob.mu = mu_dict[key]
-            prob.sigma = sigma
+            prob.conductivity = sigma
             b_magnetostatic[key] = src_magnetostatic.bInitial(prob)
 
             prob_late_ontime.mu = mu_dict[key]
@@ -228,7 +228,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
 
         assert all(passed)
 
-        prob.sigma = 1e-4 * np.ones(mesh.nC)
+        prob.conductivity = 1e-4 * np.ones(mesh.nC)
         rng = np.random.default_rng(seed=42)
         v = utils.mkvc(rng.uniform(size=mesh.nE))
         w = utils.mkvc(rng.uniform(size=mesh.nF))

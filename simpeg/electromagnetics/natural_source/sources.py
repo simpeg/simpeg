@@ -50,7 +50,7 @@ class PlanewaveXYPrimary(Planewave):
 
     def __init__(self, receiver_list, frequency, sigma_primary=None):
         # assert mkvc(self.mesh.h[2].shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
-        self.sigma1d = None
+        self.conductivity1d = None
         self._sigma_primary = sigma_primary
         super(PlanewaveXYPrimary, self).__init__(receiver_list, frequency)
 
@@ -60,7 +60,7 @@ class PlanewaveXYPrimary(Planewave):
         except AttributeError:
             # set _sigma 1D
             if self._sigma_primary is None:
-                self._sigma_primary = simulation.sigmaPrimary
+                self._sigma_primary = simulation.conductivityPrimary
             # Create 3d_1d mesh like me...
             if simulation.mesh.dim == 3:
                 mesh3d = simulation.mesh
@@ -88,7 +88,7 @@ class PlanewaveXYPrimary(Planewave):
                     simulation._sigmaPrimary, "CC", "CC", "M"
                 )[:]
                 self._sigma_p = None
-                self.sigma1d = self._sigma1d
+                self.conductivity1d = self._sigma1d
             return self._sigma1d, self._sigma_p
 
     def ePrimary(self, simulation):
@@ -152,8 +152,8 @@ class PlanewaveXYPrimary(Planewave):
         # Need to deal with the edge/face discrepencies between 1d/2d/3d
         if simulation.mesh.dim == 1:
             Map_sigma_p = maps.SurjectVertical1D(simulation.mesh)
-            sigma_p = Map_sigma_p._transform(self.sigma1d)
-            Mesigma = simulation.mesh.get_face_inner_product(simulation.sigma)
+            sigma_p = Map_sigma_p._transform(self.conductivity1d)
+            Mesigma = simulation.mesh.get_face_inner_product(simulation.conductivity)
             Mesigma_p = simulation.mesh.get_face_inner_product(sigma_p)
         if simulation.mesh.dim == 2:
             pass

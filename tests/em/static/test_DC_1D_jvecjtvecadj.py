@@ -107,7 +107,7 @@ def test_derivative(deriv_type):
         h = np.exp(log_thick)
     if deriv_type == "both":
         wire = maps.Wires(("sigma", n_layer), ("thick", n_layer - 1))
-        sigma_map = sigma_map * wire.sigma
+        sigma_map = sigma_map * wire.conductivity
         h_map = h_map * wire.thick
         model = np.r_[log_cond, log_thick]
     # already tested that the forward operation works for all combinations of src/rx/data_type
@@ -117,7 +117,7 @@ def test_derivative(deriv_type):
     simulation = dc.Simulation1DLayers(
         survey=survey,
         sigma=sigma,
-        sigmaMap=sigma_map,
+        conductivity_map=sigma_map,
         thicknesses=h,
         thicknessesMap=h_map,
     )
@@ -156,7 +156,7 @@ def test_adjoint(deriv_type):
         h = np.exp(log_thick)
     if deriv_type == "both":
         wire = maps.Wires(("sigma", n_layer), ("thick", n_layer - 1))
-        sigma_map = sigma_map * wire.sigma
+        sigma_map = sigma_map * wire.conductivity
         h_map = h_map * wire.thick
         model = np.r_[log_cond, log_thick]
     # already tested that the forward operation works for all combinations of src/rx/data_type
@@ -166,7 +166,7 @@ def test_adjoint(deriv_type):
     simulation = dc.Simulation1DLayers(
         survey=survey,
         sigma=sigma,
-        sigmaMap=sigma_map,
+        conductivity_map=sigma_map,
         thicknesses=h,
         thicknessesMap=h_map,
     )
@@ -229,7 +229,7 @@ def test_functionality():
     survey = get_survey("volt", "d", "d")
     simulation = dc.Simulation1DLayers(
         survey=survey,
-        sigmaMap=sigma_map,
+        conductivity_map=sigma_map,
         thicknesses=thick,
     )
 

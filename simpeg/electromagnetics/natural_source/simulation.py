@@ -206,7 +206,7 @@ class Simulation1DPrimarySecondary(Simulation1DElectricField):
 
     def __init__(self, mesh, survey=None, sigmaPrimary=None, **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
-        self.sigmaPrimary = sigmaPrimary
+        self.conductivityPrimary = sigmaPrimary
 
     @property
     def sigmaPrimary(self):
@@ -310,8 +310,8 @@ class Simulation2DElectricField(BaseFDEMSimulation):
                 map_l_kwargs = {}
                 map_r_kwargs = {}
                 if self.conductivity_map is not None:
-                    map_l_kwargs["sigmaMap"] = P_l * self.conductivity_map
-                    map_r_kwargs["sigmaMap"] = P_r * self.conductivity_map
+                    map_l_kwargs["conductivity_map"] = P_l * self.conductivity_map
+                    map_r_kwargs["conductivity_map"] = P_r * self.conductivity_map
                 if self.muiMap is not None:
                     map_l_kwargs["muiMap"] = P_l * self.muiMap
                     map_r_kwargs["muiMap"] = P_r * self.muiMap
@@ -452,9 +452,9 @@ class Simulation2DElectricField(BaseFDEMSimulation):
                     sim.mui = self.mui
             if self.conductivity_map is None:
                 try:
-                    sim.sigma = self._P_l @ self.sigma
+                    sim.conductivity = self._P_l @ self.conductivity
                 except Exception:
-                    sim.sigma = self.sigma
+                    sim.conductivity = self.conductivity
             f_left = sim.fields(model)
 
             sim = self._sim_right
@@ -465,9 +465,9 @@ class Simulation2DElectricField(BaseFDEMSimulation):
                     sim.mui = self.mui
             if self.conductivity_map is None:
                 try:
-                    sim.sigma = self._P_r @ self.sigma
+                    sim.conductivity = self._P_r @ self.conductivity
                 except Exception:
-                    sim.sigma = self.sigma
+                    sim.conductivity = self.conductivity
             f_right = sim.fields(model)
 
             self._boundary_fields = (f_left, f_right)
@@ -738,7 +738,7 @@ class Simulation3DPrimarySecondary(Simulation3DElectricField):
 
     def __init__(self, mesh, survey=None, sigmaPrimary=None, **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
-        self.sigmaPrimary = sigmaPrimary
+        self.conductivityPrimary = sigmaPrimary
 
     # fieldsPair = Fields3DPrimarySecondary
 

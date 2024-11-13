@@ -258,7 +258,7 @@ cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 simulation = em1d.simulation.StitchedEM1DTMSimulation(
     survey=survey,
     thicknesses=thicknesses,
-    sigmaMap=mapping,
+    conductivity_map=mapping,
     chi=chi,
     topo=topo,
     parallel=False,

@@ -95,7 +95,7 @@ class PrimSecCasingExample(object):
         # Display skin depth so we can ensure our mesh goes further.
         print(
             "\nSkin Depth: {}".format(
-                [(500.0 / np.sqrt(self.sigmaback * _)) for _ in self.freqs]
+                [(500.0 / np.sqrt(self.conductivityback * _)) for _ in self.freqs]
             )
         )
 
@@ -126,9 +126,9 @@ class PrimSecCasingExample(object):
 
         return np.hstack(
             np.r_[
-                np.log(self.sigmaback),  # value in background
-                np.log(self.sigmalayer),  # value in the layer
-                np.log(self.sigmablock),  # value in the block
+                np.log(self.conductivityback),  # value in background
+                np.log(self.conductivitylayer),  # value in the layer
+                np.log(self.conductivityblock),  # value in the block
                 self.layer_z.mean(),  # layer center
                 self.layer_z[1] - self.layer_z[0],  # layer thickness
                 self.block_x.mean(),  # block x_0
@@ -223,8 +223,8 @@ class PrimSecCasingExample(object):
             # inject parameters we want to invert for into the full casing
             # model
             valInactive = np.r_[
-                np.log(self.sigmacasing),  # log conductivity of the casing
-                np.log(self.sigmainside),  # log conductivity fluid inside
+                np.log(self.conductivitycasing),  # log conductivity of the casing
+                np.log(self.conductivityinside),  # log conductivity fluid inside
                 # casing
                 self.casing_r,  # radius of the casing (to its center)
                 self.casing_t,  # casing thickness
@@ -246,7 +246,7 @@ class PrimSecCasingExample(object):
 
             # inject air cells
             injActMapPrimary = maps.InjectActiveCells(
-                self.meshp, self.indActivePrimary, np.log(self.sigmaair)
+                self.meshp, self.indActivePrimary, np.log(self.conductivityair)
             )
 
             # map from log conductivity to conductivity
@@ -336,7 +336,7 @@ class PrimSecCasingExample(object):
             # use H-J formulation for source with vertical current density and
             # cylindrical symmetry (h faster on cyl --> less edges than faces)
             primaryProblem = FDEM.Simulation3DMagneticField(
-                self.meshp, sigmaMap=self.primaryMapping
+                self.meshp, conductivity_map=self.primaryMapping
             )
             primaryProblem.mu = self.muModel
 
@@ -514,7 +514,9 @@ class PrimSecCasingExample(object):
 
     @property
     def injActMap(self):
-        return maps.InjectActiveCells(self.meshs, self.indActive, np.log(self.sigmaair))
+        return maps.InjectActiveCells(
+            self.meshs, self.indActive, np.log(self.conductivityair)
+        )
 
     @property
     def expMap(self):
@@ -564,7 +566,9 @@ class PrimSecCasingExample(object):
         print("Setting up Secondary Problem")
         if mapping is None:
             mapping = [("sigma", maps.IdentityMap(self.meshs))]
-        sec_problem = FDEM.Simulation3DElectricField(self.meshs, sigmaMap=mapping)
+        sec_problem = FDEM.Simulation3DElectricField(
+            self.meshs, conductivity_map=mapping
+        )
         print("... done setting up secondary problem")
         return sec_problem
 
@@ -1278,7 +1282,7 @@ class PrimSecCasingExample(object):
             print("   saved %s" % "primaryfields_" + self.NAME)
 
         mback = self.mtrue.copy()
-        mback[2] = np.log(self.sigmalayer)
+        mback[2] = np.log(self.conductivitylayer)
 
         # Secondary Problem and Survey
         sec_problem = self.setupSecondaryProblem(mapping=self.mapping)

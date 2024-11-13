@@ -24,14 +24,14 @@ class TestPGI(unittest.TestCase):
         sigma = np.c_[[sigma[i].dot(sigma[i].T) for i in range(sigma.shape[0])]]
         sigma[0] += np.eye(self.ndim)
         sigma[1] += np.eye(self.ndim) - 0.25 * np.eye(self.ndim).transpose((1, 0))
-        self.sigma = sigma
+        self.conductivity = sigma
         self.means = (
             np.abs(np.random.randn(self.n_components, self.ndim))
             * np.c_[[-100, 100], [100, 1], [-100, -100]].T
         )
         self.rv_list = [
             multivariate_normal(mean, sigma)
-            for i, (mean, sigma) in enumerate(zip(self.means, self.sigma))
+            for i, (mean, sigma) in enumerate(zip(self.means, self.conductivity))
         ]
         proportions = np.round(np.abs(np.random.rand(self.n_components)), decimals=1)
         proportions = np.abs(np.random.rand(self.n_components))
@@ -68,7 +68,7 @@ class TestPGI(unittest.TestCase):
             tol=1e-8,
             means_init=self.means,
             warm_start=True,
-            precisions_init=np.linalg.inv(self.sigma),
+            precisions_init=np.linalg.inv(self.conductivity),
             weights_init=self.proportions,
         )
         clf.fit(self.samples)
@@ -174,7 +174,7 @@ class TestPGI(unittest.TestCase):
             tol=1e-8,
             means_init=self.means,
             warm_start=True,
-            precisions_init=np.linalg.inv(self.sigma[0]),
+            precisions_init=np.linalg.inv(self.conductivity[0]),
             weights_init=self.proportions,
         )
         clf.fit(self.samples)

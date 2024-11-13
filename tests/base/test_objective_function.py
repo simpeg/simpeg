@@ -240,7 +240,7 @@ class TestBaseObjFct(unittest.TestCase):
 
         wires = maps.Wires(("sigma", nP), ("mu", nP))
 
-        objfct1 = objective_function.L2ObjectiveFunction(mapping=wires.sigma)
+        objfct1 = objective_function.L2ObjectiveFunction(mapping=wires.conductivity)
         objfct2 = objective_function.L2ObjectiveFunction(mapping=wires.mu)
 
         objfct3 = objfct1 + objfct2

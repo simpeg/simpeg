@@ -159,7 +159,7 @@ def analytic_wholespace_dipole_comparison(
             ].dot(projection_vector)
 
     sim = getattr(tdem.simulation, "Simulation3D{}".format(formulation_type))(
-        mesh=mesh, survey=survey, sigmaMap=mapping
+        mesh=mesh, survey=survey, conductivity_map=mapping
     )
 
     sim.time_steps = [
@@ -263,7 +263,7 @@ def analytic_halfspace_mag_dipole_comparison(
     ]
 
     sim = tdem.Simulation3DMagneticFluxDensity(
-        mesh, survey=survey, time_steps=time_steps, sigmaMap=mapping
+        mesh, survey=survey, time_steps=time_steps, conductivity_map=mapping
     )
 
     sigma = np.ones(mesh.shape_cells[2]) * 1e-8

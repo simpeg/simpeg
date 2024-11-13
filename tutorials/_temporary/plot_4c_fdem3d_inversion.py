@@ -286,7 +286,7 @@ starting_model = background_conductivity * np.ones(nC)
 simulation = fdem.simulation.Simulation3DMagneticFluxDensity(
     mesh,
     survey=survey,
-    sigmaMap=model_map,
+    conductivity_map=model_map,
 )
 
 

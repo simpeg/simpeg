@@ -49,7 +49,7 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
         self, mesh, survey=None, sigma=None, rho=None, q=None, qMap=None, **kwargs
     ):
         # These below checks can be commented out, correspondingly do
-        # not set sigmaMap and rhoMap to None on the super call, to enable
+        # not set conductivity_map and rhoMap to None on the super call, to enable
         # derivatives with respect to resistivity/conductivity.
         if sigma is None:
             if rho is None:
@@ -62,7 +62,7 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
             survey=survey,
             sigma=sigma,
             rho=rho,
-            sigmaMap=None,
+            conductivity_map=None,
             rhoMap=None,
             **kwargs,
         )

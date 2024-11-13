@@ -126,19 +126,19 @@ class DCProblemTestsCC_fields(unittest.TestCase):
 
         self.mesh = mesh
         self.survey = dc.survey.Survey(src_list)
-        self.sigma_map = maps.ExpMap(mesh) * maps.InjectActiveCells(
+        self.conductivity_map = maps.ExpMap(mesh) * maps.InjectActiveCells(
             mesh, mesh.gridCC[:, 2] <= 0, np.log(1e-8)
         )
         self.prob = dc.simulation.Simulation3DCellCentered(
             mesh=mesh,
             survey=self.survey,
-            sigmaMap=self.sigma_map,
+            conductivity_map=self.conductivity_map,
             bc_type="Dirichlet",
         )
 
     def test_e_deriv(self):
         rng = np.random.default_rng(seed=42)
-        x0 = -1 + 1e-1 * rng.uniform(size=self.sigma_map.nP)
+        x0 = -1 + 1e-1 * rng.uniform(size=self.conductivity_map.nP)
 
         def fun(x):
             return self.prob.dpred(x), lambda x: self.prob.Jvec(x0, x)
@@ -149,12 +149,12 @@ class DCProblemTestsCC_fields(unittest.TestCase):
         print("Adjoint Test for e")
 
         rng = np.random.default_rng(seed=42)
-        m = -1 + 1e-1 * rng.uniform(size=self.sigma_map.nP)
+        m = -1 + 1e-1 * rng.uniform(size=self.conductivity_map.nP)
         u = self.prob.fields(m)
         # u = u[self.survey.source_list,'e']
 
         v = rng.uniform(size=self.survey.nD)
-        w = rng.uniform(size=self.sigma_map.nP)
+        w = rng.uniform(size=self.conductivity_map.nP)
 
         vJw = v.dot(self.prob.Jvec(m, w, u))
         wJtv = w.dot(self.prob.Jtvec(m, v, u))

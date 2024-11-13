@@ -46,10 +46,14 @@ def test_meta_correctness():
             break
         survey_chunk = dc.Survey(src_list[i:end])
         dc_sims.append(
-            dc.Simulation3DNodal(mesh, survey=survey_chunk, sigmaMap=maps.IdentityMap())
+            dc.Simulation3DNodal(
+                mesh, survey=survey_chunk, conductivity_map=maps.IdentityMap()
+            )
         )
         dc_sims2.append(
-            dc.Simulation3DNodal(mesh, survey=survey_chunk, sigmaMap=maps.IdentityMap())
+            dc.Simulation3DNodal(
+                mesh, survey=survey_chunk, conductivity_map=maps.IdentityMap()
+            )
         )
         dc_mappings.append(maps.IdentityMap())
 

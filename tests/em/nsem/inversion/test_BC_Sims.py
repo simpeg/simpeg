@@ -78,7 +78,7 @@ def create_simulation_1d(sim_type, deriv_type):
     sigma_1d[50:-npad] = sigma_right
 
     if deriv_type == "sigma":
-        sim_kwargs = {"sigmaMap": maps.ExpMap()}
+        sim_kwargs = {"conductivity_map": maps.ExpMap()}
         test_mod = np.log(sigma_1d)
     else:
         sim_kwargs = {"muMap": maps.ExpMap(), "sigma": sigma_1d}
@@ -130,7 +130,7 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
     sigma[cells[:, -1] >= 0] = sigma_air
 
     if deriv_type == "sigma":
-        sim_kwargs = {"sigmaMap": maps.ExpMap()}
+        sim_kwargs = {"conductivity_map": maps.ExpMap()}
         test_mod = np.log(sigma)
     else:
         sim_kwargs = {"muMap": maps.ExpMap(), "sigma": sigma}
@@ -148,7 +148,7 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
             )
             mesh_1d = TensorMesh([mesh.h[1]], [mesh.origin[1]])
             sim_1d = nsem.simulation.Simulation1DElectricField(
-                mesh_1d, survey=survey_1d, sigmaMap=maps.IdentityMap()
+                mesh_1d, survey=survey_1d, conductivity_map=maps.IdentityMap()
             )
 
             b_left, b_right, _, __ = mesh.cell_boundary_indices
@@ -198,7 +198,7 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
             )
             mesh_1d = TensorMesh([mesh.h[1]], [mesh.origin[1]])
             sim_1d = nsem.simulation.Simulation1DMagneticField(
-                mesh_1d, survey=survey_1d, sigmaMap=maps.IdentityMap()
+                mesh_1d, survey=survey_1d, conductivity_map=maps.IdentityMap()
             )
 
             b_left, b_right, _, __ = mesh.cell_boundary_indices
