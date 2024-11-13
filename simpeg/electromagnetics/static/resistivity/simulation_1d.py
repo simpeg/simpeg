@@ -340,8 +340,8 @@ class Simulation1DLayers(BaseSimulation):
         return self.getJ(m, f=f).T @ v
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        to_delete = super().deleteTheseOnModelUpdate
+    def _delete_on_model_change(self):
+        to_delete = super()._delete_on_model_change
         if not self.fix_Jmatrix:
             to_delete = to_delete + ["_Jmatrix"]
         return to_delete

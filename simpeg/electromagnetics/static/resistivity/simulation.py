@@ -284,8 +284,8 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return self._q
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        toDelete = super().deleteTheseOnModelUpdate
+    def _delete_on_model_change(self):
+        toDelete = super()._delete_on_model_change
         return toDelete + ["_Jmatrix", "_gtgdiag"]
 
     def _mini_survey_data(self, d_mini):

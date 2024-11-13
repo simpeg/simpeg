@@ -132,7 +132,7 @@ class BaseIPSimulation(BasePDESimulation):
         return super().Jtvec(m, v * self._scale, f)
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_change(self):
         toDelete = []
         return toDelete
 

@@ -474,8 +474,8 @@ class Simulation2DElectricField(BaseFDEMSimulation):
         return self._boundary_fields
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        items = super().deleteTheseOnModelUpdate
+    def _delete_on_model_change(self):
+        items = super()._delete_on_model_change
         items.append("_boundary_fields")
         return items
 
@@ -696,8 +696,8 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
         return self._boundary_fields
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        items = super().deleteTheseOnModelUpdate
+    def _delete_on_model_change(self):
+        items = super()._delete_on_model_change
         items.append("_boundary_fields")
         return items
 

@@ -352,8 +352,8 @@ class Simulation1DRecursive(BaseSimulation):
         return JTvec
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        toDelete = super().deleteTheseOnModelUpdate
+    def _delete_on_model_change(self):
+        toDelete = super()._delete_on_model_change
         if self.fix_Jmatrix:
             return toDelete
         else:

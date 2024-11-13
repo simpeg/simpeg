@@ -603,7 +603,7 @@ class BaseSIPSimulation(BaseIPSimulation):
             return Jtv
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_change(self):
         toDelete = [
             "_etaDeriv_store",
             "_tauiDeriv_store",
