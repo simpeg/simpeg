@@ -222,6 +222,11 @@ class BasePFSimulation(LinearSimulation):
 
     @property
     def n_processes(self):
+        """
+        Number of processes to use for forward modeling.
+
+        If ``engine`` is ``"choclo"``, then this property will be ignored.
+        """
         return self._n_processes
 
     @n_processes.setter
