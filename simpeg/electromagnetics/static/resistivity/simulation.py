@@ -561,7 +561,7 @@ class Simulation3DNodal(BaseDCSimulation):
             out = self.MeSigmaDeriv(Grad @ u, Grad @ v, adjoint)
         if self.bc_type != "Neumann" and self.sigmaMap is not None:
             if getattr(self, "_MBC_sigma", None) is None:
-                self._MBC_sigma = self._AvgBC @ self.sigmaDeriv
+                self._MBC_sigma = self._AvgBC @ self._con_deriv
             if not isinstance(u, Zero):
                 u = u.flatten()
                 if v.ndim > 1:

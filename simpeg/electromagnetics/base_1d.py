@@ -6,7 +6,6 @@ from scipy import sparse as sp
 from scipy.special import roots_legendre
 
 from .base import BaseEMSimulation
-from ..simulation import BaseSimulation
 
 # from .time_domain.sources import MagDipole as t_MagDipole, CircularLoop as t_CircularLoop
 # from .frequency_domain.sources import MagDipole as f_MagDipole, CircularLoop as f_CircularLoop
@@ -47,14 +46,12 @@ class BaseEM1DSimulation(BaseEMSimulation):
     _formulation = "1D"
     _coefficients_set = False
 
-
     # Additional Invertible properties
     h, hMap, hDeriv = props.Invertible("Receiver Height (m), h > 0")
 
     thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
         "layer thicknesses (m)"
     )
-
 
     # Additional properties in forward modeling
     eta = props.PhysicalProperty("Intrinsic chargeability (V/V), 0 <= eta < 1")
@@ -70,6 +67,7 @@ class BaseEM1DSimulation(BaseEMSimulation):
     tau2 = props.PhysicalProperty(
         "Upper bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)"
     )
+
     def __init__(
         self,
         thicknesses=None,
@@ -319,7 +317,7 @@ class BaseEM1DSimulation(BaseEMSimulation):
         if self.hMap is not None:
             out = out + Js["dh"] @ (self.hDeriv @ v)
         if self.sigmaMap is not None:
-            out = out + Js["ds"] @ (self.sigmaDeriv @ v)
+            out = out + Js["ds"] @ (self._con_deriv @ v)
         if self.muMap is not None:
             out = out + Js["dmu"] @ (self.muDeriv @ v)
         if self.thicknessesMap is not None:
@@ -332,7 +330,7 @@ class BaseEM1DSimulation(BaseEMSimulation):
         if self.hMap is not None:
             out = out + self.hDeriv.T @ (Js["dh"].T @ v)
         if self.sigmaMap is not None:
-            out = out + self.sigmaDeriv.T @ (Js["ds"].T @ v)
+            out = out + self._con_deriv.T @ (Js["ds"].T @ v)
         if self.muMap is not None:
             out = out + self.muDeriv.T @ (Js["dmu"].T @ v)
         if self.thicknessesMap is not None:
@@ -590,7 +588,7 @@ class BaseEM1DSimulation(BaseEMSimulation):
                 J = Js["dh"] @ self.hDeriv
                 out = out + np.einsum("i,ij,ij->j", W, J, J)
             if self.sigmaMap is not None:
-                J = Js["ds"] @ self.sigmaDeriv
+                J = Js["ds"] @ self._con_deriv
                 out = out + np.einsum("i,ij,ij->j", W, J, J)
             if self.muMap is not None:
                 J = Js["dmu"] @ self.muDeriv

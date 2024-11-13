@@ -325,7 +325,7 @@ class Simulation1DRecursive(BaseSimulation):
 
             gtgdiag = 0
             if self.sigmaMap is not None:
-                J = Js["sigma"] @ self.sigmaDeriv
+                J = Js["sigma"] @ self._con_deriv
                 gtgdiag += np.einsum("i,ij,ij->j", W, J, J)
             if self.thicknessesMap is not None:
                 J = Js["thick"] @ self.thicknessesDeriv
@@ -337,7 +337,7 @@ class Simulation1DRecursive(BaseSimulation):
         J = self.getJ(m, f=None)
         Jvec = 0
         if self.sigmaMap is not None:
-            Jvec += J["sigma"] @ (self.sigmaDeriv * v)
+            Jvec += J["sigma"] @ (self._con_deriv * v)
         if self.thicknessesMap is not None:
             Jvec += J["thick"] @ (self.thicknessesDeriv * v)
         return Jvec
@@ -346,7 +346,7 @@ class Simulation1DRecursive(BaseSimulation):
         J = self.getJ(m, f=None)
         JTvec = 0
         if self.sigmaMap is not None:
-            JTvec += self.sigmaDeriv.T @ (J["sigma"].T @ v)
+            JTvec += self._con_deriv.T @ (J["sigma"].T @ v)
         if self.thicknessesMap is not None:
             JTvec += self.thicknessesDeriv.T @ (J["thick"].T @ v)
         return JTvec

@@ -692,7 +692,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
             if getattr(self, "_MBC_sigma", None) is None:
                 self._MBC_sigma = {}
             if ky not in self._MBC_sigma:
-                self._MBC_sigma[ky] = self._AvgBC[ky] @ self.sigmaDeriv
+                self._MBC_sigma[ky] = self._AvgBC[ky] @ self._con_deriv
             if not isinstance(u, Zero):
                 u = u.flatten()
                 if v.ndim > 1:
