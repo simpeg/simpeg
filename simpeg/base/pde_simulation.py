@@ -1,5 +1,3 @@
-from abc import abstractmethod
-
 import discretize.base
 import numpy as np
 import pymatsolver
@@ -7,10 +5,10 @@ import scipy.sparse as sp
 from discretize.base import BaseMesh
 from discretize.utils import Zero, TensorType
 
+from . import BaseElectricalSimulation, BaseMagneticSimulation
 from ..props import PhysicalPropertyMetaclass, PhysicalProperty
 from ..simulation import BaseSimulation, BaseTimeSimulation
-from .. import props, Data
-from scipy.constants import mu_0
+from .. import Data
 
 from ..utils import validate_type
 from ..utils.solver_utils import get_default_solver
@@ -475,8 +473,7 @@ class BasePDESimulation(BaseSimulation, metaclass=MassMatrixMeta):
 
     @mesh.setter
     def mesh(self, value):
-        self._mesh = validate_type("mesh", value, BaseMesh, cast=False)    @property
-
+        self._mesh = validate_type("mesh", value, BaseMesh, cast=False) @ property
 
     def solver(self) -> type[pymatsolver.solvers.Base]:
         r"""Numerical solver used in the forward simulation.
@@ -509,7 +506,9 @@ class BasePDESimulation(BaseSimulation, metaclass=MassMatrixMeta):
     def solver(self, cls):
         if cls is not None:
             if not issubclass(cls, pymatsolver.solvers.Base):
-                raise TypeError(f"Solver, {cls.__name__} is not a subclass of pymatsolver.solvers.Base")
+                raise TypeError(
+                    f"Solver, {cls.__name__} is not a subclass of pymatsolver.solvers.Base"
+                )
         self._solver = cls
 
     @property
@@ -644,7 +643,6 @@ class BaseTimePDESimulation(BaseTimeSimulation, BasePDESimulation):
     def __init__(self, mesh, time_steps, **kwargs):
         super().__init__(mesh=mesh, time_steps=time_steps, **kwargs)
 
-
     def dpred(self, m=None, f=None):
         # Docstring inherited from BaseSimulation.
         if self.survey is None:
@@ -662,60 +660,3 @@ class BaseTimePDESimulation(BaseTimeSimulation, BasePDESimulation):
             for rx in src.receiver_list:
                 data[src, rx] = rx.eval(src, self.mesh, self.time_mesh, f)
         return data.dobs
-
-
-
-class BaseElectricalSimulation(BaseSimulation):
-    conductivity, conductivity_map, _con_deriv = props.Invertible(
-        "Electrical conductivity (S/m)"
-    )
-    resistivity, resistivity_map, _res_deriv = props.Invertible(
-        "Electrical resistivity (Ohm m)"
-    )
-    props.Reciprocal(conductivity, resistivity)
-
-    def __init__(
-        self,
-        conductivity=None,
-        conductivity_map=None,
-        resistivity=None,
-        resistivity_map=None,
-        **kwargs,
-    ):
-        super().__init__(**kwargs)
-        self.conductivity = conductivity
-        self.resistivity = resistivity
-        self.conductivity_map = conductivity_map
-        self.resistivity_map = resistivity_map
-
-
-class BaseMagneticSimulation(BaseSimulation):
-    conductivity, conductivity_map, _con_deriv = props.Invertible(
-        "Electrical conductivity (S/m)"
-    )
-    resistivity, resistivity_map, _res_deriv = props.Invertible(
-        "Electrical resistivity (Ohm m)"
-    )
-    props.Reciprocal(conductivity, resistivity)
-
-    def __init__(
-        self,
-        conductivity=None,
-        conductivity_map=None,
-        resistivity=None,
-        resistivity_map=None,
-        **kwargs,
-    ):
-        super().__init__(**kwargs)
-        self.conductivity = conductivity
-        self.resistivity = resistivity
-        self.conductivity_map = conductivity_map
-        self.resistivity_map = resistivity_map
-
-
-class BaseElectricalPDESimulation(BasePDESimulation, BaseElectricalSimulation):
-    pass
-
-
-class BaseMagneticPDESimulation(BasePDESimulation, BaseElectricalSimulation):
-    pass
