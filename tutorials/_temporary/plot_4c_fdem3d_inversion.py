@@ -220,7 +220,7 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 #
 #     - Your smallest cell size should be 10%-20% the size of your smallest skin depth
 #     - The thickness of your padding needs to be 2-3 times biggest than your largest skin depth
-#     - The skin depth is ~500*np.sqrt(rho/f)
+#     - The skin depth is ~500*np.sqrt(resistivity/f)
 #
 #
 

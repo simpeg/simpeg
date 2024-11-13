@@ -111,7 +111,7 @@ survey = tdem.Survey(source_list)
 #
 #     - Your smallest cell size should be 10%-20% the size of your smallest diffusion distance
 #     - The thickness of your padding needs to be 2-3 times biggest than your largest diffusion distance
-#     - The diffusion distance is ~1260*np.sqrt(rho*t)
+#     - The diffusion distance is ~1260*np.sqrt(resistivity*t)
 #
 #
 
@@ -194,7 +194,7 @@ time_steps = [(5e-06, 20), (0.0001, 20), (0.001, 21)]
 # Here we define the formulation for solving Maxwell's equations. Since we are
 # measuring the time-derivative of the magnetic flux density and working with
 # a conductivity model, the EB formulation is the most natural. We must also
-# remember to define the mapping for the conductivity model. Use *rhoMap* instead
+# remember to define the mapping for the conductivity model. Use *resistivity_map* instead
 # of *conductivity_map* if you defined a resistivity model.
 #
 

@@ -14,8 +14,8 @@ from ..resistivity import Simulation3DNodal as DC_3D_N
 
 class BaseIPSimulation(BasePDESimulation):
     sigma = props.PhysicalProperty("Electrical Conductivity (S/m)")
-    rho = props.PhysicalProperty("Electrical Resistivity (Ohm m)")
-    props.Reciprocal(sigma, rho)
+    resistivity = props.PhysicalProperty("Electrical Resistivity (Ohm m)")
+    props.Reciprocal(sigma, resistivity)
 
     @property
     def conductivity_map(self):
@@ -26,11 +26,11 @@ class BaseIPSimulation(BasePDESimulation):
         pass
 
     @property
-    def rhoMap(self):
+    def resistivity_map(self):
         return maps.IdentityMap()
 
-    @rhoMap.setter
-    def rhoMap(self, arg):
+    @resistivity_map.setter
+    def resistivity_map(self, arg):
         pass
 
     @property
@@ -38,8 +38,8 @@ class BaseIPSimulation(BasePDESimulation):
         return -sp.diags(self.conductivity) @ self.etaDeriv
 
     @property
-    def rhoDeriv(self):
-        return sp.diags(self.rho) @ self.etaDeriv
+    def _res_deriv(self):
+        return sp.diags(self.resistivity) @ self.etaDeriv
 
     @cached_property
     def _scale(self):
@@ -65,7 +65,7 @@ class BaseIPSimulation(BasePDESimulation):
         mesh=None,
         survey=None,
         sigma=None,
-        rho=None,
+        resistivity=None,
         eta=None,
         etaMap=None,
         Ainv=None,  # A DC's Ainv
@@ -74,7 +74,7 @@ class BaseIPSimulation(BasePDESimulation):
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.conductivity = sigma
-        self.rho = rho
+        self.resistivity = resistivity
         self.eta = eta
         self.etaMap = etaMap
         if Ainv is not None:

@@ -52,7 +52,7 @@ class SIPProblemTestsCC(unittest.TestCase):
         wires = maps.Wires(("eta", mesh.nC), ("taui", mesh.nC))
         problem = sip.Simulation2DCellCentered(
             mesh,
-            rho=1.0 / sigma,
+            resistivity=1.0 / sigma,
             etaMap=wires.eta,
             tauiMap=wires.taui,
             verbose=False,

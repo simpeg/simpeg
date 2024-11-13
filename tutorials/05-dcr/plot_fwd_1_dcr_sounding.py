@@ -118,14 +118,14 @@ ax.set_xlabel(r"Resistivity ($\Omega m$)")
 # Define the Forward Simulation and Predict DC Resistivity Data
 # -------------------------------------------------------------
 #
-# Here we predict DC resistivity data. If the keyword argument *rhoMap* is
+# Here we predict DC resistivity data. If the keyword argument *resistivity_map* is
 # defined, the simulation will expect a resistivity model. If the keyword
 # argument *conductivity_map* is defined, the simulation will expect a conductivity model.
 #
 
 simulation = dc.simulation_1d.Simulation1DLayers(
     survey=survey,
-    rhoMap=model_map,
+    resistivity_map=model_map,
     thicknesses=layer_thicknesses,
 )
 

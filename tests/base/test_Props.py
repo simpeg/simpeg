@@ -43,18 +43,25 @@ class ReciprocalMappingExample(props.HasModel):
         "Electrical conductivity (S/m)"
     )
 
-    rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
+    resistivity, resistivity_map, _res_deriv = props.Invertible(
+        "Electrical resistivity (Ohm m)"
+    )
 
-    props.Reciprocal(sigma, rho)
+    props.Reciprocal(sigma, resistivity)
 
     def __init__(
-        self, sigma=None, conductivity_map=None, rho=None, rhoMap=None, **kwargs
+        self,
+        sigma=None,
+        conductivity_map=None,
+        resistivity=None,
+        resistivity_map=None,
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.conductivity = sigma
-        self.rho = rho
+        self.resistivity = resistivity
         self.conductivity_map = conductivity_map
-        self.rhoMap = rhoMap
+        self.resistivity_map = resistivity_map
 
 
 class ReciprocalExample(props.HasModel):
@@ -62,14 +69,14 @@ class ReciprocalExample(props.HasModel):
         "Electrical conductivity (S/m)"
     )
 
-    rho = props.PhysicalProperty("Electrical resistivity (Ohm m)")
+    resistivity = props.PhysicalProperty("Electrical resistivity (Ohm m)")
 
-    props.Reciprocal(sigma, rho)
+    props.Reciprocal(sigma, resistivity)
 
-    def __init__(self, sigma=None, conductivity_map=None, rho=None, **kwargs):
+    def __init__(self, sigma=None, conductivity_map=None, resistivity=None, **kwargs):
         super().__init__(**kwargs)
         self.conductivity = sigma
-        self.rho = rho
+        self.resistivity = resistivity
         self.conductivity_map = conductivity_map
 
 
@@ -80,10 +87,10 @@ class ReciprocalPropExample(props.HasModel):
 
     props.Reciprocal(sigma, rho)
 
-    def __init__(self, sigma=None, rho=None, rhoMap=None, **kwargs):
+    def __init__(self, sigma=None, resistivity=None, resistivity_map=None, **kwargs):
         super().__init__(**kwargs)
         self.conductivity = sigma
-        self.rho = rho
+        self.resistivity = resistivity
 
 
 class ReciprocalPropExampleDefaults(props.HasModel):
@@ -94,13 +101,18 @@ class ReciprocalPropExampleDefaults(props.HasModel):
     props.Reciprocal(sigma, rho)
 
     def __init__(
-        self, sigma=None, conductivity_map=None, rho=None, rhoMap=None, **kwargs
+        self,
+        sigma=None,
+        conductivity_map=None,
+        resistivity=None,
+        resistivity_map=None,
+        **kwargs,
     ):
         super().__init__(**kwargs)
         if sigma is None:
             sigma = np.r_[1.0, 2.0, 3.0]
         self.conductivity = sigma
-        self.rho = rho
+        self.resistivity = resistivity
 
 
 class ComplicatedInversion(props.HasModel):
@@ -187,24 +199,24 @@ def test_reciprocal():
     PM.conductivityMap = expMap
     PM.model = np.r_[1.0, 2.0, 3.0]
     assert np.all(PM.conductivity == np.exp(np.r_[1.0, 2.0, 3.0]))
-    assert np.all(PM.rho == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
+    assert np.all(PM.resistivity == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
 
-    PM.rho = np.r_[1.0, 2.0, 3.0]
-    assert PM.rhoMap is None
+    PM.resistivity = np.r_[1.0, 2.0, 3.0]
+    assert PM.resistivity_map is None
     assert PM.conductivityMap is None
-    assert PM.rhoDeriv == 0
+    assert PM._res_deriv == 0
     assert PM._con_deriv == 0
     assert np.all(PM.conductivity == 1.0 / np.r_[1.0, 2.0, 3.0])
 
     PM.conductivityMap = expMap
     # change your mind?
     # PM = pickle.loads(pickle.dumps(PM))
-    PM.rhoMap = expMap
+    PM.resistivity_map = expMap
     assert PM._conductivity_map is None
-    assert len(PM.rhoMap) == 1
+    assert len(PM.resistivity_map) == 1
     assert len(PM.conductivityMap) == 2
     # PM = pickle.loads(pickle.dumps(PM))
-    assert np.all(PM.rho == np.exp(np.r_[1.0, 2.0, 3.0]))
+    assert np.all(PM.resistivity == np.exp(np.r_[1.0, 2.0, 3.0]))
     assert np.all(PM.conductivity == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
     # PM = pickle.loads(pickle.dumps(PM))
     assert isinstance(PM._con_deriv.todense(), np.ndarray)
@@ -221,9 +233,9 @@ def test_reciprocal_no_map():
     # PM = pickle.loads(pickle.dumps(PM))
     PM.model = np.r_[1.0, 2.0, 3.0]
     assert np.all(PM.conductivity == np.exp(np.r_[1.0, 2.0, 3.0]))
-    assert np.all(PM.rho == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
+    assert np.all(PM.resistivity == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
 
-    PM.rho = np.r_[1.0, 2.0, 3.0]
+    PM.resistivity = np.r_[1.0, 2.0, 3.0]
     assert PM.conductivityMap is None
     assert PM._con_deriv == 0
     assert np.all(PM.conductivity == 1.0 / np.r_[1.0, 2.0, 3.0])
@@ -231,7 +243,7 @@ def test_reciprocal_no_map():
     PM.conductivityMap = expMap
     assert len(PM.conductivityMap) == 1
     # PM = pickle.loads(pickle.dumps(PM))
-    assert np.all(PM.rho == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
+    assert np.all(PM.resistivity == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
     assert np.all(PM.conductivity == np.exp(np.r_[1.0, 2.0, 3.0]))
     assert isinstance(PM._con_deriv.todense(), np.ndarray)
 
@@ -247,20 +259,20 @@ def test_reciprocal_no_maps():
 
     assert np.all(PM.conductivity == np.r_[1.0, 2.0, 3.0])
     # PM = pickle.loads(pickle.dumps(PM))
-    assert np.all(PM.rho == 1.0 / np.r_[1.0, 2.0, 3.0])
+    assert np.all(PM.resistivity == 1.0 / np.r_[1.0, 2.0, 3.0])
 
-    PM.rho = np.r_[1.0, 2.0, 3.0]
+    PM.resistivity = np.r_[1.0, 2.0, 3.0]
     assert np.all(PM.conductivity == 1.0 / np.r_[1.0, 2.0, 3.0])
 
 
 def test_reciprocal_defaults():
     PM = ReciprocalPropExampleDefaults()
     assert np.all(PM.conductivity == np.r_[1.0, 2.0, 3.0])
-    assert np.all(PM.rho == 1.0 / np.r_[1.0, 2.0, 3.0])
+    assert np.all(PM.resistivity == 1.0 / np.r_[1.0, 2.0, 3.0])
 
     rho = np.r_[2.0, 4.0, 6.0]
-    PM.rho = rho
-    assert np.all(PM.rho == rho)
+    PM.resistivity = rho
+    assert np.all(PM.resistivity == rho)
     assert np.all(PM.conductivity == 1.0 / rho)
 
 

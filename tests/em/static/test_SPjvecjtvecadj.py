@@ -105,9 +105,13 @@ def test_adjoint(q_map):
 
 def test_errors():
     with pytest.raises(ValueError):
-        sp.Simulation3DCellCentered(mesh=mesh, survey=survey, sigma=None, rho=None)
+        sp.Simulation3DCellCentered(
+            mesh=mesh, survey=survey, sigma=None, resistivity=None
+        )
     with pytest.raises(ValueError):
-        sp.Simulation3DCellCentered(mesh=mesh, survey=survey, sigma=1.0, rho=1.0)
+        sp.Simulation3DCellCentered(
+            mesh=mesh, survey=survey, sigma=1.0, resistivity=1.0
+        )
 
 
 def test_clears():

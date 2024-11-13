@@ -110,7 +110,7 @@ class _HField(_1DField):
         return Zero()
 
     def _e(self, hSolution, source_list):
-        return self.simulation.rho[:, None] * (
+        return self.simulation.resistivity[:, None] * (
             self._C * self._h(hSolution, source_list)
         )
 
@@ -119,18 +119,20 @@ class _HField(_1DField):
             du_dm_v = du_dm_v[:, None]
         if adjoint:
             y = self._hDeriv_u(
-                src, self._C.T * (self.simulation.rho[:, None] * du_dm_v), adjoint=True
+                src,
+                self._C.T * (self.simulation.resistivity[:, None] * du_dm_v),
+                adjoint=True,
             )
             return np.squeeze(y)
-        y = self.simulation.rho[:, None] * (
+        y = self.simulation.resistivity[:, None] * (
             self._C @ (self._hDeriv_u(src, du_dm_v, adjoint=False))
         )
         return np.squeeze(y)
 
     def _eDeriv_m(self, src, v, adjoint=False):
-        if self.simulation.rhoMap is None:
+        if self.simulation.resistivity_map is None:
             return Zero()
-        dRho = self.simulation.rhoDeriv
+        dRho = self.simulation._res_deriv
         h = self[src, "h"]
         if v.ndim == 1:
             v = v[:, None]

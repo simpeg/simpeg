@@ -124,7 +124,7 @@ class IPProblemTestsN(unittest.TestCase):
         problem = ip.Simulation2DNodal(
             mesh,
             survey=survey,
-            rho=1.0 / sigma,
+            resistivity=1.0 / sigma,
             etaMap=maps.IdentityMap(mesh),
             verbose=False,
         )

@@ -298,9 +298,9 @@ def appResPhs(freq, z):
     return app_res, app_phs
 
 
-def skindepth(rho, freq):
+def skindepth(resistivity, freq):
     """Function to calculate the skindepth of EM waves"""
-    return np.sqrt((rho * ((1 / (freq * mu_0 * np.pi)))))
+    return np.sqrt((resistivity * ((1 / (freq * mu_0 * np.pi)))))
 
 
 def rec_to_ndarr(rec_arr, data_type=float):

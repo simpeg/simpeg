@@ -145,7 +145,7 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
 
         return G.T.tocsr() @ MeRho @ G + 1j * omega(freq) * MnMu
 
-    def getADeriv_rho(self, freq, u, v, adjoint=False):
+    def getADeriv_resistivity(self, freq, u, v, adjoint=False):
         G = self.mesh.nodal_gradient
         if adjoint:
             return self.MeRhoDeriv(G * u, G * v, adjoint)
@@ -168,7 +168,7 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
         return Zero()
 
     def getADeriv(self, freq, u, v, adjoint=False):
-        return self.getADeriv_rho(freq, u, v, adjoint) + self.getADeriv_mu(
+        return self.getADeriv_resistivity(freq, u, v, adjoint) + self.getADeriv_mu(
             freq, u, v, adjoint
         )
 
@@ -535,9 +535,9 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
 
                 map_l_kwargs = {}
                 map_r_kwargs = {}
-                if self.rhoMap is not None:
-                    map_l_kwargs["rhoMap"] = P_l * self.rhoMap
-                    map_r_kwargs["rhoMap"] = P_r * self.rhoMap
+                if self.resistivity_map is not None:
+                    map_l_kwargs["resistivity_map"] = P_l * self.resistivity_map
+                    map_r_kwargs["resistivity_map"] = P_r * self.resistivity_map
                 if self.muMap is not None:
                     map_l_kwargs["muMap"] = P_l * self.muMap
                     map_r_kwargs["muMap"] = P_r * self.muMap
@@ -672,11 +672,11 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
                     sim.mu = self._P_l @ self.mu
                 except Exception:
                     sim.mu = self.mu
-            if self.rhoMap is None:
+            if self.resistivity_map is None:
                 try:
-                    sim.rho = self._P_l @ self.rho
+                    sim.resistivity = self._P_l @ self.resistivity
                 except Exception:
-                    sim.rho = self.rho
+                    sim.resistivity = self.resistivity
             f_left = sim.fields(model)
 
             sim = self._sim_right
@@ -685,11 +685,11 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
                     sim.mu = self._P_r @ self.mu
                 except Exception:
                     sim.mu = self.mu
-            if self.rhoMap is None:
+            if self.resistivity_map is None:
                 try:
-                    sim.rho = self._P_r @ self.rho
+                    sim.resistivity = self._P_r @ self.resistivity
                 except Exception:
-                    sim.rho = self.rho
+                    sim.resistivity = self.resistivity
             f_right = sim.fields(model)
 
             self._boundary_fields = (f_left, f_right)

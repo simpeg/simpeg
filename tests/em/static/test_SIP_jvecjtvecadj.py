@@ -59,7 +59,7 @@ class SIPProblemTestsCC(unittest.TestCase):
         problem = sip.Simulation3DCellCentered(
             mesh,
             survey=survey,
-            rho=1.0 / sigma,
+            resistivity=1.0 / sigma,
             etaMap=wires.eta,
             tauiMap=wires.taui,
             storeJ=False,

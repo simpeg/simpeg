@@ -159,8 +159,8 @@ def DCAnalyticSphere(
     :param array rxloc: M(+) electrode locations / (Nx3 array, # of electrodes)
 
     :param float radius: radius (float): radius of the sphere (m)
-    :param float rho: resistivity of the background (ohm-m)
-    :param float rho1: resistivity of the sphere
+    :param float resistivity: resistivity of the background (ohm-m)
+    :param float resistivity1: resistivity of the sphere
     :param string field_type: : "secondary", "total", "primary"
           (default="secondary")
           "secondary": secondary potential only due to sphere

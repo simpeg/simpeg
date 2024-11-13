@@ -19,12 +19,12 @@ for filter_name in libdlf.hankel.__all__:
         HANKEL_FILTERS[filter_name] = hankel_filter
 
 
-def _phi_tilde(rho, thicknesses, lambdas):
+def _phi_tilde(resistivity, thicknesses, lambdas):
     """Calculate potential in the hankel domain.
 
     Parameters
     ----------
-    rho : (n_layer) np.ndarray
+    resistivity : (n_layer) np.ndarray
         Resistivity array (ohm m)
     thicknesses : (n_layer - 1) np.ndarray
         Array of layer thicknesses defined from the top down (m).
@@ -36,20 +36,20 @@ def _phi_tilde(rho, thicknesses, lambdas):
     (n_lambda) np.ndarray
         Potential in wavenumber domain at sampled locations
     """
-    n_layer = len(rho)
+    n_layer = len(resistivity)
     tanh = np.tanh(lambdas[None, :] * thicknesses[:, None])
-    t = rho[-1] * np.ones_like(lambdas)
+    t = resistivity[-1] * np.ones_like(lambdas)
     for i in range(n_layer - 2, -1, -1):
-        t = (t + rho[i] * tanh[i]) / (1.0 + t * tanh[i] / rho[i])
+        t = (t + resistivity[i] * tanh[i]) / (1.0 + t * tanh[i] / resistivity[i])
     return t
 
 
-def _dphi_tilde(rho, thicknesses, lambdas):
+def _dphi_tilde(resistivity, thicknesses, lambdas):
     """Calculate derivative of potential in the hankel domain.
 
     Parameters
     ----------
-    rho : (n_layer) np.ndarray
+    resistivity : (n_layer) np.ndarray
         Resistivity array (ohm m)
     thicknesses : (n_layer - 1) np.ndarray
         Array of layer thicknesses defined from the top down (m).
@@ -63,16 +63,16 @@ def _dphi_tilde(rho, thicknesses, lambdas):
     J_h : (n_lambda, n_layer-1) np.ndarray
         Jacobian matrix of first derivatives of lambda w.r.t. thicknesses.
     """
-    n_layer = len(rho)
+    n_layer = len(resistivity)
     ts = np.empty((n_layer, len(lambdas)))
     tanh = np.tanh(lambdas[None, :] * thicknesses[:, None])
     tops = np.empty((n_layer, len(lambdas)))
     bots = np.empty((n_layer, len(lambdas)))
-    ts[-1] = rho[-1]
+    ts[-1] = resistivity[-1]
     for i in range(n_layer - 2, -1, -1):
         ts[i] = ts[i + 1]
-        tops[i] = ts[i + 1] + rho[i] * tanh[i]
-        bots[i] = 1 + ts[i + 1] * tanh[i] / rho[i]
+        tops[i] = ts[i + 1] + resistivity[i] * tanh[i]
+        bots[i] = 1 + ts[i + 1] * tanh[i] / resistivity[i]
         ts[i] = tops[i] / bots[i]
     # return ts[0]
     # ts0 = 1.0
@@ -83,13 +83,13 @@ def _dphi_tilde(rho, thicknesses, lambdas):
         # ts[i] = tops[i] / bots[i]
         g_tops = g_ti / bots[i]
         g_bots = -ts[i] / bots[i] * g_ti
-        # bots[i] = 1 + ts[i+1] * tanh[i] / rho0
-        g_tip1 = tanh[i] / rho[i] * g_bots
-        g_tanh = ts[i + 1] / rho[i] * g_bots
-        g_rho0 = -ts[i + 1] * tanh[i] / (rho[i] ** 2) * g_bots
+        # bots[i] = 1 + ts[i+1] * tanh[i] / resistivity0
+        g_tip1 = tanh[i] / resistivity[i] * g_bots
+        g_tanh = ts[i + 1] / resistivity[i] * g_bots
+        g_rho0 = -ts[i + 1] * tanh[i] / (resistivity[i] ** 2) * g_bots
         # tops[i] = ts[i+1] + rho0 * tanh[i]
         g_tip1 += g_tops
-        g_tanh += rho[i] * g_tops
+        g_tanh += resistivity[i] * g_tops
         g_rho0 += tanh[i] * g_tops
         # tanh = tanh(thick * lambd)
         g_thick = (1 - tanh[i] ** 2) * lambdas * g_tanh
@@ -110,7 +110,9 @@ class Simulation1DLayers(BaseSimulation):
     sigma, conductivity_map, _con_deriv = props.Invertible(
         "Electrical conductivity (S/m)"
     )
-    rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
+    rho, resistivity_map, _res_deriv = props.Invertible(
+        "Electrical resistivity (Ohm m)"
+    )
     props.Reciprocal(sigma, rho)
 
     thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
@@ -122,8 +124,8 @@ class Simulation1DLayers(BaseSimulation):
         survey=None,
         sigma=None,
         conductivity_map=None,
-        rho=None,
-        rhoMap=None,
+        resistivity=None,
+        resistivity_map=None,
         thicknesses=None,
         thicknessesMap=None,
         hankel_filter="key_201_2012",
@@ -145,10 +147,10 @@ class Simulation1DLayers(BaseSimulation):
             )
         super().__init__(survey=survey, **kwargs)
         self.conductivity = sigma
-        self.rho = rho
+        self.resistivity = resistivity
         self.thicknesses = thicknesses
         self.conductivity_map = conductivity_map
-        self.rhoMap = rhoMap
+        self.resistivity_map = resistivity_map
         self.thicknessesMap = thicknessesMap
         self.fix_Jmatrix = fix_Jmatrix
         self.hankel_filter = hankel_filter  # Store filter
@@ -290,7 +292,7 @@ class Simulation1DLayers(BaseSimulation):
     def fields(self, m):
         self.model = m
         self._compute_hankel_coefficients()
-        return _phi_tilde(self.rho, self.thicknesses, self._lambdas)
+        return _phi_tilde(self.resistivity, self.thicknesses, self._lambdas)
 
     def dpred(self, m=None, f=None):
         """
@@ -319,11 +321,11 @@ class Simulation1DLayers(BaseSimulation):
             if self.verbose:
                 print("Calculating J and storing")
 
-            J_rho, J_h = _dphi_tilde(self.rho, self.thicknesses, self._lambdas)
+            J_rho, J_h = _dphi_tilde(self.resistivity, self.thicknesses, self._lambdas)
 
             Jmatrix = 0
-            if self.rhoMap is not None:
-                Jmatrix += (self._As @ J_rho) @ self.rhoDeriv
+            if self.resistivity_map is not None:
+                Jmatrix += (self._As @ J_rho) @ self._res_deriv
             if self.thicknessesMap is not None:
                 Jmatrix += (self._As @ J_h) @ self.thicknessesDeriv
             self._Jmatrix = Jmatrix

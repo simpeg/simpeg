@@ -39,8 +39,10 @@ class Simulation1DRecursive(BaseSimulation):
     sigma, conductivity_map, _con_deriv = props.Invertible(
         "Electrical conductivity (S/m)"
     )
-    rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
-    props.Reciprocal(sigma, rho)
+    resistivity, resistivity_map, _res_deriv = props.Invertible(
+        "Electrical resistivity (Ohm m)"
+    )
+    props.Reciprocal(sigma, resistivity)
 
     # Add layer thickness as invertible property
     thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
@@ -52,8 +54,8 @@ class Simulation1DRecursive(BaseSimulation):
         survey=None,
         sigma=None,
         conductivity_map=None,
-        rho=None,
-        rhoMap=None,
+        resistivity=None,
+        resistivity_map=None,
         thicknesses=None,
         thicknessesMap=None,
         fix_Jmatrix=False,
@@ -62,10 +64,10 @@ class Simulation1DRecursive(BaseSimulation):
         super().__init__(mesh=None, survey=survey, **kwargs)
         self.fix_Jmatrix = fix_Jmatrix
         self.conductivity = sigma
-        self.rho = rho
+        self.resistivity = resistivity
         self.thicknesses = thicknesses
         self.conductivity_map = conductivity_map
-        self.rhoMap = rhoMap
+        self.resistivity_map = resistivity_map
         self.thicknessesMap = thicknessesMap
 
     @property

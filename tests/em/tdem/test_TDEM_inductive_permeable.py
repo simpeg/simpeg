@@ -253,7 +253,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             == prob.MfRhoI * w
         )
 
-        prob.rho = 1.0 / 1e-3 * np.ones(mesh.nC)
+        prob.resistivity = 1.0 / 1e-3 * np.ones(mesh.nC)
         rng = np.random.default_rng(seed=42)
         v = utils.mkvc(rng.uniform(size=mesh.nE))
         w = utils.mkvc(rng.uniform(size=mesh.nF))

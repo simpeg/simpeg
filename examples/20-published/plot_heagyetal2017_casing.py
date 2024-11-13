@@ -313,14 +313,14 @@ class PrimSecCasingExample(object):
 
             #     sigma = maps.Property(
             #                 "Electrical Conductivity", defaultInvProp=True,
-            #                 propertyLink=('rho', maps.ReciprocalMap)
+            #                 propertyLink=('resistivity', maps.ReciprocalMap)
             #     )
             #     mu = maps.Property(
             #             "Inverse Magnetic Permeability",
             #             defaultVal=self.muModel,
             #             propertyLink=('mui', maps.ReciprocalMap)
             #     )
-            #     rho = maps.Property(
+            #     resistivity = maps.Property(
             #             "Electrical Resistivity",
             #             propertyLink=('sigma', maps.ReciprocalMap)
             #     )

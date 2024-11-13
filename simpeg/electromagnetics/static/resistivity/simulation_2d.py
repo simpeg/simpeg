@@ -511,7 +511,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         if self.bc_type != "Dirichlet":
             G = G - self._MBC[ky]
         MfRhoI = self.MfRhoI
-        # Get resistivity rho
+        # Get resistivity resistivity
         A = D * MfRhoI * G + ky**2 * self.MccSigma
         if self.bc_type == "Neumann":
             A[0, 0] = A[0, 0] + 1.0

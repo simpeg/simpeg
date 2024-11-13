@@ -80,7 +80,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
 
     def test_Simulation2DCellCentered(self):
         problemDC = dc.Simulation2DCellCentered(
-            self.mesh, survey=self.surveyDC, rhoMap=maps.IdentityMap(self.mesh)
+            self.mesh, survey=self.surveyDC, resistivity_map=maps.IdentityMap(self.mesh)
         )
         data0 = problemDC.dpred(1.0 / self.conductivity0)
         finf = problemDC.fields(1.0 / self.conductivityInf)
@@ -91,7 +91,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         problemIP = ip.Simulation2DCellCentered(
             self.mesh,
             survey=surveyIP,
-            rho=1.0 / self.conductivityInf,
+            resistivity=1.0 / self.conductivityInf,
             etaMap=maps.IdentityMap(self.mesh),
         )
         data_full = data0 - datainf

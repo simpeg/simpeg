@@ -118,7 +118,7 @@ survey = fdem.Survey(source_list)
 #
 #     - Your smallest cell size should be 10%-20% the size of your smallest skin depth
 #     - The thickness of your padding needs to be 2-3 times biggest than your largest skin depth
-#     - The skin depth is ~500*np.sqrt(rho/f)
+#     - The skin depth is ~500*np.sqrt(resistivity/f)
 #
 #
 
@@ -216,7 +216,7 @@ cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 # measuring the magnetic flux density and working with a conductivity model,
 # the EB formulation is the most natural. We must also remember to define
 # the mapping for the conductivity model. If you defined a resistivity model,
-# use the kwarg *rhoMap* instead of *conductivity_map*
+# use the kwarg *resistivity_map* instead of *conductivity_map*
 #
 
 simulation = fdem.simulation.Simulation3DMagneticFluxDensity(

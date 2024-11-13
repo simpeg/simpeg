@@ -252,7 +252,7 @@ dc_survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 #
 # Here we predict DC resistivity data. If the keyword argument *conductivity_map* is
 # defined, the simulation will expect a conductivity model. If the keyword
-# argument *rhoMap* is defined, the simulation will expect a resistivity model.
+# argument *resistivity_map* is defined, the simulation will expect a resistivity model.
 #
 #
 #
@@ -428,7 +428,7 @@ cbar.set_label("Intrinsic Chargeability [V/V]", rotation=270, labelpad=15, size=
 #
 
 # We use the keyword argument *sigma* to define the background conductivity on
-# the mesh. We could use the keyword argument *rho* to accomplish the same thing
+# the mesh. We could use the keyword argument *resistivity* to accomplish the same thing
 # using a background resistivity model.
 ip_simulation = ip.Simulation3DNodal(
     mesh,

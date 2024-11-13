@@ -14,7 +14,7 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
     ----------
     mesh : discretize.base.BaseMesh
     survey : simpeg.electromagnetics.static.self_potential.Survey
-    sigma, rho : float or array_like
+    sigma, resistivity : float or array_like
         The conductivity/resistivity model of the subsurface.
     q : float, array_like, optional
         The charge density accumulation rate model (C/(s m^3)), also
@@ -46,24 +46,31 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
     q, qMap, qDeriv = props.Invertible("Charge density accumulation rate (C/(s m^3))")
 
     def __init__(
-        self, mesh, survey=None, sigma=None, rho=None, q=None, qMap=None, **kwargs
+        self,
+        mesh,
+        survey=None,
+        sigma=None,
+        resistivity=None,
+        q=None,
+        qMap=None,
+        **kwargs,
     ):
         # These below checks can be commented out, correspondingly do
-        # not set conductivity_map and rhoMap to None on the super call, to enable
+        # not set conductivity_map and resistivity_map to None on the super call, to enable
         # derivatives with respect to resistivity/conductivity.
         if sigma is None:
-            if rho is None:
+            if resistivity is None:
                 raise ValueError("Must set either conductivity or resistivity.")
         else:
-            if rho is not None:
+            if resistivity is not None:
                 raise ValueError("Cannot set both conductivity and resistivity.")
         super().__init__(
             mesh=mesh,
             survey=survey,
             sigma=sigma,
-            rho=rho,
+            resistivity=resistivity,
             conductivity_map=None,
-            rhoMap=None,
+            resistivity_map=None,
             **kwargs,
         )
         self.q = q
@@ -80,7 +87,7 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
     @property
     def _delete_on_model_change(self):
         # When enabling resistivity derivatives, uncomment these lines
-        # if self.rhoMap is not None:
+        # if self.resistivity_map is not None:
         #     return super()._delete_on_model_change
         if self.storeJ and self.qMap is not None and not self.qMap.is_linear:
             return ["_Jmatrix", "_gtgdiag"]

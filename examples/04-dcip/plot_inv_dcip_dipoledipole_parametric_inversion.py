@@ -38,8 +38,8 @@ from pylab import hist
 def run(
     plotIt=True,
     survey_type="dipole-dipole",
-    rho_background=1e3,
-    rho_block=1e2,
+    resistivity_background=1e3,
+    resistivity_block=1e2,
     block_x0=100,
     block_dx=10,
     block_y0=-10,
@@ -74,7 +74,7 @@ def run(
         mesh, np.c_[mesh.cell_centers_x, mesh.cell_centers_x * 0.0]
     )
     survey.drape_electrodes_on_topography(mesh, actind, option="top")
-    # Use Exponential Map: m = log(rho)
+    # Use Exponential Map: m = log(resistivity)
     parametric_block = maps.ParametricBlock(mesh, slopeFact=1e2)
     mapping = maps.ExpMap(mesh) * parametric_block
     # Set true model
@@ -83,19 +83,19 @@ def run(
 
     # Set initial model
     m0 = np.r_[
-        np.log(rho_background),
-        np.log(rho_block),
+        np.log(resistivity_background),
+        np.log(resistivity_block),
         block_x0,
         block_dx,
         block_y0,
         block_dy,
     ]
-    rho = mapping * mtrue
-    rho0 = mapping * m0
+    resistivity = mapping * mtrue
+    resistivity0 = mapping * m0
     # Show the true conductivity model
     fig = plt.figure(figsize=(12, 3))
     ax = plt.subplot(111)
-    temp = rho.copy()
+    temp = resistivity.copy()
     temp[~actind] = np.nan
     out = mesh.plot_image(
         temp,
@@ -119,7 +119,7 @@ def run(
     # Show the true conductivity model
     fig = plt.figure(figsize=(12, 3))
     ax = plt.subplot(111)
-    temp = rho0.copy()
+    temp = resistivity0.copy()
     temp[~actind] = np.nan
     out = mesh.plot_image(
         temp,
@@ -146,7 +146,7 @@ def run(
     prb = DC.Simulation2DNodal(
         mesh,
         survey=survey,
-        rhoMap=mapping,
+        resistivity_map=mapping,
         storeJ=True,
     )
 
@@ -186,19 +186,19 @@ def run(
     mopt = inv.run(m0)
 
     # Convert obtained inversion model to resistivity
-    # rho = M(m), where M(.) is a mapping
+    # resistivity = M(m), where M(.) is a mapping
 
-    rho_est = mapping * mopt
-    rho_true = rho.copy()
+    resistivity_est = mapping * mopt
+    resistivity_true = resistivity.copy()
     # show recovered conductivity
     fig, ax = plt.subplots(2, 1, figsize=(20, 6))
     out1 = mesh.plot_image(
-        rho_true,
+        resistivity_true,
         pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm(10, 1000)},
         ax=ax[0],
     )
     out2 = mesh.plot_image(
-        rho_est,
+        resistivity_est,
         pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm(10, 1000)},
         ax=ax[1],
     )

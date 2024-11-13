@@ -72,20 +72,20 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     sigma[blk_inds_c] = 1.0 / 10.0
     sigma[blk_inds_r] = 1.0 / 1000.0
     sigma[~actind] = 1.0 / 1e8
-    rho = 1.0 / sigma
+    resistivity = 1.0 / sigma
     charg = np.zeros(mesh.nC)
     charg[blk_inds_charg] = 0.1
 
     # Show the true conductivity model
     if plotIt:
         fig, axs = plt.subplots(2, 1, figsize=(12, 6))
-        temp_rho = rho.copy()
-        temp_rho[~actind] = np.nan
+        temp_resistivity = resistivity.copy()
+        temp_resistivity[~actind] = np.nan
         temp_charg = charg.copy()
         temp_charg[~actind] = np.nan
 
         out1 = mesh.plot_image(
-            temp_rho,
+            temp_resistivity,
             grid=True,
             ax=axs[0],
             grid_opts={"alpha": 0.2},
@@ -116,16 +116,18 @@ def run(plotIt=True, survey_type="dipole-dipole"):
 
         plt.show()
 
-    # Use Exponential Map: m = log(rho)
+    # Use Exponential Map: m = log(resistivity)
     actmap = maps.InjectActiveCells(mesh, indActive=actind, valInactive=np.log(1e8))
     mapping = maps.ExpMap(mesh) * actmap
 
     # Generate mtrue_dc for resistivity
-    mtrue_dc = np.log(rho[actind])
+    mtrue_dc = np.log(resistivity[actind])
 
     # Generate 2.5D DC problem
     # "N" means potential is defined at nodes
-    prb = DC.Simulation2DNodal(mesh, survey=survey_dc, rhoMap=mapping, storeJ=True)
+    prb = DC.Simulation2DNodal(
+        mesh, survey=survey_dc, resistivity_map=mapping, storeJ=True
+    )
 
     # Make synthetic DC data with 5% Gaussian noise
     data_dc = prb.make_synthetic_data(mtrue_dc, relative_error=0.05, add_noise=True)
@@ -137,7 +139,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     # "N" means potential is defined at nodes
     survey_ip = IP.from_dc_to_ip_survey(survey_dc, dim="2.5D")
     prb_ip = IP.Simulation2DNodal(
-        mesh, survey=survey_ip, etaMap=actmap, storeJ=True, rho=rho
+        mesh, survey=survey_ip, etaMap=actmap, storeJ=True, resistivity=resistivity
     )
 
     data_ip = prb_ip.make_synthetic_data(mtrue_ip, relative_error=0.05, add_noise=True)
@@ -183,11 +185,11 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     )
 
     # Convert obtained inversion model to resistivity
-    # rho = M(m), where M(.) is a mapping
+    # resistivity = M(m), where M(.) is a mapping
 
     rho_est = mapping * mopt_dc
     rho_est[~actind] = np.nan
-    rho_true = rho.copy()
+    rho_true = resistivity.copy()
     rho_true[~actind] = np.nan
 
     # show recovered conductivity
@@ -244,7 +246,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     # Clean sensitivity function formed with true resistivity
     prb_ip._Jmatrix = None
     # Input obtained resistivity to form sensitivity
-    prb_ip.rho = mapping * mopt_dc
+    prb_ip.resistivity = mapping * mopt_dc
     mopt_ip, _ = IP.run_inversion(
         m0_ip,
         prb_ip,

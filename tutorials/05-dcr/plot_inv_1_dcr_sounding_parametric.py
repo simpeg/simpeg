@@ -186,8 +186,8 @@ starting_model = np.r_[np.log(resistivities), np.log(layer_thicknesses)]
 
 # Since the model contains two different properties for each layer, we use
 # wire maps to distinguish the properties.
-wire_map = maps.Wires(("rho", mesh.nC), ("t", mesh.nC - 1))
-resistivity_map = maps.ExpMap(nP=mesh.nC) * wire_map.rho
+wire_map = maps.Wires(("resistivity", mesh.nC), ("t", mesh.nC - 1))
+resistivity_map = maps.ExpMap(nP=mesh.nC) * wire_map.resistivity
 layer_map = maps.ExpMap(nP=mesh.nC - 1) * wire_map.t
 
 #######################################################################
@@ -200,7 +200,7 @@ layer_map = maps.ExpMap(nP=mesh.nC - 1) * wire_map.t
 
 simulation = dc.simulation_1d.Simulation1DLayers(
     survey=survey,
-    rhoMap=resistivity_map,
+    resistivity_map=resistivity_map,
     thicknessesMap=layer_map,
 )
 
@@ -223,9 +223,9 @@ simulation = dc.simulation_1d.Simulation1DLayers(
 dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_object)
 
 # Define the regularization on the parameters related to resistivity
-mesh_rho = TensorMesh([mesh.h[0].size])
-reg_rho = regularization.WeightedLeastSquares(
-    mesh_rho, alpha_s=0.01, alpha_x=1, mapping=wire_map.rho
+mesh_resistivity = TensorMesh([mesh.h[0].size])
+reg_resistivity = regularization.WeightedLeastSquares(
+    mesh_resistivity, alpha_s=0.01, alpha_x=1, mapping=wire_map.resistivity
 )
 
 # Define the regularization on the parameters related to layer thickness
@@ -235,7 +235,7 @@ reg_t = regularization.WeightedLeastSquares(
 )
 
 # Combine to make regularization for the inversion problem
-reg = reg_rho + reg_t
+reg = reg_resistivity + reg_t
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.

@@ -136,12 +136,12 @@ class BaseSIPSimulation(BaseIPSimulation):
         return -dsigma_dlogsigma
 
     @property
-    def rhoDeriv(self):
+    def _res_deriv(self):
         if self.storeJ:
-            drho_dlogrho = sdiag(self.rho) * self._P
+            dresistivity_dlogresistivity = sdiag(self.resistivity) * self._P
         else:
-            drho_dlogrho = sdiag(self.rho)
-        return drho_dlogrho
+            dresistivity_dlogresistivity = sdiag(self.resistivity)
+        return dresistivity_dlogresistivity
 
     @property
     def etaDeriv_store(self):

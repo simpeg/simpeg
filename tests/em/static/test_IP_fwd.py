@@ -88,7 +88,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         simulationip = ip.simulation.Simulation3DCellCentered(
             mesh=self.mesh,
             survey=surveyip,
-            rho=1.0 / self.conductivityInf,
+            resistivity=1.0 / self.conductivityInf,
             etaMap=maps.IdentityMap(self.mesh),
             Ainv=simulationdc.Ainv,
             _f=finf,

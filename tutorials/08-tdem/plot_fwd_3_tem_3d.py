@@ -171,7 +171,7 @@ survey = tdem.Survey(source_list)
 #
 #     - Your smallest cell size should be 10%-20% the size of your smallest diffusion distance
 #     - The thickness of your padding needs to be 2-3 times biggest than your largest diffusion distance
-#     - The diffusion distance is ~1260*np.sqrt(rho*t)
+#     - The diffusion distance is ~1260*np.sqrt(resistivity*t)
 #
 #
 

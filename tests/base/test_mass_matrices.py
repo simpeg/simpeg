@@ -35,7 +35,7 @@ class SimpleSim(BasePDESimulation):
         matrices to be deleted if the model for conductivity/resistivity is updated
         """
         toDelete = super()._delete_on_model_change
-        if self.conductivity_map is not None or self.rhoMap is not None:
+        if self.conductivity_map is not None or self.resistivity_map is not None:
             toDelete = toDelete + self._clear_on_sigma_update
         return toDelete
 
