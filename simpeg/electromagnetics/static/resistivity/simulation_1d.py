@@ -145,7 +145,7 @@ class Simulation1DLayers(BaseSimulation):
         self.sigma = sigma
         self.rho = rho
         self.thicknesses = thicknesses
-        self.sigmaMap = sigmaMap
+        self.conductivity_map = sigmaMap
         self.rhoMap = rhoMap
         self.thicknessesMap = thicknessesMap
         self.fix_Jmatrix = fix_Jmatrix

@@ -309,9 +309,9 @@ class Simulation2DElectricField(BaseFDEMSimulation):
 
                 map_l_kwargs = {}
                 map_r_kwargs = {}
-                if self.sigmaMap is not None:
-                    map_l_kwargs["sigmaMap"] = P_l * self.sigmaMap
-                    map_r_kwargs["sigmaMap"] = P_r * self.sigmaMap
+                if self.conductivity_map is not None:
+                    map_l_kwargs["sigmaMap"] = P_l * self.conductivity_map
+                    map_r_kwargs["sigmaMap"] = P_r * self.conductivity_map
                 if self.muiMap is not None:
                     map_l_kwargs["muiMap"] = P_l * self.muiMap
                     map_r_kwargs["muiMap"] = P_r * self.muiMap
@@ -450,7 +450,7 @@ class Simulation2DElectricField(BaseFDEMSimulation):
                     sim.mui = self._P_l @ self.mui
                 except Exception:
                     sim.mui = self.mui
-            if self.sigmaMap is None:
+            if self.conductivity_map is None:
                 try:
                     sim.sigma = self._P_l @ self.sigma
                 except Exception:
@@ -463,7 +463,7 @@ class Simulation2DElectricField(BaseFDEMSimulation):
                     sim.mui = self._P_r @ self.mui
                 except Exception:
                     sim.mui = self.mui
-            if self.sigmaMap is None:
+            if self.conductivity_map is None:
                 try:
                     sim.sigma = self._P_r @ self.sigma
                 except Exception:

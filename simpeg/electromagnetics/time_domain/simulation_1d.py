@@ -307,14 +307,14 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 self._J["dh"] = self._project_to_data(v_dh)
 
             if (
-                self.sigmaMap is not None
+                self.conductivity_map is not None
                 or self.muMap is not None
                 or self.thicknessesMap is not None
             ):
                 rTE_ds, rTE_dh, rTE_dmu = rTE_gradient(
                     frequencies, unique_lambs, sig, mu, self.thicknesses
                 )
-                if self.sigmaMap is not None:
+                if self.conductivity_map is not None:
                     rTE_ds = rTE_ds[..., inv_lambs]
                     v_ds = (
                         (

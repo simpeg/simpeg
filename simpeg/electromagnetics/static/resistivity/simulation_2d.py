@@ -688,7 +688,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
             out = Grad.T * self.MeSigmaDeriv(
                 Grad * u, v, adjoint=adjoint
             ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
-        if self.bc_type != "Neumann" and self.sigmaMap is not None:
+        if self.bc_type != "Neumann" and self.conductivity_map is not None:
             if getattr(self, "_MBC_sigma", None) is None:
                 self._MBC_sigma = {}
             if ky not in self._MBC_sigma:

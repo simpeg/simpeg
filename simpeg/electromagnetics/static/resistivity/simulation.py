@@ -559,7 +559,7 @@ class Simulation3DNodal(BaseDCSimulation):
             out = Grad.T @ self.MeSigmaDeriv(Grad @ u, v, adjoint)
         else:
             out = self.MeSigmaDeriv(Grad @ u, Grad @ v, adjoint)
-        if self.bc_type != "Neumann" and self.sigmaMap is not None:
+        if self.bc_type != "Neumann" and self.conductivity_map is not None:
             if getattr(self, "_MBC_sigma", None) is None:
                 self._MBC_sigma = self._AvgBC @ self._con_deriv
             if not isinstance(u, Zero):

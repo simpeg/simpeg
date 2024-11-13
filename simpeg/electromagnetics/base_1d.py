@@ -316,7 +316,7 @@ class BaseEM1DSimulation(BaseEMSimulation):
         out = 0.0
         if self.hMap is not None:
             out = out + Js["dh"] @ (self.hDeriv @ v)
-        if self.sigmaMap is not None:
+        if self.conductivity_map is not None:
             out = out + Js["ds"] @ (self._con_deriv @ v)
         if self.muMap is not None:
             out = out + Js["dmu"] @ (self.muDeriv @ v)
@@ -329,7 +329,7 @@ class BaseEM1DSimulation(BaseEMSimulation):
         out = 0.0
         if self.hMap is not None:
             out = out + self.hDeriv.T @ (Js["dh"].T @ v)
-        if self.sigmaMap is not None:
+        if self.conductivity_map is not None:
             out = out + self._con_deriv.T @ (Js["ds"].T @ v)
         if self.muMap is not None:
             out = out + self.muDeriv.T @ (Js["dmu"].T @ v)
@@ -587,7 +587,7 @@ class BaseEM1DSimulation(BaseEMSimulation):
             if self.hMap is not None:
                 J = Js["dh"] @ self.hDeriv
                 out = out + np.einsum("i,ij,ij->j", W, J, J)
-            if self.sigmaMap is not None:
+            if self.conductivity_map is not None:
                 J = Js["ds"] @ self._con_deriv
                 out = out + np.einsum("i,ij,ij->j", W, J, J)
             if self.muMap is not None:

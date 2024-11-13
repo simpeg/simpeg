@@ -62,7 +62,7 @@ class Simulation1DRecursive(BaseSimulation):
         self.sigma = sigma
         self.rho = rho
         self.thicknesses = thicknesses
-        self.sigmaMap = sigmaMap
+        self.conductivity_map = sigmaMap
         self.rhoMap = rhoMap
         self.thicknessesMap = thicknessesMap
 
@@ -271,7 +271,7 @@ class Simulation1DRecursive(BaseSimulation):
             self.survey.frequencies, self.thicknesses, self.sigma
         )
         Js = []
-        if self.sigmaMap is not None:
+        if self.conductivity_map is not None:
             Js.append(Z_dsigma)
         if self.thicknessesMap is not None:
             Js.append(Z_dthick)
@@ -306,7 +306,7 @@ class Simulation1DRecursive(BaseSimulation):
                 start = end
         self._Jmatrix = {}
         start = 0
-        if self.sigmaMap is not None:
+        if self.conductivity_map is not None:
             end = start + Z_dsigma.shape[1]
             self._Jmatrix["sigma"] = J[:, start:end]
             start = end
@@ -324,7 +324,7 @@ class Simulation1DRecursive(BaseSimulation):
                 W = W.diagonal() ** 2
 
             gtgdiag = 0
-            if self.sigmaMap is not None:
+            if self.conductivity_map is not None:
                 J = Js["sigma"] @ self._con_deriv
                 gtgdiag += np.einsum("i,ij,ij->j", W, J, J)
             if self.thicknessesMap is not None:
@@ -336,7 +336,7 @@ class Simulation1DRecursive(BaseSimulation):
     def Jvec(self, m, v, f=None):
         J = self.getJ(m, f=None)
         Jvec = 0
-        if self.sigmaMap is not None:
+        if self.conductivity_map is not None:
             Jvec += J["sigma"] @ (self._con_deriv * v)
         if self.thicknessesMap is not None:
             Jvec += J["thick"] @ (self.thicknessesDeriv * v)
@@ -345,7 +345,7 @@ class Simulation1DRecursive(BaseSimulation):
     def Jtvec(self, m, v, f=None):
         J = self.getJ(m, f=None)
         JTvec = 0
-        if self.sigmaMap is not None:
+        if self.conductivity_map is not None:
             JTvec += self._con_deriv.T @ (J["sigma"].T @ v)
         if self.thicknessesMap is not None:
             JTvec += self.thicknessesDeriv.T @ (J["thick"].T @ v)

@@ -24,7 +24,7 @@ class SimpleSim(BasePDESimulation):
         super().__init__(mesh=mesh, survey=survey)
         self.sigma = sigma
         self.mu = mu
-        self.sigmaMap = sigmaMap
+        self.conductivity_map = sigmaMap
         self.muMap = muMap
 
     @property
@@ -33,7 +33,7 @@ class SimpleSim(BasePDESimulation):
         matrices to be deleted if the model for conductivity/resistivity is updated
         """
         toDelete = super()._delete_on_model_change
-        if self.sigmaMap is not None or self.rhoMap is not None:
+        if self.conductivity_map is not None or self.rhoMap is not None:
             toDelete = toDelete + self._clear_on_sigma_update
         return toDelete
 

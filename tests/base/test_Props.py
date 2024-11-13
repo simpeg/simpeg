@@ -22,7 +22,7 @@ class SimpleExample(props.HasModel):
     def __init__(self, sigma=None, sigmaMap=None, **kwargs):
         super().__init__(**kwargs)
         self.sigma = sigma
-        self.sigmaMap = sigmaMap
+        self.conductivity_map = sigmaMap
 
 
 class ShortcutExample(props.HasModel):
@@ -31,7 +31,7 @@ class ShortcutExample(props.HasModel):
     def __init__(self, sigma=None, sigmaMap=None, **kwargs):
         super().__init__(**kwargs)
         self.sigma = sigma
-        self.sigmaMap = sigmaMap
+        self.conductivity_map = sigmaMap
 
 
 class ReciprocalMappingExample(props.HasModel):
@@ -45,7 +45,7 @@ class ReciprocalMappingExample(props.HasModel):
         super().__init__(**kwargs)
         self.sigma = sigma
         self.rho = rho
-        self.sigmaMap = sigmaMap
+        self.conductivity_map = sigmaMap
         self.rhoMap = rhoMap
 
 
@@ -60,7 +60,7 @@ class ReciprocalExample(props.HasModel):
         super().__init__(**kwargs)
         self.sigma = sigma
         self.rho = rho
-        self.sigmaMap = sigmaMap
+        self.conductivity_map = sigmaMap
 
 
 class ReciprocalPropExample(props.HasModel):
