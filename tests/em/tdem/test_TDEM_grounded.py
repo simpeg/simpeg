@@ -56,8 +56,8 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         conductivity = conductivity0 * np.ones(mesh.nC)
         conductivity[target_inds] = conductivity1
 
-        mu = mu0 * np.ones(mesh.nC)
-        mu[target_inds] = mu1
+        permeability = mu0 * np.ones(mesh.nC)
+        permeability[target_inds] = mu1
 
         src = tdem.Src.RawVec_Grounded([], s_e=s_e)
 
@@ -73,7 +73,7 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         prob = getattr(tdem, "Simulation3D{}".format(self.prob_type))(
             mesh,
             time_steps=time_steps,
-            mu=mu,
+            permeability=permeability,
             conductivity_map=maps.ExpMap(mesh),
         )
         survey = tdem.Survey([src])
@@ -86,7 +86,7 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         self.src = src
 
         self.conductivity = conductivity
-        self.mu = mu
+        self.permeability = permeability
 
         print("Testing problem {} \n\n".format(self.prob_type))
 

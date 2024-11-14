@@ -212,12 +212,12 @@ dpred_chargeable = simulation_chargeable.dpred(conductivity_model)
 
 # Simulate response for viscous remanent magnetization
 mu0 = 4 * np.pi * 1e-7
-mu = mu0 * (1 + susceptibility)
+permeability = mu0 * (1 + susceptibility)
 simulation_vrm = tdem.Simulation1DLayered(
     survey=survey,
     thicknesses=thicknesses,
     conductivity_map=model_mapping,
-    mu=mu,
+    permeability=permeability,
     dchi=dchi,
     tau1=tau1,
     tau2=tau2,

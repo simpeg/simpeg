@@ -85,35 +85,37 @@ def setupProblem(
     survey = fdem.Survey([src])
 
     if conductivityInInversion:
-        wires = maps.Wires(("mu", mesh.nC), ("conductivity", mesh.nC))
+        wires = maps.Wires(("permeability", mesh.nC), ("conductivity", mesh.nC))
 
-        muMap = maps.MuRelative(mesh) * wires.mu
+        permeability_map = maps.MuRelative(mesh) * wires.permeability
         conductivity_map = maps.ExpMap(mesh) * wires.conductivity
 
         if invertMui:
-            muiMap = maps.ReciprocalMap(mesh) * muMap
+            muiMap = maps.ReciprocalMap(mesh) * permeability_map
             prob = getattr(fdem, "Simulation3D{}".format(prbtype))(
                 mesh, muiMap=muiMap, conductivity_map=conductivity_map
             )
             # m0 = np.hstack([1./muMod, conductivityMod])
         else:
             prob = getattr(fdem, "Simulation3D{}".format(prbtype))(
-                mesh, muMap=muMap, conductivity_map=conductivity_map
+                mesh,
+                permeability_map=permeability_map,
+                conductivity_map=conductivity_map,
             )
         m0 = np.hstack([muMod, conductivityMod])
 
     else:
-        muMap = maps.MuRelative(mesh)
+        permeability_map = maps.MuRelative(mesh)
 
         if invertMui:
-            muiMap = maps.ReciprocalMap(mesh) * muMap
+            muiMap = maps.ReciprocalMap(mesh) * permeability_map
             prob = getattr(fdem, "Simulation3D{}".format(prbtype))(
                 mesh, conductivity=conductivityMod, muiMap=muiMap
             )
             # m0 = 1./muMod
         else:
             prob = getattr(fdem, "Simulation3D{}".format(prbtype))(
-                mesh, conductivity=conductivityMod, muMap=muMap
+                mesh, conductivity=conductivityMod, permeability_map=permeability_map
             )
         m0 = muMod
 
@@ -192,7 +194,7 @@ class MuTests(unittest.TestCase):
         print("Testing Jvec {}".format(prbtype))
 
         rng = np.random.default_rng(seed=3321)
-        u = rng.uniform(size=self.simulation.muMap.nP)
+        u = rng.uniform(size=self.simulation.permeability_map.nP)
         v = rng.uniform(size=self.survey.nD)
 
         self.simulation.model = self.m0

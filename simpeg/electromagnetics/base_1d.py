@@ -258,7 +258,7 @@ class BaseEM1DSimulation(BaseEMSimulation):
 
             return conductivity_complex
 
-    def compute_complex_mu(self, frequencies):
+    def _compute_complex_permeability(self, frequencies):
         r"""
         Computes the complex magnetic permeability matrix assuming a log-uniform
         distribution of time-relaxation constants:
@@ -275,27 +275,27 @@ class BaseEM1DSimulation(BaseEMSimulation):
         :return: complex magnetic susceptibility matrix
         """
 
-        if np.isscalar(self.mu):
-            mu = np.ones_like(self.conductivity) * self.mu
+        if np.isscalar(self.permeability):
+            permeability = np.ones_like(self.conductivity) * self.permeability
         else:
-            mu = self.mu
+            permeability = self.permeability
 
         n_layer = self.n_layer
         n_frequency = len(frequencies)
         # n_filter = self.n_filter
 
-        mu = np.tile(mu.reshape([-1, 1]), (1, n_frequency))
+        permeability = np.tile(permeability.reshape([-1, 1]), (1, n_frequency))
 
         # No magnetic viscosity
         if np.all(self.dchi) == 0.0:
-            return mu
+            return permeability
 
         # Magnetic viscosity
         else:
             if np.isscalar(self.dchi):
-                dchi = self.dchi * np.ones_like(self.mu)
-                tau1 = self.tau1 * np.ones_like(self.mu)
-                tau2 = self.tau2 * np.ones_like(self.mu)
+                dchi = self.dchi * np.ones_like(self.permeability)
+                tau1 = self.tau1 * np.ones_like(self.permeability)
+                tau2 = self.tau2 * np.ones_like(self.permeability)
             else:
                 dchi = np.tile(self.dchi.reshape([-1, 1]), (1, n_frequency))
                 tau1 = np.tile(self.tau1.reshape([-1, 1]), (1, n_frequency))
@@ -303,7 +303,7 @@ class BaseEM1DSimulation(BaseEMSimulation):
 
             w = np.tile(2 * np.pi * frequencies, (n_layer, 1))
 
-            mu_complex = mu + mu_0 * dchi * (
+            mu_complex = permeability + mu_0 * dchi * (
                 1
                 - np.log((1 + 1j * w * tau2) / (1 + 1j * w * tau1))
                 / np.log(tau2 / tau1)
@@ -318,7 +318,7 @@ class BaseEM1DSimulation(BaseEMSimulation):
             out = out + Js["dh"] @ (self.hDeriv @ v)
         if self.conductivity_map is not None:
             out = out + Js["ds"] @ (self._con_deriv @ v)
-        if self.muMap is not None:
+        if self.permeability_map is not None:
             out = out + Js["dmu"] @ (self.muDeriv @ v)
         if self.thicknessesMap is not None:
             out = out + Js["dthick"] @ (self.thicknessesDeriv @ v)
@@ -331,7 +331,7 @@ class BaseEM1DSimulation(BaseEMSimulation):
             out = out + self.hDeriv.T @ (Js["dh"].T @ v)
         if self.conductivity_map is not None:
             out = out + self._con_deriv.T @ (Js["ds"].T @ v)
-        if self.muMap is not None:
+        if self.permeability_map is not None:
             out = out + self.muDeriv.T @ (Js["dmu"].T @ v)
         if self.thicknessesMap is not None:
             out = out + self.thicknessesDeriv.T @ (Js["dthick"].T @ v)
@@ -557,7 +557,7 @@ class BaseEM1DSimulation(BaseEMSimulation):
     def _delete_on_model_change(self):
         to_delete = super()._delete_on_model_change
         if self.fix_Jmatrix is False:
-            to_delete += ["_J", "_gtgdiag"]
+            to_delete += ["J_matrix", "jtj_diag"]
         return to_delete
 
     def depth_of_investigation_christiansen_2012(self, std, thres_hold=0.8):
@@ -577,24 +577,24 @@ class BaseEM1DSimulation(BaseEMSimulation):
         return delta
 
     def getJtJdiag(self, m, W=None, f=None):
-        if getattr(self, "_gtgdiag", None) is None:
+        if (jtj_diag := self._cache["jtj_diag"]) is None:
             Js = self.getJ(m, f=f)
             if W is None:
                 W = np.ones(self.survey.nD)
             else:
                 W = W.diagonal() ** 2
-            out = 0.0
+            jtj_diag = 0.0
             if self.hMap is not None:
                 J = Js["dh"] @ self.hDeriv
-                out = out + np.einsum("i,ij,ij->j", W, J, J)
+                jtj_diag = jtj_diag + np.einsum("i,ij,ij->j", W, J, J)
             if self.conductivity_map is not None:
                 J = Js["ds"] @ self._con_deriv
-                out = out + np.einsum("i,ij,ij->j", W, J, J)
-            if self.muMap is not None:
+                jtj_diag = jtj_diag + np.einsum("i,ij,ij->j", W, J, J)
+            if self.permeability_map is not None:
                 J = Js["dmu"] @ self.muDeriv
-                out = out + np.einsum("i,ij,ij->j", W, J, J)
+                jtj_diag = jtj_diag + np.einsum("i,ij,ij->j", W, J, J)
             if self.thicknessesMap is not None:
                 J = Js["dthick"] @ self.thicknessesDeriv
-                out = out + np.einsum("i,ij,ij->j", W, J, J)
-            self._gtgdiag = out
-        return self._gtgdiag
+                jtj_diag = jtj_diag + np.einsum("i,ij,ij->j", W, J, J)
+            self._cache["jtj_diag"] = jtj_diag
+        return jtj_diag

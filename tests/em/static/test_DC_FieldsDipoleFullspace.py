@@ -39,7 +39,7 @@ class DC_CC_DipoleFullspaceTests(unittest.TestCase):
 
         # Create Dipole Obj for Analytic Solution
         edipole = fdem.ElectricDipoleWholeSpace(
-            conductivity=1e-2,  # conductivity of 1 S/m
+            sigma=1e-2,  # conductivity of 1 S/m
             mu=mu_0,  # permeability of free space (this is the default)
             epsilon=epsilon_0,  # permittivity of free space (this is the default)
             location=np.r_[0.0, 0.0, 0.0],  # location of the dipole
@@ -218,7 +218,7 @@ class DC_N_DipoleFullspaceTests(unittest.TestCase):
 
         # Create Dipole Obj for Analytic Solution
         edipole = fdem.ElectricDipoleWholeSpace(
-            conductivity=1e-2,  # conductivity of 1 S/m
+            sigma=1e-2,  # conductivity of 1 S/m
             mu=mu_0,  # permeability of free space (this is the default)
             epsilon=epsilon_0,  # permittivity of free space (this is the default)
             location=np.r_[0.0, 0.0, 0.0],  # location of the dipole

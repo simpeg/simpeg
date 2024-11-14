@@ -1183,8 +1183,8 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         """
         B0 = self.getB0()
 
-        mu = self.muMap * m
-        susceptibility = mu / mu_0 - 1
+        permeability = self.permeability_map * m
+        susceptibility = permeability / mu_0 - 1
 
         # Temporary fix
         Bbc, Bbc_const = CongruousMagBC(
@@ -1338,9 +1338,9 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
             u = self.fields(m)
 
         B, u = u["B"], u["u"]
-        mu = self.muMap * (m)
+        permeability = self.permeability_map * (m)
         dmu_dm = self.muDeriv
-        # dchidmu = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
+        # dchidpermeability = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
 
         vol = self.mesh.cell_volumes
         Div = self._Div
@@ -1348,7 +1348,11 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         B0 = self.getB0()
 
         MfMuIvec = 1 / self._Mf__perm_inv.diagonal()
-        dMfMuI = sdiag(MfMuIvec**2) * self.mesh.aveF2CC.T * sdiag(vol * 1.0 / mu**2)
+        dMfMuI = (
+            sdiag(MfMuIvec**2)
+            * self.mesh.aveF2CC.T
+            * sdiag(vol * 1.0 / permeability**2)
+        )
 
         # A = self._Div*self._inv_Mf_permeability*self._Div.T
         # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
@@ -1360,7 +1364,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         dCdm_RHS1 = Div * (sdiag(self._Mf_perm0_inv * B0) * dMfMuI)
         # temp1 = (Dface * (self._Pout.T * self.Bbc_const * self.Bbc))
         # dCdm_RHS2v = (sdiag(vol) * temp1) * \
-        #    np.inner(vol, dchidmu * dmu_dm * v)
+        #    np.inner(vol, dchidpermeability * dmu_dm * v)
 
         # dCdm_RHSv =  dCdm_RHS1*(dmu_dm*v) +  dCdm_RHS2v
         dCdm_RHSv = dCdm_RHS1 * (dmu_dm * v)
@@ -1421,9 +1425,9 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
             u = self.fields(m)
 
         B, u = u["B"], u["u"]
-        mu = self.mapping * (m)
+        permeability = self.mapping * (m)
         dmu_dm = self.mapping.deriv(m)
-        # dchidmu = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
+        # dchidpermeability = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
 
         vol = self.mesh.cell_volumes
         Div = self._Div
@@ -1431,7 +1435,11 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         B0 = self.getB0()
 
         MfMuIvec = 1 / self._Mf__perm_inv.diagonal()
-        dMfMuI = sdiag(MfMuIvec**2) * self.mesh.aveF2CC.T * sdiag(vol * 1.0 / mu**2)
+        dMfMuI = (
+            sdiag(MfMuIvec**2)
+            * self.mesh.aveF2CC.T
+            * sdiag(vol * 1.0 / permeability**2)
+        )
 
         # A = self._Div*self._inv_Mf_permeability*self._Div.T
         # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
@@ -1459,8 +1467,8 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         # temp1 = (Dface*(self._Pout.T*self.Bbc_const*self.Bbc))
         # temp1sol = (Dface.T * (sdiag(vol) * sol))
         # temp2 = self.Bbc_const * (self._Pout.T * self.Bbc).T
-        # dCdm_RHS2v  = (sdiag(vol)*temp1)*np.inner(vol, dchidmu*dmu_dm*v)
-        # dCdm_RHS2tsol = (dmu_dm.T * dchidmu.T * vol) * np.inner(temp2, temp1sol)
+        # dCdm_RHS2v  = (sdiag(vol)*temp1)*np.inner(vol, dchidpermeability*dmu_dm*v)
+        # dCdm_RHS2tsol = (dmu_dm.T * dchidpermeability.T * vol) * np.inner(temp2, temp1sol)
 
         # dCdm_RHSv =  dCdm_RHS1*(dmu_dm*v) +  dCdm_RHS2v
 
@@ -1607,7 +1615,7 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
         regularization,
     )
 
-    prob = Simulation3DDifferential(mesh, survey=data, mu=model)
+    prob = Simulation3DDifferential(mesh, survey=data, permeability=model)
 
     miter = kwargs.get("maxIter", 10)
 

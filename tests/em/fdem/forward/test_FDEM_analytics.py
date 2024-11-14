@@ -149,10 +149,10 @@ class TestDipoles(unittest.TestCase):
         surveym = fdem.Survey(dm_p)
 
         prbe = fdem.Simulation3DMagneticField(
-            mesh, survey=surveye, conductivity=conductivityback, mu=mur * mu_0
+            mesh, survey=surveye, conductivity=conductivityback, permeability=mur * mu_0
         )
         prbm = fdem.Simulation3DElectricField(
-            mesh, survey=surveym, conductivity=conductivityback, mu=mur * mu_0
+            mesh, survey=surveym, conductivity=conductivityback, permeability=mur * mu_0
         )
 
         # solve

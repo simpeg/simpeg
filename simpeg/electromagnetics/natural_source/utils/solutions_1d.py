@@ -14,11 +14,11 @@ def get1DEfields(m1d, conductivity, freq, sourceAmp=1.0):
     G = m1d.nodal_gradient
     # Mass matrices
     # Magnetic permeability
-    Mmu = sdiag(m1d.cell_volumes * (1.0 / mu_0))
+    Mpermeability = sdiag(m1d.cell_volumes * (1.0 / mu_0))
     # Conductivity
     Msig = m1d.get_face_inner_product(conductivity)
     # Set up the solution matrix
-    A = G.T * Mmu * G + 1j * 2.0 * np.pi * freq * Msig
+    A = G.T * Mpermeability * G + 1j * 2.0 * np.pi * freq * Msig
     # Define the inner part of the solution matrix
     Aii = A[1:-1, 1:-1]
     # Define the outer part of the solution matrix

@@ -81,7 +81,10 @@ def create_simulation_1d(sim_type, deriv_type):
         sim_kwargs = {"conductivity_map": maps.ExpMap()}
         test_mod = np.log(conductivity_1d)
     else:
-        sim_kwargs = {"muMap": maps.ExpMap(), "conductivity": conductivity_1d}
+        sim_kwargs = {
+            "permeability_map": maps.ExpMap(),
+            "conductivity": conductivity_1d,
+        }
         test_mod = np.log(mu_0) * np.ones(mesh.n_cells)
     if sim_type.lower() == "e":
         sim = nsem.simulation.Simulation1DElectricField(
@@ -133,7 +136,7 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
         sim_kwargs = {"conductivity_map": maps.ExpMap()}
         test_mod = np.log(conductivity)
     else:
-        sim_kwargs = {"muMap": maps.ExpMap(), "conductivity": conductivity}
+        sim_kwargs = {"permeability_map": maps.ExpMap(), "conductivity": conductivity}
         test_mod = np.log(mu_0) * np.ones(mesh.n_cells)
 
     frequencies = np.logspace(-1, 1, 2)
@@ -262,11 +265,11 @@ class Sim_1D(unittest.TestCase):
         assert check_deriv(sim, test_mod, num=3, random_seed=5212)
 
     def test_e_mu_deriv(self):
-        sim, test_mod = create_simulation_1d("e", "mu")
+        sim, test_mod = create_simulation_1d("e", "permeability")
         assert check_deriv(sim, test_mod, num=3, random_seed=63246)
 
     def test_h_mu_deriv(self):
-        sim, test_mod = create_simulation_1d("h", "mu")
+        sim, test_mod = create_simulation_1d("h", "permeability")
         assert check_deriv(sim, test_mod, num=3, random_seed=124)
 
     def test_e_conductivity_adjoint(self):
@@ -278,11 +281,11 @@ class Sim_1D(unittest.TestCase):
         check_adjoint(sim, test_mod)
 
     def test_e_mu_adjoint(self):
-        sim, test_mod = create_simulation_1d("e", "mu")
+        sim, test_mod = create_simulation_1d("e", "permeability")
         check_adjoint(sim, test_mod)
 
     def test_h_mu_adjoint(self):
-        sim, test_mod = create_simulation_1d("h", "mu")
+        sim, test_mod = create_simulation_1d("h", "permeability")
         check_adjoint(sim, test_mod)
 
 
@@ -372,11 +375,11 @@ class Sim_2D(unittest.TestCase):
         assert check_deriv(sim, test_mod, num=3, random_seed=7425)
 
     def test_e_mu_deriv(self):
-        sim, test_mod = create_simulation_2d("e", "mu", "TensorMesh")
+        sim, test_mod = create_simulation_2d("e", "permeability", "TensorMesh")
         assert check_deriv(sim, test_mod, num=3, random_seed=236423)
 
     def test_h_mu_deriv(self):
-        sim, test_mod = create_simulation_2d("h", "mu", "TensorMesh")
+        sim, test_mod = create_simulation_2d("h", "permeability", "TensorMesh")
         assert check_deriv(sim, test_mod, num=3, random_seed=34632)
 
     def test_e_conductivity_adjoint(self):
@@ -388,11 +391,11 @@ class Sim_2D(unittest.TestCase):
         check_adjoint(sim, test_mod)
 
     def test_e_mu_adjoint(self):
-        sim, test_mod = create_simulation_2d("e", "mu", "TensorMesh")
+        sim, test_mod = create_simulation_2d("e", "permeability", "TensorMesh")
         check_adjoint(sim, test_mod)
 
     def test_h_mu_adjoint(self):
-        sim, test_mod = create_simulation_2d("h", "mu", "TensorMesh")
+        sim, test_mod = create_simulation_2d("h", "permeability", "TensorMesh")
         check_adjoint(sim, test_mod)
 
     def test_e_conductivity_adjoint_tree(self):

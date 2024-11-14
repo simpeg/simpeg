@@ -16,18 +16,18 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
     survey : simpeg.electromagnetics.static.self_potential.Survey
     conductivity, resistivity : float or array_like
         The conductivity/resistivity model of the subsurface.
-    q : float, array_like, optional
+    charge_density : float, array_like, optional
         The charge density accumulation rate model (C/(s m^3)), also
         physically represents the volumetric current density (A/m^3).
-    qMap : simpeg.maps.IdentityMap, optional
-        The mapping used to go from the simulation model to `q`. Set this
-        to invert for `q`.
+    charge_density_map : simpeg.maps.IdentityMap, optional
+        The mapping used to go from the simulation model to `charge_density`. Set this
+        to invert for `charge_density`.
     **kwargs
         arguments passed on to :class:`.resistivity.Simulation3DCellCentered`
 
     Notes
     -----
-    The charge density accumulation rate, :math:`q`, is related to the self
+    The charge density accumulation rate, :math:`charge_density`, is related to the self
     electric potential, :math:`\phi`, with the same PDE, that relates current
     sources to potential in the resistivity case.
 
@@ -43,7 +43,9 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
     boundary conditions, check out the resistivity simulations.
     """
 
-    q, qMap, qDeriv = props.Invertible("Charge density accumulation rate (C/(s m^3))")
+    charge_density, charge_density_map, _charge_deriv = props.Invertible(
+        "Charge density accumulation rate (C/(s m^3))"
+    )
 
     def __init__(
         self,
@@ -51,8 +53,8 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
         survey=None,
         conductivity=None,
         resistivity=None,
-        q=None,
-        qMap=None,
+        charge_density=None,
+        charge_density_map=None,
         **kwargs,
     ):
         # These below checks can be commented out, correspondingly do
@@ -73,24 +75,26 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
             resistivity_map=None,
             **kwargs,
         )
-        self.q = q
-        self.qMap = qMap
+        self.charge_density = charge_density
+        self.charge_density_map = charge_density_map
 
     def getRHS(self):
-        return self._Mcc @ self.q
+        return self._Mcc @ self.charge_density
 
     def getRHSDeriv(self, source, v, adjoint=False):
         if adjoint:
-            return self.qDeriv.T @ (self._Mcc @ v)
-        return self._Mcc @ (self.qDeriv @ v)
+            return self._charge_deriv.T @ (self._Mcc @ v)
+        return self._Mcc @ (self._charge_deriv @ v)
 
     @property
     def _delete_on_model_change(self):
         # When enabling resistivity derivatives, uncomment these lines
         # if self.resistivity_map is not None:
         #     return super()._delete_on_model_change
-        if self.storeJ and self.qMap is not None and not self.qMap.is_linear:
-            return ["_Jmatrix", "_gtgdiag"]
+        charge_density_map = self.charge_density_map
+        if self.storeJ and charge_density_map is not None:
+            if not charge_density_map.is_linear():
+                return ["J_matrix", "jtj_diag"]
         return []
 
 

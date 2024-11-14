@@ -107,7 +107,7 @@ class Fields3DCellCentered(FieldsDC):
         self._nC = self.simulation.mesh.nC
         self._Grad = self.simulation.Grad
         self._inv_Mf = self.simulation._inv_Mf
-        self._Vol = self.simulation.Vol
+        self._Mcc = self.simulation._Mcc
         self._faceDiv = self.simulation.mesh.face_divergence
 
     def _GLoc(self, fieldType):
@@ -170,7 +170,7 @@ class Fields3DCellCentered(FieldsDC):
             \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
         return (
-            epsilon_0 * self._Vol * (self._faceDiv * self._e(phiSolution, source_list))
+            epsilon_0 * self._Mcc * (self._faceDiv * self._e(phiSolution, source_list))
         )
 
     def _charge_density(self, phiSolution, source_list):

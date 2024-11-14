@@ -372,7 +372,7 @@ class MagDipole(BaseFDEMSrc):
         Magnetic dipole moment amplitude
     orientation : {'z', x', 'y'} or (dim) numpy.ndarray
         Orientation of the dipole.
-    mu : float
+    permeability : float
         Background magnetic permeability
     """
 
@@ -383,7 +383,7 @@ class MagDipole(BaseFDEMSrc):
         location=None,
         moment=1.0,
         orientation="z",
-        mu=mu_0,
+        permeability=mu_0,
         **kwargs,
     ):
         if location is None:
@@ -398,7 +398,7 @@ class MagDipole(BaseFDEMSrc):
 
         self.moment = moment
         self.orientation = orientation
-        self.mu = mu
+        self.permeability = permeability
 
     @property
     def location(self):
@@ -446,7 +446,7 @@ class MagDipole(BaseFDEMSrc):
         self._orientation = validate_direction("orientation", var, dim=3)
 
     @property
-    def mu(self):
+    def permeability(self):
         """Magnetic permeability in H/m
 
         Returns
@@ -454,18 +454,18 @@ class MagDipole(BaseFDEMSrc):
         float
             Magnetic permeability in H/m
         """
-        return self._mu
+        return self._permeability
 
-    @mu.setter
-    def mu(self, value):
-        value = validate_float("mu", value, min_val=mu_0)
-        self._mu = value
+    @permeability.setter
+    def permeability(self, value):
+        value = validate_float("permeability", value, min_val=mu_0)
+        self._permeability = value
 
     @property
     def _dipole(self):
         if getattr(self, "__dipole", None) is None:
             self.__dipole = MagneticDipoleWholeSpace(
-                mu=self.mu,
+                permeability=self.permeability,
                 orientation=self.orientation,
                 location=self.location,
                 moment=self.moment,
@@ -558,7 +558,7 @@ class MagDipole(BaseFDEMSrc):
                 self._1d_h = out
             return self._1d_h
         b = self.bPrimary(simulation)
-        return 1.0 / self.mu * b
+        return 1.0 / self.permeability * b
 
     def s_m(self, simulation):
         """Magnetic source term (s_m)
@@ -593,17 +593,17 @@ class MagDipole(BaseFDEMSrc):
             Electric source term on mesh.
         """
 
-        if all(np.r_[self.mu] == np.r_[simulation.mu]):
+        if all(np.r_[self.permeability] == np.r_[simulation.permeability]):
             return Zero()
         else:
             formulation = simulation._formulation
 
             if formulation == "EB":
-                mui_s = simulation.mui - 1.0 / self.mu
-                MMui_s = simulation.mesh.get_face_inner_product(mui_s)
+                perm_inv_s = simulation._perm_inv - 1.0 / self.permeability
+                MMui_s = simulation.mesh.get_face_inner_product(perm_inv_s)
                 C = simulation.mesh.edge_curl
             elif formulation == "HJ":
-                mu_s = simulation.mu - self.mu
+                mu_s = simulation.permeability - self.permeability
                 MMui_s = simulation.mesh.get_edge_inner_product(
                     mu_s, invert_matrix=True
                 )
@@ -612,13 +612,15 @@ class MagDipole(BaseFDEMSrc):
             return -C.T * (MMui_s * self.bPrimary(simulation))
 
     def s_eDeriv(self, simulation, v, adjoint=False):
-        if not hasattr(simulation, "muMap") or not hasattr(simulation, "muiMap"):
+        if not hasattr(simulation, "permeability_map") or not hasattr(
+            simulation, "_perm_inv_map"
+        ):
             return Zero()
         else:
             formulation = simulation._formulation
 
             if formulation == "EB":
-                mui_s = simulation.mui - 1.0 / self.mu
+                mui_s = simulation.mui - 1.0 / self.permeability
                 MMui_sDeriv = (
                     simulation.mesh.get_face_inner_product_deriv(mui_s)(
                         self.bPrimary(simulation)
@@ -635,7 +637,7 @@ class MagDipole(BaseFDEMSrc):
             elif formulation == "HJ":
                 return Zero()
                 # raise NotImplementedError
-                mu_s = simulation.mu - self.mu
+                mu_s = simulation.permeability - self.permeability
                 MMui_s = simulation.mesh.get_edge_inner_product(
                     mu_s, invert_matrix=True
                 )
@@ -665,7 +667,7 @@ class MagDipole_Bfield(MagDipole):
         Magnetic dipole moment amplitude
     orientation : {'z', x', 'y'} or (dim) numpy.ndarray
         Orientation of the dipole.
-    mu : float
+    permeability : float
         Background magnetic permeability
     """
 
@@ -680,7 +682,7 @@ class MagDipole_Bfield(MagDipole):
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         if getattr(self, "_dipole", None) is None:
             self._dipole = MagneticDipoleWholeSpace(
-                mu=self.mu,
+                permeability=self.permeability,
                 orientation=self.orientation,
                 location=self.location,
                 moment=self.moment,
@@ -748,7 +750,7 @@ class CircularLoop(MagDipole):
         Magnetic dipole moment amplitude
     orientation : {'z', x', 'y'} or (dim) numpy.ndarray
         Orientation of the dipole.
-    mu : float
+    permeability : float
         Background magnetic permeability
     orientation : str, default: 'z'
         Loop orientation. One of ('x', 'y', 'z')
@@ -756,7 +758,7 @@ class CircularLoop(MagDipole):
         Loop radius
     current : float, default: 1.0
         Source current
-    mu : float
+    permeability : float
         Background magnetic permeability
     """
 
@@ -769,7 +771,7 @@ class CircularLoop(MagDipole):
         radius=1.0,
         current=1.0,
         n_turns=1,
-        mu=mu_0,
+        permeability=mu_0,
         **kwargs,
     ):
         kwargs.pop("moment", None)
@@ -788,7 +790,7 @@ class CircularLoop(MagDipole):
         )
 
         self.orientation = orientation
-        self.mu = mu
+        self.permeability = permeability
         self.radius = radius
         self.current = current
 
@@ -867,7 +869,7 @@ class CircularLoop(MagDipole):
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         if getattr(self, "_loop", None) is None:
             self._loop = CircularLoopWholeSpace(
-                mu=self.mu,
+                permeability=self.permeability,
                 location=self.location,
                 orientation=self.orientation,
                 radius=self.radius,
@@ -1234,7 +1236,7 @@ class LineCurrent(BaseFDEMSrc):
         you must close the loop.
     current : float, optional
         Strength of the current.
-    mu : float, optional
+    permeability : float, optional
         Magnetic permeability to use.
     """
 
@@ -1244,7 +1246,7 @@ class LineCurrent(BaseFDEMSrc):
         frequency=None,
         location=None,
         current=1.0,
-        mu=mu_0,
+        permeability=mu_0,
         **kwargs,
     ):
         super().__init__(
@@ -1261,7 +1263,7 @@ class LineCurrent(BaseFDEMSrc):
                 )
 
         self.current = current
-        self.mu = mu
+        self.permeability = permeability
 
     @property
     def location(self):

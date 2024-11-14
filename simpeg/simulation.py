@@ -3,20 +3,16 @@ Define simulation classes.
 """
 
 import os
-import inspect
 from abc import abstractmethod
-from inspect import Attribute
 
 import numpy as np
-import warnings
 
 from discretize import TensorMesh
 from discretize.utils import unpack_widths, sdiag, mkvc
 
 from . import props
-from .regularization import Simple
 from .typing import RandomSeed
-from .data import SyntheticData, Data
+from .data import SyntheticData
 from .survey import BaseSurvey, SimpleSurvey
 from .utils import (
     Counter,
@@ -30,8 +26,6 @@ from .utils import (
 )
 import uuid
 import scipy.sparse as sp
-
-from .utils.solver_utils import get_default_solver
 
 __all__ = ["LinearSimulation", "ExponentialSinusoidSimulation"]
 
@@ -253,7 +247,7 @@ class BaseSimulation(props.HasModel):
         """
 
     @timeIt
-    def _Jvec_approx(self, m, v, f=None):
+    def Jvec_approx(self, m, v, f=None):
         r"""Approximation of the Jacobian times a vector for the model provided.
 
         The Jacobian defines the derivative of the predicted data vector with respect to the
@@ -288,7 +282,7 @@ class BaseSimulation(props.HasModel):
         return self.Jvec(m, v, f)
 
     @timeIt
-    def _Jtvec_approx(self, m, v, f=None):
+    def Jtvec_approx(self, m, v, f=None):
         r"""Approximation of the Jacobian transpose times a vector for the model provided.
 
         The Jacobian defines the derivative of the predicted data vector with respect to the
@@ -323,7 +317,7 @@ class BaseSimulation(props.HasModel):
         return self.Jtvec(m, v, f)
 
     @count
-    def _residual(self, m, dobs, f=None):
+    def residual(self, m, dobs, f=None):
         r"""The data residual.
 
         This method computes and returns the data residual for the model provided.

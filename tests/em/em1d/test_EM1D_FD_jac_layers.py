@@ -11,7 +11,7 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
     # - All src and rx orientations
     # - All rx components
     # - Span many frequencies
-    # - Tests derivatives wrt conductivity, mu, thicknesses and h
+    # - Tests derivatives wrt conductivity, permeability, thicknesses and h
     def setUp(self):
         # Layers and topography
         nearthick = np.logspace(-1, 1, 5)
@@ -63,12 +63,12 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
 
         wire_map = maps.Wires(
             ("conductivity", self.nlayers),
-            ("mu", self.nlayers),
+            ("permeability", self.nlayers),
             ("thicknesses", self.nlayers - 1),
             ("h", 1),
         )
         self.conductivity_map = maps.ExpMap(nP=self.nlayers) * wire_map.conductivity
-        self.mu_map = maps.ExpMap(nP=self.nlayers) * wire_map.mu
+        self.permeability_map = maps.ExpMap(nP=self.nlayers) * wire_map.permeability
         self.thicknesses_map = maps.ExpMap(nP=self.nlayers - 1) * wire_map.thicknesses
         nP = len(source_list)
         surject_mesh = TensorMesh([np.ones(nP)])
@@ -77,7 +77,7 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
         sim = fdem.Simulation1DLayered(
             survey=self.survey,
             conductivity_map=self.conductivity_map,
-            muMap=self.mu_map,
+            permeability_map=self.permeability_map,
             thicknessesMap=self.thicknesses_map,
             hMap=self.h_map,
             topo=self.topo,
@@ -95,12 +95,15 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
         # Permeability
         mu_half = mu_0
         mu_blk = 2 * mu_0
-        mu = np.ones(self.nlayers) * mu_half
-        mu[3] = mu_blk
+        permeability = np.ones(self.nlayers) * mu_half
+        permeability[3] = mu_blk
 
         # General model
         m_1D = np.r_[
-            np.log(sig), np.log(mu), np.log(self.thicknesses), np.log(self.height)
+            np.log(sig),
+            np.log(permeability),
+            np.log(self.thicknesses),
+            np.log(self.height),
         ]
 
         def fwdfun(m):
@@ -134,12 +137,15 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
         # Permeability
         mu_half = mu_0
         mu_blk = 2 * mu_0
-        mu = np.ones(self.nlayers) * mu_half
-        mu[3] = mu_blk
+        permeability = np.ones(self.nlayers) * mu_half
+        permeability[3] = mu_blk
 
         # General model
         m_true = np.r_[
-            np.log(sig), np.log(mu), np.log(self.thicknesses), np.log(self.height)
+            np.log(sig),
+            np.log(permeability),
+            np.log(self.thicknesses),
+            np.log(self.height),
         ]
 
         dobs = self.sim.dpred(m_true)
@@ -177,7 +183,7 @@ class EM1D_FD_Jacobian_Test_CircularLoop(unittest.TestCase):
     # - All rx orientations
     # - All rx components
     # - Span many frequencies
-    # - Tests derivatives wrt conductivity, mu, thicknesses and h
+    # - Tests derivatives wrt conductivity, permeability, thicknesses and h
     def setUp(self):
         nearthick = np.logspace(-1, 1, 5)
         deepthick = np.logspace(1, 2, 10)
@@ -227,12 +233,12 @@ class EM1D_FD_Jacobian_Test_CircularLoop(unittest.TestCase):
 
         wire_map = maps.Wires(
             ("conductivity", self.nlayers),
-            ("mu", self.nlayers),
+            ("permeability", self.nlayers),
             ("thicknesses", self.nlayers - 1),
             ("h", 1),
         )
         self.conductivity_map = maps.ExpMap(nP=self.nlayers) * wire_map.conductivity
-        self.mu_map = maps.ExpMap(nP=self.nlayers) * wire_map.mu
+        self.permeability_map = maps.ExpMap(nP=self.nlayers) * wire_map.permeability
         self.thicknesses_map = maps.ExpMap(nP=self.nlayers - 1) * wire_map.thicknesses
         surject_mesh = TensorMesh([np.ones(nP)])
         self.h_map = maps.SurjectFull(surject_mesh) * maps.ExpMap(nP=1) * wire_map.h
@@ -240,7 +246,7 @@ class EM1D_FD_Jacobian_Test_CircularLoop(unittest.TestCase):
         sim = fdem.Simulation1DLayered(
             survey=self.survey,
             conductivity_map=self.conductivity_map,
-            muMap=self.mu_map,
+            permeability_map=self.permeability_map,
             thicknessesMap=self.thicknesses_map,
             hMap=self.h_map,
             topo=self.topo,
@@ -258,12 +264,15 @@ class EM1D_FD_Jacobian_Test_CircularLoop(unittest.TestCase):
         # Permeability
         mu_half = mu_0
         mu_blk = 2 * mu_0
-        mu = np.ones(self.nlayers) * mu_half
-        mu[3] = mu_blk
+        permeability = np.ones(self.nlayers) * mu_half
+        permeability[3] = mu_blk
 
         # General model
         m_1D = np.r_[
-            np.log(sig), np.log(mu), np.log(self.thicknesses), np.log(self.height)
+            np.log(sig),
+            np.log(permeability),
+            np.log(self.thicknesses),
+            np.log(self.height),
         ]
 
         def fwdfun(m):
@@ -297,12 +306,15 @@ class EM1D_FD_Jacobian_Test_CircularLoop(unittest.TestCase):
         # Permeability
         mu_half = mu_0
         mu_blk = 2 * mu_0
-        mu = np.ones(self.nlayers) * mu_half
-        mu[3] = mu_blk
+        permeability = np.ones(self.nlayers) * mu_half
+        permeability[3] = mu_blk
 
         # General model
         m_true = np.r_[
-            np.log(sig), np.log(mu), np.log(self.thicknesses), np.log(self.height)
+            np.log(sig),
+            np.log(permeability),
+            np.log(self.thicknesses),
+            np.log(self.height),
         ]
 
         dobs = self.sim.dpred(m_true)
@@ -340,7 +352,7 @@ class EM1D_FD_Jacobian_Test_LineCurrent(unittest.TestCase):
     # - All rx orientations
     # - All rx components
     # - Span many frequencies
-    # - Tests derivatives wrt conductivity, mu, thicknesses and h
+    # - Tests derivatives wrt conductivity, permeability, thicknesses and h
     def setUp(self):
         x_path = np.array([-2, -2, 2, 2, -2])
         y_path = np.array([-1, 1, 1, -1, -1])
@@ -377,17 +389,17 @@ class EM1D_FD_Jacobian_Test_LineCurrent(unittest.TestCase):
         self.nlayers = len(self.thicknesses) + 1
         wire_map = maps.Wires(
             ("conductivity", self.nlayers),
-            ("mu", self.nlayers),
+            ("permeability", self.nlayers),
             ("thicknesses", self.nlayers - 1),
         )
         self.conductivity_map = maps.ExpMap(nP=self.nlayers) * wire_map.conductivity
-        self.mu_map = maps.ExpMap(nP=self.nlayers) * wire_map.mu
+        self.permeability_map = maps.ExpMap(nP=self.nlayers) * wire_map.permeability
         self.thicknesses_map = maps.ExpMap(nP=self.nlayers - 1) * wire_map.thicknesses
 
         sim = fdem.Simulation1DLayered(
             survey=survey,
             conductivity_map=self.conductivity_map,
-            muMap=self.mu_map,
+            permeability_map=self.permeability_map,
             thicknessesMap=self.thicknesses_map,
         )
 
@@ -403,11 +415,11 @@ class EM1D_FD_Jacobian_Test_LineCurrent(unittest.TestCase):
         # Permeability
         mu_half = mu_0
         mu_blk = 1.1 * mu_0
-        mu = np.ones(self.nlayers) * mu_half
-        mu[1] = mu_blk
+        permeability = np.ones(self.nlayers) * mu_half
+        permeability[1] = mu_blk
 
         # General model
-        m_1D = np.r_[np.log(sig), np.log(mu), np.log(self.thicknesses)]
+        m_1D = np.r_[np.log(sig), np.log(permeability), np.log(self.thicknesses)]
 
         def fwdfun(m):
             resp = self.sim.dpred(m)
@@ -440,11 +452,11 @@ class EM1D_FD_Jacobian_Test_LineCurrent(unittest.TestCase):
         # Permeability
         mu_half = mu_0
         mu_blk = 1.1 * mu_0
-        mu = np.ones(self.nlayers) * mu_half
-        mu[1] = mu_blk
+        permeability = np.ones(self.nlayers) * mu_half
+        permeability[1] = mu_blk
 
         # General model
-        m_true = np.r_[np.log(sig), np.log(mu), np.log(self.thicknesses)]
+        m_true = np.r_[np.log(sig), np.log(permeability), np.log(self.thicknesses)]
 
         dobs = self.sim.dpred(m_true)
 

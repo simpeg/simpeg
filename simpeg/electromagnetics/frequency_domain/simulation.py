@@ -694,7 +694,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         dMe_dsig_v = self._Me_conductivity_deriv(u, v, adjoint)
         return 1j * omega(freq) * dMe_dsig_v
 
-    def getADeriv_mui(self, freq, u, v, adjoint=False):
+    def getADeriv__perm_inv(self, freq, u, v, adjoint=False):
         r"""Inverse permeability derivative operation for the system matrix times a vector.
 
         The system matrix at each frequency is given by:
@@ -794,7 +794,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         """
         return (
             self.getADeriv_conductivity(freq, u, v, adjoint)
-            + self.getADeriv_mui(freq, u, v, adjoint)
+            + self.getADeriv__perm_inv(freq, u, v, adjoint)
             # + self.getADeriv_permittivity(freq, u, v, adjoint)
         )
 
@@ -1103,7 +1103,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         #     return MeSigmaIDeriv.T * (C.T * v)
         # return C * (MeSigmaIDeriv * v)
 
-    def getADeriv_mui(self, freq, u, v, adjoint=False):
+    def getADeriv__perm_inv(self, freq, u, v, adjoint=False):
         r"""Inverse permeability derivative operation for the system matrix times a vector.
 
         The system matrix at each frequency is given by:
@@ -1208,9 +1208,9 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         if adjoint is True and self._makeASymmetric:
             v = self._Mf__perm_inv * v
 
-        ADeriv = self.getADeriv_conductivity(freq, u, v, adjoint) + self.getADeriv_mui(
+        ADeriv = self.getADeriv_conductivity(
             freq, u, v, adjoint
-        )
+        ) + self.getADeriv__perm_inv(freq, u, v, adjoint)
 
         if adjoint is False and self._makeASymmetric:
             return self._Mf__perm_inv.T * ADeriv
@@ -1547,7 +1547,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
             return self._Mf_resistivity_deriv(u, vec, adjoint)
         return C * (MeMuI * (C.T * (self._Mf_resistivity_deriv(u, v, adjoint))))
 
-    def getADeriv_mu(self, freq, u, v, adjoint=False):
+    def getADeriv_permeability(self, freq, u, v, adjoint=False):
         r"""Permeability derivative operation for the system matrix times a vector.
 
         The system matrix at each frequency is given by:
@@ -1655,9 +1655,9 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         if adjoint and self._makeASymmetric:
             v = self._Mf_resistivity * v
 
-        ADeriv = self.getADeriv_resistivity(freq, u, v, adjoint) + self.getADeriv_mu(
+        ADeriv = self.getADeriv_resistivity(
             freq, u, v, adjoint
-        )
+        ) + self.getADeriv_permeability(freq, u, v, adjoint)
 
         if not adjoint and self._makeASymmetric:
             return self._Mf_resistivity.T * ADeriv
@@ -1973,7 +1973,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
             return self._Mf_resistivity_deriv(C * u, C * v, adjoint)
         return C.T * self._Mf_resistivity_deriv(C * u, v, adjoint)
 
-    def getADeriv_mu(self, freq, u, v, adjoint=False):
+    def getADeriv_permeability(self, freq, u, v, adjoint=False):
         r"""Permeability derivative operation for the system matrix times a vector.
 
         The system matrix at each frequency is given by:
@@ -2070,9 +2070,9 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
             Derivative of system matrix times a vector. (n_edges,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
-        return self.getADeriv_resistivity(freq, u, v, adjoint) + self.getADeriv_mu(
+        return self.getADeriv_resistivity(
             freq, u, v, adjoint
-        )
+        ) + self.getADeriv_permeability(freq, u, v, adjoint)
 
     def getRHS(self, freq):
         r"""Right-hand sides for the given frequency.

@@ -357,11 +357,11 @@ model[ind_polygon, 0] = dyke_conductivity_value
 
 # Create model vector and wires
 model = mkvc(model)
-wire_map = maps.Wires(("log_conductivity", N), ("mu", N))
+wire_map = maps.Wires(("log_conductivity", N), ("permeability", N))
 
 # Use combo maps to map from model to mesh
 conductivity_map = active_map * maps.ExpMap() * wire_map.log_conductivity
-mu_map = active_map * wire_map.mu
+permeability_map = active_map * wire_map.permeability
 
 # Plot
 fig = plt.figure(figsize=(5, 5))

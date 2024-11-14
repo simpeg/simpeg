@@ -241,9 +241,11 @@ class Simulation1DLayered(BaseEM1DSimulation):
         W = self._W
 
         sig = self.compute_complex_conductivity(frequencies)
-        mu = self.compute_complex_mu(frequencies)
+        permeability = self.compute_complex_permeability(frequencies)
 
-        rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
+        rTE = rTE_forward(
+            frequencies, unique_lambs, sig, permeability, self.thicknesses
+        )
         rTE = rTE[:, inv_lambs]
         v = ((C0s * rTE) @ self._fhtfilt.j0 + (C1s * rTE) @ self._fhtfilt.j1) @ W.T
 
@@ -251,8 +253,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
     def getJ(self, m, f=None):
         self.model = m
-        if getattr(self, "_J", None) is None:
-            self._J = {}
+        if (J := self._cache["J_matrix"]) is None:
+            J = {}
             self._compute_coefficients()
 
             C0s = self._C0s
@@ -265,7 +267,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
             W = self._W.toarray()
 
             sig = self.compute_complex_conductivity(frequencies)
-            mu = self.compute_complex_mu(frequencies)
+            permeability = self.compute_complex_permeability(frequencies)
 
             if self.hMap is not None:
                 # Grab a copy
@@ -283,7 +285,9 @@ class Simulation1DLayered(BaseEM1DSimulation):
                     i = ip1
                     # J will be n_d * n_src (each source has it's own h)...
 
-                rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
+                rTE = rTE_forward(
+                    frequencies, unique_lambs, sig, permeability, self.thicknesses
+                )
                 rTE = rTE[:, inv_lambs]
                 v_dh_temp = (
                     W
@@ -304,15 +308,15 @@ class Simulation1DLayered(BaseEM1DSimulation):
                     v_dh[i_src, i:ip1] = v_dh_temp[i:ip1]
                     i = ip1
                 v_dh = np.transpose(v_dh, (1, 2, 0))
-                self._J["dh"] = self._project_to_data(v_dh)
+                J["dh"] = self._project_to_data(v_dh)
 
             if (
                 self.conductivity_map is not None
-                or self.muMap is not None
+                or self.permeability_map is not None
                 or self.thicknessesMap is not None
             ):
                 rTE_ds, rTE_dh, rTE_dmu = rTE_gradient(
-                    frequencies, unique_lambs, sig, mu, self.thicknesses
+                    frequencies, unique_lambs, sig, permeability, self.thicknesses
                 )
                 if self.conductivity_map is not None:
                     rTE_ds = rTE_ds[..., inv_lambs]
@@ -323,8 +327,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
                         )
                         @ W.T
                     ).T
-                    self._J["ds"] = self._project_to_data(v_ds)
-                if self.muMap is not None:
+                    J["ds"] = self._project_to_data(v_ds)
+                if self.permeability_map is not None:
                     rTE_dmu = rTE_dmu[..., inv_lambs]
                     v_dmu = (
                         (
@@ -333,7 +337,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                         )
                         @ W.T
                     ).T
-                    self._J["dmu"] = self._project_to_data(v_dmu)
+                    J["dmu"] = self._project_to_data(v_dmu)
                 if self.thicknessesMap is not None:
                     rTE_dh = rTE_dh[..., inv_lambs]
                     v_dthick = (
@@ -343,8 +347,9 @@ class Simulation1DLayered(BaseEM1DSimulation):
                         )
                         @ W.T
                     ).T
-                    self._J["dthick"] = self._project_to_data(v_dthick)
-        return self._J
+                    J["dthick"] = self._project_to_data(v_dthick)
+            self._cache["J_matrix"] = J
+        return J
 
     def _project_to_data(self, v):
         As = self._As

@@ -475,23 +475,27 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
 
         if covariance_type == "full":
             log_prob = np.empty((n_samples, n_components))
-            for k, (mu, prec_chol) in enumerate(zip(means, precisions_chol)):
-                y = np.dot(X * sensW, prec_chol) - np.dot(mu * sensW, prec_chol)
+            for k, (permeability, prec_chol) in enumerate(zip(means, precisions_chol)):
+                y = np.dot(X * sensW, prec_chol) - np.dot(
+                    permeability * sensW, prec_chol
+                )
                 log_prob[:, k] = np.sum(np.square(y), axis=1)
 
         elif covariance_type == "tied":
             log_prob = np.empty((n_samples, n_components))
-            for k, mu in enumerate(means):
+            for k, permeability in enumerate(means):
                 y = np.dot(X * sensW, precisions_chol) - np.dot(
-                    mu * sensW, precisions_chol
+                    permeability * sensW, precisions_chol
                 )
                 log_prob[:, k] = np.sum(np.square(y), axis=1)
 
         else:
             log_prob = np.empty((n_samples, n_components))
-            for k, (mu, prec_chol) in enumerate(zip(means, precisions_chol)):
+            for k, (permeability, prec_chol) in enumerate(zip(means, precisions_chol)):
                 prec_chol_mat = np.eye(n_features) * prec_chol
-                y = np.dot(X * sensW, prec_chol_mat) - np.dot(mu * sensW, prec_chol_mat)
+                y = np.dot(X * sensW, prec_chol_mat) - np.dot(
+                    permeability * sensW, prec_chol_mat
+                )
                 log_prob[:, k] = np.sum(np.square(y), axis=1)
 
         return -0.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det
@@ -1366,25 +1370,27 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
 
         if covariance_type == "full":
             log_prob = np.empty((n_samples, n_components))
-            for k, (mu, prec_chol, mapping) in enumerate(
+            for k, (permeability, prec_chol, mapping) in enumerate(
                 zip(means, precisions_chol, cluster_mapping)
             ):
-                y = np.dot(mapping * X, prec_chol) - np.dot(mu, prec_chol)
+                y = np.dot(mapping * X, prec_chol) - np.dot(permeability, prec_chol)
                 log_prob[:, k] = np.sum(np.square(y), axis=1)
 
         elif covariance_type == "tied":
             log_prob = np.empty((n_samples, n_components))
-            for k, (mu, mapping) in enumerate(zip(means, cluster_mapping)):
-                y = np.dot(mapping * X, precisions_chol) - np.dot(mu, precisions_chol)
+            for k, (permeability, mapping) in enumerate(zip(means, cluster_mapping)):
+                y = np.dot(mapping * X, precisions_chol) - np.dot(
+                    permeability, precisions_chol
+                )
                 log_prob[:, k] = np.sum(np.square(y), axis=1)
 
         elif covariance_type == "diag" or covariance_type == "spherical":
             log_prob = np.empty((n_samples, n_components))
-            for k, (mu, prec_chol, mapping) in enumerate(
+            for k, (permeability, prec_chol, mapping) in enumerate(
                 zip(means, precisions_chol, cluster_mapping)
             ):
                 y = np.dot(mapping * X, prec_chol * np.eye(n_features)) - np.dot(
-                    mu, prec_chol * np.eye(n_features)
+                    permeability, prec_chol * np.eye(n_features)
                 )
                 log_prob[:, k] = np.sum(np.square(y), axis=1)
 
@@ -1682,25 +1688,27 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
 
         if covariance_type == "full":
             log_prob = np.empty((n_samples, n_components))
-            for k, (mu, prec_chol, mapping) in enumerate(
+            for k, (permeability, prec_chol, mapping) in enumerate(
                 zip(means, precisions_chol, cluster_mapping)
             ):
-                y = np.dot(mapping * X, prec_chol) - np.dot(mu, prec_chol)
+                y = np.dot(mapping * X, prec_chol) - np.dot(permeability, prec_chol)
                 log_prob[:, k] = np.sum(np.square(y), axis=1)
 
         elif covariance_type == "tied":
             log_prob = np.empty((n_samples, n_components))
-            for k, (mu, mapping) in enumerate(zip(means, cluster_mapping)):
-                y = np.dot(mapping * X, precisions_chol) - np.dot(mu, precisions_chol)
+            for k, (permeability, mapping) in enumerate(zip(means, cluster_mapping)):
+                y = np.dot(mapping * X, precisions_chol) - np.dot(
+                    permeability, precisions_chol
+                )
                 log_prob[:, k] = np.sum(np.square(y), axis=1)
 
         elif covariance_type == "diag" or covariance_type == "spherical":
             log_prob = np.empty((n_samples, n_components))
-            for k, (mu, prec_chol, mapping) in enumerate(
+            for k, (permeability, prec_chol, mapping) in enumerate(
                 zip(means, precisions_chol, cluster_mapping)
             ):
                 y = np.dot(mapping * X, prec_chol * np.eye(n_features)) - np.dot(
-                    mu, prec_chol * np.eye(n_features)
+                    permeability, prec_chol * np.eye(n_features)
                 )
                 log_prob[:, k] = np.sum(np.square(y), axis=1)
 

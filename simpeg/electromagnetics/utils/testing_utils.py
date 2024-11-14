@@ -22,7 +22,10 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
     mesh = TensorMesh([hx, hy, hz], ["C", "C", "C"])
 
     if useMu is True:
-        mapping = [("conductivity", maps.ExpMap(mesh)), ("mu", maps.IdentityMap(mesh))]
+        mapping = [
+            ("conductivity", maps.ExpMap(mesh)),
+            ("permeability", maps.IdentityMap(mesh)),
+        ]
     else:
         mapping = maps.ExpMap(mesh)
 
@@ -158,14 +161,14 @@ def crossCheckTest(
     )
 
     logsig = np.log(np.ones(mesh.nC) * CONDUCTIVITY)
-    mu = np.ones(mesh.nC) * MU
+    permeability = np.ones(mesh.nC) * MU
 
     if addrandoms is True:
         logsig += np.random.randn(mesh.nC) * np.log(CONDUCTIVITY) * 1e-1
-        mu += np.random.randn(mesh.nC) * MU * 1e-1
+        permeability += np.random.randn(mesh.nC) * MU * 1e-1
 
     if useMu is True:
-        m = np.r_[logsig, mu]
+        m = np.r_[logsig, permeability]
     else:
         m = logsig
 

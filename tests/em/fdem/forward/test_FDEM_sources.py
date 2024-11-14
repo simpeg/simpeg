@@ -89,8 +89,8 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
     def bPrimaryTest(self, src, probType):
         passed = True
         print(
-            "\ntesting bPrimary {}, problem {}, mu {}".format(
-                src.__class__.__name__, probType, src.mu / mu_0
+            "\ntesting bPrimary {}, problem {}, permeability {}".format(
+                src.__class__.__name__, probType, src.permeability / mu_0
             )
         )
         prob = getattr(self, "prob_{}".format(probType))
@@ -102,7 +102,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
                 location=src.location,
                 moment=1.0,
                 orientation=src.orientation,
-                mu=src.mu,
+                permeability=src.permeability,
             ).magnetic_flux_density(XYZ)
 
         if probType in ["e", "b"]:
@@ -199,7 +199,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             frequency=self.frequency,
             location=self.location,
             orientation="Z",
-            mu=mu_0,
+            permeability=mu_0,
         )
         assert self.bPrimaryTest(src, "e")
 
@@ -209,7 +209,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             frequency=self.frequency,
             location=self.location,
             orientation="Z",
-            mu=50.0 * mu_0,
+            permeability=50.0 * mu_0,
         )
         assert self.bPrimaryTest(src, "e")
 
@@ -219,7 +219,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             frequency=self.frequency,
             location=self.location,
             orientation="Z",
-            mu=mu_0,
+            permeability=mu_0,
         )
         assert self.bPrimaryTest(src, "b")
 
@@ -229,7 +229,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             frequency=self.frequency,
             location=self.location,
             orientation="Z",
-            mu=50.0 * mu_0,
+            permeability=50.0 * mu_0,
         )
         assert self.bPrimaryTest(src, "b")
 
@@ -239,7 +239,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             frequency=self.frequency,
             location=self.location,
             orientation="Z",
-            mu=mu_0,
+            permeability=mu_0,
         )
         assert self.bPrimaryTest(src, "j")
 
@@ -249,7 +249,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             frequency=self.frequency,
             location=self.location,
             orientation="Z",
-            mu=50.0 * mu_0,
+            permeability=50.0 * mu_0,
         )
         assert self.bPrimaryTest(src, "j")
 
@@ -261,7 +261,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             frequency=self.frequency,
             location=self.location,
             orientation="Z",
-            mu=mu_0,
+            permeability=mu_0,
         )
         assert self.bPrimaryTest(src, "e")
 
@@ -271,7 +271,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             frequency=self.frequency,
             location=self.location,
             orientation="Z",
-            mu=50.0 * mu_0,
+            permeability=50.0 * mu_0,
         )
         assert self.bPrimaryTest(src, "e")
 
@@ -281,7 +281,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             frequency=self.frequency,
             location=self.location,
             orientation="Z",
-            mu=mu_0,
+            permeability=mu_0,
         )
         assert self.bPrimaryTest(src, "b")
 
@@ -291,7 +291,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             frequency=self.frequency,
             location=self.location,
             orientation="Z",
-            mu=50.0 * mu_0,
+            permeability=50.0 * mu_0,
         )
         assert self.bPrimaryTest(src, "b")
 
@@ -301,7 +301,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             frequency=self.frequency,
             location=self.location,
             orientation="Z",
-            mu=mu_0,
+            permeability=mu_0,
         )
         assert self.bPrimaryTest(src, "j")
 
@@ -311,7 +311,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             frequency=self.frequency,
             location=self.location,
             orientation="Z",
-            mu=50.0 * mu_0,
+            permeability=50.0 * mu_0,
         )
         assert self.bPrimaryTest(src, "j")
 
@@ -324,7 +324,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             radius=np.sqrt(1 / np.pi),
             location=self.location,
             orientation="Z",
-            mu=mu_0,
+            permeability=mu_0,
         )
         assert self.bPrimaryTest(src, "e")
 
@@ -335,7 +335,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             radius=np.sqrt(1 / np.pi),
             location=self.location,
             orientation="Z",
-            mu=50.0 * mu_0,
+            permeability=50.0 * mu_0,
         )
         assert self.bPrimaryTest(src, "e")
 
@@ -346,7 +346,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             radius=np.sqrt(1 / np.pi),
             location=self.location,
             orientation="Z",
-            mu=mu_0,
+            permeability=mu_0,
         )
         assert self.bPrimaryTest(src, "b")
 
@@ -357,7 +357,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             radius=np.sqrt(1 / np.pi),
             location=self.location,
             orientation="Z",
-            mu=50.0 * mu_0,
+            permeability=50.0 * mu_0,
         )
         assert self.bPrimaryTest(src, "b")
 
@@ -368,7 +368,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             radius=np.sqrt(1 / np.pi),
             location=self.location,
             orientation="Z",
-            mu=mu_0,
+            permeability=mu_0,
         )
         assert self.bPrimaryTest(src, "j")
 
@@ -379,7 +379,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
             radius=np.sqrt(1 / np.pi),
             location=self.location,
             orientation="Z",
-            mu=50.0 * mu_0,
+            permeability=50.0 * mu_0,
         )
         assert self.bPrimaryTest(src, "j")
 
@@ -396,7 +396,7 @@ def test_removal_circular_loop_n():
             radius=np.sqrt(1 / np.pi),
             location=[0, 0, 0],
             orientation="Z",
-            mu=mu_0,
+            permeability=mu_0,
             current=0.5,
             N=2,
         )

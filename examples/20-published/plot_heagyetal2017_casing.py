@@ -280,12 +280,12 @@ class PrimSecCasingExample(object):
             if getattr(self, "_paramMapPrimary", None) is None:
                 self.primaryMapping
 
-            muMap = (
+            permeability_map = (
                 maps.InjectActiveCells(self.meshp, self.indActivePrimary, mu_0)
                 * self._paramMapPrimary
             )
 
-            muModel = muMap * np.hstack(
+            muModel = permeability_map * np.hstack(
                 np.r_[
                     mu_0,  # val Background
                     mu_0,  # val Layer
@@ -305,7 +305,7 @@ class PrimSecCasingExample(object):
     @property
     def primaryProblem(self):
         if getattr(self, "_primaryProblem", None) is None:
-            # define a custom prop map to include variable mu that we are not
+            # define a custom prop map to include variable permeability that we are not
             # inverting for - This will change when we improve the propmap!
             print("Getting Primary Problem")
 
@@ -315,19 +315,19 @@ class PrimSecCasingExample(object):
             #                 "Electrical Conductivity", defaultInvProp=True,
             #                 propertyLink=('resistivity', maps.ReciprocalMap)
             #     )
-            #     mu = maps.Property(
+            #     permeability = maps.Property(
             #             "Inverse Magnetic Permeability",
             #             defaultVal=self.muModel,
-            #             propertyLink=('mui', maps.ReciprocalMap)
+            #             propertyLink=('_perm_inv', maps.ReciprocalMap)
             #     )
             #     resistivity = maps.Property(
             #             "Electrical Resistivity",
             #             propertyLink=('conductivity', maps.ReciprocalMap)
             #     )
-            #     mui = maps.Property(
+            #     _perm_inv = maps.Property(
             #             "Inverse Magnetic Permeability",
             #             defaultVal=1./self.muModel,
-            #             propertyLink=('mu', maps.ReciprocalMap)
+            #             propertyLink=('permeability', maps.ReciprocalMap)
             #     )
 
             # # set the problem's propmap
@@ -338,7 +338,7 @@ class PrimSecCasingExample(object):
             primaryProblem = FDEM.Simulation3DMagneticField(
                 self.meshp, conductivity_map=self.primaryMapping
             )
-            primaryProblem.mu = self.muModel
+            primaryProblem.permeability = self.muModel
 
             self._primaryProblem = primaryProblem
 
@@ -1271,7 +1271,7 @@ class PrimSecCasingExample(object):
 
         if plotIt is True:  # Plot the Primary Model
             # self.plotPrimaryMesh() # plot the mesh
-            self.plotPrimaryProperties()  # plot mu, conductivity
+            self.plotPrimaryProperties()  # plot permeability, conductivity
 
         # Primary Simulation
         self.primaryProblem.survey = self.primarySurvey

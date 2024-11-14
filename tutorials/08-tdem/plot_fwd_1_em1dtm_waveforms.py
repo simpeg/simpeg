@@ -237,7 +237,10 @@ model_mapping = maps.IdentityMap(nP=n_layer)
 
 # Define the simulation
 simulation = tdem.Simulation1DLayered(
-    survey=survey, thicknesses=thicknesses, conductivity_map=model_mapping, mu=mu_model
+    survey=survey,
+    thicknesses=thicknesses,
+    conductivity_map=model_mapping,
+    permeability=mu_model,
 )
 
 # Predict data for a given model

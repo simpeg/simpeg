@@ -303,24 +303,24 @@ class EM1D_TD_Loop_Center_Tests(unittest.TestCase):
     #     survey = tdem.Survey(src_list)
 
     #     wire_map = maps.Wires(
-    #         ("conductivity", self.nlayers), ("mu", self.nlayers)
+    #         ("conductivity", self.nlayers), ("permeability", self.nlayers)
     #     )
     #     conductivity_map = maps.ExpMap(nP=self.nlayers) * wire_map.conductivity
-    #     mu_map = maps.IdentityMap(nP=self.nlayers) * wire_map.mu
+    #     permeability_map = maps.IdentityMap(nP=self.nlayers) * wire_map.permeability
 
     #     sim = tdem.Simulation1DLayered(
     #         survey=survey, thicknesses=self.thicknesses, topo=self.topo,
-    #         conductivity_map=conductivity_map, muMap=mu_map
+    #         conductivity_map=conductivity_map, permeability_map=permeability_map
     #     )
 
-    #     mu = mu_0 * (1 + self.susceptibility)
+    #     permeability = mu_0 * (1 + self.susceptibility)
     #     m_1D = np.r_[
     #         np.log(self.conductivity) * np.ones(self.nlayers),
-    #         mu * np.ones(self.nlayers)
+    #         permeability * np.ones(self.nlayers)
     #     ]
 
     #     d_numeric = sim.dpred(m_1D)
-    #     d_analytic = (mu_0 / mu) * dbdt_loop(self.times, radius=self.radius, conductivity=self.conductivity, mu=mu)
+    #     d_analytic = (mu_0 / permeability) * dbdt_loop(self.times, radius=self.radius, conductivity=self.conductivity, permeability=permeability)
 
     #     np.testing.assert_allclose(d_numeric, d_analytic, rtol=1e-2)
 

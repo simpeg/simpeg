@@ -24,8 +24,8 @@ sim = sp.Simulation3DCellCentered(mesh=mesh, survey=survey, conductivity=conduct
 
 
 def test_forward():
-    # double check qMap is maps.IdentityMap()
-    sim.qMap = maps.IdentityMap()
+    # double check charge_density_map is maps.IdentityMap()
+    sim.charge_density_map = maps.IdentityMap()
     # We can setup a dc simulation with a dipole source at these
     # two locations to double check everything evaluated correctly.
     q = np.zeros(mesh.nC)
@@ -60,7 +60,7 @@ def test_forward():
 )
 def test_deriv(q_map):
     sim.model = None
-    sim.qMap = q_map
+    sim.charge_density_map = q_map
 
     def func(m):
         f = sim.fields(m)
@@ -86,7 +86,7 @@ def test_deriv(q_map):
 )
 def test_adjoint(q_map):
     sim.model = None
-    sim.qMap = q_map
+    sim.charge_density_map = q_map
 
     rng = np.random.default_rng(seed=42)
     model = rng.uniform(size=q_map.shape[1])
@@ -115,14 +115,14 @@ def test_errors():
 
 
 def test_clears():
-    # set qMap as a non-linear map to make sure it adds the correct
+    # set charge_density_map as a non-linear map to make sure it adds the correct
     # items to be cleared on model update
-    sim.qMap = maps.IdentityMap()
+    sim.charge_density_map = maps.IdentityMap()
     assert sim._delete_on_model_change == []
     assert sim.clean_on_model_update == []
 
     sim.storeJ = True
-    sim.qMap = maps.ExpMap()
+    sim.charge_density_map = maps.ExpMap()
     assert sim._delete_on_model_change == ["_Jmatrix", "_gtgdiag"]
     assert sim.clean_on_model_update == []
 

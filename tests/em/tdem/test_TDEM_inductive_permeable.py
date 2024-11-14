@@ -74,7 +74,10 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             mu_model[x_inds & z_inds] = mur
             return mu_0 * mu_model
 
-        mu_dict = {key: populate_target(mu) for key, mu in zip(model_names, target_mur)}
+        mu_dict = {
+            key: populate_target(permeability)
+            for key, permeability in zip(model_names, target_mur)
+        }
         conductivity = np.ones(mesh.nC) * conductivity_back
 
         # Plot the models
@@ -171,7 +174,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             t = time.time()
             print("--- Running {} ---".format(key))
 
-            prob_late_ontime.mu = mu_dict[key]
+            prob_late_ontime.permeability = mu_dict[key]
             fields_dict[key] = prob_late_ontime.fields(conductivity)
 
             print(" ... done. Elapsed time {}".format(time.time() - t))
@@ -181,11 +184,11 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             b_late_ontime = {}
 
         for key in model_names:
-            prob.mu = mu_dict[key]
+            prob.permeability = mu_dict[key]
             prob.conductivity = conductivity
             b_magnetostatic[key] = src_magnetostatic.bInitial(prob)
 
-            prob_late_ontime.mu = mu_dict[key]
+            prob_late_ontime.permeability = mu_dict[key]
             b_late_ontime[key] = utils.mkvc(fields_dict[key][:, "b", -1])
 
         if plotIt:

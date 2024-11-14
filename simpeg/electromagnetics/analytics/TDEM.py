@@ -32,7 +32,7 @@ def TransientMagneticDipoleWholeSpace(
 
     """
 
-    mu = 4 * np.pi * 1e-7 * mu_r
+    permeability = 4 * np.pi * 1e-7 * mu_r
 
     if isinstance(moment, str):
         if moment == "X":
@@ -54,7 +54,7 @@ def TransientMagneticDipoleWholeSpace(
     dz = XYZ[:, 2] - srcLoc[2]
 
     r = np.sqrt(dx**2.0 + dy**2.0 + dz**2.0)
-    k = np.sqrt(mu * sig / (4 * t))
+    k = np.sqrt(permeability * sig / (4 * t))
     kr = k * r
 
     if fieldType == "h":
@@ -81,7 +81,7 @@ def TransientMagneticDipoleWholeSpace(
         )
 
     elif fieldType == "dhdt":
-        front = (4 * k**5 / (pi**1.5 * mu * sig)) * np.exp(-(kr**2))
+        front = (4 * k**5 / (pi**1.5 * permeability * sig)) * np.exp(-(kr**2))
         mid = kr**2
         end = 1 - kr**2
 
@@ -118,7 +118,7 @@ def TransientMagneticDipoleWholeSpace(
 def TransientElectricDipoleWholeSpace(
     XYZ, srcLoc, sig, t, moment, fieldType="h", mu_r=1
 ):
-    mu = 4 * np.pi * 1e-7 * mu_r
+    permeability = 4 * np.pi * 1e-7 * mu_r
 
     if isinstance(moment, str):
         if moment.upper() == "X":
@@ -140,7 +140,7 @@ def TransientElectricDipoleWholeSpace(
     dz = XYZ[:, 2] - srcLoc[2]
 
     r = np.sqrt(dx**2.0 + dy**2.0 + dz**2.0)
-    k = np.sqrt(mu * sig / (4 * t))
+    k = np.sqrt(permeability * sig / (4 * t))
     kr = k * r
 
     if fieldType == "e":
@@ -178,7 +178,7 @@ def TransientElectricDipoleWholeSpace(
         Fz = front * (mx * -dy + my * dx)
 
     elif fieldType == "dhdt":
-        front = -(2 * k**5 / (pi**1.5 * mu * sig)) * np.exp(-(kr**2))
+        front = -(2 * k**5 / (pi**1.5 * permeability * sig)) * np.exp(-(kr**2))
 
         Fx = front * (my * -dz + mz * dy)
 

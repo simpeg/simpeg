@@ -19,14 +19,14 @@ def getEHfields(m1d, conductivity, freq, zd, scaleUD=True, scaleValue=1):
     # Note add an error check for the mesh and conductivity are the same size.
 
     # Constants: Assume constant
-    mu = mu_0 * np.ones((m1d.nC + 1))
+    permeability = mu_0 * np.ones((m1d.nC + 1))
     eps = eps_0 * np.ones((m1d.nC + 1))
     # Angular freq
     w = 2 * np.pi * freq
     # Add the halfspace value to the property
     sig = np.concatenate((np.array([conductivity[0]]), conductivity))
     # Calculate the wave number
-    k = np.sqrt(eps * mu * w**2 - 1j * mu * sig * w)
+    k = np.sqrt(eps * permeability * w**2 - 1j * permeability * sig * w)
 
     # Initiate the propagation matrix, in the order down up.
     UDp = np.zeros((2, m1d.nC + 1), dtype=complex)
@@ -36,8 +36,10 @@ def getEHfields(m1d, conductivity, freq, zd, scaleUD=True, scaleValue=1):
     # Loop over all the layers, starting at the bottom layer
     for lnr, h in enumerate(m1d.h[0]):  # lnr-number of layer, h-thickness of the layer
         # Calculate
-        yp1 = k[lnr] / (w * mu[lnr])  # Admittance of the layer below the current layer
-        zp = (w * mu[lnr + 1]) / k[lnr + 1]  # Impedance in the current layer
+        yp1 = k[lnr] / (
+            w * permeability[lnr]
+        )  # Admittance of the layer below the current layer
+        zp = (w * permeability[lnr + 1]) / k[lnr + 1]  # Impedance in the current layer
         # Build the propagation matrix
 
         # Convert fields to down/up going components in layer below current layer
@@ -74,11 +76,19 @@ def getEHfields(m1d, conductivity, freq, zd, scaleUD=True, scaleValue=1):
     dind = dup >= zd
     Ed[dind] = UDp[1, 0] * np.exp(-1j * k[0] * (dup - zd[dind]))
     Eu[dind] = UDp[0, 0] * np.exp(1j * k[0] * (dup - zd[dind]))
-    Hd[dind] = (k[0] / (w * mu[0])) * UDp[1, 0] * np.exp(-1j * k[0] * (dup - zd[dind]))
-    Hu[dind] = -(k[0] / (w * mu[0])) * UDp[0, 0] * np.exp(1j * k[0] * (dup - zd[dind]))
+    Hd[dind] = (
+        (k[0] / (w * permeability[0]))
+        * UDp[1, 0]
+        * np.exp(-1j * k[0] * (dup - zd[dind]))
+    )
+    Hu[dind] = (
+        -(k[0] / (w * permeability[0]))
+        * UDp[0, 0]
+        * np.exp(1j * k[0] * (dup - zd[dind]))
+    )
     for ki, mui, dlow, dup, Up, Dp in zip(
         k[1::],
-        mu[1::],
+        permeability[1::],
         m1d.nodes_x[:-1],
         m1d.nodes_x[1::],
         UDp[0, 1::],

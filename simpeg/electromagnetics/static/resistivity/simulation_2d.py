@@ -544,9 +544,9 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         """
         Derivative of the right hand side with respect to the model
         """
-        # TODO: add qDeriv for RHS depending on m
-        # qDeriv = src.evalDeriv(self, ky, adjoint=adjoint)
-        # return qDeriv
+        # TODO: add _charge_deriv for RHS depending on m
+        # _charge_deriv = src.evalDeriv(self, ky, adjoint=adjoint)
+        # return _charge_deriv
         return Zero()
 
     def setBC(self, ky=None):
@@ -716,9 +716,9 @@ class Simulation2DNodal(BaseDCSimulation2D):
         """
         Derivative of the right hand side with respect to the model
         """
-        # TODO: add qDeriv for RHS depending on m
-        # qDeriv = src.evalDeriv(self, ky, adjoint=adjoint)
-        # return qDeriv
+        # TODO: add _charge_deriv for RHS depending on m
+        # _charge_deriv = src.evalDeriv(self, ky, adjoint=adjoint)
+        # return _charge_deriv
         return Zero()
 
     def setBC(self, ky=None):

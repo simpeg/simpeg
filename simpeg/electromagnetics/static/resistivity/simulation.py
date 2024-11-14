@@ -112,11 +112,12 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return f
 
     def getJ(self, m, f=None):
-        if getattr(self, "_Jmatrix", None) is None:
+        if (J_matrix := self._cache["J_matrix"]) is None:
             if f is None:
                 f = self.fields(m)
-            self._Jmatrix = self._Jtvec(m, v=None, f=f).T
-        return self._Jmatrix
+            J_matrix = self._Jtvec(m, v=None, f=f).T
+            self._cache["J_matrix"] = J_matrix
+        return J_matrix
 
     def dpred(self, m=None, f=None):
         if self._mini_survey is not None:
@@ -136,7 +137,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         """
         Return the diagonal of JtJ
         """
-        if getattr(self, "_gtgdiag", None) is None:
+        if (jtj_diag := self._cache["jtj_diag"]) is None:
             J = self.getJ(m, f=f)
 
             if W is None:
@@ -144,12 +145,12 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
             else:
                 W = W.diagonal() ** 2
 
-            diag = np.zeros(J.shape[1])
+            jtj_diag = np.zeros(J.shape[1])
             for i in range(J.shape[0]):
-                diag += (W[i]) * (J[i] * J[i])
+                jtj_diag += (W[i]) * (J[i] * J[i])
 
-            self._gtgdiag = diag
-        return self._gtgdiag
+            self._cache["jtj_diag"] = jtj_diag
+        return jtj_diag
 
     def Jvec(self, m, v, f=None):
         """
@@ -286,7 +287,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
     @property
     def _delete_on_model_change(self):
         toDelete = super()._delete_on_model_change
-        return toDelete + ["_Jmatrix", "_gtgdiag"]
+        return toDelete + ["J_matrix", "jtj_diag"]
 
     def _mini_survey_data(self, d_mini):
         if self._mini_survey is not None:
@@ -399,9 +400,9 @@ class Simulation3DCellCentered(BaseDCSimulation):
         """
         Derivative of the right hand side with respect to the model
         """
-        # TODO: add qDeriv for RHS depending on m
-        # qDeriv = source.evalDeriv(self, adjoint=adjoint)
-        # return qDeriv
+        # TODO: add _charge_deriv for RHS depending on m
+        # _charge_deriv = source.evalDeriv(self, adjoint=adjoint)
+        # return _charge_deriv
         return Zero()
 
     def setBC(self):
@@ -658,9 +659,9 @@ class Simulation3DNodal(BaseDCSimulation):
         """
         Derivative of the right hand side with respect to the model
         """
-        # TODO: add qDeriv for RHS depending on m
-        # qDeriv = source.evalDeriv(self, adjoint=adjoint)
-        # return qDeriv
+        # TODO: add _charge_deriv for RHS depending on m
+        # _charge_deriv = source.evalDeriv(self, adjoint=adjoint)
+        # return _charge_deriv
         return Zero()
 
     @property

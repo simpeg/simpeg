@@ -10,7 +10,7 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
     # Tests 2nd order convergence of Jvec and Jtvec for magnetic dipole sources.
     # - All rx orientations of b and db/dt
     # - Span many time channels
-    # - Tests derivatives wrt conductivity, mu and thicknesses
+    # - Tests derivatives wrt conductivity, permeability and thicknesses
     def setUp(self):
         # Layers and topography
         nearthick = np.logspace(-1, 1, 5)
@@ -61,12 +61,12 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
 
         wire_map = maps.Wires(
             ("conductivity", self.nlayers),
-            ("mu", self.nlayers),
+            ("permeability", self.nlayers),
             ("thicknesses", self.nlayers - 1),
             ("h", 1),
         )
         self.conductivity_map = maps.ExpMap(nP=self.nlayers) * wire_map.conductivity
-        self.mu_map = maps.ExpMap(nP=self.nlayers) * wire_map.mu
+        self.permeability_map = maps.ExpMap(nP=self.nlayers) * wire_map.permeability
         self.thicknesses_map = maps.ExpMap(nP=self.nlayers - 1) * wire_map.thicknesses
         nP = len(source_list)
         surject_mesh = TensorMesh([np.ones(nP)])
@@ -75,7 +75,7 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
         sim = tdem.Simulation1DLayered(
             survey=self.survey,
             conductivity_map=self.conductivity_map,
-            muMap=self.mu_map,
+            permeability_map=self.permeability_map,
             thicknessesMap=self.thicknesses_map,
             hMap=self.h_map,
             topo=self.topo,
@@ -93,12 +93,15 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
         # Permeability
         mu_half = mu_0
         mu_blk = 2 * mu_0
-        mu = np.ones(self.nlayers) * mu_half
-        mu[3] = mu_blk
+        permeability = np.ones(self.nlayers) * mu_half
+        permeability[3] = mu_blk
 
         # General model
         m_1D = np.r_[
-            np.log(sig), np.log(mu), np.log(self.thicknesses), np.log(self.height)
+            np.log(sig),
+            np.log(permeability),
+            np.log(self.thicknesses),
+            np.log(self.height),
         ]
 
         def fwdfun(m):
@@ -132,12 +135,15 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
         # Permeability
         mu_half = mu_0
         mu_blk = 2 * mu_0
-        mu = np.ones(self.nlayers) * mu_half
-        mu[3] = mu_blk
+        permeability = np.ones(self.nlayers) * mu_half
+        permeability[3] = mu_blk
 
         # General model
         m_true = np.r_[
-            np.log(sig), np.log(mu), np.log(self.thicknesses), np.log(self.height)
+            np.log(sig),
+            np.log(permeability),
+            np.log(self.thicknesses),
+            np.log(self.height),
         ]
 
         dobs = self.sim.dpred(m_true)
@@ -172,7 +178,7 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
     # Tests 2nd order convergence of Jvec and Jtvec for circular loop sources.
     # - All rx orientations of h and dh/dt
     # - Span many time channels
-    # - Tests derivatives wrt conductivity, mu and thicknesses
+    # - Tests derivatives wrt conductivity, permeability and thicknesses
     def setUp(self):
         nearthick = np.logspace(-1, 1, 5)
         deepthick = np.logspace(1, 2, 10)
@@ -224,12 +230,12 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
 
         wire_map = maps.Wires(
             ("conductivity", self.nlayers),
-            ("mu", self.nlayers),
+            ("permeability", self.nlayers),
             ("thicknesses", self.nlayers - 1),
             ("h", 1),
         )
         self.conductivity_map = maps.ExpMap(nP=self.nlayers) * wire_map.conductivity
-        self.mu_map = maps.ExpMap(nP=self.nlayers) * wire_map.mu
+        self.permeability_map = maps.ExpMap(nP=self.nlayers) * wire_map.permeability
         self.thicknesses_map = maps.ExpMap(nP=self.nlayers - 1) * wire_map.thicknesses
         surject_mesh = TensorMesh([np.ones(nP)])
         self.h_map = maps.SurjectFull(surject_mesh) * maps.ExpMap(nP=1) * wire_map.h
@@ -237,7 +243,7 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
         sim = tdem.Simulation1DLayered(
             survey=self.survey,
             conductivity_map=self.conductivity_map,
-            muMap=self.mu_map,
+            permeability_map=self.permeability_map,
             thicknessesMap=self.thicknesses_map,
             hMap=self.h_map,
             topo=self.topo,
@@ -255,12 +261,15 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
         # Permeability
         mu_half = mu_0
         mu_blk = 2 * mu_0
-        mu = np.ones(self.nlayers) * mu_half
-        mu[3] = mu_blk
+        permeability = np.ones(self.nlayers) * mu_half
+        permeability[3] = mu_blk
 
         # General model
         m_1D = np.r_[
-            np.log(sig), np.log(mu), np.log(self.thicknesses), np.log(self.height)
+            np.log(sig),
+            np.log(permeability),
+            np.log(self.thicknesses),
+            np.log(self.height),
         ]
 
         def fwdfun(m):
@@ -294,12 +303,15 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
         # Permeability
         mu_half = mu_0
         mu_blk = 2 * mu_0
-        mu = np.ones(self.nlayers) * mu_half
-        mu[3] = mu_blk
+        permeability = np.ones(self.nlayers) * mu_half
+        permeability[3] = mu_blk
 
         # General model
         m_true = np.r_[
-            np.log(sig), np.log(mu), np.log(self.thicknesses), np.log(self.height)
+            np.log(sig),
+            np.log(permeability),
+            np.log(self.thicknesses),
+            np.log(self.height),
         ]
 
         dobs = self.sim.dpred(m_true)

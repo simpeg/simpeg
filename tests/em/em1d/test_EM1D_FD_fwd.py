@@ -254,7 +254,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
 
     def test_EM1DFDfwd_VMD_ComplexCond(self):
         conductivity_map = maps.IdentityMap(nP=self.nlayers)
-        mu = mu_0 * np.ones(self.nlayers)
+        permeability = mu_0 * np.ones(self.nlayers)
         tau = self.tau * np.ones(self.nlayers)
         c = self.c * np.ones(self.nlayers)
         eta = self.eta * np.ones(self.nlayers)
@@ -267,7 +267,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
             eta=eta,
             tau=tau,
             c=c,
-            mu=mu,
+            permeability=permeability,
         )
 
         m_1D = self.conductivity * np.ones(self.nlayers)
@@ -420,7 +420,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         survey = fdem.Survey(source_list)
 
         conductivity_map = maps.IdentityMap(nP=self.nlayers)
-        mu = mu_0 * np.ones(self.nlayers)
+        permeability = mu_0 * np.ones(self.nlayers)
         tau = self.tau * np.ones(self.nlayers)
         c = self.c * np.ones(self.nlayers)
         eta = self.eta * np.ones(self.nlayers)
@@ -433,7 +433,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
             eta=eta,
             tau=tau,
             c=c,
-            mu=mu,
+            permeability=permeability,
         )
 
         m_1D = self.conductivity * np.ones(self.nlayers)

@@ -41,7 +41,7 @@ class DC_CC_MultipoleFullspaceTests(unittest.TestCase):
 
         # Create Dipole Obj for Analytic Solution
         e1dipole = fdem.ElectricDipoleWholeSpace(
-            conductivity=1e-2,  # conductivity of 1 S/m
+            sigma=1e-2,  # conductivity of 1 S/m
             mu=mu_0,  # permeability of free space (this is the default)
             epsilon=epsilon_0,  # permittivity of free space (this is the default)
             location=np.r_[0.5, 0.0, 0.0],  # location of the dipole
@@ -51,7 +51,7 @@ class DC_CC_MultipoleFullspaceTests(unittest.TestCase):
             length=1.0,  # length of dipole
         )
         e2dipole = fdem.ElectricDipoleWholeSpace(
-            conductivity=1e-2,  # conductivity of 1 S/m
+            sigma=1e-2,  # conductivity of 1 S/m
             mu=mu_0,  # permeability of free space (this is the default)
             epsilon=epsilon_0,  # permittivity of free space (this is the default)
             location=np.r_[1.0, 0.0, 0.0],  # location of the dipole
@@ -221,7 +221,7 @@ class DC_N_MultipoleFullspaceTests(unittest.TestCase):
 
         # Create Dipole Obj for Analytic Solution
         e1dipole = fdem.ElectricDipoleWholeSpace(
-            conductivity=1e-2,  # conductivity of 1 S/m
+            sigma=1e-2,  # conductivity of 1 S/m
             mu=mu_0,  # permeability of free space (this is the default)
             epsilon=epsilon_0,  # permittivity of free space (this is the default)
             location=np.r_[0.5, 0.0, 0.0],  # location of the dipole
@@ -231,7 +231,7 @@ class DC_N_MultipoleFullspaceTests(unittest.TestCase):
             length=1.5,  # length of dipole
         )
         e2dipole = fdem.ElectricDipoleWholeSpace(
-            conductivity=1e-2,  # conductivity of 1 S/m
+            sigma=1e-2,  # conductivity of 1 S/m
             mu=mu_0,  # permeability of free space (this is the default)
             epsilon=epsilon_0,  # permittivity of free space (this is the default)
             location=np.r_[1.0, 0.0, 0.0],  # location of the dipole

@@ -1141,7 +1141,7 @@ class MagDipole(BaseTDEMSrc):
         Magnetic dipole moment amplitude
     orientation : {"z", "x", "y"} or (3) numpy.ndarray
         Orientation of the magnetic dipole.
-    mu : float
+    permeability : float
         Background magnetic permeability
     source_type : {'inductive', 'galvanic'}
         Implement as an inductive or galvanic source
@@ -1153,7 +1153,7 @@ class MagDipole(BaseTDEMSrc):
         location=None,
         moment=1.0,
         orientation="z",
-        mu=mu_0,
+        permeability=mu_0,
         srcType="inductive",
         **kwargs,
     ):
@@ -1166,7 +1166,7 @@ class MagDipole(BaseTDEMSrc):
 
         self.moment = moment
         self.orientation = orientation
-        self.mu = mu
+        self.permeability = permeability
         self.srcType = srcType
 
     @property
@@ -1216,7 +1216,7 @@ class MagDipole(BaseTDEMSrc):
         self._orientation = validate_direction("orientation", var, dim=3)
 
     @property
-    def mu(self):
+    def permeability(self):
         """Magnetic permeability in H/m
 
         Returns
@@ -1224,17 +1224,17 @@ class MagDipole(BaseTDEMSrc):
         float
             Magnetic permeability in H/m
         """
-        return self._mu
+        return self._permeability
 
-    @mu.setter
-    def mu(self, value):
-        value = validate_float("mu", value, min_val=mu_0)
-        self._mu = value
+    @permeability.setter
+    def permeability(self, value):
+        value = validate_float("permeability", value, min_val=mu_0)
+        self._permeability = value
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         if getattr(self, "_dipole", None) is None:
             self._dipole = MagneticDipoleWholeSpace(
-                mu=self.mu,
+                permeability=self.permeability,
                 orientation=self.orientation,
                 location=self.location,
                 moment=self.moment,
@@ -1287,10 +1287,10 @@ class MagDipole(BaseTDEMSrc):
             if simulation._formulation == "EB":
                 bp = simulation.mesh.edge_curl * self._aSrc(simulation)
                 self._Mf__perm_invp = simulation.mesh.get_face_inner_product(
-                    1.0 / self.mu
+                    1.0 / self.permeability
                 )
                 self._inv_Mf__perm_invp = simulation.mesh.get_face_inner_product(
-                    1.0 / self.mu, invert_matrix=True
+                    1.0 / self.permeability, invert_matrix=True
                 )
                 self._hp = self._Mf__perm_invp * bp
             else:
@@ -1350,7 +1350,7 @@ class MagDipole(BaseTDEMSrc):
         if self.waveform.has_initial_fields is False:
             return Zero()
 
-        if np.all(simulation.mu == self.mu):
+        if np.all(simulation.permeability == self.permeability):
             return self._bSrc(simulation)
 
         else:
@@ -1384,7 +1384,7 @@ class MagDipole(BaseTDEMSrc):
         #     return simulation._Mf__perm_inv * self.bInitial(simulation)
         # elif simulation._formulation == 'HJ':
         #     return simulation._inv_Me_permeability * self.bInitial(simulation)
-        return 1.0 / self.mu * self.bInitial(simulation)
+        return 1.0 / self.permeability * self.bInitial(simulation)
 
     def s_m(self, simulation, time):
         """Magnetic source term (s_m) at a given time
@@ -1424,7 +1424,7 @@ class MagDipole(BaseTDEMSrc):
         b = self._bSrc(simulation)
 
         if simulation._formulation == "EB":
-            MfMui = simulation.mesh.get_face_inner_product(1.0 / self.mu)
+            MfMui = simulation.mesh.get_face_inner_product(1.0 / self.permeability)
 
             if (
                 self.waveform.has_initial_fields is True
@@ -1435,7 +1435,7 @@ class MagDipole(BaseTDEMSrc):
                 return C.T * (MfMui * b) * self.waveform.eval(time)
 
         elif simulation._formulation == "HJ":
-            h = 1.0 / self.mu * b
+            h = 1.0 / self.permeability * b
 
             if (
                 self.waveform.has_initial_fields is True
@@ -1464,7 +1464,7 @@ class CircularLoop(MagDipole):
         Loop radius
     current : float, default = 1.
         Source current
-    mu : float
+    permeability : float
         Background magnetic permeability
     srcType : {'inductive', "galvanic"}
         'inductive' to implement as inductive source and 'galvanic' to implement
@@ -1484,7 +1484,7 @@ class CircularLoop(MagDipole):
         radius=1.0,
         current=1.0,
         n_turns=1,
-        mu=mu_0,
+        permeability=mu_0,
         srcType="inductive",
         **kwargs,
     ):
@@ -1506,7 +1506,7 @@ class CircularLoop(MagDipole):
         self.orientation = orientation
         self.radius = radius
         self.current = current
-        self.mu = mu
+        self.permeability = permeability
         self.srcType = srcType
 
     @property
@@ -1582,12 +1582,12 @@ class CircularLoop(MagDipole):
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         # return MagneticLoopVectorPotential(
-        #     self.location, obsLoc, component, mu=self.mu, radius=self.radius
+        #     self.location, obsLoc, component, permeability=self.permeability, radius=self.radius
         # )
 
         if getattr(self, "_loop", None) is None:
             self._loop = CircularLoopWholeSpace(
-                mu=self.mu,
+                permeability=self.permeability,
                 location=self.location,
                 orientation=self.orientation,
                 radius=self.radius,
@@ -1619,7 +1619,7 @@ class LineCurrent(BaseTDEMSrc):
         entry of the array).
     current : float, optional
         A non-zero current value.
-    mu : float, optional
+    permeability : float, optional
         Magnetic permeability to use.
     """
 
@@ -1628,7 +1628,7 @@ class LineCurrent(BaseTDEMSrc):
         receiver_list=None,
         location=None,
         current=1.0,
-        mu=mu_0,
+        permeability=mu_0,
         srcType=None,
         **kwargs,
     ):
@@ -1642,7 +1642,7 @@ class LineCurrent(BaseTDEMSrc):
 
         self.integrate = False
         self.current = current
-        self.mu = mu
+        self.permeability = permeability
 
     @property
     def location(self):

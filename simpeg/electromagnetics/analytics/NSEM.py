@@ -7,8 +7,8 @@ __all__ = ["MT_LayeredEarth"]
 
 
 # Evaluate Impedance Z of a layer
-def _ImpZ(f, mu, k):
-    return omega(f) * mu / k
+def _ImpZ(f, permeability, k):
+    return omega(f) * permeability / k
 
 
 # Complex Cole-Cole Conductivity - EM utils
@@ -54,12 +54,12 @@ def _Propagate(f, thickness, sig, chg, taux, c, mu_r, eps_r, n):
             sigcm[j] = _PCC(sig[j], chg[j], taux[j], c[j], f)
 
     sigcm = np.append(np.r_[0.0], sigcm)
-    mu = np.append(np.r_[1.0], mumodel) * mu_0
+    permeability = np.append(np.r_[1.0], mumodel) * mu_0
     eps = np.append(np.r_[1.0], epsmodel) * epsilon_0
     H = np.append(np.r_[1.2 * (1e5)], thickness)
 
-    K = k(f, sigcm, mu, eps)
-    Z = _ImpZ(f, mu, K)
+    K = k(f, sigcm, permeability, eps)
+    Z = _ImpZ(f, permeability, K)
 
     EH = np.zeros((2, n + 1), dtype="complex_")
     UD = np.zeros((2, n + 1), dtype="complex_")

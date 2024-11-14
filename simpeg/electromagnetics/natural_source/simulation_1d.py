@@ -215,8 +215,8 @@ class Simulation1DRecursive(BaseSimulation):
         d_conductivity = -ratios / conductivities[:, None] * gratios
         d_conductivity += (0.5j * omega * mu_0) / alphas * galphas
 
-        # d_mu would be this below when it gets activated:
-        # d_mu = (0.5j * omega * conductivities[:, None]) / alphas * galphas
+        # d_permeability would be this below when it gets activated:
+        # d_permeability = (0.5j * omega * conductivities[:, None]) / alphas * galphas
         return Zs[0], d_conductivity[::-1].T, d_thick[::-1].T
 
     def fields(self, m):

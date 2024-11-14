@@ -55,7 +55,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     def __init__(self, mesh, survey=None, dt_threshold=1e-8, **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.dt_threshold = dt_threshold
-        if self.muMap is not None:
+        if self.permeability_map is not None:
             raise NotImplementedError(
                 "Time domain EM simulations do not support magnetic permeability "
                 "inversion, yet."

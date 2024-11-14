@@ -300,7 +300,7 @@ background_conductivity = np.log(100.0)
 sphere_conductivity = np.log(70.0)
 dyke_conductivity = np.log(40.0)
 background_myu = 1.0
-sphere_mu = 1.25
+sphere_permeability = 1.25
 
 # Define surface topography
 [xx, yy] = np.meshgrid(mesh.nodes_x, mesh.nodes_y)
@@ -321,7 +321,7 @@ ind_sphere = model_builder.get_indices_sphere(
     np.r_[-25.0, 0.0, -15.0], 20.0, mesh.gridCC
 )
 ind_sphere = ind_sphere[ind_active]  # So same size and order as model
-model[ind_sphere, :] = np.c_[sphere_conductivity, sphere_mu]
+model[ind_sphere, :] = np.c_[sphere_conductivity, sphere_permeability]
 
 # Add a conductive and non-permeable dyke
 xp = np.kron(np.ones((2)), [-10.0, 10.0, 45.0, 25.0])
@@ -334,11 +334,11 @@ model[ind_polygon, 0] = dyke_conductivity
 
 # Create model vector and wires
 model = mkvc(model)
-wire_map = maps.Wires(("log_conductivity", N), ("mu", N))
+wire_map = maps.Wires(("log_conductivity", N), ("permeability", N))
 
 # Use combo maps to map from model to mesh
 conductivity_map = active_map * maps.ExpMap() * wire_map.log_conductivity
-mu_map = active_map * wire_map.mu
+permeability_map = active_map * wire_map.permeability
 
 # Plot
 fig = plt.figure(figsize=(5, 5))

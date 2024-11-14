@@ -203,7 +203,7 @@ prob_ramp_on = TDEM.Simulation3DMagneticFluxDensity(
 t = time.time()
 print("--- Running Long On-Time Simulation ---")
 
-prob_ramp_on.mu = mu_model
+prob_ramp_on.permeability = mu_model
 fields = prob_ramp_on.fields(conductivity)
 
 print(" ... done. Elapsed time {}".format(time.time() - t))
@@ -216,7 +216,7 @@ b_ramp_on = utils.mkvc(fields[:, "b", -1])
 # Compute Magnetostatic Fields from the step-off source
 # -----------------------------------------------------
 
-prob_magnetostatic.mu = mu_model
+prob_magnetostatic.permeability = mu_model
 prob_magnetostatic.model = conductivity
 b_magnetostatic = src_magnetostatic.bInitial(prob_magnetostatic)
 

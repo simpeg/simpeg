@@ -12,13 +12,13 @@ import pytest
 
 # define a very simple class...
 @with_property_mass_matrices("conductivity")
-@with_property_mass_matrices("mu")
+@with_property_mass_matrices("permeability")
 class SimpleSim(BasePDESimulation):
     conductivity, conductivity_map, _con_deriv = props.Invertible(
         "Electrical conductivity (S/m)"
     )
 
-    mu, muMap, muDeriv = props.Invertible("Magnetic Permeability")
+    permeability, permeability_map, muDeriv = props.Invertible("Magnetic Permeability")
 
     def __init__(
         self,
@@ -26,14 +26,14 @@ class SimpleSim(BasePDESimulation):
         survey=None,
         conductivity=None,
         conductivity_map=None,
-        mu=mu_0,
-        muMap=None,
+        permeability=mu_0,
+        permeability_map=None,
     ):
         super().__init__(mesh=mesh, survey=survey)
         self.conductivity = conductivity
-        self.mu = mu
+        self.permeability = permeability
         self.conductivity_map = conductivity_map
-        self.muMap = muMap
+        self.permeability_map = permeability_map
 
     @property
     def _delete_on_model_change(self):

@@ -175,7 +175,10 @@ dpred = simulation.dpred(conductivity_model)
 
 # Simulate response for a conductive and susceptible Earth
 simulation_susceptible = fdem.Simulation1DLayered(
-    survey=survey, thicknesses=thicknesses, conductivity_map=model_mapping, mu=mu_model
+    survey=survey,
+    thicknesses=thicknesses,
+    conductivity_map=model_mapping,
+    permeability=mu_model,
 )
 
 dpred_susceptible = simulation_susceptible.dpred(conductivity_model)

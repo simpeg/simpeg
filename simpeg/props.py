@@ -8,6 +8,8 @@ from .utils import Zero, validate_type, validate_ndarray_with_shape
 
 
 class Mapping:
+    cached_items = set()
+
     def __init__(self, short_details=None):
         self.short_details = short_details
 
@@ -59,9 +61,17 @@ class Mapping:
             if value is not None:
                 value = validate_type(scope.name, value, IdentityMap, cast=False)
                 scope.clear_props(self)
+
+            # clear cached items associated with this value
+            for item in scope.cached_items:
+                self._cache.pop(item, None)
+
             setattr(self, f"_{scope.name}", value)
 
         def fdel(self):
+            # clear cached items associated with this value
+            for item in scope.cached_items:
+                self._cache.pop(item, None)
             setattr(self, f"_{scope.name}", None)
 
         return property(fget=fget, fset=fset, fdel=fdel, doc=doc)
@@ -85,6 +95,7 @@ class PhysicalProperty:
             mapping.prop = self
 
         self._mapping = mapping
+        self._derivative = None
         self.optional = optional
 
         self.shape = shape
@@ -107,6 +118,15 @@ class PhysicalProperty:
         value = validate_type("mapping", value, Mapping, cast=False)
         value._prop = self  # Skip the setter
         self._mapping = value
+
+    @property
+    def derivative(self):
+        return self._derivative
+
+    @derivative.setter
+    def derivative(self, value):
+        value = validate_type("derivative", value, Derivative, cast=False)
+        self._derivative = value
 
     def clear_mappings(self, instance):
         if self.mapping is not None:
@@ -202,6 +222,7 @@ class Derivative:
     def __init__(self, short_details=None, physical_property=None):
         self.short_details = short_details
         self.physical_property = physical_property
+        physical_property.derivative = self
 
     @property
     def mapping(self):

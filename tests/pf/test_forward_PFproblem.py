@@ -50,7 +50,7 @@ class MagFwdProblemTests(unittest.TestCase):
         self.sim = mag.simulation.Simulation3DDifferential(
             M,
             survey=self.survey,
-            muMap=maps.ChiMap(M),
+            permeability_map=maps.ChiMap(M),
         )
         self.M = M
         self.susceptibility = susceptibility

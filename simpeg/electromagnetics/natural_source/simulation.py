@@ -151,7 +151,7 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
             return self._Me_resistivity_deriv(G * u, G * v, adjoint)
         return G.T * self._Me_resistivity_deriv(G * u, v, adjoint)
 
-    def getADeriv_mu(self, freq, u, v, adjoint=False):
+    def getADeriv_permeability(self, freq, u, v, adjoint=False):
         MnMuDeriv = self._Mn_permeability_deriv(u)
         if adjoint is True:
             return 1j * omega(freq) * (MnMuDeriv.T * v)
@@ -168,9 +168,9 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
         return Zero()
 
     def getADeriv(self, freq, u, v, adjoint=False):
-        return self.getADeriv_resistivity(freq, u, v, adjoint) + self.getADeriv_mu(
+        return self.getADeriv_resistivity(
             freq, u, v, adjoint
-        )
+        ) + self.getADeriv_permeability(freq, u, v, adjoint)
 
 
 class Simulation1DPrimarySecondary(Simulation1DElectricField):
@@ -312,9 +312,9 @@ class Simulation2DElectricField(BaseFDEMSimulation):
                 if self.conductivity_map is not None:
                     map_l_kwargs["conductivity_map"] = P_l * self.conductivity_map
                     map_r_kwargs["conductivity_map"] = P_r * self.conductivity_map
-                if self.muiMap is not None:
-                    map_l_kwargs["muiMap"] = P_l * self.muiMap
-                    map_r_kwargs["muiMap"] = P_r * self.muiMap
+                if self._perm_inv_map is not None:
+                    map_l_kwargs["_perm_inv_map"] = P_l * self._perm_inv_map
+                    map_r_kwargs["_perm_inv_map"] = P_r * self._perm_inv_map
 
                 # create a survey with 1 source per frequency (no receivers)
                 frequencies = self.survey.frequencies
@@ -445,7 +445,7 @@ class Simulation2DElectricField(BaseFDEMSimulation):
             if model is None:
                 model = self.model
             sim = self._sim_left
-            if self.muiMap is None:
+            if self._perm_inv_map is None:
                 try:
                     sim.mui = self._P_l @ self.mui
                 except Exception:
@@ -458,7 +458,7 @@ class Simulation2DElectricField(BaseFDEMSimulation):
             f_left = sim.fields(model)
 
             sim = self._sim_right
-            if self.muiMap is None:
+            if self._perm_inv_map is None:
                 try:
                     sim.mui = self._P_r @ self.mui
                 except Exception:
@@ -538,9 +538,9 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
                 if self.resistivity_map is not None:
                     map_l_kwargs["resistivity_map"] = P_l * self.resistivity_map
                     map_r_kwargs["resistivity_map"] = P_r * self.resistivity_map
-                if self.muMap is not None:
-                    map_l_kwargs["muMap"] = P_l * self.muMap
-                    map_r_kwargs["muMap"] = P_r * self.muMap
+                if self.permeability_map is not None:
+                    map_l_kwargs["permeability_map"] = P_l * self.permeability_map
+                    map_r_kwargs["permeability_map"] = P_r * self.permeability_map
 
                 # create a survey with 1 source per frequency (no receivers)
                 frequencies = self.survey.frequencies
@@ -602,9 +602,9 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
         """
         C = self.mesh.edge_curl
         Mcc_resistivity = self._Mcc_resistivity
-        Me_mu = self._Me_permeability
+        Me_permeability = self._Me_permeability
 
-        return C.T.tocsr() @ Mcc_resistivity @ C + 1j * omega(freq) * Me_mu
+        return C.T.tocsr() @ Mcc_resistivity @ C + 1j * omega(freq) * Me_permeability
 
     def getRHS(self, freq):
         """
@@ -630,13 +630,13 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
             return self._Mcc_resistivity_deriv(C * u, C * v, adjoint)
         return C.T * self._Mcc_resistivity_deriv(C * u, v, adjoint)
 
-    def getADeriv_mu(self, freq, u, v, adjoint=False):
+    def getADeriv_permeability(self, freq, u, v, adjoint=False):
         return 1j * omega(freq) * self._Me_permeability_deriv(u, v, adjoint=adjoint)
 
     def getADeriv(self, freq, u, v, adjoint=False):
-        return self.getADeriv_resistivity(freq, u, v, adjoint) + self.getADeriv_mu(
+        return self.getADeriv_resistivity(
             freq, u, v, adjoint
-        )
+        ) + self.getADeriv_permeability(freq, u, v, adjoint)
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
         if self._e_bc is not None:
@@ -667,11 +667,11 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
             if model is None:
                 model = self.model
             sim = self._sim_left
-            if self.muMap is None:
+            if self.permeability_map is None:
                 try:
-                    sim.mu = self._P_l @ self.mu
+                    sim.permeability = self._P_l @ self.permeability
                 except Exception:
-                    sim.mu = self.mu
+                    sim.permeability = self.permeability
             if self.resistivity_map is None:
                 try:
                     sim.resistivity = self._P_l @ self.resistivity
@@ -680,11 +680,11 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
             f_left = sim.fields(model)
 
             sim = self._sim_right
-            if self.muMap is None:
+            if self.permeability_map is None:
                 try:
-                    sim.mu = self._P_r @ self.mu
+                    sim.permeability = self._P_r @ self.permeability
                 except Exception:
-                    sim.mu = self.mu
+                    sim.permeability = self.permeability
             if self.resistivity_map is None:
                 try:
                     sim.resistivity = self._P_r @ self.resistivity

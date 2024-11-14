@@ -24,12 +24,12 @@ def adjointTest(fdemType, comp, src):
     print(f"Adjoint {fdemType} formulation - {src} - {comp}")
 
     m = np.log(np.ones(prb.conductivityMap.nP) * CONDUCTIVITY)
-    mu = np.ones(prb.mesh.nC) * MU
+    permeability = np.ones(prb.mesh.nC) * MU
 
     rng = np.random.default_rng(seed=42)
     if addrandoms is True:
         m = m + rng.normal(size=prb.conductivityMap.nP) * np.log(CONDUCTIVITY) * 1e-1
-        mu = mu + rng.normal(size=prb.mesh.nC) * MU * 1e-1
+        permeability = permeability + rng.normal(size=prb.mesh.nC) * MU * 1e-1
 
     survey = prb.survey
     u = prb.fields(m)

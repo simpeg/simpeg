@@ -3,7 +3,7 @@ from scipy.constants import mu_0, pi, epsilon_0
 from simpeg import utils
 
 
-def hzAnalyticDipoleF(r, freq, conductivity, secondary=True, mu=mu_0):
+def hzAnalyticDipoleF(r, freq, conductivity, secondary=True, permeability=mu_0):
     """
     The analytical expression is given in Equation 4.56 in Ward and Hohmann,
     1988, and the example reproduces their Figure 4.2.
@@ -39,7 +39,7 @@ def hzAnalyticDipoleF(r, freq, conductivity, secondary=True, mu=mu_0):
 
     """
     r = np.abs(r)
-    k = np.sqrt(-1j * 2.0 * np.pi * freq * mu * conductivity)
+    k = np.sqrt(-1j * 2.0 * np.pi * freq * permeability * conductivity)
 
     m = 1
     front = m / (2.0 * np.pi * (k**2) * (r**5))
@@ -110,12 +110,14 @@ def MagneticDipoleWholeSpace(
         moment = orient
     else:
         magnitude = 1
-    mu = kwargs.pop("mu", None)
-    if mu is not None:
-        raise TypeError("mu kwarg has been removed, please use the mu_r argument.")
-        mu_r = mu / mu_0
+    permeability = kwargs.pop("permeability", None)
+    if permeability is not None:
+        raise TypeError(
+            "permeability kwarg has been removed, please use the mu_r argument."
+        )
+        mu_r = permeability / mu_0
 
-    mu = mu_0 * mu_r
+    permeability = mu_0 * mu_r
     eps = epsilon_0 * eps_r
     w = 2 * np.pi * f
 
@@ -139,7 +141,7 @@ def MagneticDipoleWholeSpace(
     dz = XYZ[:, 2] - srcLoc[2]
 
     r = np.sqrt(dx**2.0 + dy**2.0 + dz**2.0)
-    k = np.sqrt(-1j * w * mu * sig + w**2 * mu * eps)
+    k = np.sqrt(-1j * w * permeability * sig + w**2 * permeability * eps)
     kr = k * r
 
     if fieldType in ["h", "b"]:
@@ -165,10 +167,17 @@ def MagneticDipoleWholeSpace(
         )
 
         if fieldType == "b":
-            Fx, Fy, Fz = mu * Fx, mu * Fy, mu * Fz
+            Fx, Fy, Fz = permeability * Fx, permeability * Fy, permeability * Fz
 
     elif fieldType == "e":
-        front = 1j * w * mu * (1 + 1j * kr) / (4.0 * pi * r**3.0) * np.exp(-1j * kr)
+        front = (
+            1j
+            * w
+            * permeability
+            * (1 + 1j * kr)
+            / (4.0 * pi * r**3.0)
+            * np.exp(-1j * kr)
+        )
 
         Fx = front * (my * (dz / r) + mz * (-dy / r))
 
@@ -187,9 +196,11 @@ def ElectricDipoleWholeSpace(
         raise TypeError(
             "orientation kwarg has been removed, please use the moment argument."
         )
-    mu = kwargs.pop("mu", None)
-    if mu is not None:
-        raise TypeError("mu kwarg has been removed, please use the mu_r argument.")
+    permeability = kwargs.pop("permeability", None)
+    if permeability is not None:
+        raise TypeError(
+            "permeability kwarg has been removed, please use the mu_r argument."
+        )
     cur = kwargs.pop("current", None)
     if cur is not None:
         raise TypeError(
@@ -203,7 +214,7 @@ def ElectricDipoleWholeSpace(
             "length kwarg has been removed, please use the moment argument."
         )
 
-    mu = mu_0 * mu_r
+    permeability = mu_0 * mu_r
     eps = epsilon_0 * eps_r
     w = 2 * np.pi * f
 
@@ -228,7 +239,7 @@ def ElectricDipoleWholeSpace(
     dz = XYZ[:, 2] - srcLoc[2]
 
     r = np.sqrt(dx**2.0 + dy**2.0 + dz**2.0)
-    k = np.sqrt(-1j * w * mu * sig + w**2 * mu * eps)
+    k = np.sqrt(-1j * w * permeability * sig + w**2 * permeability * eps)
     kr = k * r
 
     if fieldType == "e":
@@ -263,6 +274,6 @@ def ElectricDipoleWholeSpace(
         Fz = front * (mx * (dy / r) + my * (-dx / r))
 
         if fieldType == "b":
-            Fx, Fy, Fz = mu * Fx, mu * Fy, mu * Fz
+            Fx, Fy, Fz = permeability * Fx, permeability * Fy, permeability * Fz
 
     return Fx, Fy, Fz
