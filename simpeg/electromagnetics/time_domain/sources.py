@@ -1271,7 +1271,7 @@ class MagDipole(BaseTDEMSrc):
         if simulation._formulation == "EB":
             return (
                 simulation.mesh.face_divergence
-                * simulation.MfMuiI
+                * simulation._inv_Mf__perm_inv
                 * simulation.mesh.face_divergence.T.tocsr()
             )
         else:
@@ -1286,11 +1286,13 @@ class MagDipole(BaseTDEMSrc):
         if getattr(self, "_hp", None) is None:
             if simulation._formulation == "EB":
                 bp = simulation.mesh.edge_curl * self._aSrc(simulation)
-                self._MfMuip = simulation.mesh.get_face_inner_product(1.0 / self.mu)
-                self._MfMuipI = simulation.mesh.get_face_inner_product(
+                self._Mf__perm_invp = simulation.mesh.get_face_inner_product(
+                    1.0 / self.mu
+                )
+                self._inv_Mf__perm_invp = simulation.mesh.get_face_inner_product(
                     1.0 / self.mu, invert_matrix=True
                 )
-                self._hp = self._MfMuip * bp
+                self._hp = self._Mf__perm_invp * bp
             else:
                 raise NotImplementedError(
                     "Solving the magnetostatic simulationlem for the initial fields "
@@ -1301,7 +1303,7 @@ class MagDipole(BaseTDEMSrc):
 
         if simulation._formulation == "EB":
             return -simulation.mesh.face_divergence * (
-                (simulation.MfMuiI - self._MfMuipI) * self._hp
+                (simulation._inv_Mf__perm_inv - self._inv_Mf__perm_invp) * self._hp
             )
         else:
             raise NotImplementedError(
@@ -1355,7 +1357,7 @@ class MagDipole(BaseTDEMSrc):
             if simulation._formulation == "EB":
                 hs = simulation.mesh.face_divergence.T * self._phiSrc(simulation)
                 ht = self._hp + hs
-                return simulation.MfMuiI * ht
+                return simulation._inv_Mf__perm_inv * ht
             else:
                 raise NotImplementedError
 
@@ -1379,7 +1381,7 @@ class MagDipole(BaseTDEMSrc):
         if self.waveform.has_initial_fields is False:
             return Zero()
         # if simulation._formulation == 'EB':
-        #     return simulation.MfMui * self.bInitial(simulation)
+        #     return simulation._Mf__perm_inv * self.bInitial(simulation)
         # elif simulation._formulation == 'HJ':
         #     return simulation.MeMuI * self.bInitial(simulation)
         return 1.0 / self.mu * self.bInitial(simulation)
@@ -1863,7 +1865,7 @@ class LineCurrent(BaseTDEMSrc):
                     sdiag(simulation.mesh.cell_volumes)
                     * simulation.mesh.face_divergence
                 )
-                return -simulation.MfRhoI * (Div.T * phi)
+                return -simulation._inv_Mf_resistivity * (Div.T * phi)
             else:
                 raise NotImplementedError
         else:
@@ -1896,15 +1898,17 @@ class LineCurrent(BaseTDEMSrc):
 
         if adjoint is True:
             return -(
-                simulation.MfRhoIDeriv(Div.T * phi, v=v, adjoint=True)
+                simulation._inv_Mf_resistivity_deriv(Div.T * phi, v=v, adjoint=True)
                 + self._phiInitialDeriv(
-                    simulation, Div * (simulation.MfRhoI.T * v), adjoint=True
+                    simulation,
+                    Div * (simulation._inv_Mf_resistivity.T * v),
+                    adjoint=True,
                 )
             )
         phiDeriv = self._phiInitialDeriv(simulation, v)
         return -(
-            simulation.MfRhoIDeriv(Div.T * phi, v=v)
-            + simulation.MfRhoI * (Div.T * phiDeriv)
+            simulation._inv_Mf_resistivity_deriv(Div.T * phi, v=v)
+            + simulation._inv_Mf_resistivity * (Div.T * phiDeriv)
         )
 
     def _getAmmr(self, simulation):
@@ -2112,7 +2116,7 @@ class RawVec_Grounded(LineCurrent):
 
     #     phi = self.phiInitial(simulation)
     #     Div = sdiag(simulation.mesh.cell_volumes) * simulation.mesh.face_divergence
-    #     return -simulation.MfRhoI * (Div.T * phi)
+    #     return -simulation._inv_Mf_resistivity * (Div.T * phi)
 
     # def jInitialDeriv(self, simulation, v, adjoint=False):
     #     if simulation._fieldType not in ["j", "h"]:
@@ -2126,11 +2130,11 @@ class RawVec_Grounded(LineCurrent):
 
     #     if adjoint is True:
     #         return -(
-    #             simulation.MfRhoIDeriv(Div.T * phi, v=v, adjoint=True)
-    #             + self._phiInitialDeriv(simulation, Div * (simulation.MfRhoI.T * v), adjoint=True)
+    #             simulation._inv_Mf_resistivity_deriv(Div.T * phi, v=v, adjoint=True)
+    #             + self._phiInitialDeriv(simulation, Div * (simulation._inv_Mf_resistivity.T * v), adjoint=True)
     #         )
     #     phiDeriv = self._phiInitialDeriv(simulation, v)
-    #     return -(simulation.MfRhoIDeriv(Div.T * phi, v=v) + simulation.MfRhoI * (Div.T * phiDeriv))
+    #     return -(simulation._inv_Mf_resistivity_deriv(Div.T * phi, v=v) + simulation._inv_Mf_resistivity * (Div.T * phiDeriv))
 
     # def _getAmmr(self, simulation):
     #     if simulation._fieldType not in ["j", "h"]:

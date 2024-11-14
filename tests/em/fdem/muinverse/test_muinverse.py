@@ -142,12 +142,12 @@ class MuTests(unittest.TestCase):
 
         self.simulation.MeMu
         self.simulation.MeMuI
-        self.simulation.MfMui
-        self.simulation.MfMuiI
+        self.simulation._Mf__perm_inv
+        self.simulation._inv_Mf__perm_inv
         self.simulation.MeMuDeriv(u[:, "e"])
-        self.simulation.MfMuiDeriv(u[:, "b"])
-        MfMuiDeriv_zero = self.simulation.MfMuiDeriv(utils.Zero())
-        MfMuiIDeriv_zero = self.simulation.MfMuiIDeriv(utils.Zero())
+        self.simulation._Mf__perm_inv_deriv(u[:, "b"])
+        MfMuiDeriv_zero = self.simulation._Mf__perm_inv_deriv(utils.Zero())
+        MfMuiIDeriv_zero = self.simulation._inv_Mf__perm_inv_deriv(utils.Zero())
         MeMuDeriv_zero = self.simulation.MeMuDeriv(utils.Zero())
 
         rng = np.random.default_rng(seed=2016)
@@ -156,9 +156,9 @@ class MuTests(unittest.TestCase):
 
         self.assertTrue(getattr(self, "_MeMu", None) is None)
         self.assertTrue(getattr(self, "_MeMuI", None) is None)
-        self.assertTrue(getattr(self, "_MfMui", None) is None)
-        self.assertTrue(getattr(self, "_MfMuiI", None) is None)
-        self.assertTrue(getattr(self, "_MfMuiDeriv", None) is None)
+        self.assertTrue(getattr(self, "_Mf__perm_inv", None) is None)
+        self.assertTrue(getattr(self, "_inv_Mf__perm_inv", None) is None)
+        self.assertTrue(getattr(self, "_Mf__perm_inv_deriv", None) is None)
         self.assertTrue(getattr(self, "_MeMuDeriv", None) is None)
         self.assertTrue(isinstance(MfMuiDeriv_zero, utils.Zero))
         self.assertTrue(isinstance(MfMuiIDeriv_zero, utils.Zero))

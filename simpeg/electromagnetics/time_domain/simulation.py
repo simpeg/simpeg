@@ -792,8 +792,8 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
         dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
-        MeSigmaI = self.MeSigmaI
-        MfMui = self.MfMui
+        MeSigmaI = self._inv_Me_conductivity
+        MfMui = self._Mf__perm_inv
         I = speye(self.mesh.n_faces)
 
         A = 1.0 / dt * I + (C * (MeSigmaI * (C.T.tocsr() * MfMui)))
@@ -853,16 +853,16 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         C = self.mesh.edge_curl
 
         # def MeSigmaIDeriv(x):
-        #     return self.MeSigmaIDeriv(x)
+        #     return self._inv_Me_conductivity_deriv(x)
 
-        MfMui = self.MfMui
+        MfMui = self._Mf__perm_inv
 
         if adjoint:
             if self._makeASymmetric is True:
                 v = MfMui * v
-            return self.MeSigmaIDeriv(C.T * (MfMui * u), C.T * v, adjoint)
+            return self._inv_Me_conductivity_deriv(C.T * (MfMui * u), C.T * v, adjoint)
 
-        ADeriv = C * (self.MeSigmaIDeriv(C.T * (MfMui * u), v, adjoint))
+        ADeriv = C * (self._inv_Me_conductivity_deriv(C.T * (MfMui * u), v, adjoint))
 
         if self._makeASymmetric is True:
             return MfMui.T * ADeriv
@@ -893,7 +893,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         """
 
         dt = self.time_steps[tInd]
-        MfMui = self.MfMui
+        MfMui = self._Mf__perm_inv
         Asubdiag = -1.0 / dt * sp.eye(self.mesh.n_faces)
 
         if self._makeASymmetric is True:
@@ -980,8 +980,8 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
             The right-hand sides.
         """
         C = self.mesh.edge_curl
-        MeSigmaI = self.MeSigmaI
-        MfMui = self.MfMui
+        MeSigmaI = self._inv_Me_conductivity
+        MfMui = self._Mf__perm_inv
 
         s_m, s_e = self.getSourceTerm(tInd)
 
@@ -1039,18 +1039,20 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         """
 
         C = self.mesh.edge_curl
-        MeSigmaI = self.MeSigmaI
+        MeSigmaI = self._inv_Me_conductivity
 
         _, s_e = src.eval(self, self.times[tInd])
         s_mDeriv, s_eDeriv = src.evalDeriv(self, self.times[tInd], adjoint=adjoint)
 
         if adjoint:
             if self._makeASymmetric is True:
-                v = self.MfMui * v
+                v = self._Mf__perm_inv * v
             if isinstance(s_e, Zero):
                 MeSigmaIDerivT_v = Zero()
             else:
-                MeSigmaIDerivT_v = self.MeSigmaIDeriv(s_e, C.T * v, adjoint)
+                MeSigmaIDerivT_v = self._inv_Me_conductivity_deriv(
+                    s_e, C.T * v, adjoint
+                )
 
             RHSDeriv = MeSigmaIDerivT_v + s_eDeriv(MeSigmaI.T * (C.T * v)) + s_mDeriv(v)
 
@@ -1059,12 +1061,12 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         if isinstance(s_e, Zero):
             MeSigmaIDeriv_v = Zero()
         else:
-            MeSigmaIDeriv_v = self.MeSigmaIDeriv(s_e, v, adjoint)
+            MeSigmaIDeriv_v = self._inv_Me_conductivity_deriv(s_e, v, adjoint)
 
         RHSDeriv = C * MeSigmaIDeriv_v + C * MeSigmaI * s_eDeriv(v) + s_mDeriv(v)
 
         if self._makeASymmetric is True:
-            return self.MfMui.T * RHSDeriv
+            return self._Mf__perm_inv.T * RHSDeriv
         return RHSDeriv
 
 
@@ -1340,7 +1342,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
                 un_src = f[src, ftype, tInd + 1]
                 # cell centered on time mesh
-                dAT_dm_v = self.MeSigmaDeriv(
+                dAT_dm_v = self._Me_conductivity_deriv(
                     un_src, ATinv_df_duT_v[isrc, :], adjoint=True
                 )
 
@@ -1384,8 +1386,8 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
         dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
-        MfMui = self.MfMui
-        MeSigma = self.MeSigma
+        MfMui = self._Mf__perm_inv
+        MeSigma = self._Me_conductivity
 
         return C.T.tocsr() * (MfMui * C) + 1.0 / dt * MeSigma
 
@@ -1440,12 +1442,12 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         assert tInd >= 0 and tInd < self.nT
 
         dt = self.time_steps[tInd]
-        # MeSigmaDeriv = self.MeSigmaDeriv(u)
+        # MeSigmaDeriv = self._Me_conductivity_deriv(u)
 
         if adjoint:
-            return 1.0 / dt * self.MeSigmaDeriv(u, v, adjoint)
+            return 1.0 / dt * self._Me_conductivity_deriv(u, v, adjoint)
 
-        return 1.0 / dt * self.MeSigmaDeriv(u, v, adjoint)
+        return 1.0 / dt * self._Me_conductivity_deriv(u, v, adjoint)
 
     def getAsubdiag(self, tInd):
         r"""Sub-diagonal system matrix for the time-step index provided.
@@ -1475,7 +1477,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
         dt = self.time_steps[tInd]
 
-        return -1.0 / dt * self.MeSigma
+        return -1.0 / dt * self._Me_conductivity
 
     def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
         r"""Derivative operation for the sub-diagonal system matrix times a vector.
@@ -1524,9 +1526,9 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         dt = self.time_steps[tInd]
 
         if adjoint:
-            return -1.0 / dt * self.MeSigmaDeriv(u, v, adjoint)
+            return -1.0 / dt * self._Me_conductivity_deriv(u, v, adjoint)
 
-        return -1.0 / dt * self.MeSigmaDeriv(u, v, adjoint)
+        return -1.0 / dt * self._Me_conductivity_deriv(u, v, adjoint)
 
     def getRHS(self, tInd):
         r"""Right-hand sides for the given time index.
@@ -1568,7 +1570,9 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         s_m, s_e = self.getSourceTerm(tInd)
         _, s_en1 = self.getSourceTerm(tInd - 1)
 
-        return -1.0 / dt * (s_e - s_en1) + self.mesh.edge_curl.T * self.MfMui * s_m
+        return (
+            -1.0 / dt * (s_e - s_en1) + self.mesh.edge_curl.T * self._Mf__perm_inv * s_m
+        )
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
         r"""Derivative of the right-hand side times a vector for a given source and time index.
@@ -1657,7 +1661,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         (n_nodes, n_nodes) sp.sparse.csr_matrix
             The system matrix for the DC resistivity problem.
         """
-        MeSigma = self.MeSigma
+        MeSigma = self._Me_conductivity
         Grad = self.mesh.nodal_gradient
         Adc = Grad.T.tocsr() * MeSigma * Grad
         # Handling Null space of A
@@ -1702,9 +1706,9 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         """
         Grad = self.mesh.nodal_gradient
         if not adjoint:
-            return Grad.T * self.MeSigmaDeriv(-u, v, adjoint)
+            return Grad.T * self._Me_conductivity_deriv(-u, v, adjoint)
         else:
-            return self.MeSigmaDeriv(-u, Grad * v, adjoint)
+            return self._Me_conductivity_deriv(-u, Grad * v, adjoint)
 
 
 ###############################################################################
@@ -1873,7 +1877,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
 
         dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
-        MfRho = self.MfRho
+        MfRho = self._Mf_resistivity
         MeMu = self.MeMu
 
         return C.T * (MfRho * C) + 1.0 / dt * MeMu
@@ -1930,9 +1934,9 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         C = self.mesh.edge_curl
 
         if adjoint:
-            return self.MfRhoDeriv(C * u, C * v, adjoint)
+            return self._Mf_resistivity_deriv(C * u, C * v, adjoint)
 
-        return C.T * self.MfRhoDeriv(C * u, v, adjoint)
+        return C.T * self._Mf_resistivity_deriv(C * u, v, adjoint)
 
     def getAsubdiag(self, tInd):
         r"""Sub-diagonal system matrix for the time-step index provided.
@@ -2041,7 +2045,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
             The right-hand sides.
         """
         C = self.mesh.edge_curl
-        MfRho = self.MfRho
+        MfRho = self._Mf_resistivity
         s_m, s_e = self.getSourceTerm(tInd)
 
         return C.T * (MfRho * s_e) + s_m
@@ -2097,9 +2101,9 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         s_m, s_e = src.eval(self, self.times[tInd])
 
         if adjoint is True:
-            return self.MfRhoDeriv(s_e, C * v, adjoint)
+            return self._Mf_resistivity_deriv(s_e, C * v, adjoint)
         # assumes no source derivs
-        return C.T * self.MfRhoDeriv(s_e, v, adjoint)
+        return C.T * self._Mf_resistivity_deriv(s_e, v, adjoint)
 
     # I DON'T THINK THIS IS CURRENTLY USED BY THE H-FORMULATION.
     def getAdc(self):
@@ -2135,7 +2139,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         """
         D = sdiag(self.mesh.cell_volumes) * self.mesh.face_divergence
         G = D.T
-        MfRhoI = self.MfRhoI
+        MfRhoI = self._inv_Mf_resistivity
         return D * MfRhoI * G
 
     def getAdcDeriv(self, u, v, adjoint=False):
@@ -2179,9 +2183,9 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
 
         if adjoint:
             # This is the same as
-            #      self.MfRhoIDeriv(G * u, D.T * v, adjoint=True)
-            return self.MfRhoIDeriv(G * u, G * v, adjoint=True)
-        return D * self.MfRhoIDeriv(G * u, v)
+            #      self._inv_Mf_resistivity_deriv(G * u, D.T * v, adjoint=True)
+            return self._inv_Mf_resistivity_deriv(G * u, G * v, adjoint=True)
+        return D * self._inv_Mf_resistivity_deriv(G * u, v)
 
 
 # ------------------------------- Simulation3DCurrentDensity ------------------------------- #
@@ -2346,7 +2350,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
         dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
-        MfRho = self.MfRho
+        MfRho = self._Mf_resistivity
         MeMuI = self.MeMuI
         eye = sp.eye(self.mesh.n_faces)
 
@@ -2408,15 +2412,15 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         assert tInd >= 0 and tInd < self.nT
 
         C = self.mesh.edge_curl
-        MfRho = self.MfRho
+        MfRho = self._Mf_resistivity
         MeMuI = self.MeMuI
 
         if adjoint:
             if self._makeASymmetric:
                 v = MfRho * v
-            return self.MfRhoDeriv(u, C * (MeMuI.T * (C.T * v)), adjoint)
+            return self._Mf_resistivity_deriv(u, C * (MeMuI.T * (C.T * v)), adjoint)
 
-        ADeriv = C * (MeMuI * (C.T * self.MfRhoDeriv(u, v, adjoint)))
+        ADeriv = C * (MeMuI * (C.T * self._Mf_resistivity_deriv(u, v, adjoint)))
         if self._makeASymmetric:
             return MfRho.T * ADeriv
         return ADeriv
@@ -2451,7 +2455,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         dt = self.time_steps[tInd]
 
         if self._makeASymmetric:
-            return -1.0 / dt * self.MfRho.T
+            return -1.0 / dt * self._Mf_resistivity.T
         return -1.0 / dt * eye
 
     def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
@@ -2541,7 +2545,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
         rhs = -1.0 / dt * (s_e - s_en1) + C * MeMuI * s_m
         if self._makeASymmetric:
-            return self.MfRho.T * rhs
+            return self._Mf_resistivity.T * rhs
         return rhs
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
@@ -2630,7 +2634,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         """
         D = sdiag(self.mesh.cell_volumes) * self.mesh.face_divergence
         G = D.T
-        MfRhoI = self.MfRhoI
+        MfRhoI = self._inv_Mf_resistivity
         return D * MfRhoI * G
 
     def getAdcDeriv(self, u, v, adjoint=False):
@@ -2674,6 +2678,6 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
         if adjoint:
             # This is the same as
-            #      self.MfRhoIDeriv(G * u, D.T * v, adjoint=True)
-            return self.MfRhoIDeriv(G * u, G * v, adjoint=True)
-        return D * self.MfRhoIDeriv(G * u, v)
+            #      self._inv_Mf_resistivity_deriv(G * u, D.T * v, adjoint=True)
+            return self._inv_Mf_resistivity_deriv(G * u, G * v, adjoint=True)
+        return D * self._inv_Mf_resistivity_deriv(G * u, v)

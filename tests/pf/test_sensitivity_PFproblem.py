@@ -95,7 +95,7 @@
 #             self.prob.makeMassMatrices(susceptibility)
 #             mu = self.model*(self.susceptibility)
 #             A = self.prob.getA(self.susceptibility)
-#             MfMuIvec = 1/self.prob.MfMui.diagonal()
+#             MfMuIvec = 1/self.prob._Mf__perm_inv.diagonal()
 #             dMfMuI = utils.sdiag(MfMuIvec**2)*aveF2CC.T*utils.sdiag(vol*1./mu**2)
 #
 #             Cm_A =  A*u
@@ -109,7 +109,7 @@
 #             self.prob.makeMassMatrices(susceptibility)
 #             mu = self.model*self.susceptibility
 #             A = self.prob.getA(self.susceptibility)
-#             MfMuIvec = 1/self.prob.MfMui.diagonal()
+#             MfMuIvec = 1/self.prob._Mf__perm_inv.diagonal()
 #             dMfMuI = utils.sdiag(MfMuIvec**2)*aveF2CC.T*utils.sdiag(vol*1./mu**2)
 #
 #             Cm_A =  A*u
@@ -140,7 +140,7 @@
 #             dmudm = self.model.deriv(susceptibility)
 #             dchidmu = utils.sdiag(1/(dmudm.diagonal()))
 #             Bbc, Bbc_const = PF.MagAnalytics.CongruousMagBC(self.prob.mesh, self.survey.B0, susceptibility)
-#             MfMuIvec = 1/self.prob.MfMui.diagonal()
+#             MfMuIvec = 1/self.prob._Mf__perm_inv.diagonal()
 #             dMfMuI = utils.sdiag(MfMuIvec**2)*aveF2CC.T*utils.sdiag(vol*1./mu**2)
 #             RHS1 = Div*self.prob.MfMuI*self.prob.MfMu0*B0
 #             RHS2 =  Mc*Dface*self.prob._Pout.T*Bbc
@@ -156,7 +156,7 @@
 #             dmudm = self.model.deriv(susceptibility)
 #             dmdmu = utils.sdiag(1/(dmudm.diagonal()))
 #             Bbc, Bbc_const = PF.MagAnalytics.CongruousMagBC(self.prob.mesh, self.survey.B0, susceptibility)
-#             MfMuIvec = 1/self.prob.MfMui.diagonal()
+#             MfMuIvec = 1/self.prob._Mf__perm_inv.diagonal()
 #             dMfMuI = utils.sdiag(MfMuIvec**2)*aveF2CC.T*utils.sdiag(vol*1./mu**2)
 #             dCdm_RHS1 = Div * (utils.sdiag( self.prob.MfMu0*B0  ) * dMfMuI)
 #             temp1 = (Dface*(self.prob._Pout.T*Bbc_const*Bbc))
@@ -194,7 +194,7 @@
 #     #         dmudm = self.model.deriv(susceptibility)
 #     #         dmdmu = utils.sdiag(1/(dmudm.diagonal()))
 #     #         Bbc, Bbc_const = PF.MagAnalytics.CongruousMagBC(self.prob.mesh, self.survey.B0, susceptibility)
-#     #         MfMuIvec = 1/self.prob.MfMui.diagonal()
+#     #         MfMuIvec = 1/self.prob._Mf__perm_inv.diagonal()
 #     #         dMfMuI = utils.sdiag(MfMuIvec**2)*aveF2CC.T*utils.sdiag(vol*1./mu**2)
 #     #         dCdu = self.prob.getA(susceptibility)
 #     #         dCdm_A = Div * ( utils.sdiag( Div.T * u )* dMfMuI *dmudm  )
@@ -243,7 +243,7 @@
 #     #         dmudm = self.model.deriv(susceptibility)
 #     #         dmdmu = utils.sdiag(1/(dmudm.diagonal()))
 #     #         Bbc, Bbc_const = PF.MagAnalytics.CongruousMagBC(self.prob.mesh, self.survey.B0, susceptibility)
-#     #         MfMuIvec = 1/self.prob.MfMui.diagonal()
+#     #         MfMuIvec = 1/self.prob._Mf__perm_inv.diagonal()
 #     #         dMfMuI = utils.sdiag(MfMuIvec**2)*aveF2CC.T*utils.sdiag(vol*1./mu**2)
 #     #         dCdu = self.prob.getA(susceptibility)
 #     #         dCdm_A = Div * ( utils.sdiag( Div.T * u )* dMfMuI *dmudm  )

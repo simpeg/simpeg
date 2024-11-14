@@ -233,16 +233,17 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         v = utils.mkvc(rng.uniform(size=mesh.nE))
         w = utils.mkvc(rng.uniform(size=mesh.nF))
         assert np.all(
-            mesh.get_edge_inner_product(1e-4 * np.ones(mesh.nC)) * v == prob.MeSigma * v
+            mesh.get_edge_inner_product(1e-4 * np.ones(mesh.nC)) * v
+            == prob._Me_conductivity * v
         )
 
         assert np.all(
             mesh.get_edge_inner_product(1e-4 * np.ones(mesh.nC), invert_matrix=True) * v
-            == prob.MeSigmaI * v
+            == prob._inv_Me_conductivity * v
         )
         assert np.all(
             mesh.get_face_inner_product(1.0 / 1e-4 * np.ones(mesh.nC)) * w
-            == prob.MfRho * w
+            == prob._Mf_resistivity * w
         )
 
         assert np.all(
@@ -250,7 +251,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
                 1.0 / 1e-4 * np.ones(mesh.nC), invert_matrix=True
             )
             * w
-            == prob.MfRhoI * w
+            == prob._inv_Mf_resistivity * w
         )
 
         prob.resistivity = 1.0 / 1e-3 * np.ones(mesh.nC)
@@ -259,18 +260,19 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         w = utils.mkvc(rng.uniform(size=mesh.nF))
 
         np.testing.assert_allclose(
-            mesh.get_edge_inner_product(1e-3 * np.ones(mesh.nC)) * v, prob.MeSigma * v
+            mesh.get_edge_inner_product(1e-3 * np.ones(mesh.nC)) * v,
+            prob._Me_conductivity * v,
         )
 
         np.testing.assert_allclose(
             mesh.get_edge_inner_product(1e-3 * np.ones(mesh.nC), invert_matrix=True)
             * v,
-            prob.MeSigmaI * v,
+            prob._inv_Me_conductivity * v,
         )
 
         np.testing.assert_allclose(
             mesh.get_face_inner_product(1.0 / 1e-3 * np.ones(mesh.nC)) * w,
-            prob.MfRho * w,
+            prob._Mf_resistivity * w,
         )
 
         np.testing.assert_allclose(
@@ -278,5 +280,5 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
                 1.0 / 1e-3 * np.ones(mesh.nC), invert_matrix=True
             )
             * w,
-            prob.MfRhoI * w,
+            prob._inv_Mf_resistivity * w,
         )

@@ -898,13 +898,16 @@ class PrimSecSigma(BaseFDEMSrc):
 
     def s_e(self, simulation):
         return (
-            simulation.MeSigma - simulation.mesh.get_edge_inner_product(self.sigBack)
+            simulation._Me_conductivity
+            - simulation.mesh.get_edge_inner_product(self.sigBack)
         ) * self.ePrimary(simulation)
 
     def s_eDeriv(self, simulation, v, adjoint=False):
         if adjoint:
-            return simulation.MeSigmaDeriv(self.ePrimary(simulation), v, adjoint)
-        return simulation.MeSigmaDeriv(self.ePrimary(simulation), v, adjoint)
+            return simulation._Me_conductivity_deriv(
+                self.ePrimary(simulation), v, adjoint
+            )
+        return simulation._Me_conductivity_deriv(self.ePrimary(simulation), v, adjoint)
 
 
 class PrimSecMappedSigma(BaseFDEMSrc):
@@ -1078,7 +1081,8 @@ class PrimSecMappedSigma(BaseFDEMSrc):
             ep = self._ProjPrimary(simulation, "E", "E") * f[:, "e"]
         elif self.primarySimulation._formulation == "HJ":
             ep = self._ProjPrimary(simulation, "F", "E") * (
-                self.primarySimulation.MfI * (self.primarySimulation.MfRho * f[:, "j"])
+                self.primarySimulation.MfI
+                * (self.primarySimulation._Mf_resistivity * f[:, "j"])
             )
 
         return mkvc(ep)
@@ -1106,11 +1110,11 @@ class PrimSecMappedSigma(BaseFDEMSrc):
                 PTv = self.primarySimulation.MfI.T * (
                     self._ProjPrimary(simulation, "F", "E").T * v
                 )
-                epDeriv = self.primarySimulation.MfRhoDeriv(
+                epDeriv = self.primarySimulation._Mf_resistivity_deriv(
                     f[:, "j"], PTv, adjoint
                 ) + self._primaryFieldsDeriv(
                     simulation,
-                    self.primarySimulation.MfRho.T * PTv,
+                    self.primarySimulation._Mf_resistivity.T * PTv,
                     adjoint=adjoint,
                     f=f,
                 )
@@ -1118,9 +1122,11 @@ class PrimSecMappedSigma(BaseFDEMSrc):
                 epDeriv = self._ProjPrimary(simulation, "F", "E") * (
                     self.primarySimulation.MfI
                     * (
-                        self.primarySimulation.MfRhoDeriv(f[:, "j"], v, adjoint)
+                        self.primarySimulation._Mf_resistivity_deriv(
+                            f[:, "j"], v, adjoint
+                        )
                         + (
-                            self.primarySimulation.MfRho
+                            self.primarySimulation._Mf_resistivity
                             * self._primaryFieldsDeriv(simulation, v, f=f)
                         )
                     )
@@ -1160,7 +1166,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
 
         return mkvc(
             (
-                simulation.MeSigma
+                simulation._Me_conductivity
                 - simulation.mesh.get_edge_inner_product(conductivityPrimary)
             )
             * self.ePrimary(simulation, f=f)
@@ -1175,7 +1181,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
 
         if adjoint is True:
             return (
-                simulation.MeSigmaDeriv(ePrimary, v, adjoint)
+                simulation._Me_conductivity_deriv(ePrimary, v, adjoint)
                 - (
                     conductivityPrimaryDeriv.T
                     * simulation.mesh.get_edge_inner_product_deriv(conductivityPrimary)(
@@ -1186,7 +1192,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
                 + self.ePrimaryDeriv(
                     simulation,
                     (
-                        simulation.MeSigma
+                        simulation._Me_conductivity
                         - simulation.mesh.get_edge_inner_product(conductivityPrimary)
                     ).T
                     * v,
@@ -1196,13 +1202,13 @@ class PrimSecMappedSigma(BaseFDEMSrc):
             )
 
         return (
-            simulation.MeSigmaDeriv(ePrimary, v, adjoint)
+            simulation._Me_conductivity_deriv(ePrimary, v, adjoint)
             - simulation.mesh.get_edge_inner_product_deriv(conductivityPrimary)(
                 ePrimary
             )
             * (conductivityPrimaryDeriv * v)
             + (
-                simulation.MeSigma
+                simulation._Me_conductivity
                 - simulation.mesh.get_edge_inner_product(conductivityPrimary)
             )
             * self.ePrimaryDeriv(simulation, v, adjoint=adjoint, f=f)

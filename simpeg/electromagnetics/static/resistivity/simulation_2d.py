@@ -510,9 +510,9 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         G = self.Grad
         if self.bc_type != "Dirichlet":
             G = G - self._MBC[ky]
-        MfRhoI = self.MfRhoI
+        MfRhoI = self._inv_Mf_resistivity
         # Get resistivity resistivity
-        A = D * MfRhoI * G + ky**2 * self.MccSigma
+        A = D * MfRhoI * G + ky**2 * self._Mcc_conductivity
         if self.bc_type == "Neumann":
             A[0, 0] = A[0, 0] + 1.0
         return A
@@ -523,13 +523,13 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         if self.bc_type != "Dirichlet":
             G = G - self._MBC[ky]
         if adjoint:
-            return self.MfRhoIDeriv(
+            return self._inv_Mf_resistivity_deriv(
                 G * u, D.T * v, adjoint=adjoint
-            ) + ky**2 * self.MccSigmaDeriv(u, v, adjoint=adjoint)
+            ) + ky**2 * self._Mcc_conductivity_deriv(u, v, adjoint=adjoint)
         else:
-            return D * self.MfRhoIDeriv(
+            return D * self._inv_Mf_resistivity_deriv(
                 G * u, v, adjoint=adjoint
-            ) + ky**2 * self.MccSigmaDeriv(u, v, adjoint=adjoint)
+            ) + ky**2 * self._Mcc_conductivity_deriv(u, v, adjoint=adjoint)
 
     def getRHS(self, ky):
         """
@@ -656,8 +656,8 @@ class Simulation2DNodal(BaseDCSimulation2D):
         # To handle Mixed boundary condition
         self.setBC(ky=ky)
 
-        MeSigma = self.MeSigma
-        MnSigma = self.MnSigma
+        MeSigma = self._Me_conductivity
+        MnSigma = self._Mn_conductivity
         Grad = self.mesh.nodal_gradient
         if self._gradT is None:
             self._gradT = Grad.T.tocsr()  # cache the .tocsr()
@@ -681,13 +681,13 @@ class Simulation2DNodal(BaseDCSimulation2D):
         Grad = self.mesh.nodal_gradient
 
         if adjoint:
-            out = self.MeSigmaDeriv(
+            out = self._Me_conductivity_deriv(
                 Grad * u, Grad * v, adjoint=adjoint
-            ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
+            ) + ky**2 * self._Mn_conductivity_deriv(u, v, adjoint=adjoint)
         else:
-            out = Grad.T * self.MeSigmaDeriv(
+            out = Grad.T * self._Me_conductivity_deriv(
                 Grad * u, v, adjoint=adjoint
-            ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
+            ) + ky**2 * self._Mn_conductivity_deriv(u, v, adjoint=adjoint)
         if self.bc_type != "Neumann" and self.conductivity_map is not None:
             if getattr(self, "_MBC_conductivity", None) is None:
                 self._MBC_conductivity = {}

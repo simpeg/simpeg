@@ -633,11 +633,11 @@ class Simulation3DElectricField(BaseFDEMSimulation):
             The system matrix.
         """
 
-        MfMui = self.MfMui
+        MfMui = self._Mf__perm_inv
         C = self.mesh.edge_curl
 
         if self.permittivity is None:
-            MeSigma = self.MeSigma
+            MeSigma = self._Me_conductivity
             A = C.T.tocsr() * MfMui * C + 1j * omega(freq) * MeSigma
         else:
             Meyhat = self._get_edge_admittivity_property_matrix(freq)
@@ -691,7 +691,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
             (n_param,) for the adjoint operation.
         """
 
-        dMe_dsig_v = self.MeSigmaDeriv(u, v, adjoint)
+        dMe_dsig_v = self._Me_conductivity_deriv(u, v, adjoint)
         return 1j * omega(freq) * dMe_dsig_v
 
     def getADeriv_mui(self, freq, u, v, adjoint=False):
@@ -743,9 +743,9 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         C = self.mesh.edge_curl
 
         if adjoint:
-            return self.MfMuiDeriv(C * u).T * (C * v)
+            return self._Mf__perm_inv_deriv(C * u).T * (C * v)
 
-        return C.T * (self.MfMuiDeriv(C * u) * v)
+        return C.T * (self._Mf__perm_inv_deriv(C * u) * v)
 
     def getADeriv(self, freq, u, v, adjoint=False):
         r"""Derivative operation for the system matrix times a vector.
@@ -829,7 +829,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
         s_m, s_e = self.getSourceTerm(freq)
         C = self.mesh.edge_curl
-        MfMui = self.MfMui
+        MfMui = self._Mf__perm_inv
 
         return C.T * (MfMui * s_m) - 1j * omega(freq) * s_e
 
@@ -880,10 +880,10 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         """
 
         C = self.mesh.edge_curl
-        MfMui = self.MfMui
+        MfMui = self._Mf__perm_inv
         s_m, s_e = self.getSourceTerm(freq)
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
-        MfMuiDeriv = self.MfMuiDeriv(s_m)
+        MfMuiDeriv = self._Mf__perm_inv_deriv(s_m)
 
         if adjoint:
             return (
@@ -1025,12 +1025,12 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
             The system matrix.
         """
 
-        MfMui = self.MfMui
+        MfMui = self._Mf__perm_inv
         C = self.mesh.edge_curl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
         if self.permittivity is None:
-            MeSigmaI = self.MeSigmaI
+            MeSigmaI = self._inv_Me_conductivity
             A = C * (MeSigmaI * (C.T.tocsr() * MfMui)) + iomega
         else:
             MeyhatI = self._get_edge_admittivity_property_matrix(
@@ -1090,9 +1090,9 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
             (n_param,) for the adjoint operation.
         """
 
-        MfMui = self.MfMui
+        MfMui = self._Mf__perm_inv
         C = self.mesh.edge_curl
-        MeSigmaIDeriv = self.MeSigmaIDeriv
+        MeSigmaIDeriv = self._inv_Me_conductivity_deriv
         vec = C.T * (MfMui * u)
 
         if adjoint:
@@ -1150,8 +1150,8 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
             Derivative of system matrix times a vector. (n_faces,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
-        MfMuiDeriv = self.MfMuiDeriv(u)
-        MeSigmaI = self.MeSigmaI
+        MfMuiDeriv = self._Mf__perm_inv_deriv(u)
+        MeSigmaI = self._inv_Me_conductivity
         C = self.mesh.edge_curl
 
         if adjoint:
@@ -1206,14 +1206,14 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
             (n_param,) for the adjoint operation.
         """
         if adjoint is True and self._makeASymmetric:
-            v = self.MfMui * v
+            v = self._Mf__perm_inv * v
 
         ADeriv = self.getADeriv_conductivity(freq, u, v, adjoint) + self.getADeriv_mui(
             freq, u, v, adjoint
         )
 
         if adjoint is False and self._makeASymmetric:
-            return self.MfMui.T * ADeriv
+            return self._Mf__perm_inv.T * ADeriv
 
         return ADeriv
 
@@ -1250,7 +1250,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         C = self.mesh.edge_curl
 
         if self.permittivity is None:
-            MeSigmaI = self.MeSigmaI
+            MeSigmaI = self._inv_Me_conductivity
             RHS = s_m + C * (MeSigmaI * s_e)
         else:
             MeyhatI = self._get_edge_admittivity_property_matrix(
@@ -1259,7 +1259,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
             RHS = s_m + C * (MeyhatI * s_e)
 
         if self._makeASymmetric is True:
-            MfMui = self.MfMui
+            MfMui = self._Mf__perm_inv
             return MfMui.T * RHS
 
         return RHS
@@ -1312,22 +1312,22 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 
         C = self.mesh.edge_curl
         s_m, s_e = src.eval(self)
-        MfMui = self.MfMui
+        MfMui = self._Mf__perm_inv
 
         if self._makeASymmetric and adjoint:
-            v = self.MfMui * v
+            v = self._Mf__perm_inv * v
 
-        # MeSigmaIDeriv = self.MeSigmaIDeriv(s_e)
+        # MeSigmaIDeriv = self._inv_Me_conductivity_deriv(s_e)
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
         if not adjoint:
             # RHSderiv = C * (MeSigmaIDeriv * v)
-            RHSderiv = C * self.MeSigmaIDeriv(s_e, v, adjoint)
-            SrcDeriv = s_mDeriv(v) + C * (self.MeSigmaI * s_eDeriv(v))
+            RHSderiv = C * self._inv_Me_conductivity_deriv(s_e, v, adjoint)
+            SrcDeriv = s_mDeriv(v) + C * (self._inv_Me_conductivity * s_eDeriv(v))
         elif adjoint:
             # RHSderiv = MeSigmaIDeriv.T * (C.T * v)
-            RHSderiv = self.MeSigmaIDeriv(s_e, C.T * v, adjoint)
-            SrcDeriv = s_mDeriv(v) + s_eDeriv(self.MeSigmaI.T * (C.T * v))
+            RHSderiv = self._inv_Me_conductivity_deriv(s_e, C.T * v, adjoint)
+            SrcDeriv = s_mDeriv(v) + s_eDeriv(self._inv_Me_conductivity.T * (C.T * v))
 
         if self._makeASymmetric is True and not adjoint:
             return MfMui.T * (SrcDeriv + RHSderiv)
@@ -1477,7 +1477,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         """
 
         MeMuI = self.MeMuI
-        MfRho = self.MfRho
+        MfRho = self._Mf_resistivity
         C = self.mesh.edge_curl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
 
@@ -1544,8 +1544,8 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
         if adjoint:
             vec = C * (MeMuI.T * (C.T * v))
-            return self.MfRhoDeriv(u, vec, adjoint)
-        return C * (MeMuI * (C.T * (self.MfRhoDeriv(u, v, adjoint))))
+            return self._Mf_resistivity_deriv(u, vec, adjoint)
+        return C * (MeMuI * (C.T * (self._Mf_resistivity_deriv(u, v, adjoint))))
 
     def getADeriv_mu(self, freq, u, v, adjoint=False):
         r"""Permeability derivative operation for the system matrix times a vector.
@@ -1593,7 +1593,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
             (n_param,) for the adjoint operation.
         """
         C = self.mesh.edge_curl
-        MfRho = self.MfRho
+        MfRho = self._Mf_resistivity
 
         MeMuIDeriv = self.MeMuIDeriv(C.T * (MfRho * u))
 
@@ -1653,14 +1653,14 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
             (n_param,) for the adjoint operation.
         """
         if adjoint and self._makeASymmetric:
-            v = self.MfRho * v
+            v = self._Mf_resistivity * v
 
         ADeriv = self.getADeriv_resistivity(freq, u, v, adjoint) + self.getADeriv_mu(
             freq, u, v, adjoint
         )
 
         if not adjoint and self._makeASymmetric:
-            return self.MfRho.T * ADeriv
+            return self._Mf_resistivity.T * ADeriv
 
         return ADeriv
 
@@ -1699,7 +1699,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
         RHS = C * (MeMuI * s_m) - 1j * omega(freq) * s_e
         if self._makeASymmetric is True:
-            MfRho = self.MfRho
+            MfRho = self._Mf_resistivity
             return MfRho.T * RHS
 
         return RHS
@@ -1752,7 +1752,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
         # RHS = C * (MeMuI * s_m) - 1j * omega(freq) * s_e
         # if self._makeASymmetric is True:
-        #     MfRho = self.MfRho
+        #     MfRho = self._Mf_resistivity
         #     return MfRho.T*RHS
 
         C = self.mesh.edge_curl
@@ -1763,7 +1763,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
         if adjoint:
             if self._makeASymmetric:
-                MfRho = self.MfRho
+                MfRho = self._Mf_resistivity
                 v = MfRho * v
             CTv = C.T * v
             return (
@@ -1778,7 +1778,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
             ) * s_eDeriv(v)
 
             if self._makeASymmetric:
-                MfRho = self.MfRho
+                MfRho = self._Mf_resistivity
                 return MfRho.T * RHSDeriv
             return RHSDeriv
 
@@ -1915,7 +1915,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         C = self.mesh.edge_curl
 
         if self.permittivity is None:
-            MfRho = self.MfRho
+            MfRho = self._Mf_resistivity
             return C.T.tocsr() * (MfRho * C) + 1j * omega(freq) * MeMu
         else:
             Mfyhati = self._get_face_admittivity_property_matrix(
@@ -1970,8 +1970,8 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         """
         C = self.mesh.edge_curl
         if adjoint:
-            return self.MfRhoDeriv(C * u, C * v, adjoint)
-        return C.T * self.MfRhoDeriv(C * u, v, adjoint)
+            return self._Mf_resistivity_deriv(C * u, C * v, adjoint)
+        return C.T * self._Mf_resistivity_deriv(C * u, v, adjoint)
 
     def getADeriv_mu(self, freq, u, v, adjoint=False):
         r"""Permeability derivative operation for the system matrix times a vector.
@@ -2108,7 +2108,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         C = self.mesh.edge_curl
 
         if self.permittivity is None:
-            MfRho = self.MfRho
+            MfRho = self._Mf_resistivity
             return s_m + C.T * (MfRho * s_e)
         else:
             Mfyhati = self._get_face_admittivity_property_matrix(
@@ -2165,17 +2165,17 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
 
         _, s_e = src.eval(self)
         C = self.mesh.edge_curl
-        MfRho = self.MfRho
+        MfRho = self._Mf_resistivity
 
-        # MfRhoDeriv = self.MfRhoDeriv(s_e)
+        # MfRhoDeriv = self._Mf_resistivity_deriv(s_e)
         # if not adjoint:
         #     RHSDeriv = C.T * (MfRhoDeriv * v)
         # elif adjoint:
         #     RHSDeriv = MfRhoDeriv.T * (C * v)
         if not adjoint:
-            RHSDeriv = C.T * (self.MfRhoDeriv(s_e, v, adjoint))
+            RHSDeriv = C.T * (self._Mf_resistivity_deriv(s_e, v, adjoint))
         elif adjoint:
-            RHSDeriv = self.MfRhoDeriv(s_e, C * v, adjoint)
+            RHSDeriv = self._Mf_resistivity_deriv(s_e, C * v, adjoint)
 
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 

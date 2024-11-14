@@ -82,19 +82,19 @@ class Simulation1DElectricField(BaseFDEMSimulation):
         """
 
         G = self.mesh.nodal_gradient
-        MeMui = self.MeMui
-        MfSigma = self.MfSigma
+        MeMui = self._Me__perm_inv
+        MfSigma = self._Mf_conductivity
 
         return G.T.tocsr() @ MeMui @ G + 1j * omega(freq) * MfSigma
 
     def getADeriv_conductivity(self, freq, u, v, adjoint=False):
-        return 1j * omega(freq) * self.MfSigmaDeriv(u, v, adjoint=adjoint)
+        return 1j * omega(freq) * self._Mf_conductivity_deriv(u, v, adjoint=adjoint)
 
     def getADeriv_mui(self, freq, u, v, adjoint=False):
         G = self.mesh.nodal_gradient
         if adjoint:
-            return self.MeMuiDeriv(G * u, G * v, adjoint)
-        return G.T * self.MeMuiDeriv(G * u, v, adjoint)
+            return self._Me__perm_inv_deriv(G * u, G * v, adjoint)
+        return G.T * self._Me__perm_inv_deriv(G * u, v, adjoint)
 
     def getRHS(self, freq):
         """
@@ -140,7 +140,7 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
         system matrix
         """
         G = self.mesh.nodal_gradient
-        MeRho = self.MeRho
+        MeRho = self._Me_resistivity
         MnMu = self.MnMu
 
         return G.T.tocsr() @ MeRho @ G + 1j * omega(freq) * MnMu
@@ -148,8 +148,8 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
     def getADeriv_resistivity(self, freq, u, v, adjoint=False):
         G = self.mesh.nodal_gradient
         if adjoint:
-            return self.MeRhoDeriv(G * u, G * v, adjoint)
-        return G.T * self.MeRhoDeriv(G * u, v, adjoint)
+            return self._Me_resistivity_deriv(G * u, G * v, adjoint)
+        return G.T * self._Me_resistivity_deriv(G * u, v, adjoint)
 
     def getADeriv_mu(self, freq, u, v, adjoint=False):
         MnMuDeriv = self.MnMuDeriv(u)
@@ -377,8 +377,8 @@ class Simulation2DElectricField(BaseFDEMSimulation):
 
         """
         C = self.mesh.edge_curl
-        Mcc_mui = self.MccMui
-        Me_conductivity = self.MeSigma
+        Mcc_mui = self._Mcc__perm_inv
+        Me_conductivity = self._Me_conductivity
 
         return C.T.tocsr() @ Mcc_mui @ C + 1j * omega(freq) * Me_conductivity
 
@@ -401,13 +401,13 @@ class Simulation2DElectricField(BaseFDEMSimulation):
         return 1j * omega(freq) * (M_bc @ h_bc)
 
     def getADeriv_conductivity(self, freq, u, v, adjoint=False):
-        return 1j * omega(freq) * self.MeSigmaDeriv(u, v, adjoint=adjoint)
+        return 1j * omega(freq) * self._Me_conductivity_deriv(u, v, adjoint=adjoint)
 
     def getADeriv_mui(self, freq, u, v, adjoint=False):
         C = self.mesh.edge_curl
         if adjoint:
-            return self.MccMuiDeriv(C * u, C * v, adjoint)
-        return C.T * self.MccMuiDeriv(C * u, v, adjoint)
+            return self._Mcc__perm_inv_deriv(C * u, C * v, adjoint)
+        return C.T * self._Mcc__perm_inv_deriv(C * u, v, adjoint)
 
     def getADeriv(self, freq, u, v, adjoint=False):
         return self.getADeriv_conductivity(freq, u, v, adjoint) + self.getADeriv_mui(
@@ -601,7 +601,7 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
                 + 1\omega \mathbf{M}^e_\mu
         """
         C = self.mesh.edge_curl
-        Mcc_resistivity = self.MccRho
+        Mcc_resistivity = self._Mcc_resistivity
         Me_mu = self.MeMu
 
         return C.T.tocsr() @ Mcc_resistivity @ C + 1j * omega(freq) * Me_mu
@@ -627,8 +627,8 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
     def getADeriv_resistivity(self, freq, u, v, adjoint=False):
         C = self.mesh.edge_curl
         if adjoint:
-            return self.MccRhoDeriv(C * u, C * v, adjoint)
-        return C.T * self.MccRhoDeriv(C * u, v, adjoint)
+            return self._Mcc_resistivity_deriv(C * u, C * v, adjoint)
+        return C.T * self._Mcc_resistivity_deriv(C * u, v, adjoint)
 
     def getADeriv_mu(self, freq, u, v, adjoint=False):
         return 1j * omega(freq) * self.MeMuDeriv(u, v, adjoint=adjoint)

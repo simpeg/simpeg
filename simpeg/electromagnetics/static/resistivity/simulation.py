@@ -356,7 +356,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
         D = self.Div
         G = self.Grad
         if resistivity is None:
-            MfRhoI = self.MfRhoI
+            MfRhoI = self._inv_Mf_resistivity
         else:
             MfRhoI = self.mesh.get_face_inner_product(resistivity, invert_matrix=True)
         A = D @ MfRhoI @ G
@@ -377,7 +377,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
         if self.resistivity_map is not None:
             D = self.Div
             G = self.Grad
-            MfRhoIDeriv = self.MfRhoIDeriv
+            MfRhoIDeriv = self._inv_Mf_resistivity_deriv
 
             if adjoint:
                 return MfRhoIDeriv(G @ u, D.T @ v, adjoint)
@@ -521,7 +521,7 @@ class Simulation3DNodal(BaseDCSimulation):
         A = G.T MeSigma G
         """
         if resistivity is None:
-            MeSigma = self.MeSigma
+            MeSigma = self._Me_conductivity
         else:
             MeSigma = self.mesh.get_edge_inner_product(1.0 / resistivity)
         Grad = self.mesh.nodal_gradient
@@ -556,9 +556,9 @@ class Simulation3DNodal(BaseDCSimulation):
         """
         Grad = self.mesh.nodal_gradient
         if not adjoint:
-            out = Grad.T @ self.MeSigmaDeriv(Grad @ u, v, adjoint)
+            out = Grad.T @ self._Me_conductivity_deriv(Grad @ u, v, adjoint)
         else:
-            out = self.MeSigmaDeriv(Grad @ u, Grad @ v, adjoint)
+            out = self._Me_conductivity_deriv(Grad @ u, Grad @ v, adjoint)
         if self.bc_type != "Neumann" and self.conductivity_map is not None:
             if getattr(self, "_MBC_conductivity", None) is None:
                 self._MBC_conductivity = self._AvgBC @ self._con_deriv

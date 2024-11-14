@@ -150,7 +150,7 @@ class BaseInvProblem:
         Returns
         -------
         list of str
-            For example `['_MeSigma', '_MeSigmaI']`.
+            For example `['_Me_conductivity', '_inv_Me_conductivity']`.
         """
         return []
 
