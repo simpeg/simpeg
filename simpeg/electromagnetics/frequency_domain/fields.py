@@ -1129,9 +1129,9 @@ class Fields3DCurrentDensity(FieldsFDEM):
     def startup(self):
         # Docstring inherited from parent.
         self._edgeCurl = self.simulation.mesh.edge_curl
-        self._MeMu = self.simulation.MeMu
-        self._MeMuI = self.simulation.MeMuI
-        self._MeMuIDeriv = self.simulation.MeMuIDeriv
+        self._Me_permeability = self.simulation._Me_permeability
+        self._inv_Me_permeability = self.simulation._inv_Me_permeability
+        self._inv_Me_permeability_deriv = self.simulation._inv_Me_permeability_deriv
         self._Mf_resistivity = self.simulation._Mf_resistivity
         self._Mf_resistivity_deriv = self.simulation._Mf_resistivity_deriv
         self._resistivity = self.simulation.resistivity
@@ -1269,7 +1269,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
             h[:, i] *= -1.0 / (1j * omega(src.frequency))
             s_m = src.s_m(self.simulation)
             h[:, i] = h[:, i] + 1.0 / (1j * omega(src.frequency)) * (s_m)
-        return self._MeMuI * h
+        return self._inv_Me_permeability * h
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -1289,12 +1289,12 @@ class Fields3DCurrentDensity(FieldsFDEM):
                 -1.0
                 / (1j * omega(src.frequency))
                 * self._Mf_resistivity.T
-                * (self._edgeCurl * (self._MeMuI.T * du_dm_v))
+                * (self._edgeCurl * (self._inv_Me_permeability.T * du_dm_v))
             )
         return (
             -1.0
             / (1j * omega(src.frequency))
-            * self._MeMuI
+            * self._inv_Me_permeability
             * (self._edgeCurl.T * (self._Mf_resistivity * du_dm_v))
         )
 
@@ -1311,8 +1311,8 @@ class Fields3DCurrentDensity(FieldsFDEM):
         """
 
         jSolution = mkvc(self[[src], "jSolution"])
-        MeMuI = self._MeMuI
-        MeMuIDeriv = self._MeMuIDeriv
+        MeMuI = self._inv_Me_permeability
+        MeMuIDeriv = self._inv_Me_permeability_deriv
         C = self._edgeCurl
         MfRho = self._Mf_resistivity
         MfRhoDeriv = self._Mf_resistivity_deriv
@@ -1422,7 +1422,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
         :return: secondary magnetic flux density
         """
 
-        return self._MeI * (self._MeMu * self._h(jSolution, source_list))
+        return self._MeI * (self._Me_permeability * self._h(jSolution, source_list))
 
     def _bDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -1559,9 +1559,9 @@ class Fields3DMagneticField(FieldsFDEM):
     def startup(self):
         # Docstring inherited from parent.
         self._edgeCurl = self.simulation.mesh.edge_curl
-        self._MeMu = self.simulation.MeMu
-        self._MeMuDeriv = self.simulation.MeMuDeriv
-        # self._MeMuI = self.simulation.MeMuI
+        self._Me_permeability = self.simulation._Me_permeability
+        self._Me_permeability_deriv = self.simulation._Me_permeability_deriv
+        # self._inv_Me_permeability = self.simulation._inv_Me_permeability
         self._Mf_resistivity = self.simulation._Mf_resistivity
         self._Mf_resistivity_deriv = self.simulation._Mf_resistivity_deriv
         self._resistivity = self.simulation.resistivity
@@ -1772,7 +1772,7 @@ class Fields3DMagneticField(FieldsFDEM):
         :return: magnetic flux density
         """
         h = self._h(hSolution, source_list)
-        return self._MeI * (self._MeMu * h)
+        return self._MeI * (self._Me_permeability * h)
 
     def _bDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -1787,15 +1787,15 @@ class Fields3DMagneticField(FieldsFDEM):
             respect to the field we solved for with a vector
         """
         if adjoint:
-            return self._MeMu.T * (self._MeI.T * du_dm_v)
-        return self._MeI * (self._MeMu * du_dm_v)
+            return self._Me_permeability.T * (self._MeI.T * du_dm_v)
+        return self._MeI * (self._Me_permeability * du_dm_v)
 
     def _bDeriv_mu(self, src, v, adjoint=False):
         h = self[src, "h"]
 
         if adjoint:
-            return self._MeMuDeriv(h, self._MeI.T * v, adjoint)
-        return self._MeI * self._MeMuDeriv(h, v)
+            return self._Me_permeability_deriv(h, self._MeI.T * v, adjoint)
+        return self._MeI * self._Me_permeability_deriv(h, v)
 
     def _bDeriv_m(self, src, v, adjoint=False):
         """

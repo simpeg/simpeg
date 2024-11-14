@@ -64,13 +64,13 @@
 #
 #         def MfmuI(susceptibility):
 #             self.sim.makeMassMatrices(susceptibility)
-#             return self.sim.MfMuI
+#             return self.sim._inv_Mf_permeability
 #
 #         def dMfmuI(susceptibility, v):
 #             self.sim.makeMassMatrices(susceptibility)
 #             vol = self.M.cell_volumes
 #             aveF2CC = self.M.aveF2CC
-#             MfMuI = self.sim.MfMuI.diagonal()
+#             MfMuI = self.sim._inv_Mf_permeability.diagonal()
 #             dMfMuI = utils.sdiag(MfMuI**2)*aveF2CC.T*utils.sdiag(vol*1./mu**2)
 #
 #             return dMfMuI*v
@@ -142,7 +142,7 @@
 #             Bbc, Bbc_const = PF.MagAnalytics.CongruousMagBC(self.prob.mesh, self.survey.B0, susceptibility)
 #             MfMuIvec = 1/self.prob._Mf__perm_inv.diagonal()
 #             dMfMuI = utils.sdiag(MfMuIvec**2)*aveF2CC.T*utils.sdiag(vol*1./mu**2)
-#             RHS1 = Div*self.prob.MfMuI*self.prob.MfMu0*B0
+#             RHS1 = Div*self.prob._inv_Mf_permeability*self.prob._Mf_perm0_inv*B0
 #             RHS2 =  Mc*Dface*self.prob._Pout.T*Bbc
 #             RHS = RHS1 + RHS2 + Div*B0
 #
@@ -158,7 +158,7 @@
 #             Bbc, Bbc_const = PF.MagAnalytics.CongruousMagBC(self.prob.mesh, self.survey.B0, susceptibility)
 #             MfMuIvec = 1/self.prob._Mf__perm_inv.diagonal()
 #             dMfMuI = utils.sdiag(MfMuIvec**2)*aveF2CC.T*utils.sdiag(vol*1./mu**2)
-#             dCdm_RHS1 = Div * (utils.sdiag( self.prob.MfMu0*B0  ) * dMfMuI)
+#             dCdm_RHS1 = Div * (utils.sdiag( self.prob._Mf_perm0_inv*B0  ) * dMfMuI)
 #             temp1 = (Dface*(self.prob._Pout.T*Bbc_const*Bbc))
 #             dCdm_RHS2v  = (utils.sdiag(vol)*temp1)*np.inner(vol, v)
 #             dCdm_RHSv =  dCdm_RHS1*(dmudm*v) + dCdm_RHS2v
@@ -198,7 +198,7 @@
 #     #         dMfMuI = utils.sdiag(MfMuIvec**2)*aveF2CC.T*utils.sdiag(vol*1./mu**2)
 #     #         dCdu = self.prob.getA(susceptibility)
 #     #         dCdm_A = Div * ( utils.sdiag( Div.T * u )* dMfMuI *dmudm  )
-#     #         dCdm_RHS1 = Div * (utils.sdiag( self.prob.MfMu0*B0  ) * dMfMuI)
+#     #         dCdm_RHS1 = Div * (utils.sdiag( self.prob._Mf_perm0_inv*B0  ) * dMfMuI)
 #     #         temp1 = (Dface*(self.prob._Pout.T*Bbc_const*Bbc))
 #     #         dCdm_RHS2v  = (utils.sdiag(vol)*temp1)*np.inner(vol, v)
 #     #         dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
@@ -247,7 +247,7 @@
 #     #         dMfMuI = utils.sdiag(MfMuIvec**2)*aveF2CC.T*utils.sdiag(vol*1./mu**2)
 #     #         dCdu = self.prob.getA(susceptibility)
 #     #         dCdm_A = Div * ( utils.sdiag( Div.T * u )* dMfMuI *dmudm  )
-#     #         dCdm_RHS1 = Div * (utils.sdiag( self.prob.MfMu0*B0  ) * dMfMuI)
+#     #         dCdm_RHS1 = Div * (utils.sdiag( self.prob._Mf_perm0_inv*B0  ) * dMfMuI)
 #     #         temp1 = (Dface*(self.prob._Pout.T*Bbc_const*Bbc))
 #     #         dCdm_RHS2v  = (utils.sdiag(vol)*temp1)*np.inner(vol, v)
 #     #         dCdm_RHSv =  dCdm_RHS1*(dmudm*v) +  dCdm_RHS2v
@@ -256,9 +256,9 @@
 #     #         sol, info = sp.linalg.bicgstab(dCdu, dCdm_v, tol=1e-8, maxiter=1000, M=m1)
 #
 #     #         dudm = -sol
-#     #         dBdmv =       (  utils.sdiag(self.prob.MfMu0*B0)*(dMfMuI * (dmudm*v)) \
+#     #         dBdmv =       (  utils.sdiag(self.prob._Mf_perm0_inv*B0)*(dMfMuI * (dmudm*v)) \
 #     #                      - utils.sdiag(Div.T*u)*(dMfMuI* (dmudm*v)) \
-#     #                      - self.prob.MfMuI*(Div.T* (dudm)) )
+#     #                      - self.prob._inv_Mf_permeability*(Div.T* (dudm)) )
 #
 #     #         return dBdmv
 #

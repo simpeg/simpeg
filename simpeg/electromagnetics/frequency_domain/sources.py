@@ -1142,7 +1142,8 @@ class PrimSecMappedSigma(BaseFDEMSrc):
             bp = self._ProjPrimary(simulation, "F", "F") * f[:, "b"]
         elif self.primarySimulation._formulation == "HJ":
             bp = self._ProjPrimary(simulation, "E", "F") * (
-                self.primarySimulation.MeI * (self.primarySimulation.MeMu * f[:, "h"])
+                self.primarySimulation.MeI
+                * (self.primarySimulation._Me_permeability * f[:, "h"])
             )
 
         return mkvc(bp)

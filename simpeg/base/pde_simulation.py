@@ -6,6 +6,7 @@ from discretize.base import BaseMesh
 from discretize.utils import Zero, TensorType
 
 from . import BaseElectricalSimulation, BaseMagneticSimulation
+from .physical_property_simulations import BaseDensitySimulation
 from ..props import PhysicalPropertyMetaclass, PhysicalProperty
 from ..simulation import BaseSimulation, BaseTimeSimulation
 from .. import Data
@@ -660,3 +661,15 @@ class BaseTimePDESimulation(BaseTimeSimulation, BasePDESimulation):
             for rx in src.receiver_list:
                 data[src, rx] = rx.eval(src, self.mesh, self.time_mesh, f)
         return data.dobs
+
+
+class BaseElectricalPDESimulation(BaseElectricalSimulation, BasePDESimulation):
+    pass
+
+
+class BaseMagneticPDESimulation(BaseMagneticSimulation, BasePDESimulation):
+    pass
+
+
+class BaseDensityPDESimulation(BaseDensitySimulation, BasePDESimulation):
+    pass

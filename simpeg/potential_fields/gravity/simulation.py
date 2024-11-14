@@ -22,6 +22,7 @@ from ._numba_functions import (
     _sensitivity_gravity_2d_mesh_serial,
     _sensitivity_gravity_2d_mesh_parallel,
 )
+from ...base.pde_simulation import BaseDensityPDESimulation
 
 if choclo is not None:
     from numba import jit
@@ -620,7 +621,7 @@ class SimulationEquivalentSourceLayer(
         return sensitivity_matrix
 
 
-class Simulation3DDifferential(BasePDESimulation):
+class Simulation3DDifferential(BaseDensityPDESimulation):
     r"""Finite volume simulation class for gravity.
 
     Notes
@@ -640,8 +641,6 @@ class Simulation3DDifferential(BasePDESimulation):
     .. math::
         \big [ \mathbf{D M_f D^T} \big ] \mathbf{u} = - \mathbf{M_c \, \rho}
     """
-
-    density, density_map, _density_deriv = props.Invertible("Specific density (g/cc)")
 
     def __init__(self, mesh, density=1.0, density_map=None, **kwargs):
         super().__init__(mesh, **kwargs)

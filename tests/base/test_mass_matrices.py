@@ -84,14 +84,14 @@ class TestSim(unittest.TestCase):
         u_e = np.random.rand(n_e)
 
         # Test zero return on no map
-        assert sim.MccMuDeriv(u_c, v).__class__ == Zero
-        assert sim.MnMuDeriv(u_n, v).__class__ == Zero
-        assert sim.MfMuDeriv(u_f, v).__class__ == Zero
-        assert sim.MeMuDeriv(u_e, v).__class__ == Zero
-        assert sim.MccMuIDeriv(u_c, v).__class__ == Zero
-        assert sim.MnMuIDeriv(u_n, v).__class__ == Zero
-        assert sim.MfMuIDeriv(u_f, v).__class__ == Zero
-        assert sim.MeMuIDeriv(u_e, v).__class__ == Zero
+        assert sim._Mcc_permeability_deriv(u_c, v).__class__ == Zero
+        assert sim._Mn_permeability_deriv(u_n, v).__class__ == Zero
+        assert sim._Mf_permeability_deriv(u_f, v).__class__ == Zero
+        assert sim._Me_permeability_deriv(u_e, v).__class__ == Zero
+        assert sim._inv_Mcc_permeability_deriv(u_c, v).__class__ == Zero
+        assert sim._inv_Mn_permeability_deriv(u_n, v).__class__ == Zero
+        assert sim._inv_Mf_permeability_deriv(u_f, v).__class__ == Zero
+        assert sim._inv_Me_permeability_deriv(u_e, v).__class__ == Zero
 
         # Test zero return on u passed as Zero
         assert sim._Mcc_conductivity_deriv(Zero(), v).__class__ == Zero

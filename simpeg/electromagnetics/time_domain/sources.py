@@ -1383,7 +1383,7 @@ class MagDipole(BaseTDEMSrc):
         # if simulation._formulation == 'EB':
         #     return simulation._Mf__perm_inv * self.bInitial(simulation)
         # elif simulation._formulation == 'HJ':
-        #     return simulation.MeMuI * self.bInitial(simulation)
+        #     return simulation._inv_Me_permeability * self.bInitial(simulation)
         return 1.0 / self.mu * self.bInitial(simulation)
 
     def s_m(self, simulation, time):
@@ -1919,7 +1919,7 @@ class LineCurrent(BaseTDEMSrc):
         Div = sdiag(vol) * simulation.mesh.face_divergence
         return (
             simulation.mesh.edge_curl
-            * simulation.MeMuI
+            * simulation._inv_Me_permeability
             * simulation.mesh.edge_curl.T.tocsr()
             - Div.T.tocsr()
             * sdiag(1.0 / vol * simulation.mui)
@@ -1965,7 +1965,7 @@ class LineCurrent(BaseTDEMSrc):
             return Zero()
 
         b = self.bInitial(simulation)
-        return simulation.MeMuI * b
+        return simulation._inv_Me_permeability * b
 
     def hInitialDeriv(self, simulation, v, adjoint=False, f=None):
         """Compute derivative of intitial magnetic field times a vector
@@ -1988,8 +1988,10 @@ class LineCurrent(BaseTDEMSrc):
             return Zero()
 
         if adjoint is True:
-            return self.bInitialDeriv(simulation, simulation.MeMuI.T * v, adjoint=True)
-        return simulation.MeMuI * self.bInitialDeriv(simulation, v)
+            return self.bInitialDeriv(
+                simulation, simulation._inv_Me_permeability.T * v, adjoint=True
+            )
+        return simulation._inv_Me_permeability * self.bInitialDeriv(simulation, v)
 
     def bInitial(self, simulation):
         """Compute initial magnetic flux density.
@@ -2143,7 +2145,7 @@ class RawVec_Grounded(LineCurrent):
     #     vol = simulation.mesh.cell_volumes
 
     #     return (
-    #         simulation.mesh.edge_curl * simulation.MeMuI * simulation.mesh.edge_curl.T
+    #         simulation.mesh.edge_curl * simulation._inv_Me_permeability * simulation.mesh.edge_curl.T
     #         - simulation.mesh.face_divergence.T
     #         * sdiag(1.0 / vol * simulation.mui)
     #         * simulation.mesh.face_divergence  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
@@ -2175,7 +2177,7 @@ class RawVec_Grounded(LineCurrent):
     #         return Zero()
 
     #     b = self.bInitial(simulation)
-    #     return simulation.MeMuI * b
+    #     return simulation._inv_Me_permeability * b
 
     # def hInitialDeriv(self, simulation, v, adjoint=False, f=None):
     #     if simulation._fieldType not in ["j", "h"]:
@@ -2185,8 +2187,8 @@ class RawVec_Grounded(LineCurrent):
     #         return Zero()
 
     #     if adjoint is True:
-    #         return self.bInitialDeriv(simulation, simulation.MeMuI.T * v, adjoint=True)
-    #     return simulation.MeMuI * self.bInitialDeriv(simulation, v)
+    #         return self.bInitialDeriv(simulation, simulation._inv_Me_permeability.T * v, adjoint=True)
+    #     return simulation._inv_Me_permeability * self.bInitialDeriv(simulation, v)
 
     # def bInitial(self, simulation):
     #     if simulation._fieldType not in ["j", "h"]:
@@ -2211,5 +2213,5 @@ class RawVec_Grounded(LineCurrent):
 
     # def s_e(self, simulation, time):
     #     # if simulation._fieldType == 'h':
-    #     #     return simulation.Mf * self._s_e * self.waveform.eval(time)
+    #     #     return simulation._M(cc|n|f|e) * self._s_e * self.waveform.eval(time)
     #     return self._s_e * self.waveform.eval(time)

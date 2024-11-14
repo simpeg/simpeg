@@ -140,26 +140,26 @@ class MuTests(unittest.TestCase):
         self.setUpProb()
         u = self.simulation.fields(self.m0)
 
-        self.simulation.MeMu
-        self.simulation.MeMuI
+        self.simulation._Me_permeability
+        self.simulation._inv_Me_permeability
         self.simulation._Mf__perm_inv
         self.simulation._inv_Mf__perm_inv
-        self.simulation.MeMuDeriv(u[:, "e"])
+        self.simulation._Me_permeability_deriv(u[:, "e"])
         self.simulation._Mf__perm_inv_deriv(u[:, "b"])
         MfMuiDeriv_zero = self.simulation._Mf__perm_inv_deriv(utils.Zero())
         MfMuiIDeriv_zero = self.simulation._inv_Mf__perm_inv_deriv(utils.Zero())
-        MeMuDeriv_zero = self.simulation.MeMuDeriv(utils.Zero())
+        MeMuDeriv_zero = self.simulation._Me_permeability_deriv(utils.Zero())
 
         rng = np.random.default_rng(seed=2016)
         m1 = rng.uniform(size=self.mesh.nC)
         self.simulation.model = m1
 
-        self.assertTrue(getattr(self, "_MeMu", None) is None)
-        self.assertTrue(getattr(self, "_MeMuI", None) is None)
+        self.assertTrue(getattr(self, "_Me_permeability", None) is None)
+        self.assertTrue(getattr(self, "_inv_Me_permeability", None) is None)
         self.assertTrue(getattr(self, "_Mf__perm_inv", None) is None)
         self.assertTrue(getattr(self, "_inv_Mf__perm_inv", None) is None)
         self.assertTrue(getattr(self, "_Mf__perm_inv_deriv", None) is None)
-        self.assertTrue(getattr(self, "_MeMuDeriv", None) is None)
+        self.assertTrue(getattr(self, "_Me_permeability_deriv", None) is None)
         self.assertTrue(isinstance(MfMuiDeriv_zero, utils.Zero))
         self.assertTrue(isinstance(MfMuiIDeriv_zero, utils.Zero))
         self.assertTrue(isinstance(MeMuDeriv_zero, utils.Zero))

@@ -141,7 +141,7 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
         """
         G = self.mesh.nodal_gradient
         MeRho = self._Me_resistivity
-        MnMu = self.MnMu
+        MnMu = self._Mn_permeability
 
         return G.T.tocsr() @ MeRho @ G + 1j * omega(freq) * MnMu
 
@@ -152,7 +152,7 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
         return G.T * self._Me_resistivity_deriv(G * u, v, adjoint)
 
     def getADeriv_mu(self, freq, u, v, adjoint=False):
-        MnMuDeriv = self.MnMuDeriv(u)
+        MnMuDeriv = self._Mn_permeability_deriv(u)
         if adjoint is True:
             return 1j * omega(freq) * (MnMuDeriv.T * v)
 
@@ -602,7 +602,7 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
         """
         C = self.mesh.edge_curl
         Mcc_resistivity = self._Mcc_resistivity
-        Me_mu = self.MeMu
+        Me_mu = self._Me_permeability
 
         return C.T.tocsr() @ Mcc_resistivity @ C + 1j * omega(freq) * Me_mu
 
@@ -631,7 +631,7 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
         return C.T * self._Mcc_resistivity_deriv(C * u, v, adjoint)
 
     def getADeriv_mu(self, freq, u, v, adjoint=False):
-        return 1j * omega(freq) * self.MeMuDeriv(u, v, adjoint=adjoint)
+        return 1j * omega(freq) * self._Me_permeability_deriv(u, v, adjoint=adjoint)
 
     def getADeriv(self, freq, u, v, adjoint=False):
         return self.getADeriv_resistivity(freq, u, v, adjoint) + self.getADeriv_mu(

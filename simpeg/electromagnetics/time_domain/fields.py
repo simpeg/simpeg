@@ -586,8 +586,8 @@ class Fields3DMagneticField(FieldsTDEM):
         # Docstring inherited from parent.
         self._times = self.simulation.times
         self._edgeCurl = self.simulation.mesh.edge_curl
-        self._MeMuI = self.simulation.MeMuI
-        self._MeMu = self.simulation.MeMu
+        self._inv_Me_permeabilityI = self.simulation._inv_Me_permeability
+        self._Me_permeability = self.simulation._Me_permeability
         self._Mf_resistivity = self.simulation._Mf_resistivity
         self._Mf_resistivity_deriv = self.simulation._Mf_resistivity_deriv
 
@@ -608,7 +608,7 @@ class Fields3DMagneticField(FieldsTDEM):
 
     def _dhdt(self, hSolution, source_list, tInd):
         C = self._edgeCurl
-        MeMuI = self._MeMuI
+        MeMuI = self._inv_Me_permeability
         MfRho = self._Mf_resistivity
 
         dhdt = -MeMuI * (C.T * (MfRho * (C * hSolution)))
@@ -620,7 +620,7 @@ class Fields3DMagneticField(FieldsTDEM):
 
     def _dhdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
         C = self._edgeCurl
-        MeMuI = self._MeMuI
+        MeMuI = self._inv_Me_permeability
         MfRho = self._Mf_resistivity
 
         if adjoint:
@@ -629,7 +629,7 @@ class Fields3DMagneticField(FieldsTDEM):
 
     def _dhdtDeriv_m(self, tInd, src, v, adjoint=False):
         C = self._edgeCurl
-        MeMuI = self._MeMuI
+        MeMuI = self._inv_Me_permeability
         MfRhoDeriv = self._Mf_resistivity_deriv
 
         hSolution = self[[src], "hSolution", tInd].flatten()
@@ -657,47 +657,59 @@ class Fields3DMagneticField(FieldsTDEM):
 
     def _b(self, hSolution, source_list, tInd):
         h = self._h(hSolution, source_list, tInd)
-        return self.simulation.MeI * (self._MeMu * h)
+        return self.simulation.MeI * (self._Me_permeability * h)
 
     def _bDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
         if adjoint:
             return self._hDeriv_u(
                 tInd,
                 src,
-                self._MeMu.T * (self.simulation.MeI.T * dun_dm_v),
+                self._Me_permeability.T * (self.simulation.MeI.T * dun_dm_v),
                 adjoint=adjoint,
             )
-        return self.simulation.MeI * (self._MeMu * self._hDeriv_u(tInd, src, dun_dm_v))
+        return self.simulation.MeI * (
+            self._Me_permeability * self._hDeriv_u(tInd, src, dun_dm_v)
+        )
 
     def _bDeriv_m(self, tInd, src, v, adjoint=False):
         if adjoint:
             return self._hDeriv_m(
-                tInd, src, self._MeMu.T * (self.simulation.MeI.T * v), adjoint=adjoint
+                tInd,
+                src,
+                self._Me_permeability.T * (self.simulation.MeI.T * v),
+                adjoint=adjoint,
             )
-        return self.simulation.MeI * (self._MeMu * self._hDeriv_m(tInd, src, v))
+        return self.simulation.MeI * (
+            self._Me_permeability * self._hDeriv_m(tInd, src, v)
+        )
 
     def _dbdt(self, hSolution, source_list, tInd):
         dhdt = self._dhdt(hSolution, source_list, tInd)
-        return self.simulation.MeI * (self._MeMu * dhdt)
+        return self.simulation.MeI * (self._Me_permeability * dhdt)
 
     def _dbdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
         if adjoint:
             return self._dhdtDeriv_u(
                 tInd,
                 src,
-                self._MeMu.T * (self.simulation.MeI.T * dun_dm_v),
+                self._Me_permeability.T * (self.simulation.MeI.T * dun_dm_v),
                 adjoint=adjoint,
             )
         return self.simulation.MeI * (
-            self._MeMu * self._dhdtDeriv_u(tInd, src, dun_dm_v)
+            self._Me_permeability * self._dhdtDeriv_u(tInd, src, dun_dm_v)
         )
 
     def _dbdtDeriv_m(self, tInd, src, v, adjoint=False):
         if adjoint:
             return self._dhdtDeriv_m(
-                tInd, src, self._MeMu.T * (self.simulation.MeI.T * v), adjoint=adjoint
+                tInd,
+                src,
+                self._Me_permeability.T * (self.simulation.MeI.T * v),
+                adjoint=adjoint,
             )
-        return self.simulation.MeI * (self._MeMu * self._dhdtDeriv_m(tInd, src, v))
+        return self.simulation.MeI * (
+            self._Me_permeability * self._dhdtDeriv_m(tInd, src, v)
+        )
 
     def _e(self, hSolution, source_list, tInd):
         return self.simulation.MfI * (
@@ -798,7 +810,7 @@ class Fields3DCurrentDensity(FieldsTDEM):
         # Docstring inherited from parent.
         self._times = self.simulation.times
         self._edgeCurl = self.simulation.mesh.edge_curl
-        self._MeMuI = self.simulation.MeMuI
+        self._inv_Me_permeability = self.simulation._inv_Me_permeability
         self._Mf_resistivity = self.simulation._Mf_resistivity
         self._Mf_resistivity_deriv = self.simulation._Mf_resistivity_deriv
 
@@ -823,7 +835,7 @@ class Fields3DCurrentDensity(FieldsTDEM):
     def _dhdt(self, jSolution, source_list, tInd):
         C = self._edgeCurl
         MfRho = self._Mf_resistivity
-        MeMuI = self._MeMuI
+        MeMuI = self._inv_Me_permeability
 
         dhdt = -MeMuI * (C.T * (MfRho * jSolution))
         for i, src in enumerate(source_list):
@@ -834,7 +846,7 @@ class Fields3DCurrentDensity(FieldsTDEM):
     def _dhdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
         C = self._edgeCurl
         MfRho = self._Mf_resistivity
-        MeMuI = self._MeMuI
+        MeMuI = self._inv_Me_permeability
 
         if adjoint is True:
             return -MfRho.T * (C * (MeMuI.T * dun_dm_v))
@@ -843,7 +855,7 @@ class Fields3DCurrentDensity(FieldsTDEM):
     def _dhdtDeriv_m(self, tInd, src, v, adjoint=False):
         jSolution = self[[src], "jSolution", tInd].flatten()
         C = self._edgeCurl
-        MeMuI = self._MeMuI
+        MeMuI = self._inv_Me_permeability
 
         if adjoint is True:
             return -self._Mf_resistivity_deriv(jSolution, C * (MeMuI * v), adjoint)
@@ -878,7 +890,7 @@ class Fields3DCurrentDensity(FieldsTDEM):
 
     def _dbdt(self, jSolution, source_list, tInd):
         dhdt = mkvc(self._dhdt(jSolution, source_list, tInd))
-        return self.simulation.MeI * (self.simulation.MeMu * dhdt)
+        return self.simulation.MeI * (self.simulation._Me_permeability * dhdt)
 
     def _dbdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
         # dhdt = mkvc(self[src, 'dhdt', tInd])
@@ -886,18 +898,21 @@ class Fields3DCurrentDensity(FieldsTDEM):
             return self._dhdtDeriv_u(
                 tInd,
                 src,
-                self.simulation.MeMu.T * (self.simulation.MeI.T * dun_dm_v),
+                self.simulation._Me_permeability.T * (self.simulation.MeI.T * dun_dm_v),
                 adjoint,
             )
         return self.simulation.MeI * (
-            self.simulation.MeMu * self._dhdtDeriv_u(tInd, src, dun_dm_v)
+            self.simulation._Me_permeability * self._dhdtDeriv_u(tInd, src, dun_dm_v)
         )
 
     def _dbdtDeriv_m(self, tInd, src, v, adjoint=False):
         if adjoint:
             return self._dhdtDeriv_m(
-                tInd, src, self.simulation.MeMu.T * (self.simulation.MeI.T * v), adjoint
+                tInd,
+                src,
+                self.simulation._Me_permeability.T * (self.simulation.MeI.T * v),
+                adjoint,
             )
         return self.simulation.MeI * (
-            self.simulation.MeMu * self._dhdtDeriv_m(tInd, src, v)
+            self.simulation._Me_permeability * self._dhdtDeriv_m(tInd, src, v)
         )

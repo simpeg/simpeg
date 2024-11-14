@@ -1154,25 +1154,11 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         self._survey = obj
 
     @property
-    def MfMuI(self):
-        return self._MfMuI
-
-    @property
-    def MfMui(self):
-        return self._Mf__perm_inv
-
-    @property
-    def MfMu0(self):
-        return self._MfMu0
-
-    def makeMassMatrices(self, m):
-        mu = self.muMap * m
-        self._Mf__perm_inv = self.mesh.get_face_inner_product(1.0 / mu) / self.mesh.dim
-        # self._Mf__perm_inv = self.mesh.get_face_inner_product(1./mu)
-        # TODO: this will break if tensor mu
-        self._MfMuI = sdiag(1.0 / self._Mf__perm_inv.diagonal())
-        self._MfMu0 = self.mesh.get_face_inner_product(1.0 / mu_0) / self.mesh.dim
-        # self._MfMu0 = self.mesh.get_face_inner_product(1/mu_0)
+    def _Mf_perm0_inv(self):
+        if (inv_Mf_perm0 := self._cache["_Mf_perm0_inv"]) is None:
+            inv_Mf_perm0 = self.mesh.get_face_inner_product(1.0 / mu_0)
+            self._cache["_Mf_perm0_inv"] = inv_Mf_perm0
+        return inv_Mf_perm0
 
     @utils.requires("survey")
     def getB0(self):
@@ -1206,9 +1192,12 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         )
         self.Bbc = Bbc
         self.Bbc_const = Bbc_const
-        # return self._Div*self.MfMuI*self.MfMu0*B0 - self._Div*B0 +
+        # return self._Div*self._inv_Mf_permeability*self._Mf_perm0_inv*B0 - self._Div*B0 +
         # Mc*Dface*self._Pout.T*Bbc
-        return self._Div * self.MfMuI * self.MfMu0 * B0 - self._Div * B0
+        return (
+            self._Div * self._inv_Mf_permeability * self._Mf_perm0_inv * B0
+            - self._Div * B0
+        )
 
     def getA(self, m):
         r"""
@@ -1221,7 +1210,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
             \mathbf{A} =  \Div(\MfMui)^{-1}\Div^{T}
 
         """
-        return self._Div * self.MfMuI * self._Div.T.tocsr()
+        return self._Div * self._inv_Mf_permeability * self._Div.T.tocsr()
 
     def fields(self, m):
         r"""
@@ -1246,7 +1235,11 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         Ainv = self.solver(A, **self.solver_opts)
         u = Ainv * rhs
         B0 = self.getB0()
-        B = self.MfMuI * self.MfMu0 * B0 - B0 - self.MfMuI * self._Div.T * u
+        B = (
+            self._inv_Mf_permeability * self._Mf_perm0_inv * B0
+            - B0
+            - self._inv_Mf_permeability * self._Div.T * u
+        )
         Ainv.clean()
 
         return {"B": B, "u": u}
@@ -1357,14 +1350,14 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         MfMuIvec = 1 / self._Mf__perm_inv.diagonal()
         dMfMuI = sdiag(MfMuIvec**2) * self.mesh.aveF2CC.T * sdiag(vol * 1.0 / mu**2)
 
-        # A = self._Div*self.MfMuI*self._Div.T
+        # A = self._Div*self._inv_Mf_permeability*self._Div.T
         # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
         # C(m,u) = A*m-rhs
         # dudm = -(dCdu)^(-1)dCdm
 
         dCdu = self.getA(m)  # = A
         dCdm_A = Div * (sdiag(Div.T * u) * dMfMuI * dmu_dm)
-        dCdm_RHS1 = Div * (sdiag(self.MfMu0 * B0) * dMfMuI)
+        dCdm_RHS1 = Div * (sdiag(self._Mf_perm0_inv * B0) * dMfMuI)
         # temp1 = (Dface * (self._Pout.T * self.Bbc_const * self.Bbc))
         # dCdm_RHS2v = (sdiag(vol) * temp1) * \
         #    np.inner(vol, dchidmu * dmu_dm * v)
@@ -1378,9 +1371,9 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         dudm = -sol
         dBdmv = (
-            sdiag(self.MfMu0 * B0) * (dMfMuI * (dmu_dm * v))
+            sdiag(self._Mf_perm0_inv * B0) * (dMfMuI * (dmu_dm * v))
             - sdiag(Div.T * u) * (dMfMuI * (dmu_dm * v))
-            - self.MfMuI * (Div.T * (dudm))
+            - self._inv_Mf_permeability * (Div.T * (dudm))
         )
 
         Ainv.clean()
@@ -1440,13 +1433,13 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         MfMuIvec = 1 / self._Mf__perm_inv.diagonal()
         dMfMuI = sdiag(MfMuIvec**2) * self.mesh.aveF2CC.T * sdiag(vol * 1.0 / mu**2)
 
-        # A = self._Div*self.MfMuI*self._Div.T
+        # A = self._Div*self._inv_Mf_permeability*self._Div.T
         # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
         # C(m,u) = A*m-rhs
         # dudm = -(dCdu)^(-1)dCdm
 
         dCdu = self.getA(m)
-        s = Div * (self.MfMuI.T * (P.T * v))
+        s = Div * (self._inv_Mf_permeability.T * (P.T * v))
 
         Ainv = self.solver(dCdu.T, **self.solver_opts)
         sol = Ainv * s
@@ -1457,9 +1450,11 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         # dCdm_Atsol = ( dMfMuI.T*( sdiag( Div.T * u ) * (Div.T * dmu_dm)) ) * sol
         dCdm_Atsol = (dmu_dm.T * dMfMuI.T * (sdiag(Div.T * u) * Div.T)) * sol
 
-        # dCdm_RHS1 = Div * (sdiag( self.MfMu0*B0  ) * dMfMuI)
-        # dCdm_RHS1tsol = (dMfMuI.T*( sdiag( self.MfMu0*B0  ) ) * Div.T * dmu_dm) * sol
-        dCdm_RHS1tsol = (dmu_dm.T * dMfMuI.T * (sdiag(self.MfMu0 * B0)) * Div.T) * sol
+        # dCdm_RHS1 = Div * (sdiag( self._Mf_perm0_inv*B0  ) * dMfMuI)
+        # dCdm_RHS1tsol = (dMfMuI.T*( sdiag( self._Mf_perm0_inv*B0  ) ) * Div.T * dmu_dm) * sol
+        dCdm_RHS1tsol = (
+            dmu_dm.T * dMfMuI.T * (sdiag(self._Mf_perm0_inv * B0)) * Div.T
+        ) * sol
 
         # temp1 = (Dface*(self._Pout.T*self.Bbc_const*self.Bbc))
         # temp1sol = (Dface.T * (sdiag(vol) * sol))
@@ -1478,11 +1473,11 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         Ctv = dCdm_Atsol - dCdm_RHStsol
 
-        # B = self.MfMuI*self.MfMu0*B0-B0-self.MfMuI*self._Div.T*u
+        # B = self._inv_Mf_permeability*self._Mf_perm0_inv*B0-B0-self._inv_Mf_permeability*self._Div.T*u
         # dBdm = d\mudm*dBd\mu
         # dPBdm^T*v = Atemp^T*P^T*v - Btemp^T*P^T*v - Ctv
 
-        Atemp = sdiag(self.MfMu0 * B0) * (dMfMuI * (dmu_dm))
+        Atemp = sdiag(self._Mf_perm0_inv * B0) * (dMfMuI * (dmu_dm))
         Btemp = sdiag(Div.T * u) * (dMfMuI * (dmu_dm))
         Jtv = Atemp.T * (P.T * v) - Btemp.T * (P.T * v) - Ctv
 

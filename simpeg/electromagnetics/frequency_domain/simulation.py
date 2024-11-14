@@ -1476,7 +1476,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
             The system matrix.
         """
 
-        MeMuI = self.MeMuI
+        MeMuI = self._inv_Me_permeability
         MfRho = self._Mf_resistivity
         C = self.mesh.edge_curl
         iomega = 1j * omega(freq) * sp.eye(self.mesh.nF)
@@ -1539,7 +1539,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
             (n_param,) for the adjoint operation.
         """
 
-        MeMuI = self.MeMuI
+        MeMuI = self._inv_Me_permeability
         C = self.mesh.edge_curl
 
         if adjoint:
@@ -1595,7 +1595,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         C = self.mesh.edge_curl
         MfRho = self._Mf_resistivity
 
-        MeMuIDeriv = self.MeMuIDeriv(C.T * (MfRho * u))
+        MeMuIDeriv = self._inv_Me_permeability_deriv(C.T * (MfRho * u))
 
         if adjoint is True:
             # if self._makeASymmetric:
@@ -1695,7 +1695,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
         s_m, s_e = self.getSourceTerm(freq)
         C = self.mesh.edge_curl
-        MeMuI = self.MeMuI
+        MeMuI = self._inv_Me_permeability
 
         RHS = C * (MeMuI * s_m) - 1j * omega(freq) * s_e
         if self._makeASymmetric is True:
@@ -1756,8 +1756,8 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         #     return MfRho.T*RHS
 
         C = self.mesh.edge_curl
-        MeMuI = self.MeMuI
-        MeMuIDeriv = self.MeMuIDeriv
+        MeMuI = self._inv_Me_permeability
+        MeMuIDeriv = self._inv_Me_permeability_deriv
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
         s_m, _ = self.getSourceTerm(freq)
 
@@ -1911,7 +1911,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
             The system matrix.
         """
 
-        MeMu = self.MeMu
+        MeMu = self._Me_permeability
         C = self.mesh.edge_curl
 
         if self.permittivity is None:
@@ -2018,7 +2018,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
             Derivative of system matrix times a vector. (n_edges,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
-        MeMuDeriv = self.MeMuDeriv(u)
+        MeMuDeriv = self._Me_permeability_deriv(u)
 
         if adjoint is True:
             return 1j * omega(freq) * (MeMuDeriv.T * v)

@@ -1878,7 +1878,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
         MfRho = self._Mf_resistivity
-        MeMu = self.MeMu
+        MeMu = self._Me_permeability
 
         return C.T * (MfRho * C) + 1.0 / dt * MeMu
 
@@ -1966,7 +1966,7 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
 
         dt = self.time_steps[tInd]
 
-        return -1.0 / dt * self.MeMu
+        return -1.0 / dt * self._Me_permeability
 
     def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
         r"""Derivative operation for the sub-diagonal system matrix times a vector.
@@ -2351,7 +2351,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         dt = self.time_steps[tInd]
         C = self.mesh.edge_curl
         MfRho = self._Mf_resistivity
-        MeMuI = self.MeMuI
+        MeMuI = self._inv_Me_permeability
         eye = sp.eye(self.mesh.n_faces)
 
         A = C * (MeMuI * (C.T * MfRho)) + 1.0 / dt * eye
@@ -2413,7 +2413,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
         C = self.mesh.edge_curl
         MfRho = self._Mf_resistivity
-        MeMuI = self.MeMuI
+        MeMuI = self._inv_Me_permeability
 
         if adjoint:
             if self._makeASymmetric:
@@ -2538,7 +2538,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
             tInd = tInd - 1
 
         C = self.mesh.edge_curl
-        MeMuI = self.MeMuI
+        MeMuI = self._inv_Me_permeability
         dt = self.time_steps[tInd]
         s_m, s_e = self.getSourceTerm(tInd)
         _, s_en1 = self.getSourceTerm(tInd - 1)
