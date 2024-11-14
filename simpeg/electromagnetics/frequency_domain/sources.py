@@ -238,7 +238,7 @@ class RawVec_e(BaseFDEMSrc):
             electric source term on mesh.
         """
         if simulation._formulation == "EB" and self.integrate is True:
-            return simulation.Me * self._s_e
+            return simulation._Me * self._s_e
         return self._s_e
 
 
@@ -275,7 +275,7 @@ class RawVec_m(BaseFDEMSrc):
             magnetic source term on mesh.
         """
         if simulation._formulation == "HJ" and self.integrate is True:
-            return simulation.Me * self._s_m
+            return simulation._Me * self._s_m
         return self._s_m
 
 
@@ -576,7 +576,7 @@ class MagDipole(BaseFDEMSrc):
 
         b_p = self.bPrimary(simulation)
         if simulation._formulation == "HJ":
-            b_p = simulation.Me * b_p
+            b_p = simulation._Me * b_p
         return -1j * omega(self.frequency) * b_p
 
     def s_e(self, simulation):
@@ -1081,7 +1081,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
             ep = self._ProjPrimary(simulation, "E", "E") * f[:, "e"]
         elif self.primarySimulation._formulation == "HJ":
             ep = self._ProjPrimary(simulation, "F", "E") * (
-                self.primarySimulation.MfI
+                self.primarySimulation._inv_Mf
                 * (self.primarySimulation._Mf_resistivity * f[:, "j"])
             )
 
@@ -1107,7 +1107,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
                 ) * self._primaryFieldsDeriv(simulation, v, f=f)
         elif self.primarySimulation._formulation == "HJ":
             if adjoint is True:
-                PTv = self.primarySimulation.MfI.T * (
+                PTv = self.primarySimulation._inv_Mf.T * (
                     self._ProjPrimary(simulation, "F", "E").T * v
                 )
                 epDeriv = self.primarySimulation._Mf_resistivity_deriv(
@@ -1120,7 +1120,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
                 )
             else:
                 epDeriv = self._ProjPrimary(simulation, "F", "E") * (
-                    self.primarySimulation.MfI
+                    self.primarySimulation._inv_Mf
                     * (
                         self.primarySimulation._Mf_resistivity_deriv(
                             f[:, "j"], v, adjoint
@@ -1142,7 +1142,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
             bp = self._ProjPrimary(simulation, "F", "F") * f[:, "b"]
         elif self.primarySimulation._formulation == "HJ":
             bp = self._ProjPrimary(simulation, "E", "F") * (
-                self.primarySimulation.MeI
+                self.primarySimulation._inv_Me
                 * (self.primarySimulation._Me_permeability * f[:, "h"])
             )
 

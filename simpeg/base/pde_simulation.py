@@ -594,49 +594,49 @@ class BasePDESimulation(BaseSimulation, metaclass=MassMatrixMeta):
         return Me
 
     @property
-    def _MccI(self):
-        if (MccI := self._cache["_MccI"]) is None:
+    def _inv_Mcc(self):
+        if (MccI := self._cache["_inv_Mcc"]) is None:
             MccI = sp.diags(1.0 / self.mesh.cell_volumes, format="csr")
-            self._cache["_MccI"] = MccI
+            self._cache["_inv_Mcc"] = MccI
         return MccI
 
     @property
-    def _MnI(self):
+    def _inv_Mn(self):
         """
         Node inner product inverse matrix.
         """
-        if (MnI := self._cache["_MnI"]) is None:
+        if (MnI := self._cache["_inv_Mn"]) is None:
             MnI = sp.diags(
                 1.0 / (self.mesh.aveN2CC.T * self.mesh.cell_volumes), format="csr"
             )
-            self._cache["_MnI"] = MnI
+            self._cache["_inv_Mn"] = MnI
         return MnI
 
     @property
-    def _MfI(self):
+    def _inv_Mf(self):
         """
         Face inner product inverse matrix.
         """
-        if (MfI := self._cache["_MfI"]) is None:
+        if (MfI := self._cache["_inv_Mf"]) is None:
             if isinstance(self.mesh, AXIS_ALIGNED_MESH_TYPES):
                 MfI = self.mesh.get_face_inner_product(invert_matrix=True)
             else:
                 MfI = self.solver(self._Mf, symmetric=True, positive_definite=True)
-            self._cache["_MfI"] = MfI
+            self._cache["_inv_Mf"] = MfI
         return MfI
 
     @property
-    def _MeI(self):
+    def _inv_Me(self):
         """
         Edge inner product inverse matrix.
         """
-        if (MeI := self._cache["_MeI"]) is None:
+        if (MeI := self._cache["_inv_Me"]) is None:
             if isinstance(self.mesh, AXIS_ALIGNED_MESH_TYPES):
                 MeI = self.mesh.get_edge_inner_product(invert_matrix=True)
             else:
                 MeI = self.solver(self._Me, symmetric=True, positive_definite=True)
-            self._cache["_MeI"] = MeI
-        return self._MeI
+            self._cache["_inv_Me"] = MeI
+        return self._inv_Me
 
 
 class BaseTimePDESimulation(BaseTimeSimulation, BasePDESimulation):

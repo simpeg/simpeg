@@ -129,10 +129,10 @@ class TestSim(unittest.TestCase):
         dim = self.mesh.dim
 
         # Test volume sum
-        np.testing.assert_allclose(e_c @ sim.Mcc @ e_c, volume)
-        np.testing.assert_allclose(e_n @ sim.Mn @ e_n, volume)
-        np.testing.assert_allclose((e_f @ sim.Mf @ e_f) / dim, volume)
-        np.testing.assert_allclose((e_e @ sim.Me @ e_e) / dim, volume)
+        np.testing.assert_allclose(e_c @ sim._Mcc @ e_c, volume)
+        np.testing.assert_allclose(e_n @ sim._Mn @ e_n, volume)
+        np.testing.assert_allclose((e_f @ sim._Mf @ e_f) / dim, volume)
+        np.testing.assert_allclose((e_e @ sim._Me @ e_e) / dim, volume)
 
         # Test matrix simple inverse
         x_c = np.random.rand(n_c)
@@ -140,10 +140,10 @@ class TestSim(unittest.TestCase):
         x_f = np.random.rand(n_f)
         x_e = np.random.rand(n_e)
 
-        np.testing.assert_allclose(x_c, sim.MccI @ (sim.Mcc @ x_c))
-        np.testing.assert_allclose(x_n, sim.MnI @ (sim.Mn @ x_n))
-        np.testing.assert_allclose(x_f, sim.MfI @ (sim.Mf @ x_f))
-        np.testing.assert_allclose(x_e, sim.MeI @ (sim.Me @ x_e))
+        np.testing.assert_allclose(x_c, sim._inv_Mcc @ (sim._Mcc @ x_c))
+        np.testing.assert_allclose(x_n, sim._inv_Mn @ (sim._Mn @ x_n))
+        np.testing.assert_allclose(x_f, sim._inv_Mf @ (sim._Mf @ x_f))
+        np.testing.assert_allclose(x_e, sim._inv_Me @ (sim._Me @ x_e))
 
     def test_forward_expected_shapes(self):
         sim = self.sim

@@ -106,7 +106,7 @@ class Fields3DCellCentered(FieldsDC):
         self._aveF2CCV = self.simulation.mesh.aveF2CCV
         self._nC = self.simulation.mesh.nC
         self._Grad = self.simulation.Grad
-        self._MfI = self.simulation.MfI
+        self._inv_Mf = self.simulation._inv_Mf
         self._Vol = self.simulation.Vol
         self._faceDiv = self.simulation.mesh.face_divergence
 
@@ -151,14 +151,14 @@ class Fields3DCellCentered(FieldsDC):
 
             \vec{e} = \rho \vec{j}
         """
-        # return self._MfI * self._Mf_resistivity * self._j(phiSolution, source_list)
-        return self._MfI * self._Grad * phiSolution
-        # simulation._MfI * cart_mesh.face_divergence.T * p
+        # return self._inv_Mf * self._Mf_resistivity * self._j(phiSolution, source_list)
+        return self._inv_Mf * self._Grad * phiSolution
+        # simulation._inv_Mf * cart_mesh.face_divergence.T * p
 
     def _eDeriv_u(self, src, v, adjoint=False):
         if adjoint:
-            return self._Grad.T * (self._MfI.T * v)
-        return self._MfI * (self._Grad * v)
+            return self._Grad.T * (self._inv_Mf.T * v)
+        return self._inv_Mf * (self._Grad * v)
 
     def _eDeriv_m(self, src, v, adjoint=False):
         return Zero()
@@ -224,7 +224,7 @@ class Fields3DNodal(FieldsDC):
             \mathbf{j} = - \mathbf{M}^{e}_{\sigma} \mathbf{G} \phi
         """
         return (
-            self.simulation.MeI
+            self.simulation._inv_Me
             * self.simulation._Me_conductivity
             * self._e(phiSolution, source_list)
         )

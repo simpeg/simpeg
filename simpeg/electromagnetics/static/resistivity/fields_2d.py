@@ -180,11 +180,11 @@ class Fields2DCellCentered(Fields2D):
         sim = self.simulation
         if sim.bc_type == "Dirichlet":
             phi = self._phi(phi_ky, source_list)
-            return sim.MfI @ (sim.Grad @ phi)
+            return sim._inv_Mf @ (sim.Grad @ phi)
         e = np.zeros((sim.mesh.n_faces, phi_ky.shape[1]))
         for i, (ky, w) in enumerate(zip(sim._quad_points, sim._quad_weights)):
             e += (
-                sim.MfI
+                sim._inv_Mf
                 * (sim.Grad @ phi_ky[..., i] - sim._MBC[ky] @ phi_ky[..., i])
                 * w
             )
@@ -242,7 +242,7 @@ class Fields2DNodal(Fields2D):
 
     def _j(self, phiSolution, source_list):
         sim = self.simulation
-        return sim.MeI * sim._Me_conductivity * self._e(phiSolution, source_list)
+        return sim._inv_Me * sim._Me_conductivity * self._e(phiSolution, source_list)
 
     def _e(self, phiSolution, source_list):
         r"""
