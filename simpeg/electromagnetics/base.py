@@ -20,8 +20,8 @@ class BaseEMSimulation(BaseElectricalSimulation, BaseMagneticSimulation):
 
     def __init__(self, mesh, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
-        if kwargs.pop('storeInnerProductMatrices', None) is not None:
-            warnings.warn('storeInnerProductMatrices was unused and is now deprecated.')
+        if kwargs.pop("storeInnerProductMatrices", None) is not None:
+            warnings.warn("storeInnerProductMatrices was unused and is now deprecated.")
 
 
 class BaseEMPDESimulation(BaseElectricalPDESimulation, BaseMagneticPDESimulation):
@@ -29,8 +29,9 @@ class BaseEMPDESimulation(BaseElectricalPDESimulation, BaseMagneticPDESimulation
 
     def __init__(self, mesh, survey, **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
-        if kwargs.pop('storeInnerProductMatrices', None) is not None:
-            warnings.warn('storeInnerProductMatrices was unused and is now deprecated.')
+        if kwargs.pop("storeInnerProductMatrices", None) is not None:
+            warnings.warn("storeInnerProductMatrices was unused and is now deprecated.")
+
 
 ###############################################################################
 #                                                                             #

@@ -500,7 +500,10 @@ class BaseTimeSimulation(BaseSimulation):
         if isinstance(value, list):
             value = unpack_widths(value)
         value = validate_ndarray_with_shape("time_steps", value, shape=("*",))
-        self._time_mesh = TensorMesh([value], origin=[self.t0],)
+        self._time_mesh = TensorMesh(
+            [value],
+            origin=[self.t0],
+        )
 
     @property
     def t0(self):
@@ -603,7 +606,7 @@ class BaseLinearSimulation(BaseSimulation):
 
     def __init__(self, linear_operator=None, **kwargs):
         self.linear_operator = linear_operator
-        survey = kwargs.pop('survey', None)
+        survey = kwargs.pop("survey", None)
         if survey is None:
             if self.linear_operator is not None:
                 n_d = self.linear_operator.shape[0]
@@ -632,14 +635,20 @@ class BaseLinearSimulation(BaseSimulation):
     def linear_operator(self, lin_operator):
         if lin_operator is not None:
             # Allows setting G in a LinearSimulation.
-            if not hasattr(lin_operator, 'shape'):
+            if not hasattr(lin_operator, "shape"):
                 raise TypeError("linear_operator must have a `shape` property")
-            if not hasattr(lin_operator, 'dot'):
-                raise TypeError("linear_operator must support the `dot` method for matrix multiplication")
-            if not hasattr(lin_operator, 'T'):
-                raise TypeError("linear_operator must have a `T` property for transpose operations")
-            if not hasattr(lin_operator.T, 'conjugate'):
-                raise TypeError("linear_operator.T must support the `conjugate` method for adjoint matrix multiplication")
+            if not hasattr(lin_operator, "dot"):
+                raise TypeError(
+                    "linear_operator must support the `dot` method for matrix multiplication"
+                )
+            if not hasattr(lin_operator, "T"):
+                raise TypeError(
+                    "linear_operator must have a `T` property for transpose operations"
+                )
+            if not hasattr(lin_operator.T, "conjugate"):
+                raise TypeError(
+                    "linear_operator.T must support the `conjugate` method for adjoint matrix multiplication"
+                )
             self.survey._vnD = np.r_[lin_operator.shape[0]]
         self._linear_operator = lin_operator
 
@@ -785,12 +794,14 @@ class ExponentialSinusoidSimulation(LinearSimulation):
     def __init__(self, mesh, n_kernels=20, p=-0.25, q=0.25, j0=0.0, jn=60.0, **kwargs):
         self.mesh = mesh
         self.n_kernels = n_kernels
-        kwargs.pop('survey', None)
+        kwargs.pop("survey", None)
         self.p = p
         self.q = q
         self.j0 = j0
         self.jn = jn
-        super(ExponentialSinusoidSimulation, self).__init__(survey=self.survey, **kwargs)
+        super(ExponentialSinusoidSimulation, self).__init__(
+            survey=self.survey, **kwargs
+        )
 
     @property
     def n_kernels(self):
@@ -922,7 +933,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
             for i in range(self.n_kernels):
                 GT_nodes[:, i] = self.g(i)
 
-            self._linear_operator = (self.mesh.average_node_to_cell @ GT_nodes).T @ sdiag(
-                self.mesh.cell_volumes
-            )
+            self._linear_operator = (
+                self.mesh.average_node_to_cell @ GT_nodes
+            ).T @ sdiag(self.mesh.cell_volumes)
         return self._linear_operator
