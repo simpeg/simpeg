@@ -143,9 +143,9 @@ class Simulation3DIntegral(BasePFSimulation):
         Gravity survey with information of the receivers.
     active_cells : (n_cells) numpy.ndarray, optional
         Array that indicates which cells in ``mesh`` are active cells.
-    rho : numpy.ndarray, optional
+    density : numpy.ndarray, optional
         Density array for the active cells in the mesh.
-    rhoMap : Mapping, optional
+    density_map : Mapping, optional
         Model mapping.
     sensitivity_dtype : numpy.dtype, optional
         Data type that will be used to build the sensitivity matrix.
@@ -174,23 +174,23 @@ class Simulation3DIntegral(BasePFSimulation):
            ``active_cells`` and will be removed in SimPEG v0.24.0.
     """
 
-    rho, rhoMap, rhoDeriv = props.Invertible("Density")
+    density, density_map, _density_deriv = props.Invertible("Density")
 
     def __init__(
         self,
         mesh,
-        rho=None,
-        rhoMap=None,
+        density=None,
+        density_map=None,
         engine="geoana",
         numba_parallel=True,
         **kwargs,
     ):
         super().__init__(mesh, engine=engine, numba_parallel=numba_parallel, **kwargs)
-        self.rho = rho
-        self.rhoMap = rhoMap
+        self.density = density
+        self.density_map = density_map
         self._G = None
         self._gtg_diagonal = None
-        self.modelMap = self.rhoMap
+        self.modelMap = self.density_map
 
         # Warn if n_processes has been passed
         if self.engine == "choclo" and "n_processes" in kwargs:
@@ -230,11 +230,11 @@ class Simulation3DIntegral(BasePFSimulation):
         if self.store_sensitivities == "forward_only":
             # Compute the linear operation without forming the full dense G
             if self.engine == "choclo":
-                fields = self._forward(self.rho)
+                fields = self._forward(self.density)
             else:
                 fields = mkvc(self.linear_operator())
         else:
-            fields = self.G @ (self.rho).astype(self.sensitivity_dtype, copy=False)
+            fields = self.G @ (self.density).astype(self.sensitivity_dtype, copy=False)
         return np.asarray(fields)
 
     def getJtJdiag(self, m, W=None, f=None):
@@ -254,19 +254,19 @@ class Simulation3DIntegral(BasePFSimulation):
             self._gtg_diagonal = diag
         else:
             diag = self._gtg_diagonal
-        return mkvc((sdiag(np.sqrt(diag)) @ self.rhoDeriv).power(2).sum(axis=0))
+        return mkvc((sdiag(np.sqrt(diag)) @ self._density_deriv).power(2).sum(axis=0))
 
     def getJ(self, m, f=None):
         """
         Sensitivity matrix
         """
-        return self.G.dot(self.rhoDeriv)
+        return self.G.dot(self._density_deriv)
 
     def Jvec(self, m, v, f=None):
         """
         Sensitivity times a vector
         """
-        dmu_dm_v = self.rhoDeriv @ v
+        dmu_dm_v = self._density_deriv @ v
         return self.G @ dmu_dm_v.astype(self.sensitivity_dtype, copy=False)
 
     def Jtvec(self, m, v, f=None):
@@ -274,7 +274,7 @@ class Simulation3DIntegral(BasePFSimulation):
         Sensitivity transposed times a vector
         """
         Jtvec = self.G.T @ v.astype(self.sensitivity_dtype, copy=False)
-        return np.asarray(self.rhoDeriv.T @ Jtvec)
+        return np.asarray(self._density_deriv.T @ Jtvec)
 
     @property
     def G(self):
@@ -354,8 +354,8 @@ class Simulation3DIntegral(BasePFSimulation):
             # else:
             #     inside_adjust = True
             #     # The below need to be adjusted for observation points within a cell.
-            #     # because `gxx + gyy + gzz = -4 * pi * G * rho`
-            #     # gzz = - gxx - gyy - 4 * np.pi * G * rho[in_cell]
+            #     # because `gxx + gyy + gzz = -4 * pi * G * density`
+            #     # gzz = - gxx - gyy - 4 * np.pi * G * density[in_cell]
             #     node_evals["gzz"] = -node_evals["gxx"] - node_evals["gyy"]
 
         rows = {}
@@ -379,7 +379,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 # cell_vals[inside_cell] += 4 * np.pi
                 pass
             if self.store_sensitivities == "forward_only":
-                rows[component] = cell_vals @ self.rho
+                rows[component] = cell_vals @ self.density
             else:
                 rows[component] = cell_vals
             if len(component) == 3:
@@ -641,20 +641,20 @@ class Simulation3DDifferential(BasePDESimulation):
         \big [ \mathbf{D M_f D^T} \big ] \mathbf{u} = - \mathbf{M_c \, \rho}
     """
 
-    rho, rhoMap, rhoDeriv = props.Invertible("Specific density (g/cc)")
+    density, density_map, _density_deriv = props.Invertible("Specific density (g/cc)")
 
-    def __init__(self, mesh, rho=1.0, rhoMap=None, **kwargs):
+    def __init__(self, mesh, density=1.0, density_map=None, **kwargs):
         super().__init__(mesh, **kwargs)
-        self.rho = rho
-        self.rhoMap = rhoMap
+        self.density = density
+        self.density_map = density_map
 
         self._Div = self.mesh.face_divergence
 
     def getRHS(self):
         """Return right-hand side for the linear system"""
         Mc = self._Mcc
-        rho = self.rho
-        return -Mc * rho
+        density = self.density
+        return -Mc * density
 
     def getA(self):
         r"""

@@ -136,10 +136,10 @@ def test_sum_sim_correctness(cluster):
         ]
         g_sims = [
             gravity.Simulation3DIntegral(
-                mesh_bot, survey=survey, rhoMap=maps.IdentityMap(), n_processes=1
+                mesh_bot, survey=survey, density_map=maps.IdentityMap(), n_processes=1
             ),
             gravity.Simulation3DIntegral(
-                mesh_top, survey=survey, rhoMap=maps.IdentityMap(), n_processes=1
+                mesh_top, survey=survey, density_map=maps.IdentityMap(), n_processes=1
             ),
         ]
 
@@ -207,7 +207,7 @@ def test_repeat_sim_correctness(cluster):
         rx = gravity.Point(rx_locs, components=["gz"])
         survey = gravity.Survey(gravity.SourceField(rx))
         grav_sim = gravity.Simulation3DIntegral(
-            mesh, survey=survey, rhoMap=maps.IdentityMap(), n_processes=1
+            mesh, survey=survey, density_map=maps.IdentityMap(), n_processes=1
         )
 
         time_mesh = TensorMesh([8], origin=[0])
@@ -342,13 +342,13 @@ def test_sum_errors(cluster):
             gravity.Simulation3DIntegral(
                 mesh_bot,
                 survey=survey1,
-                rhoMap=maps.IdentityMap(mesh_bot),
+                density_map=maps.IdentityMap(mesh_bot),
                 n_processes=1,
             ),
             gravity.Simulation3DIntegral(
                 mesh_top,
                 survey=survey2,
-                rhoMap=maps.IdentityMap(mesh_top),
+                density_map=maps.IdentityMap(mesh_top),
                 n_processes=1,
             ),
         ]

@@ -1493,7 +1493,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
             return MfRho.T.tocsr() * A
         return A
 
-    def getADeriv_rho(self, freq, u, v, adjoint=False):
+    def getADeriv_resistivity(self, freq, u, v, adjoint=False):
         r"""Resistivity derivative operation for the system matrix times a vector.
 
         The system matrix at each frequency is given by:
@@ -1655,7 +1655,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         if adjoint and self._makeASymmetric:
             v = self.MfRho * v
 
-        ADeriv = self.getADeriv_rho(freq, u, v, adjoint) + self.getADeriv_mu(
+        ADeriv = self.getADeriv_resistivity(freq, u, v, adjoint) + self.getADeriv_mu(
             freq, u, v, adjoint
         )
 
@@ -1923,7 +1923,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
             )
             return C.T.tocsr() * (Mfyhati * C) + 1j * omega(freq) * MeMu
 
-    def getADeriv_rho(self, freq, u, v, adjoint=False):
+    def getADeriv_resistivity(self, freq, u, v, adjoint=False):
         r"""Resistivity derivative operation for the system matrix times a vector.
 
         The system matrix at each frequency is given by:
@@ -2070,7 +2070,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
             Derivative of system matrix times a vector. (n_edges,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
-        return self.getADeriv_rho(freq, u, v, adjoint) + self.getADeriv_mu(
+        return self.getADeriv_resistivity(freq, u, v, adjoint) + self.getADeriv_mu(
             freq, u, v, adjoint
         )
 

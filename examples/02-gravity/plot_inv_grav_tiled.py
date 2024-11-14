@@ -138,7 +138,7 @@ survey = gravity.survey.Survey(srcField)
 
 # Create the forward simulation for the global dataset
 simulation = gravity.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, rhoMap=idenMap, active_cells=activeCells
+    survey=survey, mesh=mesh, density_map=idenMap, active_cells=activeCells
 )
 
 # Compute linear forward operator and compute some data
@@ -165,7 +165,7 @@ for ii, local_survey in enumerate(local_surveys):
     simulation = gravity.simulation.Simulation3DIntegral(
         survey=local_survey,
         mesh=local_meshes[ii],
-        rhoMap=tile_map,
+        density_map=tile_map,
         active_cells=local_actives,
         sensitivity_path=os.path.join("Inversion", f"Tile{ii}.zarr"),
     )
@@ -188,7 +188,7 @@ global_misfit = local_misfits[0] + local_misfits[1]
 fig = plt.figure(figsize=(12, 6))
 for ii, local_misfit in enumerate(local_misfits):
     local_mesh = local_misfit.simulation.mesh
-    local_map = local_misfit.simulation.rhoMap
+    local_map = local_misfit.simulation.density_map
 
     inject_local = maps.InjectActiveCells(local_mesh, local_map.local_active, np.nan)
 

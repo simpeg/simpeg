@@ -1549,7 +1549,7 @@ class Fields3DMagneticField(FieldsFDEM):
         # self._MeMuI = self.simulation.MeMuI
         self._MfRho = self.simulation.MfRho
         self._MfRhoDeriv = self.simulation.MfRhoDeriv
-        self._rho = self.simulation.resistivity
+        self._resistivity = self.simulation.resistivity
         self._mu = self.simulation.mui
         self._aveF2CCV = self.simulation.mesh.aveF2CCV
         self._aveE2CCV = self.simulation.mesh.aveE2CCV

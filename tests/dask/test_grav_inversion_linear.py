@@ -76,7 +76,7 @@ class GravInvLinProblemTest(unittest.TestCase):
         sim = gravity.Simulation3DIntegral(
             self.mesh,
             survey=survey,
-            rhoMap=idenMap,
+            density_map=idenMap,
             active_cells=actv,
             store_sensitivities="ram",
             chunk_format="row",
