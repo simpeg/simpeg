@@ -150,9 +150,9 @@ class Simulation3DIntegral(BasePFSimulation):
         Magnetic survey with information of the receivers.
     active_cells : (n_cells) numpy.ndarray, optional
         Array that indicates which cells in ``mesh`` are active cells.
-    chi : numpy.ndarray, optional
+    susceptibility : numpy.ndarray, optional
         Susceptibility array for the active cells in the mesh.
-    chiMap : Mapping, optional
+    susceptibility_map : Mapping, optional
         Model mapping.
     model_type : str, optional
         Whether the model are susceptibilities of the cells (``"scalar"``),
@@ -187,13 +187,15 @@ class Simulation3DIntegral(BasePFSimulation):
            ``active_cells`` and will be removed in SimPEG v0.24.0.
     """
 
-    chi, chiMap, chiDeriv = props.Invertible("Magnetic Susceptibility (SI)")
+    susceptibility, susceptibility_map, _susc_deriv = props.Invertible(
+        "Magnetic Susceptibility (SI)"
+    )
 
     def __init__(
         self,
         mesh,
-        chi=None,
-        chiMap=None,
+        susceptibility=None,
+        susceptibility_map=None,
         model_type="scalar",
         is_amplitude_data=False,
         engine="geoana",
@@ -202,14 +204,14 @@ class Simulation3DIntegral(BasePFSimulation):
     ):
         self.model_type = model_type
         super().__init__(mesh, engine=engine, numba_parallel=numba_parallel, **kwargs)
-        self.chi = chi
-        self.chiMap = chiMap
+        self.susceptibility = susceptibility
+        self.susceptibility_map = susceptibility_map
 
         self._G = None
         self._M = None
         self._gtg_diagonal = None
         self.is_amplitude_data = is_amplitude_data
-        self.modelMap = self.chiMap
+        self.modelMap = self.susceptibility_map
 
         # Warn if n_processes has been passed
         if self.engine == "choclo" and "n_processes" in kwargs:
@@ -289,15 +291,15 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def fields(self, model):
         self.model = model
-        # model = self.chiMap * model
+        # model = self.susceptibility_map * model
         if self.store_sensitivities == "forward_only":
             if self.engine == "choclo":
-                fields = self._forward(self.chi)
+                fields = self._forward(self.susceptibility)
             else:
                 fields = mkvc(self.linear_operator())
         else:
             fields = np.asarray(
-                self.G @ self.chi.astype(self.sensitivity_dtype, copy=False)
+                self.G @ self.susceptibility.astype(self.sensitivity_dtype, copy=False)
             )
 
         if self.is_amplitude_data:
@@ -369,11 +371,11 @@ class Simulation3DIntegral(BasePFSimulation):
             self._gtg_diagonal = diag
         else:
             diag = self._gtg_diagonal
-        return mkvc((sdiag(np.sqrt(diag)) @ self.chiDeriv).power(2).sum(axis=0))
+        return mkvc((sdiag(np.sqrt(diag)) @ self._susc_deriv).power(2).sum(axis=0))
 
     def Jvec(self, m, v, f=None):
         self.model = m
-        dmu_dm_v = self.chiDeriv @ v
+        dmu_dm_v = self._susc_deriv @ v
 
         Jvec = self.G @ dmu_dm_v.astype(self.sensitivity_dtype, copy=False)
 
@@ -393,13 +395,15 @@ class Simulation3DIntegral(BasePFSimulation):
             # dask doesn't support and "order" argument to reshape...
             v = v.T.reshape(-1)  # .reshape(-1, order="F")
         Jtvec = self.G.T @ v.astype(self.sensitivity_dtype, copy=False)
-        return np.asarray(self.chiDeriv.T @ Jtvec)
+        return np.asarray(self._susc_deriv.T @ Jtvec)
 
     @property
     def ampDeriv(self):
         if getattr(self, "_ampDeriv", None) is None:
             fields = np.asarray(
-                self.G.dot(self.chi).astype(self.sensitivity_dtype, copy=False)
+                self.G.dot(self.susceptibility).astype(
+                    self.sensitivity_dtype, copy=False
+                )
             )
             self._ampDeriv = self.normalized_fields(fields)
 
@@ -668,7 +672,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 )
 
             if self.store_sensitivities == "forward_only":
-                rows[component] = cell_vals @ self.chi
+                rows[component] = cell_vals @ self.susceptibility
             else:
                 rows[component] = cell_vals
 
@@ -1194,10 +1198,12 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         B0 = self.getB0()
 
         mu = self.muMap * m
-        chi = mu / mu_0 - 1
+        susceptibility = mu / mu_0 - 1
 
         # Temporary fix
-        Bbc, Bbc_const = CongruousMagBC(self.mesh, self.survey.source_field.b0, chi)
+        Bbc, Bbc_const = CongruousMagBC(
+            self.mesh, self.survey.source_field.b0, susceptibility
+        )
         self.Bbc = Bbc
         self.Bbc_const = Bbc_const
         # return self._Div*self.MfMuI*self.MfMu0*B0 - self._Div*B0 +

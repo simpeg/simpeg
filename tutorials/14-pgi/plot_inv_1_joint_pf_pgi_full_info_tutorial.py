@@ -241,7 +241,7 @@ dmis_grav = data_misfit.L2DataMisfit(data=data_grav, simulation=simulation_grav)
 simulation_mag = pf.magnetics.simulation.Simulation3DIntegral(
     survey=data_mag.survey,
     mesh=mesh,
-    chiMap=wires.sus,
+    susceptibility_map=wires.sus,
     active_cells=actv,
 )
 dmis_mag = data_misfit.L2DataMisfit(data=data_mag, simulation=simulation_mag)

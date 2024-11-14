@@ -90,7 +90,7 @@ def run(plotIt=True):
     simulation = magnetics.simulation.Simulation3DIntegral(
         survey=survey,
         mesh=mesh,
-        chiMap=idenMap,
+        susceptibility_map=idenMap,
         active_cells=actv,
     )
 

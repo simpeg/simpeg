@@ -252,7 +252,7 @@ class TestsMagSimulation:
         sim = mag.Simulation3DIntegral(
             mag_mesh,
             survey=survey,
-            chiMap=identity_map,
+            susceptibility_map=identity_map,
             active_cells=active_cells,
             sensitivity_path=str(tmp_path / f"{engine}"),
             store_sensitivities=store_sensitivities,
@@ -330,7 +330,7 @@ class TestsMagSimulation:
         sim = mag.Simulation3DIntegral(
             mag_mesh,
             survey=survey,
-            chiMap=identity_map,
+            susceptibility_map=identity_map,
             active_cells=active_cells,
             sensitivity_path=str(tmp_path / f"{engine}"),
             store_sensitivities=store_sensitivities,
@@ -406,7 +406,7 @@ class TestsMagSimulation:
         sim = mag.Simulation3DIntegral(
             mag_mesh,
             survey=survey,
-            chiMap=identity_map,
+            susceptibility_map=identity_map,
             active_cells=active_cells,
             sensitivity_path=str(tmp_path / f"{engine}"),
             store_sensitivities=store_sensitivities,
@@ -486,7 +486,7 @@ class TestsMagSimulation:
         sim = mag.Simulation3DIntegral(
             mag_mesh,
             survey=survey,
-            chiMap=identity_map,
+            susceptibility_map=identity_map,
             active_cells=active_cells,
             sensitivity_path=str(tmp_path / f"{engine}"),
             store_sensitivities=store_sensitivities,
@@ -562,7 +562,7 @@ class TestsMagSimulation:
         sim = mag.Simulation3DIntegral(
             mag_mesh,
             survey=survey,
-            chiMap=identity_map,
+            susceptibility_map=identity_map,
             active_cells=active_cells,
             sensitivity_path=str(tmp_path / f"{engine}"),
             store_sensitivities=store_sensitivities,
@@ -648,7 +648,7 @@ class TestsMagSimulation:
         sim = mag.Simulation3DIntegral(
             mag_mesh,
             survey=survey,
-            chiMap=identity_map,
+            susceptibility_map=identity_map,
             active_cells=active_cells,
             sensitivity_path=str(tmp_path / f"{engine}"),
             store_sensitivities=store_sensitivities,
@@ -708,7 +708,7 @@ class TestsMagSimulation:
             inducing_field_params=inducing_field_params,
         )
         kwargs = dict(
-            chiMap=identity_map,
+            susceptibility_map=identity_map,
             active_cells=active_cells,
             engine=engine,
             sensitivity_dtype=np.float64,
@@ -772,7 +772,7 @@ class TestsMagSimulation:
         simulation = mag.Simulation3DIntegral(
             mag_mesh,
             survey=survey,
-            chiMap=idenMap,
+            susceptibility_map=idenMap,
             active_cells=active_cells,
             engine=engine,
             store_sensitivities=store_sensitivities,
@@ -934,7 +934,7 @@ def test_removed_modeltype():
     )
     survey = mag.Survey(background_field)
     mapping = maps.IdentityMap(mesh, nP=mesh.n_cells)
-    sim = mag.Simulation3DIntegral(mesh, survey=survey, chiMap=mapping)
+    sim = mag.Simulation3DIntegral(mesh, survey=survey, susceptibility_map=mapping)
     message = "modelType has been removed, please use model_type."
     with pytest.raises(NotImplementedError, match=message):
         sim.modelType

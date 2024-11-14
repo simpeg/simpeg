@@ -111,7 +111,7 @@ tau = 0.0001  # central time-relaxation constant in seconds
 c = 0.8  # phase constant [0, 1]
 
 # Magnetic susceptibility in SI
-chi = 0.2
+susceptibility = 0.2
 
 # For each physical property, the parameters must be defined for each layer.
 # In this case, we must define all parameters for the Cole-Cole conductivity
@@ -121,7 +121,7 @@ eta_model = eta * np.ones(n_layer)
 tau_model = tau * np.ones(n_layer)
 c_model = c * np.ones(n_layer)
 mu0 = 4 * np.pi * 1e-7
-mu_model = mu0 * (1 + chi) * np.ones(n_layer)
+mu_model = mu0 * (1 + susceptibility) * np.ones(n_layer)
 
 # Here, we let the infinite conductivity be the model. As a result, we only
 # need to define the mapping for this parameter. All other parameters used

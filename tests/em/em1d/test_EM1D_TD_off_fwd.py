@@ -127,7 +127,7 @@ class EM1D_TD_MagDipole_Tests(unittest.TestCase):
         orientations = ["x", "y", "z"]
 
         conductivity = 0.01
-        chi = 0.0
+        susceptibility = 0.0
         tau = 1e-3
         eta = 2e-1
         c = 1.0
@@ -147,7 +147,7 @@ class EM1D_TD_MagDipole_Tests(unittest.TestCase):
         self.tau = tau
         self.eta = eta
         self.c = c
-        self.chi = chi
+        self.susceptibility = susceptibility
         self.dchi = dchi
         self.tau1 = tau1
         self.tau2 = tau2
@@ -270,7 +270,7 @@ class EM1D_TD_Loop_Center_Tests(unittest.TestCase):
         radius = 25.0
 
         conductivity = 0.01
-        chi = 1.0
+        susceptibility = 1.0
         tau = 1e-3
         eta = 2e-1
         c = 1.0
@@ -290,7 +290,7 @@ class EM1D_TD_Loop_Center_Tests(unittest.TestCase):
         self.tau = tau
         self.eta = eta
         self.c = c
-        self.chi = chi
+        self.susceptibility = susceptibility
         self.dchi = dchi
         self.tau1 = tau1
         self.tau2 = tau2
@@ -313,7 +313,7 @@ class EM1D_TD_Loop_Center_Tests(unittest.TestCase):
     #         conductivity_map=conductivity_map, muMap=mu_map
     #     )
 
-    #     mu = mu_0 * (1 + self.chi)
+    #     mu = mu_0 * (1 + self.susceptibility)
     #     m_1D = np.r_[
     #         np.log(self.conductivity) * np.ones(self.nlayers),
     #         mu * np.ones(self.nlayers)

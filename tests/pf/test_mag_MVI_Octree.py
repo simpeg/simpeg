@@ -97,7 +97,7 @@ class MVIProblemTest(unittest.TestCase):
             self.mesh,
             survey=survey,
             model_type="vector",
-            chiMap=idenMap,
+            susceptibility_map=idenMap,
             active_cells=actv,
             store_sensitivities="disk",
         )
@@ -161,8 +161,8 @@ class MVIProblemTest(unittest.TestCase):
         m0 = np.ones(3 * nC) * 1e-4  # Starting model
         mrec_MVIC = inv.run(m0)
 
-        sim.chiMap = maps.SphericalSystem(nP=nC * 3)
-        self.mstart = sim.chiMap.inverse(mrec_MVIC)
+        sim.susceptibility_map = maps.SphericalSystem(nP=nC * 3)
+        self.mstart = sim.susceptibility_map.inverse(mrec_MVIC)
         dmis.simulation.model = self.mstart
         beta = invProb.beta
 

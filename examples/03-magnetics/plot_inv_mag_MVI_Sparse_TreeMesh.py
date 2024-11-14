@@ -153,7 +153,11 @@ idenMap = maps.IdentityMap(nP=nC * 3)
 
 # Create the simulation
 simulation = magnetics.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, chiMap=idenMap, active_cells=actv, model_type="vector"
+    survey=survey,
+    mesh=mesh,
+    susceptibility_map=idenMap,
+    active_cells=actv,
+    model_type="vector",
 )
 
 # Compute some data and add some random noise
@@ -283,7 +287,7 @@ mrec_MVIC = inv.run(m0)
 spherical_map = maps.SphericalSystem()
 m_start = utils.mat_utils.cartesian2spherical(mrec_MVIC.reshape((nC, 3), order="F"))
 beta = invProb.beta
-dmis.simulation.chiMap = spherical_map
+dmis.simulation.susceptibility_map = spherical_map
 dmis.simulation.model = m_start
 
 # Create a block diagonal regularization

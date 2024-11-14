@@ -172,7 +172,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         survey = fdem.Survey(source_list)
 
         conductivity = 1.0
-        chi = 0.0
+        susceptibility = 0.0
         tau = 1e-3
         eta = 2e-1
         c = 1.0
@@ -183,7 +183,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         self.tau = tau
         self.eta = eta
         self.c = c
-        self.chi = chi
+        self.susceptibility = susceptibility
         self.offset = offset
         self.frequencies = frequencies
         self.thicknesses = thicknesses

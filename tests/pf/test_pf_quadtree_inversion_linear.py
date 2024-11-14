@@ -120,7 +120,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 0.0,
                 -5.0,
                 survey=mag_survey,
-                chiMap=self.idenMap,
+                susceptibility_map=self.idenMap,
                 store_sensitivities="ram",
             )
 
@@ -180,7 +180,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 self.z_tne,
                 self.z_bsw,
                 survey=mag_survey,
-                chiMap=self.idenMap,
+                susceptibility_map=self.idenMap,
                 store_sensitivities="ram",
             )
 
@@ -241,7 +241,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 self.z_tne[self.active_cells],
                 self.z_bsw[self.active_cells],
                 survey=mag_survey,
-                chiMap=self.idenMap_active,
+                susceptibility_map=self.idenMap_active,
                 store_sensitivities="ram",
                 active_cells=self.active_cells,
             )

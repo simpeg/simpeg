@@ -86,7 +86,7 @@ class ValidationInInversion(unittest.TestCase):
 
         # Create the forward model operator
         sim = mag.Simulation3DIntegral(
-            mesh, survey=survey, chiMap=maps.IdentityMap(mesh)
+            mesh, survey=survey, susceptibility_map=maps.IdentityMap(mesh)
         )
 
         m = np.random.rand(mesh.nC)
@@ -667,7 +667,7 @@ class TestUpdateIRLS:
         )
         survey = mag.Survey(igrf)
         sim = mag.Simulation3DIntegral(
-            mesh, survey=survey, chiMap=maps.IdentityMap(mesh)
+            mesh, survey=survey, susceptibility_map=maps.IdentityMap(mesh)
         )
         model = np.random.default_rng(seed=42).normal(size=mesh.n_cells)
         data = sim.make_synthetic_data(model, add_noise=True)

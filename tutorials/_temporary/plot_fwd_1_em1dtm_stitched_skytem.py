@@ -189,7 +189,7 @@ sounding_models = mkvc(sounding_models)
 # temp_model = np.fliplr(temp_model)
 # temp_model = mkvc(temp_model)
 
-chi = np.zeros_like(sounding_models)
+susceptibility = np.zeros_like(sounding_models)
 
 
 fig = plt.figure(figsize=(9, 3))
@@ -259,7 +259,7 @@ simulation = em1d.simulation.StitchedEM1DTMSimulation(
     survey=survey,
     thicknesses=thicknesses,
     conductivity_map=mapping,
-    chi=chi,
+    susceptibility=susceptibility,
     topo=topo,
     parallel=False,
     n_cpu=2,

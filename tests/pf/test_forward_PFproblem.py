@@ -22,12 +22,12 @@ class MagFwdProblemTests(unittest.TestCase):
 
         chibkg = 0.0
         self.chiblk = 0.01
-        chi = np.ones(M.nC) * chibkg
+        susceptibility = np.ones(M.nC) * chibkg
 
         self.rad = 100
         self.sphere_center = [0.0, 0.0, 0.0]
         sph_ind = get_indices_sphere(self.sphere_center, self.rad, M.gridCC)
-        chi[sph_ind] = self.chiblk
+        susceptibility[sph_ind] = self.chiblk
 
         xr = np.linspace(-300, 300, 41)
         yr = np.linspace(-300, 300, 41)
@@ -53,10 +53,10 @@ class MagFwdProblemTests(unittest.TestCase):
             muMap=maps.ChiMap(M),
         )
         self.M = M
-        self.chi = chi
+        self.susceptibility = susceptibility
 
     def test_ana_forward(self):
-        u = self.sim.fields(self.chi)
+        u = self.sim.fields(self.susceptibility)
         dpred = self.sim.projectFields(u)
 
         bxa, bya, bza = mag.analytics.MagSphereAnaFunA(

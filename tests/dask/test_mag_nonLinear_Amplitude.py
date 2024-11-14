@@ -100,7 +100,7 @@ class AmpProblemTest(unittest.TestCase):
         simulation = magnetics.Simulation3DIntegral(
             survey=survey,
             mesh=mesh,
-            chiMap=idenMap,
+            susceptibility_map=idenMap,
             active_cells=actv,
             store_sensitivities="forward_only",
         )
@@ -134,7 +134,7 @@ class AmpProblemTest(unittest.TestCase):
         simulation = magnetics.simulation.Simulation3DIntegral(
             mesh=mesh,
             survey=survey,
-            chiMap=idenMap,
+            susceptibility_map=idenMap,
             active_cells=surf,
             store_sensitivities="ram",
         )
@@ -200,7 +200,7 @@ class AmpProblemTest(unittest.TestCase):
         simulation = magnetics.simulation.Simulation3DIntegral(
             mesh=mesh,
             survey=surveyAmp,
-            chiMap=idenMap,
+            susceptibility_map=idenMap,
             active_cells=surf,
             is_amplitude_data=True,
             store_sensitivities="forward_only",
@@ -227,7 +227,7 @@ class AmpProblemTest(unittest.TestCase):
         simulation = magnetics.simulation.Simulation3DIntegral(
             survey=surveyAmp,
             mesh=mesh,
-            chiMap=idenMap,
+            susceptibility_map=idenMap,
             active_cells=actv,
             is_amplitude_data=True,
         )

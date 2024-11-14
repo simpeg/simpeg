@@ -296,7 +296,7 @@ simulation_mag = magnetics.simulation.Simulation3DIntegral(
     survey=survey_mag,
     mesh=mesh,
     model_type="scalar",
-    chiMap=wires.susceptibility,
+    susceptibility_map=wires.susceptibility,
     active_cells=ind_active,
 )
 

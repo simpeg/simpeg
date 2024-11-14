@@ -112,7 +112,7 @@ c = 0.75  # phase constant [0, 1]
 # In SimPEG, the a log-uniform distribution of time-relaxation constants is used
 # to define a frequency-dependent susceptibility when the Earth exhibits
 # magnetic viscosity
-chi = 0.001  # infinite susceptibility in SI
+susceptibility = 0.001  # infinite susceptibility in SI
 dchi = 0.001  # amplitude of frequency-dependent susceptibility contribution
 tau1 = 1e-7  # lower limit for time relaxation constants in seconds
 tau2 = 1.0  # upper limit for time relaxation constants in seconds
@@ -126,7 +126,7 @@ eta_model = eta * np.ones(n_layer)
 tau_model = tau * np.ones(n_layer)
 c_model = c * np.ones(n_layer)
 
-chi_model = chi * np.ones(n_layer)
+chi_model = susceptibility * np.ones(n_layer)
 dchi_model = dchi * np.ones(n_layer)
 tau1_model = tau1 * np.ones(n_layer)
 tau2_model = tau2 * np.ones(n_layer)
@@ -139,7 +139,7 @@ model_mapping = maps.IdentityMap(nP=n_layer)
 # Compute and plot complex conductivity at all frequencies
 frequencies = np.logspace(-3, 6, 91)
 conductivity_complex = ColeCole(frequencies, conductivity, eta, tau, c)
-chi_complex = LogUniform(frequencies, chi, dchi, tau1, tau2)
+chi_complex = LogUniform(frequencies, susceptibility, dchi, tau1, tau2)
 
 fig = plt.figure(figsize=(8, 6))
 ax = fig.add_axes([0.15, 0.1, 0.8, 0.75])
@@ -159,12 +159,12 @@ ax.legend(
 
 fig = plt.figure(figsize=(8, 6))
 ax = fig.add_axes([0.15, 0.1, 0.8, 0.75])
-ax.semilogx(frequencies, chi * np.ones(len(frequencies)), "b", lw=3)
+ax.semilogx(frequencies, susceptibility * np.ones(len(frequencies)), "b", lw=3)
 ax.semilogx(frequencies, np.real(chi_complex), "r", lw=3)
 ax.semilogx(frequencies, np.imag(chi_complex), "r--", lw=3)
 ax.grid()
 ax.set_xlim(np.min(frequencies), np.max(frequencies))
-ax.set_ylim(-1.1 * chi, 1.1 * (chi + dchi))
+ax.set_ylim(-1.1 * susceptibility, 1.1 * (susceptibility + dchi))
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("Susceptibility")
 ax.set_title("Dispersive Magnetic Susceptibility")
@@ -212,7 +212,7 @@ dpred_chargeable = simulation_chargeable.dpred(conductivity_model)
 
 # Simulate response for viscous remanent magnetization
 mu0 = 4 * np.pi * 1e-7
-mu = mu0 * (1 + chi)
+mu = mu0 * (1 + susceptibility)
 simulation_vrm = tdem.Simulation1DLayered(
     survey=survey,
     thicknesses=thicknesses,
