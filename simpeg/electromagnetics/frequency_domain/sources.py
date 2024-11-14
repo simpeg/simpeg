@@ -465,7 +465,7 @@ class MagDipole(BaseFDEMSrc):
     def _dipole(self):
         if getattr(self, "__dipole", None) is None:
             self.__dipole = MagneticDipoleWholeSpace(
-                permeability=self.permeability,
+                mu=self.permeability,
                 orientation=self.orientation,
                 location=self.location,
                 moment=self.moment,
@@ -682,7 +682,7 @@ class MagDipole_Bfield(MagDipole):
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         if getattr(self, "_dipole", None) is None:
             self._dipole = MagneticDipoleWholeSpace(
-                permeability=self.permeability,
+                mu=self.permeability,
                 orientation=self.orientation,
                 location=self.location,
                 moment=self.moment,
@@ -869,7 +869,7 @@ class CircularLoop(MagDipole):
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         if getattr(self, "_loop", None) is None:
             self._loop = CircularLoopWholeSpace(
-                permeability=self.permeability,
+                mu=self.permeability,
                 location=self.location,
                 orientation=self.orientation,
                 radius=self.radius,

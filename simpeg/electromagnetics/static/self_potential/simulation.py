@@ -46,6 +46,7 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
     charge_density, charge_density_map, _charge_deriv = props.Invertible(
         "Charge density accumulation rate (C/(s m^3))"
     )
+    charge_density.no_mass_matrices = True
 
     def __init__(
         self,
@@ -93,7 +94,7 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
         #     return super()._delete_on_model_change
         charge_density_map = self.charge_density_map
         if self.storeJ and charge_density_map is not None:
-            if not charge_density_map.is_linear():
+            if not charge_density_map.is_linear:
                 return ["J_matrix", "jtj_diag"]
         return []
 

@@ -184,7 +184,7 @@ class EM1D_TD_MagDipole_Tests(unittest.TestCase):
 
             if tx_orientation == "z":
                 d_analytic = b_dipole(
-                    self.times, self.rx_location, conductivity=self.conductivity
+                    self.times, self.rx_location, sigma=self.conductivity
                 )[:, 0, :]
                 np.testing.assert_allclose(d_numeric, d_analytic, rtol=1e-3)
                 print(
@@ -234,7 +234,7 @@ class EM1D_TD_MagDipole_Tests(unittest.TestCase):
 
             if tx_orientation == "z":
                 d_analytic = dbdt_dipole(
-                    self.times, self.rx_location, conductivity=self.conductivity
+                    self.times, self.rx_location, sigma=self.conductivity
                 )[:, 0, :]
                 np.testing.assert_allclose(d_numeric, d_analytic, rtol=1e-2)
                 print(
@@ -320,7 +320,7 @@ class EM1D_TD_Loop_Center_Tests(unittest.TestCase):
     #     ]
 
     #     d_numeric = sim.dpred(m_1D)
-    #     d_analytic = (mu_0 / permeability) * dbdt_loop(self.times, radius=self.radius, conductivity=self.conductivity, permeability=permeability)
+    #     d_analytic = (mu_0 / permeability) * dbdt_loop(self.times, radius=self.radius, sigma=self.conductivity, mu=permeability)
 
     #     np.testing.assert_allclose(d_numeric, d_analytic, rtol=1e-2)
 

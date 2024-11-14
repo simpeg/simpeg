@@ -11,6 +11,7 @@ from .base import BaseEMSimulation
 # from .frequency_domain.sources import MagDipole as f_MagDipole, CircularLoop as f_CircularLoop
 
 from .. import utils
+from ..simulation import BaseSimulation
 from ..utils import (
     validate_string,
     validate_ndarray_with_shape,
@@ -35,7 +36,26 @@ for filter_name in libdlf.hankel.__all__:
 ###############################################################################
 
 
-class BaseEM1DSimulation(BaseEMSimulation):
+class BaseThicknessSimulation(BaseSimulation):
+
+    thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
+        "layer thicknesses (m)"
+    )
+
+    def __init__(
+        self,
+        thicknesses=None,
+        thicknessesMap=None,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        if thicknesses is None:
+            thicknesses = np.array([])
+        self.thicknesses = thicknesses
+        self.thicknessesMap = thicknessesMap
+
+
+class BaseEM1DSimulation(BaseEMSimulation, BaseThicknessSimulation):
     """
     Base simulation class for simulating the EM response over a 1D layered Earth
     for a single sounding. The simulation computes the fields by solving the
@@ -48,10 +68,6 @@ class BaseEM1DSimulation(BaseEMSimulation):
 
     # Additional Invertible properties
     h, hMap, hDeriv = props.Invertible("Receiver Height (m), h > 0")
-
-    thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
-        "layer thicknesses (m)"
-    )
 
     # Additional properties in forward modeling
     eta = props.PhysicalProperty("Intrinsic chargeability (V/V), 0 <= eta < 1")
@@ -70,8 +86,6 @@ class BaseEM1DSimulation(BaseEMSimulation):
 
     def __init__(
         self,
-        thicknesses=None,
-        thicknessesMap=None,
         h=None,
         hMap=None,
         eta=0.0,
@@ -86,13 +100,9 @@ class BaseEM1DSimulation(BaseEMSimulation):
         n_points_per_path=3,
         **kwargs,
     ):
-        super().__init__(mesh=None, **kwargs)
+        super().__init__(**kwargs)
         self.h = h
         self.hMap = hMap
-        if thicknesses is None:
-            thicknesses = np.array([])
-        self.thicknesses = thicknesses
-        self.thicknessesMap = thicknessesMap
         self.eta = eta
         self.tau = tau
         self.c = c
@@ -258,7 +268,7 @@ class BaseEM1DSimulation(BaseEMSimulation):
 
             return conductivity_complex
 
-    def _compute_complex_permeability(self, frequencies):
+    def compute_complex_permeability(self, frequencies):
         r"""
         Computes the complex magnetic permeability matrix assuming a log-uniform
         distribution of time-relaxation constants:
@@ -319,7 +329,7 @@ class BaseEM1DSimulation(BaseEMSimulation):
         if self.conductivity_map is not None:
             out = out + Js["ds"] @ (self._con_deriv @ v)
         if self.permeability_map is not None:
-            out = out + Js["dmu"] @ (self.muDeriv @ v)
+            out = out + Js["dmu"] @ (self._perm_deriv @ v)
         if self.thicknessesMap is not None:
             out = out + Js["dthick"] @ (self.thicknessesDeriv @ v)
         return out
@@ -332,7 +342,7 @@ class BaseEM1DSimulation(BaseEMSimulation):
         if self.conductivity_map is not None:
             out = out + self._con_deriv.T @ (Js["ds"].T @ v)
         if self.permeability_map is not None:
-            out = out + self.muDeriv.T @ (Js["dmu"].T @ v)
+            out = out + self._perm_deriv.T @ (Js["dmu"].T @ v)
         if self.thicknessesMap is not None:
             out = out + self.thicknessesDeriv.T @ (Js["dthick"].T @ v)
         return out
@@ -591,7 +601,7 @@ class BaseEM1DSimulation(BaseEMSimulation):
                 J = Js["ds"] @ self._con_deriv
                 jtj_diag = jtj_diag + np.einsum("i,ij,ij->j", W, J, J)
             if self.permeability_map is not None:
-                J = Js["dmu"] @ self.muDeriv
+                J = Js["dmu"] @ self._perm_deriv
                 jtj_diag = jtj_diag + np.einsum("i,ij,ij->j", W, J, J)
             if self.thicknessesMap is not None:
                 J = Js["dthick"] @ self.thicknessesDeriv

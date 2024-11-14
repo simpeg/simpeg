@@ -490,3 +490,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         # cached properties to delete
         for item in self._delete_on_model_change:
             self._cache.pop(item, None)
+
+    def clear_cache(self):
+        """Completely clear all of this object's cached items"""
+        self._cache = defaultdict(lambda: None)

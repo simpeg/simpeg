@@ -214,7 +214,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
             location=np.r_[0.0, 0.0, 0.0],
             orientation="z",
             frequency=self.frequencies,
-            conductivity=np.asarray(self.conductivity),
+            sigma=np.asarray(self.conductivity),
             quasistatic=True,
         )
         H_analytic = np.squeeze(dip.magnetic_field(np.array([[self.offset, 0.0]])))
@@ -241,7 +241,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
             location=np.r_[0.0, 0.0, 0.0],
             orientation="z",
             frequency=self.frequencies,
-            conductivity=np.asarray(self.conductivity),
+            sigma=np.asarray(self.conductivity),
             quasistatic=True,
         )
         H_analytic = np.squeeze(dip.magnetic_field(np.array([[self.offset, 0.0]])))
@@ -283,7 +283,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
                 location=np.r_[0.0, 0.0, 0.0],
                 orientation="z",
                 frequency=[frequency],
-                conductivity=sig,
+                sigma=sig,
                 epsilon=eps,
                 quasistatic=False,
             )
@@ -337,7 +337,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
             location=np.r_[0.0, 0.0, 0.0],
             orientation="x",
             frequency=self.frequencies,
-            conductivity=np.asarray(self.conductivity),
+            sigma=np.asarray(self.conductivity),
             quasistatic=True,
         )
         H_analytic = np.squeeze(dip.magnetic_field(np.array([[self.offset, 0.0]])))[
@@ -386,7 +386,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         m_1D = np.log(np.ones(self.nlayers) * self.conductivity)
         Hz = sim.dpred(m_1D)
 
-        hz = mag_field(self.frequencies, conductivity=self.conductivity, radius=5.0)
+        hz = mag_field(self.frequencies, sigma=self.conductivity, radius=5.0)
         H_analytic = np.c_[hz.real, hz.imag].reshape(-1)
 
         err = np.linalg.norm(Hz - H_analytic) / np.linalg.norm(H_analytic)
@@ -440,7 +440,7 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         Hz = sim.dpred(m_1D)
 
         conductivity_colecole = sim.compute_complex_conductivity(self.frequencies)[0, :]
-        hz = mag_field(self.frequencies, conductivity=conductivity_colecole, radius=5.0)
+        hz = mag_field(self.frequencies, sigma=conductivity_colecole, radius=5.0)
         H_analytic = np.c_[hz.real, hz.imag].reshape(-1)
 
         err = np.linalg.norm(Hz - H_analytic) / np.linalg.norm(H_analytic)

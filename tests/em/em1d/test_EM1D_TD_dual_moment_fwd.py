@@ -92,7 +92,7 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
             self.waveform_lm,
             self.times_lm,
             fkwargs={
-                "conductivity": self.conductivity_halfspace,
+                "sigma": self.conductivity_halfspace,
                 "radius": self.source_radius,
             },
         )
@@ -102,7 +102,7 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
             self.waveform_hm,
             self.times_hm,
             fkwargs={
-                "conductivity": self.conductivity_halfspace,
+                "sigma": self.conductivity_halfspace,
                 "radius": self.source_radius,
             },
         )

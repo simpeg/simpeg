@@ -83,7 +83,7 @@ class EM1D_TD_CircularLoop_FwdProblemTests(unittest.TestCase):
             b_loop,
             self.waveform,
             self.times,
-            fkwargs={"conductivity": self.conductivity, "radius": self.a},
+            fkwargs={"sigma": self.conductivity, "radius": self.a},
         )
 
         np.testing.assert_allclose(bz, bz_analytic, atol=0.0, rtol=1e-5)
@@ -92,7 +92,7 @@ class EM1D_TD_CircularLoop_FwdProblemTests(unittest.TestCase):
             dbdt_loop,
             self.waveform,
             self.times,
-            fkwargs={"conductivity": self.conductivity, "radius": self.a},
+            fkwargs={"sigma": self.conductivity, "radius": self.a},
         )
 
         np.testing.assert_allclose(dbdt, dbdt_analytic, atol=0.0, rtol=1e-2)

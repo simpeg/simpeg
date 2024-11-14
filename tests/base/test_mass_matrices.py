@@ -18,7 +18,9 @@ class SimpleSim(BasePDESimulation):
         "Electrical conductivity (S/m)"
     )
 
-    permeability, permeability_map, muDeriv = props.Invertible("Magnetic Permeability")
+    permeability, permeability_map, _perm_deriv = props.Invertible(
+        "Magnetic Permeability"
+    )
 
     def __init__(
         self,

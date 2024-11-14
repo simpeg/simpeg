@@ -3,9 +3,9 @@ from collections import namedtuple
 import libdlf
 import numpy as np
 
+from ...base_1d import BaseThicknessSimulation
 from ...utils.em1d_utils import get_splined_dlf_points
-from ....simulation import BaseSimulation
-from .... import props
+from ....base import BaseElectricalSimulation
 
 from .survey import Survey
 
@@ -102,32 +102,14 @@ def _dphi_tilde(resistivity, thicknesses, lambdas):
     return J_resistivity.T, J_h.T
 
 
-class Simulation1DLayers(BaseSimulation):
+class Simulation1DLayers(BaseElectricalSimulation, BaseThicknessSimulation):
     """
     1D DC Simulation
     """
 
-    conductivity, conductivity_map, _con_deriv = props.Invertible(
-        "Electrical conductivity (S/m)"
-    )
-    resistivity, resistivity_map, _res_deriv = props.Invertible(
-        "Electrical resistivity (Ohm m)"
-    )
-    props.Reciprocal(conductivity, resistivity)
-
-    thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
-        "thicknesses of the layers"
-    )
-
     def __init__(
         self,
         survey=None,
-        conductivity=None,
-        conductivity_map=None,
-        resistivity=None,
-        resistivity_map=None,
-        thicknesses=None,
-        thicknessesMap=None,
         hankel_filter="key_201_2012",
         fix_Jmatrix=False,
         **kwargs,
@@ -146,12 +128,6 @@ class Simulation1DLayers(BaseSimulation):
                 "receiver."
             )
         super().__init__(survey=survey, **kwargs)
-        self.conductivity = conductivity
-        self.resistivity = resistivity
-        self.thicknesses = thicknesses
-        self.conductivity_map = conductivity_map
-        self.resistivity_map = resistivity_map
-        self.thicknessesMap = thicknessesMap
         self.fix_Jmatrix = fix_Jmatrix
         self.hankel_filter = hankel_filter  # Store filter
         self._coefficients_set = False
@@ -316,7 +292,7 @@ class Simulation1DLayers(BaseSimulation):
         Generate Full sensitivity matrix using central difference
         """
         self.model = m
-        if getattr(self, "_Jmatrix", None) is None:
+        if (J_matrix := self._cache["J_matrix"]) is None:
             self._compute_hankel_coefficients()
             if self.verbose:
                 print("Calculating J and storing")
@@ -325,13 +301,13 @@ class Simulation1DLayers(BaseSimulation):
                 self.resistivity, self.thicknesses, self._lambdas
             )
 
-            Jmatrix = 0
+            J_matrix = 0
             if self.resistivity_map is not None:
-                Jmatrix += (self._As @ J_resistivity) @ self._res_deriv
+                J_matrix += (self._As @ J_resistivity) @ self._res_deriv
             if self.thicknessesMap is not None:
-                Jmatrix += (self._As @ J_h) @ self.thicknessesDeriv
-            self._Jmatrix = Jmatrix
-        return self._Jmatrix
+                J_matrix += (self._As @ J_h) @ self.thicknessesDeriv
+            self._cache["J_matrix"] = J_matrix
+        return J_matrix
 
     def Jvec(self, m, v, f=None):
         """
@@ -349,5 +325,5 @@ class Simulation1DLayers(BaseSimulation):
     def _delete_on_model_change(self):
         to_delete = super()._delete_on_model_change
         if not self.fix_Jmatrix:
-            to_delete = to_delete + ["_Jmatrix"]
+            to_delete = to_delete + ["J_matrix"]
         return to_delete

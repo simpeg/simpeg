@@ -59,6 +59,7 @@ class BaseIPSimulation(BasePDESimulation):
         return scale.dobs
 
     eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability (V/V)")
+    eta.no_mass_matrices = True
 
     def __init__(
         self,

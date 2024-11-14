@@ -1339,7 +1339,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         B, u = u["B"], u["u"]
         permeability = self.permeability_map * (m)
-        dmu_dm = self.muDeriv
+        dmu_dm = self._perm_deriv
         # dchidpermeability = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
 
         vol = self.mesh.cell_volumes

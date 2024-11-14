@@ -102,7 +102,7 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
                 location=src.location,
                 moment=1.0,
                 orientation=src.orientation,
-                permeability=src.permeability,
+                mu=src.permeability,
             ).magnetic_flux_density(XYZ)
 
         if probType in ["e", "b"]:

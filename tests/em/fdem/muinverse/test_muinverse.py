@@ -93,8 +93,9 @@ def setupProblem(
         if invertMui:
             muiMap = maps.ReciprocalMap(mesh) * permeability_map
             prob = getattr(fdem, "Simulation3D{}".format(prbtype))(
-                mesh, muiMap=muiMap, conductivity_map=conductivity_map
+                mesh, conductivity_map=conductivity_map
             )
+            prob._perm_inv_map = muiMap
             # m0 = np.hstack([1./muMod, conductivityMod])
         else:
             prob = getattr(fdem, "Simulation3D{}".format(prbtype))(
@@ -110,8 +111,9 @@ def setupProblem(
         if invertMui:
             muiMap = maps.ReciprocalMap(mesh) * permeability_map
             prob = getattr(fdem, "Simulation3D{}".format(prbtype))(
-                mesh, conductivity=conductivityMod, muiMap=muiMap
+                mesh, conductivity=conductivityMod
             )
+            prob._perm_inv_map = muiMap
             # m0 = 1./muMod
         else:
             prob = getattr(fdem, "Simulation3D{}".format(prbtype))(

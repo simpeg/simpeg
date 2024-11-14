@@ -421,9 +421,10 @@ class MassMatrixMeta(PhysicalPropertyMetaclass):
         mm_funcs = {}
         invertible_props = set()
         for prop in phys_props.values():
-            mm_funcs.update(_get_mass_matrix_functions(prop))
-            if prop.mapping is not None:
-                invertible_props.add(prop)
+            if not getattr(prop, "no_mass_matrices", False):
+                mm_funcs.update(_get_mass_matrix_functions(prop))
+                if prop.mapping is not None:
+                    invertible_props.add(prop)
 
         for name, func in mm_funcs.items():
             setattr(cls, name, func)

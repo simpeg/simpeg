@@ -607,21 +607,6 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             self._Adcinv = self.solver(Adc)
         return self._Adcinv
 
-    @property
-    def clean_on_model_update(self):
-        """List of model-dependent attributes to clean upon model update.
-
-        Some of the TDEM simulation's attributes are model-dependent. This property specifies
-        the model-dependent attributes that much be cleared when the model is updated.
-
-        Returns
-        -------
-        list of str
-            List of the model-dependent attributes to clean upon model update.
-        """
-        items = super().clean_on_model_update
-        return items + ["_Adcinv"]  #: clear DC matrix factors on any model updates
-
 
 ###############################################################################
 #                                                                             #

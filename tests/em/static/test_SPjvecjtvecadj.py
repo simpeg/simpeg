@@ -119,12 +119,10 @@ def test_clears():
     # items to be cleared on model update
     sim.charge_density_map = maps.IdentityMap()
     assert sim._delete_on_model_change == []
-    assert sim.clean_on_model_update == []
 
     sim.storeJ = True
     sim.charge_density_map = maps.ExpMap()
-    assert sim._delete_on_model_change == ["_Jmatrix", "_gtgdiag"]
-    assert sim.clean_on_model_update == []
+    assert sim._delete_on_model_change == ["J_matrix", "jtj_diag"]
 
 
 def test_deprecations():
