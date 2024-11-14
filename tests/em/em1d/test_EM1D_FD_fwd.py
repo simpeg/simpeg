@@ -273,10 +273,10 @@ class EM1D_FD_FwdProblemTests(unittest.TestCase):
         m_1D = self.conductivity * np.ones(self.nlayers)
         H = sim.dpred(m_1D)
 
-        conductivitys = sim.compute_complex_conductivity(self.frequencies)[0, :]
+        conductivities = sim.compute_complex_conductivity(self.frequencies)[0, :]
 
         H_analytic = []
-        for conductivity, frequency in zip(conductivitys, self.frequencies):
+        for conductivity, frequency in zip(conductivities, self.frequencies):
             sig = np.real(conductivity)
             eps = np.imag(conductivity) / omega(frequency)
             dip = MagneticDipoleHalfSpace(

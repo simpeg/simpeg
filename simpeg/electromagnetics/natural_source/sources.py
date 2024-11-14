@@ -54,7 +54,7 @@ class PlanewaveXYPrimary(Planewave):
         self._conductivity_primary = conductivity_primary
         super(PlanewaveXYPrimary, self).__init__(receiver_list, frequency)
 
-    def _get_conductivitys(self, simulation):
+    def _get_conductivities(self, simulation):
         try:
             return self._conductivity1d, self._conductivity_p
         except AttributeError:
@@ -109,7 +109,7 @@ class PlanewaveXYPrimary(Planewave):
             Primary electric field
         """
         if self._ePrimary is None:
-            conductivity_1d, _ = self._get_conductivitys(simulation)
+            conductivity_1d, _ = self._get_conductivities(simulation)
             self._ePrimary = homo1DModelSource(
                 simulation.mesh, self.frequency, conductivity_1d
             )
@@ -164,7 +164,7 @@ class PlanewaveXYPrimary(Planewave):
         if simulation.mesh.dim == 2:
             pass
         if simulation.mesh.dim == 3:
-            _, conductivity_p = self._get_conductivitys(simulation)
+            _, conductivity_p = self._get_conductivities(simulation)
             Meconductivity = simulation._Me_conductivity
             Meconductivity_p = simulation.mesh.get_edge_inner_product(conductivity_p)
         return Meconductivity * e_p - Meconductivity_p * e_p

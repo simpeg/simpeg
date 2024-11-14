@@ -1073,7 +1073,7 @@ class PrimSecCasingExample(object):
         plt.tight_layout()
 
         if saveFig is True:
-            fig.savefig("J_conductivitys", dpi=300)
+            fig.savefig("J_conductivities", dpi=300)
 
         # Plot layer contribution
         fig, ax = plt.subplots(2, 2, figsize=(12, 10))

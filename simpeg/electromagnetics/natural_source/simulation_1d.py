@@ -109,7 +109,7 @@ class Simulation1DRecursive(BaseSimulation):
         self._fix_Jmatrix = validate_type("fix_Jmatrix", value, bool)
 
     # TODO: These should be moved to geoana
-    def _get_recursive_impedances(self, frequencies, thicknesses, conductivitys):
+    def _get_recursive_impedances(self, frequencies, thicknesses, conductivities):
         """
         For a given layered Earth model, this returns the complex impedances
         at the surface for all frequencies.
@@ -120,7 +120,7 @@ class Simulation1DRecursive(BaseSimulation):
             Frequencies in Hz
         thicknesses : (n_layer-1, ) np.ndarray
             Layer thicknesses in meters, starting from the bottom
-        conductivitys : (n_layer, ) np.ndarray
+        conductivities : (n_layer, ) np.ndarray
             Layer conductivities in S/m, starting from the bottom
 
         Returns
@@ -130,13 +130,13 @@ class Simulation1DRecursive(BaseSimulation):
         """
         frequencies = np.asarray(frequencies)
         thicknesses = np.asarray(thicknesses)[::-1]
-        conductivitys = np.asarray(conductivitys)[::-1]
+        conductivities = np.asarray(conductivities)[::-1]
         omega = 2 * np.pi * frequencies
-        n_layer = len(conductivitys)
+        n_layer = len(conductivities)
 
         # layer quantities
-        alphas = np.sqrt(1j * omega * mu_0 * conductivitys[:, None])
-        ratios = alphas / conductivitys[:, None]
+        alphas = np.sqrt(1j * omega * mu_0 * conductivities[:, None])
+        ratios = alphas / conductivities[:, None]
         tanhs = np.tanh(alphas[:-1] * thicknesses[:, None])
 
         Z = -ratios[-1]
@@ -147,7 +147,7 @@ class Simulation1DRecursive(BaseSimulation):
             Z = ratios[ii] * top / bot
         return Z
 
-    def _get_recursive_impedances_deriv(self, frequencies, thicknesses, conductivitys):
+    def _get_recursive_impedances_deriv(self, frequencies, thicknesses, conductivities):
         """
         For a given layered Earth model, this returns the complex impedances
         at the surface for all frequencies.
@@ -158,7 +158,7 @@ class Simulation1DRecursive(BaseSimulation):
             Frequencies in Hz
         thicknesses : (n_layer-1, ) np.ndarray
             Layer thicknesses in meters, starting from the bottom
-        conductivitys : (n_layer, ) np.ndarray
+        conductivities : (n_layer, ) np.ndarray
             Layer conductivities in S/m, starting from the bottom
 
         Returns
@@ -172,13 +172,13 @@ class Simulation1DRecursive(BaseSimulation):
         """
         frequencies = np.asarray(frequencies)
         thicknesses = np.asarray(thicknesses)[::-1]
-        conductivitys = np.asarray(conductivitys)[::-1]
+        conductivities = np.asarray(conductivities)[::-1]
         omega = 2 * np.pi * frequencies
-        n_layer = len(conductivitys)
+        n_layer = len(conductivities)
 
         # Bottom layer quantities
-        alphas = np.sqrt(1j * omega * mu_0 * conductivitys[:, None])
-        ratios = alphas / conductivitys[:, None]
+        alphas = np.sqrt(1j * omega * mu_0 * conductivities[:, None])
+        ratios = alphas / conductivities[:, None]
         tanhs = np.tanh(alphas[:-1] * thicknesses[:, None])
 
         tops = np.empty_like(tanhs)
@@ -209,14 +209,14 @@ class Simulation1DRecursive(BaseSimulation):
         gratios[-1] = -gZ
         d_thick = (1 - tanhs**2) * alphas[:-1] * gtanhs
 
-        galphas = gratios / conductivitys[:, None]
+        galphas = gratios / conductivities[:, None]
         galphas[:-1] += (1 - tanhs**2) * thicknesses[:, None] * gtanhs
 
-        d_conductivity = -ratios / conductivitys[:, None] * gratios
+        d_conductivity = -ratios / conductivities[:, None] * gratios
         d_conductivity += (0.5j * omega * mu_0) / alphas * galphas
 
         # d_mu would be this below when it gets activated:
-        # d_mu = (0.5j * omega * conductivitys[:, None]) / alphas * galphas
+        # d_mu = (0.5j * omega * conductivities[:, None]) / alphas * galphas
         return Zs[0], d_conductivity[::-1].T, d_thick[::-1].T
 
     def fields(self, m):
