@@ -59,9 +59,9 @@ class _EField(_1DField):
         omegas = np.array([omega(src.frequency) for src in source_list])
         e = self._e(eSolution, source_list)
         if self.simulation._perm_inv_map is not None:
-            mui = self.simulation.mui[:, None]
+            mui = self.simulation._perm_inv[:, None]
         else:
-            mui = self.simulation.mui
+            mui = self.simulation._perm_inv
         v = mui * (self._C * e)
         return v / (1j * omegas)
 
@@ -70,9 +70,9 @@ class _EField(_1DField):
             du_dm_v = du_dm_v[:, None]
         om = omega(src.frequency)
         if self.simulation._perm_inv_map is not None:
-            mui = self.simulation.mui[:, None]
+            mui = self.simulation._perm_inv[:, None]
         else:
-            mui = self.simulation.mui
+            mui = self.simulation._perm_inv
         if adjoint:
             y = self._eDeriv_u(src, self._C.T * (mui * du_dm_v), adjoint=adjoint)
             return np.squeeze(y) / (1j * om)
@@ -83,7 +83,7 @@ class _EField(_1DField):
         if self.simulation._perm_inv_map is None:
             return Zero()
         om = omega(src.frequency)
-        dMui = self.simulation.muiDeriv
+        dMui = self.simulation._perm_inv_deriv
         e = self[src, "e"]
         if v.ndim == 1:
             v = v[:, None]

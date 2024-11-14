@@ -1,14 +1,14 @@
 import numpy as np
 from scipy.constants import mu_0
 
-from ...simulation import BaseSimulation
-from ... import props
+from ..base_1d import BaseThicknessSimulation
+from ...base import BaseElectricalSimulation
 from ...utils import validate_type
 from ..frequency_domain.survey import Survey
 from .receivers import Impedance
 
 
-class Simulation1DRecursive(BaseSimulation):
+class Simulation1DRecursive(BaseElectricalSimulation, BaseThicknessSimulation):
     r"""
     Simulation class for the 1D MT problem using recursive solution.
 
@@ -36,39 +36,14 @@ class Simulation1DRecursive(BaseSimulation):
 
     """
 
-    conductivity, conductivity_map, _con_deriv = props.Invertible(
-        "Electrical conductivity (S/m)"
-    )
-    resistivity, resistivity_map, _res_deriv = props.Invertible(
-        "Electrical resistivity (Ohm m)"
-    )
-    props.Reciprocal(conductivity, resistivity)
-
-    # Add layer thickness as invertible property
-    thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
-        "thicknesses of the layers starting from the bottom of the mesh"
-    )
-
     def __init__(
         self,
         survey=None,
-        conductivity=None,
-        conductivity_map=None,
-        resistivity=None,
-        resistivity_map=None,
-        thicknesses=None,
-        thicknessesMap=None,
         fix_Jmatrix=False,
         **kwargs,
     ):
-        super().__init__(mesh=None, survey=survey, **kwargs)
+        super().__init__(survey=survey, **kwargs)
         self.fix_Jmatrix = fix_Jmatrix
-        self.conductivity = conductivity
-        self.resistivity = resistivity
-        self.thicknesses = thicknesses
-        self.conductivity_map = conductivity_map
-        self.resistivity_map = resistivity_map
-        self.thicknessesMap = thicknessesMap
 
     @property
     def survey(self):
@@ -267,8 +242,8 @@ class Simulation1DRecursive(BaseSimulation):
         """
         # Analytic computation
         self.model = m
-        if getattr(self, "_Jmatrix", None) is not None:
-            return self._Jmatrix
+        if (J_matrix := self._cache["J_matrix"]) is not None:
+            return J_matrix
 
         # Derivatives for conductivity
         Z, Z_dconductivity, Z_dthick = self._get_recursive_impedances_deriv(
@@ -308,34 +283,35 @@ class Simulation1DRecursive(BaseSimulation):
                 end = start + rx.nD
                 J[start:end] = Jrows
                 start = end
-        self._Jmatrix = {}
+        J_matrix = {}
         start = 0
         if self.conductivity_map is not None:
             end = start + Z_dconductivity.shape[1]
-            self._Jmatrix["conductivity"] = J[:, start:end]
+            J_matrix["conductivity"] = J[:, start:end]
             start = end
         if self.thicknessesMap is not None:
             end = start + Z_dthick.shape[1]
-            self._Jmatrix["thick"] = J[:, start:end]
-        return self._Jmatrix
+            J_matrix["thick"] = J[:, start:end]
+        self._cache["J_matrix"] = J_matrix
+        return J_matrix
 
     def getJtJdiag(self, m, W=None, f=None):
-        if getattr(self, "_gtgdiag", None) is None:
+        if (jtjdiag := self._cache["jtjdiag"]) is None:
             Js = self.getJ(m, f=f)
             if W is None:
                 W = np.ones(self.survey.nD)
             else:
                 W = W.diagonal() ** 2
 
-            gtgdiag = 0
+            jtjdiag = 0
             if self.conductivity_map is not None:
                 J = Js["conductivity"] @ self._con_deriv
-                gtgdiag += np.einsum("i,ij,ij->j", W, J, J)
+                jtjdiag += np.einsum("i,ij,ij->j", W, J, J)
             if self.thicknessesMap is not None:
                 J = Js["thick"] @ self.thicknessesDeriv
-                gtgdiag += np.einsum("i,ij,ij->j", W, J, J)
-            self._gtgdiag = gtgdiag
-        return self._gtgdiag
+                jtjdiag += np.einsum("i,ij,ij->j", W, J, J)
+            self._cache["jtjdiag"] = jtjdiag
+        return jtjdiag
 
     def Jvec(self, m, v, f=None):
         J = self.getJ(m, f=None)
@@ -361,5 +337,5 @@ class Simulation1DRecursive(BaseSimulation):
         if self.fix_Jmatrix:
             return toDelete
         else:
-            toDelete = toDelete + ["_Jmatrix", "_gtgdiag"]
+            toDelete = toDelete + ["J_matrix", "jtjdiag"]
         return toDelete

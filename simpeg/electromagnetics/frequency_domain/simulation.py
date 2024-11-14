@@ -5,7 +5,7 @@ from discretize.utils import Zero
 from ... import props
 from ...data import Data
 from ...utils import mkvc, validate_type
-from ..base import BaseEMSimulation
+from ..base import BaseEMPDESimulation
 from ..utils import omega
 from .survey import Survey
 from .fields import (
@@ -19,7 +19,7 @@ from .fields import (
 import warnings
 
 
-class BaseFDEMSimulation(BaseEMSimulation):
+class BaseFDEMSimulation(BaseEMPDESimulation):
     r"""Base finite volume FDEM simulation class.
 
     This class is used to define properties and methods necessary for solving
@@ -346,14 +346,14 @@ class BaseFDEMSimulation(BaseEMSimulation):
         """
         self.model = m
 
-        if getattr(self, "_Jmatrix", None) is None:
+        if (J_matrix := self._cache["J_matrix"]) is None:
             if f is None:
                 f = self.fields(m)
 
             Ainv = self.Ainv
             m_size = self.model.size
 
-            Jmatrix = np.zeros((self.survey.nD, m_size))
+            J_matrix = np.zeros((self.survey.nD, m_size))
 
             data = Data(self.survey)
 
@@ -383,11 +383,9 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
                         block = np.array(du_dmT, dtype=complex).real.T
                         data_inds = data.index_dictionary[src][rx]
-                        Jmatrix[data_inds] = block
-
-            self._Jmatrix = Jmatrix
-
-        return self._Jmatrix
+                        J_matrix[data_inds] = block
+            self._cache["J_matrix"] = J_matrix
+        return J_matrix
 
     def getJtJdiag(self, m, W=None, f=None):
         r"""Return the diagonal of :math:`\mathbf{J^T J}`.
@@ -419,7 +417,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         """
         self.model = m
 
-        if getattr(self, "_gtgdiag", None) is None:
+        if (jtj_diag := self._cache["jtj_diag"]) is None:
             J = self.getJ(m, f=f)
 
             if W is None:
@@ -427,11 +425,11 @@ class BaseFDEMSimulation(BaseEMSimulation):
             else:
                 W = W.diagonal() ** 2
 
-            diag = np.einsum("i,ij,ij->j", W, J, J)
+            jtj_diag = np.einsum("i,ij,ij->j", W, J, J)
 
-            self._gtgdiag = diag
+            self._cache["jtj_diag"] = jtj_diag
 
-        return self._gtgdiag
+        return jtj_diag
 
     # @profile
     def getSourceTerm(self, freq):
@@ -498,7 +496,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
             List of the model-dependent attributes to clean upon model update.
         """
         toDelete = super()._delete_on_model_change
-        return toDelete + ["_Jmatrix", "_gtgdiag"]
+        return toDelete + ["J_matrix", "jtj_diag"]
 
 
 ###############################################################################

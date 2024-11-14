@@ -620,12 +620,12 @@ class MagDipole(BaseFDEMSrc):
             formulation = simulation._formulation
 
             if formulation == "EB":
-                mui_s = simulation.mui - 1.0 / self.permeability
+                mui_s = simulation._perm_inv - 1.0 / self.permeability
                 MMui_sDeriv = (
                     simulation.mesh.get_face_inner_product_deriv(mui_s)(
                         self.bPrimary(simulation)
                     )
-                    * simulation.muiDeriv
+                    * simulation._perm_inv_deriv
                 )
                 C = simulation.mesh.edge_curl
 

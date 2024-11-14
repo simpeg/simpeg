@@ -1922,7 +1922,7 @@ class LineCurrent(BaseTDEMSrc):
             * simulation._inv_Me_permeability
             * simulation.mesh.edge_curl.T.tocsr()
             - Div.T.tocsr()
-            * sdiag(1.0 / vol * simulation.mui)
+            * sdiag(1.0 / vol * simulation._perm_inv)
             * Div  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
         )
 
@@ -2147,7 +2147,7 @@ class RawVec_Grounded(LineCurrent):
     #     return (
     #         simulation.mesh.edge_curl * simulation._inv_Me_permeability * simulation.mesh.edge_curl.T
     #         - simulation.mesh.face_divergence.T
-    #         * sdiag(1.0 / vol * simulation.mui)
+    #         * sdiag(1.0 / vol * simulation._perm_inv)
     #         * simulation.mesh.face_divergence  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
     #     )
 
