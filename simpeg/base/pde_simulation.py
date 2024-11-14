@@ -7,7 +7,7 @@ from discretize.utils import Zero, TensorType
 
 from . import BaseElectricalSimulation, BaseMagneticSimulation
 from .physical_property_simulations import BaseDensitySimulation
-from ..props import PhysicalPropertyMetaclass, PhysicalProperty
+from ..props import PhysicalPropertyMetaclass
 from ..simulation import BaseSimulation, BaseTimeSimulation
 from .. import Data
 
@@ -213,7 +213,7 @@ def _get_mass_matrix_functions(property_name: str, invertible: bool = False):
     if invertible:
 
         def Mcc_prop_deriv(self, u, v=None, adjoint=False):
-            f"""
+            """
             Derivative of `MccProperty` with respect to the model.
             """
             if getattr(self, f"{property_name}_map") is None:
@@ -404,7 +404,7 @@ class MassMatrixMeta(PhysicalPropertyMetaclass):
 
         mm_funcs = {}
         invertible_props = set()
-        for prop_name, prop in phys_props.items():
+        for prop in phys_props.values():
             invertible = prop.mapping is not None
             mm_func, prop_cache = _get_mass_matrix_functions(
                 prop.name, invertible=invertible
@@ -476,6 +476,7 @@ class BasePDESimulation(BaseSimulation, metaclass=MassMatrixMeta):
     def mesh(self, value):
         self._mesh = validate_type("mesh", value, BaseMesh, cast=False) @ property
 
+    @property
     def solver(self) -> type[pymatsolver.solvers.Base]:
         r"""Numerical solver used in the forward simulation.
 
