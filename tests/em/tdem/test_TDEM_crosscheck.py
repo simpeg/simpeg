@@ -70,8 +70,8 @@ def setUp_TDEM(
     )
 
     rng = np.random.default_rng(seed=42)
-    m = np.log(1e-1) * np.ones(prb.conductivityMap.nP) + 1e-2 * rng.uniform(
-        size=prb.conductivityMap.nP
+    m = np.log(1e-1) * np.ones(prb.conductivity_map.nP) + 1e-2 * rng.uniform(
+        size=prb.conductivity_map.nP
     )
 
     return prb, m, mesh

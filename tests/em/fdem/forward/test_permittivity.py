@@ -99,7 +99,7 @@ def test_mag_dipole(epsilon, frequency, simulation):
     fields = sim.fields()
 
     analytic_bdipole = geoana.em.fdem.MagneticDipoleWholeSpace(
-        sigma=conductivity, epsilon=epsilon, frequency=frequency, orientation="Z"
+        sigma=conductivity[0], epsilon=epsilon, frequency=frequency, orientation="Z"
     )
     analytics = {
         "b": np.hstack(
@@ -156,7 +156,7 @@ def test_e_dipole(epsilon, frequency, simulation):
     fields = sim.fields()
 
     analytic_edipole = geoana.em.fdem.ElectricDipoleWholeSpace(
-        sigma=conductivity, epsilon=epsilon, frequency=frequency, orientation="Z"
+        sigma=conductivity[0], epsilon=epsilon, frequency=frequency, orientation="Z"
     )
     analytics = {
         "j": np.hstack(

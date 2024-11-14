@@ -134,7 +134,7 @@ class PrimSecFDEMTest(object):
         f = self.fields_primsec
         rng = np.random.default_rng(seed=2016)
         v = rng.uniform(size=self.secondarySurvey.nD)
-        w = rng.uniform(size=self.secondarySimulation.conductivityMap.nP)
+        w = rng.uniform(size=self.secondarySimulation.conductivity_map.nP)
 
         vJw = v.dot(self.secondarySimulation.Jvec(m, w, f))
         wJtv = w.dot(self.secondarySimulation.Jtvec(m, v, f))

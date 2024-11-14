@@ -314,6 +314,7 @@ class BaseFDEMSimulation(BaseEMPDESimulation):
 
                 dA_dmT = self.getADeriv(freq, u_src, ATinvdf_duT, adjoint=True)
                 dRHS_dmT = self.getRHSDeriv(freq, src, ATinvdf_duT, adjoint=True)
+                print(dA_dmT, dRHS_dmT)
                 du_dmT = -dA_dmT + dRHS_dmT
 
                 df_dmT_sum += du_dmT
@@ -1036,9 +1037,8 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
             )
             A = C * (MeyhatI * (C.T.tocsr() * MfMui)) + iomega
 
-        if self._makeASymmetric:
-            return MfMui.T.tocsr() * A
-        return A
+        # make A symmetric
+        return MfMui.T.tocsr() * A
 
     def getADeriv_conductivity(self, freq, u, v, adjoint=False):
         r"""Conductivity derivative operation for the system matrix times a vector.
@@ -1203,16 +1203,17 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
             Derivative of system matrix times a vector. (n_faces,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
-        if adjoint is True and self._makeASymmetric:
+        if adjoint:
+            # make A symmetric
             v = self._Mf__perm_inv * v
 
         ADeriv = self.getADeriv_conductivity(
             freq, u, v, adjoint
         ) + self.getADeriv__perm_inv(freq, u, v, adjoint)
 
-        if adjoint is False and self._makeASymmetric:
+        if not adjoint:
+            # make A symmetric
             return self._Mf__perm_inv.T * ADeriv
-
         return ADeriv
 
     def getRHS(self, freq):
@@ -1256,11 +1257,9 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
             )
             RHS = s_m + C * (MeyhatI * s_e)
 
-        if self._makeASymmetric is True:
-            MfMui = self._Mf__perm_inv
-            return MfMui.T * RHS
-
-        return RHS
+        # make A symmetric
+        MfMui = self._Mf__perm_inv
+        return MfMui.T * RHS
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
         r"""Derivative of the right-hand side times a vector for a given source and frequency.
@@ -1312,9 +1311,6 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         s_m, s_e = src.eval(self)
         MfMui = self._Mf__perm_inv
 
-        if self._makeASymmetric and adjoint:
-            v = self._Mf__perm_inv * v
-
         # MeSigmaIDeriv = self._inv_Me_conductivity_deriv(s_e)
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
@@ -1323,11 +1319,14 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
             RHSderiv = C * self._inv_Me_conductivity_deriv(s_e, v, adjoint)
             SrcDeriv = s_mDeriv(v) + C * (self._inv_Me_conductivity * s_eDeriv(v))
         elif adjoint:
+            # make A symmetric
+            v = MfMui @ v
             # RHSderiv = MeSigmaIDeriv.T * (C.T * v)
             RHSderiv = self._inv_Me_conductivity_deriv(s_e, C.T * v, adjoint)
             SrcDeriv = s_mDeriv(v) + s_eDeriv(self._inv_Me_conductivity.T * (C.T * v))
 
-        if self._makeASymmetric is True and not adjoint:
+        if not adjoint:
+            # make A symmetric
             return MfMui.T * (SrcDeriv + RHSderiv)
 
         return RHSderiv + SrcDeriv
@@ -1487,9 +1486,8 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         else:
             A = C * MeMuI * C.T.tocsr() * MfRho + iomega
 
-        if self._makeASymmetric is True:
-            return MfRho.T.tocsr() * A
-        return A
+        # make A symmetric
+        return MfRho.T.tocsr() * A
 
     def getADeriv_resistivity(self, freq, u, v, adjoint=False):
         r"""Resistivity derivative operation for the system matrix times a vector.
@@ -1596,13 +1594,9 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         MeMuIDeriv = self._inv_Me_permeability_deriv(C.T * (MfRho * u))
 
         if adjoint is True:
-            # if self._makeASymmetric:
-            #     v = MfRho * v
             return MeMuIDeriv.T * (C.T * v)
 
         Aderiv = C * (MeMuIDeriv * v)
-        # if self._makeASymmetric:
-        #     Aderiv = MfRho.T * Aderiv
         return Aderiv
 
     def getADeriv(self, freq, u, v, adjoint=False):
@@ -1650,14 +1644,14 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
             Derivative of system matrix times a vector. (n_faces,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
-        if adjoint and self._makeASymmetric:
+        if adjoint:
             v = self._Mf_resistivity * v
 
         ADeriv = self.getADeriv_resistivity(
             freq, u, v, adjoint
         ) + self.getADeriv_permeability(freq, u, v, adjoint)
 
-        if not adjoint and self._makeASymmetric:
+        if not adjoint:
             return self._Mf_resistivity.T * ADeriv
 
         return ADeriv
@@ -1696,11 +1690,9 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         MeMuI = self._inv_Me_permeability
 
         RHS = C * (MeMuI * s_m) - 1j * omega(freq) * s_e
-        if self._makeASymmetric is True:
-            MfRho = self._Mf_resistivity
-            return MfRho.T * RHS
-
-        return RHS
+        # make A symmetric
+        MfRho = self._Mf_resistivity
+        return MfRho.T * RHS
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
         r"""Derivative of the right-hand side times a vector for a given source and frequency.
@@ -1749,9 +1741,6 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         """
 
         # RHS = C * (MeMuI * s_m) - 1j * omega(freq) * s_e
-        # if self._makeASymmetric is True:
-        #     MfRho = self._Mf_resistivity
-        #     return MfRho.T*RHS
 
         C = self.mesh.edge_curl
         MeMuI = self._inv_Me_permeability
@@ -1760,9 +1749,10 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         s_m, _ = self.getSourceTerm(freq)
 
         if adjoint:
-            if self._makeASymmetric:
-                MfRho = self._Mf_resistivity
-                v = MfRho * v
+            # make A symmetric
+            MfRho = self._Mf_resistivity
+            v = MfRho * v
+
             CTv = C.T * v
             return (
                 s_mDeriv(MeMuI.T * CTv)
@@ -1775,10 +1765,9 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
                 freq
             ) * s_eDeriv(v)
 
-            if self._makeASymmetric:
-                MfRho = self._Mf_resistivity
-                return MfRho.T * RHSDeriv
-            return RHSDeriv
+            # make A symmetric
+            MfRho = self._Mf_resistivity
+            return MfRho.T * RHSDeriv
 
 
 class Simulation3DMagneticField(BaseFDEMSimulation):

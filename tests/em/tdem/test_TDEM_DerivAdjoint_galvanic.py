@@ -109,7 +109,7 @@ class TDEM_DerivTests(unittest.TestCase):
 
             prb, m0, mesh = setUp_TDEM(prbtype, rxcomp, src_z)
             rng = np.random.default_rng(seed=42)
-            m = rng.uniform(size=prb.conductivityMap.nP)
+            m = rng.uniform(size=prb.conductivity_map.nP)
             d = rng.normal(size=prb.survey.nD)
 
             print(m.shape, d.shape, m0.shape)

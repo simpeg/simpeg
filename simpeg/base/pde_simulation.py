@@ -606,7 +606,7 @@ class BasePDESimulation(BaseSimulation, metaclass=MassMatrixMeta):
         Edge inner product matrix.
         """
         if (Me := self._cache["_Me"]) is None:
-            Me = self.mesh.get_face_inner_product()
+            Me = self.mesh.get_edge_inner_product()
             self._cache["_Me"] = Me
         return Me
 

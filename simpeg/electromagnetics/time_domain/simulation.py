@@ -783,9 +783,8 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
         A = 1.0 / dt * I + (C * (MeSigmaI * (C.T.tocsr() * MfMui)))
 
-        if self._makeASymmetric is True:
-            return MfMui.T.tocsr() * A
-        return A
+        # make A symmetric
+        return MfMui.T.tocsr() * A
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         r"""Derivative operation for the diagonal system matrix times a vector.
@@ -843,15 +842,14 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         MfMui = self._Mf__perm_inv
 
         if adjoint:
-            if self._makeASymmetric is True:
-                v = MfMui * v
+            # make A symmetric
+            v = MfMui * v
             return self._inv_Me_conductivity_deriv(C.T * (MfMui * u), C.T * v, adjoint)
 
         ADeriv = C * (self._inv_Me_conductivity_deriv(C.T * (MfMui * u), v, adjoint))
 
-        if self._makeASymmetric is True:
-            return MfMui.T * ADeriv
-        return ADeriv
+        # make A symmetric
+        return MfMui.T * ADeriv
 
     def getAsubdiag(self, tInd):
         r"""Sub-diagonal system matrix for the time-step index provided.
@@ -881,10 +879,8 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         MfMui = self._Mf__perm_inv
         Asubdiag = -1.0 / dt * sp.eye(self.mesh.n_faces)
 
-        if self._makeASymmetric is True:
-            return MfMui.T * Asubdiag
-
-        return Asubdiag
+        # make A symmetric
+        return MfMui.T * Asubdiag
 
     def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
         r"""Derivative operation for the sub-diagonal system matrix times a vector.
@@ -971,9 +967,8 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         s_m, s_e = self.getSourceTerm(tInd)
 
         rhs = C * (MeSigmaI * s_e) + s_m
-        if self._makeASymmetric is True:
-            return MfMui.T * rhs
-        return rhs
+        # make A symmetric
+        return MfMui.T * rhs
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
         r"""Derivative of the right-hand side times a vector for a given source and time index.
@@ -1030,8 +1025,8 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         s_mDeriv, s_eDeriv = src.evalDeriv(self, self.times[tInd], adjoint=adjoint)
 
         if adjoint:
-            if self._makeASymmetric is True:
-                v = self._Mf__perm_inv * v
+            # make A symmetric
+            v = self._Mf__perm_inv * v
             if isinstance(s_e, Zero):
                 MeSigmaIDerivT_v = Zero()
             else:
@@ -1050,9 +1045,8 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
         RHSDeriv = C * MeSigmaIDeriv_v + C * MeSigmaI * s_eDeriv(v) + s_mDeriv(v)
 
-        if self._makeASymmetric is True:
-            return self._Mf__perm_inv.T * RHSDeriv
-        return RHSDeriv
+        # make A symmetric
+        return self._Mf__perm_inv.T * RHSDeriv
 
 
 # ------------------------------- Simulation3DElectricField ------------------------------- #
@@ -2341,10 +2335,8 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
         A = C * (MeMuI * (C.T * MfRho)) + 1.0 / dt * eye
 
-        if self._makeASymmetric:
-            return MfRho.T * A
-
-        return A
+        # make A symmetric
+        return MfRho.T * A
 
     def getAdiagDeriv(self, tInd, u, v, adjoint=False):
         r"""Derivative operation for the diagonal system matrix times a vector.
@@ -2401,14 +2393,12 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         MeMuI = self._inv_Me_permeability
 
         if adjoint:
-            if self._makeASymmetric:
-                v = MfRho * v
+            v = MfRho * v
             return self._Mf_resistivity_deriv(u, C * (MeMuI.T * (C.T * v)), adjoint)
 
         ADeriv = C * (MeMuI * (C.T * self._Mf_resistivity_deriv(u, v, adjoint)))
-        if self._makeASymmetric:
-            return MfRho.T * ADeriv
-        return ADeriv
+        # make A symmetric
+        return MfRho.T * ADeriv
 
     def getAsubdiag(self, tInd):
         r"""Sub-diagonal system matrix for the time-step index provided.
@@ -2435,13 +2425,11 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
             The sub-diagonal system matrix.
         """
         assert tInd >= 0 and tInd < self.nT
-        eye = sp.eye(self.mesh.n_faces)
 
         dt = self.time_steps[tInd]
 
-        if self._makeASymmetric:
-            return -1.0 / dt * self._Mf_resistivity.T
-        return -1.0 / dt * eye
+        # make A symmetric
+        return -1.0 / dt * self._Mf_resistivity.T
 
     def getAsubdiagDeriv(self, tInd, u, v, adjoint=False):
         r"""Derivative operation for the sub-diagonal system matrix times a vector.
@@ -2529,9 +2517,8 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         _, s_en1 = self.getSourceTerm(tInd - 1)
 
         rhs = -1.0 / dt * (s_e - s_en1) + C * MeMuI * s_m
-        if self._makeASymmetric:
-            return self._Mf_resistivity.T * rhs
-        return rhs
+        # make A symmetric
+        return self._Mf_resistivity.T * rhs
 
     def getRHSDeriv(self, tInd, src, v, adjoint=False):
         r"""Derivative of the right-hand side times a vector for a given source and time index.
