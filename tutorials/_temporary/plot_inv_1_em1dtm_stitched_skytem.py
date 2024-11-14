@@ -189,7 +189,7 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 
 n_layer = 25
 thicknesses = get_vertical_discretization_time(
-    time_HM, sigma_background=0.1, n_layer=n_layer - 1
+    time_HM, conductivity_background=0.1, n_layer=n_layer - 1
 )
 
 dx = 100.0

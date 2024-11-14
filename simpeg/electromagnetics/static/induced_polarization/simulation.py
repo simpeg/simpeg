@@ -13,9 +13,9 @@ from ..resistivity import Simulation3DNodal as DC_3D_N
 
 
 class BaseIPSimulation(BasePDESimulation):
-    sigma = props.PhysicalProperty("Electrical Conductivity (S/m)")
+    conductivity = props.PhysicalProperty("Electrical Conductivity (S/m)")
     resistivity = props.PhysicalProperty("Electrical Resistivity (Ohm m)")
-    props.Reciprocal(sigma, resistivity)
+    props.Reciprocal(conductivity, resistivity)
 
     @property
     def conductivity_map(self):
@@ -64,7 +64,7 @@ class BaseIPSimulation(BasePDESimulation):
         self,
         mesh=None,
         survey=None,
-        sigma=None,
+        conductivity=None,
         resistivity=None,
         eta=None,
         etaMap=None,
@@ -73,7 +73,7 @@ class BaseIPSimulation(BasePDESimulation):
         **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
-        self.conductivity = sigma
+        self.conductivity = conductivity
         self.resistivity = resistivity
         self.eta = eta
         self.etaMap = etaMap

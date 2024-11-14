@@ -211,7 +211,7 @@ class BaseEM1DSimulation(BaseEMSimulation):
     def n_points_per_path(self, val):
         self._n_points_per_path = validate_integer("n_points_per_path", val, min_val=1)
 
-    def compute_complex_sigma(self, frequencies):
+    def compute_complex_conductivity(self, frequencies):
         r"""
         Computes the complex conductivity matrix using Pelton's Cole-Cole model:
 
@@ -230,11 +230,11 @@ class BaseEM1DSimulation(BaseEMSimulation):
         n_frequency = len(frequencies)
         # n_filter = self.n_filter
 
-        sigma = np.tile(self.conductivity.reshape([-1, 1]), (1, n_frequency))
+        conductivity = np.tile(self.conductivity.reshape([-1, 1]), (1, n_frequency))
 
         # No IP effect
         if np.all(self.eta) == 0.0:
-            return sigma
+            return conductivity
 
         # IP effect
         else:
@@ -249,14 +249,14 @@ class BaseEM1DSimulation(BaseEMSimulation):
 
             w = np.tile(2 * np.pi * frequencies, (n_layer, 1))
 
-            sigma_complex = np.empty(
+            conductivity_complex = np.empty(
                 [n_layer, n_frequency], dtype=np.complex128, order="F"
             )
-            sigma_complex[:, :] = sigma - sigma * eta / (
+            conductivity_complex[:, :] = conductivity - conductivity * eta / (
                 1 + (1 - eta) * (1j * w * tau) ** c
             )
 
-            return sigma_complex
+            return conductivity_complex
 
     def compute_complex_mu(self, frequencies):
         r"""

@@ -4,11 +4,11 @@ import numpy as np
 from scipy.constants import mu_0, epsilon_0 as eps_0
 
 
-def getEHfields(m1d, sigma, freq, zd, scaleUD=True, scaleValue=1):
+def getEHfields(m1d, conductivity, freq, zd, scaleUD=True, scaleValue=1):
     """Analytic solution for MT 1D layered earth. Returns E and H fields.
 
     :param discretize.base.BaseMesh, object m1d: Mesh object with the 1D spatial information.
-    :param numpy.ndarray, vector sigma: Physical property of conductivity corresponding with the mesh.
+    :param numpy.ndarray, vector conductivity: Physical property of conductivity corresponding with the mesh.
     :param float, freq: Frequency to calculate data at.
     :param numpy.ndarray, vector zd: location to calculate EH fields at
     :param bool, scaleUD: scales the output to be scaleValue at the top, increases numerical stability.
@@ -16,7 +16,7 @@ def getEHfields(m1d, sigma, freq, zd, scaleUD=True, scaleValue=1):
     Assumes a halfspace with the same conductive as the deepest cell.
 
     """
-    # Note add an error check for the mesh and sigma are the same size.
+    # Note add an error check for the mesh and conductivity are the same size.
 
     # Constants: Assume constant
     mu = mu_0 * np.ones((m1d.nC + 1))
@@ -24,7 +24,7 @@ def getEHfields(m1d, sigma, freq, zd, scaleUD=True, scaleValue=1):
     # Angular freq
     w = 2 * np.pi * freq
     # Add the halfspace value to the property
-    sig = np.concatenate((np.array([sigma[0]]), sigma))
+    sig = np.concatenate((np.array([conductivity[0]]), conductivity))
     # Calculate the wave number
     k = np.sqrt(eps * mu * w**2 - 1j * mu * sig * w)
 
@@ -94,11 +94,11 @@ def getEHfields(m1d, sigma, freq, zd, scaleUD=True, scaleValue=1):
     return Ed, Eu, Hd, Hu
 
 
-def getImpedance(m1d, sigma, freq):
+def getImpedance(m1d, conductivity, freq):
     """Analytic solution for MT 1D layered earth. Returns the impedance at the surface.
 
     :param discretize.base.BaseMesh, object m1d: Mesh object with the 1D spatial information.
-    :param numpy.ndarray, vector sigma: Physical property corresponding with the mesh.
+    :param numpy.ndarray, vector conductivity: Physical property corresponding with the mesh.
     :param numpy.ndarray, vector freq: Frequencies to calculate data at.
 
 
@@ -113,13 +113,13 @@ def getImpedance(m1d, sigma, freq):
         Zall = np.empty(len(h) + 1, dtype="complex")
         # Calculate the impedance for the bottom layer
         Zall[0] = (mu_0 * om) / np.sqrt(
-            mu_0 * eps_0 * (om) ** 2 - 1j * mu_0 * sigma[0] * om
+            mu_0 * eps_0 * (om) ** 2 - 1j * mu_0 * conductivity[0] * om
         )
 
         for nr, hi in enumerate(h):
             # Calculate the wave number
-            # print(nr,sigma[nr])
-            k = np.sqrt(mu_0 * eps_0 * om**2 - 1j * mu_0 * sigma[nr] * om)
+            # print(nr,conductivity[nr])
+            k = np.sqrt(mu_0 * eps_0 * om**2 - 1j * mu_0 * conductivity[nr] * om)
             Z = (mu_0 * om) / k
 
             Zall[nr + 1] = Z * (

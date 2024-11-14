@@ -19,7 +19,7 @@ hy = [(cs, 7, -1.3), (cs, 21), (cs, 7, 1.3)]
 hz = [(cs, 7, -1.3), (cs, 20)]
 mesh = discretize.TensorMesh([hx, hy, hz], "CCN")
 sighalf = 1e-2
-sigma = np.ones(mesh.nC) * sighalf
+conductivity = np.ones(mesh.nC) * sighalf
 xtemp = np.linspace(-150, 150, 21)
 ytemp = np.linspace(-150, 150, 21)
 xyz_rxP = utils.ndgrid(xtemp - 10.0, ytemp, np.r_[0.0])
@@ -30,17 +30,19 @@ xyz_rxM = utils.ndgrid(xtemp, ytemp, np.r_[0.0])
 rx = DC.Rx.Dipole(xyz_rxP, xyz_rxN)
 src = DC.Src.Dipole([rx], np.r_[-200, 0, -12.5], np.r_[+200, 0, -12.5])
 survey = DC.Survey([src])
-sim = DC.Simulation3DCellCentered(mesh, survey=survey, sigma=sigma, bc_type="Neumann")
+sim = DC.Simulation3DCellCentered(
+    mesh, survey=survey, conductivity=conductivity, bc_type="Neumann"
+)
 
 data = sim.dpred()
 
 
-def DChalf(srclocP, srclocN, rxloc, sigma, I=1.0):
+def DChalf(srclocP, srclocN, rxloc, conductivity, I=1.0):
     rp = (srclocP.reshape([1, -1])).repeat(rxloc.shape[0], axis=0)
     rn = (srclocN.reshape([1, -1])).repeat(rxloc.shape[0], axis=0)
     rP = np.sqrt(((rxloc - rp) ** 2).sum(axis=1))
     rN = np.sqrt(((rxloc - rn) ** 2).sum(axis=1))
-    return I / (sigma * 2.0 * np.pi) * (1 / rP - 1 / rN)
+    return I / (conductivity * 2.0 * np.pi) * (1 / rP - 1 / rN)
 
 
 data_anaP = DChalf(np.r_[-200, 0, 0.0], np.r_[+200, 0, 0.0], xyz_rxP, sighalf)

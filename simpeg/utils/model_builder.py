@@ -145,12 +145,12 @@ def create_block_in_wholespace(
     except TypeError:
         pass
 
-    sigma = np.zeros(cell_centers.shape[0]) + background_value
+    conductivity = np.zeros(cell_centers.shape[0]) + background_value
     ind = get_indices_block(p0, p1, cell_centers)
 
-    sigma[ind] = block_value
+    conductivity[ind] = block_value
 
-    return mkvc(sigma)
+    return mkvc(conductivity)
 
 
 def create_ellipse_in_wholespace(
@@ -295,7 +295,7 @@ def create_2_layer_model(cell_centers, depth, top_value=1.0, bottom_value=0.0):
     except TypeError:
         pass
 
-    sigma = np.zeros(cell_centers.shape[0]) + bottom_value
+    conductivity = np.zeros(cell_centers.shape[0]) + bottom_value
 
     dim = np.size(cell_centers[0, :])
 
@@ -321,9 +321,9 @@ def create_2_layer_model(cell_centers, depth, top_value=1.0, bottom_value=0.0):
 
     ind = get_indices_block(p0, p1, cell_centers)
 
-    sigma[ind] = top_value
+    conductivity[ind] = top_value
 
-    return mkvc(sigma)
+    return mkvc(conductivity)
 
 
 def create_from_function(cell_centers, fun_handle):
@@ -358,9 +358,9 @@ def create_from_function(cell_centers, fun_handle):
     if dim > 2:
         CC.append(cell_centers[:, 2])
 
-    sigma = fun_handle(*CC)
+    conductivity = fun_handle(*CC)
 
-    return mkvc(sigma)
+    return mkvc(conductivity)
 
 
 def create_layers_model(cell_centers, layer_tops, layer_values):

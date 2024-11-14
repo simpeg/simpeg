@@ -4,8 +4,8 @@ from scipy.special import erf
 from simpeg import utils
 
 
-def hzAnalyticDipoleT(r, t, sigma):
-    theta = np.sqrt((sigma * mu_0) / (4 * t))
+def hzAnalyticDipoleT(r, t, conductivity):
+    theta = np.sqrt((conductivity * mu_0) / (4 * t))
     tr = theta * r
     etr = erf(tr)
     t1 = (9 / (2 * tr**2) - 1) * etr
@@ -14,8 +14,8 @@ def hzAnalyticDipoleT(r, t, sigma):
     return hz
 
 
-def hzAnalyticCentLoopT(a, t, sigma):
-    theta = np.sqrt((sigma * mu_0) / (4 * t))
+def hzAnalyticCentLoopT(a, t, conductivity):
+    theta = np.sqrt((conductivity * mu_0) / (4 * t))
     ta = theta * a
     eta = erf(ta)
     t1 = (3 / (np.sqrt(pi) * ta)) * np.exp(-(ta**2))

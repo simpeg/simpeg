@@ -55,10 +55,12 @@ class FDEM_analyticTests(unittest.TestCase):
         survey = fdem.Survey(SrcList)
 
         sig = 1e-1
-        sigma = np.ones(mesh.nC) * sig
-        sigma[mesh.gridCC[:, 2] > 0] = 1e-8
+        conductivity = np.ones(mesh.nC) * sig
+        conductivity[mesh.gridCC[:, 2] > 0] = 1e-8
 
-        prb = fdem.Simulation3DMagneticFluxDensity(mesh, survey=survey, sigma=sigma)
+        prb = fdem.Simulation3DMagneticFluxDensity(
+            mesh, survey=survey, conductivity=conductivity
+        )
         self.prb = prb
         self.mesh = mesh
         self.sig = sig
@@ -110,10 +112,10 @@ class TestDipoles(unittest.TestCase):
             "Testing CylindricalMesh Electric and Magnetic Dipoles in a wholespace-"
             " Analytic: J-formulation"
         )
-        sigmaback = 1.0
+        conductivityback = 1.0
         mur = 2.0
         freq = 1.0
-        skdpth = 500.0 / np.sqrt(sigmaback * freq)
+        skdpth = 500.0 / np.sqrt(conductivityback * freq)
 
         csx, ncx, npadx = 5, 50, 25
         csz, ncz, npadz = 5, 50, 25
@@ -147,10 +149,10 @@ class TestDipoles(unittest.TestCase):
         surveym = fdem.Survey(dm_p)
 
         prbe = fdem.Simulation3DMagneticField(
-            mesh, survey=surveye, sigma=sigmaback, mu=mur * mu_0
+            mesh, survey=surveye, conductivity=conductivityback, mu=mur * mu_0
         )
         prbm = fdem.Simulation3DElectricField(
-            mesh, survey=surveym, sigma=sigmaback, mu=mur * mu_0
+            mesh, survey=surveym, conductivity=conductivityback, mu=mur * mu_0
         )
 
         # solve
@@ -176,7 +178,7 @@ class TestDipoles(unittest.TestCase):
         jn = fieldsBackE[de_p, "j"]
         bn = fieldsBackM[dm_p, "b"]
 
-        SigmaBack = sigmaback * np.ones((mesh.nC))
+        SigmaBack = conductivityback * np.ones((mesh.nC))
         Rho = utils.sdiag(1.0 / SigmaBack)
         Rho = sp.block_diag([Rho, Rho])
 
@@ -188,7 +190,7 @@ class TestDipoles(unittest.TestCase):
 
         # get analytic solution
         exa, eya, eza = analytics.FDEM.ElectricDipoleWholeSpace(
-            XYZ, src_loc, sigmaback, freq, "Z", mu_r=mur
+            XYZ, src_loc, conductivityback, freq, "Z", mu_r=mur
         )
 
         exa = utils.mkvc(exa, 2)
@@ -196,7 +198,7 @@ class TestDipoles(unittest.TestCase):
         eza = utils.mkvc(eza, 2)
 
         bxa, bya, bza = analytics.FDEM.MagneticDipoleWholeSpace(
-            XYZ, src_loc, sigmaback, freq, "Z", mu_r=mur
+            XYZ, src_loc, conductivityback, freq, "Z", mu_r=mur
         )
         bxa = utils.mkvc(bxa, 2)
         bya = utils.mkvc(bya, 2)

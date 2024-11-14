@@ -57,10 +57,10 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
         survey = tdem.Survey(source_list)
 
         thicknesses = np.ones(3)
-        sigma = 1e-2
+        conductivity = 1e-2
         n_layer = thicknesses.size + 1
 
-        sigma_model = sigma * np.ones(n_layer)
+        conductivity_model = conductivity * np.ones(n_layer)
 
         model_mapping = maps.IdentityMap(nP=n_layer)
         simulation = tdem.Simulation1DLayered(
@@ -72,8 +72,8 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
         self.survey = survey
         self.simulation = simulation
         self.showIt = False
-        self.conductivity_model = sigma_model
-        self.conductivity_halfspace = sigma
+        self.conductivity_model = conductivity_model
+        self.conductivity_halfspace = conductivity
         self.source_radius = source_radius
         self.waveform_hm = waveform_hm
         self.waveform_lm = waveform_lm
@@ -92,7 +92,7 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
             self.waveform_lm,
             self.times_lm,
             fkwargs={
-                "sigma": self.conductivity_halfspace,
+                "conductivity": self.conductivity_halfspace,
                 "radius": self.source_radius,
             },
         )
@@ -102,7 +102,7 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
             self.waveform_hm,
             self.times_hm,
             fkwargs={
-                "sigma": self.conductivity_halfspace,
+                "conductivity": self.conductivity_halfspace,
                 "radius": self.source_radius,
             },
         )

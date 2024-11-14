@@ -14,7 +14,7 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
     ----------
     mesh : discretize.base.BaseMesh
     survey : simpeg.electromagnetics.static.self_potential.Survey
-    sigma, resistivity : float or array_like
+    conductivity, resistivity : float or array_like
         The conductivity/resistivity model of the subsurface.
     q : float, array_like, optional
         The charge density accumulation rate model (C/(s m^3)), also
@@ -49,7 +49,7 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
         self,
         mesh,
         survey=None,
-        sigma=None,
+        conductivity=None,
         resistivity=None,
         q=None,
         qMap=None,
@@ -58,7 +58,7 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
         # These below checks can be commented out, correspondingly do
         # not set conductivity_map and resistivity_map to None on the super call, to enable
         # derivatives with respect to resistivity/conductivity.
-        if sigma is None:
+        if conductivity is None:
             if resistivity is None:
                 raise ValueError("Must set either conductivity or resistivity.")
         else:
@@ -67,7 +67,7 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
         super().__init__(
             mesh=mesh,
             survey=survey,
-            sigma=sigma,
+            conductivity=conductivity,
             resistivity=resistivity,
             conductivity_map=None,
             resistivity_map=None,

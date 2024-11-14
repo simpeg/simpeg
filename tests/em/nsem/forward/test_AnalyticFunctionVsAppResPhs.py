@@ -7,19 +7,21 @@ import numpy as np
 TOL = 1e-6
 
 
-def appResNorm(sigmaHalf):
+def appResNorm(conductivityHalf):
     num_frequencies = 26
 
     m1d = discretize.TensorMesh([[(100, 5, 1.5), (100.0, 10), (100, 5, 1.5)]], x0=["C"])
-    sigma = np.zeros(m1d.nC) + sigmaHalf
-    sigma[m1d.gridCC[:] > 200] = 1e-8
+    conductivity = np.zeros(m1d.nC) + conductivityHalf
+    conductivity[m1d.gridCC[:] > 200] = 1e-8
 
     # Calculate the analytic fields
     freqs = np.logspace(4, -4, num_frequencies)
     Z = []
 
     for freq in freqs:
-        Ed, Eu, Hd, Hu = nsem.utils.getEHfields(m1d, sigma, freq, np.array([200]))
+        Ed, Eu, Hd, Hu = nsem.utils.getEHfields(
+            m1d, conductivity, freq, np.array([200])
+        )
         Z.append((Ed + Eu) / (Hd + Hu))
 
     Zarr = np.concatenate(Z)
@@ -27,8 +29,8 @@ def appResNorm(sigmaHalf):
     app_r, app_p = nsem.utils.appResPhs(freqs, Zarr)
 
     return np.linalg.norm(
-        np.abs(app_r - np.ones(num_frequencies) / sigmaHalf)
-    ) / np.log10(sigmaHalf)
+        np.abs(app_r - np.ones(num_frequencies) / conductivityHalf)
+    ) / np.log10(conductivityHalf)
 
 
 class TestAnalytics(unittest.TestCase):

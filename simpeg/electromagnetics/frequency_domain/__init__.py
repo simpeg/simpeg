@@ -16,7 +16,7 @@ Fourier convention is used, this module is used to solve problems of the form:
 
 where the constitutive relations between fields and fluxes are given by:
 
-* :math:`\vec{J} = (\sigma + i \omega \varepsilon) \vec{E}`
+* :math:`\vec{J} = (\conductivity + i \omega \varepsilon) \vec{E}`
 * :math:`\vec{B} = \mu \vec{H}`
 
 and:

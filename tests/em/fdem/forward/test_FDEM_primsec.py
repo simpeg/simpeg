@@ -22,8 +22,8 @@ FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
 # Also run a sensitivity test, adjoint test
 
 # physical properties
-sigmaback = 1e-1
-sigmablock = 5e-1
+conductivityback = 1e-1
+conductivityblock = 5e-1
 
 block_x = np.r_[125.0, 225.0]
 block_y = np.r_[-50.0, 50.0]
@@ -31,8 +31,8 @@ block_z = np.r_[-50.0, 50.0]
 
 # model
 model = np.r_[
-    np.log(sigmaback),
-    np.log(sigmablock),
+    np.log(conductivityback),
+    np.log(conductivityblock),
     np.mean(block_z),
     np.diff(block_z),
     np.mean(block_x),

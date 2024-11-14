@@ -20,7 +20,7 @@ rx_dipole = dc.receivers.Dipole(locations_m=xyz_roving, locations_n=xyz_base)
 rx_pole = dc.receivers.Pole(locations=np.r_[xyz_roving, [base_elec]])
 src = sp.sources.StreamingCurrents([rx_dipole, rx_pole])
 survey = sp.Survey([src])
-sim = sp.Simulation3DCellCentered(mesh=mesh, survey=survey, sigma=conductivity)
+sim = sp.Simulation3DCellCentered(mesh=mesh, survey=survey, conductivity=conductivity)
 
 
 def test_forward():
@@ -40,7 +40,7 @@ def test_forward():
     dc_tx = dc.sources.Dipole([rx_dipole, rx_pole], location_a=a_loc, location_b=b_loc)
     dc_survey = dc.Survey([dc_tx])
     sim_dc = dc.Simulation3DCellCentered(
-        mesh=mesh, survey=dc_survey, sigma=conductivity
+        mesh=mesh, survey=dc_survey, conductivity=conductivity
     )
 
     dc_dpred = sim_dc.make_synthetic_data(None, add_noise=False, random_seed=40)
@@ -106,11 +106,11 @@ def test_adjoint(q_map):
 def test_errors():
     with pytest.raises(ValueError):
         sp.Simulation3DCellCentered(
-            mesh=mesh, survey=survey, sigma=None, resistivity=None
+            mesh=mesh, survey=survey, conductivity=None, resistivity=None
         )
     with pytest.raises(ValueError):
         sp.Simulation3DCellCentered(
-            mesh=mesh, survey=survey, sigma=1.0, resistivity=1.0
+            mesh=mesh, survey=survey, conductivity=1.0, resistivity=1.0
         )
 
 

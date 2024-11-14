@@ -14,20 +14,20 @@ freq = [1e-1, 2e-1]
 addrandoms = True
 
 
-def appResPhsHalfspace_eFrom_ps_Norm(sigmaHalf, appR=True, expMap=False):
+def appResPhsHalfspace_eFrom_ps_Norm(conductivityHalf, appR=True, expMap=False):
     if appR:
         label = "resistivity"
     else:
         label = "phase"
     print(
         "Apparent {:s} test of eFormulation primary/secondary at {:g}\n\n".format(
-            label, sigmaHalf
+            label, conductivityHalf
         )
     )
 
     # Calculate the app  phs
     survey, simulation = nsem.utils.test_utils.setupSimpegNSEM_ePrimSec(
-        nsem.utils.test_utils.halfSpace(sigmaHalf), expMap=expMap
+        nsem.utils.test_utils.halfSpace(conductivityHalf), expMap=expMap
     )
     data = nsem.Data(survey=survey, dobs=simulation.dpred(simulation.model))
     recData = data.toRecArray("Complex")
@@ -35,8 +35,8 @@ def appResPhsHalfspace_eFrom_ps_Norm(sigmaHalf, appR=True, expMap=False):
     # app_rpyx = nsem.utils.appResPhs(recData['freq'], recData['zyx'])[0]
     if appR:
         return np.linalg.norm(
-            np.abs(np.log10(app_rpxy[0]) - np.log10(1.0 / sigmaHalf))
-            * np.log10(sigmaHalf)
+            np.abs(np.log10(app_rpxy[0]) - np.log10(1.0 / conductivityHalf))
+            * np.log10(conductivityHalf)
         )
     else:
         return np.linalg.norm(np.abs(app_rpxy[1] + 135.0) / 135.0)

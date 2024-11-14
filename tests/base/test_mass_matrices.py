@@ -11,20 +11,26 @@ import pytest
 
 
 # define a very simple class...
-@with_property_mass_matrices("sigma")
+@with_property_mass_matrices("conductivity")
 @with_property_mass_matrices("mu")
 class SimpleSim(BasePDESimulation):
-    sigma, conductivity_map, _con_deriv = props.Invertible(
+    conductivity, conductivity_map, _con_deriv = props.Invertible(
         "Electrical conductivity (S/m)"
     )
 
     mu, muMap, muDeriv = props.Invertible("Magnetic Permeability")
 
     def __init__(
-        self, mesh, survey=None, sigma=None, conductivity_map=None, mu=mu_0, muMap=None
+        self,
+        mesh,
+        survey=None,
+        conductivity=None,
+        conductivity_map=None,
+        mu=mu_0,
+        muMap=None,
     ):
         super().__init__(mesh=mesh, survey=survey)
-        self.conductivity = sigma
+        self.conductivity = conductivity
         self.mu = mu
         self.conductivity_map = conductivity_map
         self.muMap = muMap
@@ -36,7 +42,7 @@ class SimpleSim(BasePDESimulation):
         """
         toDelete = super()._delete_on_model_change
         if self.conductivity_map is not None or self.resistivity_map is not None:
-            toDelete = toDelete + self._clear_on_sigma_update
+            toDelete = toDelete + self._clear_on_conductivity_update
         return toDelete
 
 

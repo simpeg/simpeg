@@ -267,7 +267,7 @@ class RegularizationTests(unittest.TestCase):
         rng = np.random.default_rng(seed=123)
         m = rng.random(2 * mesh.nC)
 
-        wires = maps.Wires(("sigma", mesh.nC), ("mu", mesh.nC))
+        wires = maps.Wires(("conductivity", mesh.nC), ("mu", mesh.nC))
 
         for regType in ["WeightedLeastSquares", "Sparse"]:
             reg1 = getattr(regularization, regType)(mesh, mapping=wires.conductivity)
@@ -304,7 +304,7 @@ class RegularizationTests(unittest.TestCase):
 
         cell_weights = np.random.rand(mesh.nC)
 
-        wires = maps.Wires(("sigma", mesh.nC), ("mu", mesh.nC))
+        wires = maps.Wires(("conductivity", mesh.nC), ("mu", mesh.nC))
 
         reg = regularization.Smallness(mesh, mapping=wires.conductivity)
         reg.set_weights(cell_weights=cell_weights)

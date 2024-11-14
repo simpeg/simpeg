@@ -21,8 +21,8 @@ mesh = discretize.CylindricalMesh(
     x0="00C",
 )
 
-sigma = 1e-2
-conductivity = sigma * np.ones(mesh.n_cells)
+conductivity = 1e-2
+conductivity = conductivity * np.ones(mesh.n_cells)
 epsilon_r_list = [0, 1, 1e3, 1e4, 1e5, 1e6]
 epsilon_list = [epsilon_0 * e_r for e_r in epsilon_r_list]
 frequency_list = [50, 100]
@@ -80,14 +80,14 @@ def print_comparison(
             mesh,
             survey=survey,
             forward_only=True,
-            sigma=conductivity,
+            conductivity=conductivity,
             permittivity=epsilon,
         ),
         lambda survey, epsilon: fdem.Simulation3DMagneticFluxDensity(
             mesh,
             survey=survey,
             forward_only=True,
-            sigma=conductivity,
+            conductivity=conductivity,
             permittivity=epsilon,
         ),
     ],
@@ -99,7 +99,7 @@ def test_mag_dipole(epsilon, frequency, simulation):
     fields = sim.fields()
 
     analytic_bdipole = geoana.em.fdem.MagneticDipoleWholeSpace(
-        sigma=sigma, epsilon=epsilon, frequency=frequency, orientation="Z"
+        conductivity=conductivity, epsilon=epsilon, frequency=frequency, orientation="Z"
     )
     analytics = {
         "b": np.hstack(
@@ -133,14 +133,14 @@ def test_mag_dipole(epsilon, frequency, simulation):
             mesh,
             survey=survey,
             forward_only=True,
-            sigma=conductivity,
+            conductivity=conductivity,
             permittivity=epsilon,
         ),
         lambda survey, epsilon: fdem.Simulation3DMagneticField(
             mesh,
             survey=survey,
             forward_only=True,
-            sigma=conductivity,
+            conductivity=conductivity,
             permittivity=epsilon,
         ),
     ],
@@ -156,7 +156,7 @@ def test_e_dipole(epsilon, frequency, simulation):
     fields = sim.fields()
 
     analytic_edipole = geoana.em.fdem.ElectricDipoleWholeSpace(
-        sigma=sigma, epsilon=epsilon, frequency=frequency, orientation="Z"
+        conductivity=conductivity, epsilon=epsilon, frequency=frequency, orientation="Z"
     )
     analytics = {
         "j": np.hstack(
@@ -184,7 +184,7 @@ def test_e_dipole(epsilon, frequency, simulation):
 @pytest.mark.parametrize("epsilon_r", epsilon_r_list)
 @pytest.mark.parametrize("frequency", frequency_list)
 def test_cross_check_e_dipole(epsilon_r, frequency):
-    sigma_back = 1e-2
+    conductivity_back = 1e-2
     epsilon_r_back = 1
 
     target_z = np.r_[-20, -40]
@@ -192,7 +192,7 @@ def test_cross_check_e_dipole(epsilon_r, frequency):
 
     frequencies = [frequency]
 
-    sigma = np.ones(mesh.n_cells) * sigma_back
+    conductivity = np.ones(mesh.n_cells) * conductivity_back
     rel_permittivity = np.ones(mesh.n_cells) * epsilon_r_back
 
     target_inds = (
@@ -216,7 +216,7 @@ def test_cross_check_e_dipole(epsilon_r, frequency):
         mesh,
         survey=survey_j_target,
         forward_only=True,
-        sigma=sigma,
+        conductivity=conductivity,
         permittivity=rel_permittivity * epsilon_0,
     )
 
@@ -232,7 +232,7 @@ def test_cross_check_e_dipole(epsilon_r, frequency):
         mesh,
         survey=survey_h_target,
         forward_only=True,
-        sigma=sigma,
+        conductivity=conductivity,
         permittivity=rel_permittivity * epsilon_0,
     )
 
@@ -276,7 +276,7 @@ def test_cross_check_e_dipole(epsilon_r, frequency):
 @pytest.mark.parametrize("epsilon_r", epsilon_r_list)
 @pytest.mark.parametrize("frequency", frequency_list)
 def test_cross_check_b_dipole(epsilon_r, frequency):
-    sigma_back = 1e-2
+    conductivity_back = 1e-2
     epsilon_r_back = 1
 
     target_z = np.r_[-20, -40]
@@ -284,7 +284,7 @@ def test_cross_check_b_dipole(epsilon_r, frequency):
 
     frequencies = [frequency]
 
-    sigma = np.ones(mesh.n_cells) * sigma_back
+    conductivity = np.ones(mesh.n_cells) * conductivity_back
     rel_permittivity = np.ones(mesh.n_cells) * epsilon_r_back
 
     target_inds = (
@@ -306,7 +306,7 @@ def test_cross_check_b_dipole(epsilon_r, frequency):
         mesh,
         survey=survey_b_target,
         forward_only=True,
-        sigma=sigma,
+        conductivity=conductivity,
         permittivity=rel_permittivity * epsilon_0,
     )
 
@@ -320,7 +320,7 @@ def test_cross_check_b_dipole(epsilon_r, frequency):
         mesh,
         survey=survey_e_target,
         forward_only=True,
-        sigma=sigma,
+        conductivity=conductivity,
         permittivity=rel_permittivity * epsilon_0,
     )
 

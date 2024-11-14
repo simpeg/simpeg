@@ -37,8 +37,8 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         s_e = np.hstack([s_e, np.zeros(mesh.nFy + mesh.nFz)])
 
         # define a model with a conductive, permeable target
-        sigma0 = 1e-1
-        sigma1 = 1
+        conductivity0 = 1e-1
+        conductivity1 = 1
 
         mu0 = mu_0
         mu1 = 100 * mu_0
@@ -53,8 +53,8 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
             & (mesh.gridCC[:, 2] <= h_target[1])
         )
 
-        sigma = sigma0 * np.ones(mesh.nC)
-        sigma[target_inds] = sigma1
+        conductivity = conductivity0 * np.ones(mesh.nC)
+        conductivity[target_inds] = conductivity1
 
         mu = mu0 * np.ones(mesh.nC)
         mu[target_inds] = mu1
@@ -78,14 +78,14 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         )
         survey = tdem.Survey([src])
 
-        prob.model = sigma
+        prob.model = conductivity
 
         self.mesh = mesh
         self.prob = prob
         self.survey = survey
         self.src = src
 
-        self.conductivity = sigma
+        self.conductivity = conductivity
         self.mu = mu
 
         print("Testing problem {} \n\n".format(self.prob_type))

@@ -18,11 +18,18 @@ class TestGMMs(unittest.TestCase):
         # Create a cloud of  random points from a random gaussian mixture
         self.ndim = 2
         self.n_components = 2
-        sigma = np.random.randn(self.n_components, self.ndim, self.ndim)
-        sigma = np.c_[[sigma[i].dot(sigma[i].T) for i in range(sigma.shape[0])]]
-        sigma[0] += np.eye(self.ndim)
-        sigma[1] += np.eye(self.ndim) - 0.25 * np.eye(self.ndim).transpose((1, 0))
-        self.conductivity = sigma
+        conductivity = np.random.randn(self.n_components, self.ndim, self.ndim)
+        conductivity = np.c_[
+            [
+                conductivity[i].dot(conductivity[i].T)
+                for i in range(conductivity.shape[0])
+            ]
+        ]
+        conductivity[0] += np.eye(self.ndim)
+        conductivity[1] += np.eye(self.ndim) - 0.25 * np.eye(self.ndim).transpose(
+            (1, 0)
+        )
+        self.conductivity = conductivity
         self.means = (
             np.abs(np.random.randn(self.ndim, self.ndim)) * np.c_[[100.0, -100.0]]
         )

@@ -514,7 +514,7 @@ ip_simulation = ip.Simulation2DNodal(
     mesh,
     survey=ip_survey,
     etaMap=chargeability_map,
-    sigma=conductivity_map * recovered_conductivity_model,
+    conductivity=conductivity_map * recovered_conductivity_model,
     storeJ=True,
 )
 

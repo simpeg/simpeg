@@ -758,7 +758,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         self._Me = self.simulation.Me
         self._aveF2CCV = self.simulation.mesh.aveF2CCV
         self._aveE2CCV = self.simulation.mesh.aveE2CCV
-        self._sigma = self.simulation.conductivity
+        self._conductivity = self.simulation.conductivity
         self._mui = self.simulation.mui
         self._nC = self.simulation.mesh.nC
         self._MeI = self.simulation.MeI
@@ -1121,7 +1121,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
         self._MeMuIDeriv = self.simulation.MeMuIDeriv
         self._MfRho = self.simulation.MfRho
         self._MfRhoDeriv = self.simulation.MfRhoDeriv
-        self._rho = self.simulation.resistivity
+        self._resistivity = self.simulation.resistivity
         self._mu = self.simulation.mui
         self._aveF2CCV = self.simulation.mesh.aveF2CCV
         self._aveE2CCV = self.simulation.mesh.aveE2CCV

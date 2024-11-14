@@ -55,9 +55,9 @@ import time
 
 def run(plotIt=True):
     # ------------------ MODEL ------------------
-    sigmaair = 1e-8  # air
-    sigmaback = 1e-2  # background
-    sigmacasing = 1e6  # casing
+    conductivityair = 1e-8  # air
+    conductivityback = 1e-2  # background
+    conductivitycasing = 1e6  # casing
 
     casing_t = 0.006  # 1cm thickness
     casing_l = 300  # length of the casing
@@ -72,7 +72,7 @@ def run(plotIt=True):
     dsz = -300  # down-hole z source location
     inf_loc = np.r_[0.0, 0.0, 1e4]
 
-    print("Skin Depth: ", [(500.0 / np.sqrt(sigmaback * _)) for _ in freqs])
+    print("Skin Depth: ", [(500.0 / np.sqrt(conductivityback * _)) for _ in freqs])
 
     # ------------------ MESH ------------------
     # fine cells near well bore
@@ -125,16 +125,16 @@ def run(plotIt=True):
         mesh.plot_grid(ax=ax)
 
     # Put the model on the mesh
-    sigWholespace = sigmaback * np.ones((mesh.nC))
+    sigWholespace = conductivityback * np.ones((mesh.nC))
 
     sigBack = sigWholespace.copy()
-    sigBack[mesh.gridCC[:, 2] > 0.0] = sigmaair
+    sigBack[mesh.gridCC[:, 2] > 0.0] = conductivityair
 
     sigCasing = sigBack.copy()
     iCasingZ = (mesh.gridCC[:, 2] <= casing_z[1]) & (mesh.gridCC[:, 2] >= casing_z[0])
     iCasingX = (mesh.gridCC[:, 0] >= casing_a) & (mesh.gridCC[:, 0] <= casing_b)
     iCasing = iCasingX & iCasingZ
-    sigCasing[iCasing] = sigmacasing
+    sigCasing[iCasing] = conductivitycasing
 
     if plotIt is True:
         # plotting parameters

@@ -33,7 +33,7 @@ target_mur = 100  # permeability of the target
 target_l = 500  # length of target
 target_r = 50  # radius of the target
 
-sigma_back = 1e-5  # conductivity of the background
+conductivity_back = 1e-5  # conductivity of the background
 
 radius_loop = 100  # radius of the transmitter loop
 
@@ -83,7 +83,7 @@ z_inds = (mesh.gridCC[:, 2] <= 0) & (mesh.gridCC[:, 2] >= -target_l)
 mur_model[x_inds & z_inds] = target_mur
 mu_model = mu_0 * mur_model
 
-sigma = np.ones(mesh.nC) * sigma_back
+conductivity = np.ones(mesh.nC) * conductivity_back
 
 ###############################################################################
 # Plot the models
@@ -204,7 +204,7 @@ t = time.time()
 print("--- Running Long On-Time Simulation ---")
 
 prob_ramp_on.mu = mu_model
-fields = prob_ramp_on.fields(sigma)
+fields = prob_ramp_on.fields(conductivity)
 
 print(" ... done. Elapsed time {}".format(time.time() - t))
 print("\n")
@@ -217,7 +217,7 @@ b_ramp_on = utils.mkvc(fields[:, "b", -1])
 # -----------------------------------------------------
 
 prob_magnetostatic.mu = mu_model
-prob_magnetostatic.model = sigma
+prob_magnetostatic.model = conductivity
 b_magnetostatic = src_magnetostatic.bInitial(prob_magnetostatic)
 
 

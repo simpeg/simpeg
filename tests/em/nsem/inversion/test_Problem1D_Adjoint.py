@@ -12,7 +12,7 @@ CONDUCTIVITY = 1e1
 MU = mu_0
 
 
-def JvecAdjointTest_1D(sigmaHalf, formulation="PrimSec"):
+def JvecAdjointTest_1D(conductivityHalf, formulation="PrimSec"):
     # Frequencies being measured
     frequencies = np.logspace(0, 4, 21)
 
@@ -36,10 +36,10 @@ def JvecAdjointTest_1D(sigmaHalf, formulation="PrimSec"):
     layer_thicknesses = np.array([200, 100])
 
     # Layer conductivities
-    sigma_model = np.array([0.001, 0.01, 0.1])
+    conductivity_model = np.array([0.001, 0.01, 0.1])
 
     # Define a mapping for conductivities, thicknesses
-    mapping = maps.Wires(("sigma", 3), ("thicknesses", 2))
+    mapping = maps.Wires(("conductivity", 3), ("thicknesses", 2))
 
     simulation = nsem.simulation_1d.Simulation1DRecursive(
         survey=survey,
@@ -47,7 +47,7 @@ def JvecAdjointTest_1D(sigmaHalf, formulation="PrimSec"):
         thicknessesMap=mapping.thicknesses,
     )
 
-    m = np.r_[sigma_model, layer_thicknesses]
+    m = np.r_[conductivity_model, layer_thicknesses]
     u = simulation.fields(m)
 
     rng = np.random.default_rng(seed=1983)
@@ -62,10 +62,10 @@ def JvecAdjointTest_1D(sigmaHalf, formulation="PrimSec"):
     return np.abs(vJw - wJtv) < tol
 
 
-def JvecAdjointTest(sigmaHalf, formulation="PrimSec"):
+def JvecAdjointTest(conductivityHalf, formulation="PrimSec"):
     forType = "PrimSec" not in formulation
-    survey, sigma, sigBG, m1d = nsem.utils.test_utils.setup1DSurvey(
-        sigmaHalf, tD=forType, structure=False
+    survey, conductivity, sigBG, m1d = nsem.utils.test_utils.setup1DSurvey(
+        conductivityHalf, tD=forType, structure=False
     )
     print("Adjoint test of e formulation for {:s} comp \n".format(formulation))
 
@@ -73,14 +73,14 @@ def JvecAdjointTest(sigmaHalf, formulation="PrimSec"):
         problem = nsem.Simulation1DPrimarySecondary(
             m1d,
             survey=survey,
-            sigmaPrimary=sigBG,
+            conductivityPrimary=sigBG,
             conductivity_map=maps.IdentityMap(m1d),
         )
     else:
         raise NotImplementedError(
             "Only {} formulations are implemented.".format(formulation)
         )
-    m = sigma
+    m = conductivity
     u = problem.fields(m)
 
     rng = np.random.default_rng(seed=1983)

@@ -11,7 +11,7 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
     # - All src and rx orientations
     # - All rx components
     # - Span many frequencies
-    # - Tests derivatives wrt sigma, mu, thicknesses and h
+    # - Tests derivatives wrt conductivity, mu, thicknesses and h
     def setUp(self):
         # Layers and topography
         nearthick = np.logspace(-1, 1, 5)
@@ -62,7 +62,7 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
         self.nlayers = len(thicknesses) + 1
 
         wire_map = maps.Wires(
-            ("sigma", self.nlayers),
+            ("conductivity", self.nlayers),
             ("mu", self.nlayers),
             ("thicknesses", self.nlayers - 1),
             ("h", 1),
@@ -87,10 +87,10 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
 
     def test_EM1DFDJvec_Layers(self):
         # Conductivity
-        sigma_half = 0.01
-        sigma_blk = 0.1
-        sig = np.ones(self.nlayers) * sigma_half
-        sig[3] = sigma_blk
+        conductivity_half = 0.01
+        conductivity_blk = 0.1
+        sig = np.ones(self.nlayers) * conductivity_half
+        sig[3] = conductivity_blk
 
         # Permeability
         mu_half = mu_0
@@ -126,10 +126,10 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
 
     def test_EM1DFDJtvec_Layers(self):
         # Conductivity
-        sigma_half = 0.01
-        sigma_blk = 0.1
-        sig = np.ones(self.nlayers) * sigma_half
-        sig[3] = sigma_blk
+        conductivity_half = 0.01
+        conductivity_blk = 0.1
+        sig = np.ones(self.nlayers) * conductivity_half
+        sig[3] = conductivity_blk
 
         # Permeability
         mu_half = mu_0
@@ -145,7 +145,7 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
         dobs = self.sim.dpred(m_true)
 
         m_ini = np.r_[
-            np.log(np.ones(self.nlayers) * sigma_half),
+            np.log(np.ones(self.nlayers) * conductivity_half),
             np.log(np.ones(self.nlayers) * 1.5 * mu_half),
             np.log(self.thicknesses) * 0.9,
             np.log(0.5 * self.height),
@@ -177,7 +177,7 @@ class EM1D_FD_Jacobian_Test_CircularLoop(unittest.TestCase):
     # - All rx orientations
     # - All rx components
     # - Span many frequencies
-    # - Tests derivatives wrt sigma, mu, thicknesses and h
+    # - Tests derivatives wrt conductivity, mu, thicknesses and h
     def setUp(self):
         nearthick = np.logspace(-1, 1, 5)
         deepthick = np.logspace(1, 2, 10)
@@ -226,7 +226,7 @@ class EM1D_FD_Jacobian_Test_CircularLoop(unittest.TestCase):
         nP = len(source_list)
 
         wire_map = maps.Wires(
-            ("sigma", self.nlayers),
+            ("conductivity", self.nlayers),
             ("mu", self.nlayers),
             ("thicknesses", self.nlayers - 1),
             ("h", 1),
@@ -250,10 +250,10 @@ class EM1D_FD_Jacobian_Test_CircularLoop(unittest.TestCase):
 
     def test_EM1DFDJvec_Layers(self):
         # Conductivity
-        sigma_half = 0.01
-        sigma_blk = 0.1
-        sig = np.ones(self.nlayers) * sigma_half
-        sig[3] = sigma_blk
+        conductivity_half = 0.01
+        conductivity_blk = 0.1
+        sig = np.ones(self.nlayers) * conductivity_half
+        sig[3] = conductivity_blk
 
         # Permeability
         mu_half = mu_0
@@ -289,10 +289,10 @@ class EM1D_FD_Jacobian_Test_CircularLoop(unittest.TestCase):
 
     def test_EM1DFDJtvec_Layers(self):
         # Conductivity
-        sigma_half = 0.01
-        sigma_blk = 0.1
-        sig = np.ones(self.nlayers) * sigma_half
-        sig[3] = sigma_blk
+        conductivity_half = 0.01
+        conductivity_blk = 0.1
+        sig = np.ones(self.nlayers) * conductivity_half
+        sig[3] = conductivity_blk
 
         # Permeability
         mu_half = mu_0
@@ -308,7 +308,7 @@ class EM1D_FD_Jacobian_Test_CircularLoop(unittest.TestCase):
         dobs = self.sim.dpred(m_true)
 
         m_ini = np.r_[
-            np.log(np.ones(self.nlayers) * sigma_half),
+            np.log(np.ones(self.nlayers) * conductivity_half),
             np.log(np.ones(self.nlayers) * 1.5 * mu_half),
             np.log(self.thicknesses) * 0.9,
             np.log(0.5 * self.height),
@@ -340,7 +340,7 @@ class EM1D_FD_Jacobian_Test_LineCurrent(unittest.TestCase):
     # - All rx orientations
     # - All rx components
     # - Span many frequencies
-    # - Tests derivatives wrt sigma, mu, thicknesses and h
+    # - Tests derivatives wrt conductivity, mu, thicknesses and h
     def setUp(self):
         x_path = np.array([-2, -2, 2, 2, -2])
         y_path = np.array([-1, 1, 1, -1, -1])
@@ -376,7 +376,7 @@ class EM1D_FD_Jacobian_Test_LineCurrent(unittest.TestCase):
 
         self.nlayers = len(self.thicknesses) + 1
         wire_map = maps.Wires(
-            ("sigma", self.nlayers),
+            ("conductivity", self.nlayers),
             ("mu", self.nlayers),
             ("thicknesses", self.nlayers - 1),
         )
@@ -395,10 +395,10 @@ class EM1D_FD_Jacobian_Test_LineCurrent(unittest.TestCase):
 
     def test_EM1DFDJvec_Layers(self):
         # Conductivity
-        sigma_half = 0.01
-        sigma_blk = 0.1
-        sig = np.ones(self.nlayers) * sigma_half
-        sig[1] = sigma_blk
+        conductivity_half = 0.01
+        conductivity_blk = 0.1
+        sig = np.ones(self.nlayers) * conductivity_half
+        sig[1] = conductivity_blk
 
         # Permeability
         mu_half = mu_0
@@ -432,10 +432,10 @@ class EM1D_FD_Jacobian_Test_LineCurrent(unittest.TestCase):
 
     def test_EM1DFDJtvec_Layers(self):
         # Conductivity
-        sigma_half = 0.01
-        sigma_blk = 0.1
-        sig = np.ones(self.nlayers) * sigma_half
-        sig[1] = sigma_blk
+        conductivity_half = 0.01
+        conductivity_blk = 0.1
+        sig = np.ones(self.nlayers) * conductivity_half
+        sig[1] = conductivity_blk
 
         # Permeability
         mu_half = mu_0
@@ -449,7 +449,7 @@ class EM1D_FD_Jacobian_Test_LineCurrent(unittest.TestCase):
         dobs = self.sim.dpred(m_true)
 
         m_ini = np.r_[
-            np.log(np.ones(self.nlayers) * sigma_half),
+            np.log(np.ones(self.nlayers) * conductivity_half),
             np.log(np.ones(self.nlayers) * mu_half),
             np.log(self.thicknesses) * 0.9,
         ]

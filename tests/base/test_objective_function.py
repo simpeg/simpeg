@@ -238,7 +238,7 @@ class TestBaseObjFct(unittest.TestCase):
         nP = 10
         m = np.random.rand(2 * nP)
 
-        wires = maps.Wires(("sigma", nP), ("mu", nP))
+        wires = maps.Wires(("conductivity", nP), ("mu", nP))
 
         objfct1 = objective_function.L2ObjectiveFunction(mapping=wires.conductivity)
         objfct2 = objective_function.L2ObjectiveFunction(mapping=wires.mu)

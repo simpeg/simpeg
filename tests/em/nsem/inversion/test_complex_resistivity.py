@@ -31,14 +31,14 @@ class ComplexResistivityTest(unittest.TestCase):
         active = mesh.gridCC[:, 2] < 50
 
         # create background conductivity model
-        sigma_back = 1e-2
-        sigma_background = np.ones(mesh.nC) * sigma_back
-        sigma_background[~active] = 1e-8
+        conductivity_back = 1e-2
+        conductivity_background = np.ones(mesh.nC) * conductivity_back
+        conductivity_background[~active] = 1e-8
 
         # create a model to test with
         block = [csx * np.r_[-3, 3], csx * np.r_[-3, 3], csz * np.r_[-6, -1]]
 
-        block_sigma = 3e-1
+        block_conductivity = 3e-1
 
         block_inds = (
             (mesh.gridCC[:, 0] >= block[0].min())
@@ -49,12 +49,12 @@ class ComplexResistivityTest(unittest.TestCase):
             & (mesh.gridCC[:, 2] <= block[2].max())
         )
 
-        m = sigma_background.copy()
-        m[block_inds] = block_sigma
+        m = conductivity_background.copy()
+        m[block_inds] = block_conductivity
         m = np.log(m[active])
 
         self.mesh = mesh
-        self.conductivity_background = sigma_background
+        self.conductivity_background = conductivity_background
         self.model = m
         self.active = active
 
@@ -87,7 +87,7 @@ class ComplexResistivityTest(unittest.TestCase):
         sim = ns.simulation.Simulation3DPrimarySecondary(
             self.mesh,
             survey=survey_ns,
-            sigmaPrimary=self.conductivity_background,
+            conductivityPrimary=self.conductivity_background,
             conductivity_map=mapping,
         )
         return sim
@@ -128,7 +128,7 @@ class ComplexResistivityTest(unittest.TestCase):
         sim = ns.simulation.Simulation3DPrimarySecondary(
             self.mesh,
             survey=survey_ns,
-            sigmaPrimary=self.conductivity_background,
+            conductivityPrimary=self.conductivity_background,
             conductivity_map=mapping,
         )
         return sim
@@ -155,14 +155,14 @@ class ComplexResistivityTest(unittest.TestCase):
             self.mesh.h[-1],
         ]
         mesh1d = discretize.TensorMesh(hs, x0=x0)
-        sigma1d = np.exp(
+        conductivity1d = np.exp(
             volume_average(self.mesh, mesh1d, np.log(self.conductivity_background))
         )
 
         # Source list
         freqs = [10, 50, 200]
         srcList = [
-            ns.Src.PlanewaveXYPrimary(rxList, freq, sigma_primary=sigma1d)
+            ns.Src.PlanewaveXYPrimary(rxList, freq, conductivity_primary=conductivity1d)
             for freq in freqs
         ]
 
@@ -201,7 +201,7 @@ class ComplexResistivityTest(unittest.TestCase):
         freqs = [10, 50, 200]
         srcList = [
             ns.Src.PlanewaveXYPrimary(
-                rxList, freq, sigma_primary=self.conductivity_background
+                rxList, freq, conductivity_primary=self.conductivity_background
             )
             for freq in freqs
         ]

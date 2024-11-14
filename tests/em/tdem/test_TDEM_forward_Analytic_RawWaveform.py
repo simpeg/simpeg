@@ -79,9 +79,9 @@ def halfSpaceProblemAnaDiff(
         mesh, survey=survey, conductivity_map=mapping, time_steps=time_steps
     )
 
-    sigma = np.ones(mesh.shape_cells[2]) * 1e-8
-    sigma[active] = sig_half
-    sigma = np.log(sigma[active])
+    conductivity = np.ones(mesh.shape_cells[2]) * 1e-8
+    conductivity[active] = sig_half
+    conductivity = np.log(conductivity[active])
 
     if srctype == "MagDipole":
         bz_ana = mu_0 * analytics.hzAnalyticDipoleT(
@@ -92,7 +92,7 @@ def halfSpaceProblemAnaDiff(
     elif srctype == "LineCurrent":
         bz_ana = mu_0 * analytics.hzAnalyticCentLoopT(100.0, rx.times - t0, sig_half)
 
-    bz_calc = prb.dpred(sigma)
+    bz_calc = prb.dpred(conductivity)
     ind = np.logical_and(rx.times - t0 > bounds[0], rx.times - t0 < bounds[1])
     log10diff = np.linalg.norm(
         np.log10(np.abs(bz_calc[ind])) - np.log10(np.abs(bz_ana[ind]))

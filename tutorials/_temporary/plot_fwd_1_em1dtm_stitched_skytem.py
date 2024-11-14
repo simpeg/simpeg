@@ -128,7 +128,7 @@ survey = em1d.survey.EM1DSurveyTD(source_list)
 
 n_layer = 25
 thicknesses = get_vertical_discretization_time(
-    np.r_[time_HM, time_LM], sigma_background=0.1, n_layer=n_layer - 1
+    np.r_[time_HM, time_LM], conductivity_background=0.1, n_layer=n_layer - 1
 )
 
 dx = 100.0

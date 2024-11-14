@@ -15,7 +15,7 @@ def analytic_wholespace_dipole_comparison(
     src_type="MagDipole",
     rx_type="MagneticFluxDensity",
     rx_orientation="Z",
-    sigma=1e-2,
+    conductivity=1e-2,
     rx_offset=None,
     bounds=None,
     plotIt=False,
@@ -36,7 +36,7 @@ def analytic_wholespace_dipole_comparison(
         mesh = discretize.TensorMesh([hx, hy, hz], "CCC")
 
     mapping = maps.IdentityMap(mesh)
-    sigma_model = np.ones(mesh.nC) * sigma
+    conductivity_model = np.ones(mesh.nC) * conductivity
 
     times = np.logspace(-5, -4, 21)
     rx = getattr(tdem.receivers, "Point{}".format(rx_type))(
@@ -78,7 +78,7 @@ def analytic_wholespace_dipole_comparison(
                     analytics.TDEM.TransientMagneticDipoleWholeSpace(
                         np.c_[rx_offset].T,
                         np.r_[0.0, 0.0, 0.0],
-                        sigma,
+                        conductivity,
                         times,
                         "Z",
                         fieldType="h",
@@ -93,7 +93,7 @@ def analytic_wholespace_dipole_comparison(
                     analytics.TDEM.TransientMagneticDipoleWholeSpace(
                         np.c_[rx_offset].T,
                         np.r_[0.0, 0.0, 0.0],
-                        sigma,
+                        conductivity,
                         times,
                         "Z",
                         fieldType="dhdt",
@@ -106,7 +106,7 @@ def analytic_wholespace_dipole_comparison(
                 analytics.TDEM.TransientMagneticDipoleWholeSpace(
                     np.c_[rx_offset].T,
                     np.r_[0.0, 0.0, 0.0],
-                    sigma,
+                    conductivity,
                     times,
                     "Z",
                     fieldType="e",
@@ -122,7 +122,7 @@ def analytic_wholespace_dipole_comparison(
                     analytics.TDEM.TransientElectricDipoleWholeSpace(
                         np.c_[rx_offset].T,
                         np.r_[0.0, 0.0, 0.0],
-                        sigma,
+                        conductivity,
                         times,
                         "Z",
                         fieldType="h",
@@ -137,7 +137,7 @@ def analytic_wholespace_dipole_comparison(
                     analytics.TDEM.TransientElectricDipoleWholeSpace(
                         np.c_[rx_offset].T,
                         np.r_[0.0, 0.0, 0.0],
-                        sigma,
+                        conductivity,
                         times,
                         "Z",
                         fieldType="dhdt",
@@ -150,7 +150,7 @@ def analytic_wholespace_dipole_comparison(
                 analytics.TDEM.TransientElectricDipoleWholeSpace(
                     np.c_[rx_offset].T,
                     np.r_[0.0, 0.0, 0.0],
-                    sigma,
+                    conductivity,
                     times,
                     "Z",
                     fieldType="e",
@@ -170,7 +170,7 @@ def analytic_wholespace_dipole_comparison(
         (0.0001, 40),
         (0.0005, 40),
     ]
-    numeric_solution = sim.dpred(sigma_model)
+    numeric_solution = sim.dpred(conductivity_model)
 
     ind = np.logical_and(rx.times > bounds[0], rx.times < bounds[1])
     log10diff = np.linalg.norm(
@@ -266,9 +266,9 @@ def analytic_halfspace_mag_dipole_comparison(
         mesh, survey=survey, time_steps=time_steps, conductivity_map=mapping
     )
 
-    sigma = np.ones(mesh.shape_cells[2]) * 1e-8
-    sigma[active] = sig_half
-    sigma = np.log(sigma[active])
+    conductivity = np.ones(mesh.shape_cells[2]) * 1e-8
+    conductivity[active] = sig_half
+    conductivity = np.log(conductivity[active])
 
     if src_type == "MagDipole":
         bz_ana = mu_0 * analytics.hzAnalyticDipoleT(
@@ -277,7 +277,7 @@ def analytic_halfspace_mag_dipole_comparison(
     elif src_type == "CircularLoop":
         bz_ana = mu_0 * analytics.hzAnalyticDipoleT(13, rx.times, sig_half)
 
-    bz_calc = sim.dpred(sigma)
+    bz_calc = sim.dpred(conductivity)
     ind = np.logical_and(rx.times > bounds[0], rx.times < bounds[1])
     log10diff = np.linalg.norm(
         np.log10(np.abs(bz_calc[ind])) - np.log10(np.abs(bz_ana[ind]))

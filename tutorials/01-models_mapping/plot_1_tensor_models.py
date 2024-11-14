@@ -296,9 +296,9 @@ plt.show()
 
 mesh = make_example_mesh()
 
-background_sigma = np.log(100.0)
-sphere_sigma = np.log(70.0)
-dyke_sigma = np.log(40.0)
+background_conductivity = np.log(100.0)
+sphere_conductivity = np.log(70.0)
+dyke_conductivity = np.log(40.0)
 background_myu = 1.0
 sphere_mu = 1.25
 
@@ -314,14 +314,14 @@ active_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define model for cells under the surface topography
 N = int(ind_active.sum())
-model = np.kron(np.ones((N, 1)), np.c_[background_sigma, background_myu])
+model = np.kron(np.ones((N, 1)), np.c_[background_conductivity, background_myu])
 
 # Add a conductive and permeable sphere
 ind_sphere = model_builder.get_indices_sphere(
     np.r_[-25.0, 0.0, -15.0], 20.0, mesh.gridCC
 )
 ind_sphere = ind_sphere[ind_active]  # So same size and order as model
-model[ind_sphere, :] = np.c_[sphere_sigma, sphere_mu]
+model[ind_sphere, :] = np.c_[sphere_conductivity, sphere_mu]
 
 # Add a conductive and non-permeable dyke
 xp = np.kron(np.ones((2)), [-10.0, 10.0, 45.0, 25.0])
@@ -330,20 +330,20 @@ zp = np.kron(np.ones((2)), [-120.0, -120.0, 35.0, 35.0])
 xyz_pts = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
 ind_polygon = model_builder.get_indices_polygon(mesh, xyz_pts)
 ind_polygon = ind_polygon[ind_active]  # So same size and order as model
-model[ind_polygon, 0] = dyke_sigma
+model[ind_polygon, 0] = dyke_conductivity
 
 # Create model vector and wires
 model = mkvc(model)
-wire_map = maps.Wires(("log_sigma", N), ("mu", N))
+wire_map = maps.Wires(("log_conductivity", N), ("mu", N))
 
 # Use combo maps to map from model to mesh
-sigma_map = active_map * maps.ExpMap() * wire_map.log_sigma
+conductivity_map = active_map * maps.ExpMap() * wire_map.log_conductivity
 mu_map = active_map * wire_map.mu
 
 # Plot
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
 ind_slice = int(mesh.shape_cells[1] / 2)
-mesh.plot_slice(sigma_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
+mesh.plot_slice(conductivity_map * model, normal="Y", ax=ax, ind=ind_slice, grid=True)
 ax.set_title("Model slice at y = {} m".format(mesh.cell_centers_y[ind_slice]))
 plt.show()

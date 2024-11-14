@@ -3,7 +3,7 @@ from scipy.constants import mu_0, pi, epsilon_0
 from simpeg import utils
 
 
-def hzAnalyticDipoleF(r, freq, sigma, secondary=True, mu=mu_0):
+def hzAnalyticDipoleF(r, freq, conductivity, secondary=True, mu=mu_0):
     """
     The analytical expression is given in Equation 4.56 in Ward and Hohmann,
     1988, and the example reproduces their Figure 4.2.
@@ -39,7 +39,7 @@ def hzAnalyticDipoleF(r, freq, sigma, secondary=True, mu=mu_0):
 
     """
     r = np.abs(r)
-    k = np.sqrt(-1j * 2.0 * np.pi * freq * mu * sigma)
+    k = np.sqrt(-1j * 2.0 * np.pi * freq * mu * conductivity)
 
     m = 1
     front = m / (2.0 * np.pi * (k**2) * (r**5))

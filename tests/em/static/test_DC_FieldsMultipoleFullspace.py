@@ -17,7 +17,7 @@ class DC_CC_MultipoleFullspaceTests(unittest.TestCase):
         hy = [(cs, npad, -1.5), (cs, 15), (cs, npad, 1.5)]
         hz = [(cs, npad, -1.5), (cs, 15), (cs, npad, 1.5)]
         mesh = TensorMesh([hx, hy, hz], x0="CCC")
-        sigma = np.ones(mesh.nC) * 1e-2
+        conductivity = np.ones(mesh.nC) * 1e-2
 
         # Set up survey parameters for numeric solution
         x = mesh.cell_centers_x[
@@ -41,7 +41,7 @@ class DC_CC_MultipoleFullspaceTests(unittest.TestCase):
 
         # Create Dipole Obj for Analytic Solution
         e1dipole = fdem.ElectricDipoleWholeSpace(
-            sigma=1e-2,  # conductivity of 1 S/m
+            conductivity=1e-2,  # conductivity of 1 S/m
             mu=mu_0,  # permeability of free space (this is the default)
             epsilon=epsilon_0,  # permittivity of free space (this is the default)
             location=np.r_[0.5, 0.0, 0.0],  # location of the dipole
@@ -51,7 +51,7 @@ class DC_CC_MultipoleFullspaceTests(unittest.TestCase):
             length=1.0,  # length of dipole
         )
         e2dipole = fdem.ElectricDipoleWholeSpace(
-            sigma=1e-2,  # conductivity of 1 S/m
+            conductivity=1e-2,  # conductivity of 1 S/m
             mu=mu_0,  # permeability of free space (this is the default)
             epsilon=epsilon_0,  # permittivity of free space (this is the default)
             location=np.r_[1.0, 0.0, 0.0],  # location of the dipole
@@ -117,14 +117,17 @@ class DC_CC_MultipoleFullspaceTests(unittest.TestCase):
 
         self.survey = survey
         self.mesh = mesh
-        self.conductivity = sigma
+        self.conductivity = conductivity
         self.E_analytic = E_analytic
         self.J_analytic = J_analytic
         self.ROIfaceInds = ROIfaceInds
 
     def test_Simulation3DCellCentered_Dirichlet(self, tolerance=0.1):
         simulation = dc.Simulation3DCellCentered(
-            self.mesh, survey=self.survey, sigma=self.conductivity, bc_type="Dirichlet"
+            self.mesh,
+            survey=self.survey,
+            conductivity=self.conductivity,
+            bc_type="Dirichlet",
         )
 
         f = simulation.fields()
@@ -149,7 +152,10 @@ class DC_CC_MultipoleFullspaceTests(unittest.TestCase):
 
     def test_Simulation3DCellCentered_Mixed(self, tolerance=0.1):
         simulation = dc.simulation.Simulation3DCellCentered(
-            self.mesh, survey=self.survey, sigma=self.conductivity, bc_type="Mixed"
+            self.mesh,
+            survey=self.survey,
+            conductivity=self.conductivity,
+            bc_type="Mixed",
         )
 
         f = simulation.fields()
@@ -166,7 +172,10 @@ class DC_CC_MultipoleFullspaceTests(unittest.TestCase):
 
     def test_Simulation3DCellCentered_Neumann(self, tolerance=0.1):
         simulation = dc.Simulation3DCellCentered(
-            self.mesh, survey=self.survey, sigma=self.conductivity, bc_type="Neumann"
+            self.mesh,
+            survey=self.survey,
+            conductivity=self.conductivity,
+            bc_type="Neumann",
         )
 
         f = simulation.fields()
@@ -190,7 +199,7 @@ class DC_N_MultipoleFullspaceTests(unittest.TestCase):
         hy = [(cs, npad, -1.5), (cs, 15), (cs, npad, 1.5)]
         hz = [(cs, npad, -1.5), (cs, 15), (cs, npad, 1.5)]
         mesh = TensorMesh([hx, hy, hz], x0="CCC")
-        sigma = np.ones(mesh.nC) * 1e-2
+        conductivity = np.ones(mesh.nC) * 1e-2
 
         # Set up survey parameters for numeric solution
         x = mesh.nodes_x[(mesh.nodes_x > -75.0) & (mesh.nodes_x < 75.0)]
@@ -212,7 +221,7 @@ class DC_N_MultipoleFullspaceTests(unittest.TestCase):
 
         # Create Dipole Obj for Analytic Solution
         e1dipole = fdem.ElectricDipoleWholeSpace(
-            sigma=1e-2,  # conductivity of 1 S/m
+            conductivity=1e-2,  # conductivity of 1 S/m
             mu=mu_0,  # permeability of free space (this is the default)
             epsilon=epsilon_0,  # permittivity of free space (this is the default)
             location=np.r_[0.5, 0.0, 0.0],  # location of the dipole
@@ -222,7 +231,7 @@ class DC_N_MultipoleFullspaceTests(unittest.TestCase):
             length=1.5,  # length of dipole
         )
         e2dipole = fdem.ElectricDipoleWholeSpace(
-            sigma=1e-2,  # conductivity of 1 S/m
+            conductivity=1e-2,  # conductivity of 1 S/m
             mu=mu_0,  # permeability of free space (this is the default)
             epsilon=epsilon_0,  # permittivity of free space (this is the default)
             location=np.r_[1.0, 0.0, 0.0],  # location of the dipole
@@ -288,14 +297,14 @@ class DC_N_MultipoleFullspaceTests(unittest.TestCase):
 
         self.survey = survey
         self.mesh = mesh
-        self.conductivity = sigma
+        self.conductivity = conductivity
         self.E_analytic = E_analytic
         self.J_analytic = J_analytic
         self.ROIedgeInds = ROIedgeInds
 
     def test_Simulation3DNodal(self, tolerance=0.1):
         simulation = dc.simulation.Simulation3DNodal(
-            self.mesh, survey=self.survey, sigma=self.conductivity
+            self.mesh, survey=self.survey, conductivity=self.conductivity
         )
 
         f = simulation.fields()

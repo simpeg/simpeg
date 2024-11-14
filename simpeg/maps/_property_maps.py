@@ -1056,8 +1056,8 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         self,
         mesh=None,
         nP=None,
-        sigma0=None,
-        sigma1=None,
+        conductivity0=None,
+        conductivity1=None,
         alpha0=1.0,
         alpha1=1.0,
         orientation0="z",
@@ -1067,9 +1067,9 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         maxIter=50,
         **kwargs,
     ):
-        self._sigstart = None
-        self.conductivity0 = sigma0
-        self.conductivity1 = sigma1
+        self._cond_start = None
+        self.conductivity0 = conductivity0
+        self.conductivity1 = conductivity1
         self.alpha0 = alpha0
         self.alpha1 = alpha1
         self.orientation0 = orientation0
@@ -1080,32 +1080,32 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         super(SelfConsistentEffectiveMedium, self).__init__(mesh, nP, **kwargs)
 
     @property
-    def sigma0(self):
+    def conductivity0(self):
         """Physical property value for phase-0 material.
 
         Returns
         -------
         float
         """
-        return self._sigma0
+        return self._conductivity0
 
-    @sigma0.setter
-    def sigma0(self, value):
-        self._sigma0 = validate_float("sigma0", value, min_val=0.0)
+    @conductivity0.setter
+    def conductivity0(self, value):
+        self._conductivity0 = validate_float("conductivity0", value, min_val=0.0)
 
     @property
-    def sigma1(self):
+    def conductivity1(self):
         """Physical property value for phase-1 material.
 
         Returns
         -------
         float
         """
-        return self._sigma1
+        return self._conductivity1
 
-    @sigma1.setter
-    def sigma1(self, value):
-        self._sigma1 = validate_float("sigma1", value, min_val=0.0)
+    @conductivity1.setter
+    def conductivity1(self, value):
+        self._conductivity1 = validate_float("conductivity1", value, min_val=0.0)
 
     @property
     def alpha0(self):
@@ -1218,17 +1218,17 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         return self._tol
 
     @property
-    def sigstart(self):
+    def cond_start(self):
         """
-        first guess for sigma
+        first guess for conductivity
         """
-        return self._sigstart
+        return self._cond_start
 
-    @sigstart.setter
-    def sigstart(self, value):
+    @cond_start.setter
+    def cond_start(self, value):
         if value is not None:
-            value = validate_float("sigstart", value)
-        self._sigstart = value
+            value = validate_float("cond_start", value)
+        self._cond_start = value
 
     def wiener_bounds(self, phi1):
         """Define Wenner Conductivity Bounds
@@ -1253,16 +1253,16 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         sigWu = self.wiener_bounds(phi1)[1]
         sig_tilde = phi0 * self.conductivity1 + phi1 * self.conductivity0
 
-        sigma_min = np.min([self.conductivity0, self.conductivity1])
-        sigma_max = np.max([self.conductivity0, self.conductivity1])
+        conductivity_min = np.min([self.conductivity0, self.conductivity1])
+        conductivity_max = np.max([self.conductivity0, self.conductivity1])
 
         sigHSlo = sigWu - (
             (phi0 * phi1 * (self.conductivity0 - self.conductivity1) ** 2)
-            / (sig_tilde + 2 * sigma_max)
+            / (sig_tilde + 2 * conductivity_max)
         )
         sigHSup = sigWu - (
             (phi0 * phi1 * (self.conductivity0 - self.conductivity1) ** 2)
-            / (sig_tilde + 2 * sigma_min)
+            / (sig_tilde + 2 * conductivity_min)
         )
 
         return np.array([sigHSlo, sigHSup])
@@ -1275,8 +1275,8 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         phi0 = 1.0 - phi1
         sigWu = self.wiener_bounds(phi1)[1]
 
-        sigma_min = np.min([self.conductivity0, self.conductivity1])
-        sigma_max = np.max([self.conductivity0, self.conductivity1])
+        conductivity_min = np.min([self.conductivity0, self.conductivity1])
+        conductivity_max = np.max([self.conductivity0, self.conductivity1])
 
         phi_min = phi0 if self.conductivity1 > self.conductivity0 else phi1
         phi_max = phi1 if self.conductivity1 > self.conductivity0 else phi0
@@ -1296,14 +1296,20 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         I = np.eye(3)
 
         sigHSlo = sigWu * I + (
-            (sigma_min - sigma_max) ** 2
+            (conductivity_min - conductivity_max) ** 2
             * amax
-            * np.linalg.inv(sigma_min * I + (sigma_min - sigma_max) / phi_max * amax)
+            * np.linalg.inv(
+                conductivity_min * I
+                + (conductivity_min - conductivity_max) / phi_max * amax
+            )
         )
         sigHSup = sigWu * I + (
-            (sigma_max - sigma_min) ** 2
+            (conductivity_max - conductivity_min) ** 2
             * amax
-            * np.linalg.inv(sigma_max * I + (sigma_max - sigma_min) / phi_min * amax)
+            * np.linalg.inv(
+                conductivity_max * I
+                + (conductivity_max - conductivity_min) / phi_min * amax
+            )
         )
 
         return [sigHSlo, sigHSup]
@@ -1396,10 +1402,10 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         phi0 = 1.0 - phi1
 
         # starting guess
-        if self.sigstart is None:
+        if self.cond_start is None:
             sige1 = np.mean(self.wiener_bounds(phi1))
         else:
-            sige1 = self.sigstart
+            sige1 = self.cond_start
 
         if self.random is False:
             sige1 = sige1 * np.eye(3)
@@ -1419,14 +1425,14 @@ class SelfConsistentEffectiveMedium(IdentityMap):
                 relerr = np.linalg.norm(np.abs(sige2 - sige1).flatten(), np.inf)
 
             if np.all(relerr <= self.tol):
-                if self.sigstart is None:
-                    self._sigstart = (
+                if self.cond_start is None:
+                    self._cond_start = (
                         sige2  # store as a starting point for the next time around
                     )
                 return sige2
 
             sige1 = sige2
-        # TODO: make this a proper warning, and output relevant info (sigma0, sigma1, phi, sigstart, and relerr)
+        # TODO: make this a proper warning, and output relevant info (conductivity0, conductivity1, phi, cond_start, and relerr)
         warnings.warn("Maximum number of iterations reached", stacklevel=2)
 
         return sige2

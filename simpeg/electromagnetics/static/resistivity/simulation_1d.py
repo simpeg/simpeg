@@ -58,7 +58,7 @@ def _dphi_tilde(resistivity, thicknesses, lambdas):
 
     Returns
     -------
-    J_rho : (n_lambda, n_layer) np.ndarray
+    J_resistivity : (n_lambda, n_layer) np.ndarray
         Jacobian matrix of first derivatives of lambda w.r.t. resistivity.
     J_h : (n_lambda, n_layer-1) np.ndarray
         Jacobian matrix of first derivatives of lambda w.r.t. thicknesses.
@@ -77,7 +77,7 @@ def _dphi_tilde(resistivity, thicknesses, lambdas):
     # return ts[0]
     # ts0 = 1.0
     g_ti = np.ones(len(lambdas))
-    J_rho = np.empty((n_layer, len(lambdas)))
+    J_resistivity = np.empty((n_layer, len(lambdas)))
     J_h = np.empty((n_layer - 1, len(lambdas)))
     for i in range(n_layer - 1):
         # ts[i] = tops[i] / bots[i]
@@ -86,20 +86,20 @@ def _dphi_tilde(resistivity, thicknesses, lambdas):
         # bots[i] = 1 + ts[i+1] * tanh[i] / resistivity0
         g_tip1 = tanh[i] / resistivity[i] * g_bots
         g_tanh = ts[i + 1] / resistivity[i] * g_bots
-        g_rho0 = -ts[i + 1] * tanh[i] / (resistivity[i] ** 2) * g_bots
-        # tops[i] = ts[i+1] + rho0 * tanh[i]
+        g_resistivity0 = -ts[i + 1] * tanh[i] / (resistivity[i] ** 2) * g_bots
+        # tops[i] = ts[i+1] + resistivity0 * tanh[i]
         g_tip1 += g_tops
         g_tanh += resistivity[i] * g_tops
-        g_rho0 += tanh[i] * g_tops
+        g_resistivity0 += tanh[i] * g_tops
         # tanh = tanh(thick * lambd)
         g_thick = (1 - tanh[i] ** 2) * lambdas * g_tanh
 
-        J_rho[i] = g_rho0
+        J_resistivity[i] = g_resistivity0
         J_h[i] = g_thick
 
         g_ti = g_tip1
-    J_rho[-1] = g_ti
-    return J_rho.T, J_h.T
+    J_resistivity[-1] = g_ti
+    return J_resistivity.T, J_h.T
 
 
 class Simulation1DLayers(BaseSimulation):
@@ -107,13 +107,13 @@ class Simulation1DLayers(BaseSimulation):
     1D DC Simulation
     """
 
-    sigma, conductivity_map, _con_deriv = props.Invertible(
+    conductivity, conductivity_map, _con_deriv = props.Invertible(
         "Electrical conductivity (S/m)"
     )
-    rho, resistivity_map, _res_deriv = props.Invertible(
+    resistivity, resistivity_map, _res_deriv = props.Invertible(
         "Electrical resistivity (Ohm m)"
     )
-    props.Reciprocal(sigma, rho)
+    props.Reciprocal(conductivity, resistivity)
 
     thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
         "thicknesses of the layers"
@@ -122,7 +122,7 @@ class Simulation1DLayers(BaseSimulation):
     def __init__(
         self,
         survey=None,
-        sigma=None,
+        conductivity=None,
         conductivity_map=None,
         resistivity=None,
         resistivity_map=None,
@@ -146,7 +146,7 @@ class Simulation1DLayers(BaseSimulation):
                 "receiver."
             )
         super().__init__(survey=survey, **kwargs)
-        self.conductivity = sigma
+        self.conductivity = conductivity
         self.resistivity = resistivity
         self.thicknesses = thicknesses
         self.conductivity_map = conductivity_map
@@ -321,11 +321,13 @@ class Simulation1DLayers(BaseSimulation):
             if self.verbose:
                 print("Calculating J and storing")
 
-            J_rho, J_h = _dphi_tilde(self.resistivity, self.thicknesses, self._lambdas)
+            J_resistivity, J_h = _dphi_tilde(
+                self.resistivity, self.thicknesses, self._lambdas
+            )
 
             Jmatrix = 0
             if self.resistivity_map is not None:
-                Jmatrix += (self._As @ J_rho) @ self._res_deriv
+                Jmatrix += (self._As @ J_resistivity) @ self._res_deriv
             if self.thicknessesMap is not None:
                 Jmatrix += (self._As @ J_h) @ self.thicknessesDeriv
             self._Jmatrix = Jmatrix

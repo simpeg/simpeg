@@ -34,10 +34,10 @@ def DerivJvecTest_1D(halfspace_value, freq=False, expMap=True):
     layer_thicknesses = np.array([200, 100])
 
     # Layer conductivities
-    sigma_model = np.array([0.001, 0.01, 0.1])
+    conductivity_model = np.array([0.001, 0.01, 0.1])
 
     # Define a mapping for conductivities
-    mapping = maps.Wires(("sigma", 3), ("thicknesses", 2))
+    mapping = maps.Wires(("conductivity", 3), ("thicknesses", 2))
 
     simulation = nsem.simulation_1d.Simulation1DRecursive(
         survey=survey,
@@ -45,7 +45,7 @@ def DerivJvecTest_1D(halfspace_value, freq=False, expMap=True):
         thicknessesMap=mapping.thicknesses,
     )
 
-    x0 = np.r_[sigma_model, layer_thicknesses]
+    x0 = np.r_[conductivity_model, layer_thicknesses]
 
     def fun(x):
         return simulation.dpred(x), lambda x: simulation.Jvec(x0, x)
@@ -60,7 +60,10 @@ def DerivJvecTest(halfspace_value, freq=False, expMap=True):
         halfspace_value, False, structure=True
     )
     simulation = nsem.Simulation1DPrimarySecondary(
-        mesh, sigmaPrimary=sigBG, conductivity_map=maps.IdentityMap(mesh), survey=survey
+        mesh,
+        conductivityPrimary=sigBG,
+        conductivity_map=maps.IdentityMap(mesh),
+        survey=survey,
     )
     print("Using {0} solver for the simulation".format(simulation.solver))
     print(

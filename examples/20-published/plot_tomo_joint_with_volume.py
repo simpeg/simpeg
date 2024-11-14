@@ -111,13 +111,17 @@ def run(plotIt=True):
     print("True Volume: {}".format(knownVolume))
 
     # Set up true conductivity model and plot the model transform
-    sigma0 = np.exp(1)
-    sigma1 = 1e4
+    conductivity0 = np.exp(1)
+    conductivity1 = 1e4
 
     if plotIt:
         fig, ax = plt.subplots(1, 1)
         conductivity_mapTest = maps.SelfConsistentEffectiveMedium(
-            nP=1000, sigma0=sigma0, sigma1=sigma1, rel_tol=1e-1, maxIter=150
+            nP=1000,
+            conductivity0=conductivity0,
+            conductivity1=conductivity1,
+            rel_tol=1e-1,
+            maxIter=150,
         )
         testphis = np.linspace(0.0, 1.0, 1000)
 
@@ -128,7 +132,7 @@ def run(plotIt=True):
         ax.set_ylabel(r"$\sigma$")
 
     conductivity_map = maps.SelfConsistentEffectiveMedium(
-        M, sigma0=sigma0, sigma1=sigma1
+        M, conductivity0=conductivity0, conductivity1=conductivity1
     )
 
     # scale the slowness so it is on a ~linear scale

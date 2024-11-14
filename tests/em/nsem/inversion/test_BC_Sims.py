@@ -69,19 +69,19 @@ def create_simulation_1d(sim_type, deriv_type):
     src_list = [nsem.sources.Planewave(rx_list, frequency=f) for f in frequencies]
     survey = nsem.Survey(src_list)
 
-    sigma_back = 1e-1
-    sigma_right = 1e-3
-    sigma_air = 1e-8
+    conductivity_back = 1e-1
+    conductivity_right = 1e-3
+    conductivity_air = 1e-8
 
-    sigma_1d = np.ones(mesh.n_cells) * sigma_back
-    sigma_1d[-npad:] = sigma_air
-    sigma_1d[50:-npad] = sigma_right
+    conductivity_1d = np.ones(mesh.n_cells) * conductivity_back
+    conductivity_1d[-npad:] = conductivity_air
+    conductivity_1d[50:-npad] = conductivity_right
 
-    if deriv_type == "sigma":
+    if deriv_type == "conductivity":
         sim_kwargs = {"conductivity_map": maps.ExpMap()}
-        test_mod = np.log(sigma_1d)
+        test_mod = np.log(conductivity_1d)
     else:
-        sim_kwargs = {"muMap": maps.ExpMap(), "sigma": sigma_1d}
+        sim_kwargs = {"muMap": maps.ExpMap(), "conductivity": conductivity_1d}
         test_mod = np.log(mu_0) * np.ones(mesh.n_cells)
     if sim_type.lower() == "e":
         sim = nsem.simulation.Simulation1DElectricField(
@@ -120,20 +120,20 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
         mesh = TensorMesh([hx, hz])
         mesh.origin = np.r_[-mesh.h[0].sum() / 2, -mesh.h[1][:-npad].sum()]
 
-    sigma_back = 1e-1
-    sigma_right = 1e-3
-    sigma_air = 1e-8
+    conductivity_back = 1e-1
+    conductivity_right = 1e-3
+    conductivity_air = 1e-8
 
     cells = mesh.cell_centers
-    sigma = np.ones(mesh.n_cells) * sigma_back
-    sigma[cells[:, 0] >= 0] = sigma_right
-    sigma[cells[:, -1] >= 0] = sigma_air
+    conductivity = np.ones(mesh.n_cells) * conductivity_back
+    conductivity[cells[:, 0] >= 0] = conductivity_right
+    conductivity[cells[:, -1] >= 0] = conductivity_air
 
-    if deriv_type == "sigma":
+    if deriv_type == "conductivity":
         sim_kwargs = {"conductivity_map": maps.ExpMap()}
-        test_mod = np.log(sigma)
+        test_mod = np.log(conductivity)
     else:
-        sim_kwargs = {"muMap": maps.ExpMap(), "sigma": sigma}
+        sim_kwargs = {"muMap": maps.ExpMap(), "conductivity": conductivity}
         test_mod = np.log(mu_0) * np.ones(mesh.n_cells)
 
     frequencies = np.logspace(-1, 1, 2)
@@ -152,8 +152,8 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
             )
 
             b_left, b_right, _, __ = mesh.cell_boundary_indices
-            f_left = sim_1d.fields(sigma[b_left])
-            f_right = sim_1d.fields(sigma[b_right])
+            f_left = sim_1d.fields(conductivity[b_left])
+            f_right = sim_1d.fields(conductivity[b_right])
 
             b_e = mesh.boundary_edges
             top = np.where(b_e[:, 1] == mesh.nodes_y[-1])
@@ -202,8 +202,8 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
             )
 
             b_left, b_right, _, __ = mesh.cell_boundary_indices
-            f_left = sim_1d.fields(sigma[b_left])
-            f_right = sim_1d.fields(sigma[b_right])
+            f_left = sim_1d.fields(conductivity[b_left])
+            f_right = sim_1d.fields(conductivity[b_right])
 
             b_e = mesh.boundary_edges
             top = np.where(b_e[:, 1] == mesh.nodes_y[-1])
@@ -253,12 +253,12 @@ class Sim_1D(unittest.TestCase):
         with self.assertRaises(ValueError):
             nsem.simulation.Simulation1DMagneticField(mesh, survey=survey)
 
-    def test_e_sigma_deriv(self):
-        sim, test_mod = create_simulation_1d("e", "sigma")
+    def test_e_conductivity_deriv(self):
+        sim, test_mod = create_simulation_1d("e", "conductivity")
         assert check_deriv(sim, test_mod, num=3, random_seed=235)
 
-    def test_h_sigma_deriv(self):
-        sim, test_mod = create_simulation_1d("h", "sigma")
+    def test_h_conductivity_deriv(self):
+        sim, test_mod = create_simulation_1d("h", "conductivity")
         assert check_deriv(sim, test_mod, num=3, random_seed=5212)
 
     def test_e_mu_deriv(self):
@@ -269,12 +269,12 @@ class Sim_1D(unittest.TestCase):
         sim, test_mod = create_simulation_1d("h", "mu")
         assert check_deriv(sim, test_mod, num=3, random_seed=124)
 
-    def test_e_sigma_adjoint(self):
-        sim, test_mod = create_simulation_1d("e", "sigma")
+    def test_e_conductivity_adjoint(self):
+        sim, test_mod = create_simulation_1d("e", "conductivity")
         check_adjoint(sim, test_mod)
 
-    def test_h_sigma_adjoint(self):
-        sim, test_mod = create_simulation_1d("h", "sigma")
+    def test_h_conductivity_adjoint(self):
+        sim, test_mod = create_simulation_1d("h", "conductivity")
         check_adjoint(sim, test_mod)
 
     def test_e_mu_adjoint(self):
@@ -363,12 +363,12 @@ class Sim_2D(unittest.TestCase):
                 mesh_2d, survey=survey_yx, e_bc=bc
             )
 
-    def test_e_sigma_deriv(self):
-        sim, test_mod = create_simulation_2d("e", "sigma", "TensorMesh")
+    def test_e_conductivity_deriv(self):
+        sim, test_mod = create_simulation_2d("e", "conductivity", "TensorMesh")
         assert check_deriv(sim, test_mod, num=3, random_seed=125)
 
-    def test_h_sigma_deriv(self):
-        sim, test_mod = create_simulation_2d("h", "sigma", "TensorMesh")
+    def test_h_conductivity_deriv(self):
+        sim, test_mod = create_simulation_2d("h", "conductivity", "TensorMesh")
         assert check_deriv(sim, test_mod, num=3, random_seed=7425)
 
     def test_e_mu_deriv(self):
@@ -379,12 +379,12 @@ class Sim_2D(unittest.TestCase):
         sim, test_mod = create_simulation_2d("h", "mu", "TensorMesh")
         assert check_deriv(sim, test_mod, num=3, random_seed=34632)
 
-    def test_e_sigma_adjoint(self):
-        sim, test_mod = create_simulation_2d("e", "sigma", "TensorMesh")
+    def test_e_conductivity_adjoint(self):
+        sim, test_mod = create_simulation_2d("e", "conductivity", "TensorMesh")
         check_adjoint(sim, test_mod)
 
-    def test_h_sigma_adjoint(self):
-        sim, test_mod = create_simulation_2d("h", "sigma", "TensorMesh")
+    def test_h_conductivity_adjoint(self):
+        sim, test_mod = create_simulation_2d("h", "conductivity", "TensorMesh")
         check_adjoint(sim, test_mod)
 
     def test_e_mu_adjoint(self):
@@ -395,34 +395,34 @@ class Sim_2D(unittest.TestCase):
         sim, test_mod = create_simulation_2d("h", "mu", "TensorMesh")
         check_adjoint(sim, test_mod)
 
-    def test_e_sigma_adjoint_tree(self):
-        sim, test_mod = create_simulation_2d("e", "sigma", "TreeMesh")
+    def test_e_conductivity_adjoint_tree(self):
+        sim, test_mod = create_simulation_2d("e", "conductivity", "TreeMesh")
         check_adjoint(sim, test_mod)
 
-    def test_h_sigma_adjoint_tree(self):
-        sim, test_mod = create_simulation_2d("h", "sigma", "TreeMesh")
+    def test_h_conductivity_adjoint_tree(self):
+        sim, test_mod = create_simulation_2d("h", "conductivity", "TreeMesh")
         check_adjoint(sim, test_mod)
 
-    def test_e_sigma_deriv_fixed(self):
+    def test_e_conductivity_deriv_fixed(self):
         sim, test_mod = create_simulation_2d(
-            "e", "sigma", "TensorMesh", fixed_boundary=True
+            "e", "conductivity", "TensorMesh", fixed_boundary=True
         )
         assert check_deriv(sim, test_mod, num=3, random_seed=2634)
 
-    def test_h_sigma_deriv_fixed(self):
+    def test_h_conductivity_deriv_fixed(self):
         sim, test_mod = create_simulation_2d(
-            "h", "sigma", "TensorMesh", fixed_boundary=True
+            "h", "conductivity", "TensorMesh", fixed_boundary=True
         )
         assert check_deriv(sim, test_mod, num=3, random_seed=3651326)
 
-    def test_e_sigma_adjoint_fixed(self):
+    def test_e_conductivity_adjoint_fixed(self):
         sim, test_mod = create_simulation_2d(
-            "e", "sigma", "TensorMesh", fixed_boundary=True
+            "e", "conductivity", "TensorMesh", fixed_boundary=True
         )
         check_adjoint(sim, test_mod)
 
-    def test_h_sigma_adjoint_fixed(self):
+    def test_h_conductivity_adjoint_fixed(self):
         sim, test_mod = create_simulation_2d(
-            "h", "sigma", "TensorMesh", fixed_boundary=True
+            "h", "conductivity", "TensorMesh", fixed_boundary=True
         )
         check_adjoint(sim, test_mod)

@@ -30,10 +30,10 @@ class IPProblemAnalyticTests(unittest.TestCase):
         radius = 50.0
         xc = np.r_[0.0, 0.0, -100]
         blkind = utils.model_builder.get_indices_sphere(xc, radius, mesh.gridCC)
-        sigmaInf = np.ones(mesh.nC) * 1e-2
+        conductivityInf = np.ones(mesh.nC) * 1e-2
         eta = np.zeros(mesh.nC)
         eta[blkind] = 0.1
-        sigma0 = sigmaInf * (1.0 - eta)
+        conductivity0 = conductivityInf * (1.0 - eta)
 
         rx = dc.receivers.Dipole(M, N)
         src = dc.sources.Dipole([rx], Aloc, Bloc)
@@ -41,8 +41,8 @@ class IPProblemAnalyticTests(unittest.TestCase):
 
         self.surveyDC = surveyDC
         self.mesh = mesh
-        self.conductivityInf = sigmaInf
-        self.conductivity0 = sigma0
+        self.conductivityInf = conductivityInf
+        self.conductivity0 = conductivity0
         self.src = src
         self.eta = eta
 
@@ -59,7 +59,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         simulationip = ip.simulation.Simulation3DNodal(
             mesh=self.mesh,
             survey=surveyip,
-            sigma=self.conductivityInf,
+            conductivity=self.conductivityInf,
             etaMap=maps.IdentityMap(self.mesh),
             Ainv=simulationdc.Ainv,
             _f=finf,
@@ -127,10 +127,10 @@ class ApparentChargeability3DTest(unittest.TestCase):
         radius = 50.0
         xc = np.r_[0.0, 0.0, -100]
         blkind = utils.model_builder.get_indices_sphere(xc, radius, mesh.gridCC)
-        sigmaInf = np.ones(mesh.nC) * 1e-2
+        conductivityInf = np.ones(mesh.nC) * 1e-2
         eta = np.zeros(mesh.nC)
         eta[blkind] = 0.1
-        sigma0 = sigmaInf * (1.0 - eta)
+        conductivity0 = conductivityInf * (1.0 - eta)
 
         rx = dc.receivers.Dipole(M, N)
         src = dc.sources.Dipole([rx], Aloc, Bloc)
@@ -143,8 +143,8 @@ class ApparentChargeability3DTest(unittest.TestCase):
         self.survey_dc = survey_dc
         self.survey_ip = survey_ip
         self.mesh = mesh
-        self.conductivityInf = sigmaInf
-        self.conductivity0 = sigma0
+        self.conductivityInf = conductivityInf
+        self.conductivity0 = conductivity0
         self.src = src
         self.eta = eta
 
@@ -161,7 +161,7 @@ class ApparentChargeability3DTest(unittest.TestCase):
         simulationip = ip.simulation.Simulation3DNodal(
             mesh=self.mesh,
             survey=self.survey_ip,
-            sigma=self.conductivityInf,
+            conductivity=self.conductivityInf,
             etaMap=maps.IdentityMap(self.mesh),
             Ainv=simulationdc.Ainv,
         )
@@ -170,7 +170,7 @@ class ApparentChargeability3DTest(unittest.TestCase):
         simulationip_stored = ip.simulation.Simulation3DNodal(
             mesh=self.mesh,
             survey=self.survey_ip,
-            sigma=self.conductivityInf,
+            conductivity=self.conductivityInf,
             etaMap=maps.IdentityMap(self.mesh),
             Ainv=simulationdc.Ainv,
             storeJ=True,
@@ -204,7 +204,7 @@ class ApparentChargeability3DTest(unittest.TestCase):
         simulationip = ip.simulation.Simulation3DCellCentered(
             mesh=self.mesh,
             survey=self.survey_ip,
-            sigma=self.conductivityInf,
+            conductivity=self.conductivityInf,
             etaMap=maps.IdentityMap(self.mesh),
             Ainv=simulationdc.Ainv,
         )

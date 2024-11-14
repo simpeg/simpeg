@@ -689,18 +689,18 @@ class Simulation2DNodal(BaseDCSimulation2D):
                 Grad * u, v, adjoint=adjoint
             ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
         if self.bc_type != "Neumann" and self.conductivity_map is not None:
-            if getattr(self, "_MBC_sigma", None) is None:
-                self._MBC_sigma = {}
-            if ky not in self._MBC_sigma:
-                self._MBC_sigma[ky] = self._AvgBC[ky] @ self._con_deriv
+            if getattr(self, "_MBC_conductivity", None) is None:
+                self._MBC_conductivity = {}
+            if ky not in self._MBC_conductivity:
+                self._MBC_conductivity[ky] = self._AvgBC[ky] @ self._con_deriv
             if not isinstance(u, Zero):
                 u = u.flatten()
                 if v.ndim > 1:
                     u = u[:, None]
                 if not adjoint:
-                    out += u * (self._MBC_sigma[ky] @ v)
+                    out += u * (self._MBC_conductivity[ky] @ v)
                 else:
-                    out += self._MBC_sigma[ky].T @ (u * v)
+                    out += self._MBC_conductivity[ky].T @ (u * v)
         return out
 
     def getRHS(self, ky):

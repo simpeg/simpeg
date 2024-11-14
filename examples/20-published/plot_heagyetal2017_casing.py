@@ -56,11 +56,11 @@ class PrimSecCasingExample(object):
 
     # -------------- SETUP MODEL PARAMS ---------------------------- #
 
-    sigmaair = 1e-8  # air
-    sigmaback = 1e-2  # background
+    conductivityair = 1e-8  # air
+    conductivityback = 1e-2  # background
 
-    sigmacasing = 5.5e6  # casing
-    sigmainside = 1  # inside the casing
+    conductivitycasing = 5.5e6  # casing
+    conductivityinside = 1  # inside the casing
     mucasing = 50  # casing permeability
 
     casing_l = 1000  # length of the casing
@@ -68,11 +68,11 @@ class PrimSecCasingExample(object):
     casing_t = 1e-2  # 1cm thickness
 
     # layer
-    sigmalayer = 1.0 / 10.0
+    conductivitylayer = 1.0 / 10.0
     layer_z = np.r_[-1000.0, -900.0]
 
     # 3D body
-    sigmablock = 2.0
+    conductivityblock = 2.0
     block_x = np.r_[75.0, 475.0]
     block_y = np.r_[-125, 125.0]
     block_z = layer_z
@@ -255,8 +255,8 @@ class PrimSecCasingExample(object):
             # assemble the primary mapping
             primaryMapping = (
                 expMapPrimary
-                * injActMapPrimary  # log(sigma) --> sigma
-                * paramMapPrimary  # log(sigma) below surface --> include air
+                * injActMapPrimary  # log(conductivity) --> conductivity
+                * paramMapPrimary  # log(conductivity) below surface --> include air
                 * injectCasingParams  # parametric --> casing + layered earth  # parametric layered earth --> parametric
                 *
                 # layered earth + casing
@@ -311,7 +311,7 @@ class PrimSecCasingExample(object):
 
             # class CasingEMPropMap(maps.PropMap):
 
-            #     sigma = maps.Property(
+            #     conductivity = maps.Property(
             #                 "Electrical Conductivity", defaultInvProp=True,
             #                 propertyLink=('resistivity', maps.ReciprocalMap)
             #     )
@@ -322,7 +322,7 @@ class PrimSecCasingExample(object):
             #     )
             #     resistivity = maps.Property(
             #             "Electrical Resistivity",
-            #             propertyLink=('sigma', maps.ReciprocalMap)
+            #             propertyLink=('conductivity', maps.ReciprocalMap)
             #     )
             #     mui = maps.Property(
             #             "Inverse Magnetic Permeability",
@@ -468,7 +468,7 @@ class PrimSecCasingExample(object):
         plt.colorbar(f[0], ax=ax[1])
         ax[1].set_xlim([0, 1.0])
         ax[1].set_ylim([-1.5e3, 500])
-        ax[1].set_title("log10 sigma")
+        ax[1].set_title("log10 conductivity")
 
         plt.tight_layout()
         return ax
@@ -535,7 +535,7 @@ class PrimSecCasingExample(object):
             )
             self._mapping = (
                 self.expMap
-                * self.injActMap  # log sigma --> sigma
+                * self.injActMap  # log conductivity --> conductivity
                 * paramMap  # inject air cells  # block in a layered space (subsurface)
             )
             print("... done building secondary mapping")
@@ -554,7 +554,7 @@ class PrimSecCasingExample(object):
 
             self._primaryMap2mesh = (
                 self.expMap
-                * self.injActMap  # log sigma --> sigma
+                * self.injActMap  # log conductivity --> conductivity
                 * paramMapPrimaryMeshs  # include air cells
                 * self.projectionMapPrimary  # parametrized layer  # grab correct indices
             )
@@ -565,7 +565,7 @@ class PrimSecCasingExample(object):
     def setupSecondaryProblem(self, mapping=None):
         print("Setting up Secondary Problem")
         if mapping is None:
-            mapping = [("sigma", maps.IdentityMap(self.meshs))]
+            mapping = [("conductivity", maps.IdentityMap(self.meshs))]
         sec_problem = FDEM.Simulation3DElectricField(
             self.meshs, conductivity_map=mapping
         )
@@ -1073,7 +1073,7 @@ class PrimSecCasingExample(object):
         plt.tight_layout()
 
         if saveFig is True:
-            fig.savefig("J_sigmas", dpi=300)
+            fig.savefig("J_conductivitys", dpi=300)
 
         # Plot layer contribution
         fig, ax = plt.subplots(2, 2, figsize=(12, 10))
@@ -1271,7 +1271,7 @@ class PrimSecCasingExample(object):
 
         if plotIt is True:  # Plot the Primary Model
             # self.plotPrimaryMesh() # plot the mesh
-            self.plotPrimaryProperties()  # plot mu, sigma
+            self.plotPrimaryProperties()  # plot mu, conductivity
 
         # Primary Simulation
         self.primaryProblem.survey = self.primarySurvey

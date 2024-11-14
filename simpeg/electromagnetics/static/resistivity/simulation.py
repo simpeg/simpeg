@@ -535,7 +535,7 @@ class Simulation3DNodal(BaseDCSimulation):
             A[0, 0] = 1.0
         else:
             # Dirichlet BC type should already have failed
-            # Also, this will fail if sigma is anisotropic
+            # Also, this will fail if conductivity is anisotropic
             try:
                 A = A + sp.diags(self._AvgBC @ self.conductivity, format="csr")
             except ValueError as err:
@@ -560,16 +560,16 @@ class Simulation3DNodal(BaseDCSimulation):
         else:
             out = self.MeSigmaDeriv(Grad @ u, Grad @ v, adjoint)
         if self.bc_type != "Neumann" and self.conductivity_map is not None:
-            if getattr(self, "_MBC_sigma", None) is None:
-                self._MBC_sigma = self._AvgBC @ self._con_deriv
+            if getattr(self, "_MBC_conductivity", None) is None:
+                self._MBC_conductivity = self._AvgBC @ self._con_deriv
             if not isinstance(u, Zero):
                 u = u.flatten()
                 if v.ndim > 1:
                     u = u[:, None]
                 if not adjoint:
-                    out += u * (self._MBC_sigma @ v)
+                    out += u * (self._MBC_conductivity @ v)
                 else:
-                    out += self._MBC_sigma.T @ (u * v)
+                    out += self._MBC_conductivity.T @ (u * v)
         return out
 
     def setBC(self):
@@ -664,12 +664,12 @@ class Simulation3DNodal(BaseDCSimulation):
         return Zero()
 
     @property
-    def _clear_on_sigma_update(self):
+    def _clear_on_conductivity_update(self):
         """
         These matrices are deleted if there is an update to the conductivity
         model
         """
-        return super()._clear_on_sigma_update + ["_MBC_sigma"]
+        return super()._clear_on_conductivity_update + ["_MBC_conductivity"]
 
 
 Simulation3DCellCentred = Simulation3DCellCentered  # UK and US!

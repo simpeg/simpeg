@@ -22,7 +22,7 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
     mesh = TensorMesh([hx, hy, hz], ["C", "C", "C"])
 
     if useMu is True:
-        mapping = [("sigma", maps.ExpMap(mesh)), ("mu", maps.IdentityMap(mesh))]
+        mapping = [("conductivity", maps.ExpMap(mesh)), ("mu", maps.IdentityMap(mesh))]
     else:
         mapping = maps.ExpMap(mesh)
 

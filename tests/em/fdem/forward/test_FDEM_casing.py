@@ -9,7 +9,7 @@ n = 50
 freq = 1.0
 a = 5e-2
 b = a + 1e-2
-sigma = np.r_[10.0, 5.5e6, 1e-1]
+conductivity = np.r_[10.0, 5.5e6, 1e-1]
 mu = mu_0 * np.r_[1.0, 100.0, 1.0]
 srcloc = np.r_[0.0, 0.0, 0.0]
 rng = np.random.default_rng(seed=42)
@@ -21,9 +21,11 @@ zobs = rng.normal(size=n)
 def CasingMagDipoleDeriv_r(x):
     obsloc = np.vstack([x, yobs, zobs]).T
 
-    f = Casing._getCasingHertzMagDipole(srcloc, obsloc, freq, sigma, a, b, mu)
+    f = Casing._getCasingHertzMagDipole(srcloc, obsloc, freq, conductivity, a, b, mu)
     g = utils.sdiag(
-        Casing._getCasingHertzMagDipoleDeriv_r(srcloc, obsloc, freq, sigma, a, b, mu)
+        Casing._getCasingHertzMagDipoleDeriv_r(
+            srcloc, obsloc, freq, conductivity, a, b, mu
+        )
     )
 
     return f, g
@@ -32,9 +34,11 @@ def CasingMagDipoleDeriv_r(x):
 def CasingMagDipoleDeriv_z(z):
     obsloc = np.vstack([xobs, yobs, z]).T
 
-    f = Casing._getCasingHertzMagDipole(srcloc, obsloc, freq, sigma, a, b, mu)
+    f = Casing._getCasingHertzMagDipole(srcloc, obsloc, freq, conductivity, a, b, mu)
     g = utils.sdiag(
-        Casing._getCasingHertzMagDipoleDeriv_z(srcloc, obsloc, freq, sigma, a, b, mu)
+        Casing._getCasingHertzMagDipoleDeriv_z(
+            srcloc, obsloc, freq, conductivity, a, b, mu
+        )
     )
 
     return f, g
@@ -43,9 +47,13 @@ def CasingMagDipoleDeriv_z(z):
 def CasingMagDipole2Deriv_z_r(x):
     obsloc = np.vstack([x, yobs, zobs]).T
 
-    f = Casing._getCasingHertzMagDipoleDeriv_z(srcloc, obsloc, freq, sigma, a, b, mu)
+    f = Casing._getCasingHertzMagDipoleDeriv_z(
+        srcloc, obsloc, freq, conductivity, a, b, mu
+    )
     g = utils.sdiag(
-        Casing._getCasingHertzMagDipole2Deriv_z_r(srcloc, obsloc, freq, sigma, a, b, mu)
+        Casing._getCasingHertzMagDipole2Deriv_z_r(
+            srcloc, obsloc, freq, conductivity, a, b, mu
+        )
     )
 
     return f, g
@@ -54,9 +62,13 @@ def CasingMagDipole2Deriv_z_r(x):
 def CasingMagDipole2Deriv_z_z(z):
     obsloc = np.vstack([xobs, yobs, z]).T
 
-    f = Casing._getCasingHertzMagDipoleDeriv_z(srcloc, obsloc, freq, sigma, a, b, mu)
+    f = Casing._getCasingHertzMagDipoleDeriv_z(
+        srcloc, obsloc, freq, conductivity, a, b, mu
+    )
     g = utils.sdiag(
-        Casing._getCasingHertzMagDipole2Deriv_z_z(srcloc, obsloc, freq, sigma, a, b, mu)
+        Casing._getCasingHertzMagDipole2Deriv_z_z(
+            srcloc, obsloc, freq, conductivity, a, b, mu
+        )
     )
 
     return f, g

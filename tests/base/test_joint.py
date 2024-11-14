@@ -21,8 +21,8 @@ np.random.seed(82)
 class DataMisfitTest(unittest.TestCase):
     def setUp(self):
         mesh = discretize.TensorMesh([30, 30], x0=[-0.5, -1.0])
-        sigma = np.random.rand(mesh.nC)
-        model = np.log(sigma)
+        conductivity = np.random.rand(mesh.nC)
+        model = np.log(conductivity)
 
         # prob = DC.Simulation3DCellCentered(mesh, resistivity_map=maps.ExpMap(mesh))
         # prob1 = DC.Simulation3DCellCentered(mesh, resistivity_map=maps.ExpMap(mesh))

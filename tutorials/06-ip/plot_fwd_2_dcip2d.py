@@ -384,14 +384,14 @@ plt.show()
 # model to predict IP data.
 #
 
-# We use the keyword argument *sigma* to define the background conductivity on
+# We use the keyword argument *conductivity* to define the background conductivity on
 # the mesh. We could use the keyword argument *resistivity* to accomplish the same thing
 # using a background resistivity model.
 simulation_ip = ip.Simulation2DNodal(
     mesh,
     survey=ip_survey,
     etaMap=chargeability_map,
-    sigma=conductivity_map * conductivity_model,
+    conductivity=conductivity_map * conductivity_model,
 )
 
 # Run forward simulation and predicted IP data. The data are the voltage (V)

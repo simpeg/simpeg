@@ -114,14 +114,14 @@ def get_survey(locations, frequencies, survey_type, component):
     return nsem.survey.Survey(source_list)
 
 
-def get_analytic_halfspace_solution(sigma, f, survey_type, component):
+def get_analytic_halfspace_solution(conductivity, f, survey_type, component):
     # MT data types (Zxx, Zxy, Zyx, Zyy)
     if survey_type == "impedance":
         if component in ["real", "imag"]:
-            ampl = np.sqrt(np.pi * f * mu_0 / sigma)
+            ampl = np.sqrt(np.pi * f * mu_0 / conductivity)
             return np.r_[0.0, -ampl, ampl, 0.0]
         elif component == "app_res":
-            return np.r_[0.0, 1 / sigma, 1 / sigma, 0.0]
+            return np.r_[0.0, 1 / conductivity, 1 / conductivity, 0.0]
         elif component == "phase":
             return np.r_[-135.0, 45.0]  # off-diagonal only!
 
@@ -134,7 +134,7 @@ def get_analytic_halfspace_solution(sigma, f, survey_type, component):
 
     # Admittance data types (Yxx, Yyx, Yzx, Yxy, Yyy, Yzy)
     elif survey_type == "admittance":
-        ampl = 0.5 * np.sqrt(sigma / (np.pi * f * mu_0))
+        ampl = 0.5 * np.sqrt(conductivity / (np.pi * f * mu_0))
         if component == "real":
             return np.r_[0.0, -ampl, 0.0, ampl, 0.0, 0.0]
         else:
@@ -142,7 +142,7 @@ def get_analytic_halfspace_solution(sigma, f, survey_type, component):
 
     # MobileMT data type (app_cond)
     elif survey_type == "apparent_conductivity":
-        return sigma
+        return conductivity
 
 
 # Validate impedances, tippers and admittances against analytic
@@ -169,16 +169,16 @@ def test_analytic_halfspace_solution(
     survey = get_survey(locations, frequencies, survey_type, component)
     model_hs = get_model(mesh, "halfspace")  # 1e-2 halfspace
     sim = nsem.simulation.Simulation3DPrimarySecondary(
-        mesh, survey=survey, sigmaPrimary=model_hs, conductivity_map=mapping
+        mesh, survey=survey, conductivityPrimary=model_hs, conductivity_map=mapping
     )
     numeric_solution = sim.dpred(model_hs)
 
     # Analytic solution
-    sigma_hs = 1e-2
+    conductivity_hs = 1e-2
     n_locations = np.shape(locations)[0]
     analytic_solution = np.hstack(
         [
-            get_analytic_halfspace_solution(sigma_hs, f, survey_type, component)
+            get_analytic_halfspace_solution(conductivity_hs, f, survey_type, component)
             for f in frequencies
         ]
     )

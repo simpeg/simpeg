@@ -593,7 +593,7 @@ class TestWires(unittest.TestCase):
         mesh = discretize.TensorMesh([10, 10, 10])
 
         wires = maps.Wires(
-            ("sigma", mesh.shape_cells[2]),
+            ("conductivity", mesh.shape_cells[2]),
             ("mu_casing", 1),
         )
 
@@ -611,13 +611,20 @@ class TestWires(unittest.TestCase):
 class TestSCEMT(unittest.TestCase):
     def test_sphericalInclusions(self):
         mesh = discretize.TensorMesh([4, 5, 3])
-        mapping = maps.SelfConsistentEffectiveMedium(mesh, sigma0=1e-1, sigma1=1.0)
+        mapping = maps.SelfConsistentEffectiveMedium(
+            mesh, conductivity0=1e-1, conductivity1=1.0
+        )
         mapping.test(num=3, random_seed=42)
 
     def test_spheroidalInclusions(self):
         mesh = discretize.TensorMesh([4, 3, 2])
         mapping = maps.SelfConsistentEffectiveMedium(
-            mesh, sigma0=1e-1, sigma1=1.0, alpha0=0.8, alpha1=0.9, rel_tol=1e-8
+            mesh,
+            conductivity0=1e-1,
+            conductivity1=1.0,
+            alpha0=0.8,
+            alpha1=0.9,
+            rel_tol=1e-8,
         )
         mapping.test(num=3, random_seed=42)
 
@@ -725,7 +732,7 @@ def test_linearity():
     ]
     non_linear_maps = [
         maps.SphericalSystem(mesh2),
-        maps.SelfConsistentEffectiveMedium(mesh2, sigma0=1, sigma1=2),
+        maps.SelfConsistentEffectiveMedium(mesh2, conductivity0=1, conductivity1=2),
         maps.ExpMap(),
         maps.LogisticSigmoidMap(),
         maps.ReciprocalMap(),

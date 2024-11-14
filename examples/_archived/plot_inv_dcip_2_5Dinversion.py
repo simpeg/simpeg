@@ -68,11 +68,11 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     blk_inds_charg = utils.model_builder.get_indices_sphere(
         np.r_[100.0, -25], 12.5, mesh.gridCC
     )
-    sigma = np.ones(mesh.nC) * 1.0 / 100.0
-    sigma[blk_inds_c] = 1.0 / 10.0
-    sigma[blk_inds_r] = 1.0 / 1000.0
-    sigma[~actind] = 1.0 / 1e8
-    resistivity = 1.0 / sigma
+    conductivity = np.ones(mesh.nC) * 1.0 / 100.0
+    conductivity[blk_inds_c] = 1.0 / 10.0
+    conductivity[blk_inds_r] = 1.0 / 1000.0
+    conductivity[~actind] = 1.0 / 1e8
+    resistivity = 1.0 / conductivity
     charg = np.zeros(mesh.nC)
     charg[blk_inds_charg] = 0.1
 
@@ -187,22 +187,22 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     # Convert obtained inversion model to resistivity
     # resistivity = M(m), where M(.) is a mapping
 
-    rho_est = mapping * mopt_dc
-    rho_est[~actind] = np.nan
-    rho_true = resistivity.copy()
-    rho_true[~actind] = np.nan
+    resistivity_est = mapping * mopt_dc
+    resistivity_est[~actind] = np.nan
+    resistivity_true = resistivity.copy()
+    resistivity_true[~actind] = np.nan
 
     # show recovered conductivity
     if plotIt:
         fig, ax = plt.subplots(2, 1, figsize=(20, 6))
         out1 = mesh.plot_image(
-            rho_true,
+            resistivity_true,
             clim=(10, 1000),
             pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm()},
             ax=ax[0],
         )
         out2 = mesh.plot_image(
-            rho_est,
+            resistivity_est,
             clim=(10, 1000),
             pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm()},
             ax=ax[1],

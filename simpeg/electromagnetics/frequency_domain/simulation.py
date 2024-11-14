@@ -645,7 +645,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
         return A
 
-    def getADeriv_sigma(self, freq, u, v, adjoint=False):
+    def getADeriv_conductivity(self, freq, u, v, adjoint=False):
         r"""Conductivity derivative operation for the system matrix times a vector.
 
         The system matrix at each frequency is given by:
@@ -793,7 +793,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
             (n_param,) for the adjoint operation.
         """
         return (
-            self.getADeriv_sigma(freq, u, v, adjoint)
+            self.getADeriv_conductivity(freq, u, v, adjoint)
             + self.getADeriv_mui(freq, u, v, adjoint)
             # + self.getADeriv_permittivity(freq, u, v, adjoint)
         )
@@ -1042,7 +1042,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
             return MfMui.T.tocsr() * A
         return A
 
-    def getADeriv_sigma(self, freq, u, v, adjoint=False):
+    def getADeriv_conductivity(self, freq, u, v, adjoint=False):
         r"""Conductivity derivative operation for the system matrix times a vector.
 
         The system matrix at each frequency is given by:
@@ -1208,7 +1208,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         if adjoint is True and self._makeASymmetric:
             v = self.MfMui * v
 
-        ADeriv = self.getADeriv_sigma(freq, u, v, adjoint) + self.getADeriv_mui(
+        ADeriv = self.getADeriv_conductivity(freq, u, v, adjoint) + self.getADeriv_mui(
             freq, u, v, adjoint
         )
 

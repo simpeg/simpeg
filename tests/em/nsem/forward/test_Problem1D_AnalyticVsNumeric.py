@@ -49,15 +49,15 @@ def calculateAnalyticSolution(source_list, mesh, model):
     return data1D
 
 
-def dataMis_AnalyticPrimarySecondary(sigmaHalf):
+def dataMis_AnalyticPrimarySecondary(conductivityHalf):
     # Make the survey
     # Primary secondary
     survey, sig, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(
-        sigmaHalf, False, structure=True
+        conductivityHalf, False, structure=True
     )
     # Analytic data
     simulation = nsem.Simulation1DPrimarySecondary(
-        mesh, sigmaPrimary=sig, sigma=sig, survey=survey
+        mesh, conductivityPrimary=sig, conductivity=sig, survey=survey
     )
 
     dataAnaObj = calculateAnalyticSolution(survey.source_list, mesh, sig)

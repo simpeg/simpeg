@@ -45,11 +45,11 @@ def run(plotIt=True):
     )
 
     # apply the mapping to define the physical property on the mesh
-    rho = mapping * m
+    resistivity = mapping * m
 
     if plotIt is True:
         fig, ax = plt.subplots(1, 1, figsize=(4, 6))
-        mesh.plot_image(rho, ax=ax)
+        mesh.plot_image(resistivity, ax=ax)
 
 
 if __name__ == "__main__":

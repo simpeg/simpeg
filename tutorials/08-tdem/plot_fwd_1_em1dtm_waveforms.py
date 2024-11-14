@@ -213,14 +213,14 @@ thicknesses = np.array([40.0, 40.0])
 n_layer = len(thicknesses) + 1
 
 # half-space physical properties
-sigma = 1e-2
+conductivity = 1e-2
 eta = 0.5
 tau = 0.01
 c = 0.5
 chi = 0.0
 
 # physical property models
-sigma_model = sigma * np.ones(n_layer)
+conductivity_model = conductivity * np.ones(n_layer)
 eta_model = eta * np.ones(n_layer)
 tau_model = tau * np.ones(n_layer)
 c_model = c * np.ones(n_layer)
@@ -241,7 +241,7 @@ simulation = tdem.Simulation1DLayered(
 )
 
 # Predict data for a given model
-dpred = simulation.dpred(sigma_model)
+dpred = simulation.dpred(conductivity_model)
 
 #######################################################################
 # Plotting Results

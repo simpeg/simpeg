@@ -67,11 +67,11 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     blk_inds_r = utils.model_builder.get_indices_sphere(
         np.r_[140.0, -25.0], 12.5, mesh.gridCC
     )
-    sigma = np.ones(mesh.nC) * 1.0 / 100.0
-    sigma[blk_inds_c] = 1.0 / 10.0
-    sigma[blk_inds_r] = 1.0 / 1000.0
-    sigma[~actind] = 1.0 / 1e8
-    resistivity = 1.0 / sigma
+    conductivity = np.ones(mesh.nC) * 1.0 / 100.0
+    conductivity[blk_inds_c] = 1.0 / 10.0
+    conductivity[blk_inds_r] = 1.0 / 1000.0
+    conductivity[~actind] = 1.0 / 1e8
+    resistivity = 1.0 / conductivity
 
     # Show the true conductivity model
     if plotIt:

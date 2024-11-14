@@ -33,17 +33,17 @@ class IPProblemAnalyticTests(unittest.TestCase):
         source_lists_ip = [src0_ip, src1_ip]
         surveyDC = dc.Survey([src0, src1])
 
-        sigmaInf = np.ones(mesh.nC) * 1.0
+        conductivityInf = np.ones(mesh.nC) * 1.0
         blkind = utils.model_builder.get_indices_sphere(np.r_[0, -150], 40, mesh.gridCC)
 
         eta = np.zeros(mesh.nC)
         eta[blkind] = 0.1
-        sigma0 = sigmaInf * (1.0 - eta)
+        conductivity0 = conductivityInf * (1.0 - eta)
 
         self.surveyDC = surveyDC
         self.mesh = mesh
-        self.conductivityInf = sigmaInf
-        self.conductivity0 = sigma0
+        self.conductivityInf = conductivityInf
+        self.conductivity0 = conductivity0
         self.source_lists = source_lists
         self.source_lists_ip = source_lists_ip
         self.eta = eta
@@ -62,7 +62,7 @@ class IPProblemAnalyticTests(unittest.TestCase):
         problemIP = ip.Simulation2DNodal(
             self.mesh,
             survey=surveyIP,
-            sigma=self.conductivityInf,
+            conductivity=self.conductivityInf,
             etaMap=maps.IdentityMap(self.mesh),
         )
 
@@ -140,18 +140,18 @@ class ApparentChargeability2DTest(unittest.TestCase):
 
         survey_ip = ip.Survey([src0_ip, src1_ip])
 
-        sigmaInf = np.ones(mesh.nC) * 1.0
+        conductivityInf = np.ones(mesh.nC) * 1.0
         blkind = utils.model_builder.get_indices_sphere(np.r_[0, -150], 40, mesh.gridCC)
 
         eta = np.zeros(mesh.nC)
         eta[blkind] = 0.05
-        sigma0 = sigmaInf * (1.0 - eta)
+        conductivity0 = conductivityInf * (1.0 - eta)
 
         self.survey_dc = survey_dc
         self.survey_ip = survey_ip
         self.mesh = mesh
-        self.conductivityInf = sigmaInf
-        self.conductivity0 = sigma0
+        self.conductivityInf = conductivityInf
+        self.conductivity0 = conductivity0
         self.eta = eta
 
     def test_Simulation2DNodal(self):
@@ -166,7 +166,7 @@ class ApparentChargeability2DTest(unittest.TestCase):
 
         simIP = ip.Simulation2DNodal(
             self.mesh,
-            sigma=self.conductivityInf,
+            conductivity=self.conductivityInf,
             etaMap=maps.IdentityMap(self.mesh),
             survey=self.survey_ip,
         )
@@ -174,7 +174,7 @@ class ApparentChargeability2DTest(unittest.TestCase):
 
         simIP_store = ip.Simulation2DNodal(
             self.mesh,
-            sigma=self.conductivityInf,
+            conductivity=self.conductivityInf,
             etaMap=maps.IdentityMap(self.mesh),
             survey=self.survey_ip,
             storeJ=True,
@@ -207,7 +207,7 @@ class ApparentChargeability2DTest(unittest.TestCase):
 
         simIP = ip.Simulation2DCellCentered(
             self.mesh,
-            sigma=self.conductivityInf,
+            conductivity=self.conductivityInf,
             etaMap=maps.IdentityMap(self.mesh),
             survey=self.survey_ip,
         )

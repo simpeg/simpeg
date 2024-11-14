@@ -13,33 +13,33 @@ from simpeg import props
 class SimpleExample(props.HasModel):
     conductivity_map = props.Mapping("Mapping to the inversion model.")
 
-    sigma = props.PhysicalProperty(
+    conductivity = props.PhysicalProperty(
         "Electrical conductivity (S/m)", mapping=conductivity_map
     )
 
     _con_deriv = props.Derivative(
-        "Derivative of sigma wrt the model.", physical_property=sigma
+        "Derivative of conductivity wrt the model.", physical_property=conductivity
     )
 
-    def __init__(self, sigma=None, conductivity_map=None, **kwargs):
+    def __init__(self, conductivity=None, conductivity_map=None, **kwargs):
         super().__init__(**kwargs)
-        self.conductivity = sigma
+        self.conductivity = conductivity
         self.conductivity_map = conductivity_map
 
 
 class ShortcutExample(props.HasModel):
-    sigma, conductivity_map, _con_deriv = props.Invertible(
+    conductivity, conductivity_map, _con_deriv = props.Invertible(
         "Electrical conductivity (S/m)"
     )
 
-    def __init__(self, sigma=None, conductivity_map=None, **kwargs):
+    def __init__(self, conductivity=None, conductivity_map=None, **kwargs):
         super().__init__(**kwargs)
-        self.conductivity = sigma
+        self.conductivity = conductivity
         self.conductivity_map = conductivity_map
 
 
 class ReciprocalMappingExample(props.HasModel):
-    sigma, conductivity_map, _con_deriv = props.Invertible(
+    conductivity, conductivity_map, _con_deriv = props.Invertible(
         "Electrical conductivity (S/m)"
     )
 
@@ -47,71 +47,75 @@ class ReciprocalMappingExample(props.HasModel):
         "Electrical resistivity (Ohm m)"
     )
 
-    props.Reciprocal(sigma, resistivity)
+    props.Reciprocal(conductivity, resistivity)
 
     def __init__(
         self,
-        sigma=None,
+        conductivity=None,
         conductivity_map=None,
         resistivity=None,
         resistivity_map=None,
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.conductivity = sigma
+        self.conductivity = conductivity
         self.resistivity = resistivity
         self.conductivity_map = conductivity_map
         self.resistivity_map = resistivity_map
 
 
 class ReciprocalExample(props.HasModel):
-    sigma, conductivity_map, _con_deriv = props.Invertible(
+    conductivity, conductivity_map, _con_deriv = props.Invertible(
         "Electrical conductivity (S/m)"
     )
 
     resistivity = props.PhysicalProperty("Electrical resistivity (Ohm m)")
 
-    props.Reciprocal(sigma, resistivity)
+    props.Reciprocal(conductivity, resistivity)
 
-    def __init__(self, sigma=None, conductivity_map=None, resistivity=None, **kwargs):
+    def __init__(
+        self, conductivity=None, conductivity_map=None, resistivity=None, **kwargs
+    ):
         super().__init__(**kwargs)
-        self.conductivity = sigma
+        self.conductivity = conductivity
         self.resistivity = resistivity
         self.conductivity_map = conductivity_map
 
 
 class ReciprocalPropExample(props.HasModel):
-    sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
+    conductivity = props.PhysicalProperty("Electrical conductivity (S/m)")
 
-    rho = props.PhysicalProperty("Electrical resistivity (Ohm m)")
+    resistivity = props.PhysicalProperty("Electrical resistivity (Ohm m)")
 
-    props.Reciprocal(sigma, rho)
+    props.Reciprocal(conductivity, resistivity)
 
-    def __init__(self, sigma=None, resistivity=None, resistivity_map=None, **kwargs):
+    def __init__(
+        self, conductivity=None, resistivity=None, resistivity_map=None, **kwargs
+    ):
         super().__init__(**kwargs)
-        self.conductivity = sigma
+        self.conductivity = conductivity
         self.resistivity = resistivity
 
 
 class ReciprocalPropExampleDefaults(props.HasModel):
-    sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
+    conductivity = props.PhysicalProperty("Electrical conductivity (S/m)")
 
-    rho = props.PhysicalProperty("Electrical resistivity (Ohm m)")
+    resistivity = props.PhysicalProperty("Electrical resistivity (Ohm m)")
 
-    props.Reciprocal(sigma, rho)
+    props.Reciprocal(conductivity, resistivity)
 
     def __init__(
         self,
-        sigma=None,
+        conductivity=None,
         conductivity_map=None,
         resistivity=None,
         resistivity_map=None,
         **kwargs,
     ):
         super().__init__(**kwargs)
-        if sigma is None:
-            sigma = np.r_[1.0, 2.0, 3.0]
-        self.conductivity = sigma
+        if conductivity is None:
+            conductivity = np.r_[1.0, 2.0, 3.0]
+        self.conductivity = conductivity
         self.resistivity = resistivity
 
 
@@ -150,7 +154,7 @@ class NestedModels(props.HasModel):
 
 
 class OptionalInvertible(props.HasModel):
-    sigma, conductivity_map, _con_deriv = props.Invertible(
+    conductivity, conductivity_map, _con_deriv = props.Invertible(
         "Electrical conductivity (S/m)", optional=True
     )
 
@@ -164,7 +168,7 @@ def test_basic(example):
     assert PM.conductivityMap is not None
     assert PM.conductivityMap is expMap
 
-    # There is currently no model, so sigma, which is mapped, fails
+    # There is currently no model, so conductivity, which is mapped, fails
     with pytest.raises(AttributeError):
         PM.conductivity
 
@@ -177,7 +181,7 @@ def test_basic(example):
         PM._con_deriv.todense() == utils.sdiag(np.exp(np.r_[1.0, 2.0, 3.0])).todense()
     )
 
-    # If we set sigma, we should delete the mapping
+    # If we set conductivity, we should delete the mapping
     PM.conductivity = np.r_[1.0, 2.0, 3.0]
     assert np.all(PM.conductivity == np.r_[1.0, 2.0, 3.0])
     # PM = pickle.loads(pickle.dumps(PM))
@@ -185,7 +189,7 @@ def test_basic(example):
     assert PM._con_deriv == 0
 
     del PM.model
-    # sigma is not changed
+    # conductivity is not changed
     assert np.all(PM.conductivity == np.r_[1.0, 2.0, 3.0])
 
 
@@ -270,10 +274,10 @@ def test_reciprocal_defaults():
     assert np.all(PM.conductivity == np.r_[1.0, 2.0, 3.0])
     assert np.all(PM.resistivity == 1.0 / np.r_[1.0, 2.0, 3.0])
 
-    rho = np.r_[2.0, 4.0, 6.0]
-    PM.resistivity = rho
-    assert np.all(PM.resistivity == rho)
-    assert np.all(PM.conductivity == 1.0 / rho)
+    resistivity = np.r_[2.0, 4.0, 6.0]
+    PM.resistivity = resistivity
+    assert np.all(PM.resistivity == resistivity)
+    assert np.all(PM.conductivity == 1.0 / resistivity)
 
 
 def test_multi_parameter_inversion():

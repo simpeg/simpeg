@@ -45,7 +45,7 @@ class Simulation1DElectricField(BaseFDEMSimulation):
 
         \partial_z E_y = i \omega \mu_0 H_x = 0
 
-        sigma E_y = \partial_z H_x
+        \sigma E_y = \partial_z H_x
 
     with default boundary conditions that $H_x[z_max] = 1$ (a plane wave source at
     the top of the domain), and $H_x[z_min] = 0$.
@@ -87,7 +87,7 @@ class Simulation1DElectricField(BaseFDEMSimulation):
 
         return G.T.tocsr() @ MeMui @ G + 1j * omega(freq) * MfSigma
 
-    def getADeriv_sigma(self, freq, u, v, adjoint=False):
+    def getADeriv_conductivity(self, freq, u, v, adjoint=False):
         return 1j * omega(freq) * self.MfSigmaDeriv(u, v, adjoint=adjoint)
 
     def getADeriv_mui(self, freq, u, v, adjoint=False):
@@ -106,7 +106,7 @@ class Simulation1DElectricField(BaseFDEMSimulation):
         return Zero()
 
     def getADeriv(self, freq, u, v, adjoint=False):
-        return self.getADeriv_sigma(freq, u, v, adjoint) + self.getADeriv_mui(
+        return self.getADeriv_conductivity(freq, u, v, adjoint) + self.getADeriv_mui(
             freq, u, v, adjoint
         )
 
@@ -204,26 +204,26 @@ class Simulation1DPrimarySecondary(Simulation1DElectricField):
 
     fieldsPair = Fields1DPrimarySecondary
 
-    def __init__(self, mesh, survey=None, sigmaPrimary=None, **kwargs):
+    def __init__(self, mesh, survey=None, conductivityPrimary=None, **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
-        self.conductivityPrimary = sigmaPrimary
+        self.conductivityPrimary = conductivityPrimary
 
     @property
-    def sigmaPrimary(self):
+    def conductivityPrimary(self):
         """
         A background model, use for the calculation of the primary fields.
 
         """
-        return self._sigmaPrimary
+        return self._conductivityPrimary
 
-    @sigmaPrimary.setter
-    def sigmaPrimary(self, val):
+    @conductivityPrimary.setter
+    def conductivityPrimary(self, val):
         # Note: TODO add logic for val, make sure it is the correct size.
-        self._sigmaPrimary = val
+        self._conductivityPrimary = val
 
     def getADeriv(self, freq, u, v, adjoint=False):
         """
-        The derivative of A wrt sigma
+        The derivative of A wrt conductivity
         """
         # Only select the yx polarization
         return super().getADeriv(freq, u[:, 1], v, adjoint=adjoint)
@@ -245,7 +245,7 @@ class Simulation1DPrimarySecondary(Simulation1DElectricField):
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
         """
-        The derivative of the RHS wrt sigma
+        The derivative of the RHS wrt conductivity
         """
         S_eDeriv = src.s_eDeriv_m(self, v, adjoint)
         return -1j * omega(freq) * S_eDeriv
@@ -378,9 +378,9 @@ class Simulation2DElectricField(BaseFDEMSimulation):
         """
         C = self.mesh.edge_curl
         Mcc_mui = self.MccMui
-        Me_sigma = self.MeSigma
+        Me_conductivity = self.MeSigma
 
-        return C.T.tocsr() @ Mcc_mui @ C + 1j * omega(freq) * Me_sigma
+        return C.T.tocsr() @ Mcc_mui @ C + 1j * omega(freq) * Me_conductivity
 
     def getRHS(self, freq):
         """
@@ -400,7 +400,7 @@ class Simulation2DElectricField(BaseFDEMSimulation):
             h_bc = self._h_bc[freq]
         return 1j * omega(freq) * (M_bc @ h_bc)
 
-    def getADeriv_sigma(self, freq, u, v, adjoint=False):
+    def getADeriv_conductivity(self, freq, u, v, adjoint=False):
         return 1j * omega(freq) * self.MeSigmaDeriv(u, v, adjoint=adjoint)
 
     def getADeriv_mui(self, freq, u, v, adjoint=False):
@@ -410,7 +410,7 @@ class Simulation2DElectricField(BaseFDEMSimulation):
         return C.T * self.MccMuiDeriv(C * u, v, adjoint)
 
     def getADeriv(self, freq, u, v, adjoint=False):
-        return self.getADeriv_sigma(freq, u, v, adjoint) + self.getADeriv_mui(
+        return self.getADeriv_conductivity(freq, u, v, adjoint) + self.getADeriv_mui(
             freq, u, v, adjoint
         )
 
@@ -601,10 +601,10 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
                 + 1\omega \mathbf{M}^e_\mu
         """
         C = self.mesh.edge_curl
-        Mcc_rho = self.MccRho
+        Mcc_resistivity = self.MccRho
         Me_mu = self.MeMu
 
-        return C.T.tocsr() @ Mcc_rho @ C + 1j * omega(freq) * Me_mu
+        return C.T.tocsr() @ Mcc_resistivity @ C + 1j * omega(freq) * Me_mu
 
     def getRHS(self, freq):
         """
@@ -624,7 +624,7 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
             e_bc = self._e_bc[freq]
         return -M_bc @ e_bc
 
-    def getADeriv_rho(self, freq, u, v, adjoint=False):
+    def getADeriv_resistivity(self, freq, u, v, adjoint=False):
         C = self.mesh.edge_curl
         if adjoint:
             return self.MccRhoDeriv(C * u, C * v, adjoint)
@@ -634,7 +634,7 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
         return 1j * omega(freq) * self.MeMuDeriv(u, v, adjoint=adjoint)
 
     def getADeriv(self, freq, u, v, adjoint=False):
-        return self.getADeriv_rho(freq, u, v, adjoint) + self.getADeriv_mu(
+        return self.getADeriv_resistivity(freq, u, v, adjoint) + self.getADeriv_mu(
             freq, u, v, adjoint
         )
 
@@ -736,21 +736,21 @@ class Simulation3DPrimarySecondary(Simulation3DElectricField):
     The primary field is estimated from a background model (commonly as a 1D model).
     """
 
-    def __init__(self, mesh, survey=None, sigmaPrimary=None, **kwargs):
+    def __init__(self, mesh, survey=None, conductivityPrimary=None, **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
-        self.conductivityPrimary = sigmaPrimary
+        self.conductivityPrimary = conductivityPrimary
 
     # fieldsPair = Fields3DPrimarySecondary
 
     @property
-    def sigmaPrimary(self):
+    def conductivityPrimary(self):
         """
         A background model, use for the calculation of the primary fields.
 
         """
-        return self._sigmaPrimary
+        return self._conductivityPrimary
 
-    @sigmaPrimary.setter
-    def sigmaPrimary(self, val):
+    @conductivityPrimary.setter
+    def conductivityPrimary(self, val):
         # Note: TODO add logic for val, make sure it is the correct size.
-        self._sigmaPrimary = val
+        self._conductivityPrimary = val

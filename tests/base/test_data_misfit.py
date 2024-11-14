@@ -10,8 +10,8 @@ from simpeg import data_misfit, simulation, survey
 class DataMisfitTest(unittest.TestCase):
     def setUp(self):
         mesh = discretize.TensorMesh([30])
-        sigma = np.ones(mesh.nC)
-        model = np.log(sigma)
+        conductivity = np.ones(mesh.nC)
+        model = np.log(conductivity)
 
         # prob = DC.Simulation3DCellCentered(mesh, resistivity_map=Maps.ExpMap(mesh))
 

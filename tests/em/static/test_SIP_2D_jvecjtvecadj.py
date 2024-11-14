@@ -28,9 +28,9 @@ class SIPProblemTestsCC(unittest.TestCase):
             np.r_[100.0, -200.0], 75.0, mesh.gridCC
         )
 
-        sigma = np.ones(mesh.nC) * 1e-2
+        conductivity = np.ones(mesh.nC) * 1e-2
         eta = np.zeros(mesh.nC)
-        tau = np.ones_like(sigma) * 1.0
+        tau = np.ones_like(conductivity) * 1.0
         eta[blkind0] = 0.1
         eta[blkind1] = 0.1
         tau[blkind0] = 0.1
@@ -52,7 +52,7 @@ class SIPProblemTestsCC(unittest.TestCase):
         wires = maps.Wires(("eta", mesh.nC), ("taui", mesh.nC))
         problem = sip.Simulation2DCellCentered(
             mesh,
-            resistivity=1.0 / sigma,
+            resistivity=1.0 / conductivity,
             etaMap=wires.eta,
             tauiMap=wires.taui,
             verbose=False,
@@ -125,9 +125,9 @@ class SIPProblemTestsN(unittest.TestCase):
             np.r_[100.0, -200.0], 75.0, mesh.gridCC
         )
 
-        sigma = np.ones(mesh.nC) * 1e-2
+        conductivity = np.ones(mesh.nC) * 1e-2
         eta = np.zeros(mesh.nC)
-        tau = np.ones_like(sigma) * 1.0
+        tau = np.ones_like(conductivity) * 1.0
         eta[blkind0] = 0.1
         eta[blkind1] = 0.1
         tau[blkind0] = 0.1
@@ -149,7 +149,7 @@ class SIPProblemTestsN(unittest.TestCase):
         wires = maps.Wires(("eta", mesh.nC), ("taui", mesh.nC))
         problem = sip.Simulation2DNodal(
             mesh,
-            sigma=sigma,
+            conductivity=conductivity,
             etaMap=wires.eta,
             tauiMap=wires.taui,
             verbose=False,
@@ -221,10 +221,10 @@ class SIPProblemTestsN_air(unittest.TestCase):
             np.r_[100.0, -200.0], 75.0, mesh.gridCC
         )
 
-        sigma = np.ones(mesh.nC) * 1e-2
+        conductivity = np.ones(mesh.nC) * 1e-2
         eta = np.zeros(mesh.nC)
-        tau = np.ones_like(sigma) * 1.0
-        c = np.ones_like(sigma)
+        tau = np.ones_like(conductivity) * 1.0
+        c = np.ones_like(conductivity)
 
         eta[blkind0] = 0.1
         eta[blkind1] = 0.1
@@ -255,7 +255,7 @@ class SIPProblemTestsN_air(unittest.TestCase):
         )
         problem = sip.Simulation2DNodal(
             mesh,
-            sigma=sigma,
+            conductivity=conductivity,
             etaMap=actmapeta * wires.eta,
             tauiMap=actmaptau * wires.taui,
             cMap=actmapc * wires.c,

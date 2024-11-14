@@ -240,7 +240,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
         inv_lambs = self._inv_lambs
         W = self._W
 
-        sig = self.compute_complex_sigma(frequencies)
+        sig = self.compute_complex_conductivity(frequencies)
         mu = self.compute_complex_mu(frequencies)
 
         rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
@@ -264,7 +264,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
             # Had to convert this to an array for a tensor operation (?)
             W = self._W.toarray()
 
-            sig = self.compute_complex_sigma(frequencies)
+            sig = self.compute_complex_conductivity(frequencies)
             mu = self.compute_complex_mu(frequencies)
 
             if self.hMap is not None:

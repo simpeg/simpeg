@@ -42,25 +42,25 @@ class PlanewaveXYPrimary(Planewave):
         A list of NSEM receivers
     frequency : float
         Source frequency
-    sigma_primary : float, default: ``None``
+    conductivity_primary : float, default: ``None``
         Wholespace conductivity for primary field
     """
 
     _fields_per_source = 2
 
-    def __init__(self, receiver_list, frequency, sigma_primary=None):
-        # assert mkvc(self.mesh.h[2].shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
+    def __init__(self, receiver_list, frequency, conductivity_primary=None):
+        # assert mkvc(self.mesh.h[2].shape,1) == mkvc(conductivity1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
         self.conductivity1d = None
-        self._sigma_primary = sigma_primary
+        self._conductivity_primary = conductivity_primary
         super(PlanewaveXYPrimary, self).__init__(receiver_list, frequency)
 
-    def _get_sigmas(self, simulation):
+    def _get_conductivitys(self, simulation):
         try:
-            return self._sigma1d, self._sigma_p
+            return self._conductivity1d, self._conductivity_p
         except AttributeError:
-            # set _sigma 1D
-            if self._sigma_primary is None:
-                self._sigma_primary = simulation.conductivityPrimary
+            # set _conductivity 1D
+            if self._conductivity_primary is None:
+                self._conductivity_primary = simulation.conductivityPrimary
             # Create 3d_1d mesh like me...
             if simulation.mesh.dim == 3:
                 mesh3d = simulation.mesh
@@ -71,25 +71,29 @@ class PlanewaveXYPrimary(Planewave):
                     mesh3d.h[-1],
                 ]
                 mesh1d = discretize.TensorMesh(hs, x0=x0)
-                if len(self._sigma_primary) == mesh3d.nC:
+                if len(self._conductivity_primary) == mesh3d.nC:
                     # volume average down to 1D mesh
-                    self._sigma1d = np.exp(
-                        volume_average(mesh3d, mesh1d, np.log(self._sigma_primary))
+                    self._conductivity1d = np.exp(
+                        volume_average(
+                            mesh3d, mesh1d, np.log(self._conductivity_primary)
+                        )
                     )
-                elif len(self._sigma_primary) == mesh1d.nC:
-                    self._sigma1d = self._sigma_primary
+                elif len(self._conductivity_primary) == mesh1d.nC:
+                    self._conductivity1d = self._conductivity_primary
                 else:
-                    self._sigma1d = np.ones(mesh1d.nC) * self._sigma_primary
-                self._sigma_p = np.exp(
-                    volume_average(mesh1d, mesh3d, np.log(self._sigma1d))
+                    self._conductivity1d = (
+                        np.ones(mesh1d.nC) * self._conductivity_primary
+                    )
+                self._conductivity_p = np.exp(
+                    volume_average(mesh1d, mesh3d, np.log(self._conductivity1d))
                 )
             else:
-                self._sigma1d = simulation.mesh.reshape(
-                    simulation._sigmaPrimary, "CC", "CC", "M"
+                self._conductivity1d = simulation.mesh.reshape(
+                    simulation._conductivityPrimary, "CC", "CC", "M"
                 )[:]
-                self._sigma_p = None
-                self.conductivity1d = self._sigma1d
-            return self._sigma1d, self._sigma_p
+                self._conductivity_p = None
+                self.conductivity1d = self._conductivity1d
+            return self._conductivity1d, self._conductivity_p
 
     def ePrimary(self, simulation):
         """Primary electric field
@@ -105,9 +109,9 @@ class PlanewaveXYPrimary(Planewave):
             Primary electric field
         """
         if self._ePrimary is None:
-            sigma_1d, _ = self._get_sigmas(simulation)
+            conductivity_1d, _ = self._get_conductivitys(simulation)
             self._ePrimary = homo1DModelSource(
-                simulation.mesh, self.frequency, sigma_1d
+                simulation.mesh, self.frequency, conductivity_1d
             )
         return self._ePrimary
 
@@ -151,17 +155,19 @@ class PlanewaveXYPrimary(Planewave):
         # Note: M(sig) - M(sig_p) = M(sig - sig_p)
         # Need to deal with the edge/face discrepencies between 1d/2d/3d
         if simulation.mesh.dim == 1:
-            Map_sigma_p = maps.SurjectVertical1D(simulation.mesh)
-            sigma_p = Map_sigma_p._transform(self.conductivity1d)
-            Mesigma = simulation.mesh.get_face_inner_product(simulation.conductivity)
-            Mesigma_p = simulation.mesh.get_face_inner_product(sigma_p)
+            Map_conductivity_p = maps.SurjectVertical1D(simulation.mesh)
+            conductivity_p = Map_conductivity_p._transform(self.conductivity1d)
+            Meconductivity = simulation.mesh.get_face_inner_product(
+                simulation.conductivity
+            )
+            Meconductivity_p = simulation.mesh.get_face_inner_product(conductivity_p)
         if simulation.mesh.dim == 2:
             pass
         if simulation.mesh.dim == 3:
-            _, sigma_p = self._get_sigmas(simulation)
-            Mesigma = simulation.MeSigma
-            Mesigma_p = simulation.mesh.get_edge_inner_product(sigma_p)
-        return Mesigma * e_p - Mesigma_p * e_p
+            _, conductivity_p = self._get_conductivitys(simulation)
+            Meconductivity = simulation.MeSigma
+            Meconductivity_p = simulation.mesh.get_edge_inner_product(conductivity_p)
+        return Meconductivity * e_p - Meconductivity_p * e_p
 
     def s_eDeriv(self, simulation, v, adjoint=False):
         """Derivative of electric source term with respect to model

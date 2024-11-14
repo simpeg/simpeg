@@ -20,7 +20,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         target_mur = [1, 50, 100, 200]
         target_l = 500
         target_r = 50
-        sigma_back = 1e-5
+        conductivity_back = 1e-5
         radius_loop = 100
 
         model_names = ["target_{}".format(mur) for mur in target_mur]
@@ -54,7 +54,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         self.target_mur = target_mur
         self.target_l = target_l
         self.target_r = target_r
-        self.conductivity_back = sigma_back
+        self.conductivity_back = conductivity_back
         self.model_names = model_names
         self.mesh = mesh
 
@@ -62,7 +62,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         target_mur = self.target_mur
         target_l = self.target_l
         target_r = self.target_r
-        sigma_back = self.conductivity_back
+        conductivity_back = self.conductivity_back
         model_names = self.model_names
         mesh = self.mesh
 
@@ -75,7 +75,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             return mu_0 * mu_model
 
         mu_dict = {key: populate_target(mu) for key, mu in zip(model_names, target_mur)}
-        sigma = np.ones(mesh.nC) * sigma_back
+        conductivity = np.ones(mesh.nC) * conductivity_back
 
         # Plot the models
         if plotIt:
@@ -172,7 +172,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             print("--- Running {} ---".format(key))
 
             prob_late_ontime.mu = mu_dict[key]
-            fields_dict[key] = prob_late_ontime.fields(sigma)
+            fields_dict[key] = prob_late_ontime.fields(conductivity)
 
             print(" ... done. Elapsed time {}".format(time.time() - t))
             print("\n")
@@ -182,7 +182,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
 
         for key in model_names:
             prob.mu = mu_dict[key]
-            prob.conductivity = sigma
+            prob.conductivity = conductivity
             b_magnetostatic[key] = src_magnetostatic.bInitial(prob)
 
             prob_late_ontime.mu = mu_dict[key]

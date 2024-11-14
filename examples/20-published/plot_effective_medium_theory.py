@@ -33,8 +33,8 @@ rcParams["font.size"] = 12
 # particles which we will vary the conductivity of.
 #
 
-sigma_fluid = 3
-sigma1 = np.logspace(1, 5, 5)  # look at a range of particle conductivities
+conductivity_fluid = 3
+conductivity1 = np.logspace(1, 5, 5)  # look at a range of particle conductivities
 phi = np.linspace(0.0, 1, 1000)  # vary the volume of particles
 
 ###############################################################################
@@ -46,19 +46,21 @@ phi = np.linspace(0.0, 1, 1000)  # vary the volume of particles
 # material and compute the effective conductivity
 #
 
-scemt = maps.SelfConsistentEffectiveMedium(sigma0=sigma_fluid, sigma1=1)
+scemt = maps.SelfConsistentEffectiveMedium(
+    conductivity0=conductivity_fluid, conductivity1=1
+)
 
 ###############################################################################
 # Loop over a range of particle conductivities
 # --------------------------------------------
 #
-# We loop over the values defined as `sigma1` and compute the effective
+# We loop over the values defined as `conductivity1` and compute the effective
 # conductivity of the mixture for each concentration in the `phi` vector
 #
 
-sige = np.zeros([phi.size, sigma1.size])
+sige = np.zeros([phi.size, conductivity1.size])
 
-for i, s in enumerate(sigma1):
+for i, s in enumerate(conductivity1):
     scemt.conductivity1 = s
     sige[:, i] = scemt * phi
 
@@ -75,7 +77,7 @@ fig, ax = plt.subplots(1, 1, figsize=(7, 4), dpi=350)
 
 ax.semilogy(phi, sige)
 ax.grid(which="both", alpha=0.4)
-ax.legend(["{:1.0e} S/m".format(s) for s in sigma1])
+ax.legend(["{:1.0e} S/m".format(s) for s in conductivity1])
 ax.set_xlabel(r"Volume fraction of proppant $\phi$")
 ax.set_ylabel("Effective conductivity (S/m)")
 

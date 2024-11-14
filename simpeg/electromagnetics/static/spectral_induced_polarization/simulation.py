@@ -130,10 +130,10 @@ class BaseSIPSimulation(BaseIPSimulation):
     @property
     def _con_deriv(self):
         if self.storeJ:
-            dsigma_dlogsigma = sdiag(self.conductivity) * self._P
+            dconductivity_dlogconductivity = sdiag(self.conductivity) * self._P
         else:
-            dsigma_dlogsigma = sdiag(self.conductivity)
-        return -dsigma_dlogsigma
+            dconductivity_dlogconductivity = sdiag(self.conductivity)
+        return -dconductivity_dlogconductivity
 
     @property
     def _res_deriv(self):

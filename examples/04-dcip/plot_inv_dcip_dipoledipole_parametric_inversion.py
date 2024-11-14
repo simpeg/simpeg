@@ -6,8 +6,8 @@ This is an example for a parametric inversion with a DC survey.
 Resistivity structure of the subsurface is parameterized as following
 parameters:
 
-    - sigma_background: background conductivity
-    - sigma_block: block conductivity
+    - conductivity_background: background conductivity
+    - conductivity_block: block conductivity
     - block_x0: horizotontal location of the block (center)
     - block_dx: width of the block
     - block_y0: depth of the block (center)
