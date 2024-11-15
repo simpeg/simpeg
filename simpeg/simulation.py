@@ -5,6 +5,7 @@ Define simulation classes.
 import os
 from abc import abstractmethod
 
+import discretize
 import numpy as np
 
 from discretize import TensorMesh
@@ -570,7 +571,7 @@ class BaseTimeSimulation(BaseSimulation):
 ##############################################################################
 
 
-class BaseLinearSimulation(BaseSimulation):
+class LinearSimulation(BaseSimulation):
     r"""Linear forward simulation class.
 
     The ``LinearSimulation`` class is used to define forward simulations of the form:
@@ -602,19 +603,25 @@ class BaseLinearSimulation(BaseSimulation):
         If not, the dimension ``n_param`` of the linear operator will depend on the mapping.
     """
 
-    def __init__(self, linear_operator=None, **kwargs):
-        self.linear_operator = linear_operator
-        survey = kwargs.pop("survey", None)
-        if survey is None:
-            if self.linear_operator is not None:
-                n_d = self.linear_operator.shape[0]
-            else:
+    linear_model, model_map, model_deriv = props.Invertible(
+        "The model for a linear problem"
+    )
+
+    def __init__(self, linear_model=None, model_map=None, G=None, **kwargs):
+        super().__init__(**kwargs)
+        self.linear_model = linear_model
+        self.model_map = model_map
+        self.G = G
+
+        if self.survey is None:
+            if self.G is None:
                 n_d = 0
-            survey = SimpleSurvey(n_d)
-        super().__init__(survey=survey, **kwargs)
+            else:
+                n_d = self.G.shape[0]
+            self.survey = SimpleSurvey(n_d)
 
     @property
-    def linear_operator(self):
+    def G(self):
         """The linear operator.
 
         Returns
@@ -624,13 +631,13 @@ class BaseLinearSimulation(BaseSimulation):
             (e.g. the identity map), the dimension ``n_param`` equals the number of model parameters.
             If not, the dimension ``n_param`` of the linear operator will depend on the mapping.
         """
-        if self._linear_operator is not None:
-            return self._linear_operator
+        if getattr(self, "_G", None) is not None:
+            return self._G
         else:
-            raise AttributeError("Linear simulation requires a linear_operator.")
+            raise AttributeError("G has not been set for the simulation")
 
-    @linear_operator.setter
-    def linear_operator(self, lin_operator):
+    @G.setter
+    def G(self, lin_operator):
         if lin_operator is not None:
             # Allows setting G in a LinearSimulation.
             if not hasattr(lin_operator, "shape"):
@@ -648,7 +655,7 @@ class BaseLinearSimulation(BaseSimulation):
                     "linear_operator.T must support the `conjugate` method for adjoint matrix multiplication"
                 )
             self.survey._vnD = np.r_[lin_operator.shape[0]]
-        self._linear_operator = lin_operator
+        self._G = lin_operator
 
     def dpred(self, m=None, f=None):
         # Docstring inherited from BaseSimulation
@@ -656,7 +663,7 @@ class BaseLinearSimulation(BaseSimulation):
             self.model = m
         return self.G.dot(self.linear_model)
 
-    def jabobian(self, m, f=None):
+    def getJ(self, m, f=None):
         r"""Returns the full Jacobian.
 
         The general definition of the linear forward simulation is:
@@ -694,7 +701,7 @@ class BaseLinearSimulation(BaseSimulation):
         self.model = m
         # self.model_deriv is likely a sparse matrix
         # and G is probably dense, thus we need to do...
-        G = self.linear_operator
+        G = self.G
         if not (isinstance(G, np.ndarray) or sp.issparse(G)):
             # multiply the linear operator by identity to probe it
             m, n = G.shape
@@ -711,26 +718,13 @@ class BaseLinearSimulation(BaseSimulation):
     def Jvec(self, m, v, f=None):
         # Docstring inherited from BaseSimulation
         self.model = m
-        G = self.linear_operator
-        return G.dot(self.model_deriv @ v)
+        return self.G.dot(self.model_deriv @ v)
 
     def Jtvec(self, m, v, f=None):
         # Docstring inherited from BaseSimulation
         self.model = m
-        G_H = self.linear_operator.T.conjugate()
+        G_H = self.G.T.conjugate()
         return self.model_deriv.T @ G_H.dot(v)
-
-
-class LinearSimulation(BaseLinearSimulation):
-
-    linear_model, model_map, model_deriv = props.Invertible(
-        "The model for a linear problem"
-    )
-
-    def __init__(self, linear_model=None, model_map=None, **kwargs):
-        self.linear_model = linear_model
-        self.model_map = model_map
-        super().__init__(**kwargs)
 
 
 class ExponentialSinusoidSimulation(LinearSimulation):
@@ -802,6 +796,24 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         )
 
     @property
+    def mesh(self):
+        """The 1D mesh for this simulation.
+
+        Returns
+        -------
+        discretize.TensorMesh
+        """
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, mesh):
+        mesh = validate_type("mesh", mesh, discretize.TensorMesh, cast=False)
+        if mesh.dim != 1:
+            raise ValueError("Mesh must be 1D")
+        self._mesh = mesh
+        self._G = None
+
+    @property
     def n_kernels(self):
         r"""The number of kernel factors for the linear problem.
 
@@ -820,7 +832,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
     @n_kernels.setter
     def n_kernels(self, value):
         self._n_kernels = validate_integer("n_kernels", value, min_val=1)
-        self._linear_operator = None
+        self._jk = self._G = None
         self.survey = SimpleSurvey(self._n_kernels)
 
     @property
@@ -837,6 +849,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
     @p.setter
     def p(self, value):
         self._p = validate_float("p", value)
+        self._G = None
 
     @property
     def q(self):
@@ -852,6 +865,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
     @q.setter
     def q(self, value):
         self._q = validate_float("q", value)
+        self._G = None
 
     @property
     def j0(self):
@@ -867,6 +881,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
     @j0.setter
     def j0(self, value):
         self._j0 = validate_float("j0", value)
+        self._jk = self._G = None
 
     @property
     def jn(self):
@@ -882,6 +897,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
     @jn.setter
     def jn(self, value):
         self._jn = validate_float("jn", value)
+        self._jk = self._G = None
 
     @property
     def jk(self):
@@ -917,7 +933,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         )
 
     @property
-    def linear_operator(self):
+    def G(self):
         """The linear forward operator.
 
         Returns
@@ -925,13 +941,13 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         (n_kernels, n_param) numpy.ndarray
             The linear forward operator.
         """
-        if self._linear_operator is None:
+        if self._G is None:
             GT_nodes = np.empty((self.mesh.n_nodes, self.n_kernels), order="F")
 
             for i in range(self.n_kernels):
                 GT_nodes[:, i] = self.g(i)
 
-            self._linear_operator = (
-                self.mesh.average_node_to_cell @ GT_nodes
-            ).T @ sdiag(self.mesh.cell_volumes)
-        return self._linear_operator
+            self._G = (self.mesh.average_node_to_cell @ GT_nodes).T @ sdiag(
+                self.mesh.cell_volumes
+            )
+        return self._G
