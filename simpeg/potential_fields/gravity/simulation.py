@@ -8,7 +8,7 @@ from scipy.constants import G as NewtG
 from simpeg import props
 from simpeg.utils import mkvc, sdiag
 
-from ...base import BasePDESimulation
+from ...base.pde import BasePDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
 
 from ._numba_functions import (

@@ -4,14 +4,19 @@ Define simulation classes.
 
 import os
 import inspect
+from typing import Optional, Dict, Any
+import numpy.typing as npt
+
 import numpy as np
 import warnings
 
 from discretize.base import BaseMesh
 from discretize import TensorMesh
 from discretize.utils import unpack_widths, sdiag, mkvc
+from pymatsolver.solvers import Base
 
 from . import props
+from . import maps
 from .typing import RandomSeed
 from .data import SyntheticData, Data
 from .survey import BaseSurvey
@@ -55,34 +60,35 @@ class BaseSimulation(props.HasModel):
         Mesh on which the forward problem is discretized.
     survey : simpeg.survey.BaseSurvey, optional
         The survey for the simulation.
-    solver : None or pymatsolver.base.Base, optional
+    solver : pymatsolver.solvers.Base, optional
         Numerical solver used to solve the forward problem. If ``None``,
         an appropriate solver specific to the simulation class is set by default.
     solver_opts : dict, optional
         Solver-specific parameters. If ``None``, default parameters are used for
-        the solver set by ``solver``. Otherwise, the ``dict`` must contain appropriate
-        pairs of keyword arguments and parameter values for the solver. Please visit
+        the `solver`. Otherwise, the ``dict`` must contain appropriate
+        pairs of keyword arguments and parameter values for `solver`. Please visit
         `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__ to learn more
         about solvers and their parameters.
     sensitivity_path : str, optional
-        Path to directory where sensitivity file is stored.
-    counter : None or simpeg.utils.Counter
-        SimPEG ``Counter`` object to store iterations and run-times.
-    verbose : bool, optional
+        Path to directory where sensitivity file is stored. Default is ".\sensitivity"
+    counter : simpeg.utils.Counter, optional
+        Object to store iterations and run-times.
+    verbose : bool
         Verbose progress printout.
+    %(super.*)
     """
 
     _REGISTRY = {}
 
     def __init__(
         self,
-        mesh=None,
-        survey=None,
-        solver=None,
-        solver_opts=None,
-        sensitivity_path=None,
-        counter=None,
-        verbose=False,
+        mesh: Optional[BaseMesh] = None,
+        survey: Optional[BaseSurvey] = None,
+        solver: Optional[type[Base]] = None,
+        solver_opts: Optional[Dict[str, Any]] = None,
+        sensitivity_path: Optional[str] = None,
+        counter: Optional[Counter] = None,
+        verbose: bool = False,
         **kwargs,
     ):
         self.mesh = mesh
@@ -713,7 +719,7 @@ class BaseTimeSimulation(BaseSimulation):
 ##############################################################################
 
 
-class LinearSimulation(BaseSimulation):
+class LinearSimulation(BaseSimulation, star_excludes=["solver", "solver_opts"]):
     r"""Linear forward simulation class.
 
     The ``LinearSimulation`` class is used to define forward simulations of the form:
@@ -739,15 +745,16 @@ class LinearSimulation(BaseSimulation):
 
     Parameters
     ----------
-    mesh : discretize.BaseMesh, optional
-        Mesh on which the forward problem is discretized. This is not necessarily
-        the same as the mesh on which the simulation is defined.
-    model_map : simpeg.maps.BaseMap
+    %(super.mesh)
+    linear_model : array_like
+        The linear model parameters.
+    model_map : simpeg.maps.IdentityMap
         Mapping from the model parameters to vector that the linear operator acts on.
-    G : (n_data, n_param) numpy.ndarray or scipy.sparse.csr_matrx
+    G : (n_data, n_param) array_like
         The linear operator. For a ``model_map`` that maps within the same vector space
         (e.g. the identity map), the dimension ``n_param`` equals the number of model parameters.
         If not, the dimension ``n_param`` of the linear operator will depend on the mapping.
+    %(super.*)
     """
 
     linear_model, model_map, model_deriv = props.Invertible(
@@ -757,7 +764,15 @@ class LinearSimulation(BaseSimulation):
     # linear simulations do not have a solver so set it to `None` here
     solver = None
 
-    def __init__(self, mesh=None, linear_model=None, model_map=None, G=None, **kwargs):
+    def __init__(
+        self,
+        mesh: Optional[BaseMesh] = None,
+        linear_model: Optional[npt.ArrayLike] = None,
+        model_map: Optional[maps.IdentityMap] = None,
+        G: Optional[npt.ArrayLike] = None,
+        **kwargs,
+    ):
+
         super().__init__(mesh=mesh, **kwargs)
         self.linear_model = linear_model
         self.model_map = model_map
@@ -859,7 +874,7 @@ class LinearSimulation(BaseSimulation):
         return self.model_deriv.T * self.G.T.dot(v)
 
 
-class ExponentialSinusoidSimulation(LinearSimulation):
+class ExponentialSinusoidSimulation(LinearSimulation, star_excludes=["mesh", "G"]):
     r"""Simulation class for exponentially decaying sinusoidal kernel functions.
 
     This is the simulation class for the linear problem consisting of
@@ -911,6 +926,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         Minimum value for the spread of the kernel factors.
     jn : float
         Maximum value for the spread of the kernel factors.
+    %(super.*)
     """
 
     def __init__(self, n_kernels=20, p=-0.25, q=0.25, j0=0.0, jn=60.0, **kwargs):

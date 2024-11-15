@@ -12,6 +12,7 @@ API
 .. autosummary::
    :toctree: generated/
 
+    IndexArray
     RandomSeed
 
 """
@@ -27,6 +28,9 @@ RandomSeed: TypeAlias = Union[
     np.random.BitGenerator,
     np.random.Generator,
 ]
+
+IndexArray: TypeAlias = Union[npt.NDArray[np.int_], npt.NDArray[np.bool_]]
+
 
 RandomSeed.__doc__ = """
 A ``typing.Union`` for random seeds and Numpy's random number generators.
@@ -45,4 +49,28 @@ Examples
 >>> def my_function(seed: RandomSeed = None):
 ...     rng = np.random.default_rng(seed=seed)
 ...     ...
+"""
+
+IndexArray.__doc__ = """
+A ``typing.Union`` for the arrays representing active indexes into another array.
+
+This type is commonly associated with describing active cells in a mesh.
+
+Examples
+--------
+>>> import numpy as np
+>>> from simpeg.typing import IndexArray
+>>> array = np.linspace(0, 10, 11)
+>>> def get_elements(array: np.ndarray, index_array: IndexArray) -> np.ndarray:
+...     return array[index_array]
+
+We can use a boolean array of the same length to index the array.
+>>> bool_array = array < 5
+>>> get_elements(array, bool_index)
+array([0., 1., 2., 3., 4.])
+
+Or we can pass an array of indices to access specific elements.
+>>> index_array = [0, 2, 4, 6, 8]
+>>> get_elements(array, index_array)
+array([0., 2., 4., 6., 8.])
 """

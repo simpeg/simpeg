@@ -1,7 +1,12 @@
+from typing import Optional
+
 import numpy as np
+import numpy.typing as npt
 
 from .maps import IdentityMap, ReciprocalMap
 from .utils import Zero, validate_type, validate_ndarray_with_shape
+from .base import BaseSimPEG
+from docerator import DoceratorMeta
 
 
 class Mapping:
@@ -271,12 +276,8 @@ def Reciprocal(prop1, prop2):
     prop2.reciprocal = prop1
 
 
-class BaseSimPEG:
-    """"""
-
-
-class PhysicalPropertyMetaclass(type):
-    def __new__(mcs, name, bases, classdict):
+class PhysicalPropertyMetaclass(DoceratorMeta):
+    def __new__(mcs, name, bases, classdict, **kwargs):
         # set the phyiscal properties list.
 
         property_dict = {
@@ -322,7 +323,7 @@ class PhysicalPropertyMetaclass(type):
             classdict[key] = value.get_property()
             nested_modelers.add(key)
 
-        newcls = super().__new__(mcs, name, bases, classdict)
+        newcls = super().__new__(mcs, name, bases, classdict, **kwargs)
 
         for parent in reversed(newcls.__mro__):
             map_names.update(getattr(parent, "_all_map_names", set()))
@@ -335,7 +336,20 @@ class PhysicalPropertyMetaclass(type):
 
 
 class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
-    def __init__(self, model=None, **kwargs):
+    """Class containing a `model` property optionally linked to `PhysicalProperties`
+
+    Parameters
+    ----------
+    model : (n_m,) array_like, optional
+        The parameter model, often used to describe the model in an inversion.
+        If there are any physical property maps assigned, the respective physical properties
+        will be linked to this model through the map, and accessing them will require
+        a model to be set.
+    **kwargs
+        Arguments passed to the parent class constructor.
+    """
+
+    def __init__(self, model: Optional[npt.ArrayLike] = None, **kwargs):
         self.model = model
         super().__init__(**kwargs)
 

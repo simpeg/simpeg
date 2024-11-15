@@ -17,7 +17,7 @@ from simpeg.utils import mat_utils, mkvc, sdiag
 from simpeg.utils.code_utils import deprecate_property, validate_string, validate_type
 from simpeg.utils.solver_utils import get_default_solver
 
-from ...base import BaseMagneticPDESimulation
+from ...base.pde import BaseMagneticPDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
 from .analytics import CongruousMagBC
 from .survey import Survey
