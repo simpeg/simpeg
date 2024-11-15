@@ -610,7 +610,6 @@ class BaseTDEMSimulation(BaseTimePDESimulation, BaseEMPDESimulation):
 
     @property
     def _delete_on_model_change(self):
-        print("did I get called?")
         items = super()._delete_on_model_change
         if self.conductivity_map is not None:
             items += ["Adcinv"]

@@ -433,11 +433,10 @@ class MassMatrixMeta(PhysicalPropertyMetaclass):
 
         @property
         def delete_on_model_change(self):
-            print(f"calling {name}'s deleter")
             if delete_property is not None:
                 items = delete_property.fget(self)
             else:
-                items = super(bases[0], self)._delete_on_model_change
+                items = super(cls, self)._delete_on_model_change
             for prop in invertible_props:
                 mapping = getattr(self, prop.mapping.name, None)
                 if mapping is not None:
