@@ -528,7 +528,7 @@ class TestDeprecatedIndActive:
     """Test deprecated ``indActive`` argument in viscous remanent mag simulations."""
 
     CLASSES = (
-        vrm.BaseVRMSimulation,
+        # vrm.BaseVRMSimulation, this is not a concrete class
         vrm.Simulation3DLinear,
         vrm.Simulation3DLogUniform,
     )
