@@ -287,7 +287,7 @@ starting_model = np.r_[background_dens * np.ones(nC), background_susc * np.ones(
 simulation_grav = gravity.simulation.Simulation3DIntegral(
     survey=survey_grav,
     mesh=mesh,
-    rhoMap=wires.density,
+    density_map=wires.density,
     active_cells=ind_active,
     engine="choclo",
 )
@@ -296,7 +296,7 @@ simulation_mag = magnetics.simulation.Simulation3DIntegral(
     survey=survey_mag,
     mesh=mesh,
     model_type="scalar",
-    chiMap=wires.susceptibility,
+    susceptibility_map=wires.susceptibility,
     active_cells=ind_active,
 )
 

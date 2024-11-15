@@ -17,9 +17,9 @@ class TestsGravitySimulation:
         """Synthetic blocks to build the sample model."""
         block1 = np.array([[-1.6, 1.6], [-1.6, 1.6], [-1.6, 1.6]])
         block2 = np.array([[-0.8, 0.8], [-0.8, 0.8], [-0.8, 0.8]])
-        rho1 = 1.0
-        rho2 = 2.0
-        return (block1, block2), (rho1, rho2)
+        density1 = 1.0
+        density2 = 2.0
+        return (block1, block2), (density1, density2)
 
     @pytest.fixture(params=("tensormesh", "treemesh"))
     def mesh(self, blocks, request):
@@ -45,13 +45,13 @@ class TestsGravitySimulation:
     def density_and_active_cells(self, mesh, blocks):
         """Sample density and active_cells arrays for the sample mesh."""
         # create a model of two blocks, 1 inside the other
-        (block1, block2), (rho1, rho2) = blocks
+        (block1, block2), (density1, density2) = blocks
         block1_inds = self.get_block_inds(mesh.cell_centers, block1)
         block2_inds = self.get_block_inds(mesh.cell_centers, block2)
         # Define densities for each block
         model = np.zeros(mesh.n_cells)
-        model[block1_inds] = rho1
-        model[block2_inds] = rho2
+        model[block1_inds] = density1
+        model[block2_inds] = density2
         # Define active cells and reduce model
         active_cells = model != 0.0
         model_reduced = model[active_cells]
@@ -81,12 +81,12 @@ class TestsGravitySimulation:
 
     def get_analytic_solution(self, blocks, survey):
         """Compute analytical response from dense prism."""
-        (block1, block2), (rho1, rho2) = blocks
+        (block1, block2), (density1, density2) = blocks
         # Build prisms (convert densities from g/cc to kg/m3)
         prisms = [
-            Prism(block1[:, 0], block1[:, 1], rho1 * 1000),
-            Prism(block2[:, 0], block2[:, 1], -rho1 * 1000),
-            Prism(block2[:, 0], block2[:, 1], rho2 * 1000),
+            Prism(block1[:, 0], block1[:, 1], density1 * 1000),
+            Prism(block2[:, 0], block2[:, 1], -density1 * 1000),
+            Prism(block2[:, 0], block2[:, 1], density2 * 1000),
         ]
         # Forward model the prisms
         components = survey.source_field.receiver_list[0].components
@@ -142,7 +142,7 @@ class TestsGravitySimulation:
         sim = gravity.Simulation3DIntegral(
             mesh,
             survey=survey,
-            rhoMap=idenMap,
+            density_map=idenMap,
             active_cells=active_cells,
             store_sensitivities=store_sensitivities,
             engine=engine,
@@ -198,7 +198,7 @@ class TestsGravitySimulation:
         sim = gravity.Simulation3DIntegral(
             mesh,
             survey=survey,
-            rhoMap=idenMap,
+            density_map=idenMap,
             active_cells=active_cells,
             store_sensitivities=store_sensitivities,
             engine=engine,
@@ -258,7 +258,7 @@ class TestsGravitySimulation:
         sim = gravity.Simulation3DIntegral(
             mesh,
             survey=survey,
-            rhoMap=idenMap,
+            density_map=idenMap,
             active_cells=active_cells,
             store_sensitivities=store_sensitivities,
             engine=engine,
@@ -300,7 +300,7 @@ class TestsGravitySimulation:
         simulation = gravity.Simulation3DIntegral(
             simple_mesh,
             survey=survey,
-            rhoMap=idenMap,
+            density_map=idenMap,
             active_cells=active_cells,
             engine=engine,
             store_sensitivities=store_sensitivities,

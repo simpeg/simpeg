@@ -2,7 +2,9 @@ import numpy as np
 from scipy import special
 
 
-def DCAnalytic_Pole_Dipole(txloc, rxlocs, sigma, current=1.0, earth_type="wholespace"):
+def DCAnalytic_Pole_Dipole(
+    txloc, rxlocs, conductivity, current=1.0, earth_type="wholespace"
+):
     """
     Analytic solution for electric potential from a postive pole Tx, measured
     using a dipole Rx
@@ -15,7 +17,7 @@ def DCAnalytic_Pole_Dipole(txloc, rxlocs, sigma, current=1.0, earth_type="wholes
         M: xyz locations of M (+) electrode (np.c_[xmlocs, ymlocs, zmlocs])
         N: xyz locations of N (-) electrode (np.c_[xnlocs, ynlocs, znlocs])
 
-    :param float or complex sigma: values of conductivity
+    :param float or complex conductivity: values of conductivity
     :param string earth_type: values of conductivity ("wholsespace" or "halfspace")
     """
     A = txloc
@@ -26,7 +28,7 @@ def DCAnalytic_Pole_Dipole(txloc, rxlocs, sigma, current=1.0, earth_type="wholes
     rAM = np.sqrt((M[:, 0] - A[0]) ** 2 + (M[:, 1] - A[1]) ** 2 + (M[:, 2] - A[2]) ** 2)
     rAN = np.sqrt((N[:, 0] - A[0]) ** 2 + (N[:, 1] - A[1]) ** 2 + (N[:, 2] - A[2]) ** 2)
 
-    frontFactor = current / (4 * np.pi * sigma)
+    frontFactor = current / (4 * np.pi * conductivity)
 
     phiM = frontFactor * (1 / rAM)
     phiN = frontFactor * (1 / rAN)
@@ -38,7 +40,9 @@ def DCAnalytic_Pole_Dipole(txloc, rxlocs, sigma, current=1.0, earth_type="wholes
     return phi
 
 
-def DCAnalytic_Dipole_Pole(txlocs, rxlocs, sigma, current=1.0, earth_type="wholespace"):
+def DCAnalytic_Dipole_Pole(
+    txlocs, rxlocs, conductivity, current=1.0, earth_type="wholespace"
+):
     """
     Analytic solution for electric potential from a dipole source, measured
     using a pole Rx
@@ -46,7 +50,7 @@ def DCAnalytic_Dipole_Pole(txlocs, rxlocs, sigma, current=1.0, earth_type="whole
     :param array txlocs: xyz location of A (+)  and B (-) electrodes [np.r_[xa, ya, za], np.r_[xb, yb, zb]]
     :param list rxlocs: a xyz location of M (+) electrode (np.r_[xm, ym, zm])
 
-    :param float or complex sigma: values of conductivity
+    :param float or complex conductivity: values of conductivity
     :param float current: input current of Tx in [A]
     :param string earth_type: values of conductivity ("wholsespace" or "halfspace")
     """
@@ -59,7 +63,7 @@ def DCAnalytic_Dipole_Pole(txlocs, rxlocs, sigma, current=1.0, earth_type="whole
     rAM = np.sqrt((M[:, 0] - A[0]) ** 2 + (M[:, 1] - A[1]) ** 2 + (M[:, 2] - A[2]) ** 2)
     rBM = np.sqrt((M[:, 0] - B[0]) ** 2 + (M[:, 1] - B[1]) ** 2 + (M[:, 2] - B[2]) ** 2)
 
-    frontFactor = current / (4 * np.pi * sigma)
+    frontFactor = current / (4 * np.pi * conductivity)
 
     phiM = frontFactor * (1 / rAM - 1 / rBM)
     phi = phiM
@@ -70,7 +74,9 @@ def DCAnalytic_Dipole_Pole(txlocs, rxlocs, sigma, current=1.0, earth_type="whole
     return phi
 
 
-def DCAnalytic_Pole_Pole(txloc, rxloc, sigma, current=1.0, earth_type="wholespace"):
+def DCAnalytic_Pole_Pole(
+    txloc, rxloc, conductivity, current=1.0, earth_type="wholespace"
+):
     """
     Analytic solution for electric potential from a postive pole Tx,
     measured using a pole Rx
@@ -78,7 +84,7 @@ def DCAnalytic_Pole_Pole(txloc, rxloc, sigma, current=1.0, earth_type="wholespac
     :param array txloc: xyz location of A (+) electrode (np.r_[xa, ya, za])
     :param list rxlocs: xyz locations of M (+) electrode (np.r_[xm, ym, zm])
 
-    :param float or complex sigma: values of conductivity
+    :param float or complex conductivity: values of conductivity
     :param string earth_type: values of conductivity ("wholsespace" or "halfspace")
 
     """
@@ -87,7 +93,7 @@ def DCAnalytic_Pole_Pole(txloc, rxloc, sigma, current=1.0, earth_type="wholespac
 
     rAM = np.sqrt((M[:, 0] - A[0]) ** 2 + (M[:, 1] - A[1]) ** 2 + (M[:, 2] - A[2]) ** 2)
 
-    frontFactor = current / (4 * np.pi * sigma)
+    frontFactor = current / (4 * np.pi * conductivity)
 
     phi = frontFactor * (1 / rAM)
 
@@ -98,7 +104,7 @@ def DCAnalytic_Pole_Pole(txloc, rxloc, sigma, current=1.0, earth_type="wholespac
 
 
 def DCAnalytic_Dipole_Dipole(
-    txlocs, rxlocs, sigma, current=1.0, earth_type="wholespace"
+    txlocs, rxlocs, conductivity, current=1.0, earth_type="wholespace"
 ):
     """
     Analytic solution for electric potential from a dipole source
@@ -112,7 +118,7 @@ def DCAnalytic_Dipole_Dipole(
         M: xyz locations of M (+) electrode (np.c_[xmlocs, ymlocs, zmlocs])
         N: xyz locations of N (-) electrode (np.c_[xnlocs, ynlocs, znlocs])
 
-    :param float or complex sigma: values of conductivity
+    :param float or complex conductivity: values of conductivity
     :param float current: input current of Tx in [A]
     :param string earth_type: values of conductivity ("wholsespace" or "halfspace")
     """
@@ -128,7 +134,7 @@ def DCAnalytic_Dipole_Dipole(
     rBM = np.sqrt((M[:, 0] - B[0]) ** 2 + (M[:, 1] - B[1]) ** 2 + (M[:, 2] - B[2]) ** 2)
     rBN = np.sqrt((N[:, 0] - B[0]) ** 2 + (N[:, 1] - B[1]) ** 2 + (N[:, 2] - B[2]) ** 2)
 
-    frontFactor = current / (4 * np.pi * sigma)
+    frontFactor = current / (4 * np.pi * conductivity)
 
     phiM = frontFactor * (1 / rAM - 1 / rBM)
     phiN = frontFactor * (1 / rAN - 1 / rBN)
@@ -145,8 +151,8 @@ def DCAnalyticSphere(
     rxloc,
     xc,
     radius,
-    sigma,
-    sigma1,
+    conductivity,
+    conductivity1,
     field_type="secondary",
     order=12,
     halfspace=False,
@@ -159,8 +165,8 @@ def DCAnalyticSphere(
     :param array rxloc: M(+) electrode locations / (Nx3 array, # of electrodes)
 
     :param float radius: radius (float): radius of the sphere (m)
-    :param float rho: resistivity of the background (ohm-m)
-    :param float rho1: resistivity of the sphere
+    :param float resistivity: resistivity of the background (ohm-m)
+    :param float resistivity1: resistivity of the sphere
     :param string field_type: : "secondary", "total", "primary"
           (default="secondary")
           "secondary": secondary potential only due to sphere
@@ -177,8 +183,8 @@ def DCAnalyticSphere(
     for i in range(order):
         Pleg.append(special.legendre(i, monic=0))
 
-    rho = 1.0 / sigma
-    rho1 = 1.0 / sigma1
+    resistivity = 1.0 / conductivity
+    resistivity1 = 1.0 / conductivity1
 
     # Center of the sphere should be aligned in txloc in y-direction
     yc = txloc[1]
@@ -191,7 +197,7 @@ def DCAnalyticSphere(
     # phi = np.zeros_like(r)
     R = (r**2 + x0**2.0 - 2.0 * r * x0 * costheta) ** 0.5
     # primary potential in a whole space
-    prim = rho * 1.0 / (4 * np.pi * R)
+    prim = resistivity * 1.0 / (4 * np.pi * R)
 
     if field_type == "primary":
         return prim
@@ -199,7 +205,7 @@ def DCAnalyticSphere(
     sphind = r < radius
     out = np.zeros_like(r)
     for n in range(order):
-        An, Bn = AnBnfun(n, radius, x0, rho, rho1)
+        An, Bn = AnBnfun(n, radius, x0, resistivity, resistivity1)
         dumout = An * r[~sphind] ** (-n - 1.0) * Pleg[n](costheta[~sphind])
         out[~sphind] += dumout
         dumin = Bn * r[sphind] ** (n) * Pleg[n](costheta[sphind])
@@ -218,9 +224,16 @@ def DCAnalyticSphere(
         return scale * out
 
 
-def AnBnfun(n, radius, x0, rho, rho1, I=1.0):
-    const = I * rho / (4 * np.pi)
-    bunmo = n * rho + (n + 1) * rho1
-    An = const * radius ** (2 * n + 1) / x0 ** (n + 1.0) * n * (rho1 - rho) / bunmo
-    Bn = const * 1.0 / x0 ** (n + 1.0) * (2 * n + 1) * (rho1) / bunmo
+def AnBnfun(n, radius, x0, resistivity, resistivity1, I=1.0):
+    const = I * resistivity / (4 * np.pi)
+    bunmo = n * resistivity + (n + 1) * resistivity1
+    An = (
+        const
+        * radius ** (2 * n + 1)
+        / x0 ** (n + 1.0)
+        * n
+        * (resistivity1 - resistivity)
+        / bunmo
+    )
+    Bn = const * 1.0 / x0 ** (n + 1.0) * (2 * n + 1) * (resistivity1) / bunmo
     return An, Bn

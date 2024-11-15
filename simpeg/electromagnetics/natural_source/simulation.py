@@ -45,7 +45,7 @@ class Simulation1DElectricField(BaseFDEMSimulation):
 
         \partial_z E_y = i \omega \mu_0 H_x = 0
 
-        sigma E_y = \partial_z H_x
+        \sigma E_y = \partial_z H_x
 
     with default boundary conditions that $H_x[z_max] = 1$ (a plane wave source at
     the top of the domain), and $H_x[z_min] = 0$.
@@ -82,19 +82,19 @@ class Simulation1DElectricField(BaseFDEMSimulation):
         """
 
         G = self.mesh.nodal_gradient
-        MeMui = self.MeMui
-        MfSigma = self.MfSigma
+        MeMui = self._Me__perm_inv
+        MfSigma = self._Mf_conductivity
 
         return G.T.tocsr() @ MeMui @ G + 1j * omega(freq) * MfSigma
 
-    def getADeriv_sigma(self, freq, u, v, adjoint=False):
-        return 1j * omega(freq) * self.MfSigmaDeriv(u, v, adjoint=adjoint)
+    def getADeriv_conductivity(self, freq, u, v, adjoint=False):
+        return 1j * omega(freq) * self._Mf_conductivity_deriv(u, v, adjoint=adjoint)
 
-    def getADeriv_mui(self, freq, u, v, adjoint=False):
+    def getADeriv__perm_inv(self, freq, u, v, adjoint=False):
         G = self.mesh.nodal_gradient
         if adjoint:
-            return self.MeMuiDeriv(G * u, G * v, adjoint)
-        return G.T * self.MeMuiDeriv(G * u, v, adjoint)
+            return self._Me__perm_inv_deriv(G * u, G * v, adjoint)
+        return G.T * self._Me__perm_inv_deriv(G * u, v, adjoint)
 
     def getRHS(self, freq):
         """
@@ -106,9 +106,9 @@ class Simulation1DElectricField(BaseFDEMSimulation):
         return Zero()
 
     def getADeriv(self, freq, u, v, adjoint=False):
-        return self.getADeriv_sigma(freq, u, v, adjoint) + self.getADeriv_mui(
+        return self.getADeriv_conductivity(
             freq, u, v, adjoint
-        )
+        ) + self.getADeriv__perm_inv(freq, u, v, adjoint)
 
 
 class Simulation1DMagneticField(BaseFDEMSimulation):
@@ -140,19 +140,19 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
         system matrix
         """
         G = self.mesh.nodal_gradient
-        MeRho = self.MeRho
-        MnMu = self.MnMu
+        MeRho = self._Me_resistivity
+        MnMu = self._Mn_permeability
 
         return G.T.tocsr() @ MeRho @ G + 1j * omega(freq) * MnMu
 
-    def getADeriv_rho(self, freq, u, v, adjoint=False):
+    def getADeriv_resistivity(self, freq, u, v, adjoint=False):
         G = self.mesh.nodal_gradient
         if adjoint:
-            return self.MeRhoDeriv(G * u, G * v, adjoint)
-        return G.T * self.MeRhoDeriv(G * u, v, adjoint)
+            return self._Me_resistivity_deriv(G * u, G * v, adjoint)
+        return G.T * self._Me_resistivity_deriv(G * u, v, adjoint)
 
-    def getADeriv_mu(self, freq, u, v, adjoint=False):
-        MnMuDeriv = self.MnMuDeriv(u)
+    def getADeriv_permeability(self, freq, u, v, adjoint=False):
+        MnMuDeriv = self._Mn_permeability_deriv(u)
         if adjoint is True:
             return 1j * omega(freq) * (MnMuDeriv.T * v)
 
@@ -168,9 +168,9 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
         return Zero()
 
     def getADeriv(self, freq, u, v, adjoint=False):
-        return self.getADeriv_rho(freq, u, v, adjoint) + self.getADeriv_mu(
+        return self.getADeriv_resistivity(
             freq, u, v, adjoint
-        )
+        ) + self.getADeriv_permeability(freq, u, v, adjoint)
 
 
 class Simulation1DPrimarySecondary(Simulation1DElectricField):
@@ -204,26 +204,26 @@ class Simulation1DPrimarySecondary(Simulation1DElectricField):
 
     fieldsPair = Fields1DPrimarySecondary
 
-    def __init__(self, mesh, survey=None, sigmaPrimary=None, **kwargs):
+    def __init__(self, mesh, survey=None, conductivityPrimary=None, **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
-        self.sigmaPrimary = sigmaPrimary
+        self.conductivityPrimary = conductivityPrimary
 
     @property
-    def sigmaPrimary(self):
+    def conductivityPrimary(self):
         """
         A background model, use for the calculation of the primary fields.
 
         """
-        return self._sigmaPrimary
+        return self._conductivityPrimary
 
-    @sigmaPrimary.setter
-    def sigmaPrimary(self, val):
+    @conductivityPrimary.setter
+    def conductivityPrimary(self, val):
         # Note: TODO add logic for val, make sure it is the correct size.
-        self._sigmaPrimary = val
+        self._conductivityPrimary = val
 
     def getADeriv(self, freq, u, v, adjoint=False):
         """
-        The derivative of A wrt sigma
+        The derivative of A wrt conductivity
         """
         # Only select the yx polarization
         return super().getADeriv(freq, u[:, 1], v, adjoint=adjoint)
@@ -245,7 +245,7 @@ class Simulation1DPrimarySecondary(Simulation1DElectricField):
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
         """
-        The derivative of the RHS wrt sigma
+        The derivative of the RHS wrt conductivity
         """
         S_eDeriv = src.s_eDeriv_m(self, v, adjoint)
         return -1j * omega(freq) * S_eDeriv
@@ -307,15 +307,6 @@ class Simulation2DElectricField(BaseFDEMSimulation):
                 self._P_l = P_l
                 self._P_r = P_r
 
-                map_l_kwargs = {}
-                map_r_kwargs = {}
-                if self.sigmaMap is not None:
-                    map_l_kwargs["sigmaMap"] = P_l * self.sigmaMap
-                    map_r_kwargs["sigmaMap"] = P_r * self.sigmaMap
-                if self.muiMap is not None:
-                    map_l_kwargs["muiMap"] = P_l * self.muiMap
-                    map_r_kwargs["muiMap"] = P_r * self.muiMap
-
                 # create a survey with 1 source per frequency (no receivers)
                 frequencies = self.survey.frequencies
                 survey = Survey([Planewave([], freq) for freq in frequencies])
@@ -323,14 +314,18 @@ class Simulation2DElectricField(BaseFDEMSimulation):
                     TensorMesh((h_l,), (mesh.nodes_y[0],)),
                     survey=survey,
                     solver=self.solver,
-                    **map_l_kwargs,
                 )
                 self._sim_right = Simulation1DElectricField(
                     TensorMesh((h_r,), (mesh.nodes_y[0],)),
                     survey=survey,
                     solver=self.solver,
-                    **map_r_kwargs,
                 )
+                if self.conductivity_map is not None:
+                    self._sim_left.conductivity_map = P_l * self.conductivity_map
+                    self._sim_right.conductivity_map = P_r * self.conductivity_map
+                if self._perm_inv_map is not None:
+                    self._sim_left._perm_inv_map = P_l * self._perm_inv_map
+                    self._sim_right._perm_inv_map = P_r * self._perm_inv_map
             else:
                 raise NotImplementedError(
                     f"Unable to infer 1D mesh from {type(mesh)}. You must supply custom"
@@ -377,10 +372,10 @@ class Simulation2DElectricField(BaseFDEMSimulation):
 
         """
         C = self.mesh.edge_curl
-        Mcc_mui = self.MccMui
-        Me_sigma = self.MeSigma
+        Mcc__perm_inv = self._Mcc__perm_inv
+        Me_conductivity = self._Me_conductivity
 
-        return C.T.tocsr() @ Mcc_mui @ C + 1j * omega(freq) * Me_sigma
+        return C.T.tocsr() @ Mcc__perm_inv @ C + 1j * omega(freq) * Me_conductivity
 
     def getRHS(self, freq):
         """
@@ -400,19 +395,19 @@ class Simulation2DElectricField(BaseFDEMSimulation):
             h_bc = self._h_bc[freq]
         return 1j * omega(freq) * (M_bc @ h_bc)
 
-    def getADeriv_sigma(self, freq, u, v, adjoint=False):
-        return 1j * omega(freq) * self.MeSigmaDeriv(u, v, adjoint=adjoint)
+    def getADeriv_conductivity(self, freq, u, v, adjoint=False):
+        return 1j * omega(freq) * self._Me_conductivity_deriv(u, v, adjoint=adjoint)
 
-    def getADeriv_mui(self, freq, u, v, adjoint=False):
+    def getADeriv__perm_inv(self, freq, u, v, adjoint=False):
         C = self.mesh.edge_curl
         if adjoint:
-            return self.MccMuiDeriv(C * u, C * v, adjoint)
-        return C.T * self.MccMuiDeriv(C * u, v, adjoint)
+            return self._Mcc__perm_inv_deriv(C * u, C * v, adjoint)
+        return C.T * self._Mcc__perm_inv_deriv(C * u, v, adjoint)
 
     def getADeriv(self, freq, u, v, adjoint=False):
-        return self.getADeriv_sigma(freq, u, v, adjoint) + self.getADeriv_mui(
+        return self.getADeriv_conductivity(
             freq, u, v, adjoint
-        )
+        ) + self.getADeriv__perm_inv(freq, u, v, adjoint)
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
         if self._h_bc is not None:
@@ -441,42 +436,49 @@ class Simulation2DElectricField(BaseFDEMSimulation):
 
     def boundary_fields(self, model=None):
         "Returns the 1D field objects at the boundaries"
-        if getattr(self, "_boundary_fields", None) is None:
-            if model is None:
-                model = self.model
+        if model is None:
+            model = self.model
+        if (bound_fields := self._cache["boundary_fields"]) is None:
             sim = self._sim_left
-            if self.muiMap is None:
+            if self._perm_inv_map is None:
                 try:
-                    sim.mui = self._P_l @ self.mui
+                    sim._perm_inv = self._P_l @ self._perm_inv
                 except Exception:
-                    sim.mui = self.mui
-            if self.sigmaMap is None:
+                    sim._perm_inv = self._perm_inv
+            if self.conductivity_map is None:
                 try:
-                    sim.sigma = self._P_l @ self.sigma
+                    sim.conductivity = self._P_l @ self.conductivity
                 except Exception:
-                    sim.sigma = self.sigma
+                    sim.conductivity = self.conductivity
             f_left = sim.fields(model)
 
             sim = self._sim_right
-            if self.muiMap is None:
+            if self._perm_inv_map is None:
                 try:
-                    sim.mui = self._P_r @ self.mui
+                    sim._perm_inv = self._P_r @ self._perm_inv
                 except Exception:
-                    sim.mui = self.mui
-            if self.sigmaMap is None:
+                    sim._perm_inv = self._perm_inv
+            if self.conductivity_map is None:
                 try:
-                    sim.sigma = self._P_r @ self.sigma
+                    sim.conductivity = self._P_r @ self.conductivity
                 except Exception:
-                    sim.sigma = self.sigma
+                    sim.conductivity = self.conductivity
             f_right = sim.fields(model)
-
-            self._boundary_fields = (f_left, f_right)
-        return self._boundary_fields
+            bound_fields = (f_left, f_right)
+            self._cache["boundary_fields"] = bound_fields
+        return bound_fields
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        items = super().deleteTheseOnModelUpdate
-        items.append("_boundary_fields")
+    def _delete_on_model_change(self):
+        items = super()._delete_on_model_change
+        items += ["boundary_fields"]
+        return items
+
+    @property
+    def _delete_on_property_change(self, prop_name):
+        items = super()._delete_on_property_change(prop_name)
+        if prop_name in ["conductivity", "permeability"]:
+            items += ["boundary_fields"]
         return items
 
 
@@ -535,12 +537,12 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
 
                 map_l_kwargs = {}
                 map_r_kwargs = {}
-                if self.rhoMap is not None:
-                    map_l_kwargs["rhoMap"] = P_l * self.rhoMap
-                    map_r_kwargs["rhoMap"] = P_r * self.rhoMap
-                if self.muMap is not None:
-                    map_l_kwargs["muMap"] = P_l * self.muMap
-                    map_r_kwargs["muMap"] = P_r * self.muMap
+                if self.resistivity_map is not None:
+                    map_l_kwargs["resistivity_map"] = P_l * self.resistivity_map
+                    map_r_kwargs["resistivity_map"] = P_r * self.resistivity_map
+                if self.permeability_map is not None:
+                    map_l_kwargs["permeability_map"] = P_l * self.permeability_map
+                    map_r_kwargs["permeability_map"] = P_r * self.permeability_map
 
                 # create a survey with 1 source per frequency (no receivers)
                 frequencies = self.survey.frequencies
@@ -601,10 +603,10 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
                 + 1\omega \mathbf{M}^e_\mu
         """
         C = self.mesh.edge_curl
-        Mcc_rho = self.MccRho
-        Me_mu = self.MeMu
+        Mcc_resistivity = self._Mcc_resistivity
+        Me_permeability = self._Me_permeability
 
-        return C.T.tocsr() @ Mcc_rho @ C + 1j * omega(freq) * Me_mu
+        return C.T.tocsr() @ Mcc_resistivity @ C + 1j * omega(freq) * Me_permeability
 
     def getRHS(self, freq):
         """
@@ -624,19 +626,19 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
             e_bc = self._e_bc[freq]
         return -M_bc @ e_bc
 
-    def getADeriv_rho(self, freq, u, v, adjoint=False):
+    def getADeriv_resistivity(self, freq, u, v, adjoint=False):
         C = self.mesh.edge_curl
         if adjoint:
-            return self.MccRhoDeriv(C * u, C * v, adjoint)
-        return C.T * self.MccRhoDeriv(C * u, v, adjoint)
+            return self._Mcc_resistivity_deriv(C * u, C * v, adjoint)
+        return C.T * self._Mcc_resistivity_deriv(C * u, v, adjoint)
 
-    def getADeriv_mu(self, freq, u, v, adjoint=False):
-        return 1j * omega(freq) * self.MeMuDeriv(u, v, adjoint=adjoint)
+    def getADeriv_permeability(self, freq, u, v, adjoint=False):
+        return 1j * omega(freq) * self._Me_permeability_deriv(u, v, adjoint=adjoint)
 
     def getADeriv(self, freq, u, v, adjoint=False):
-        return self.getADeriv_rho(freq, u, v, adjoint) + self.getADeriv_mu(
+        return self.getADeriv_resistivity(
             freq, u, v, adjoint
-        )
+        ) + self.getADeriv_permeability(freq, u, v, adjoint)
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
         if self._e_bc is not None:
@@ -663,42 +665,49 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
 
     def boundary_fields(self, model=None):
         "Returns the 1D field objects at the boundaries"
-        if getattr(self, "_boundary_fields", None) is None:
+        if (bound_fields := self._cache["_boundary_fields"]) is None:
             if model is None:
                 model = self.model
             sim = self._sim_left
-            if self.muMap is None:
+            if self.permeability_map is None:
                 try:
-                    sim.mu = self._P_l @ self.mu
+                    sim.permeability = self._P_l @ self.permeability
                 except Exception:
-                    sim.mu = self.mu
-            if self.rhoMap is None:
+                    sim.permeability = self.permeability
+            if self.resistivity_map is None:
                 try:
-                    sim.rho = self._P_l @ self.rho
+                    sim.resistivity = self._P_l @ self.resistivity
                 except Exception:
-                    sim.rho = self.rho
+                    sim.resistivity = self.resistivity
             f_left = sim.fields(model)
 
             sim = self._sim_right
-            if self.muMap is None:
+            if self.permeability_map is None:
                 try:
-                    sim.mu = self._P_r @ self.mu
+                    sim.permeability = self._P_r @ self.permeability
                 except Exception:
-                    sim.mu = self.mu
-            if self.rhoMap is None:
+                    sim.permeability = self.permeability
+            if self.resistivity_map is None:
                 try:
-                    sim.rho = self._P_r @ self.rho
+                    sim.resistivity = self._P_r @ self.resistivity
                 except Exception:
-                    sim.rho = self.rho
+                    sim.resistivity = self.resistivity
             f_right = sim.fields(model)
 
-            self._boundary_fields = (f_left, f_right)
-        return self._boundary_fields
+            bound_fields = (f_left, f_right)
+            self._cache["boundary_fields"] = bound_fields
+        return bound_fields
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        items = super().deleteTheseOnModelUpdate
-        items.append("_boundary_fields")
+    def _delete_on_model_change(self):
+        items = super()._delete_on_model_change
+        items += ["boundary_fields"]
+        return items
+
+    @property
+    def _delete_on_property_change(self, prop_name):
+        items = super()._delete_on_property_change(prop_name)
+        items.append("boundary_fields")
         return items
 
 
@@ -736,21 +745,21 @@ class Simulation3DPrimarySecondary(Simulation3DElectricField):
     The primary field is estimated from a background model (commonly as a 1D model).
     """
 
-    def __init__(self, mesh, survey=None, sigmaPrimary=None, **kwargs):
+    def __init__(self, mesh, survey=None, conductivityPrimary=None, **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
-        self.sigmaPrimary = sigmaPrimary
+        self.conductivityPrimary = conductivityPrimary
 
     # fieldsPair = Fields3DPrimarySecondary
 
     @property
-    def sigmaPrimary(self):
+    def conductivityPrimary(self):
         """
         A background model, use for the calculation of the primary fields.
 
         """
-        return self._sigmaPrimary
+        return self._conductivityPrimary
 
-    @sigmaPrimary.setter
-    def sigmaPrimary(self, val):
+    @conductivityPrimary.setter
+    def conductivityPrimary(self, val):
         # Note: TODO add logic for val, make sure it is the correct size.
-        self._sigmaPrimary = val
+        self._conductivityPrimary = val

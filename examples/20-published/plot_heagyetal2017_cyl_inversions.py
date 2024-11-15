@@ -50,14 +50,14 @@ def run(plotIt=True, saveFig=False):
     sig_half = 1e-2  # Half-space conductivity
     sig_air = 1e-8  # Air conductivity
     sig_layer = 5e-2  # Layer conductivity
-    sigma = np.ones(mesh.shape_cells[2]) * sig_air
-    sigma[active] = sig_half
-    sigma[layer] = sig_layer
+    conductivity = np.ones(mesh.shape_cells[2]) * sig_air
+    conductivity[active] = sig_half
+    conductivity[layer] = sig_layer
 
     # Mapping
     actMap = maps.InjectActiveCells(mesh, active, np.log(1e-8), nC=mesh.shape_cells[2])
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
-    mtrue = np.log(sigma[active])
+    mtrue = np.log(conductivity[active])
 
     # ----- FDEM problem & survey ----- #
     rxlocs = utils.ndgrid([np.r_[50.0], np.r_[0], np.r_[0.0]])
@@ -88,7 +88,7 @@ def run(plotIt=True, saveFig=False):
 
     surveyFD = FDEM.Survey(source_list)
     prbFD = FDEM.Simulation3DMagneticFluxDensity(
-        mesh, survey=surveyFD, sigmaMap=mapping
+        mesh, survey=surveyFD, conductivity_map=mapping
     )
     rel_err = 0.03
     dataFD = prbFD.make_synthetic_data(mtrue, relative_error=rel_err, add_noise=True)
@@ -133,7 +133,7 @@ def run(plotIt=True, saveFig=False):
 
     surveyTD = TDEM.Survey([src])
     prbTD = TDEM.Simulation3DMagneticFluxDensity(
-        mesh, survey=surveyTD, sigmaMap=mapping
+        mesh, survey=surveyTD, conductivity_map=mapping
     )
     prbTD.time_steps = [(5e-5, 10), (1e-4, 10), (5e-4, 10)]
 
@@ -178,9 +178,9 @@ def run(plotIt=True, saveFig=False):
         activeN = mesh.nodes_z <= 0.0 + cs / 2.0
         z_true = np.repeat(mesh.nodes_z[activeN][1:-1], 2, axis=0)
         z_true = np.r_[mesh.nodes_z[activeN][0], z_true, mesh.nodes_z[activeN][-1]]
-        sigma_true = np.repeat(sigma[active], 2, axis=0)
+        conductivity_true = np.repeat(conductivity[active], 2, axis=0)
 
-        ax0.semilogx(sigma_true, z_true, "k-", lw=2, label="True")
+        ax0.semilogx(conductivity_true, z_true, "k-", lw=2, label="True")
 
         ax0.semilogx(
             np.exp(moptFD),

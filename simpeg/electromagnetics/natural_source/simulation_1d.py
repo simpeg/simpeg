@@ -1,14 +1,14 @@
 import numpy as np
 from scipy.constants import mu_0
 
-from ...simulation import BaseSimulation
-from ... import props
+from ..base_1d import BaseThicknessSimulation
+from ...base import BaseElectricalSimulation
 from ...utils import validate_type
 from ..frequency_domain.survey import Survey
 from .receivers import Impedance
 
 
-class Simulation1DRecursive(BaseSimulation):
+class Simulation1DRecursive(BaseElectricalSimulation, BaseThicknessSimulation):
     r"""
     Simulation class for the 1D MT problem using recursive solution.
 
@@ -36,35 +36,14 @@ class Simulation1DRecursive(BaseSimulation):
 
     """
 
-    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
-    rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
-    props.Reciprocal(sigma, rho)
-
-    # Add layer thickness as invertible property
-    thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
-        "thicknesses of the layers starting from the bottom of the mesh"
-    )
-
     def __init__(
         self,
         survey=None,
-        sigma=None,
-        sigmaMap=None,
-        rho=None,
-        rhoMap=None,
-        thicknesses=None,
-        thicknessesMap=None,
         fix_Jmatrix=False,
         **kwargs,
     ):
-        super().__init__(mesh=None, survey=survey, **kwargs)
+        super().__init__(survey=survey, **kwargs)
         self.fix_Jmatrix = fix_Jmatrix
-        self.sigma = sigma
-        self.rho = rho
-        self.thicknesses = thicknesses
-        self.sigmaMap = sigmaMap
-        self.rhoMap = rhoMap
-        self.thicknessesMap = thicknessesMap
 
     @property
     def survey(self):
@@ -105,7 +84,7 @@ class Simulation1DRecursive(BaseSimulation):
         self._fix_Jmatrix = validate_type("fix_Jmatrix", value, bool)
 
     # TODO: These should be moved to geoana
-    def _get_recursive_impedances(self, frequencies, thicknesses, sigmas):
+    def _get_recursive_impedances(self, frequencies, thicknesses, conductivities):
         """
         For a given layered Earth model, this returns the complex impedances
         at the surface for all frequencies.
@@ -116,7 +95,7 @@ class Simulation1DRecursive(BaseSimulation):
             Frequencies in Hz
         thicknesses : (n_layer-1, ) np.ndarray
             Layer thicknesses in meters, starting from the bottom
-        sigmas : (n_layer, ) np.ndarray
+        conductivities : (n_layer, ) np.ndarray
             Layer conductivities in S/m, starting from the bottom
 
         Returns
@@ -126,13 +105,13 @@ class Simulation1DRecursive(BaseSimulation):
         """
         frequencies = np.asarray(frequencies)
         thicknesses = np.asarray(thicknesses)[::-1]
-        sigmas = np.asarray(sigmas)[::-1]
+        conductivities = np.asarray(conductivities)[::-1]
         omega = 2 * np.pi * frequencies
-        n_layer = len(sigmas)
+        n_layer = len(conductivities)
 
         # layer quantities
-        alphas = np.sqrt(1j * omega * mu_0 * sigmas[:, None])
-        ratios = alphas / sigmas[:, None]
+        alphas = np.sqrt(1j * omega * mu_0 * conductivities[:, None])
+        ratios = alphas / conductivities[:, None]
         tanhs = np.tanh(alphas[:-1] * thicknesses[:, None])
 
         Z = -ratios[-1]
@@ -143,7 +122,7 @@ class Simulation1DRecursive(BaseSimulation):
             Z = ratios[ii] * top / bot
         return Z
 
-    def _get_recursive_impedances_deriv(self, frequencies, thicknesses, sigmas):
+    def _get_recursive_impedances_deriv(self, frequencies, thicknesses, conductivities):
         """
         For a given layered Earth model, this returns the complex impedances
         at the surface for all frequencies.
@@ -154,27 +133,27 @@ class Simulation1DRecursive(BaseSimulation):
             Frequencies in Hz
         thicknesses : (n_layer-1, ) np.ndarray
             Layer thicknesses in meters, starting from the bottom
-        sigmas : (n_layer, ) np.ndarray
+        conductivities : (n_layer, ) np.ndarray
             Layer conductivities in S/m, starting from the bottom
 
         Returns
         -------
         Z : (n_freq, ) np.ndarray
             Complex impedance at surface
-        Z_dsigma : (n_freq, n_layer) np.ndarray
-            Derivative of complex impedances at surface with respect to sigma
-        Z_dsigma : (n_freq, n_layer-1) np.ndarray
+        Z_dconductivity : (n_freq, n_layer) np.ndarray
+            Derivative of complex impedances at surface with respect to conductivity
+        Z_dconductivity : (n_freq, n_layer-1) np.ndarray
             Derivative of complex impedances at surface with respect to thicknesses
         """
         frequencies = np.asarray(frequencies)
         thicknesses = np.asarray(thicknesses)[::-1]
-        sigmas = np.asarray(sigmas)[::-1]
+        conductivities = np.asarray(conductivities)[::-1]
         omega = 2 * np.pi * frequencies
-        n_layer = len(sigmas)
+        n_layer = len(conductivities)
 
         # Bottom layer quantities
-        alphas = np.sqrt(1j * omega * mu_0 * sigmas[:, None])
-        ratios = alphas / sigmas[:, None]
+        alphas = np.sqrt(1j * omega * mu_0 * conductivities[:, None])
+        ratios = alphas / conductivities[:, None]
         tanhs = np.tanh(alphas[:-1] * thicknesses[:, None])
 
         tops = np.empty_like(tanhs)
@@ -205,15 +184,15 @@ class Simulation1DRecursive(BaseSimulation):
         gratios[-1] = -gZ
         d_thick = (1 - tanhs**2) * alphas[:-1] * gtanhs
 
-        galphas = gratios / sigmas[:, None]
+        galphas = gratios / conductivities[:, None]
         galphas[:-1] += (1 - tanhs**2) * thicknesses[:, None] * gtanhs
 
-        d_sigma = -ratios / sigmas[:, None] * gratios
-        d_sigma += (0.5j * omega * mu_0) / alphas * galphas
+        d_conductivity = -ratios / conductivities[:, None] * gratios
+        d_conductivity += (0.5j * omega * mu_0) / alphas * galphas
 
-        # d_mu would be this below when it gets activated:
-        # d_mu = (0.5j * omega * sigmas[:, None]) / alphas * galphas
-        return Zs[0], d_sigma[::-1].T, d_thick[::-1].T
+        # d_permeability would be this below when it gets activated:
+        # d_permeability = (0.5j * omega * conductivities[:, None]) / alphas * galphas
+        return Zs[0], d_conductivity[::-1].T, d_thick[::-1].T
 
     def fields(self, m):
         # The layered simulation does not have fields.
@@ -230,7 +209,7 @@ class Simulation1DRecursive(BaseSimulation):
 
         # Compute complex impedances for each frequency=
         Z = self._get_recursive_impedances(
-            self.survey.frequencies, self.thicknesses, self.sigma
+            self.survey.frequencies, self.thicknesses, self.conductivity
         )
 
         # For each complex impedance, extract compute datum
@@ -263,16 +242,16 @@ class Simulation1DRecursive(BaseSimulation):
         """
         # Analytic computation
         self.model = m
-        if getattr(self, "_Jmatrix", None) is not None:
-            return self._Jmatrix
+        if (J_matrix := self._cache["J_matrix"]) is not None:
+            return J_matrix
 
         # Derivatives for conductivity
-        Z, Z_dsigma, Z_dthick = self._get_recursive_impedances_deriv(
-            self.survey.frequencies, self.thicknesses, self.sigma
+        Z, Z_dconductivity, Z_dthick = self._get_recursive_impedances_deriv(
+            self.survey.frequencies, self.thicknesses, self.conductivity
         )
         Js = []
-        if self.sigmaMap is not None:
-            Js.append(Z_dsigma)
+        if self.conductivity_map is not None:
+            Js.append(Z_dconductivity)
         if self.thicknessesMap is not None:
             Js.append(Z_dthick)
         Js = np.hstack(Js)
@@ -304,40 +283,41 @@ class Simulation1DRecursive(BaseSimulation):
                 end = start + rx.nD
                 J[start:end] = Jrows
                 start = end
-        self._Jmatrix = {}
+        J_matrix = {}
         start = 0
-        if self.sigmaMap is not None:
-            end = start + Z_dsigma.shape[1]
-            self._Jmatrix["sigma"] = J[:, start:end]
+        if self.conductivity_map is not None:
+            end = start + Z_dconductivity.shape[1]
+            J_matrix["conductivity"] = J[:, start:end]
             start = end
         if self.thicknessesMap is not None:
             end = start + Z_dthick.shape[1]
-            self._Jmatrix["thick"] = J[:, start:end]
-        return self._Jmatrix
+            J_matrix["thick"] = J[:, start:end]
+        self._cache["J_matrix"] = J_matrix
+        return J_matrix
 
     def getJtJdiag(self, m, W=None, f=None):
-        if getattr(self, "_gtgdiag", None) is None:
+        if (jtjdiag := self._cache["jtjdiag"]) is None:
             Js = self.getJ(m, f=f)
             if W is None:
                 W = np.ones(self.survey.nD)
             else:
                 W = W.diagonal() ** 2
 
-            gtgdiag = 0
-            if self.sigmaMap is not None:
-                J = Js["sigma"] @ self.sigmaDeriv
-                gtgdiag += np.einsum("i,ij,ij->j", W, J, J)
+            jtjdiag = 0
+            if self.conductivity_map is not None:
+                J = Js["conductivity"] @ self._con_deriv
+                jtjdiag += np.einsum("i,ij,ij->j", W, J, J)
             if self.thicknessesMap is not None:
                 J = Js["thick"] @ self.thicknessesDeriv
-                gtgdiag += np.einsum("i,ij,ij->j", W, J, J)
-            self._gtgdiag = gtgdiag
-        return self._gtgdiag
+                jtjdiag += np.einsum("i,ij,ij->j", W, J, J)
+            self._cache["jtjdiag"] = jtjdiag
+        return jtjdiag
 
     def Jvec(self, m, v, f=None):
         J = self.getJ(m, f=None)
         Jvec = 0
-        if self.sigmaMap is not None:
-            Jvec += J["sigma"] @ (self.sigmaDeriv * v)
+        if self.conductivity_map is not None:
+            Jvec += J["conductivity"] @ (self._con_deriv * v)
         if self.thicknessesMap is not None:
             Jvec += J["thick"] @ (self.thicknessesDeriv * v)
         return Jvec
@@ -345,17 +325,17 @@ class Simulation1DRecursive(BaseSimulation):
     def Jtvec(self, m, v, f=None):
         J = self.getJ(m, f=None)
         JTvec = 0
-        if self.sigmaMap is not None:
-            JTvec += self.sigmaDeriv.T @ (J["sigma"].T @ v)
+        if self.conductivity_map is not None:
+            JTvec += self._con_deriv.T @ (J["conductivity"].T @ v)
         if self.thicknessesMap is not None:
             JTvec += self.thicknessesDeriv.T @ (J["thick"].T @ v)
         return JTvec
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        toDelete = super().deleteTheseOnModelUpdate
+    def _delete_on_model_change(self):
+        toDelete = super()._delete_on_model_change
         if self.fix_Jmatrix:
             return toDelete
         else:
-            toDelete = toDelete + ["_Jmatrix", "_gtgdiag"]
+            toDelete = toDelete + ["J_matrix", "jtjdiag"]
         return toDelete

@@ -5,13 +5,13 @@ from ....utils import mkvc
 from .solutions_1d import get1DEfields
 
 
-def homo1DModelSource(mesh, freq, sigma_1d):
+def homo1DModelSource(mesh, freq, conductivity_1d):
     """
     Function that calculates and return background fields
 
     :param discretize.base.BaseMesh mesh: Holds information on the discretization
     :param float freq: The frequency to solve at
-    :param numpy.ndarray sigma_1d: Background model of conductivity to base the calculations on, 1d model.
+    :param numpy.ndarray conductivity_1d: Background model of conductivity to base the calculations on, 1d model.
     :rtype: numpy.ndarray
     :return: eBG_bp, E fields for the background model at both polarizations with shape (mesh.nE, 2).
 
@@ -24,7 +24,7 @@ def homo1DModelSource(mesh, freq, sigma_1d):
         mesh1d = discretize.TensorMesh([mesh.h[-1]], [mesh.x0[-1]])
 
     # Note: Everything is using e^iwt
-    e0_1d = get1DEfields(mesh1d, sigma_1d, freq)
+    e0_1d = get1DEfields(mesh1d, conductivity_1d, freq)
     if mesh.dim == 1:
         eBG_px = mkvc(e0_1d, 2)
         eBG_py = -mkvc(
@@ -69,13 +69,13 @@ def homo1DModelSource(mesh, freq, sigma_1d):
     return eBG_bp
 
 
-def analytic1DModelSource(mesh, freq, sigma_1d):
+def analytic1DModelSource(mesh, freq, conductivity_1d):
     """
     Function that calculates and return background fields
 
     :param discretize.base.BaseMesh mesh: Holds information on the discretization
     :param float freq: The frequency to solve at
-    :param numpy.ndarray sigma_1d: Background model of conductivity to base the calculations on, 1d model.
+    :param numpy.ndarray conductivity_1d: Background model of conductivity to base the calculations on, 1d model.
     :rtype: numpy.ndarray
     :return: eBG_bp, E fields for the background model at both polarizations with shape (mesh.nE, 2).
 
@@ -91,7 +91,7 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
         mesh1d = discretize.TensorMesh([mesh.h[2]], np.array([mesh.x0[2]]))
 
     # # Note: Everything is using e^iwt
-    Eu, Ed, _, _ = getEHfields(mesh1d, sigma_1d, freq, mesh.nodes_z)
+    Eu, Ed, _, _ = getEHfields(mesh1d, conductivity_1d, freq, mesh.nodes_z)
     # Make the fields into a dictionary of location and the fields
     e0_1d = Eu + Ed
     E1dFieldDict = dict(zip(mesh.nodes_z, e0_1d))
@@ -139,7 +139,7 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
 
 #         :param Simpeg mesh object mesh: Holds information on the discretization
 #         :param float freq: The frequency to solve at
-#         :param np.array sigma_1d: Background model of conductivity to base the calculations on, 1d model.
+#         :param np.array conductivity_1d: Background model of conductivity to base the calculations on, 1d model.
 #         :rtype: numpy.ndarray (mesh.nE, 2)
 #         :return: eBG_bp, E fields for the background model at both polarizations.
 
@@ -157,7 +157,7 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
 #     # Need to loop thourgh the xy locations, assess the model and calculate the fields at the phusdo cell centers.
 #     # Then interpolate the cc fields to the edges.
 
-#     e0_1d = get1DEfields(mesh1d, sigma_1d, freq)
+#     e0_1d = get1DEfields(mesh1d, conductivity_1d, freq)
 
 #     elif mesh.dim == 3:
 #         # Setup x (east) polarization (_x)

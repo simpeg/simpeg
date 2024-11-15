@@ -24,31 +24,31 @@ def create_survey(freq):
     return nsem.survey.Survey(source_list)
 
 
-def true_solution(freq, sigma_half):
+def true_solution(freq, conductivity_half):
     # -ve sign can be removed if convention changes
     soln = np.r_[
-        -np.sqrt(np.pi * freq * mu_0 / sigma_half),
-        -np.sqrt(np.pi * freq * mu_0 / sigma_half),
-        1 / sigma_half,
+        -np.sqrt(np.pi * freq * mu_0 / conductivity_half),
+        -np.sqrt(np.pi * freq * mu_0 / conductivity_half),
+        1 / conductivity_half,
         45.0,
     ]
 
     return soln
 
 
-def compute_simulation(freq, sigma_half):
+def compute_simulation(freq, conductivity_half):
     layer_thicknesses = np.array([100.0])
-    conductivity_model = sigma_half * np.ones(2)
+    conductivity_model = conductivity_half * np.ones(2)
     model_mapping = maps.IdentityMap()
 
     survey = create_survey(np.array([freq]))
 
     simulation = nsem.simulation_1d.Simulation1DRecursive(
-        survey=survey, thicknesses=layer_thicknesses, sigmaMap=model_mapping
+        survey=survey, thicknesses=layer_thicknesses, conductivity_map=model_mapping
     )
 
     dpred = simulation.dpred(conductivity_model)
-    danal = true_solution(freq, sigma_half)
+    danal = true_solution(freq, conductivity_half)
 
     return dpred, danal
 

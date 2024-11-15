@@ -39,10 +39,12 @@ def test_custom_surface(mesh, sim_class, tx_loc):
     src = dc.sources.Pole([], location=tx_loc)
     survey = dc.Survey([src])
 
-    sigma = np.full(mesh.n_cells, 0.1)
+    conductivity = np.full(mesh.n_cells, 0.1)
 
-    sim1 = sim_class(mesh, survey, sigma=sigma)
-    sim2 = sim_class(mesh, survey, surface_faces=surface_boundary_faces, sigma=sigma)
+    sim1 = sim_class(mesh, survey, conductivity=conductivity)
+    sim2 = sim_class(
+        mesh, survey, surface_faces=surface_boundary_faces, conductivity=conductivity
+    )
 
     f1 = sim1.fields()
     f2 = sim2.fields()
@@ -62,8 +64,8 @@ def test_custom_surface(mesh, sim_class, tx_loc):
 def test_not_implemented(mesh, sim_class, tx_loc):
     src = dc.sources.Pole([], location=tx_loc)
     survey = dc.Survey([src])
-    sigma = np.full(mesh.n_cells, 0.1)
+    conductivity = np.full(mesh.n_cells, 0.1)
 
     with pytest.raises(NotImplementedError):
-        sim = sim_class(mesh, survey, sigma=sigma)
+        sim = sim_class(mesh, survey, conductivity=conductivity)
         sim.fields()

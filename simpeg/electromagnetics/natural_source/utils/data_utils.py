@@ -298,9 +298,9 @@ def appResPhs(freq, z):
     return app_res, app_phs
 
 
-def skindepth(rho, freq):
+def skindepth(resistivity, freq):
     """Function to calculate the skindepth of EM waves"""
-    return np.sqrt((rho * ((1 / (freq * mu_0 * np.pi)))))
+    return np.sqrt((resistivity * ((1 / (freq * mu_0 * np.pi)))))
 
 
 def rec_to_ndarr(rec_arr, data_type=float):
@@ -370,7 +370,7 @@ def plotMT1DModelData(problem, models, symList=None):
     modelList = [problem.survey.mtrue]
     modelList.extend(models)
     if False:
-        modelList = [problem.sigmaMap * mod for mod in modelList]
+        modelList = [problem.conductivity_map * mod for mod in modelList]
     for nr, model in enumerate(modelList):
         # Calculate the data
         if nr == 0:
@@ -392,7 +392,7 @@ def plotMT1DModelData(problem, models, symList=None):
             (problem.mesh.gridN[0:1], np.kron(problem.mesh.gridN[1::], np.ones(2))[:-1])
         )
         modelPts = np.kron(
-            1.0 / (problem.sigmaMap * model),
+            1.0 / (problem.conductivity_map * model),
             np.ones(
                 2,
             ),

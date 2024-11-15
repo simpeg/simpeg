@@ -57,7 +57,7 @@ def test_meta_correctness(cluster):
             survey_chunk = dc.Survey(src_list[i:end])
             sims.append(
                 dc.Simulation3DNodal(
-                    mesh, survey=survey_chunk, sigmaMap=maps.IdentityMap()
+                    mesh, survey=survey_chunk, conductivity_map=maps.IdentityMap()
                 )
             )
             mappings.append(maps.IdentityMap())
@@ -136,10 +136,10 @@ def test_sum_sim_correctness(cluster):
         ]
         g_sims = [
             gravity.Simulation3DIntegral(
-                mesh_bot, survey=survey, rhoMap=maps.IdentityMap(), n_processes=1
+                mesh_bot, survey=survey, density_map=maps.IdentityMap(), n_processes=1
             ),
             gravity.Simulation3DIntegral(
-                mesh_top, survey=survey, rhoMap=maps.IdentityMap(), n_processes=1
+                mesh_top, survey=survey, density_map=maps.IdentityMap(), n_processes=1
             ),
         ]
 
@@ -207,7 +207,7 @@ def test_repeat_sim_correctness(cluster):
         rx = gravity.Point(rx_locs, components=["gz"])
         survey = gravity.Survey(gravity.SourceField(rx))
         grav_sim = gravity.Simulation3DIntegral(
-            mesh, survey=survey, rhoMap=maps.IdentityMap(), n_processes=1
+            mesh, survey=survey, density_map=maps.IdentityMap(), n_processes=1
         )
 
         time_mesh = TensorMesh([8], origin=[0])
@@ -282,7 +282,7 @@ def test_dask_meta_errors(cluster):
             survey_chunk = dc.Survey(src_list[i:end])
             sims.append(
                 dc.Simulation3DNodal(
-                    mesh, survey=survey_chunk, sigmaMap=maps.IdentityMap(mesh)
+                    mesh, survey=survey_chunk, conductivity_map=maps.IdentityMap(mesh)
                 )
             )
             mappings.append(maps.IdentityMap(mesh))
@@ -342,13 +342,13 @@ def test_sum_errors(cluster):
             gravity.Simulation3DIntegral(
                 mesh_bot,
                 survey=survey1,
-                rhoMap=maps.IdentityMap(mesh_bot),
+                density_map=maps.IdentityMap(mesh_bot),
                 n_processes=1,
             ),
             gravity.Simulation3DIntegral(
                 mesh_top,
                 survey=survey2,
-                rhoMap=maps.IdentityMap(mesh_top),
+                density_map=maps.IdentityMap(mesh_top),
                 n_processes=1,
             ),
         ]
@@ -377,7 +377,9 @@ def test_repeat_errors(cluster):
             for loc in source_locs
         ]
         survey = dc.Survey(src_list)
-        sim = dc.Simulation3DNodal(mesh, survey=survey, sigmaMap=maps.IdentityMap(mesh))
+        sim = dc.Simulation3DNodal(
+            mesh, survey=survey, conductivity_map=maps.IdentityMap(mesh)
+        )
 
         # split by chunks of sources
         mappings = []

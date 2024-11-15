@@ -37,8 +37,8 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         s_e = np.hstack([s_e, np.zeros(mesh.nFy + mesh.nFz)])
 
         # define a model with a conductive, permeable target
-        sigma0 = 1e-1
-        sigma1 = 1
+        conductivity0 = 1e-1
+        conductivity1 = 1
 
         mu0 = mu_0
         mu1 = 100 * mu_0
@@ -53,11 +53,11 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
             & (mesh.gridCC[:, 2] <= h_target[1])
         )
 
-        sigma = sigma0 * np.ones(mesh.nC)
-        sigma[target_inds] = sigma1
+        conductivity = conductivity0 * np.ones(mesh.nC)
+        conductivity[target_inds] = conductivity1
 
-        mu = mu0 * np.ones(mesh.nC)
-        mu[target_inds] = mu1
+        permeability = mu0 * np.ones(mesh.nC)
+        permeability[target_inds] = mu1
 
         src = tdem.Src.RawVec_Grounded([], s_e=s_e)
 
@@ -73,30 +73,30 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         prob = getattr(tdem, "Simulation3D{}".format(self.prob_type))(
             mesh,
             time_steps=time_steps,
-            mu=mu,
-            sigmaMap=maps.ExpMap(mesh),
+            permeability=permeability,
+            conductivity_map=maps.ExpMap(mesh),
         )
         survey = tdem.Survey([src])
 
-        prob.model = sigma
+        prob.model = conductivity
 
         self.mesh = mesh
         self.prob = prob
         self.survey = survey
         self.src = src
 
-        self.sigma = sigma
-        self.mu = mu
+        self.conductivity = conductivity
+        self.permeability = permeability
 
         print("Testing problem {} \n\n".format(self.prob_type))
 
     def derivtest(self, deriv_fct):
         rng = np.random.default_rng(seed=42)
-        m0 = np.log(self.sigma) + rng.uniform(size=self.mesh.nC)
+        m0 = np.log(self.conductivity) + rng.uniform(size=self.mesh.nC)
         self.prob.model = m0
 
         return tests.check_derivative(
-            deriv_fct, np.log(self.sigma), num=3, plotIt=False, random_seed=521
+            deriv_fct, np.log(self.conductivity), num=3, plotIt=False, random_seed=521
         )
 
     def test_deriv_phi(self):

@@ -27,7 +27,7 @@ def test_multi_sim_correctness():
     ]
     survey_full = dc.Survey(src_list)
     full_sim = dc.Simulation3DNodal(
-        mesh, survey=survey_full, sigmaMap=maps.IdentityMap()
+        mesh, survey=survey_full, conductivity_map=maps.IdentityMap()
     )
 
     m_test = np.arange(mesh.n_cells) / mesh.n_cells + 0.1
@@ -42,7 +42,9 @@ def test_multi_sim_correctness():
             break
         survey_chunk = dc.Survey(src_list[i:end])
         sims.append(
-            dc.Simulation3DNodal(mesh, survey=survey_chunk, sigmaMap=maps.IdentityMap())
+            dc.Simulation3DNodal(
+                mesh, survey=survey_chunk, conductivity_map=maps.IdentityMap()
+            )
         )
         mappings.append(maps.IdentityMap())
 
@@ -106,7 +108,7 @@ def test_sum_sim_correctness():
     rx = gravity.Point(rx_locs, components=["gz"])
     survey = gravity.Survey(gravity.SourceField(rx))
     full_sim = gravity.Simulation3DIntegral(
-        mesh, survey=survey, rhoMap=maps.IdentityMap(), n_processes=1
+        mesh, survey=survey, density_map=maps.IdentityMap(), n_processes=1
     )
 
     mesh_bot = TensorMesh([mesh.h[0], mesh.h[1], mesh.h[2][:8]], origin=mesh.origin)
@@ -120,10 +122,10 @@ def test_sum_sim_correctness():
     ]
     sims = [
         gravity.Simulation3DIntegral(
-            mesh_bot, survey=survey, rhoMap=maps.IdentityMap(), n_processes=1
+            mesh_bot, survey=survey, density_map=maps.IdentityMap(), n_processes=1
         ),
         gravity.Simulation3DIntegral(
-            mesh_top, survey=survey, rhoMap=maps.IdentityMap(), n_processes=1
+            mesh_top, survey=survey, density_map=maps.IdentityMap(), n_processes=1
         ),
     ]
 
@@ -187,7 +189,7 @@ def test_repeat_sim_correctness():
     rx = gravity.Point(rx_locs, components=["gz"])
     survey = gravity.Survey(gravity.SourceField(rx))
     sim = gravity.Simulation3DIntegral(
-        mesh, survey=survey, rhoMap=maps.IdentityMap(), n_processes=1
+        mesh, survey=survey, density_map=maps.IdentityMap(), n_processes=1
     )
 
     time_mesh = TensorMesh(
@@ -213,7 +215,7 @@ def test_repeat_sim_correctness():
         mappings.append(maps.LinearMap(ave_full))
         simulations.append(
             gravity.Simulation3DIntegral(
-                mesh, survey=survey, rhoMap=maps.IdentityMap(), n_processes=1
+                mesh, survey=survey, density_map=maps.IdentityMap(), n_processes=1
             )
         )
 
@@ -278,7 +280,7 @@ def test_multi_errors():
         survey_chunk = dc.Survey(src_list[i:end])
         sims.append(
             dc.Simulation3DNodal(
-                mesh, survey=survey_chunk, sigmaMap=maps.IdentityMap(mesh)
+                mesh, survey=survey_chunk, conductivity_map=maps.IdentityMap(mesh)
             )
         )
         mappings.append(maps.IdentityMap(mesh))
@@ -320,10 +322,16 @@ def test_sum_errors():
 
     sims = [
         gravity.Simulation3DIntegral(
-            mesh_bot, survey=survey1, rhoMap=maps.IdentityMap(mesh_bot), n_processes=1
+            mesh_bot,
+            survey=survey1,
+            density_map=maps.IdentityMap(mesh_bot),
+            n_processes=1,
         ),
         gravity.Simulation3DIntegral(
-            mesh_top, survey=survey2, rhoMap=maps.IdentityMap(mesh_top), n_processes=1
+            mesh_top,
+            survey=survey2,
+            density_map=maps.IdentityMap(mesh_top),
+            n_processes=1,
         ),
     ]
 
@@ -349,7 +357,9 @@ def test_repeat_errors():
         for loc in source_locs
     ]
     survey = dc.Survey(src_list)
-    sim = dc.Simulation3DNodal(mesh, survey=survey, sigmaMap=maps.IdentityMap(mesh))
+    sim = dc.Simulation3DNodal(
+        mesh, survey=survey, conductivity_map=maps.IdentityMap(mesh)
+    )
 
     # split by chunks of sources
     mappings = []
@@ -396,7 +406,9 @@ def test_cache_clear_on_model_clear():
             break
         survey_chunk = dc.Survey(src_list[i:end])
         sims.append(
-            dc.Simulation3DNodal(mesh, survey=survey_chunk, sigmaMap=maps.IdentityMap())
+            dc.Simulation3DNodal(
+                mesh, survey=survey_chunk, conductivity_map=maps.IdentityMap()
+            )
         )
         mappings.append(maps.IdentityMap())
 

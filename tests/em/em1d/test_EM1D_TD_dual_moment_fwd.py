@@ -57,23 +57,23 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
         survey = tdem.Survey(source_list)
 
         thicknesses = np.ones(3)
-        sigma = 1e-2
+        conductivity = 1e-2
         n_layer = thicknesses.size + 1
 
-        sigma_model = sigma * np.ones(n_layer)
+        conductivity_model = conductivity * np.ones(n_layer)
 
         model_mapping = maps.IdentityMap(nP=n_layer)
         simulation = tdem.Simulation1DLayered(
             survey=survey,
             thicknesses=thicknesses,
-            sigmaMap=model_mapping,
+            conductivity_map=model_mapping,
         )
 
         self.survey = survey
         self.simulation = simulation
         self.showIt = False
-        self.sigma_model = sigma_model
-        self.sigma_halfspace = sigma
+        self.conductivity_model = conductivity_model
+        self.conductivity_halfspace = conductivity
         self.source_radius = source_radius
         self.waveform_hm = waveform_hm
         self.waveform_lm = waveform_lm
@@ -83,7 +83,7 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
     def test_em1dtd_circular_loop_single_pulse(self):
         src = self.survey.source_list[0]
         rx = src.receiver_list[0]
-        dbzdt = self.simulation.dpred(self.sigma_model)
+        dbzdt = self.simulation.dpred(self.conductivity_model)
         dbzdt_hm = dbzdt[: rx.times.size]
         dbzdt_lm = dbzdt[rx.times.size :]
 
@@ -91,14 +91,20 @@ class EM1D_TD_FwdProblemTests(unittest.TestCase):
             dbdt_loop,
             self.waveform_lm,
             self.times_lm,
-            fkwargs={"sigma": self.sigma_halfspace, "radius": self.source_radius},
+            fkwargs={
+                "sigma": self.conductivity_halfspace,
+                "radius": self.source_radius,
+            },
         )
 
         dbzdt_hm_analytic = convolve_with_waveform(
             dbdt_loop,
             self.waveform_hm,
             self.times_hm,
-            fkwargs={"sigma": self.sigma_halfspace, "radius": self.source_radius},
+            fkwargs={
+                "sigma": self.conductivity_halfspace,
+                "radius": self.source_radius,
+            },
         )
 
         err = np.linalg.norm(dbzdt_hm - dbzdt_hm_analytic) / np.linalg.norm(

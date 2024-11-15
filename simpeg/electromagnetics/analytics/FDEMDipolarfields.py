@@ -9,7 +9,7 @@ def omega(f):
 
 # TODO:
 # r = lambda dx, dy, dz: np.sqrt( dx**2. + dy**2. + dz**2.)
-# k = lambda f, mu, epsilon, sig: np.sqrt( omega(f)**2. *mu*epsilon -1j*omega(f)*mu*sig )
+# k = lambda f, permeability, epsilon, sig: np.sqrt( omega(f)**2. *permeability*epsilon -1j*omega(f)*permeability*sig )
 
 
 def E_from_ElectricDipoleWholeSpace(
@@ -20,7 +20,7 @@ def E_from_ElectricDipoleWholeSpace(
     TODO:
         Add description of parameters
     """
-    mu = mu_0 * (1 + kappa)
+    permeability = mu_0 * (1 + kappa)
     epsilon = epsilon_0 * epsr
     sig_hat = sig + 1j * omega(f) * epsilon
 
@@ -36,8 +36,10 @@ def E_from_ElectricDipoleWholeSpace(
     dz = XYZ[:, 2] - srcLoc[2]
 
     r = np.sqrt(dx**2.0 + dy**2.0 + dz**2.0)
-    # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
-    k = np.sqrt(omega(f) ** 2.0 * mu * epsilon - 1j * omega(f) * mu * sig)
+    # k  = np.sqrt( -1j*2.*np.pi*f*permeability*sig )
+    k = np.sqrt(
+        omega(f) ** 2.0 * permeability * epsilon - 1j * omega(f) * permeability * sig
+    )
 
     front = current * length / (4.0 * np.pi * sig_hat * r**3) * np.exp(-1j * k * r)
     mid = -(k**2) * r**2 + 3 * 1j * k * r + 3
@@ -71,7 +73,7 @@ def E_galvanic_from_ElectricDipoleWholeSpace(
     TODO:
         Add description of parameters
     """
-    mu = mu_0 * (1 + kappa)
+    permeability = mu_0 * (1 + kappa)
     epsilon = epsilon_0 * epsr
     sig_hat = sig + 1j * omega(f) * epsilon
 
@@ -87,8 +89,10 @@ def E_galvanic_from_ElectricDipoleWholeSpace(
     dz = XYZ[:, 2] - srcLoc[2]
 
     r = np.sqrt(dx**2.0 + dy**2.0 + dz**2.0)
-    # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
-    k = np.sqrt(omega(f) ** 2.0 * mu * epsilon - 1j * omega(f) * mu * sig)
+    # k  = np.sqrt( -1j*2.*np.pi*f*permeability*sig )
+    k = np.sqrt(
+        omega(f) ** 2.0 * permeability * epsilon - 1j * omega(f) * permeability * sig
+    )
 
     front = current * length / (4.0 * np.pi * sig_hat * r**3) * np.exp(-1j * k * r)
     mid = -(k**2) * r**2 + 3 * 1j * k * r + 3
@@ -122,7 +126,7 @@ def E_inductive_from_ElectricDipoleWholeSpace(
     TODO:
         Add description of parameters
     """
-    mu = mu_0 * (1 + kappa)
+    permeability = mu_0 * (1 + kappa)
     epsilon = epsilon_0 * epsr
     sig_hat = sig + 1j * omega(f) * epsilon
 
@@ -138,8 +142,10 @@ def E_inductive_from_ElectricDipoleWholeSpace(
     dz = XYZ[:, 2] - srcLoc[2]
 
     r = np.sqrt(dx**2.0 + dy**2.0 + dz**2.0)
-    # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
-    k = np.sqrt(omega(f) ** 2.0 * mu * epsilon - 1j * omega(f) * mu * sig)
+    # k  = np.sqrt( -1j*2.*np.pi*f*permeability*sig )
+    k = np.sqrt(
+        omega(f) ** 2.0 * permeability * epsilon - 1j * omega(f) * permeability * sig
+    )
 
     front = current * length / (4.0 * np.pi * sig_hat * r**3) * np.exp(-1j * k * r)
 
@@ -254,7 +260,7 @@ def H_from_ElectricDipoleWholeSpace(
     TODO:
         Add description of parameters
     """
-    mu = mu_0 * (1 + kappa)
+    permeability = mu_0 * (1 + kappa)
     epsilon = epsilon_0 * epsr
     XYZ = utils.as_array_n_by_dim(XYZ, 3)
     # Check
@@ -268,8 +274,10 @@ def H_from_ElectricDipoleWholeSpace(
     dz = XYZ[:, 2] - srcLoc[2]
 
     r = np.sqrt(dx**2.0 + dy**2.0 + dz**2.0)
-    # k  = np.sqrt( -1j*2.*np.pi*f*mu*sig )
-    k = np.sqrt(omega(f) ** 2.0 * mu * epsilon - 1j * omega(f) * mu * sig)
+    # k  = np.sqrt( -1j*2.*np.pi*f*permeability*sig )
+    k = np.sqrt(
+        omega(f) ** 2.0 * permeability * epsilon - 1j * omega(f) * permeability * sig
+    )
 
     front = (
         current
@@ -318,10 +326,10 @@ def B_from_ElectricDipoleWholeSpace(
         kappa=kappa,
         epsr=epsr,
     )
-    mu = mu_0 * (1 + kappa)
-    Bx = mu * Hx
-    By = mu * Hy
-    Bz = mu * Hz
+    permeability = mu_0 * (1 + kappa)
+    Bx = permeability * Hx
+    By = permeability * Hy
+    Bz = permeability * Hz
     return Bx, By, Bz
 
 
@@ -333,7 +341,7 @@ def A_from_ElectricDipoleWholeSpace(
     TODO:
         Add description of parameters
     """
-    mu = mu_0 * (1 + kappa)
+    permeability = mu_0 * (1 + kappa)
     epsilon = epsilon_0 * epsr
     XYZ = utils.as_array_n_by_dim(XYZ, 3)
     # Check
@@ -347,7 +355,9 @@ def A_from_ElectricDipoleWholeSpace(
     dz = XYZ[:, 2] - srcLoc[2]
 
     r = np.sqrt(dx**2.0 + dy**2.0 + dz**2.0)
-    k = np.sqrt(omega(f) ** 2.0 * mu * epsilon - 1j * omega(f) * mu * sig)
+    k = np.sqrt(
+        omega(f) ** 2.0 * permeability * epsilon - 1j * omega(f) * permeability * sig
+    )
 
     front = current * length / (4.0 * np.pi * r)
 

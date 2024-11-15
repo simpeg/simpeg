@@ -232,7 +232,7 @@ cbar.set_label(
 simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
-    chiMap=model_map,
+    susceptibility_map=model_map,
     active_cells=ind_active,
     model_type="vector",
     store_sensitivities="forward_only",

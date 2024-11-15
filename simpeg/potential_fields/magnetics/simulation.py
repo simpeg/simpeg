@@ -150,9 +150,9 @@ class Simulation3DIntegral(BasePFSimulation):
         Magnetic survey with information of the receivers.
     active_cells : (n_cells) numpy.ndarray, optional
         Array that indicates which cells in ``mesh`` are active cells.
-    chi : numpy.ndarray, optional
+    susceptibility : numpy.ndarray, optional
         Susceptibility array for the active cells in the mesh.
-    chiMap : Mapping, optional
+    susceptibility_map : Mapping, optional
         Model mapping.
     model_type : str, optional
         Whether the model are susceptibilities of the cells (``"scalar"``),
@@ -187,13 +187,15 @@ class Simulation3DIntegral(BasePFSimulation):
            ``active_cells`` and will be removed in SimPEG v0.24.0.
     """
 
-    chi, chiMap, chiDeriv = props.Invertible("Magnetic Susceptibility (SI)")
+    susceptibility, susceptibility_map, _susc_deriv = props.Invertible(
+        "Magnetic Susceptibility (SI)"
+    )
 
     def __init__(
         self,
         mesh,
-        chi=None,
-        chiMap=None,
+        susceptibility=None,
+        susceptibility_map=None,
         model_type="scalar",
         is_amplitude_data=False,
         engine="geoana",
@@ -202,14 +204,14 @@ class Simulation3DIntegral(BasePFSimulation):
     ):
         self.model_type = model_type
         super().__init__(mesh, engine=engine, numba_parallel=numba_parallel, **kwargs)
-        self.chi = chi
-        self.chiMap = chiMap
+        self.susceptibility = susceptibility
+        self.susceptibility_map = susceptibility_map
 
         self._G = None
         self._M = None
         self._gtg_diagonal = None
         self.is_amplitude_data = is_amplitude_data
-        self.modelMap = self.chiMap
+        self.modelMap = self.susceptibility_map
 
         # Warn if n_processes has been passed
         if self.engine == "choclo" and "n_processes" in kwargs:
@@ -289,15 +291,15 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def fields(self, model):
         self.model = model
-        # model = self.chiMap * model
+        # model = self.susceptibility_map * model
         if self.store_sensitivities == "forward_only":
             if self.engine == "choclo":
-                fields = self._forward(self.chi)
+                fields = self._forward(self.susceptibility)
             else:
                 fields = mkvc(self.linear_operator())
         else:
             fields = np.asarray(
-                self.G @ self.chi.astype(self.sensitivity_dtype, copy=False)
+                self.G @ self.susceptibility.astype(self.sensitivity_dtype, copy=False)
             )
 
         if self.is_amplitude_data:
@@ -369,11 +371,11 @@ class Simulation3DIntegral(BasePFSimulation):
             self._gtg_diagonal = diag
         else:
             diag = self._gtg_diagonal
-        return mkvc((sdiag(np.sqrt(diag)) @ self.chiDeriv).power(2).sum(axis=0))
+        return mkvc((sdiag(np.sqrt(diag)) @ self._susc_deriv).power(2).sum(axis=0))
 
     def Jvec(self, m, v, f=None):
         self.model = m
-        dmu_dm_v = self.chiDeriv @ v
+        dmu_dm_v = self._susc_deriv @ v
 
         Jvec = self.G @ dmu_dm_v.astype(self.sensitivity_dtype, copy=False)
 
@@ -393,13 +395,15 @@ class Simulation3DIntegral(BasePFSimulation):
             # dask doesn't support and "order" argument to reshape...
             v = v.T.reshape(-1)  # .reshape(-1, order="F")
         Jtvec = self.G.T @ v.astype(self.sensitivity_dtype, copy=False)
-        return np.asarray(self.chiDeriv.T @ Jtvec)
+        return np.asarray(self._susc_deriv.T @ Jtvec)
 
     @property
     def ampDeriv(self):
         if getattr(self, "_ampDeriv", None) is None:
             fields = np.asarray(
-                self.G.dot(self.chi).astype(self.sensitivity_dtype, copy=False)
+                self.G.dot(self.susceptibility).astype(
+                    self.sensitivity_dtype, copy=False
+                )
             )
             self._ampDeriv = self.normalized_fields(fields)
 
@@ -668,7 +672,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 )
 
             if self.store_sensitivities == "forward_only":
-                rows[component] = cell_vals @ self.chi
+                rows[component] = cell_vals @ self.susceptibility
             else:
                 rows[component] = cell_vals
 
@@ -682,8 +686,8 @@ class Simulation3DIntegral(BasePFSimulation):
         )
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        deletes = super().deleteTheseOnModelUpdate
+    def _delete_on_model_change(self):
+        deletes = super()._delete_on_model_change
         if self.is_amplitude_data:
             deletes = deletes + ["_gtg_diagonal", "_ampDeriv"]
         return deletes
@@ -1150,25 +1154,11 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         self._survey = obj
 
     @property
-    def MfMuI(self):
-        return self._MfMuI
-
-    @property
-    def MfMui(self):
-        return self._MfMui
-
-    @property
-    def MfMu0(self):
-        return self._MfMu0
-
-    def makeMassMatrices(self, m):
-        mu = self.muMap * m
-        self._MfMui = self.mesh.get_face_inner_product(1.0 / mu) / self.mesh.dim
-        # self._MfMui = self.mesh.get_face_inner_product(1./mu)
-        # TODO: this will break if tensor mu
-        self._MfMuI = sdiag(1.0 / self._MfMui.diagonal())
-        self._MfMu0 = self.mesh.get_face_inner_product(1.0 / mu_0) / self.mesh.dim
-        # self._MfMu0 = self.mesh.get_face_inner_product(1/mu_0)
+    def _Mf_perm0_inv(self):
+        if (inv_Mf_perm0 := self._cache["_Mf_perm0_inv"]) is None:
+            inv_Mf_perm0 = self.mesh.get_face_inner_product(1.0 / mu_0)
+            self._cache["_Mf_perm0_inv"] = inv_Mf_perm0
+        return inv_Mf_perm0
 
     @utils.requires("survey")
     def getB0(self):
@@ -1193,16 +1183,21 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         """
         B0 = self.getB0()
 
-        mu = self.muMap * m
-        chi = mu / mu_0 - 1
+        permeability = self.permeability_map * m
+        susceptibility = permeability / mu_0 - 1
 
         # Temporary fix
-        Bbc, Bbc_const = CongruousMagBC(self.mesh, self.survey.source_field.b0, chi)
+        Bbc, Bbc_const = CongruousMagBC(
+            self.mesh, self.survey.source_field.b0, susceptibility
+        )
         self.Bbc = Bbc
         self.Bbc_const = Bbc_const
-        # return self._Div*self.MfMuI*self.MfMu0*B0 - self._Div*B0 +
+        # return self._Div*self._inv_Mf_permeability*self._Mf_perm0_inv*B0 - self._Div*B0 +
         # Mc*Dface*self._Pout.T*Bbc
-        return self._Div * self.MfMuI * self.MfMu0 * B0 - self._Div * B0
+        return (
+            self._Div * self._inv_Mf_permeability * self._Mf_perm0_inv * B0
+            - self._Div * B0
+        )
 
     def getA(self, m):
         r"""
@@ -1215,7 +1210,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
             \mathbf{A} =  \Div(\MfMui)^{-1}\Div^{T}
 
         """
-        return self._Div * self.MfMuI * self._Div.T.tocsr()
+        return self._Div * self._inv_Mf_permeability * self._Div.T.tocsr()
 
     def fields(self, m):
         r"""
@@ -1240,7 +1235,11 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         Ainv = self.solver(A, **self.solver_opts)
         u = Ainv * rhs
         B0 = self.getB0()
-        B = self.MfMuI * self.MfMu0 * B0 - B0 - self.MfMuI * self._Div.T * u
+        B = (
+            self._inv_Mf_permeability * self._Mf_perm0_inv * B0
+            - B0
+            - self._inv_Mf_permeability * self._Div.T * u
+        )
         Ainv.clean()
 
         return {"B": B, "u": u}
@@ -1339,29 +1338,33 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
             u = self.fields(m)
 
         B, u = u["B"], u["u"]
-        mu = self.muMap * (m)
-        dmu_dm = self.muDeriv
-        # dchidmu = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
+        permeability = self.permeability_map * (m)
+        dmu_dm = self._perm_deriv
+        # dchidpermeability = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
 
         vol = self.mesh.cell_volumes
         Div = self._Div
         P = self.survey.projectFieldsDeriv(B)  # Projection matrix
         B0 = self.getB0()
 
-        MfMuIvec = 1 / self.MfMui.diagonal()
-        dMfMuI = sdiag(MfMuIvec**2) * self.mesh.aveF2CC.T * sdiag(vol * 1.0 / mu**2)
+        MfMuIvec = 1 / self._Mf__perm_inv.diagonal()
+        dMfMuI = (
+            sdiag(MfMuIvec**2)
+            * self.mesh.aveF2CC.T
+            * sdiag(vol * 1.0 / permeability**2)
+        )
 
-        # A = self._Div*self.MfMuI*self._Div.T
+        # A = self._Div*self._inv_Mf_permeability*self._Div.T
         # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
         # C(m,u) = A*m-rhs
         # dudm = -(dCdu)^(-1)dCdm
 
         dCdu = self.getA(m)  # = A
         dCdm_A = Div * (sdiag(Div.T * u) * dMfMuI * dmu_dm)
-        dCdm_RHS1 = Div * (sdiag(self.MfMu0 * B0) * dMfMuI)
+        dCdm_RHS1 = Div * (sdiag(self._Mf_perm0_inv * B0) * dMfMuI)
         # temp1 = (Dface * (self._Pout.T * self.Bbc_const * self.Bbc))
         # dCdm_RHS2v = (sdiag(vol) * temp1) * \
-        #    np.inner(vol, dchidmu * dmu_dm * v)
+        #    np.inner(vol, dchidpermeability * dmu_dm * v)
 
         # dCdm_RHSv =  dCdm_RHS1*(dmu_dm*v) +  dCdm_RHS2v
         dCdm_RHSv = dCdm_RHS1 * (dmu_dm * v)
@@ -1372,9 +1375,9 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         dudm = -sol
         dBdmv = (
-            sdiag(self.MfMu0 * B0) * (dMfMuI * (dmu_dm * v))
+            sdiag(self._Mf_perm0_inv * B0) * (dMfMuI * (dmu_dm * v))
             - sdiag(Div.T * u) * (dMfMuI * (dmu_dm * v))
-            - self.MfMuI * (Div.T * (dudm))
+            - self._inv_Mf_permeability * (Div.T * (dudm))
         )
 
         Ainv.clean()
@@ -1422,25 +1425,29 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
             u = self.fields(m)
 
         B, u = u["B"], u["u"]
-        mu = self.mapping * (m)
+        permeability = self.mapping * (m)
         dmu_dm = self.mapping.deriv(m)
-        # dchidmu = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
+        # dchidpermeability = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
 
         vol = self.mesh.cell_volumes
         Div = self._Div
         P = self.survey.projectFieldsDeriv(B)  # Projection matrix
         B0 = self.getB0()
 
-        MfMuIvec = 1 / self.MfMui.diagonal()
-        dMfMuI = sdiag(MfMuIvec**2) * self.mesh.aveF2CC.T * sdiag(vol * 1.0 / mu**2)
+        MfMuIvec = 1 / self._Mf__perm_inv.diagonal()
+        dMfMuI = (
+            sdiag(MfMuIvec**2)
+            * self.mesh.aveF2CC.T
+            * sdiag(vol * 1.0 / permeability**2)
+        )
 
-        # A = self._Div*self.MfMuI*self._Div.T
+        # A = self._Div*self._inv_Mf_permeability*self._Div.T
         # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
         # C(m,u) = A*m-rhs
         # dudm = -(dCdu)^(-1)dCdm
 
         dCdu = self.getA(m)
-        s = Div * (self.MfMuI.T * (P.T * v))
+        s = Div * (self._inv_Mf_permeability.T * (P.T * v))
 
         Ainv = self.solver(dCdu.T, **self.solver_opts)
         sol = Ainv * s
@@ -1451,15 +1458,17 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         # dCdm_Atsol = ( dMfMuI.T*( sdiag( Div.T * u ) * (Div.T * dmu_dm)) ) * sol
         dCdm_Atsol = (dmu_dm.T * dMfMuI.T * (sdiag(Div.T * u) * Div.T)) * sol
 
-        # dCdm_RHS1 = Div * (sdiag( self.MfMu0*B0  ) * dMfMuI)
-        # dCdm_RHS1tsol = (dMfMuI.T*( sdiag( self.MfMu0*B0  ) ) * Div.T * dmu_dm) * sol
-        dCdm_RHS1tsol = (dmu_dm.T * dMfMuI.T * (sdiag(self.MfMu0 * B0)) * Div.T) * sol
+        # dCdm_RHS1 = Div * (sdiag( self._Mf_perm0_inv*B0  ) * dMfMuI)
+        # dCdm_RHS1tsol = (dMfMuI.T*( sdiag( self._Mf_perm0_inv*B0  ) ) * Div.T * dmu_dm) * sol
+        dCdm_RHS1tsol = (
+            dmu_dm.T * dMfMuI.T * (sdiag(self._Mf_perm0_inv * B0)) * Div.T
+        ) * sol
 
         # temp1 = (Dface*(self._Pout.T*self.Bbc_const*self.Bbc))
         # temp1sol = (Dface.T * (sdiag(vol) * sol))
         # temp2 = self.Bbc_const * (self._Pout.T * self.Bbc).T
-        # dCdm_RHS2v  = (sdiag(vol)*temp1)*np.inner(vol, dchidmu*dmu_dm*v)
-        # dCdm_RHS2tsol = (dmu_dm.T * dchidmu.T * vol) * np.inner(temp2, temp1sol)
+        # dCdm_RHS2v  = (sdiag(vol)*temp1)*np.inner(vol, dchidpermeability*dmu_dm*v)
+        # dCdm_RHS2tsol = (dmu_dm.T * dchidpermeability.T * vol) * np.inner(temp2, temp1sol)
 
         # dCdm_RHSv =  dCdm_RHS1*(dmu_dm*v) +  dCdm_RHS2v
 
@@ -1472,11 +1481,11 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         Ctv = dCdm_Atsol - dCdm_RHStsol
 
-        # B = self.MfMuI*self.MfMu0*B0-B0-self.MfMuI*self._Div.T*u
+        # B = self._inv_Mf_permeability*self._Mf_perm0_inv*B0-B0-self._inv_Mf_permeability*self._Div.T*u
         # dBdm = d\mudm*dBd\mu
         # dPBdm^T*v = Atemp^T*P^T*v - Btemp^T*P^T*v - Ctv
 
-        Atemp = sdiag(self.MfMu0 * B0) * (dMfMuI * (dmu_dm))
+        Atemp = sdiag(self._Mf_perm0_inv * B0) * (dMfMuI * (dmu_dm))
         Btemp = sdiag(Div.T * u) * (dMfMuI * (dmu_dm))
         Jtv = Atemp.T * (P.T * v) - Btemp.T * (P.T * v) - Ctv
 
@@ -1606,7 +1615,7 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
         regularization,
     )
 
-    prob = Simulation3DDifferential(mesh, survey=data, mu=model)
+    prob = Simulation3DDifferential(mesh, survey=data, permeability=model)
 
     miter = kwargs.get("maxIter", 10)
 

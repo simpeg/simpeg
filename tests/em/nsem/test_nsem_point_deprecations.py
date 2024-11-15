@@ -107,10 +107,12 @@ def test_imp_consistent_eval(impedance_pairs, rx_component):
 
     # create a mock simulation
     src = nsem.sources.PlanewaveXYPrimary(
-        [rx1, rx2], frequency=10, sigma_primary=np.ones(mesh.n_cells)
+        [rx1, rx2], frequency=10, conductivity_primary=np.ones(mesh.n_cells)
     )
     survey = nsem.Survey(src)
-    sim_temp = nsem.Simulation3DPrimarySecondary(survey=survey, mesh=mesh, sigma=1)
+    sim_temp = nsem.Simulation3DPrimarySecondary(
+        survey=survey, mesh=mesh, conductivity=1
+    )
 
     # Create a mock field,
     f = sim_temp.fieldsPair(sim_temp)
@@ -149,10 +151,12 @@ def test_tip_consistent_eval(tipper_pairs, rx_component):
 
     # create a mock simulation
     src = nsem.sources.PlanewaveXYPrimary(
-        [rx1, rx2], frequency=10, sigma_primary=np.ones(mesh.n_cells)
+        [rx1, rx2], frequency=10, conductivity_primary=np.ones(mesh.n_cells)
     )
     survey = nsem.Survey(src)
-    sim_temp = nsem.Simulation3DPrimarySecondary(survey=survey, mesh=mesh, sigma=1)
+    sim_temp = nsem.Simulation3DPrimarySecondary(
+        survey=survey, mesh=mesh, conductivity=1
+    )
 
     # Create a mock field,
     f = sim_temp.fieldsPair(sim_temp)

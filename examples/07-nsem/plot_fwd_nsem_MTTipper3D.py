@@ -74,8 +74,8 @@ def run(plotIt=True):
     problem = NSEM.Simulation3DPrimarySecondary(
         M,
         survey=survey,
-        sigma=sig,
-        sigmaPrimary=sigBG,
+        conductivity=sig,
+        conductivityPrimary=sigBG,
         forward_only=True,
     )
 

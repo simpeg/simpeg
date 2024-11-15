@@ -100,14 +100,14 @@ class Fields3DCellCentered(FieldsDC):
             mesh.set_cell_gradient_BC("neumann")
             self.cellGrad = mesh.cell_gradient
 
-        self._MfRhoI = self.simulation.MfRhoI
-        self._MfRhoIDeriv = self.simulation.MfRhoIDeriv
-        self._MfRho = self.simulation.MfRho
+        self._inv_Mf_resistivity = self.simulation._inv_Mf_resistivity
+        self._inv_Mf_resistivity_deriv = self.simulation._inv_Mf_resistivity_deriv
+        self._Mf_resistivity = self.simulation._Mf_resistivity
         self._aveF2CCV = self.simulation.mesh.aveF2CCV
         self._nC = self.simulation.mesh.nC
         self._Grad = self.simulation.Grad
-        self._MfI = self.simulation.MfI
-        self._Vol = self.simulation.Vol
+        self._inv_Mf = self.simulation._inv_Mf
+        self._Mcc = self.simulation._Mcc
         self._faceDiv = self.simulation.mesh.face_divergence
 
     def _GLoc(self, fieldType):
@@ -133,17 +133,17 @@ class Fields3DCellCentered(FieldsDC):
 
             \mathbf{j} = \mathbf{M}^{f \ -1}_{\rho} \mathbf{G} \phi
         """
-        return self._MfRhoI * self._Grad * phiSolution
+        return self._inv_Mf_resistivity * self._Grad * phiSolution
 
     def _jDeriv_u(self, src, v, adjoint=False):
         if adjoint:
-            return self._Grad.T * (self._MfRhoI.T * v)
-        return self._MfRhoI * (self._Grad * v)
+            return self._Grad.T * (self._inv_Mf_resistivity.T * v)
+        return self._inv_Mf_resistivity * (self._Grad * v)
 
     def _jDeriv_m(self, src, v, adjoint=False):
         if adjoint:
-            return self._Grad.T * self._MfRhoIDeriv(v, adjoint=True)
-        return self._MfRhoIDeriv(self._Grad * v)
+            return self._Grad.T * self._inv_Mf_resistivity_deriv(v, adjoint=True)
+        return self._inv_Mf_resistivity_deriv(self._Grad * v)
 
     def _e(self, phiSolution, source_list):
         r"""
@@ -151,14 +151,14 @@ class Fields3DCellCentered(FieldsDC):
 
             \vec{e} = \rho \vec{j}
         """
-        # return self._MfI * self._MfRho * self._j(phiSolution, source_list)
-        return self._MfI * self._Grad * phiSolution
-        # simulation._MfI * cart_mesh.face_divergence.T * p
+        # return self._inv_Mf * self._Mf_resistivity * self._j(phiSolution, source_list)
+        return self._inv_Mf * self._Grad * phiSolution
+        # simulation._inv_Mf * cart_mesh.face_divergence.T * p
 
     def _eDeriv_u(self, src, v, adjoint=False):
         if adjoint:
-            return self._Grad.T * (self._MfI.T * v)
-        return self._MfI * (self._Grad * v)
+            return self._Grad.T * (self._inv_Mf.T * v)
+        return self._inv_Mf * (self._Grad * v)
 
     def _eDeriv_m(self, src, v, adjoint=False):
         return Zero()
@@ -170,7 +170,7 @@ class Fields3DCellCentered(FieldsDC):
             \int \nabla \codt \vec{e} =  \int \frac{\rho_v }{\epsillon_0}
         """
         return (
-            epsilon_0 * self._Vol * (self._faceDiv * self._e(phiSolution, source_list))
+            epsilon_0 * self._Mcc * (self._faceDiv * self._e(phiSolution, source_list))
         )
 
     def _charge_density(self, phiSolution, source_list):
@@ -224,8 +224,8 @@ class Fields3DNodal(FieldsDC):
             \mathbf{j} = - \mathbf{M}^{e}_{\sigma} \mathbf{G} \phi
         """
         return (
-            self.simulation.MeI
-            * self.simulation.MeSigma
+            self.simulation._inv_Me
+            * self.simulation._Me_conductivity
             * self._e(phiSolution, source_list)
         )
 

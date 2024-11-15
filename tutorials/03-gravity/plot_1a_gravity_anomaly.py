@@ -189,7 +189,7 @@ plt.show()
 simulation = gravity.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
-    rhoMap=model_map,
+    density_map=model_map,
     active_cells=ind_active,
     store_sensitivities="forward_only",
     engine="choclo",

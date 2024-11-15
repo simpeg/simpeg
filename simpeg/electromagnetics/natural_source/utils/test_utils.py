@@ -35,7 +35,7 @@ def getAppResPhs(NSEMdata, survey):
     ]
 
 
-def setup1DSurvey(sigmaHalf, tD=False, structure=False):
+def setup1DSurvey(conductivityHalf, tD=False, structure=False):
     # Frequency
     num_frequencies = 33
     freqs = np.logspace(3, -3, num_frequencies)
@@ -54,15 +54,15 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
     x0 = -np.array([np.sum(np.concatenate((core, bot)))])
     m1d = discretize.TensorMesh([np.concatenate((bot, core, air))], x0=x0)
     # Make the model
-    sigma = np.zeros(m1d.nC) + sigmaHalf
-    sigma[m1d.gridCC > 0] = 1e-8
-    sigmaBack = sigma.copy()
+    conductivity = np.zeros(m1d.nC) + conductivityHalf
+    conductivity[m1d.gridCC > 0] = 1e-8
+    conductivityBack = conductivity.copy()
     # Add structure
     if structure:
         shallow = (m1d.gridCC < -200) * (m1d.gridCC > -600)
         deep = (m1d.gridCC < -3000) * (m1d.gridCC > -5000)
-        sigma[shallow] = 1
-        sigma[deep] = 0.1
+        conductivity[shallow] = 1
+        conductivity[deep] = 0.1
 
     receiver_list = []
     for _ in range(len(["z1d", "z1d"])):
@@ -78,10 +78,10 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
         source_list.append(PlanewaveXYPrimary(receiver_list, freq))
 
     survey = Survey(source_list)
-    return (survey, sigma, sigmaBack, m1d)
+    return (survey, conductivity, conductivityBack, m1d)
 
 
-def setup1DSurveyElectricMagnetic(sigmaHalf, tD=False, structure=False):
+def setup1DSurveyElectricMagnetic(conductivityHalf, tD=False, structure=False):
     # Frequency
     nFreq = 33
     frequencies = np.logspace(3, -3, nFreq)
@@ -100,15 +100,15 @@ def setup1DSurveyElectricMagnetic(sigmaHalf, tD=False, structure=False):
     x0 = -np.array([np.sum(np.concatenate((core, bot)))])
     m1d = discretize.TensorMesh([np.concatenate((bot, core, air))], x0=x0)
     # Make the model
-    sigma = np.zeros(m1d.nC) + sigmaHalf
-    sigma[m1d.gridCC > 0] = 1e-8
-    sigmaBack = sigma.copy()
+    conductivity = np.zeros(m1d.nC) + conductivityHalf
+    conductivity[m1d.gridCC > 0] = 1e-8
+    conductivityBack = conductivity.copy()
     # Add structure
     if structure:
         shallow = (m1d.gridCC < -200) * (m1d.gridCC > -600)
         deep = (m1d.gridCC < -3000) * (m1d.gridCC > -5000)
-        sigma[shallow] = 1
-        sigma[deep] = 0.1
+        conductivity[shallow] = 1
+        conductivity[deep] = 0.1
 
     rxList = []
     for _ in range(len(["z1d", "z1d"])):
@@ -125,7 +125,7 @@ def setup1DSurveyElectricMagnetic(sigmaHalf, tD=False, structure=False):
     #         srcList.append(PlanewaveXYPrimary(rxList, freq))
 
     survey = Survey(src_list)
-    return (survey, sigma, sigmaBack, m1d, frequencies)
+    return (survey, conductivity, conductivityBack, m1d, frequencies)
 
 
 def setupSimpegNSEM_tests_location_assign_list(
@@ -222,11 +222,11 @@ def setupSimpegNSEM_tests_location_assign_list(
 
     srcList = []
     if singleFreq:
-        # srcList.append(PlanewaveXYPrimary(rxList, singleFreq, sigma_primary=sigBG))
+        # srcList.append(PlanewaveXYPrimary(rxList, singleFreq, conductivity_primary=sigBG))
         srcList.append(PlanewaveXYPrimary(rxList, singleFreq))
     else:
         for freq in freqs:
-            # srcList.append(PlanewaveXYPrimary(rxList, freq, sigma_primary=sigBG))
+            # srcList.append(PlanewaveXYPrimary(rxList, freq, conductivity_primary=sigBG))
             srcList.append(PlanewaveXYPrimary(rxList, freq))
 
     # Survey MT
@@ -236,8 +236,8 @@ def setupSimpegNSEM_tests_location_assign_list(
     # write out the true model
     # discretize.TensorMesh.write_UBC(mesh,'Mesh-pre.msh', models={'Sigma-pre.dat': np.exp(model_true)})
     # create background conductivity model
-    sigma_back = 1e-2
-    sigBG = np.zeros(mesh.nC) * sigma_back
+    conductivity_back = 1e-2
+    sigBG = np.zeros(mesh.nC) * conductivity_back
     sigBG[~active] = 1e-8
 
     # Set the mapping
@@ -248,13 +248,13 @@ def setupSimpegNSEM_tests_location_assign_list(
     # print(survey_ns.source_list)
     # # Setup the problem object
     sim = Simulation3DPrimarySecondary(
-        mesh, survey=survey_ns, sigmaPrimary=sigBG, sigmaMap=mapping
+        mesh, survey=survey_ns, conductivityPrimary=sigBG, conductivity_map=mapping
     )
 
     # create the test model
     block = [csx * np.r_[-3, 3], csx * np.r_[-3, 3], csz * np.r_[-6, -1]]
 
-    block_sigma = 3e-1
+    block_conductivity = 3e-1
 
     block_inds = (
         (mesh.gridCC[:, 0] >= block[0].min())
@@ -266,7 +266,7 @@ def setupSimpegNSEM_tests_location_assign_list(
     )
 
     m = model_true.copy()
-    m[block_inds] = np.log(block_sigma)
+    m[block_inds] = np.log(block_conductivity)
     m = m[active]
 
     # f = sim.fields(m)
@@ -347,11 +347,11 @@ def setupSimpegNSEM_PrimarySecondary(inputSetup, freqs, comp="Imp", singleFreq=F
 
     srcList = []
     if singleFreq:
-        # srcList.append(PlanewaveXYPrimary(rxList, singleFreq, sigma_primary=sigBG))
+        # srcList.append(PlanewaveXYPrimary(rxList, singleFreq, conductivity_primary=sigBG))
         srcList.append(PlanewaveXYPrimary(rxList, singleFreq))
     else:
         for freq in freqs:
-            # srcList.append(PlanewaveXYPrimary(rxList, freq, sigma_primary=sigBG))
+            # srcList.append(PlanewaveXYPrimary(rxList, freq, conductivity_primary=sigBG))
             srcList.append(PlanewaveXYPrimary(rxList, freq))
 
     # Survey MT
@@ -361,8 +361,8 @@ def setupSimpegNSEM_PrimarySecondary(inputSetup, freqs, comp="Imp", singleFreq=F
     # write out the true model
     # discretize.TensorMesh.write_UBC(mesh,'Mesh-pre.msh', models={'Sigma-pre.dat': np.exp(model_true)})
     # create background conductivity model
-    sigma_back = 1e-2
-    sigBG = np.zeros(mesh.nC) * sigma_back
+    conductivity_back = 1e-2
+    sigBG = np.zeros(mesh.nC) * conductivity_back
     sigBG[~active] = 1e-8
 
     # Set the mapping
@@ -373,13 +373,13 @@ def setupSimpegNSEM_PrimarySecondary(inputSetup, freqs, comp="Imp", singleFreq=F
     # print(survey_ns.source_list)
     # # Setup the problem object
     sim = Simulation3DPrimarySecondary(
-        mesh, survey=survey_ns, sigmaPrimary=sigBG, sigmaMap=mapping
+        mesh, survey=survey_ns, conductivityPrimary=sigBG, conductivity_map=mapping
     )
 
     # create the test model
     block = [csx * np.r_[-3, 3], csx * np.r_[-3, 3], csz * np.r_[-6, -1]]
 
-    block_sigma = 3e-1
+    block_conductivity = 3e-1
 
     block_inds = (
         (mesh.gridCC[:, 0] >= block[0].min())
@@ -391,7 +391,7 @@ def setupSimpegNSEM_PrimarySecondary(inputSetup, freqs, comp="Imp", singleFreq=F
     )
 
     m = model_true.copy()
-    m[block_inds] = np.log(block_sigma)
+    m[block_inds] = np.log(block_conductivity)
     m = m[active]
 
     # f = sim.fields(m)
@@ -463,12 +463,18 @@ def setupSimpegNSEM_ePrimSec(inputSetup, comp="Imp", singleFreq=False, expMap=Tr
     # Setup the problem object
     if expMap:
         problem = Simulation3DPrimarySecondary(
-            M, survey=survey, sigmaPrimary=np.log(sigBG), sigmaMap=maps.ExpMap(M)
+            M,
+            survey=survey,
+            conductivityPrimary=np.log(sigBG),
+            conductivity_map=maps.ExpMap(M),
         )
         problem.model = np.log(sig)
     else:
         problem = Simulation3DPrimarySecondary(
-            M, survey=survey, sigmaPrimary=sigBG, sigmaMap=maps.IdentityMap(M)
+            M,
+            survey=survey,
+            conductivityPrimary=sigBG,
+            conductivity_map=maps.IdentityMap(M),
         )
         problem.model = sig
     problem.verbose = False

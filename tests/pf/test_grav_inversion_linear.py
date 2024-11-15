@@ -76,7 +76,7 @@ def test_gravity_inversion_linear(engine):
     sim = gravity.Simulation3DIntegral(
         mesh,
         survey=survey,
-        rhoMap=idenMap,
+        density_map=idenMap,
         active_cells=actv,
         store_sensitivities="ram",
         engine=engine,

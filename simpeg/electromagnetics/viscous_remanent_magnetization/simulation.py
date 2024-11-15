@@ -38,7 +38,8 @@ class BaseVRMSimulation(BaseSimulation):
         indActive=None,
         **kwargs,
     ):
-        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        super().__init__(survey=survey, **kwargs)
+        self.mesh = mesh
 
         if refinement_distance is None:
             if refinement_factor is None:
@@ -72,7 +73,17 @@ class BaseVRMSimulation(BaseSimulation):
             active_cells = np.ones(self.mesh.n_cells, dtype=bool)
         self.active_cells = active_cells
 
-    @BaseSimulation.mesh.setter
+    @property
+    def mesh(self):
+        """The mesh used for the VRM simulation
+
+        Returns
+        -------
+        discretize.TensorMesh or discretize.TreeMesh
+        """
+        return self._mesh
+
+    @mesh.setter
     def mesh(self, value):
         value = validate_type(
             "mesh", value, (discretize.TensorMesh, discretize.TreeMesh), cast=False
@@ -1055,3 +1066,9 @@ class Simulation3DLogUniform(BaseVRMSimulation):
                 f.append(mkvc(self.A[qq] @ eta))
 
         return np.array(np.hstack(f))
+
+    def Jvec(self, m, v, f=None):
+        raise NotImplementedError("VRM LogUniform simulation does not support Jvec")
+
+    def Jtvec(self, m, v, f=None):
+        raise NotImplementedError("VRM LogUniform simulation does not support JTvec")

@@ -117,10 +117,12 @@ class Simulation1DLayered(BaseEM1DSimulation):
         i_freq = self._i_freq
         inv_lambs = self._inv_lambs
 
-        sig = self.compute_complex_sigma(frequencies)
-        mu = self.compute_complex_mu(frequencies)
+        sig = self.compute_complex_conductivity(frequencies)
+        permeability = self.compute_complex_permeability(frequencies)
 
-        rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
+        rTE = rTE_forward(
+            frequencies, unique_lambs, sig, permeability, self.thicknesses
+        )
         rTE = rTE[i_freq]
         rTE = np.take_along_axis(rTE, inv_lambs, axis=1)
         v = W @ ((C0s * rTE) @ self._fhtfilt.j0 + (C1s * rTE) @ self._fhtfilt.j1)
@@ -129,8 +131,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
     def getJ(self, m, f=None):
         self.model = m
-        if getattr(self, "_J", None) is None:
-            self._J = {}
+        if (J := self._cache["J_matrix"]) is None:
+            J = {}
             self._compute_coefficients()
 
             C0s = self._C0s
@@ -142,8 +144,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
             inv_lambs = self._inv_lambs
             W = self._W
 
-            sig = self.compute_complex_sigma(frequencies)
-            mu = self.compute_complex_mu(frequencies)
+            sig = self.compute_complex_conductivity(frequencies)
+            permeability = self.compute_complex_permeability(frequencies)
 
             if self.hMap is not None:
                 # Grab a copy
@@ -171,7 +173,9 @@ class Simulation1DLayered(BaseEM1DSimulation):
                     i = ip1
                     # J will be n_d * n_src (each source has it's own h)...
 
-                rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
+                rTE = rTE_forward(
+                    frequencies, unique_lambs, sig, permeability, self.thicknesses
+                )
                 rTE = rTE[i_freq]
                 rTE = np.take_along_axis(rTE, inv_lambs, axis=1)
                 v_dh_temp = (C0s_dh * rTE) @ self._fhtfilt.j0 + (
@@ -199,17 +203,17 @@ class Simulation1DLayered(BaseEM1DSimulation):
                     v_dh[i_src, i:ip1] = v_dh_temp[i:ip1]
                     i = ip1
                 v_dh = v_dh.T
-                self._J["dh"] = self._project_to_data(v_dh)
+                J["dh"] = self._project_to_data(v_dh)
 
             if (
-                self.sigmaMap is not None
-                or self.muMap is not None
+                self.conductivity_map is not None
+                or self.permeability_map is not None
                 or self.thicknessesMap is not None
             ):
                 rTE_ds, rTE_dh, rTE_dmu = rTE_gradient(
-                    frequencies, unique_lambs, sig, mu, self.thicknesses
+                    frequencies, unique_lambs, sig, permeability, self.thicknesses
                 )
-                if self.sigmaMap is not None:
+                if self.conductivity_map is not None:
                     rTE_ds = rTE_ds[:, i_freq]
                     rTE_ds = np.take_along_axis(rTE_ds, inv_lambs[None, ...], axis=-1)
                     v_ds = (
@@ -219,8 +223,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
                         )
                         @ W.T
                     ).T
-                    self._J["ds"] = self._project_to_data(v_ds)
-                if self.muMap is not None:
+                    J["ds"] = self._project_to_data(v_ds)
+                if self.permeability_map is not None:
                     rTE_dmu = rTE_dmu[:, i_freq]
                     rTE_dmu = np.take_along_axis(rTE_dmu, inv_lambs[None, ...], axis=-1)
                     v_dmu = (
@@ -230,7 +234,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                         )
                         @ W.T
                     ).T
-                    self._J["dmu"] = self._project_to_data(v_dmu)
+                    J["dmu"] = self._project_to_data(v_dmu)
                 if self.thicknessesMap is not None:
                     rTE_dh = rTE_dh[:, i_freq]
                     rTE_dh = np.take_along_axis(rTE_dh, inv_lambs[None, ...], axis=-1)
@@ -241,8 +245,9 @@ class Simulation1DLayered(BaseEM1DSimulation):
                         )
                         @ W.T
                     ).T
-                    self._J["dthick"] = self._project_to_data(v_dthick)
-        return self._J
+                    J["dthick"] = self._project_to_data(v_dthick)
+            self._cache["J_matrix"] = J
+        return J
 
     def _project_to_data(self, v):
         i_dat = 0

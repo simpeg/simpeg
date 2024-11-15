@@ -18,16 +18,23 @@ class TestGMMs(unittest.TestCase):
         # Create a cloud of  random points from a random gaussian mixture
         self.ndim = 2
         self.n_components = 2
-        sigma = np.random.randn(self.n_components, self.ndim, self.ndim)
-        sigma = np.c_[[sigma[i].dot(sigma[i].T) for i in range(sigma.shape[0])]]
-        sigma[0] += np.eye(self.ndim)
-        sigma[1] += np.eye(self.ndim) - 0.25 * np.eye(self.ndim).transpose((1, 0))
-        self.sigma = sigma
+        conductivity = np.random.randn(self.n_components, self.ndim, self.ndim)
+        conductivity = np.c_[
+            [
+                conductivity[i].dot(conductivity[i].T)
+                for i in range(conductivity.shape[0])
+            ]
+        ]
+        conductivity[0] += np.eye(self.ndim)
+        conductivity[1] += np.eye(self.ndim) - 0.25 * np.eye(self.ndim).transpose(
+            (1, 0)
+        )
+        self.conductivity = conductivity
         self.means = (
             np.abs(np.random.randn(self.ndim, self.ndim)) * np.c_[[100.0, -100.0]]
         )
-        self.rv0 = multivariate_normal(self.means[0], self.sigma[0])
-        self.rv1 = multivariate_normal(self.means[1], self.sigma[1])
+        self.rv0 = multivariate_normal(self.means[0], self.conductivity[0])
+        self.rv1 = multivariate_normal(self.means[1], self.conductivity[1])
         self.proportions = np.r_[0.6, 0.4]
         self.nsample = 1000
         self.s0 = self.rv0.rvs(int(self.nsample * self.proportions[0]))
@@ -51,7 +58,7 @@ class TestGMMs(unittest.TestCase):
             tol=1e-8,
             means_init=self.means,
             warm_start=True,
-            precisions_init=np.linalg.inv(self.sigma),
+            precisions_init=np.linalg.inv(self.conductivity),
             weights_init=self.proportions,
         )
         clf.fit(self.samples)

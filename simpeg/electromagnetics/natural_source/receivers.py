@@ -208,7 +208,7 @@ class Impedance(_ElectricAndMagneticReceiver):
         input argument, the receiver can be set to compute the following:
         - 'real': Real component of the impedance (V/A)
         - 'imag': Imaginary component of the impedance (V/A)
-        - 'rho': Apparent resistivity (:math:`\Omega m`)
+        - 'resistivity': Apparent resistivity (:math:`\Omega m`)
         - 'phase': Phase angle (degrees)
         - 'complex': The complex impedance is returned. Do not use for inversion!
     storeProjections : bool
@@ -241,7 +241,7 @@ class Impedance(_ElectricAndMagneticReceiver):
         whether the data are:
         - 'real': Real component of the impedance (V/A)
         - 'imag': Imaginary component of the impedance (V/A)
-        - 'rho': Apparent resistivity (:math:`\Omega m`)
+        - 'resistivity': Apparent resistivity (:math:`\Omega m`)
         - 'phase': Phase angle (degrees)
         - 'complex': Complex impedance (V/A)
 

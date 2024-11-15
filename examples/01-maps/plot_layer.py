@@ -37,11 +37,11 @@ def run(plotIt=True):
             0.2,  # layer thickness
         ]
     )
-    rho = mapping * m  # apply the mapping
+    density = mapping * m  # apply the mapping
 
     if plotIt is True:
         fig, ax = plt.subplots(1, 1, figsize=(4, 6))
-        mesh.plot_image(rho, ax=ax)
+        mesh.plot_image(density, ax=ax)
 
 
 if __name__ == "__main__":

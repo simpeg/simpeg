@@ -150,7 +150,7 @@ plt.gca().invert_yaxis()
 simulation = fdem.Simulation1DLayered(
     survey=survey,
     thicknesses=thicknesses,
-    sigmaMap=model_mapping,
+    conductivity_map=model_mapping,
 )
 
 # Predict sounding data

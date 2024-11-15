@@ -128,7 +128,7 @@ survey = em1d.survey.EM1DSurveyTD(source_list)
 
 n_layer = 25
 thicknesses = get_vertical_discretization_time(
-    np.r_[time_HM, time_LM], sigma_background=0.1, n_layer=n_layer - 1
+    np.r_[time_HM, time_LM], conductivity_background=0.1, n_layer=n_layer - 1
 )
 
 dx = 100.0
@@ -189,7 +189,7 @@ sounding_models = mkvc(sounding_models)
 # temp_model = np.fliplr(temp_model)
 # temp_model = mkvc(temp_model)
 
-chi = np.zeros_like(sounding_models)
+susceptibility = np.zeros_like(sounding_models)
 
 
 fig = plt.figure(figsize=(9, 3))
@@ -258,8 +258,8 @@ cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 simulation = em1d.simulation.StitchedEM1DTMSimulation(
     survey=survey,
     thicknesses=thicknesses,
-    sigmaMap=mapping,
-    chi=chi,
+    conductivity_map=mapping,
+    susceptibility=susceptibility,
     topo=topo,
     parallel=False,
     n_cpu=2,

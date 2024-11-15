@@ -56,11 +56,11 @@ class PrimSecCasingExample(object):
 
     # -------------- SETUP MODEL PARAMS ---------------------------- #
 
-    sigmaair = 1e-8  # air
-    sigmaback = 1e-2  # background
+    conductivityair = 1e-8  # air
+    conductivityback = 1e-2  # background
 
-    sigmacasing = 5.5e6  # casing
-    sigmainside = 1  # inside the casing
+    conductivitycasing = 5.5e6  # casing
+    conductivityinside = 1  # inside the casing
     mucasing = 50  # casing permeability
 
     casing_l = 1000  # length of the casing
@@ -68,11 +68,11 @@ class PrimSecCasingExample(object):
     casing_t = 1e-2  # 1cm thickness
 
     # layer
-    sigmalayer = 1.0 / 10.0
+    conductivitylayer = 1.0 / 10.0
     layer_z = np.r_[-1000.0, -900.0]
 
     # 3D body
-    sigmablock = 2.0
+    conductivityblock = 2.0
     block_x = np.r_[75.0, 475.0]
     block_y = np.r_[-125, 125.0]
     block_z = layer_z
@@ -95,7 +95,7 @@ class PrimSecCasingExample(object):
         # Display skin depth so we can ensure our mesh goes further.
         print(
             "\nSkin Depth: {}".format(
-                [(500.0 / np.sqrt(self.sigmaback * _)) for _ in self.freqs]
+                [(500.0 / np.sqrt(self.conductivityback * _)) for _ in self.freqs]
             )
         )
 
@@ -126,9 +126,9 @@ class PrimSecCasingExample(object):
 
         return np.hstack(
             np.r_[
-                np.log(self.sigmaback),  # value in background
-                np.log(self.sigmalayer),  # value in the layer
-                np.log(self.sigmablock),  # value in the block
+                np.log(self.conductivityback),  # value in background
+                np.log(self.conductivitylayer),  # value in the layer
+                np.log(self.conductivityblock),  # value in the block
                 self.layer_z.mean(),  # layer center
                 self.layer_z[1] - self.layer_z[0],  # layer thickness
                 self.block_x.mean(),  # block x_0
@@ -223,8 +223,8 @@ class PrimSecCasingExample(object):
             # inject parameters we want to invert for into the full casing
             # model
             valInactive = np.r_[
-                np.log(self.sigmacasing),  # log conductivity of the casing
-                np.log(self.sigmainside),  # log conductivity fluid inside
+                np.log(self.conductivitycasing),  # log conductivity of the casing
+                np.log(self.conductivityinside),  # log conductivity fluid inside
                 # casing
                 self.casing_r,  # radius of the casing (to its center)
                 self.casing_t,  # casing thickness
@@ -246,7 +246,7 @@ class PrimSecCasingExample(object):
 
             # inject air cells
             injActMapPrimary = maps.InjectActiveCells(
-                self.meshp, self.indActivePrimary, np.log(self.sigmaair)
+                self.meshp, self.indActivePrimary, np.log(self.conductivityair)
             )
 
             # map from log conductivity to conductivity
@@ -255,8 +255,8 @@ class PrimSecCasingExample(object):
             # assemble the primary mapping
             primaryMapping = (
                 expMapPrimary
-                * injActMapPrimary  # log(sigma) --> sigma
-                * paramMapPrimary  # log(sigma) below surface --> include air
+                * injActMapPrimary  # log(conductivity) --> conductivity
+                * paramMapPrimary  # log(conductivity) below surface --> include air
                 * injectCasingParams  # parametric --> casing + layered earth  # parametric layered earth --> parametric
                 *
                 # layered earth + casing
@@ -280,12 +280,12 @@ class PrimSecCasingExample(object):
             if getattr(self, "_paramMapPrimary", None) is None:
                 self.primaryMapping
 
-            muMap = (
+            permeability_map = (
                 maps.InjectActiveCells(self.meshp, self.indActivePrimary, mu_0)
                 * self._paramMapPrimary
             )
 
-            muModel = muMap * np.hstack(
+            muModel = permeability_map * np.hstack(
                 np.r_[
                     mu_0,  # val Background
                     mu_0,  # val Layer
@@ -305,29 +305,29 @@ class PrimSecCasingExample(object):
     @property
     def primaryProblem(self):
         if getattr(self, "_primaryProblem", None) is None:
-            # define a custom prop map to include variable mu that we are not
+            # define a custom prop map to include variable permeability that we are not
             # inverting for - This will change when we improve the propmap!
             print("Getting Primary Problem")
 
             # class CasingEMPropMap(maps.PropMap):
 
-            #     sigma = maps.Property(
+            #     conductivity = maps.Property(
             #                 "Electrical Conductivity", defaultInvProp=True,
-            #                 propertyLink=('rho', maps.ReciprocalMap)
+            #                 propertyLink=('resistivity', maps.ReciprocalMap)
             #     )
-            #     mu = maps.Property(
+            #     permeability = maps.Property(
             #             "Inverse Magnetic Permeability",
             #             defaultVal=self.muModel,
-            #             propertyLink=('mui', maps.ReciprocalMap)
+            #             propertyLink=('_perm_inv', maps.ReciprocalMap)
             #     )
-            #     rho = maps.Property(
+            #     resistivity = maps.Property(
             #             "Electrical Resistivity",
-            #             propertyLink=('sigma', maps.ReciprocalMap)
+            #             propertyLink=('conductivity', maps.ReciprocalMap)
             #     )
-            #     mui = maps.Property(
+            #     _perm_inv = maps.Property(
             #             "Inverse Magnetic Permeability",
             #             defaultVal=1./self.muModel,
-            #             propertyLink=('mu', maps.ReciprocalMap)
+            #             propertyLink=('permeability', maps.ReciprocalMap)
             #     )
 
             # # set the problem's propmap
@@ -336,9 +336,9 @@ class PrimSecCasingExample(object):
             # use H-J formulation for source with vertical current density and
             # cylindrical symmetry (h faster on cyl --> less edges than faces)
             primaryProblem = FDEM.Simulation3DMagneticField(
-                self.meshp, sigmaMap=self.primaryMapping
+                self.meshp, conductivity_map=self.primaryMapping
             )
-            primaryProblem.mu = self.muModel
+            primaryProblem.permeability = self.muModel
 
             self._primaryProblem = primaryProblem
 
@@ -468,7 +468,7 @@ class PrimSecCasingExample(object):
         plt.colorbar(f[0], ax=ax[1])
         ax[1].set_xlim([0, 1.0])
         ax[1].set_ylim([-1.5e3, 500])
-        ax[1].set_title("log10 sigma")
+        ax[1].set_title("log10 conductivity")
 
         plt.tight_layout()
         return ax
@@ -514,7 +514,9 @@ class PrimSecCasingExample(object):
 
     @property
     def injActMap(self):
-        return maps.InjectActiveCells(self.meshs, self.indActive, np.log(self.sigmaair))
+        return maps.InjectActiveCells(
+            self.meshs, self.indActive, np.log(self.conductivityair)
+        )
 
     @property
     def expMap(self):
@@ -533,7 +535,7 @@ class PrimSecCasingExample(object):
             )
             self._mapping = (
                 self.expMap
-                * self.injActMap  # log sigma --> sigma
+                * self.injActMap  # log conductivity --> conductivity
                 * paramMap  # inject air cells  # block in a layered space (subsurface)
             )
             print("... done building secondary mapping")
@@ -552,7 +554,7 @@ class PrimSecCasingExample(object):
 
             self._primaryMap2mesh = (
                 self.expMap
-                * self.injActMap  # log sigma --> sigma
+                * self.injActMap  # log conductivity --> conductivity
                 * paramMapPrimaryMeshs  # include air cells
                 * self.projectionMapPrimary  # parametrized layer  # grab correct indices
             )
@@ -563,8 +565,10 @@ class PrimSecCasingExample(object):
     def setupSecondaryProblem(self, mapping=None):
         print("Setting up Secondary Problem")
         if mapping is None:
-            mapping = [("sigma", maps.IdentityMap(self.meshs))]
-        sec_problem = FDEM.Simulation3DElectricField(self.meshs, sigmaMap=mapping)
+            mapping = [("conductivity", maps.IdentityMap(self.meshs))]
+        sec_problem = FDEM.Simulation3DElectricField(
+            self.meshs, conductivity_map=mapping
+        )
         print("... done setting up secondary problem")
         return sec_problem
 
@@ -1069,7 +1073,7 @@ class PrimSecCasingExample(object):
         plt.tight_layout()
 
         if saveFig is True:
-            fig.savefig("J_sigmas", dpi=300)
+            fig.savefig("J_conductivities", dpi=300)
 
         # Plot layer contribution
         fig, ax = plt.subplots(2, 2, figsize=(12, 10))
@@ -1267,7 +1271,7 @@ class PrimSecCasingExample(object):
 
         if plotIt is True:  # Plot the Primary Model
             # self.plotPrimaryMesh() # plot the mesh
-            self.plotPrimaryProperties()  # plot mu, sigma
+            self.plotPrimaryProperties()  # plot permeability, conductivity
 
         # Primary Simulation
         self.primaryProblem.survey = self.primarySurvey
@@ -1278,7 +1282,7 @@ class PrimSecCasingExample(object):
             print("   saved %s" % "primaryfields_" + self.NAME)
 
         mback = self.mtrue.copy()
-        mback[2] = np.log(self.sigmalayer)
+        mback[2] = np.log(self.conductivitylayer)
 
         # Secondary Problem and Survey
         sec_problem = self.setupSecondaryProblem(mapping=self.mapping)

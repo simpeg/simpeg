@@ -189,7 +189,7 @@ data_object = data.Data(survey, dobs=dobs, noise_floor=uncertainties)
 
 n_layer = 25
 thicknesses = get_vertical_discretization_time(
-    time_HM, sigma_background=0.1, n_layer=n_layer - 1
+    time_HM, conductivity_background=0.1, n_layer=n_layer - 1
 )
 
 dx = 100.0
@@ -221,12 +221,12 @@ starting_model = np.log(conductivity)
 simulation = em1d.simulation.StitchedEM1DTMSimulation(
     survey=survey,
     thicknesses=thicknesses,
-    sigmaMap=mapping,
+    conductivity_map=mapping,
     topo=topo,
 )
 
 # simulation = em1d.simulation.StitchedEM1DTMSimulation(
-#     survey=survey, thicknesses=thicknesses, sigmaMap=mapping,
+#     survey=survey, thicknesses=thicknesses, conductivity_map=mapping,
 #     topo=topo, parallel=True, n_cpu=4, verbose=True
 # )
 

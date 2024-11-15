@@ -35,7 +35,7 @@ def get_vertical_discretization(n_layer, minimum_dz, geomtric_factor):
 
 def get_vertical_discretization_frequency(
     frequency,
-    sigma_background=0.01,
+    conductivity_background=0.01,
     n_layer=19,
     hz_min=None,
     z_max=None,
@@ -53,7 +53,7 @@ def get_vertical_discretization_frequency(
     ----------
     frequency : numpy.ndarray
         The frequencies needed to represent.
-    sigma_background : float, optional
+    conductivity_background : float, optional
         The background conductivity
     n_layer : int, optional
         Number of layers to generate
@@ -73,9 +73,9 @@ def get_vertical_discretization_frequency(
         The cell widths.
     """
     if hz_min is None:
-        hz_min = skin_depth(frequency.max(), sigma_background) / factor_fmax
+        hz_min = skin_depth(frequency.max(), conductivity_background) / factor_fmax
     if z_max is None:
-        z_max = skin_depth(frequency.min(), sigma_background) * factor_fmin
+        z_max = skin_depth(frequency.min(), conductivity_background) * factor_fmin
     i = 4
     hz = np.logspace(np.log10(hz_min), np.log10(hz_min * i), n_layer)
     z_sum = hz.sum()
@@ -89,7 +89,7 @@ def get_vertical_discretization_frequency(
 
 def get_vertical_discretization_time(
     time,
-    sigma_background=0.01,
+    conductivity_background=0.01,
     n_layer=19,
     hz_min=None,
     z_max=None,
@@ -107,7 +107,7 @@ def get_vertical_discretization_time(
     ----------
     time : numpy.ndarray
         The times in seconds needed to represent.
-    sigma_background : float, optional
+    conductivity_background : float, optional
         The background conductivity in S/m.
     n_layer : int, optional
         Number of layers to generate
@@ -127,9 +127,9 @@ def get_vertical_discretization_time(
         The cell widths.
     """
     if hz_min is None:
-        hz_min = diffusion_distance(time.min(), sigma_background) / factor_tmin
+        hz_min = diffusion_distance(time.min(), conductivity_background) / factor_tmin
     if z_max is None:
-        z_max = diffusion_distance(time.max(), sigma_background) * facter_tmax
+        z_max = diffusion_distance(time.max(), conductivity_background) * facter_tmax
     i = 4
     hz = np.logspace(np.log10(hz_min), np.log10(hz_min * i), n_layer)
     z_sum = hz.sum()
@@ -177,15 +177,15 @@ def ColeCole(f, sig_inf=1e-2, eta=0.1, tau=0.1, c=1):
 
     if np.isscalar(sig_inf):
         w = 2 * np.pi * f
-        sigma = sig_inf - sig_inf * eta / (1 + (1 - eta) * (1j * w * tau) ** c)
+        conductivity = sig_inf - sig_inf * eta / (1 + (1 - eta) * (1j * w * tau) ** c)
     else:
-        sigma = np.zeros((f.size, sig_inf.size), dtype=complex)
+        conductivity = np.zeros((f.size, sig_inf.size), dtype=complex)
         for i in range(f.size):
             w = 2 * np.pi * f[i]
-            sigma[i, :] = utils.mkvc(
+            conductivity[i, :] = utils.mkvc(
                 sig_inf - sig_inf * eta / (1 + (1 - eta) * (1j * w * tau) ** c)
             )
-    return sigma
+    return conductivity
 
 
 def LogUniform(f, chi_inf=0.05, del_chi=0.05, tau1=1e-5, tau2=1e-2):

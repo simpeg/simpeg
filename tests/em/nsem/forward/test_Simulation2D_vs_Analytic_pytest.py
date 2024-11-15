@@ -90,17 +90,19 @@ def get_survey(locations, frequencies, survey_type, component, orientation):
     return nsem.survey.Survey(source_list)
 
 
-def get_analytic_halfspace_solution(sigma, f, survey_type, component, orientation):
+def get_analytic_halfspace_solution(
+    conductivity, f, survey_type, component, orientation
+):
     # MT data types (Zxy, Zyx)
     if survey_type == "impedance":
         if component in ["real", "imag"]:
-            ampl = np.sqrt(np.pi * f * mu_0 / sigma)
+            ampl = np.sqrt(np.pi * f * mu_0 / conductivity)
             if orientation == "xy":
                 return -ampl
             else:
                 return ampl
         elif component == "app_res":
-            return 1 / sigma
+            return 1 / conductivity
         elif component == "phase":
             if orientation == "xy":
                 return -135.0
@@ -140,22 +142,22 @@ def test_analytic_halfspace_solution(
     model_hs = get_model(mesh, "halfspace")  # 1e-2 halfspace
     if orientation in ["xy", "zx"]:
         sim = nsem.simulation.Simulation2DElectricField(
-            mesh, survey=survey, sigmaMap=mapping
+            mesh, survey=survey, conductivity_map=mapping
         )
     elif orientation in ["yx", "zy"]:
         sim = nsem.simulation.Simulation2DMagneticField(
-            mesh, survey=survey, sigmaMap=mapping
+            mesh, survey=survey, conductivity_map=mapping
         )
 
     numeric_solution = sim.dpred(model_hs)
 
     # Analytic solution
-    sigma_hs = 1e-2
+    conductivity_hs = 1e-2
     n_locations = np.shape(locations)[0]
     analytic_solution = np.hstack(
         [
             get_analytic_halfspace_solution(
-                sigma_hs, f, survey_type, component, orientation
+                conductivity_hs, f, survey_type, component, orientation
             )
             for f in frequencies
         ]

@@ -37,15 +37,15 @@ def run(plotIt=True):
     sig_half = 1e-3
     sig_air = 1e-8
     sig_layer = 1e-2
-    sigma = np.ones(mesh.shape_cells[2]) * sig_air
-    sigma[active] = sig_half
-    sigma[layer] = sig_layer
-    mtrue = np.log(sigma[active])
+    conductivity = np.ones(mesh.shape_cells[2]) * sig_air
+    conductivity[active] = sig_half
+    conductivity[layer] = sig_layer
+    mtrue = np.log(conductivity[active])
 
     x = np.r_[30, 50, 70, 90]
     rxloc = np.c_[x, x * 0.0, np.zeros_like(x)]
 
-    prb = TDEM.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping)
+    prb = TDEM.Simulation3DMagneticFluxDensity(mesh, conductivity_map=mapping)
     prb.time_steps = [
         (1e-3, 5),
         (1e-4, 5),
@@ -103,7 +103,7 @@ def run(plotIt=True):
         ax[0].set_xlabel("Time (s)", fontsize=14)
         ax[0].grid(color="k", alpha=0.5, linestyle="dashed", linewidth=0.5)
 
-        plt.semilogx(sigma[active], mesh.cell_centers_z[active])
+        plt.semilogx(conductivity[active], mesh.cell_centers_z[active])
         plt.semilogx(np.exp(mopt), mesh.cell_centers_z[active])
         ax[1].set_ylim(-600, 0)
         ax[1].set_xlim(1e-4, 1e-1)

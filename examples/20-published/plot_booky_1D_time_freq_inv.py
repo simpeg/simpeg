@@ -176,11 +176,11 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
     sig_half = 1e-1
     sig_air = 1e-8
-    sigma = np.ones(mesh.shape_cells[2]) * sig_air
-    sigma[active] = sig_half
+    conductivity = np.ones(mesh.shape_cells[2]) * sig_air
+    conductivity[active] = sig_half
 
     # Initial and reference model
-    m0 = np.log(sigma[active])
+    m0 = np.log(conductivity[active])
 
     # ------------------ RESOLVE Forward Simulation ------------------ #
     # Step3: Invert Resolve data
@@ -213,7 +213,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Set FDEM survey (In-phase and Quadrature)
     survey = FDEM.Survey(source_list)
-    prb = FDEM.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping)
+    prb = FDEM.Simulation3DMagneticFluxDensity(mesh, conductivity_map=mapping)
     prb.survey = survey
 
     # ------------------ RESOLVE Inversion ------------------ #
@@ -316,7 +316,9 @@ def run(plotIt=True, saveFig=False, cleanup=True):
         (1e-4, 10),
         (5e-4, 15),
     ]
-    prob = TDEM.Simulation3DElectricField(mesh, time_steps=timeSteps, sigmaMap=mapping)
+    prob = TDEM.Simulation3DElectricField(
+        mesh, time_steps=timeSteps, conductivity_map=mapping
+    )
     survey = TDEM.Survey(source_list)
     prob.survey = survey
 
@@ -393,13 +395,13 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     ax2 = plt.subplot2grid((2, 2), (1, 1))
 
     # Recovered Models
-    sigma_re = np.repeat(np.exp(mopt_re), 2, axis=0)
-    sigma_sky = np.repeat(np.exp(mopt_sky), 2, axis=0)
+    conductivity_re = np.repeat(np.exp(mopt_re), 2, axis=0)
+    conductivity_sky = np.repeat(np.exp(mopt_sky), 2, axis=0)
     z = np.repeat(mesh.cell_centers_z[active][1:], 2, axis=0)
     z = np.r_[mesh.cell_centers_z[active][0], z, mesh.cell_centers_z[active][-1]]
 
-    ax0.semilogx(sigma_re, z, "k", lw=2, label="RESOLVE")
-    ax0.semilogx(sigma_sky, z, "b", lw=2, label="SkyTEM")
+    ax0.semilogx(conductivity_re, z, "k", lw=2, label="RESOLVE")
+    ax0.semilogx(conductivity_sky, z, "b", lw=2, label="SkyTEM")
     ax0.set_ylim(-50, 0)
     # ax0.set_xlim(5e-4, 1e2)
     ax0.grid(True)

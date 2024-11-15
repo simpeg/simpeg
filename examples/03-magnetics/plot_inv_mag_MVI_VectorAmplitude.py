@@ -123,7 +123,11 @@ idenMap = maps.IdentityMap(nP=nC * 3)
 
 # Create the simulation
 simulation = magnetics.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, chiMap=idenMap, active_cells=actv, model_type="vector"
+    survey=survey,
+    mesh=mesh,
+    susceptibility_map=idenMap,
+    active_cells=actv,
+    model_type="vector",
 )
 
 # Compute some data and add some random noise

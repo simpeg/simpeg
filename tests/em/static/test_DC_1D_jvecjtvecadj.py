@@ -54,23 +54,23 @@ def get_survey(data_type, rx_type, tx_type):
 @pytest.mark.parametrize("tx_type", ["p", "d", "both"])
 @pytest.mark.parametrize("data_type", ["volt", "apparent_resistivity", "both"])
 def test_forward_accuracy(data_type, rx_type, tx_type):
-    sigma = 1.0
-    cond = [sigma, sigma, sigma]
+    conductivity = 1.0
+    cond = [conductivity, conductivity, conductivity]
     thick = [10, 20]
     survey = get_survey(data_type, rx_type, tx_type)
     simulation = dc.Simulation1DLayers(
         survey=survey,
-        sigma=cond,
+        conductivity=cond,
         thicknesses=thick,
     )
     d = simulation.dpred()
 
     # apparent resistivity should be close to the true resistivity of this half space
     if data_type == "app_res":
-        np.testing.assert_allclose(d, 1.0 / sigma, rtol=1e-6)
+        np.testing.assert_allclose(d, 1.0 / conductivity, rtol=1e-6)
     if data_type == "volt":
         geom = dc.utils.geometric_factor(survey)
-        np.testing.assert_allclose(d / geom, 1.0 / sigma, rtol=1e-6)
+        np.testing.assert_allclose(d / geom, 1.0 / conductivity, rtol=1e-6)
     if data_type == "both":
         n_r = 2 if rx_type == "both" else 1
         d = d.reshape(-1, n_r)
@@ -81,10 +81,10 @@ def test_forward_accuracy(data_type, rx_type, tx_type):
         np.testing.assert_allclose(d_volts / geom, d_app)
 
         # double check the accuracy
-        np.testing.assert_allclose(d_app, 1.0 / sigma, rtol=1e-6)
+        np.testing.assert_allclose(d_app, 1.0 / conductivity, rtol=1e-6)
 
 
-@pytest.mark.parametrize("deriv_type", ("sigma", "h", "both"))
+@pytest.mark.parametrize("deriv_type", ("conductivity", "h", "both"))
 def test_derivative(deriv_type):
     n_layer = 4
     rng = np.random.default_rng(seed=40)
@@ -92,13 +92,13 @@ def test_derivative(deriv_type):
     log_thick = rng.uniform(size=n_layer - 1)
 
     if deriv_type != "h":
-        sigma_map = maps.ExpMap()
+        conductivity_map = maps.ExpMap()
         model = log_cond
-        sigma = None
+        conductivity = None
     else:
-        sigma = np.exp(log_cond)
-        sigma_map = None
-    if deriv_type != "sigma":
+        conductivity = np.exp(log_cond)
+        conductivity_map = None
+    if deriv_type != "conductivity":
         h_map = maps.ExpMap()
         model = log_thick
         h = None
@@ -106,8 +106,8 @@ def test_derivative(deriv_type):
         h_map = None
         h = np.exp(log_thick)
     if deriv_type == "both":
-        wire = maps.Wires(("sigma", n_layer), ("thick", n_layer - 1))
-        sigma_map = sigma_map * wire.sigma
+        wire = maps.Wires(("conductivity", n_layer), ("thick", n_layer - 1))
+        conductivity_map = conductivity_map * wire.conductivity
         h_map = h_map * wire.thick
         model = np.r_[log_cond, log_thick]
     # already tested that the forward operation works for all combinations of src/rx/data_type
@@ -116,8 +116,8 @@ def test_derivative(deriv_type):
     survey = get_survey("volt", "d", "d")
     simulation = dc.Simulation1DLayers(
         survey=survey,
-        sigma=sigma,
-        sigmaMap=sigma_map,
+        conductivity=conductivity,
+        conductivity_map=conductivity_map,
         thicknesses=h,
         thicknessesMap=h_map,
     )
@@ -133,7 +133,7 @@ def test_derivative(deriv_type):
     assert check_derivative(sim_1d_func, model, plotIt=False, num=4, random_seed=125)
 
 
-@pytest.mark.parametrize("deriv_type", ("sigma", "h", "both"))
+@pytest.mark.parametrize("deriv_type", ("conductivity", "h", "both"))
 def test_adjoint(deriv_type):
     n_layer = 4
     rng = np.random.default_rng(seed=40)
@@ -141,13 +141,13 @@ def test_adjoint(deriv_type):
     log_thick = rng.uniform(size=n_layer - 1)
 
     if deriv_type != "h":
-        sigma_map = maps.ExpMap()
+        conductivity_map = maps.ExpMap()
         model = log_cond
-        sigma = None
+        conductivity = None
     else:
-        sigma = np.exp(log_cond)
-        sigma_map = None
-    if deriv_type != "sigma":
+        conductivity = np.exp(log_cond)
+        conductivity_map = None
+    if deriv_type != "conductivity":
         h_map = maps.ExpMap()
         model = log_thick
         h = None
@@ -155,8 +155,8 @@ def test_adjoint(deriv_type):
         h_map = None
         h = np.exp(log_thick)
     if deriv_type == "both":
-        wire = maps.Wires(("sigma", n_layer), ("thick", n_layer - 1))
-        sigma_map = sigma_map * wire.sigma
+        wire = maps.Wires(("conductivity", n_layer), ("thick", n_layer - 1))
+        conductivity_map = conductivity_map * wire.conductivity
         h_map = h_map * wire.thick
         model = np.r_[log_cond, log_thick]
     # already tested that the forward operation works for all combinations of src/rx/data_type
@@ -165,8 +165,8 @@ def test_adjoint(deriv_type):
     survey = get_survey("volt", "d", "d")
     simulation = dc.Simulation1DLayers(
         survey=survey,
-        sigma=sigma,
-        sigmaMap=sigma_map,
+        conductivity=conductivity,
+        conductivity_map=conductivity_map,
         thicknesses=h,
         thicknessesMap=h_map,
     )
@@ -181,35 +181,35 @@ def test_adjoint(deriv_type):
 
 
 def test_errors():
-    sigma = 1.0
-    cond = [sigma, sigma, sigma]
+    conductivity = 1.0
+    cond = [conductivity, conductivity, conductivity]
     thick = [10, 20]
     survey = get_survey("apparent_resistivity", "d", "d")
 
     with pytest.raises(TypeError):
         simulation = dc.Simulation1DLayers(
             survey=survey,
-            sigma=cond,
+            conductivity=cond,
             thicknesses=thick,
             storeJ=False,
         )
     with pytest.raises(TypeError):
         simulation = dc.Simulation1DLayers(
             survey=survey,
-            sigma=cond,
+            conductivity=cond,
             thicknesses=thick,
             hankel_pts_per_dec=2,
         )
     with pytest.raises(TypeError):
         simulation = dc.Simulation1DLayers(
             survey=survey,
-            sigma=cond,
+            conductivity=cond,
             thicknesses=thick,
             data_type="volt",
         )
 
     simulation = dc.Simulation1DLayers(
-        sigma=cond,
+        conductivity=cond,
         thicknesses=thick,
     )
     with pytest.raises(AttributeError):
@@ -223,13 +223,13 @@ def test_functionality():
     log_cond = rng.uniform(size=n_layer)
     thick = rng.uniform(size=n_layer - 1)
 
-    sigma_map = maps.ExpMap()
+    conductivity_map = maps.ExpMap()
     model = log_cond
 
     survey = get_survey("volt", "d", "d")
     simulation = dc.Simulation1DLayers(
         survey=survey,
-        sigmaMap=sigma_map,
+        conductivity_map=conductivity_map,
         thicknesses=thick,
     )
 

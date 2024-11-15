@@ -66,12 +66,12 @@ def setUp_TDEM(
     survey = tdem.Survey([src])
 
     prb = getattr(tdem, "Simulation3D{}".format(prbtype))(
-        mesh, survey=survey, time_steps=time_steps, sigmaMap=mapping
+        mesh, survey=survey, time_steps=time_steps, conductivity_map=mapping
     )
 
     rng = np.random.default_rng(seed=42)
-    m = np.log(1e-1) * np.ones(prb.sigmaMap.nP) + 1e-2 * rng.uniform(
-        size=prb.sigmaMap.nP
+    m = np.log(1e-1) * np.ones(prb.conductivity_map.nP) + 1e-2 * rng.uniform(
+        size=prb.conductivity_map.nP
     )
 
     return prb, m, mesh

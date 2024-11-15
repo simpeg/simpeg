@@ -311,7 +311,7 @@ survey = TDEM.Survey(src_list)
 prob = TDEM.Simulation3DElectricField(
     mesh,
     survey=survey,
-    rhoMap=maps.IdentityMap(mesh),
+    resistivity_map=maps.IdentityMap(mesh),
     time_steps=time_steps,
 )
 

@@ -192,11 +192,11 @@ ax.set_title("Cylindrically Symmetric Model")
 
 mesh = make_example_mesh()
 
-background_sigma = np.log(100.0)
-layer_sigma = np.log(70.0)
-pipe_sigma = np.log(40.0)
-background_mu = 1.0
-pipe_mu = 5.0
+background_conductivity = np.log(100.0)
+layer_conductivity = np.log(70.0)
+pipe_conductivity = np.log(40.0)
+background_permeability = 1.0
+pipe_permeability = 5.0
 
 # Find cells below topography and define mapping
 air_value = 0.0
@@ -205,11 +205,13 @@ active_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 
 # Define model for cells under the surface topography
 N = int(ind_active.sum())
-model = np.kron(np.ones((N, 1)), np.c_[background_sigma, background_mu])
+model = np.kron(
+    np.ones((N, 1)), np.c_[background_conductivity, background_permeability]
+)
 
 # Add a conductive and non-permeable layer
 ind_layer = (mesh.gridCC[ind_active, 2] > -20.0) & (mesh.gridCC[ind_active, 2] < -0)
-model[ind_layer, 0] = layer_sigma
+model[ind_layer, 0] = layer_conductivity
 
 # Add a conductive and permeable pipe
 ind_pipe = (
@@ -217,18 +219,18 @@ ind_pipe = (
     & (mesh.gridCC[ind_active, 2] > -50.0)
     & (mesh.gridCC[ind_active, 2] < 0.0)
 )
-model[ind_pipe] = np.c_[pipe_sigma, pipe_mu]
+model[ind_pipe] = np.c_[pipe_conductivity, pipe_permeability]
 
 # Create model vector and wires
 model = mkvc(model)
-wire_map = maps.Wires(("log_sigma", N), ("mu", N))
+wire_map = maps.Wires(("log_conductivity", N), ("permeability", N))
 
 # Use combo maps to map from model to mesh
-sigma_map = active_map * maps.ExpMap() * wire_map.log_sigma
-mu_map = active_map * wire_map.mu
+conductivity_map = active_map * maps.ExpMap() * wire_map.log_conductivity
+permeability_map = active_map * wire_map.permeability
 
 # Plotting
 fig = plt.figure(figsize=(5, 5))
 ax = fig.add_subplot(111)
-mesh.plot_image(sigma_map * model, ax=ax, grid=True)
+mesh.plot_image(conductivity_map * model, ax=ax, grid=True)
 ax.set_title("Cylindrically Symmetric Model")

@@ -20,7 +20,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         target_mur = [1, 50, 100, 200]
         target_l = 500
         target_r = 50
-        sigma_back = 1e-5
+        conductivity_back = 1e-5
         radius_loop = 100
 
         model_names = ["target_{}".format(mur) for mur in target_mur]
@@ -54,7 +54,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         self.target_mur = target_mur
         self.target_l = target_l
         self.target_r = target_r
-        self.sigma_back = sigma_back
+        self.conductivity_back = conductivity_back
         self.model_names = model_names
         self.mesh = mesh
 
@@ -62,7 +62,7 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         target_mur = self.target_mur
         target_l = self.target_l
         target_r = self.target_r
-        sigma_back = self.sigma_back
+        conductivity_back = self.conductivity_back
         model_names = self.model_names
         mesh = self.mesh
 
@@ -74,8 +74,11 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             mu_model[x_inds & z_inds] = mur
             return mu_0 * mu_model
 
-        mu_dict = {key: populate_target(mu) for key, mu in zip(model_names, target_mur)}
-        sigma = np.ones(mesh.nC) * sigma_back
+        mu_dict = {
+            key: populate_target(permeability)
+            for key, permeability in zip(model_names, target_mur)
+        }
+        conductivity = np.ones(mesh.nC) * conductivity_back
 
         # Plot the models
         if plotIt:
@@ -156,13 +159,13 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             mesh=mesh,
             survey=survey,
             time_steps=time_steps,
-            sigmaMap=maps.IdentityMap(mesh),
+            conductivity_map=maps.IdentityMap(mesh),
         )
         prob_late_ontime = tdem.Simulation3DMagneticFluxDensity(
             mesh=mesh,
             survey=survey_late_ontime,
             time_steps=time_steps,
-            sigmaMap=maps.IdentityMap(mesh),
+            conductivity_map=maps.IdentityMap(mesh),
         )
 
         fields_dict = {}
@@ -171,8 +174,8 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             t = time.time()
             print("--- Running {} ---".format(key))
 
-            prob_late_ontime.mu = mu_dict[key]
-            fields_dict[key] = prob_late_ontime.fields(sigma)
+            prob_late_ontime.permeability = mu_dict[key]
+            fields_dict[key] = prob_late_ontime.fields(conductivity)
 
             print(" ... done. Elapsed time {}".format(time.time() - t))
             print("\n")
@@ -181,11 +184,11 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             b_late_ontime = {}
 
         for key in model_names:
-            prob.mu = mu_dict[key]
-            prob.sigma = sigma
+            prob.permeability = mu_dict[key]
+            prob.conductivity = conductivity
             b_magnetostatic[key] = src_magnetostatic.bInitial(prob)
 
-            prob_late_ontime.mu = mu_dict[key]
+            prob_late_ontime.permeability = mu_dict[key]
             b_late_ontime[key] = utils.mkvc(fields_dict[key][:, "b", -1])
 
         if plotIt:
@@ -228,21 +231,22 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
 
         assert all(passed)
 
-        prob.sigma = 1e-4 * np.ones(mesh.nC)
+        prob.conductivity = 1e-4 * np.ones(mesh.nC)
         rng = np.random.default_rng(seed=42)
         v = utils.mkvc(rng.uniform(size=mesh.nE))
         w = utils.mkvc(rng.uniform(size=mesh.nF))
         assert np.all(
-            mesh.get_edge_inner_product(1e-4 * np.ones(mesh.nC)) * v == prob.MeSigma * v
+            mesh.get_edge_inner_product(1e-4 * np.ones(mesh.nC)) * v
+            == prob._Me_conductivity * v
         )
 
         assert np.all(
             mesh.get_edge_inner_product(1e-4 * np.ones(mesh.nC), invert_matrix=True) * v
-            == prob.MeSigmaI * v
+            == prob._inv_Me_conductivity * v
         )
         assert np.all(
             mesh.get_face_inner_product(1.0 / 1e-4 * np.ones(mesh.nC)) * w
-            == prob.MfRho * w
+            == prob._Mf_resistivity * w
         )
 
         assert np.all(
@@ -250,27 +254,28 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
                 1.0 / 1e-4 * np.ones(mesh.nC), invert_matrix=True
             )
             * w
-            == prob.MfRhoI * w
+            == prob._inv_Mf_resistivity * w
         )
 
-        prob.rho = 1.0 / 1e-3 * np.ones(mesh.nC)
+        prob.resistivity = 1.0 / 1e-3 * np.ones(mesh.nC)
         rng = np.random.default_rng(seed=42)
         v = utils.mkvc(rng.uniform(size=mesh.nE))
         w = utils.mkvc(rng.uniform(size=mesh.nF))
 
         np.testing.assert_allclose(
-            mesh.get_edge_inner_product(1e-3 * np.ones(mesh.nC)) * v, prob.MeSigma * v
+            mesh.get_edge_inner_product(1e-3 * np.ones(mesh.nC)) * v,
+            prob._Me_conductivity * v,
         )
 
         np.testing.assert_allclose(
             mesh.get_edge_inner_product(1e-3 * np.ones(mesh.nC), invert_matrix=True)
             * v,
-            prob.MeSigmaI * v,
+            prob._inv_Me_conductivity * v,
         )
 
         np.testing.assert_allclose(
             mesh.get_face_inner_product(1.0 / 1e-3 * np.ones(mesh.nC)) * w,
-            prob.MfRho * w,
+            prob._Mf_resistivity * w,
         )
 
         np.testing.assert_allclose(
@@ -278,5 +283,5 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
                 1.0 / 1e-3 * np.ones(mesh.nC), invert_matrix=True
             )
             * w,
-            prob.MfRhoI * w,
+            prob._inv_Mf_resistivity * w,
         )

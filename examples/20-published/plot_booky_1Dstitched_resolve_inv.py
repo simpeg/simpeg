@@ -112,7 +112,7 @@ def resolve_1Dinversions(
 
     # construct a forward simulation
     survey = FDEM.Survey(source_list)
-    prb = FDEM.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping)
+    prb = FDEM.Simulation3DMagneticFluxDensity(mesh, conductivity_map=mapping)
     prb.survey = survey
 
     # ------------------- Inversion ------------------- #
@@ -202,8 +202,8 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
         # build starting and reference model
         sig_half = 1e-1
         sig_air = 1e-8
-        sigma = np.ones(mesh.shape_cells[2]) * sig_air
-        sigma[active] = sig_half
+        conductivity = np.ones(mesh.shape_cells[2]) * sig_air
+        conductivity[active] = sig_half
         m0 = np.log(1e-1) * np.ones(active.sum())  # starting model
         mref = np.log(1e-1) * np.ones(active.sum())  # reference model
 
@@ -262,7 +262,7 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
     dobs_re = resolve["dobs"][()]
     dpred_re = resolve["dpred"][()]
 
-    sigma = np.exp(mopt_re)
+    conductivity = np.exp(mopt_re)
     indz = -7  # depth index
 
     # so that we can visually compare with literature (eg Viezzoli, 2010)
@@ -286,7 +286,7 @@ def run(runIt=False, plotIt=True, saveIt=False, saveFig=False, cleanup=True):
         "(c) Pred (Real 400 Hz)",
     ]
 
-    temp = sigma[:, indz]
+    temp = conductivity[:, indz]
     tree = cKDTree(list(zip(resolve["xy"][:, 0], resolve["xy"][:, 1])))
     d, d_inds = tree.query(list(zip(resolve["xy"][:, 0], resolve["xy"][:, 1])), k=20)
     w = 1.0 / (d + 100.0) ** 2.0

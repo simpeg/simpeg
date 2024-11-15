@@ -58,10 +58,10 @@ class _EField(_1DField):
     def _h(self, eSolution, source_list):
         omegas = np.array([omega(src.frequency) for src in source_list])
         e = self._e(eSolution, source_list)
-        if self.simulation.muiMap is not None:
-            mui = self.simulation.mui[:, None]
+        if self.simulation._perm_inv_map is not None:
+            mui = self.simulation._perm_inv[:, None]
         else:
-            mui = self.simulation.mui
+            mui = self.simulation._perm_inv
         v = mui * (self._C * e)
         return v / (1j * omegas)
 
@@ -69,10 +69,10 @@ class _EField(_1DField):
         if du_dm_v.ndim == 1:
             du_dm_v = du_dm_v[:, None]
         om = omega(src.frequency)
-        if self.simulation.muiMap is not None:
-            mui = self.simulation.mui[:, None]
+        if self.simulation._perm_inv_map is not None:
+            mui = self.simulation._perm_inv[:, None]
         else:
-            mui = self.simulation.mui
+            mui = self.simulation._perm_inv
         if adjoint:
             y = self._eDeriv_u(src, self._C.T * (mui * du_dm_v), adjoint=adjoint)
             return np.squeeze(y) / (1j * om)
@@ -80,10 +80,10 @@ class _EField(_1DField):
         return np.squeeze(y) / (1j * om)
 
     def _hDeriv_m(self, src, v, adjoint=False):
-        if self.simulation.muiMap is None:
+        if self.simulation._perm_inv_map is None:
             return Zero()
         om = omega(src.frequency)
-        dMui = self.simulation.muiDeriv
+        dMui = self.simulation._perm_inv_deriv
         e = self[src, "e"]
         if v.ndim == 1:
             v = v[:, None]
@@ -110,7 +110,7 @@ class _HField(_1DField):
         return Zero()
 
     def _e(self, hSolution, source_list):
-        return self.simulation.rho[:, None] * (
+        return self.simulation.resistivity[:, None] * (
             self._C * self._h(hSolution, source_list)
         )
 
@@ -119,18 +119,20 @@ class _HField(_1DField):
             du_dm_v = du_dm_v[:, None]
         if adjoint:
             y = self._hDeriv_u(
-                src, self._C.T * (self.simulation.rho[:, None] * du_dm_v), adjoint=True
+                src,
+                self._C.T * (self.simulation.resistivity[:, None] * du_dm_v),
+                adjoint=True,
             )
             return np.squeeze(y)
-        y = self.simulation.rho[:, None] * (
+        y = self.simulation.resistivity[:, None] * (
             self._C @ (self._hDeriv_u(src, du_dm_v, adjoint=False))
         )
         return np.squeeze(y)
 
     def _eDeriv_m(self, src, v, adjoint=False):
-        if self.simulation.rhoMap is None:
+        if self.simulation.resistivity_map is None:
             return Zero()
-        dRho = self.simulation.rhoDeriv
+        dRho = self.simulation._res_deriv
         h = self[src, "h"]
         if v.ndim == 1:
             v = v[:, None]

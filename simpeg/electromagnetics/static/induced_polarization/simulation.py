@@ -13,33 +13,33 @@ from ..resistivity import Simulation3DNodal as DC_3D_N
 
 
 class BaseIPSimulation(BasePDESimulation):
-    sigma = props.PhysicalProperty("Electrical Conductivity (S/m)")
-    rho = props.PhysicalProperty("Electrical Resistivity (Ohm m)")
-    props.Reciprocal(sigma, rho)
+    conductivity = props.PhysicalProperty("Electrical Conductivity (S/m)")
+    resistivity = props.PhysicalProperty("Electrical Resistivity (Ohm m)")
+    props.Reciprocal(conductivity, resistivity)
 
     @property
-    def sigmaMap(self):
+    def conductivity_map(self):
         return maps.IdentityMap()
 
-    @sigmaMap.setter
-    def sigmaMap(self, arg):
+    @conductivity_map.setter
+    def conductivity_map(self, arg):
         pass
 
     @property
-    def rhoMap(self):
+    def resistivity_map(self):
         return maps.IdentityMap()
 
-    @rhoMap.setter
-    def rhoMap(self, arg):
+    @resistivity_map.setter
+    def resistivity_map(self, arg):
         pass
 
     @property
-    def sigmaDeriv(self):
-        return -sp.diags(self.sigma) @ self.etaDeriv
+    def _con_deriv(self):
+        return -sp.diags(self.conductivity) @ self.etaDeriv
 
     @property
-    def rhoDeriv(self):
-        return sp.diags(self.rho) @ self.etaDeriv
+    def _res_deriv(self):
+        return sp.diags(self.resistivity) @ self.etaDeriv
 
     @cached_property
     def _scale(self):
@@ -59,13 +59,14 @@ class BaseIPSimulation(BasePDESimulation):
         return scale.dobs
 
     eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability (V/V)")
+    eta.no_mass_matrices = True
 
     def __init__(
         self,
         mesh=None,
         survey=None,
-        sigma=None,
-        rho=None,
+        conductivity=None,
+        resistivity=None,
         eta=None,
         etaMap=None,
         Ainv=None,  # A DC's Ainv
@@ -73,8 +74,8 @@ class BaseIPSimulation(BasePDESimulation):
         **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
-        self.sigma = sigma
-        self.rho = rho
+        self.conductivity = conductivity
+        self.resistivity = resistivity
         self.eta = eta
         self.etaMap = etaMap
         if Ainv is not None:
@@ -132,7 +133,7 @@ class BaseIPSimulation(BasePDESimulation):
         return super().Jtvec(m, v * self._scale, f)
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_change(self):
         toDelete = []
         return toDelete
 

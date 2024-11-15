@@ -103,7 +103,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         sim = mag.Simulation3DIntegral(
             self.mesh,
             survey=survey,
-            chiMap=idenMap,
+            susceptibility_map=idenMap,
             active_cells=actv,
             store_sensitivities="ram",
             n_processes=None,

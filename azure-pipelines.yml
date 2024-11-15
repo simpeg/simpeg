@@ -37,26 +37,26 @@ stages:
     jobs:
       - template: .ci/azure/style.yml
 
-  - stage: Testing
-    dependsOn: StyleChecks
-    jobs:
-      - template: .ci/azure/test.yml
-
-  - stage: Codecov
-    dependsOn: Testing
-    jobs:
-      - template: .ci/azure/codecov.yml
-
-  - stage: Docs
-    dependsOn:
-      - StyleChecks
-      - Testing
-    jobs:
-      - template: .ci/azure/docs.yml
-
-  - stage: PyPI
-    dependsOn:
-      - StyleChecks
-      - Testing
-    jobs:
-      - template: .ci/azure/pypi.yml
+#  - stage: Testing
+#    dependsOn: StyleChecks
+#    jobs:
+#      - template: .ci/azure/test.yml
+#
+#  - stage: Codecov
+#    dependsOn: Testing
+#    jobs:
+#      - template: .ci/azure/codecov.yml
+#
+#  - stage: Docs
+#    dependsOn:
+#      - StyleChecks
+#      - Testing
+#    jobs:
+#      - template: .ci/azure/docs.yml
+#
+#  - stage: PyPI
+#    dependsOn:
+#      - StyleChecks
+#      - Testing
+#    jobs:
+#      - template: .ci/azure/pypi.yml

@@ -12,8 +12,8 @@ class DataTest(unittest.TestCase):
     def setUp(self):
         np.random.seed(17)
         mesh = discretize.TensorMesh([30])
-        sigma = np.ones(mesh.nC)
-        model = np.log(sigma)
+        conductivity = np.ones(mesh.nC)
+        model = np.log(conductivity)
 
         receivers = survey.BaseRx(20 * [[0.0]])
         source = survey.BaseSrc([receivers])

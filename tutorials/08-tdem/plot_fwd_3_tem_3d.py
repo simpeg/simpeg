@@ -171,7 +171,7 @@ survey = tdem.Survey(source_list)
 #
 #     - Your smallest cell size should be 10%-20% the size of your smallest diffusion distance
 #     - The thickness of your padding needs to be 2-3 times biggest than your largest diffusion distance
-#     - The diffusion distance is ~1260*np.sqrt(rho*t)
+#     - The diffusion distance is ~1260*np.sqrt(resistivity*t)
 #
 #
 
@@ -280,7 +280,7 @@ time_steps = [(1e-4, 20), (1e-5, 10), (1e-4, 10)]
 #
 
 simulation = tdem.simulation.Simulation3DMagneticFluxDensity(
-    mesh, survey=survey, sigmaMap=model_map, t0=-0.002
+    mesh, survey=survey, conductivity_map=model_map, t0=-0.002
 )
 
 # Set the time-stepping for the simulation

@@ -37,11 +37,11 @@ class IPProblemTestsCC(unittest.TestCase):
         src1 = dc.Src.Dipole([rx], A1loc, B1loc)
         survey = ip.Survey([src0, src1])
 
-        sigma = np.ones(mesh.nC) * 1.0
+        conductivity = np.ones(mesh.nC) * 1.0
         problem = ip.Simulation2DCellCentered(
             mesh,
             survey=survey,
-            sigma=sigma,
+            conductivity=conductivity,
             etaMap=maps.IdentityMap(mesh),
             verbose=False,
         )
@@ -120,11 +120,11 @@ class IPProblemTestsN(unittest.TestCase):
         src1 = dc.Src.Dipole([rx], A1loc, B1loc)
         survey = ip.Survey([src0, src1])
 
-        sigma = np.ones(mesh.nC) * 1.0
+        conductivity = np.ones(mesh.nC) * 1.0
         problem = ip.Simulation2DNodal(
             mesh,
             survey=survey,
-            rho=1.0 / sigma,
+            resistivity=1.0 / conductivity,
             etaMap=maps.IdentityMap(mesh),
             verbose=False,
         )

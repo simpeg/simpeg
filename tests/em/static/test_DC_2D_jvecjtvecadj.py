@@ -40,7 +40,7 @@ class DCProblem_2DTests(unittest.TestCase):
         survey.set_geometric_factor()
         simulation = getattr(dc, self.formulation)(
             mesh,
-            rhoMap=maps.IdentityMap(mesh),
+            resistivity_map=maps.IdentityMap(mesh),
             storeJ=self.storeJ,
             survey=survey,
             bc_type=self.bc_type,

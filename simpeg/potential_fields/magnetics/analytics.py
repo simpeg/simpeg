@@ -77,7 +77,7 @@ def MagSphereAnaFun(x, y, z, R, x0, y0, z0, mu1, mu2, H0, flag="total"):
     )
 
 
-def CongruousMagBC(mesh, Bo, chi):
+def CongruousMagBC(mesh, Bo, susceptibility):
     r"""
     Computing boundary condition using Congrous sphere method.
 
@@ -87,7 +87,7 @@ def CongruousMagBC(mesh, Bo, chi):
 
     * mesh:   Mesh class
     * Bo:     np.array([Box, Boy, Boz]): Primary magnetic flux
-    * chi:    susceptibility at cell volume
+    * susceptibility:    susceptibility at cell volume
 
     .. math::
 
@@ -102,10 +102,10 @@ def CongruousMagBC(mesh, Bo, chi):
 
     """
 
-    ind = chi > 0.0
+    ind = susceptibility > 0.0
     V = mesh.cell_volumes[ind].sum()
 
-    gamma = 1 / V * (chi * mesh.cell_volumes).sum()  # like a mass!
+    gamma = 1 / V * (susceptibility * mesh.cell_volumes).sum()  # like a mass!
 
     Bot = np.sqrt(sum(Bo**2))
     mx = Bo[0] / Bot
@@ -113,9 +113,9 @@ def CongruousMagBC(mesh, Bo, chi):
     mz = Bo[2] / Bot
 
     mom = 1 / mu_0 * Bot * gamma * V / (1 + gamma / 3)
-    xc = sum(chi[ind] * mesh.gridCC[:, 0][ind]) / sum(chi[ind])
-    yc = sum(chi[ind] * mesh.gridCC[:, 1][ind]) / sum(chi[ind])
-    zc = sum(chi[ind] * mesh.gridCC[:, 2][ind]) / sum(chi[ind])
+    xc = sum(susceptibility[ind] * mesh.gridCC[:, 0][ind]) / sum(susceptibility[ind])
+    yc = sum(susceptibility[ind] * mesh.gridCC[:, 1][ind]) / sum(susceptibility[ind])
+    zc = sum(susceptibility[ind] * mesh.gridCC[:, 2][ind]) / sum(susceptibility[ind])
 
     indxd, indxu, indyd, indyu, indzd, indzu = mesh.face_boundary_indices
 
@@ -199,7 +199,7 @@ def CongruousMagBC(mesh, Bo, chi):
     return np.r_[Bbcx, Bbcy, Bbcz], (1 / gamma - 1 / (3 + gamma)) * 1 / V
 
 
-def MagSphereAnaFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
+def MagSphereAnaFunA(x, y, z, R, xc, yc, zc, susceptibility, Bo, flag):
     r"""
     Computing boundary condition using Congrous sphere method.
 
@@ -241,7 +241,7 @@ def MagSphereAnaFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
     Bz = np.zeros(x.size)
 
     # Inside of the sphere
-    rf2 = 3 / (chi + 3) * (1 + chi)
+    rf2 = 3 / (susceptibility + 3) * (1 + susceptibility)
     if flag == "total":
         Bx[ind] = Bo[0] * (rf2)
         By[ind] = Bo[1] * (rf2)
@@ -253,7 +253,7 @@ def MagSphereAnaFunA(x, y, z, R, xc, yc, zc, chi, Bo, flag):
 
     r = utils.mkvc(np.sqrt((x - xc) ** 2 + (y - yc) ** 2 + (z - zc) ** 2))
     V = 4 * np.pi * R**3 / 3
-    mom = Bot / mu_0 * chi / (1 + chi / 3) * V
+    mom = Bot / mu_0 * susceptibility / (1 + susceptibility / 3) * V
     const = mu_0 / (4 * np.pi) * mom
     mdotr = (
         mx * (x[~ind] - xc) / r[~ind]
@@ -278,14 +278,14 @@ def IDTtoxyz(Inc, Dec, Btot):
     return np.r_[Bx, By, Bz]
 
 
-def MagSphereFreeSpace(x, y, z, R, xc, yc, zc, chi, Bo):
+def MagSphereFreeSpace(x, y, z, R, xc, yc, zc, susceptibility, Bo):
     """Computing the induced response of magnetic sphere in free-space.
 
     >> Input
     x, y, z:   Observation locations
     R:     radius of the sphere
     xc, yc, zc: Location of the sphere
-    chi: Susceptibility of sphere
+    susceptibility: Susceptibility of sphere
     Bo: Inducing field components [bx, by, bz]*|H0|
     """
     if ~np.size(x) == np.size(y) == np.size(z):
@@ -300,9 +300,9 @@ def MagSphereFreeSpace(x, y, z, R, xc, yc, zc, chi, Bo):
 
     Bot = np.sqrt(sum(Bo**2))
 
-    mx = np.ones([nobs]) * Bo[0] * R**3 / 3. * chi
-    my = np.ones([nobs]) * Bo[1] * R**3 / 3. * chi
-    mz = np.ones([nobs]) * Bo[2] * R**3 / 3. * chi
+    mx = np.ones([nobs]) * Bo[0] * R**3 / 3. * susceptibility
+    my = np.ones([nobs]) * Bo[1] * R**3 / 3. * susceptibility
+    mz = np.ones([nobs]) * Bo[2] * R**3 / 3. * susceptibility
 
     M = np.c_[mx, my, mz]
 
@@ -336,8 +336,8 @@ def MagSphereFreeSpace(x, y, z, R, xc, yc, zc, chi, Bo):
     bot = r * r * r * r * r
 
     M = np.empty_like(x)  # create a vector of "Ms" if the point is outide
-    M[r >= R] = R**3 * 4.0 / 3.0 * np.pi * chi  # outside points
-    M[r < R] = r[r < R] ** 3 * 4.0 / 3.0 * np.pi * chi  # inside points
+    M[r >= R] = R**3 * 4.0 / 3.0 * np.pi * susceptibility  # outside points
+    M[r < R] = r[r < R] ** 3 * 4.0 / 3.0 * np.pi * susceptibility  # inside points
 
     g = unit_conv * (1.0 / bot) * M
 

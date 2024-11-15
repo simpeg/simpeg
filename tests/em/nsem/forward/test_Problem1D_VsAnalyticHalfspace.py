@@ -7,14 +7,16 @@ TOLr = 5e-1
 TOLp = 5e-1
 
 
-def appRes_psFieldNorm(sigmaHalf):
+def appRes_psFieldNorm(conductivityHalf):
     # Make the survey
-    survey, sigma, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(sigmaHalf, False)
+    survey, conductivity, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(
+        conductivityHalf, False
+    )
     simulation = nsem.Simulation1DPrimarySecondary(
         mesh,
         survey=survey,
-        sigmaPrimary=sigBG,
-        sigma=sigma,
+        conductivityPrimary=sigBG,
+        conductivity=conductivity,
     )
 
     # Get the fields
@@ -29,11 +31,13 @@ def appRes_psFieldNorm(sigmaHalf):
     return app_r
 
 
-def appPhs_psFieldNorm(sigmaHalf):
+def appPhs_psFieldNorm(conductivityHalf):
     # Make the survey
-    survey, sigma, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(sigmaHalf, False)
+    survey, conductivity, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(
+        conductivityHalf, False
+    )
     simulation = nsem.Simulation1DPrimarySecondary(
-        mesh, survey=survey, sigmaPrimary=sigBG, sigma=sigma
+        mesh, survey=survey, conductivityPrimary=sigBG, conductivity=conductivity
     )
 
     # Get the fields
@@ -54,34 +58,40 @@ class TestAnalytics(unittest.TestCase):
 
     # Primary/secondary
     def test_appRes1en0_ps(self):
-        sigma_half = 1.0
+        conductivity_half = 1.0
         np.testing.assert_allclose(
-            appRes_psFieldNorm(sigma_half), 1 / sigma_half, rtol=TOLr
+            appRes_psFieldNorm(conductivity_half), 1 / conductivity_half, rtol=TOLr
         )
 
     def test_appPhs1en0_ps(self):
-        sigma_half = 1.0
-        np.testing.assert_allclose(appPhs_psFieldNorm(sigma_half), -135, rtol=TOLp)
+        conductivity_half = 1.0
+        np.testing.assert_allclose(
+            appPhs_psFieldNorm(conductivity_half), -135, rtol=TOLp
+        )
 
     def test_appRes2en1_ps(self):
-        sigma_half = 2e-1
+        conductivity_half = 2e-1
         np.testing.assert_allclose(
-            appRes_psFieldNorm(sigma_half), 1 / sigma_half, rtol=TOLr
+            appRes_psFieldNorm(conductivity_half), 1 / conductivity_half, rtol=TOLr
         )
 
     def test_appPhs2en1_ps(self):
-        sigma_half = 2e-1
-        np.testing.assert_allclose(appPhs_psFieldNorm(sigma_half), -135, rtol=TOLp)
+        conductivity_half = 2e-1
+        np.testing.assert_allclose(
+            appPhs_psFieldNorm(conductivity_half), -135, rtol=TOLp
+        )
 
     def test_appRes2en3_ps(self):
-        sigma_half = 2e-3
+        conductivity_half = 2e-3
         np.testing.assert_allclose(
-            appRes_psFieldNorm(sigma_half), 1 / sigma_half, rtol=TOLr
+            appRes_psFieldNorm(conductivity_half), 1 / conductivity_half, rtol=TOLr
         )
 
     def test_appPhs2en3_ps(self):
-        sigma_half = 2e-1
-        np.testing.assert_allclose(appPhs_psFieldNorm(sigma_half), -135, rtol=TOLp)
+        conductivity_half = 2e-1
+        np.testing.assert_allclose(
+            appPhs_psFieldNorm(conductivity_half), -135, rtol=TOLp
+        )
 
 
 if __name__ == "__main__":

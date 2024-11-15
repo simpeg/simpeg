@@ -1141,7 +1141,7 @@ class MagDipole(BaseTDEMSrc):
         Magnetic dipole moment amplitude
     orientation : {"z", "x", "y"} or (3) numpy.ndarray
         Orientation of the magnetic dipole.
-    mu : float
+    permeability : float
         Background magnetic permeability
     source_type : {'inductive', 'galvanic'}
         Implement as an inductive or galvanic source
@@ -1153,7 +1153,7 @@ class MagDipole(BaseTDEMSrc):
         location=None,
         moment=1.0,
         orientation="z",
-        mu=mu_0,
+        permeability=mu_0,
         srcType="inductive",
         **kwargs,
     ):
@@ -1166,7 +1166,7 @@ class MagDipole(BaseTDEMSrc):
 
         self.moment = moment
         self.orientation = orientation
-        self.mu = mu
+        self.permeability = permeability
         self.srcType = srcType
 
     @property
@@ -1216,7 +1216,7 @@ class MagDipole(BaseTDEMSrc):
         self._orientation = validate_direction("orientation", var, dim=3)
 
     @property
-    def mu(self):
+    def permeability(self):
         """Magnetic permeability in H/m
 
         Returns
@@ -1224,17 +1224,17 @@ class MagDipole(BaseTDEMSrc):
         float
             Magnetic permeability in H/m
         """
-        return self._mu
+        return self._permeability
 
-    @mu.setter
-    def mu(self, value):
-        value = validate_float("mu", value, min_val=mu_0)
-        self._mu = value
+    @permeability.setter
+    def permeability(self, value):
+        value = validate_float("permeability", value, min_val=mu_0)
+        self._permeability = value
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         if getattr(self, "_dipole", None) is None:
             self._dipole = MagneticDipoleWholeSpace(
-                mu=self.mu,
+                mu=self.permeability,
                 orientation=self.orientation,
                 location=self.location,
                 moment=self.moment,
@@ -1271,7 +1271,7 @@ class MagDipole(BaseTDEMSrc):
         if simulation._formulation == "EB":
             return (
                 simulation.mesh.face_divergence
-                * simulation.MfMuiI
+                * simulation._inv_Mf__perm_inv
                 * simulation.mesh.face_divergence.T.tocsr()
             )
         else:
@@ -1286,14 +1286,16 @@ class MagDipole(BaseTDEMSrc):
         if getattr(self, "_hp", None) is None:
             if simulation._formulation == "EB":
                 bp = simulation.mesh.edge_curl * self._aSrc(simulation)
-                self._MfMuip = simulation.mesh.get_face_inner_product(1.0 / self.mu)
-                self._MfMuipI = simulation.mesh.get_face_inner_product(
-                    1.0 / self.mu, invert_matrix=True
+                self._Mf__perm_inv_primary = simulation.mesh.get_face_inner_product(
+                    1.0 / self.permeability
                 )
-                self._hp = self._MfMuip * bp
+                self._inv_Mf__perm_inv_primary = simulation.mesh.get_face_inner_product(
+                    1.0 / self.permeability, invert_matrix=True
+                )
+                self._hp = self._Mf__perm_inv_primary * bp
             else:
                 raise NotImplementedError(
-                    "Solving the magnetostatic simulationlem for the initial fields "
+                    "Solving the magnetostatic simulation for the initial fields "
                     "when a permeable model is considered has not yet been "
                     "implemented for the HJ formulation. "
                     "See: https://github.com/simpeg/simpeg/issues/680"
@@ -1301,7 +1303,8 @@ class MagDipole(BaseTDEMSrc):
 
         if simulation._formulation == "EB":
             return -simulation.mesh.face_divergence * (
-                (simulation.MfMuiI - self._MfMuipI) * self._hp
+                (simulation._inv_Mf__perm_inv - self._inv_Mf__perm_inv_primary)
+                * self._hp
             )
         else:
             raise NotImplementedError(
@@ -1348,14 +1351,14 @@ class MagDipole(BaseTDEMSrc):
         if self.waveform.has_initial_fields is False:
             return Zero()
 
-        if np.all(simulation.mu == self.mu):
+        if np.all(simulation.permeability == self.permeability):
             return self._bSrc(simulation)
 
         else:
             if simulation._formulation == "EB":
                 hs = simulation.mesh.face_divergence.T * self._phiSrc(simulation)
                 ht = self._hp + hs
-                return simulation.MfMuiI * ht
+                return simulation._inv_Mf__perm_inv * ht
             else:
                 raise NotImplementedError
 
@@ -1379,10 +1382,10 @@ class MagDipole(BaseTDEMSrc):
         if self.waveform.has_initial_fields is False:
             return Zero()
         # if simulation._formulation == 'EB':
-        #     return simulation.MfMui * self.bInitial(simulation)
+        #     return simulation._Mf__perm_inv * self.bInitial(simulation)
         # elif simulation._formulation == 'HJ':
-        #     return simulation.MeMuI * self.bInitial(simulation)
-        return 1.0 / self.mu * self.bInitial(simulation)
+        #     return simulation._inv_Me_permeability * self.bInitial(simulation)
+        return 1.0 / self.permeability * self.bInitial(simulation)
 
     def s_m(self, simulation, time):
         """Magnetic source term (s_m) at a given time
@@ -1422,7 +1425,7 @@ class MagDipole(BaseTDEMSrc):
         b = self._bSrc(simulation)
 
         if simulation._formulation == "EB":
-            MfMui = simulation.mesh.get_face_inner_product(1.0 / self.mu)
+            MfMui = simulation.mesh.get_face_inner_product(1.0 / self.permeability)
 
             if (
                 self.waveform.has_initial_fields is True
@@ -1433,7 +1436,7 @@ class MagDipole(BaseTDEMSrc):
                 return C.T * (MfMui * b) * self.waveform.eval(time)
 
         elif simulation._formulation == "HJ":
-            h = 1.0 / self.mu * b
+            h = 1.0 / self.permeability * b
 
             if (
                 self.waveform.has_initial_fields is True
@@ -1462,7 +1465,7 @@ class CircularLoop(MagDipole):
         Loop radius
     current : float, default = 1.
         Source current
-    mu : float
+    permeability : float
         Background magnetic permeability
     srcType : {'inductive', "galvanic"}
         'inductive' to implement as inductive source and 'galvanic' to implement
@@ -1482,7 +1485,7 @@ class CircularLoop(MagDipole):
         radius=1.0,
         current=1.0,
         n_turns=1,
-        mu=mu_0,
+        permeability=mu_0,
         srcType="inductive",
         **kwargs,
     ):
@@ -1504,7 +1507,7 @@ class CircularLoop(MagDipole):
         self.orientation = orientation
         self.radius = radius
         self.current = current
-        self.mu = mu
+        self.permeability = permeability
         self.srcType = srcType
 
     @property
@@ -1580,12 +1583,12 @@ class CircularLoop(MagDipole):
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
         # return MagneticLoopVectorPotential(
-        #     self.location, obsLoc, component, mu=self.mu, radius=self.radius
+        #     self.location, obsLoc, component, mu=self.permeability, radius=self.radius
         # )
 
         if getattr(self, "_loop", None) is None:
             self._loop = CircularLoopWholeSpace(
-                mu=self.mu,
+                mu=self.permeability,
                 location=self.location,
                 orientation=self.orientation,
                 radius=self.radius,
@@ -1617,7 +1620,7 @@ class LineCurrent(BaseTDEMSrc):
         entry of the array).
     current : float, optional
         A non-zero current value.
-    mu : float, optional
+    permeability : float, optional
         Magnetic permeability to use.
     """
 
@@ -1626,10 +1629,11 @@ class LineCurrent(BaseTDEMSrc):
         receiver_list=None,
         location=None,
         current=1.0,
-        mu=mu_0,
-        srcType=None,
+        permeability=mu_0,
         **kwargs,
     ):
+        # srcType determined automatically by location setter
+        kwargs.pop("srcType", None)
         super().__init__(receiver_list=receiver_list, location=location, **kwargs)
         for rx in self.receiver_list:
             if getattr(rx, "use_source_receiver_offset", False):
@@ -1640,7 +1644,7 @@ class LineCurrent(BaseTDEMSrc):
 
         self.integrate = False
         self.current = current
-        self.mu = mu
+        self.permeability = permeability
 
     @property
     def location(self):
@@ -1863,7 +1867,7 @@ class LineCurrent(BaseTDEMSrc):
                     sdiag(simulation.mesh.cell_volumes)
                     * simulation.mesh.face_divergence
                 )
-                return -simulation.MfRhoI * (Div.T * phi)
+                return -simulation._inv_Mf_resistivity * (Div.T * phi)
             else:
                 raise NotImplementedError
         else:
@@ -1896,15 +1900,17 @@ class LineCurrent(BaseTDEMSrc):
 
         if adjoint is True:
             return -(
-                simulation.MfRhoIDeriv(Div.T * phi, v=v, adjoint=True)
+                simulation._inv_Mf_resistivity_deriv(Div.T * phi, v=v, adjoint=True)
                 + self._phiInitialDeriv(
-                    simulation, Div * (simulation.MfRhoI.T * v), adjoint=True
+                    simulation,
+                    Div * (simulation._inv_Mf_resistivity.T * v),
+                    adjoint=True,
                 )
             )
         phiDeriv = self._phiInitialDeriv(simulation, v)
         return -(
-            simulation.MfRhoIDeriv(Div.T * phi, v=v)
-            + simulation.MfRhoI * (Div.T * phiDeriv)
+            simulation._inv_Mf_resistivity_deriv(Div.T * phi, v=v)
+            + simulation._inv_Mf_resistivity * (Div.T * phiDeriv)
         )
 
     def _getAmmr(self, simulation):
@@ -1915,10 +1921,10 @@ class LineCurrent(BaseTDEMSrc):
         Div = sdiag(vol) * simulation.mesh.face_divergence
         return (
             simulation.mesh.edge_curl
-            * simulation.MeMuI
+            * simulation._inv_Me_permeability
             * simulation.mesh.edge_curl.T.tocsr()
             - Div.T.tocsr()
-            * sdiag(1.0 / vol * simulation.mui)
+            * sdiag(1.0 / vol * simulation._perm_inv)
             * Div  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
         )
 
@@ -1961,7 +1967,7 @@ class LineCurrent(BaseTDEMSrc):
             return Zero()
 
         b = self.bInitial(simulation)
-        return simulation.MeMuI * b
+        return simulation._inv_Me_permeability * b
 
     def hInitialDeriv(self, simulation, v, adjoint=False, f=None):
         """Compute derivative of intitial magnetic field times a vector
@@ -1984,8 +1990,10 @@ class LineCurrent(BaseTDEMSrc):
             return Zero()
 
         if adjoint is True:
-            return self.bInitialDeriv(simulation, simulation.MeMuI.T * v, adjoint=True)
-        return simulation.MeMuI * self.bInitialDeriv(simulation, v)
+            return self.bInitialDeriv(
+                simulation, simulation._inv_Me_permeability.T * v, adjoint=True
+            )
+        return simulation._inv_Me_permeability * self.bInitialDeriv(simulation, v)
 
     def bInitial(self, simulation):
         """Compute initial magnetic flux density.
@@ -2112,7 +2120,7 @@ class RawVec_Grounded(LineCurrent):
 
     #     phi = self.phiInitial(simulation)
     #     Div = sdiag(simulation.mesh.cell_volumes) * simulation.mesh.face_divergence
-    #     return -simulation.MfRhoI * (Div.T * phi)
+    #     return -simulation._inv_Mf_resistivity * (Div.T * phi)
 
     # def jInitialDeriv(self, simulation, v, adjoint=False):
     #     if simulation._fieldType not in ["j", "h"]:
@@ -2126,11 +2134,11 @@ class RawVec_Grounded(LineCurrent):
 
     #     if adjoint is True:
     #         return -(
-    #             simulation.MfRhoIDeriv(Div.T * phi, v=v, adjoint=True)
-    #             + self._phiInitialDeriv(simulation, Div * (simulation.MfRhoI.T * v), adjoint=True)
+    #             simulation._inv_Mf_resistivity_deriv(Div.T * phi, v=v, adjoint=True)
+    #             + self._phiInitialDeriv(simulation, Div * (simulation._inv_Mf_resistivity.T * v), adjoint=True)
     #         )
     #     phiDeriv = self._phiInitialDeriv(simulation, v)
-    #     return -(simulation.MfRhoIDeriv(Div.T * phi, v=v) + simulation.MfRhoI * (Div.T * phiDeriv))
+    #     return -(simulation._inv_Mf_resistivity_deriv(Div.T * phi, v=v) + simulation._inv_Mf_resistivity * (Div.T * phiDeriv))
 
     # def _getAmmr(self, simulation):
     #     if simulation._fieldType not in ["j", "h"]:
@@ -2139,9 +2147,9 @@ class RawVec_Grounded(LineCurrent):
     #     vol = simulation.mesh.cell_volumes
 
     #     return (
-    #         simulation.mesh.edge_curl * simulation.MeMuI * simulation.mesh.edge_curl.T
+    #         simulation.mesh.edge_curl * simulation._inv_Me_permeability * simulation.mesh.edge_curl.T
     #         - simulation.mesh.face_divergence.T
-    #         * sdiag(1.0 / vol * simulation.mui)
+    #         * sdiag(1.0 / vol * simulation._perm_inv)
     #         * simulation.mesh.face_divergence  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
     #     )
 
@@ -2171,7 +2179,7 @@ class RawVec_Grounded(LineCurrent):
     #         return Zero()
 
     #     b = self.bInitial(simulation)
-    #     return simulation.MeMuI * b
+    #     return simulation._inv_Me_permeability * b
 
     # def hInitialDeriv(self, simulation, v, adjoint=False, f=None):
     #     if simulation._fieldType not in ["j", "h"]:
@@ -2181,8 +2189,8 @@ class RawVec_Grounded(LineCurrent):
     #         return Zero()
 
     #     if adjoint is True:
-    #         return self.bInitialDeriv(simulation, simulation.MeMuI.T * v, adjoint=True)
-    #     return simulation.MeMuI * self.bInitialDeriv(simulation, v)
+    #         return self.bInitialDeriv(simulation, simulation._inv_Me_permeability.T * v, adjoint=True)
+    #     return simulation._inv_Me_permeability * self.bInitialDeriv(simulation, v)
 
     # def bInitial(self, simulation):
     #     if simulation._fieldType not in ["j", "h"]:
@@ -2207,5 +2215,5 @@ class RawVec_Grounded(LineCurrent):
 
     # def s_e(self, simulation, time):
     #     # if simulation._fieldType == 'h':
-    #     #     return simulation.Mf * self._s_e * self.waveform.eval(time)
+    #     #     return simulation._M(cc|n|f|e) * self._s_e * self.waveform.eval(time)
     #     return self._s_e * self.waveform.eval(time)

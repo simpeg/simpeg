@@ -385,12 +385,12 @@ class Fields3DElectricField(FieldsFDEM):
         self._aveE2CCV = self.simulation.mesh.aveE2CCV
         self._aveF2CCV = self.simulation.mesh.aveF2CCV
         self._nC = self.simulation.mesh.nC
-        self._MeSigma = self.simulation.MeSigma
-        self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
-        self._MfMui = self.simulation.MfMui
-        self._MfMuiDeriv = self.simulation.MfMuiDeriv
-        self._MeI = self.simulation.MeI
-        self._MfI = self.simulation.MfI
+        self._Me_conductivity = self.simulation._Me_conductivity
+        self._Me_conductivity_deriv = self.simulation._Me_conductivity_deriv
+        self._Mf__perm_inv = self.simulation._Mf__perm_inv
+        self._Mf__perm_inv_deriv = self.simulation._Mf__perm_inv_deriv
+        self._inv_Me = self.simulation._inv_Me
+        self._inv_Mf = self.simulation._inv_Mf
 
     def _GLoc(self, fieldType):
         if fieldType in ["e", "eSecondary", "ePrimary", "j"]:
@@ -562,7 +562,7 @@ class Fields3DElectricField(FieldsFDEM):
         :rtype: numpy.ndarray
         :return: current density
         """
-        return self._MeI * (self._MeSigma * self._e(eSolution, source_list))
+        return self._inv_Me * (self._Me_conductivity * self._e(eSolution, source_list))
 
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -578,10 +578,12 @@ class Fields3DElectricField(FieldsFDEM):
         """
         if adjoint:
             return self._eDeriv_u(
-                src, self._MeSigma.T * (self._MeI.T * du_dm_v), adjoint=adjoint
+                src,
+                self._Me_conductivity.T * (self._inv_Me.T * du_dm_v),
+                adjoint=adjoint,
             )
-        return self._MeI * (
-            self._MeSigma * (self._eDeriv_u(src, du_dm_v, adjoint=adjoint))
+        return self._inv_Me * (
+            self._Me_conductivity * (self._eDeriv_u(src, du_dm_v, adjoint=adjoint))
         )
 
     def _jDeriv_m(self, src, v, adjoint=False):
@@ -599,14 +601,14 @@ class Fields3DElectricField(FieldsFDEM):
 
         if adjoint:
             return (
-                self._MeSigmaDeriv(e, (self._MeI.T * v), adjoint=adjoint)
-                + self._eDeriv_m(src, (self._MeI.T * v), adjoint=adjoint)
+                self._Me_conductivity_deriv(e, (self._inv_Me.T * v), adjoint=adjoint)
+                + self._eDeriv_m(src, (self._inv_Me.T * v), adjoint=adjoint)
             ) + src.jPrimaryDeriv(self.simulation, v, adjoint)
         return (
-            self._MeI
+            self._inv_Me
             * (
                 self._eDeriv_m(src, v, adjoint=adjoint)
-                + self._MeSigmaDeriv(e, v, adjoint=adjoint)
+                + self._Me_conductivity_deriv(e, v, adjoint=adjoint)
             )
         ) + src.jPrimaryDeriv(self.simulation, v, adjoint)
 
@@ -620,7 +622,7 @@ class Fields3DElectricField(FieldsFDEM):
         :return: magnetic field
         """
 
-        return self._MfI * (self._MfMui * self._b(eSolution, source_list))
+        return self._inv_Mf * (self._Mf__perm_inv * self._b(eSolution, source_list))
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -635,18 +637,22 @@ class Fields3DElectricField(FieldsFDEM):
             to the field we solved for with a vector
         """
         if adjoint:
-            v = self._MfMui.T * (self._MfI.T * du_dm_v)
+            v = self._Mf__perm_inv.T * (self._inv_Mf.T * du_dm_v)
             return self._bDeriv_u(src, v, adjoint=adjoint)
-        return self._MfI * (self._MfMui * self._bDeriv_u(src, du_dm_v, adjoint=adjoint))
+        return self._inv_Mf * (
+            self._Mf__perm_inv * self._bDeriv_u(src, du_dm_v, adjoint=adjoint)
+        )
 
-    def _hDeriv_mui(self, src, v, adjoint=False):
+    def _hDeriv__perm_inv(self, src, v, adjoint=False):
         # n = int(self._aveF2CCV.shape[0] / self._nC)  # Number of Components
         # VI = sdiag(np.kron(np.ones(n), 1./self.simulation.mesh.cell_volumes))
 
         if adjoint is True:
-            return self._MfMuiDeriv(self[src, "b"], (self._MfI.T * v), adjoint)
+            return self._Mf__perm_inv_deriv(
+                self[src, "b"], (self._inv_Mf.T * v), adjoint
+            )
 
-        return self._MfI * (self._MfMuiDeriv(self[src, "b"], v))
+        return self._inv_Mf * (self._Mf__perm_inv_deriv(self[src, "b"], v))
 
     def _hDeriv_m(self, src, v, adjoint=False):
         """
@@ -663,11 +669,12 @@ class Fields3DElectricField(FieldsFDEM):
         # VI = sdiag(np.kron(np.ones(n), 1./self.simulation.mesh.cell_volumes))
         if adjoint:
             return self._bDeriv_m(
-                src, self._MfMui.T * (self._MfI.T * v), adjoint=adjoint
-            ) + self._hDeriv_mui(src, v, adjoint=adjoint)
+                src, self._Mf__perm_inv.T * (self._inv_Mf.T * v), adjoint=adjoint
+            ) + self._hDeriv__perm_inv(src, v, adjoint=adjoint)
         return (
-            self._MfI * (self._MfMui * self._bDeriv_m(src, v, adjoint=adjoint))
-        ) + self._hDeriv_mui(src, v, adjoint=adjoint)
+            self._inv_Mf
+            * (self._Mf__perm_inv * self._bDeriv_m(src, v, adjoint=adjoint))
+        ) + self._hDeriv__perm_inv(src, v, adjoint=adjoint)
 
     def _charge(self, eSolution, source_list):
         r"""
@@ -749,20 +756,20 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
     def startup(self):
         # Docstring inherited from parent.
         self._edgeCurl = self.simulation.mesh.edge_curl
-        self._MeSigma = self.simulation.MeSigma
-        self._MeSigmaI = self.simulation.MeSigmaI
-        self._MfMui = self.simulation.MfMui
-        self._MfMuiDeriv = self.simulation.MfMuiDeriv
-        self._MeSigmaDeriv = self.simulation.MeSigmaDeriv
-        self._MeSigmaIDeriv = self.simulation.MeSigmaIDeriv
-        self._Me = self.simulation.Me
+        self._Me_conductivity = self.simulation._Me_conductivity
+        self._inv_Me_conductivity = self.simulation._inv_Me_conductivity
+        self._Mf__perm_inv = self.simulation._Mf__perm_inv
+        self._Mf__perm_inv_deriv = self.simulation._Mf__perm_inv_deriv
+        self._Me_conductivity_deriv = self.simulation._Me_conductivity_deriv
+        self._inv_Me_conductivity_deriv = self.simulation._inv_Me_conductivity_deriv
+        self._Me = self.simulation._Me
         self._aveF2CCV = self.simulation.mesh.aveF2CCV
         self._aveE2CCV = self.simulation.mesh.aveE2CCV
-        self._sigma = self.simulation.sigma
-        self._mui = self.simulation.mui
+        self._conductivity = self.simulation.conductivity
+        self.__perm_inv = self.simulation._perm_inv
         self._nC = self.simulation.mesh.nC
-        self._MeI = self.simulation.MeI
-        self._MfI = self.simulation.MfI
+        self._inv_Me = self.simulation._inv_Me
+        self._inv_Mf = self.simulation._inv_Mf
 
     def _GLoc(self, fieldType):
         if fieldType in ["e", "eSecondary", "ePrimary", "j"]:
@@ -861,7 +868,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         :return: secondary electric field
         """
 
-        e = self._edgeCurl.T * (self._MfMui * bSolution)
+        e = self._edgeCurl.T * (self._Mf__perm_inv * bSolution)
         for i, src in enumerate(source_list):
             s_e = src.s_e(self.simulation)
             e[:, i] = e[:, i] + -s_e
@@ -873,7 +880,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
                 e[:, i] = MeyhatI * e[:, i]
 
         if self.simulation.permittivity is None:
-            return self._MeSigmaI * e
+            return self._inv_Me_conductivity * e
         else:
             return e
 
@@ -891,8 +898,12 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         """
 
         if not adjoint:
-            return self._MeSigmaI * (self._edgeCurl.T * (self._MfMui * du_dm_v))
-        return self._MfMui.T * (self._edgeCurl * (self._MeSigmaI.T * du_dm_v))
+            return self._inv_Me_conductivity * (
+                self._edgeCurl.T * (self._Mf__perm_inv * du_dm_v)
+            )
+        return self._Mf__perm_inv.T * (
+            self._edgeCurl * (self._inv_Me_conductivity.T * du_dm_v)
+        )
 
     def _eDeriv_m(self, src, v, adjoint=False):
         """
@@ -909,23 +920,28 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         bSolution = mkvc(self[src, "bSolution"])
         s_e = src.s_e(self.simulation)
 
-        w = -s_e + self._edgeCurl.T * (self._MfMui * bSolution)
+        w = -s_e + self._edgeCurl.T * (self._Mf__perm_inv * bSolution)
 
         if adjoint:
-            s_eDeriv = src.s_eDeriv(self.simulation, self._MeSigmaI.T * v, adjoint)
+            s_eDeriv = src.s_eDeriv(
+                self.simulation, self._inv_Me_conductivity.T * v, adjoint
+            )
             return (
-                self._MeSigmaIDeriv(w, v, adjoint)
-                + self._MfMuiDeriv(
-                    bSolution, self._edgeCurl * (self._MeSigmaI.T * v), adjoint
+                self._inv_Me_conductivity_deriv(w, v, adjoint)
+                + self._Mf__perm_inv_deriv(
+                    bSolution,
+                    self._edgeCurl * (self._inv_Me_conductivity.T * v),
+                    adjoint,
                 )
                 - s_eDeriv
                 + src.ePrimaryDeriv(self.simulation, v, adjoint)
             )
         s_eDeriv = src.s_eDeriv(self.simulation, v, adjoint)
         return (
-            self._MeSigmaIDeriv(w, v)
-            + self._MeSigmaI * (self._edgeCurl.T * self._MfMuiDeriv(bSolution, v))
-            - self._MeSigmaI * s_eDeriv
+            self._inv_Me_conductivity_deriv(w, v)
+            + self._inv_Me_conductivity
+            * (self._edgeCurl.T * self._Mf__perm_inv_deriv(bSolution, v))
+            - self._inv_Me_conductivity * s_eDeriv
             + src.ePrimaryDeriv(self.simulation, v, adjoint)
         )
 
@@ -940,15 +956,17 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         """
 
         if self.simulation.permittivity is None:
-            j = self._edgeCurl.T * (self._MfMui * bSolution)
+            j = self._edgeCurl.T * (self._Mf__perm_inv * bSolution)
 
             for i, src in enumerate(source_list):
                 s_e = src.s_e(self.simulation)
                 j[:, i] = j[:, i] - s_e
 
-            return self._MeI * j
+            return self._inv_Me * j
         else:
-            return self._MeI * (self._MeSigma * self._e(bSolution, source_list))
+            return self._inv_Me * (
+                self._Me_conductivity * self._e(bSolution, source_list)
+            )
 
     def _jDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -963,17 +981,19 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
             to the field we solved for with a vector
         """
         if adjoint:
-            return self._MfMui.T * (self._edgeCurl * (self._MeI.T * du_dm_v))
-        return self._MeI * (self._edgeCurl.T * (self._MfMui * du_dm_v))
+            return self._Mf__perm_inv.T * (self._edgeCurl * (self._inv_Me.T * du_dm_v))
+        return self._inv_Me * (self._edgeCurl.T * (self._Mf__perm_inv * du_dm_v))
         # forgetting the source term here
 
-    def _jDeriv_mui(self, src, v, adjoint=False):
+    def _jDeriv__perm_inv(self, src, v, adjoint=False):
         if adjoint:
-            return self._MfMuiDeriv(
-                self[src, "b"], (self._edgeCurl * (self._MeI.T * v)), adjoint
+            return self._Mf__perm_inv_deriv(
+                self[src, "b"], (self._edgeCurl * (self._inv_Me.T * v)), adjoint
             )
 
-        return self._MeI * (self._edgeCurl.T * self._MfMuiDeriv(self[src, "b"], v))
+        return self._inv_Me * (
+            self._edgeCurl.T * self._Mf__perm_inv_deriv(self[src, "b"], v)
+        )
 
     def _jDeriv_m(self, src, v, adjoint=False):
         """
@@ -987,7 +1007,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
             to the model with a vector
         """
 
-        return self._jDeriv_mui(src, v, adjoint)
+        return self._jDeriv__perm_inv(src, v, adjoint)
 
     def _h(self, bSolution, source_list):
         """
@@ -998,7 +1018,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         :rtype: numpy.ndarray
         :return: magnetic field
         """
-        return self._MfI * (self._MfMui * self._b(bSolution, source_list))
+        return self._inv_Mf * (self._Mf__perm_inv * self._b(bSolution, source_list))
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -1013,14 +1033,14 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
             to the field we solved for with a vector
         """
         if adjoint:
-            return self._MfMui.T * (self._MfI.T * du_dm_v)
-        return self._MfI * (self._MfMui * du_dm_v)
+            return self._Mf__perm_inv.T * (self._inv_Mf.T * du_dm_v)
+        return self._inv_Mf * (self._Mf__perm_inv * du_dm_v)
 
-    def _hDeriv_mui(self, src, v, adjoint=False):
+    def _hDeriv__perm_inv(self, src, v, adjoint=False):
         b = self[src, "b"]
         if adjoint:
-            return self._MfMuiDeriv(b, self._MfI.T * v, adjoint)
-        return self._MfI * self._MfMuiDeriv(b, v)
+            return self._Mf__perm_inv_deriv(b, self._inv_Mf.T * v, adjoint)
+        return self._inv_Mf * self._Mf__perm_inv_deriv(b, v)
 
     def _hDeriv_m(self, src, v, adjoint=False):
         """
@@ -1033,7 +1053,7 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
         :return: product of the derivative of the magnetic field with respect
             to the model with a vector
         """
-        return src.hPrimaryDeriv(self.simulation, v, adjoint) + self._hDeriv_mui(
+        return src.hPrimaryDeriv(self.simulation, v, adjoint) + self._hDeriv__perm_inv(
             src, v, adjoint
         )
 
@@ -1116,18 +1136,18 @@ class Fields3DCurrentDensity(FieldsFDEM):
     def startup(self):
         # Docstring inherited from parent.
         self._edgeCurl = self.simulation.mesh.edge_curl
-        self._MeMu = self.simulation.MeMu
-        self._MeMuI = self.simulation.MeMuI
-        self._MeMuIDeriv = self.simulation.MeMuIDeriv
-        self._MfRho = self.simulation.MfRho
-        self._MfRhoDeriv = self.simulation.MfRhoDeriv
-        self._rho = self.simulation.rho
-        self._mu = self.simulation.mui
+        self._Me_permeability = self.simulation._Me_permeability
+        self._inv_Me_permeability = self.simulation._inv_Me_permeability
+        self._inv_Me_permeability_deriv = self.simulation._inv_Me_permeability_deriv
+        self._Mf_resistivity = self.simulation._Mf_resistivity
+        self._Mf_resistivity_deriv = self.simulation._Mf_resistivity_deriv
+        self._resistivity = self.simulation.resistivity
+        self._perm_inv = self.simulation._perm_inv
         self._aveF2CCV = self.simulation.mesh.aveF2CCV
         self._aveE2CCV = self.simulation.mesh.aveE2CCV
         self._nC = self.simulation.mesh.nC
-        self._MeI = self.simulation.MeI
-        self._MfI = self.simulation.MfI
+        self._inv_Me = self.simulation._inv_Me
+        self._inv_Mf = self.simulation._inv_Mf
 
     def _GLoc(self, fieldType):
         if fieldType in ["h", "hSecondary", "hPrimary", "b"]:
@@ -1242,7 +1262,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
         if self.simulation.permittivity is not None:
             h = np.zeros((self.mesh.n_edges, len(source_list)), dtype=complex)
         else:
-            h = self._edgeCurl.T * (self._MfRho * jSolution)
+            h = self._edgeCurl.T * (self._Mf_resistivity * jSolution)
 
         for i, src in enumerate(source_list):
             if self.simulation.permittivity is not None:
@@ -1256,7 +1276,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
             h[:, i] *= -1.0 / (1j * omega(src.frequency))
             s_m = src.s_m(self.simulation)
             h[:, i] = h[:, i] + 1.0 / (1j * omega(src.frequency)) * (s_m)
-        return self._MeMuI * h
+        return self._inv_Me_permeability * h
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -1275,14 +1295,14 @@ class Fields3DCurrentDensity(FieldsFDEM):
             return (
                 -1.0
                 / (1j * omega(src.frequency))
-                * self._MfRho.T
-                * (self._edgeCurl * (self._MeMuI.T * du_dm_v))
+                * self._Mf_resistivity.T
+                * (self._edgeCurl * (self._inv_Me_permeability.T * du_dm_v))
             )
         return (
             -1.0
             / (1j * omega(src.frequency))
-            * self._MeMuI
-            * (self._edgeCurl.T * (self._MfRho * du_dm_v))
+            * self._inv_Me_permeability
+            * (self._edgeCurl.T * (self._Mf_resistivity * du_dm_v))
         )
 
     def _hDeriv_m(self, src, v, adjoint=False):
@@ -1298,11 +1318,11 @@ class Fields3DCurrentDensity(FieldsFDEM):
         """
 
         jSolution = mkvc(self[[src], "jSolution"])
-        MeMuI = self._MeMuI
-        MeMuIDeriv = self._MeMuIDeriv
+        MeMuI = self._inv_Me_permeability
+        MeMuIDeriv = self._inv_Me_permeability_deriv
         C = self._edgeCurl
-        MfRho = self._MfRho
-        MfRhoDeriv = self._MfRhoDeriv
+        MfRho = self._Mf_resistivity
+        MfRhoDeriv = self._Mf_resistivity_deriv
 
         s_m = src.s_m(self.simulation)
 
@@ -1316,7 +1336,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
                 * (
                     -1.0
                     * (
-                        MeMuI * (C.T * (MfRhoDeriv(jSolution, v, adjoint)))
+                        MeMuI * (C.T * MfRhoDeriv(jSolution, v, adjoint))
                         + MeMuIDeriv(C.T * (MfRho * jSolution)) * v
                     )
                     + MeMuI * s_mDeriv(v)
@@ -1353,7 +1373,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
         :return: electric field
         """
         # if self.simulation.permittivity is None:
-        return self._MfI * (self._MfRho * self._j(jSolution, source_list))
+        return self._inv_Mf * (self._Mf_resistivity * self._j(jSolution, source_list))
 
         # e = np.zeros((self.mesh.n_faces, len(source_list)), dtype=complex)
         # for i, source in enumerate(source_list):
@@ -1361,7 +1381,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
         #         source.frequency, invert_model=True
         #     )
         #     e[:, i] = Mfyhati * mkvc(self._j(jSolution, [source]))
-        # return self._MfI * e
+        # return self._inv_Mf * e
 
     def _eDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -1376,8 +1396,8 @@ class Fields3DCurrentDensity(FieldsFDEM):
             to the field we solved for with a vector
         """
         if adjoint:
-            return self._MfRho.T * (self._MfI.T * du_dm_v)
-        return self._MfI * (self._MfRho * du_dm_v)
+            return self._Mf_resistivity.T * (self._inv_Mf.T * du_dm_v)
+        return self._inv_Mf * (self._Mf_resistivity * du_dm_v)
 
     def _eDeriv_m(self, src, v, adjoint=False):
         """
@@ -1392,12 +1412,12 @@ class Fields3DCurrentDensity(FieldsFDEM):
         """
         jSolution = mkvc(self[src, "jSolution"])
         if adjoint:
-            return self._MfRhoDeriv(jSolution).T * (
-                self._MfI.T * v
+            return self._Mf_resistivity_deriv(jSolution).T * (
+                self._inv_Mf.T * v
             ) + src.ePrimaryDeriv(self.simulation, v, adjoint)
-        return self._MfI * (self._MfRhoDeriv(jSolution) * v) + src.ePrimaryDeriv(
-            self.simulation, v, adjoint
-        )
+        return self._inv_Mf * (
+            self._Mf_resistivity_deriv(jSolution) * v
+        ) + src.ePrimaryDeriv(self.simulation, v, adjoint)
 
     def _b(self, jSolution, source_list):
         """
@@ -1409,7 +1429,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
         :return: secondary magnetic flux density
         """
 
-        return self._MeI * (self._MeMu * self._h(jSolution, source_list))
+        return self._inv_Me * (self._Me_permeability * self._h(jSolution, source_list))
 
     def _bDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -1427,14 +1447,14 @@ class Fields3DCurrentDensity(FieldsFDEM):
             return (
                 -1.0
                 / (1j * omega(src.frequency))
-                * self._MfRho.T
-                * (self._edgeCurl * (self._MeI.T * du_dm_v))
+                * self._Mf_resistivity.T
+                * (self._edgeCurl * (self._inv_Me.T * du_dm_v))
             )
 
         return (
             -1.0
             / (1j * omega(src.frequency))
-            * (self._MeI * (self._edgeCurl.T * (self._MfRho * du_dm_v)))
+            * (self._inv_Me * (self._edgeCurl.T * (self._Mf_resistivity * du_dm_v)))
         )
 
     def _bDeriv_m(self, src, v, adjoint=False):
@@ -1455,12 +1475,14 @@ class Fields3DCurrentDensity(FieldsFDEM):
             return src.s_mDeriv(self.simulation, v, adjoint=adjoint)
 
         if adjoint:
-            v = self._MeI.T * v
+            v = self._inv_Me.T * v
             return 1.0 / (1j * omega(src.frequency)) * (
-                s_mDeriv(v) - self._MfRhoDeriv(jSolution, self._edgeCurl * v, adjoint)
+                s_mDeriv(v)
+                - self._Mf_resistivity_deriv(jSolution, self._edgeCurl * v, adjoint)
             ) + src.bPrimaryDeriv(self.simulation, v, adjoint)
-        return 1.0 / (1j * omega(src.frequency)) * self._MeI * (
-            s_mDeriv(v) - self._edgeCurl.T * self._MfRhoDeriv(jSolution, v, adjoint)
+        return 1.0 / (1j * omega(src.frequency)) * self._inv_Me * (
+            s_mDeriv(v)
+            - self._edgeCurl.T * self._Mf_resistivity_deriv(jSolution, v, adjoint)
         ) + src.bPrimaryDeriv(self.simulation, v, adjoint)
 
     def _charge(self, jSolution, source_list):
@@ -1544,18 +1566,18 @@ class Fields3DMagneticField(FieldsFDEM):
     def startup(self):
         # Docstring inherited from parent.
         self._edgeCurl = self.simulation.mesh.edge_curl
-        self._MeMu = self.simulation.MeMu
-        self._MeMuDeriv = self.simulation.MeMuDeriv
-        # self._MeMuI = self.simulation.MeMuI
-        self._MfRho = self.simulation.MfRho
-        self._MfRhoDeriv = self.simulation.MfRhoDeriv
-        self._rho = self.simulation.rho
-        self._mu = self.simulation.mui
+        self._Me_permeability = self.simulation._Me_permeability
+        self._Me_permeability_deriv = self.simulation._Me_permeability_deriv
+        # self._inv_Me_permeability = self.simulation._inv_Me_permeability
+        self._Mf_resistivity = self.simulation._Mf_resistivity
+        self._Mf_resistivity_deriv = self.simulation._Mf_resistivity_deriv
+        self._resistivity = self.simulation.resistivity
+        self._perm_inv = self.simulation._perm_inv
         self._aveF2CCV = self.simulation.mesh.aveF2CCV
         self._aveE2CCV = self.simulation.mesh.aveE2CCV
         self._nC = self.simulation.mesh.nC
-        self._MfI = self.simulation.MfI
-        self._MeI = self.simulation.MeI
+        self._inv_Mf = self.simulation._inv_Mf
+        self._inv_Me = self.simulation._inv_Me
 
     def _GLoc(self, fieldType):
         if fieldType in ["h", "hSecondary", "hPrimary", "b"]:
@@ -1703,7 +1725,7 @@ class Fields3DMagneticField(FieldsFDEM):
         :return: electric field
         """
 
-        return self._MfI * (self._MfRho * self._j(hSolution, source_list))
+        return self._inv_Mf * (self._Mf_resistivity * self._j(hSolution, source_list))
 
     def _eDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -1718,8 +1740,10 @@ class Fields3DMagneticField(FieldsFDEM):
             to the field we solved for with a vector
         """
         if adjoint:
-            return self._edgeCurl.T * (self._MfRho.T * (self._MfI * du_dm_v))
-        return self._MfI * (self._MfRho * self._edgeCurl * du_dm_v)
+            return self._edgeCurl.T * (
+                self._Mf_resistivity.T * (self._inv_Mf * du_dm_v)
+            )
+        return self._inv_Mf * (self._Mf_resistivity * self._edgeCurl * du_dm_v)
 
     def _eDeriv_m(self, src, v, adjoint=False):
         """
@@ -1736,14 +1760,15 @@ class Fields3DMagneticField(FieldsFDEM):
         s_e = src.s_e(self.simulation)
 
         if adjoint:
-            w = self._MfI.T * v
+            w = self._inv_Mf.T * v
             return (
-                self._MfRhoDeriv(self._edgeCurl * hSolution, w, adjoint)
-                - self._MfRhoDeriv(s_e, w, adjoint)
+                self._Mf_resistivity_deriv(self._edgeCurl * hSolution, w, adjoint)
+                - self._Mf_resistivity_deriv(s_e, w, adjoint)
                 + src.ePrimaryDeriv(self.simulation, v, adjoint)
             )
-        return self._MfI * (
-            self._MfRhoDeriv(self._edgeCurl * hSolution, v) - self._MfRhoDeriv(s_e, v)
+        return self._inv_Mf * (
+            self._Mf_resistivity_deriv(self._edgeCurl * hSolution, v)
+            - self._Mf_resistivity_deriv(s_e, v)
         ) + src.ePrimaryDeriv(self.simulation, v, adjoint)
 
     def _b(self, hSolution, source_list):
@@ -1756,7 +1781,7 @@ class Fields3DMagneticField(FieldsFDEM):
         :return: magnetic flux density
         """
         h = self._h(hSolution, source_list)
-        return self._MeI * (self._MeMu * h)
+        return self._inv_Me * (self._Me_permeability * h)
 
     def _bDeriv_u(self, src, du_dm_v, adjoint=False):
         """
@@ -1771,15 +1796,15 @@ class Fields3DMagneticField(FieldsFDEM):
             respect to the field we solved for with a vector
         """
         if adjoint:
-            return self._MeMu.T * (self._MeI.T * du_dm_v)
-        return self._MeI * (self._MeMu * du_dm_v)
+            return self._Me_permeability.T * (self._inv_Me.T * du_dm_v)
+        return self._inv_Me * (self._Me_permeability * du_dm_v)
 
-    def _bDeriv_mu(self, src, v, adjoint=False):
+    def _bDeriv_permeability(self, src, v, adjoint=False):
         h = self[src, "h"]
 
         if adjoint:
-            return self._MeMuDeriv(h, self._MeI.T * v, adjoint)
-        return self._MeI * self._MeMuDeriv(h, v)
+            return self._Me_permeability_deriv(h, self._inv_Me.T * v, adjoint)
+        return self._inv_Me * self._Me_permeability_deriv(h, v)
 
     def _bDeriv_m(self, src, v, adjoint=False):
         """
@@ -1793,9 +1818,9 @@ class Fields3DMagneticField(FieldsFDEM):
         :return: product of the magnetic flux density derivative with respect
             to the inversion model with a vector
         """
-        return src.bPrimaryDeriv(self.simulation, v, adjoint) + self._bDeriv_mu(
-            src, v, adjoint
-        )
+        return src.bPrimaryDeriv(
+            self.simulation, v, adjoint
+        ) + self._bDeriv_permeability(src, v, adjoint)
 
     def _charge(self, hSolution, source_list):
         r"""

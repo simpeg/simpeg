@@ -50,27 +50,27 @@ class FiniteVolume1DTest(unittest.TestCase):
             return nsem.simulation.Simulation1DElectricField(
                 mesh=self.mesh,
                 survey=self.survey,
-                sigmaMap=maps.IdentityMap(),
+                conductivity_map=maps.IdentityMap(),
             )
         elif formulation == "h":
             return nsem.simulation.Simulation1DMagneticField(
                 mesh=self.mesh,
                 survey=self.survey,
-                sigmaMap=maps.IdentityMap(),
+                conductivity_map=maps.IdentityMap(),
             )
 
-    def get_sigma(self, sigma_back):
+    def get_conductivity(self, conductivity_back):
         # conductivity model
-        sigma_air = 1e-8
-        sigma = sigma_back * np.ones(self.mesh.nC)
-        sigma[self.mesh.gridCC >= 0] = sigma_air
+        conductivity_air = 1e-8
+        conductivity = conductivity_back * np.ones(self.mesh.nC)
+        conductivity[self.mesh.gridCC >= 0] = conductivity_air
 
-        return sigma
+        return conductivity
 
     def apparent_resistivity_phase_test(self, s, formulation="e"):
-        sigma = self.get_sigma(s)
+        conductivity = self.get_conductivity(s)
         sim = self.get_simulation(formulation)
-        d = sim.dpred(sigma)
+        d = sim.dpred(conductivity)
 
         rho_a_xy = d[0::4]
         phase_xy = d[1::4]

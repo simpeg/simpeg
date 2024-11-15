@@ -34,9 +34,12 @@ class IPProblemTestsCC(unittest.TestCase):
 
         source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
         survey = ip.survey.Survey(source_list)
-        sigma = np.ones(mesh.nC)
+        conductivity = np.ones(mesh.nC)
         simulation = ip.simulation.Simulation3DCellCentered(
-            mesh=mesh, survey=survey, sigma=sigma, etaMap=maps.IdentityMap(mesh)
+            mesh=mesh,
+            survey=survey,
+            conductivity=conductivity,
+            etaMap=maps.IdentityMap(mesh),
         )
         mSynth = np.ones(mesh.nC) * 0.1
         dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
@@ -110,9 +113,12 @@ class IPProblemTestsN(unittest.TestCase):
 
         source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
         survey = ip.survey.Survey(source_list)
-        sigma = np.ones(mesh.nC)
+        conductivity = np.ones(mesh.nC)
         simulation = ip.simulation.Simulation3DNodal(
-            mesh=mesh, survey=survey, sigma=sigma, etaMap=maps.IdentityMap(mesh)
+            mesh=mesh,
+            survey=survey,
+            conductivity=conductivity,
+            etaMap=maps.IdentityMap(mesh),
         )
         mSynth = np.ones(mesh.nC) * 0.1
         dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
@@ -185,11 +191,11 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
 
         source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
         survey = ip.survey.Survey(source_list)
-        sigma = np.ones(mesh.nC)
+        conductivity = np.ones(mesh.nC)
         simulation = ip.Simulation3DCellCentered(
             mesh=mesh,
             survey=survey,
-            sigma=sigma,
+            conductivity=conductivity,
             etaMap=maps.IdentityMap(mesh),
             storeJ=True,
         )
@@ -271,11 +277,11 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
 
         source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
         survey = ip.survey.Survey(source_list)
-        sigma = np.ones(mesh.nC)
+        conductivity = np.ones(mesh.nC)
         simulation = ip.simulation.Simulation3DNodal(
             mesh=mesh,
             survey=survey,
-            sigma=sigma,
+            conductivity=conductivity,
             etaMap=maps.IdentityMap(mesh),
             storeJ=True,
         )

@@ -11,30 +11,40 @@ import pytest
 
 
 # define a very simple class...
-@with_property_mass_matrices("sigma")
-@with_property_mass_matrices("mu")
+@with_property_mass_matrices("conductivity")
+@with_property_mass_matrices("permeability")
 class SimpleSim(BasePDESimulation):
-    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
+    conductivity, conductivity_map, _con_deriv = props.Invertible(
+        "Electrical conductivity (S/m)"
+    )
 
-    mu, muMap, muDeriv = props.Invertible("Magnetic Permeability")
+    permeability, permeability_map, _perm_deriv = props.Invertible(
+        "Magnetic Permeability"
+    )
 
     def __init__(
-        self, mesh, survey=None, sigma=None, sigmaMap=None, mu=mu_0, muMap=None
+        self,
+        mesh,
+        survey=None,
+        conductivity=None,
+        conductivity_map=None,
+        permeability=mu_0,
+        permeability_map=None,
     ):
         super().__init__(mesh=mesh, survey=survey)
-        self.sigma = sigma
-        self.mu = mu
-        self.sigmaMap = sigmaMap
-        self.muMap = muMap
+        self.conductivity = conductivity
+        self.permeability = permeability
+        self.conductivity_map = conductivity_map
+        self.permeability_map = permeability_map
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_change(self):
         """
         matrices to be deleted if the model for conductivity/resistivity is updated
         """
-        toDelete = super().deleteTheseOnModelUpdate
-        if self.sigmaMap is not None or self.rhoMap is not None:
-            toDelete = toDelete + self._clear_on_sigma_update
+        toDelete = super()._delete_on_model_change
+        if self.conductivity_map is not None or self.resistivity_map is not None:
+            toDelete = toDelete + self._clear_on_conductivity_update
         return toDelete
 
 
@@ -42,7 +52,7 @@ class TestSim(unittest.TestCase):
     def setUp(self):
         self.mesh = discretize.TensorMesh([5, 6, 7])
 
-        self.sim = SimpleSim(self.mesh, sigmaMap=maps.ExpMap())
+        self.sim = SimpleSim(self.mesh, conductivity_map=maps.ExpMap())
         n_cells = self.mesh.n_cells
         self.start_mod = np.log(np.full(n_cells, 1e-2)) + np.random.randn(n_cells)
         self.start_diag_mod = np.r_[
@@ -51,7 +61,7 @@ class TestSim(unittest.TestCase):
             np.log(np.full(n_cells, 3e-2)),
         ] + np.random.randn(3 * n_cells)
 
-        self.sim_full_aniso = SimpleSim(self.mesh, sigmaMap=maps.IdentityMap())
+        self.sim_full_aniso = SimpleSim(self.mesh, conductivity_map=maps.IdentityMap())
 
         self.start_full_mod = np.r_[
             np.full(n_cells, 1),
@@ -76,34 +86,34 @@ class TestSim(unittest.TestCase):
         u_e = np.random.rand(n_e)
 
         # Test zero return on no map
-        assert sim.MccMuDeriv(u_c, v).__class__ == Zero
-        assert sim.MnMuDeriv(u_n, v).__class__ == Zero
-        assert sim.MfMuDeriv(u_f, v).__class__ == Zero
-        assert sim.MeMuDeriv(u_e, v).__class__ == Zero
-        assert sim.MccMuIDeriv(u_c, v).__class__ == Zero
-        assert sim.MnMuIDeriv(u_n, v).__class__ == Zero
-        assert sim.MfMuIDeriv(u_f, v).__class__ == Zero
-        assert sim.MeMuIDeriv(u_e, v).__class__ == Zero
+        assert sim._Mcc_permeability_deriv(u_c, v).__class__ == Zero
+        assert sim._Mn_permeability_deriv(u_n, v).__class__ == Zero
+        assert sim._Mf_permeability_deriv(u_f, v).__class__ == Zero
+        assert sim._Me_permeability_deriv(u_e, v).__class__ == Zero
+        assert sim._inv_Mcc_permeability_deriv(u_c, v).__class__ == Zero
+        assert sim._inv_Mn_permeability_deriv(u_n, v).__class__ == Zero
+        assert sim._inv_Mf_permeability_deriv(u_f, v).__class__ == Zero
+        assert sim._inv_Me_permeability_deriv(u_e, v).__class__ == Zero
 
         # Test zero return on u passed as Zero
-        assert sim.MccSigmaDeriv(Zero(), v).__class__ == Zero
-        assert sim.MnSigmaDeriv(Zero(), v).__class__ == Zero
-        assert sim.MfSigmaDeriv(Zero(), v).__class__ == Zero
-        assert sim.MeSigmaDeriv(Zero(), v).__class__ == Zero
-        assert sim.MccSigmaIDeriv(Zero(), v).__class__ == Zero
-        assert sim.MnSigmaIDeriv(Zero(), v).__class__ == Zero
-        assert sim.MfSigmaIDeriv(Zero(), v).__class__ == Zero
-        assert sim.MeSigmaIDeriv(Zero(), v).__class__ == Zero
+        assert sim._Mcc_conductivity_deriv(Zero(), v).__class__ == Zero
+        assert sim._Mn_conductivity_deriv(Zero(), v).__class__ == Zero
+        assert sim._Mf_conductivity_deriv(Zero(), v).__class__ == Zero
+        assert sim._Me_conductivity_deriv(Zero(), v).__class__ == Zero
+        assert sim._inv_Mcc_conductivity_deriv(Zero(), v).__class__ == Zero
+        assert sim._inv_Mn_conductivity_deriv(Zero(), v).__class__ == Zero
+        assert sim._inv_Mf_conductivity_deriv(Zero(), v).__class__ == Zero
+        assert sim._inv_Me_conductivity_deriv(Zero(), v).__class__ == Zero
 
         # Test zero return on v as Zero
-        assert sim.MccSigmaDeriv(u_c, Zero()).__class__ == Zero
-        assert sim.MnSigmaDeriv(u_n, Zero()).__class__ == Zero
-        assert sim.MfSigmaDeriv(u_f, Zero()).__class__ == Zero
-        assert sim.MeSigmaDeriv(u_e, Zero()).__class__ == Zero
-        assert sim.MccSigmaIDeriv(u_c, Zero()).__class__ == Zero
-        assert sim.MnSigmaIDeriv(u_n, Zero()).__class__ == Zero
-        assert sim.MfSigmaIDeriv(u_f, Zero()).__class__ == Zero
-        assert sim.MeSigmaIDeriv(u_e, Zero()).__class__ == Zero
+        assert sim._Mcc_conductivity_deriv(u_c, Zero()).__class__ == Zero
+        assert sim._Mn_conductivity_deriv(u_n, Zero()).__class__ == Zero
+        assert sim._Mf_conductivity_deriv(u_f, Zero()).__class__ == Zero
+        assert sim._Me_conductivity_deriv(u_e, Zero()).__class__ == Zero
+        assert sim._inv_Mcc_conductivity_deriv(u_c, Zero()).__class__ == Zero
+        assert sim._inv_Mn_conductivity_deriv(u_n, Zero()).__class__ == Zero
+        assert sim._inv_Mf_conductivity_deriv(u_f, Zero()).__class__ == Zero
+        assert sim._inv_Me_conductivity_deriv(u_e, Zero()).__class__ == Zero
 
     def test_simple_mass(self):
         sim = self.sim
@@ -121,10 +131,10 @@ class TestSim(unittest.TestCase):
         dim = self.mesh.dim
 
         # Test volume sum
-        np.testing.assert_allclose(e_c @ sim.Mcc @ e_c, volume)
-        np.testing.assert_allclose(e_n @ sim.Mn @ e_n, volume)
-        np.testing.assert_allclose((e_f @ sim.Mf @ e_f) / dim, volume)
-        np.testing.assert_allclose((e_e @ sim.Me @ e_e) / dim, volume)
+        np.testing.assert_allclose(e_c @ sim._Mcc @ e_c, volume)
+        np.testing.assert_allclose(e_n @ sim._Mn @ e_n, volume)
+        np.testing.assert_allclose((e_f @ sim._Mf @ e_f) / dim, volume)
+        np.testing.assert_allclose((e_e @ sim._Me @ e_e) / dim, volume)
 
         # Test matrix simple inverse
         x_c = np.random.rand(n_c)
@@ -132,10 +142,10 @@ class TestSim(unittest.TestCase):
         x_f = np.random.rand(n_f)
         x_e = np.random.rand(n_e)
 
-        np.testing.assert_allclose(x_c, sim.MccI @ (sim.Mcc @ x_c))
-        np.testing.assert_allclose(x_n, sim.MnI @ (sim.Mn @ x_n))
-        np.testing.assert_allclose(x_f, sim.MfI @ (sim.Mf @ x_f))
-        np.testing.assert_allclose(x_e, sim.MeI @ (sim.Me @ x_e))
+        np.testing.assert_allclose(x_c, sim._inv_Mcc @ (sim._Mcc @ x_c))
+        np.testing.assert_allclose(x_n, sim._inv_Mn @ (sim._Mn @ x_n))
+        np.testing.assert_allclose(x_f, sim._inv_Mf @ (sim._Mf @ x_f))
+        np.testing.assert_allclose(x_e, sim._inv_Me @ (sim._Me @ x_e))
 
     def test_forward_expected_shapes(self):
         sim = self.sim
@@ -151,50 +161,50 @@ class TestSim(unittest.TestCase):
 
         # These cases should all return an array of shape (n_f, )
         # if V.shape (n_c, )
-        out = sim.MfSigmaDeriv(u, v)
+        out = sim._Mf_conductivity_deriv(u, v)
         assert out.shape == (n_f,)
-        out = sim.MfSigmaDeriv(u, v[:, None])
+        out = sim._Mf_conductivity_deriv(u, v[:, None])
         assert out.shape == (n_f,)
-        out = sim.MfSigmaDeriv(u[:, None], v)
+        out = sim._Mf_conductivity_deriv(u[:, None], v)
         assert out.shape == (n_f,)
-        out = sim.MfSigmaDeriv(u[:, None], v[:, None])
+        out = sim._Mf_conductivity_deriv(u[:, None], v[:, None])
         assert out.shape == (n_f,)
 
         # now check passing multiple V's
-        out = sim.MfSigmaDeriv(u, v2)
+        out = sim._Mf_conductivity_deriv(u, v2)
         assert out.shape == (n_f, 4)
-        out = sim.MfSigmaDeriv(u[:, None], v2)
+        out = sim._Mf_conductivity_deriv(u[:, None], v2)
         assert out.shape == (n_f, 4)
 
         # also ensure it properly broadcasted the operation....
         out_2 = np.empty_like(out)
         for i in range(v2.shape[1]):
-            out_2[:, i] = sim.MfSigmaDeriv(u[:, None], v2[:, i])
+            out_2[:, i] = sim._Mf_conductivity_deriv(u[:, None], v2[:, i])
         np.testing.assert_equal(out, out_2)
 
         # now check for multiple source polarizations
-        out = sim.MfSigmaDeriv(u2, v)
+        out = sim._Mf_conductivity_deriv(u2, v)
         assert out.shape == (n_f, 2)
-        out = sim.MfSigmaDeriv(u2, v[:, None])
+        out = sim._Mf_conductivity_deriv(u2, v[:, None])
         assert out.shape == (n_f, 2)
 
         # and with multiple RHS
-        out = sim.MfSigmaDeriv(u2, v2)
+        out = sim._Mf_conductivity_deriv(u2, v2)
         assert out.shape == (n_f, v2.shape[1], 2)
 
         # and test broadcasting here...
         out_2 = np.empty_like(out)
         for i in range(v2.shape[1]):
-            out_2[:, i, :] = sim.MfSigmaDeriv(u2, v2[:, i])
+            out_2[:, i, :] = sim._Mf_conductivity_deriv(u2, v2[:, i])
         np.testing.assert_equal(out, out_2)
 
         # test None as v
-        UM = sim.MfSigmaDeriv(u)
-        np.testing.assert_allclose(UM @ v, sim.MfSigmaDeriv(u, v))
+        UM = sim._Mf_conductivity_deriv(u)
+        np.testing.assert_allclose(UM @ v, sim._Mf_conductivity_deriv(u, v))
 
-        UM = sim.MfSigmaDeriv(u2)
+        UM = sim._Mf_conductivity_deriv(u2)
         np.testing.assert_allclose(
-            UM @ v, sim.MfSigmaDeriv(u2, v).reshape(-1, order="F")
+            UM @ v, sim._Mf_conductivity_deriv(u2, v).reshape(-1, order="F")
         )
 
     def test_forward_anis_expected_shapes(self):
@@ -211,50 +221,50 @@ class TestSim(unittest.TestCase):
 
         # These cases should all return an array of shape (n_f, )
         # if V.shape (*, )
-        out = sim.MfSigmaDeriv(u, v)
+        out = sim._Mf_conductivity_deriv(u, v)
         assert out.shape == (n_f,)
-        out = sim.MfSigmaDeriv(u, v[:, None])
+        out = sim._Mf_conductivity_deriv(u, v[:, None])
         assert out.shape == (n_f,)
-        out = sim.MfSigmaDeriv(u[:, None], v)
+        out = sim._Mf_conductivity_deriv(u[:, None], v)
         assert out.shape == (n_f,)
-        out = sim.MfSigmaDeriv(u[:, None], v[:, None])
+        out = sim._Mf_conductivity_deriv(u[:, None], v[:, None])
         assert out.shape == (n_f,)
 
         # now check passing multiple V's
-        out = sim.MfSigmaDeriv(u, v2)
+        out = sim._Mf_conductivity_deriv(u, v2)
         assert out.shape == (n_f, 4)
-        out = sim.MfSigmaDeriv(u[:, None], v2)
+        out = sim._Mf_conductivity_deriv(u[:, None], v2)
         assert out.shape == (n_f, 4)
 
         # also ensure it properly broadcasted the operation....
         out_2 = np.empty_like(out)
         for i in range(v2.shape[1]):
-            out_2[:, i] = sim.MfSigmaDeriv(u[:, None], v2[:, i])
+            out_2[:, i] = sim._Mf_conductivity_deriv(u[:, None], v2[:, i])
         np.testing.assert_equal(out, out_2)
 
         # now check for multiple source polarizations
-        out = sim.MfSigmaDeriv(u2, v)
+        out = sim._Mf_conductivity_deriv(u2, v)
         assert out.shape == (n_f, 2)
-        out = sim.MfSigmaDeriv(u2, v[:, None])
+        out = sim._Mf_conductivity_deriv(u2, v[:, None])
         assert out.shape == (n_f, 2)
 
         # and with multiple RHS
-        out = sim.MfSigmaDeriv(u2, v2)
+        out = sim._Mf_conductivity_deriv(u2, v2)
         assert out.shape == (n_f, v2.shape[1], 2)
 
         # and test broadcasting here...
         out_2 = np.empty_like(out)
         for i in range(v2.shape[1]):
-            out_2[:, i, :] = sim.MfSigmaDeriv(u2, v2[:, i])
+            out_2[:, i, :] = sim._Mf_conductivity_deriv(u2, v2[:, i])
         np.testing.assert_equal(out, out_2)
 
         # test None as v
-        UM = sim.MfSigmaDeriv(u)
-        np.testing.assert_allclose(UM @ v, sim.MfSigmaDeriv(u, v))
+        UM = sim._Mf_conductivity_deriv(u)
+        np.testing.assert_allclose(UM @ v, sim._Mf_conductivity_deriv(u, v))
 
-        UM = sim.MfSigmaDeriv(u2)
+        UM = sim._Mf_conductivity_deriv(u2)
         np.testing.assert_allclose(
-            UM @ v, sim.MfSigmaDeriv(u2, v).reshape(-1, order="F")
+            UM @ v, sim._Mf_conductivity_deriv(u2, v).reshape(-1, order="F")
         )
 
     def test_adjoint_expected_shapes(self):
@@ -273,50 +283,53 @@ class TestSim(unittest.TestCase):
 
         # These cases should all return an array of shape (n_c, )
         # if V.shape (n_f, )
-        out = sim.MfSigmaDeriv(u, v, adjoint=True)
+        out = sim._Mf_conductivity_deriv(u, v, adjoint=True)
         assert out.shape == (n_c,)
-        out = sim.MfSigmaDeriv(u, v[:, None], adjoint=True)
+        out = sim._Mf_conductivity_deriv(u, v[:, None], adjoint=True)
         assert out.shape == (n_c,)
-        out = sim.MfSigmaDeriv(u[:, None], v, adjoint=True)
+        out = sim._Mf_conductivity_deriv(u[:, None], v, adjoint=True)
         assert out.shape == (n_c,)
-        out = sim.MfSigmaDeriv(u[:, None], v[:, None], adjoint=True)
+        out = sim._Mf_conductivity_deriv(u[:, None], v[:, None], adjoint=True)
         assert out.shape == (n_c,)
 
         # now check passing multiple V's
-        out = sim.MfSigmaDeriv(u, v2, adjoint=True)
+        out = sim._Mf_conductivity_deriv(u, v2, adjoint=True)
         assert out.shape == (n_c, 4)
-        out = sim.MfSigmaDeriv(u[:, None], v2, adjoint=True)
+        out = sim._Mf_conductivity_deriv(u[:, None], v2, adjoint=True)
         assert out.shape == (n_c, 4)
 
         # also ensure it properly broadcasted the operation....
         out_2 = np.empty_like(out)
         for i in range(v2.shape[1]):
-            out_2[:, i] = sim.MfSigmaDeriv(u, v2[:, i], adjoint=True)
+            out_2[:, i] = sim._Mf_conductivity_deriv(u, v2[:, i], adjoint=True)
         np.testing.assert_equal(out, out_2)
 
         # now check for multiple source polarizations
-        out = sim.MfSigmaDeriv(u2, v2_2, adjoint=True)
+        out = sim._Mf_conductivity_deriv(u2, v2_2, adjoint=True)
         assert out.shape == (n_c,)
-        out = sim.MfSigmaDeriv(u2, v2_2, adjoint=True)
+        out = sim._Mf_conductivity_deriv(u2, v2_2, adjoint=True)
         assert out.shape == (n_c,)
 
         # and with multiple RHS
-        out = sim.MfSigmaDeriv(u2, v3, adjoint=True)
+        out = sim._Mf_conductivity_deriv(u2, v3, adjoint=True)
         assert out.shape == (n_c, v3.shape[1])
 
         # and test broadcasting here...
         out_2 = np.empty_like(out)
         for i in range(v2.shape[1]):
-            out_2[:, i] = sim.MfSigmaDeriv(u2, v3[:, i, :], adjoint=True)
+            out_2[:, i] = sim._Mf_conductivity_deriv(u2, v3[:, i, :], adjoint=True)
         np.testing.assert_equal(out, out_2)
 
         # test None as v
-        UMT = sim.MfSigmaDeriv(u, adjoint=True)
-        np.testing.assert_allclose(UMT @ v, sim.MfSigmaDeriv(u, v, adjoint=True))
-
-        UMT = sim.MfSigmaDeriv(u2, adjoint=True)
+        UMT = sim._Mf_conductivity_deriv(u, adjoint=True)
         np.testing.assert_allclose(
-            UMT @ v2_2.reshape(-1, order="F"), sim.MfSigmaDeriv(u2, v2_2, adjoint=True)
+            UMT @ v, sim._Mf_conductivity_deriv(u, v, adjoint=True)
+        )
+
+        UMT = sim._Mf_conductivity_deriv(u2, adjoint=True)
+        np.testing.assert_allclose(
+            UMT @ v2_2.reshape(-1, order="F"),
+            sim._Mf_conductivity_deriv(u2, v2_2, adjoint=True),
         )
 
     def test_adjoint_anis_expected_shapes(self):
@@ -335,50 +348,53 @@ class TestSim(unittest.TestCase):
 
         # These cases should all return an array of shape (n_c, )
         # if V.shape (n_f, )
-        out = sim.MfSigmaDeriv(u, v, adjoint=True)
+        out = sim._Mf_conductivity_deriv(u, v, adjoint=True)
         assert out.shape == (n_p,)
-        out = sim.MfSigmaDeriv(u, v[:, None], adjoint=True)
+        out = sim._Mf_conductivity_deriv(u, v[:, None], adjoint=True)
         assert out.shape == (n_p,)
-        out = sim.MfSigmaDeriv(u[:, None], v, adjoint=True)
+        out = sim._Mf_conductivity_deriv(u[:, None], v, adjoint=True)
         assert out.shape == (n_p,)
-        out = sim.MfSigmaDeriv(u[:, None], v[:, None], adjoint=True)
+        out = sim._Mf_conductivity_deriv(u[:, None], v[:, None], adjoint=True)
         assert out.shape == (n_p,)
 
         # now check passing multiple V's
-        out = sim.MfSigmaDeriv(u, v2, adjoint=True)
+        out = sim._Mf_conductivity_deriv(u, v2, adjoint=True)
         assert out.shape == (n_p, 4)
-        out = sim.MfSigmaDeriv(u[:, None], v2, adjoint=True)
+        out = sim._Mf_conductivity_deriv(u[:, None], v2, adjoint=True)
         assert out.shape == (n_p, 4)
 
         # also ensure it properly broadcasted the operation....
         out_2 = np.empty_like(out)
         for i in range(v2.shape[1]):
-            out_2[:, i] = sim.MfSigmaDeriv(u, v2[:, i], adjoint=True)
+            out_2[:, i] = sim._Mf_conductivity_deriv(u, v2[:, i], adjoint=True)
         np.testing.assert_equal(out, out_2)
 
         # now check for multiple source polarizations
-        out = sim.MfSigmaDeriv(u2, v2_2, adjoint=True)
+        out = sim._Mf_conductivity_deriv(u2, v2_2, adjoint=True)
         assert out.shape == (n_p,)
-        out = sim.MfSigmaDeriv(u2, v2_2, adjoint=True)
+        out = sim._Mf_conductivity_deriv(u2, v2_2, adjoint=True)
         assert out.shape == (n_p,)
 
         # and with multiple RHS
-        out = sim.MfSigmaDeriv(u2, v3, adjoint=True)
+        out = sim._Mf_conductivity_deriv(u2, v3, adjoint=True)
         assert out.shape == (n_p, v3.shape[1])
 
         # and test broadcasting here...
         out_2 = np.empty_like(out)
         for i in range(v2.shape[1]):
-            out_2[:, i] = sim.MfSigmaDeriv(u2, v3[:, i, :], adjoint=True)
+            out_2[:, i] = sim._Mf_conductivity_deriv(u2, v3[:, i, :], adjoint=True)
         np.testing.assert_equal(out, out_2)
 
         # test None as v
-        UMT = sim.MfSigmaDeriv(u, adjoint=True)
-        np.testing.assert_allclose(UMT @ v, sim.MfSigmaDeriv(u, v, adjoint=True))
-
-        UMT = sim.MfSigmaDeriv(u2, adjoint=True)
+        UMT = sim._Mf_conductivity_deriv(u, adjoint=True)
         np.testing.assert_allclose(
-            UMT @ v2_2.reshape(-1, order="F"), sim.MfSigmaDeriv(u2, v2_2, adjoint=True)
+            UMT @ v, sim._Mf_conductivity_deriv(u, v, adjoint=True)
+        )
+
+        UMT = sim._Mf_conductivity_deriv(u2, adjoint=True)
+        np.testing.assert_allclose(
+            UMT @ v2_2.reshape(-1, order="F"),
+            sim._Mf_conductivity_deriv(u2, v2_2, adjoint=True),
         )
 
     def test_adjoint_opp(self):
@@ -400,44 +416,44 @@ class TestSim(unittest.TestCase):
         v3 = np.random.rand(n_f, 4, 2)
 
         # u1, y1 -> v1
-        vJy = v @ sim.MfSigmaDeriv(u, y)
-        yJtv = y @ sim.MfSigmaDeriv(u, v, adjoint=True)
+        vJy = v @ sim._Mf_conductivity_deriv(u, y)
+        yJtv = y @ sim._Mf_conductivity_deriv(u, v, adjoint=True)
         np.testing.assert_allclose(vJy, yJtv)
 
         # u1, y2 -> v2
-        vJy = np.sum(v2 * sim.MfSigmaDeriv(u, y2))
-        yJtv = np.sum(y2 * sim.MfSigmaDeriv(u, v2, adjoint=True))
+        vJy = np.sum(v2 * sim._Mf_conductivity_deriv(u, y2))
+        yJtv = np.sum(y2 * sim._Mf_conductivity_deriv(u, v2, adjoint=True))
         np.testing.assert_allclose(vJy, yJtv)
 
         # u2, y1 -> v2_2
-        vJy = np.sum(v2_2 * sim.MfSigmaDeriv(u2, y))
-        yJtv = np.sum(y * sim.MfSigmaDeriv(u2, v2_2, adjoint=True))
+        vJy = np.sum(v2_2 * sim._Mf_conductivity_deriv(u2, y))
+        yJtv = np.sum(y * sim._Mf_conductivity_deriv(u2, v2_2, adjoint=True))
         np.testing.assert_allclose(vJy, yJtv)
 
         # u2, y2 -> v3
-        vJy = np.sum(v3 * sim.MfSigmaDeriv(u2, y2))
-        yJtv = np.sum(y2 * sim.MfSigmaDeriv(u2, v3, adjoint=True))
+        vJy = np.sum(v3 * sim._Mf_conductivity_deriv(u2, y2))
+        yJtv = np.sum(y2 * sim._Mf_conductivity_deriv(u2, v3, adjoint=True))
         np.testing.assert_allclose(vJy, yJtv)
 
         # Also test Inverse opp, just to be sure...
         # u1, y1 -> v1
-        vJy = v @ sim.MfSigmaIDeriv(u, y)
-        yJtv = y @ sim.MfSigmaIDeriv(u, v, adjoint=True)
+        vJy = v @ sim._inv_Mf_conductivity_deriv(u, y)
+        yJtv = y @ sim._inv_Mf_conductivity_deriv(u, v, adjoint=True)
         np.testing.assert_allclose(vJy, yJtv)
 
         # u1, y2 -> v2
-        vJy = np.sum(v2 * sim.MfSigmaIDeriv(u, y2))
-        yJtv = np.sum(y2 * sim.MfSigmaIDeriv(u, v2, adjoint=True))
+        vJy = np.sum(v2 * sim._inv_Mf_conductivity_deriv(u, y2))
+        yJtv = np.sum(y2 * sim._inv_Mf_conductivity_deriv(u, v2, adjoint=True))
         np.testing.assert_allclose(vJy, yJtv)
 
         # u2, y1 -> v2_2
-        vJy = np.sum(v2_2 * sim.MfSigmaIDeriv(u2, y))
-        yJtv = np.sum(y * sim.MfSigmaIDeriv(u2, v2_2, adjoint=True))
+        vJy = np.sum(v2_2 * sim._inv_Mf_conductivity_deriv(u2, y))
+        yJtv = np.sum(y * sim._inv_Mf_conductivity_deriv(u2, v2_2, adjoint=True))
         np.testing.assert_allclose(vJy, yJtv)
 
         # u2, y2 -> v3
-        vJy = np.sum(v3 * sim.MfSigmaIDeriv(u2, y2))
-        yJtv = np.sum(y2 * sim.MfSigmaIDeriv(u2, v3, adjoint=True))
+        vJy = np.sum(v3 * sim._inv_Mf_conductivity_deriv(u2, y2))
+        yJtv = np.sum(y2 * sim._inv_Mf_conductivity_deriv(u2, v3, adjoint=True))
         np.testing.assert_allclose(vJy, yJtv)
 
     def test_anis_adjoint_opp(self):
@@ -459,23 +475,23 @@ class TestSim(unittest.TestCase):
         v3 = np.random.rand(n_f, 4, 2)
 
         # u1, y1 -> v1
-        vJy = v @ sim.MfSigmaDeriv(u, y)
-        yJtv = y @ sim.MfSigmaDeriv(u, v, adjoint=True)
+        vJy = v @ sim._Mf_conductivity_deriv(u, y)
+        yJtv = y @ sim._Mf_conductivity_deriv(u, v, adjoint=True)
         np.testing.assert_allclose(vJy, yJtv)
 
         # u1, y2 -> v2
-        vJy = np.sum(v2 * sim.MfSigmaDeriv(u, y2))
-        yJtv = np.sum(y2 * sim.MfSigmaDeriv(u, v2, adjoint=True))
+        vJy = np.sum(v2 * sim._Mf_conductivity_deriv(u, y2))
+        yJtv = np.sum(y2 * sim._Mf_conductivity_deriv(u, v2, adjoint=True))
         np.testing.assert_allclose(vJy, yJtv)
 
         # u2, y1 -> v2_2
-        vJy = np.sum(v2_2 * sim.MfSigmaDeriv(u2, y))
-        yJtv = np.sum(y * sim.MfSigmaDeriv(u2, v2_2, adjoint=True))
+        vJy = np.sum(v2_2 * sim._Mf_conductivity_deriv(u2, y))
+        yJtv = np.sum(y * sim._Mf_conductivity_deriv(u2, v2_2, adjoint=True))
         np.testing.assert_allclose(vJy, yJtv)
 
         # u2, y2 -> v3
-        vJy = np.sum(v3 * sim.MfSigmaDeriv(u2, y2))
-        yJtv = np.sum(y2 * sim.MfSigmaDeriv(u2, v3, adjoint=True))
+        vJy = np.sum(v3 * sim._Mf_conductivity_deriv(u2, y2))
+        yJtv = np.sum(y2 * sim._Mf_conductivity_deriv(u2, v3, adjoint=True))
         np.testing.assert_allclose(vJy, yJtv)
 
     def test_Mcc_deriv(self):
@@ -485,11 +501,11 @@ class TestSim(unittest.TestCase):
 
         def f(x):
             sim.model = x
-            d = sim.MccSigma @ u
+            d = sim._Mcc_conductivity @ u
 
             def Jvec(v):
                 sim.model = x0
-                return sim.MccSigmaDeriv(u, v)
+                return sim._Mcc_conductivity_deriv(u, v)
 
             return d, Jvec
 
@@ -502,11 +518,11 @@ class TestSim(unittest.TestCase):
 
         def f(x):
             sim.model = x
-            d = sim.MnSigma @ u
+            d = sim._Mn_conductivity @ u
 
             def Jvec(v):
                 sim.model = x0
-                return sim.MnSigmaDeriv(u, v)
+                return sim._Mn_conductivity_deriv(u, v)
 
             return d, Jvec
 
@@ -519,11 +535,11 @@ class TestSim(unittest.TestCase):
 
         def f(x):
             sim.model = x
-            d = sim.MeSigma @ u
+            d = sim._Me_conductivity @ u
 
             def Jvec(v):
                 sim.model = x0
-                return sim.MeSigmaDeriv(u, v)
+                return sim._Me_conductivity_deriv(u, v)
 
             return d, Jvec
 
@@ -536,11 +552,11 @@ class TestSim(unittest.TestCase):
 
         def f(x):
             sim.model = x
-            d = sim.MeSigma @ u
+            d = sim._Me_conductivity @ u
 
             def Jvec(v):
                 sim.model = x0
-                return sim.MeSigmaDeriv(u, v)
+                return sim._Me_conductivity_deriv(u, v)
 
             return d, Jvec
 
@@ -553,11 +569,11 @@ class TestSim(unittest.TestCase):
 
         def f(x):
             sim.model = x
-            d = sim.MeSigma @ u
+            d = sim._Me_conductivity @ u
 
             def Jvec(v):
                 sim.model = x0
-                return sim.MeSigmaDeriv(u, v)
+                return sim._Me_conductivity_deriv(u, v)
 
             return d, Jvec
 
@@ -570,11 +586,11 @@ class TestSim(unittest.TestCase):
 
         def f(x):
             sim.model = x
-            d = sim.MfSigma @ u
+            d = sim._Mf_conductivity @ u
 
             def Jvec(v):
                 sim.model = x0
-                return sim.MfSigmaDeriv(u, v)
+                return sim._Mf_conductivity_deriv(u, v)
 
             return d, Jvec
 
@@ -587,11 +603,11 @@ class TestSim(unittest.TestCase):
 
         def f(x):
             sim.model = x
-            d = sim.MfSigma @ u
+            d = sim._Mf_conductivity @ u
 
             def Jvec(v):
                 sim.model = x0
-                return sim.MfSigmaDeriv(u, v)
+                return sim._Mf_conductivity_deriv(u, v)
 
             return d, Jvec
 
@@ -604,11 +620,11 @@ class TestSim(unittest.TestCase):
 
         def f(x):
             sim.model = x
-            d = sim.MfSigma @ u
+            d = sim._Mf_conductivity @ u
 
             def Jvec(v):
                 sim.model = x0
-                return sim.MfSigmaDeriv(u, v)
+                return sim._Mf_conductivity_deriv(u, v)
 
             return d, Jvec
 
@@ -621,11 +637,11 @@ class TestSim(unittest.TestCase):
 
         def f(x):
             sim.model = x
-            d = sim.MccSigmaI @ u
+            d = sim._inv_Mcc_conductivity @ u
 
             def Jvec(v):
                 sim.model = x0
-                return sim.MccSigmaIDeriv(u, v)
+                return sim._inv_Mcc_conductivity_deriv(u, v)
 
             return d, Jvec
 
@@ -638,11 +654,11 @@ class TestSim(unittest.TestCase):
 
         def f(x):
             sim.model = x
-            d = sim.MnSigmaI @ u
+            d = sim._inv_Mn_conductivity @ u
 
             def Jvec(v):
                 sim.model = x0
-                return sim.MnSigmaIDeriv(u, v)
+                return sim._inv_Mn_conductivity_deriv(u, v)
 
             return d, Jvec
 
@@ -655,11 +671,11 @@ class TestSim(unittest.TestCase):
 
         def f(x):
             sim.model = x
-            d = sim.MeSigmaI @ u
+            d = sim._inv_Me_conductivity @ u
 
             def Jvec(v):
                 sim.model = x0
-                return sim.MeSigmaIDeriv(u, v)
+                return sim._inv_Me_conductivity_deriv(u, v)
 
             return d, Jvec
 
@@ -672,11 +688,11 @@ class TestSim(unittest.TestCase):
 
         def f(x):
             sim.model = x
-            d = sim.MfSigmaI @ u
+            d = sim._inv_Mf_conductivity @ u
 
             def Jvec(v):
                 sim.model = x0
-                return sim.MfSigmaIDeriv(u, v)
+                return sim._inv_Mf_conductivity_deriv(u, v)
 
             return d, Jvec
 
@@ -691,8 +707,8 @@ class TestSim(unittest.TestCase):
         v = np.random.randn(self.mesh.n_cells)
         y = np.random.randn(n_items)
 
-        yJv = y @ sim.MccSigmaDeriv(u, v)
-        vJty = v @ sim.MccSigmaDeriv(u, y, adjoint=True)
+        yJv = y @ sim._Mcc_conductivity_deriv(u, v)
+        vJty = v @ sim._Mcc_conductivity_deriv(u, y, adjoint=True)
         np.testing.assert_allclose(yJv, vJty)
 
     def test_Mn_adjoint(self):
@@ -704,8 +720,8 @@ class TestSim(unittest.TestCase):
         v = np.random.randn(self.mesh.n_cells)
         y = np.random.randn(n_items)
 
-        yJv = y @ sim.MnSigmaDeriv(u, v)
-        vJty = v @ sim.MnSigmaDeriv(u, y, adjoint=True)
+        yJv = y @ sim._Mn_conductivity_deriv(u, v)
+        vJty = v @ sim._Mn_conductivity_deriv(u, y, adjoint=True)
         np.testing.assert_allclose(yJv, vJty)
 
     def test_Me_adjoint(self):
@@ -717,8 +733,8 @@ class TestSim(unittest.TestCase):
         v = np.random.randn(self.mesh.n_cells)
         y = np.random.randn(n_items)
 
-        yJv = y @ sim.MeSigmaDeriv(u, v)
-        vJty = v @ sim.MeSigmaDeriv(u, y, adjoint=True)
+        yJv = y @ sim._Me_conductivity_deriv(u, v)
+        vJty = v @ sim._Me_conductivity_deriv(u, y, adjoint=True)
         np.testing.assert_allclose(yJv, vJty)
 
     def test_Mf_adjoint(self):
@@ -730,8 +746,8 @@ class TestSim(unittest.TestCase):
         v = np.random.randn(self.mesh.n_cells)
         y = np.random.randn(n_items)
 
-        yJv = y @ sim.MfSigmaDeriv(u, v)
-        vJty = v @ sim.MfSigmaDeriv(u, y, adjoint=True)
+        yJv = y @ sim._Mf_conductivity_deriv(u, v)
+        vJty = v @ sim._Mf_conductivity_deriv(u, y, adjoint=True)
         np.testing.assert_allclose(yJv, vJty)
 
     def test_MccI_adjoint(self):
@@ -743,8 +759,8 @@ class TestSim(unittest.TestCase):
         v = np.random.randn(self.mesh.n_cells)
         y = np.random.randn(n_items)
 
-        yJv = y @ sim.MccSigmaIDeriv(u, v)
-        vJty = v @ sim.MccSigmaIDeriv(u, y, adjoint=True)
+        yJv = y @ sim._inv_Mcc_conductivity_deriv(u, v)
+        vJty = v @ sim._inv_Mcc_conductivity_deriv(u, y, adjoint=True)
         np.testing.assert_allclose(yJv, vJty)
 
     def test_MnI_adjoint(self):
@@ -756,8 +772,8 @@ class TestSim(unittest.TestCase):
         v = np.random.randn(self.mesh.n_cells)
         y = np.random.randn(n_items)
 
-        yJv = y @ sim.MnSigmaIDeriv(u, v)
-        vJty = v @ sim.MnSigmaIDeriv(u, y, adjoint=True)
+        yJv = y @ sim._inv_Mn_conductivity_deriv(u, v)
+        vJty = v @ sim._inv_Mn_conductivity_deriv(u, y, adjoint=True)
         np.testing.assert_allclose(yJv, vJty)
 
     def test_MeI_adjoint(self):
@@ -769,8 +785,8 @@ class TestSim(unittest.TestCase):
         v = np.random.randn(self.mesh.n_cells)
         y = np.random.randn(n_items)
 
-        yJv = y @ sim.MeSigmaIDeriv(u, v)
-        vJty = v @ sim.MeSigmaIDeriv(u, y, adjoint=True)
+        yJv = y @ sim._inv_Me_conductivity_deriv(u, v)
+        vJty = v @ sim._inv_Me_conductivity_deriv(u, y, adjoint=True)
         np.testing.assert_allclose(yJv, vJty)
 
     def test_MfI_adjoint(self):
@@ -782,21 +798,21 @@ class TestSim(unittest.TestCase):
         v = np.random.randn(self.mesh.n_cells)
         y = np.random.randn(n_items)
 
-        yJv = y @ sim.MfSigmaIDeriv(u, v)
-        vJty = v @ sim.MfSigmaIDeriv(u, y, adjoint=True)
+        yJv = y @ sim._inv_Mf_conductivity_deriv(u, v)
+        vJty = v @ sim._inv_Mf_conductivity_deriv(u, y, adjoint=True)
         np.testing.assert_allclose(yJv, vJty)
 
 
 def test_bad_derivative_stash():
     mesh = discretize.TensorMesh([5, 6, 7])
-    sim = SimpleSim(mesh, sigmaMap=maps.ExpMap())
+    sim = SimpleSim(mesh, conductivity_map=maps.ExpMap())
     sim.model = np.random.rand(mesh.n_cells)
 
     u = np.random.rand(mesh.n_edges)
     v = np.random.rand(mesh.n_cells)
 
     # This should work
-    sim.MeSigmaDeriv(u, v)
+    sim._Me_conductivity_deriv(u, v)
     # stashed derivative operation is a sparse matrix
     assert sp.issparse(sim._Me_Sigma_deriv)
 
@@ -805,4 +821,4 @@ def test_bad_derivative_stash():
     sim._Me_Sigma_deriv = [40, 10, 30]
 
     with pytest.raises(TypeError):
-        sim.MeSigmaDeriv(u, v)
+        sim._Me_conductivity_deriv(u, v)

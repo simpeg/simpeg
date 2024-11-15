@@ -74,8 +74,8 @@ class ParametricCircleMap(IdentityMap):
     >>> h = 0.5*np.ones(20)
     >>> mesh = TensorMesh([h, h])
 
-    >>> sigma0, sigma1, x0, y0, R = 0., 10., 4., 6., 2.
-    >>> model = np.r_[sigma0, sigma1, x0, y0, R]
+    >>> conductivity0, conductivity1, x0, y0, R = 0., 10., 4., 6., 2.
+    >>> model = np.r_[conductivity0, conductivity1, x0, y0, R]
     >>> mapping = ParametricCircleMap(mesh, logSigma=False, slope=2)
 
     >>> fig = plt.figure(figsize=(5, 5))

@@ -88,7 +88,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 0.0,
                 -5.0,
                 survey=grav_survey,
-                rhoMap=self.idenMap,
+                density_map=self.idenMap,
                 store_sensitivities="ram",
             )
 
@@ -120,7 +120,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 0.0,
                 -5.0,
                 survey=mag_survey,
-                chiMap=self.idenMap,
+                susceptibility_map=self.idenMap,
                 store_sensitivities="ram",
             )
 
@@ -147,7 +147,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 self.z_tne,
                 self.z_bsw,
                 survey=grav_survey,
-                rhoMap=self.idenMap,
+                density_map=self.idenMap,
                 store_sensitivities="ram",
             )
 
@@ -180,7 +180,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 self.z_tne,
                 self.z_bsw,
                 survey=mag_survey,
-                chiMap=self.idenMap,
+                susceptibility_map=self.idenMap,
                 store_sensitivities="ram",
             )
 
@@ -207,7 +207,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 self.z_tne[self.active_cells],
                 self.z_bsw[self.active_cells],
                 survey=grav_survey,
-                rhoMap=self.idenMap_active,
+                density_map=self.idenMap_active,
                 store_sensitivities="ram",
                 active_cells=self.active_cells,
             )
@@ -241,7 +241,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 self.z_tne[self.active_cells],
                 self.z_bsw[self.active_cells],
                 survey=mag_survey,
-                chiMap=self.idenMap_active,
+                susceptibility_map=self.idenMap_active,
                 store_sensitivities="ram",
                 active_cells=self.active_cells,
             )
@@ -426,7 +426,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             0.0,
             -5.0,
             survey=grav_survey,
-            rhoMap=self.idenMap,
+            density_map=self.idenMap,
         )
 
         print("3D MESH ERROR TEST PASSED.")
@@ -438,7 +438,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             np.zeros(5),
             -5.0 * np.ones(5),
             survey=grav_survey,
-            rhoMap=self.idenMap,
+            density_map=self.idenMap,
         )
 
         print("Z_TOP OR Z_BOTTOM LENGTH MATCHING NCELLS ERROR TEST PASSED.")
@@ -456,7 +456,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             np.zeros(self.mesh.nC),
             -5.0 * np.ones(self.mesh.nC),
             survey=grav_survey,
-            rhoMap=subset_idenMap,
+            density_map=subset_idenMap,
             active_cells=ind_active,
         )
 

@@ -128,44 +128,48 @@ class BaseSIPSimulation(BaseIPSimulation):
         return self.mesh.n_nodes
 
     @property
-    def sigmaDeriv(self):
+    def _con_deriv(self):
         if self.storeJ:
-            dsigma_dlogsigma = sdiag(self.sigma) * self._P
+            dconductivity_dlogconductivity = sdiag(self.conductivity) * self._P
         else:
-            dsigma_dlogsigma = sdiag(self.sigma)
-        return -dsigma_dlogsigma
+            dconductivity_dlogconductivity = sdiag(self.conductivity)
+        return -dconductivity_dlogconductivity
 
     @property
-    def rhoDeriv(self):
+    def _res_deriv(self):
         if self.storeJ:
-            drho_dlogrho = sdiag(self.rho) * self._P
+            dresistivity_dlogresistivity = sdiag(self.resistivity) * self._P
         else:
-            drho_dlogrho = sdiag(self.rho)
-        return drho_dlogrho
+            dresistivity_dlogresistivity = sdiag(self.resistivity)
+        return dresistivity_dlogresistivity
 
     @property
     def etaDeriv_store(self):
-        if getattr(self, "_etaDeriv_store", None) is None:
-            self._etaDeriv_store = self.etaDeriv
-        return self._etaDeriv_store
+        if (etaDeriv := self._cache["etaDeriv"]) is None:
+            etaDeriv = self.etaDeriv
+            self._cache["etaDeriv"] = etaDeriv
+        return etaDeriv
 
     @property
     def tauiDeriv_store(self):
-        if getattr(self, "_tauiDeriv_store", None) is None:
-            self._tauiDeriv_store = self.tauiDeriv
-        return self._tauiDeriv_store
+        if (tauiDeriv := self._cache["tauiDeriv"]) is None:
+            tauiDeriv = self.tauiDeriv
+            self._cache["tauiDeriv"] = tauiDeriv
+        return tauiDeriv
 
     @property
     def tauDeriv_store(self):
-        if getattr(self, "_tauDeriv_store", None) is None:
-            self._tauDeriv_store = self.tauDeriv
-        return self._tauDeriv_store
+        if (tauDeriv := self._cache["tauDeriv"]) is None:
+            tauDeriv = self.tauDeriv
+            self._cache["tauDeriv"] = tauDeriv
+        return tauDeriv
 
     @property
     def cDeriv_store(self):
-        if getattr(self, "_cDeriv_store", None) is None:
-            self._cDeriv_store = self.cDeriv
-        return self._cDeriv_store
+        if (cDeriv := self._cache["cDeriv"]) is None:
+            cDeriv = self.cDeriv
+            self._cache["cDeriv"] = cDeriv
+        return cDeriv
 
     def get_t_over_tau(self, t):
         taui = self._taui_store
@@ -360,8 +364,8 @@ class BaseSIPSimulation(BaseIPSimulation):
         Generate Full sensitivity matrix
         """
 
-        if self._Jmatrix is not None:
-            return self._Jmatrix
+        if (J_matrix := self._cache["J_matrix"]) is not None:
+            return J_matrix
         else:
             if self.verbose:
                 print("Calculating J and storing")
@@ -391,7 +395,8 @@ class BaseSIPSimulation(BaseIPSimulation):
                         Jt[:, istrt:iend] = -dA_dmT
                     istrt += rx.nD
 
-            self._Jmatrix = Jt.T
+            J_matrix = Jt.T
+            self._cache["J_matrix"] = J_matrix
             collected = gc.collect()
             if self.verbose:
                 collected = gc.collect()
@@ -400,7 +405,7 @@ class BaseSIPSimulation(BaseIPSimulation):
             if self.Ainv is not None:
                 self.Ainv.clean()
 
-            return self._Jmatrix
+            return J_matrix
 
     def getJtJdiag(self, m, Wd, f=None):
         """
@@ -603,14 +608,15 @@ class BaseSIPSimulation(BaseIPSimulation):
             return Jtv
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        toDelete = [
-            "_etaDeriv_store",
-            "_tauiDeriv_store",
-            "_cDeriv_store",
-            "_tauDeriv_store",
+    def _delete_on_model_change(self):
+        to_delete = super()._delete_on_model_change()
+        to_delete = to_delete + [
+            "etaDeriv",
+            "tauiDeriv",
+            "cDeriv",
+            "tauDeriv",
         ]
-        return toDelete
+        return to_delete
 
 
 class Simulation3DCellCentered(BaseSIPSimulation, BaseSimulation3DCellCentered):

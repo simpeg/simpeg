@@ -31,11 +31,11 @@ def derivTest(fdemType, comp, src):
     prb = getFDEMProblem(fdemType, comp, SrcType, freq)
 
     print(f"{fdemType} formulation {src} - {comp}")
-    x0 = np.log(np.ones(prb.sigmaMap.nP) * CONDUCTIVITY)
+    x0 = np.log(np.ones(prb.conductivity_map.nP) * CONDUCTIVITY)
 
     if addrandoms is True:
         rng = np.random.default_rng(seed=42)
-        x0 = x0 + rng.normal(size=prb.sigmaMap.nP) * np.log(CONDUCTIVITY) * 1e-1
+        x0 = x0 + rng.normal(size=prb.conductivity_map.nP) * np.log(CONDUCTIVITY) * 1e-1
 
     def fun(x):
         return prb.dpred(x), lambda x: prb.Jvec(x0, x)

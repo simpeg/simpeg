@@ -15,7 +15,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
         hy = [(cs, npad, -1.3), (cs, 21), (cs, npad, 1.3)]
         hz = [(cs, npad, -1.3), (cs, 20)]
         mesh = discretize.TensorMesh([hx, hy, hz], x0="CCN")
-        sigma = np.ones(mesh.nC) * 1e-2
+        conductivity = np.ones(mesh.nC) * 1e-2
 
         x = mesh.cell_centers_x[
             (mesh.cell_centers_x > -100) & (mesh.cell_centers_x < 100)
@@ -42,14 +42,14 @@ class DCProblemAnalyticTests(unittest.TestCase):
 
         self.survey = survey
         self.mesh = mesh
-        self.sigma = sigma
+        self.conductivity = conductivity
         self.data_ana = data_ana
 
     def test_Simulation3DNodal(self, tolerance=0.05):
         simulation = dc.simulation.Simulation3DNodal(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            conductivity=self.conductivity,
             bc_type="Neumann",
         )
         data = simulation.dpred()
@@ -70,7 +70,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
         simulation = dc.simulation.Simulation3DNodal(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            conductivity=self.conductivity,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -84,7 +84,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
         simulation = dc.Simulation3DCellCentered(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            conductivity=self.conductivity,
             bc_type="Mixed",
         )
         data = simulation.dpred()
@@ -106,7 +106,7 @@ class DCProblemAnalyticTests(unittest.TestCase):
         simulation = dc.simulation.Simulation3DCellCentered(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            conductivity=self.conductivity,
             bc_type="Neumann",
         )
         data = simulation.dpred()
@@ -133,7 +133,7 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
         hy = [(cs, 7, -1.3), (cs, 21), (cs, 7, 1.3)]
         hz = [(cs, 7, -1.3), (cs, 20), (cs, 7, -1.3)]
         mesh = discretize.TensorMesh([hx, hy, hz], x0="CCC")
-        sigma = np.ones(mesh.nC) * 1e-2
+        conductivity = np.ones(mesh.nC) * 1e-2
 
         x = mesh.cell_centers_x[
             (mesh.cell_centers_x > -155.0) & (mesh.cell_centers_x < 155.0)
@@ -160,14 +160,14 @@ class DCProblemAnalyticTests_Dirichlet(unittest.TestCase):
 
         self.survey = survey
         self.mesh = mesh
-        self.sigma = sigma
+        self.conductivity = conductivity
         self.data_ana = data_ana
 
     def test_Simulation3DCellCentered_Dirichlet(self, tolerance=0.05):
         simulation = dc.simulation.Simulation3DCellCentered(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            conductivity=self.conductivity,
             bc_type="Dirichlet",
         )
 
@@ -194,7 +194,7 @@ class DCProblemAnalyticTests_Mixed(unittest.TestCase):
         hy = [(cs, 7, -1.5), (cs, 21), (cs, 7, 1.5)]
         hz = [(cs, 7, -1.5), (cs, 20)]
         mesh = discretize.TensorMesh([hx, hy, hz], x0="CCN")
-        sigma = np.ones(mesh.nC) * 1e-2
+        conductivity = np.ones(mesh.nC) * 1e-2
 
         x = mesh.cell_centers_x[
             (mesh.cell_centers_x > -155.0) & (mesh.cell_centers_x < 155.0)
@@ -215,14 +215,14 @@ class DCProblemAnalyticTests_Mixed(unittest.TestCase):
 
         self.survey = survey
         self.mesh = mesh
-        self.sigma = sigma
+        self.conductivity = conductivity
         self.data_ana = data_ana
 
     def test_Simulation3DCellCentered_Mixed(self, tolerance=0.05):
         simulation = dc.simulation.Simulation3DCellCentered(
             self.mesh,
             survey=self.survey,
-            sigma=self.sigma,
+            conductivity=self.conductivity,
             bc_type="Mixed",
         )
         data = simulation.dpred()

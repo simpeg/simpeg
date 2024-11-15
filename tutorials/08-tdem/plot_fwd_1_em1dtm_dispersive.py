@@ -104,7 +104,7 @@ n_layer = len(thicknesses) + 1
 
 # In SimPEG, the Cole-Cole model is used to define a frequency-dependent
 # electrical conductivity when the Earth is chargeable.
-sigma = 1e-1  # infinite conductivity in S/m
+conductivity = 1e-1  # infinite conductivity in S/m
 eta = 0.5  # intrinsice chargeability [0, 1]
 tau = 0.01  # central time-relaxation constant in seconds
 c = 0.75  # phase constant [0, 1]
@@ -112,7 +112,7 @@ c = 0.75  # phase constant [0, 1]
 # In SimPEG, the a log-uniform distribution of time-relaxation constants is used
 # to define a frequency-dependent susceptibility when the Earth exhibits
 # magnetic viscosity
-chi = 0.001  # infinite susceptibility in SI
+susceptibility = 0.001  # infinite susceptibility in SI
 dchi = 0.001  # amplitude of frequency-dependent susceptibility contribution
 tau1 = 1e-7  # lower limit for time relaxation constants in seconds
 tau2 = 1.0  # upper limit for time relaxation constants in seconds
@@ -121,12 +121,12 @@ tau2 = 1.0  # upper limit for time relaxation constants in seconds
 # For each physical property, the parameters must be defined for each layer.
 # In this case, we must define all parameters for the Cole-Cole conductivity
 # as well as the frequency-dependent magnetic susceptibility.
-sigma_model = sigma * np.ones(n_layer)
+conductivity_model = conductivity * np.ones(n_layer)
 eta_model = eta * np.ones(n_layer)
 tau_model = tau * np.ones(n_layer)
 c_model = c * np.ones(n_layer)
 
-chi_model = chi * np.ones(n_layer)
+chi_model = susceptibility * np.ones(n_layer)
 dchi_model = dchi * np.ones(n_layer)
 tau1_model = tau1 * np.ones(n_layer)
 tau2_model = tau2 * np.ones(n_layer)
@@ -138,17 +138,17 @@ model_mapping = maps.IdentityMap(nP=n_layer)
 
 # Compute and plot complex conductivity at all frequencies
 frequencies = np.logspace(-3, 6, 91)
-sigma_complex = ColeCole(frequencies, sigma, eta, tau, c)
-chi_complex = LogUniform(frequencies, chi, dchi, tau1, tau2)
+conductivity_complex = ColeCole(frequencies, conductivity, eta, tau, c)
+chi_complex = LogUniform(frequencies, susceptibility, dchi, tau1, tau2)
 
 fig = plt.figure(figsize=(8, 6))
 ax = fig.add_axes([0.15, 0.1, 0.8, 0.75])
-ax.semilogx(frequencies, sigma * np.ones(len(frequencies)), "b", lw=3)
-ax.semilogx(frequencies, np.real(sigma_complex), "r", lw=3)
-ax.semilogx(frequencies, np.imag(sigma_complex), "r--", lw=3)
+ax.semilogx(frequencies, conductivity * np.ones(len(frequencies)), "b", lw=3)
+ax.semilogx(frequencies, np.real(conductivity_complex), "r", lw=3)
+ax.semilogx(frequencies, np.imag(conductivity_complex), "r--", lw=3)
 ax.grid()
 ax.set_xlim(np.min(frequencies), np.max(frequencies))
-ax.set_ylim(0.0, 1.1 * sigma)
+ax.set_ylim(0.0, 1.1 * conductivity)
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("Conductivity")
 ax.set_title("Dispersive Electrical Conductivity")
@@ -159,12 +159,12 @@ ax.legend(
 
 fig = plt.figure(figsize=(8, 6))
 ax = fig.add_axes([0.15, 0.1, 0.8, 0.75])
-ax.semilogx(frequencies, chi * np.ones(len(frequencies)), "b", lw=3)
+ax.semilogx(frequencies, susceptibility * np.ones(len(frequencies)), "b", lw=3)
 ax.semilogx(frequencies, np.real(chi_complex), "r", lw=3)
 ax.semilogx(frequencies, np.imag(chi_complex), "r--", lw=3)
 ax.grid()
 ax.set_xlim(np.min(frequencies), np.max(frequencies))
-ax.set_ylim(-1.1 * chi, 1.1 * (chi + dchi))
+ax.set_ylim(-1.1 * susceptibility, 1.1 * (susceptibility + dchi))
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("Susceptibility")
 ax.set_title("Dispersive Magnetic Susceptibility")
@@ -182,7 +182,7 @@ ax.legend(
 # for each case. Each simulation requires the user
 # define the survey, the layer thicknesses and a mapping.
 #
-# A universal mapping was created by letting sigma be the model. All other
+# A universal mapping was created by letting conductivity be the model. All other
 # parameters used to define the physical properties are permanently set when
 # defining the simulation.
 #
@@ -193,37 +193,37 @@ ax.legend(
 
 # Simulate response for static conductivity
 simulation_conductive = tdem.Simulation1DLayered(
-    survey=survey, thicknesses=thicknesses, sigmaMap=model_mapping
+    survey=survey, thicknesses=thicknesses, conductivity_map=model_mapping
 )
 
-dpred_conductive = simulation_conductive.dpred(sigma_model)
+dpred_conductive = simulation_conductive.dpred(conductivity_model)
 
 # Simulate response for a chargeable Earth
 simulation_chargeable = tdem.Simulation1DLayered(
     survey=survey,
     thicknesses=thicknesses,
-    sigmaMap=model_mapping,
+    conductivity_map=model_mapping,
     eta=eta,
     tau=tau,
     c=c,
 )
 
-dpred_chargeable = simulation_chargeable.dpred(sigma_model)
+dpred_chargeable = simulation_chargeable.dpred(conductivity_model)
 
 # Simulate response for viscous remanent magnetization
 mu0 = 4 * np.pi * 1e-7
-mu = mu0 * (1 + chi)
+permeability = mu0 * (1 + susceptibility)
 simulation_vrm = tdem.Simulation1DLayered(
     survey=survey,
     thicknesses=thicknesses,
-    sigmaMap=model_mapping,
-    mu=mu,
+    conductivity_map=model_mapping,
+    permeability=permeability,
     dchi=dchi,
     tau1=tau1,
     tau2=tau2,
 )
 
-dpred_vrm = simulation_vrm.dpred(sigma_model)
+dpred_vrm = simulation_vrm.dpred(conductivity_model)
 
 #######################################################################
 # Plotting Results

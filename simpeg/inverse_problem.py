@@ -144,13 +144,13 @@ class BaseInvProblem:
         self._opt = validate_type("opt", value, Minimize, cast=False)
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_change(self):
         """A list of properties stored on this object to delete when the model is updated
 
         Returns
         -------
         list of str
-            For example `['_MeSigma', '_MeSigmaI']`.
+            For example `['_Me_conductivity', '_inv_Me_conductivity']`.
         """
         return []
 
@@ -170,7 +170,7 @@ class BaseInvProblem:
             value = validate_ndarray_with_shape(
                 "model", value, shape=[("*",), ("*", "*")], dtype=None
             )
-        for prop in self.deleteTheseOnModelUpdate:
+        for prop in self._delete_on_model_change:
             if hasattr(self, prop):
                 delattr(self, prop)
         self._model = value

@@ -105,23 +105,23 @@ n_layer = len(thicknesses) + 1
 
 # In SimPEG, the Cole-Cole model is used to define a frequency-dependent
 # electrical conductivity when the Earth is chargeable.
-sigma = 1e-2  # infinite conductivity in S/m
+conductivity = 1e-2  # infinite conductivity in S/m
 eta = 0.8  # intrinsice chargeability [0, 1]
 tau = 0.0001  # central time-relaxation constant in seconds
 c = 0.8  # phase constant [0, 1]
 
 # Magnetic susceptibility in SI
-chi = 0.2
+susceptibility = 0.2
 
 # For each physical property, the parameters must be defined for each layer.
 # In this case, we must define all parameters for the Cole-Cole conductivity
 # as well as the magnetic susceptibility.
-sigma_model = sigma * np.ones(n_layer)
+conductivity_model = conductivity * np.ones(n_layer)
 eta_model = eta * np.ones(n_layer)
 tau_model = tau * np.ones(n_layer)
 c_model = c * np.ones(n_layer)
 mu0 = 4 * np.pi * 1e-7
-mu_model = mu0 * (1 + chi) * np.ones(n_layer)
+mu_model = mu0 * (1 + susceptibility) * np.ones(n_layer)
 
 # Here, we let the infinite conductivity be the model. As a result, we only
 # need to define the mapping for this parameter. All other parameters used
@@ -129,16 +129,16 @@ mu_model = mu0 * (1 + chi) * np.ones(n_layer)
 model_mapping = maps.IdentityMap(nP=n_layer)
 
 # Plot complex conductivity at all frequencies
-sigma_complex = ColeCole(frequencies, sigma, eta, tau, c)
+conductivity_complex = ColeCole(frequencies, conductivity, eta, tau, c)
 
 fig = plt.figure(figsize=(6, 5))
 ax = fig.add_axes([0.15, 0.15, 0.8, 0.75])
-ax.semilogx(frequencies, sigma * np.ones(len(frequencies)), "b", lw=3)
-ax.semilogx(frequencies, np.real(sigma_complex), "r", lw=3)
-ax.semilogx(frequencies, np.imag(sigma_complex), "r--", lw=3)
+ax.semilogx(frequencies, conductivity * np.ones(len(frequencies)), "b", lw=3)
+ax.semilogx(frequencies, np.real(conductivity_complex), "r", lw=3)
+ax.semilogx(frequencies, np.imag(conductivity_complex), "r--", lw=3)
 ax.grid()
 ax.set_xlim(np.min(frequencies), np.max(frequencies))
-ax.set_ylim(0.0, 1.1 * sigma)
+ax.set_ylim(0.0, 1.1 * conductivity)
 ax.set_xlabel("Frequency (Hz)")
 ax.set_ylabel("Conductivity")
 ax.legend(
@@ -157,7 +157,7 @@ plt.show()
 # for each case. Each simulation requires the user
 # define the survey, the layer thicknesses and a mapping.
 #
-# A universal mapping was created by letting sigma be the model. All other
+# A universal mapping was created by letting conductivity be the model. All other
 # parameters used to define the physical properties are permanently set when
 # defining the simulation.
 #
@@ -168,29 +168,32 @@ plt.show()
 
 # Response for conductive Earth
 simulation = fdem.Simulation1DLayered(
-    survey=survey, thicknesses=thicknesses, sigmaMap=model_mapping
+    survey=survey, thicknesses=thicknesses, conductivity_map=model_mapping
 )
 
-dpred = simulation.dpred(sigma_model)
+dpred = simulation.dpred(conductivity_model)
 
 # Simulate response for a conductive and susceptible Earth
 simulation_susceptible = fdem.Simulation1DLayered(
-    survey=survey, thicknesses=thicknesses, sigmaMap=model_mapping, mu=mu_model
+    survey=survey,
+    thicknesses=thicknesses,
+    conductivity_map=model_mapping,
+    permeability=mu_model,
 )
 
-dpred_susceptible = simulation_susceptible.dpred(sigma_model)
+dpred_susceptible = simulation_susceptible.dpred(conductivity_model)
 
 # Simulate response for a chargeable Earth
 simulation_chargeable = fdem.Simulation1DLayered(
     survey=survey,
     thicknesses=thicknesses,
-    sigmaMap=model_mapping,
+    conductivity_map=model_mapping,
     eta=eta,
     tau=tau,
     c=c,
 )
 
-dpred_chargeable = simulation_chargeable.dpred(sigma_model)
+dpred_chargeable = simulation_chargeable.dpred(conductivity_model)
 
 
 #######################################################################

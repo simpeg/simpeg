@@ -19,7 +19,7 @@ def dask_getJtJdiag(self, m, W=None, f=None):
         self._gtg_diagonal = diag
     else:
         diag = self._gtg_diagonal
-    return mkvc((sdiag(np.sqrt(diag)) @ self.rhoDeriv).power(2).sum(axis=0))
+    return mkvc((sdiag(np.sqrt(diag)) @ self._density_deriv).power(2).sum(axis=0))
 
 
 Sim.getJtJdiag = dask_getJtJdiag

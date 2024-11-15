@@ -20,10 +20,12 @@ class TestBoundaryConditionAnalytics(unittest.TestCase):
         indxd, indxu, indyd, indyu, indzd, indzu = M3.face_boundary_indices
         chibkg = 0.0
         chiblk = 0.01
-        chi = np.ones(M3.nC) * chibkg
+        susceptibility = np.ones(M3.nC) * chibkg
         sph_ind = get_indices_sphere([0, 0, 0], 100, M3.gridCC)
-        chi[sph_ind] = chiblk
-        Bbc, const = mag.analytics.CongruousMagBC(M3, np.array([1.0, 0.0, 0.0]), chi)
+        susceptibility[sph_ind] = chiblk
+        Bbc, const = mag.analytics.CongruousMagBC(
+            M3, np.array([1.0, 0.0, 0.0]), susceptibility
+        )
 
         flag = "secondary"
         Box = 1.0

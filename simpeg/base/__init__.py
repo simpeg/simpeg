@@ -1,6 +1,10 @@
+from .physical_property_simulations import (
+    BaseElectricalSimulation,
+    BaseMagneticSimulation,
+)
+
 from .pde_simulation import (
     BasePDESimulation,
     BaseElectricalPDESimulation,
     BaseMagneticPDESimulation,
-    with_property_mass_matrices,
 )

@@ -44,7 +44,7 @@ def get_mapping(mesh):
 
 def get_prob(mesh, mapping, formulation, **kwargs):
     prb = getattr(tdem, "Simulation3D{}".format(formulation))(
-        mesh, sigmaMap=mapping, **kwargs
+        mesh, conductivity_map=mapping, **kwargs
     )
     return prb
 
@@ -76,7 +76,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         self.prob = get_prob(
             mesh, mapping, self.formulation, survey=self.survey, time_steps=time_steps
         )
-        self.m = np.log(1e-1) * np.ones(self.prob.sigmaMap.nP)
+        self.m = np.log(1e-1) * np.ones(self.prob.conductivity_map.nP)
         self.m *= 0.25 * rng.uniform(size=self.m.shape) + 1
 
         print("Solving Fields for problem {}".format(self.formulation))
@@ -142,7 +142,7 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         )
 
         rng = np.random.default_rng(seed=4)
-        m = rng.uniform(size=self.prob.sigmaMap.nP)
+        m = rng.uniform(size=self.prob.conductivity_map.nP)
         d = rng.normal(size=self.prob.survey.nD)
         V1 = d.dot(self.prob.Jvec(self.m, m, f=self.fields))
         V2 = m.dot(self.prob.Jtvec(self.m, d, f=self.fields))
@@ -314,7 +314,7 @@ class DerivAdjoint_J(Base_DerivAdjoint_Test):
 #         tInd = 2
 
 #         print('\n Testing A_adjoint')
-#         m = np.random.rand(prb.sigmaMap.nP)
+#         m = np.random.rand(prb.conductivity_map.nP)
 #         if prbtype == 'MagneticFluxDensity':
 #             nu = prb.mesh.nF
 #         elif prbtype == 'ElectricField':
@@ -360,7 +360,7 @@ class DerivAdjoint_J(Base_DerivAdjoint_Test):
 #         prb, m0, mesh = setUp_TDEM()
 #         f = prb.fields(m0)
 
-#         m = np.random.rand(prb.sigmaMap.nP)
+#         m = np.random.rand(prb.conductivity_map.nP)
 #         e = np.random.randn(prb.mesh.nE)
 #         V1 = e.dot(f._eDeriv_m(1, prb.survey.source_list[0], m))
 #         V2 = m.dot(f._eDeriv_m(1, prb.survey.source_list[0], e, adjoint=True))

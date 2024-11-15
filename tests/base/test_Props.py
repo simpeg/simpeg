@@ -11,84 +11,112 @@ from simpeg import props
 
 
 class SimpleExample(props.HasModel):
-    sigmaMap = props.Mapping("Mapping to the inversion model.")
+    conductivity_map = props.Mapping("Mapping to the inversion model.")
 
-    sigma = props.PhysicalProperty("Electrical conductivity (S/m)", mapping=sigmaMap)
-
-    sigmaDeriv = props.Derivative(
-        "Derivative of sigma wrt the model.", physical_property=sigma
+    conductivity = props.PhysicalProperty(
+        "Electrical conductivity (S/m)", mapping=conductivity_map
     )
 
-    def __init__(self, sigma=None, sigmaMap=None, **kwargs):
+    _con_deriv = props.Derivative(
+        "Derivative of conductivity wrt the model.", physical_property=conductivity
+    )
+
+    def __init__(self, conductivity=None, conductivity_map=None, **kwargs):
         super().__init__(**kwargs)
-        self.sigma = sigma
-        self.sigmaMap = sigmaMap
+        self.conductivity = conductivity
+        self.conductivity_map = conductivity_map
 
 
 class ShortcutExample(props.HasModel):
-    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
+    conductivity, conductivity_map, _con_deriv = props.Invertible(
+        "Electrical conductivity (S/m)"
+    )
 
-    def __init__(self, sigma=None, sigmaMap=None, **kwargs):
+    def __init__(self, conductivity=None, conductivity_map=None, **kwargs):
         super().__init__(**kwargs)
-        self.sigma = sigma
-        self.sigmaMap = sigmaMap
+        self.conductivity = conductivity
+        self.conductivity_map = conductivity_map
 
 
 class ReciprocalMappingExample(props.HasModel):
-    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
+    conductivity, conductivity_map, _con_deriv = props.Invertible(
+        "Electrical conductivity (S/m)"
+    )
 
-    rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
+    resistivity, resistivity_map, _res_deriv = props.Invertible(
+        "Electrical resistivity (Ohm m)"
+    )
 
-    props.Reciprocal(sigma, rho)
+    props.Reciprocal(conductivity, resistivity)
 
-    def __init__(self, sigma=None, sigmaMap=None, rho=None, rhoMap=None, **kwargs):
+    def __init__(
+        self,
+        conductivity=None,
+        conductivity_map=None,
+        resistivity=None,
+        resistivity_map=None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
-        self.sigma = sigma
-        self.rho = rho
-        self.sigmaMap = sigmaMap
-        self.rhoMap = rhoMap
+        self.conductivity = conductivity
+        self.resistivity = resistivity
+        self.conductivity_map = conductivity_map
+        self.resistivity_map = resistivity_map
 
 
 class ReciprocalExample(props.HasModel):
-    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
+    conductivity, conductivity_map, _con_deriv = props.Invertible(
+        "Electrical conductivity (S/m)"
+    )
 
-    rho = props.PhysicalProperty("Electrical resistivity (Ohm m)")
+    resistivity = props.PhysicalProperty("Electrical resistivity (Ohm m)")
 
-    props.Reciprocal(sigma, rho)
+    props.Reciprocal(conductivity, resistivity)
 
-    def __init__(self, sigma=None, sigmaMap=None, rho=None, **kwargs):
+    def __init__(
+        self, conductivity=None, conductivity_map=None, resistivity=None, **kwargs
+    ):
         super().__init__(**kwargs)
-        self.sigma = sigma
-        self.rho = rho
-        self.sigmaMap = sigmaMap
+        self.conductivity = conductivity
+        self.resistivity = resistivity
+        self.conductivity_map = conductivity_map
 
 
 class ReciprocalPropExample(props.HasModel):
-    sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
+    conductivity = props.PhysicalProperty("Electrical conductivity (S/m)")
 
-    rho = props.PhysicalProperty("Electrical resistivity (Ohm m)")
+    resistivity = props.PhysicalProperty("Electrical resistivity (Ohm m)")
 
-    props.Reciprocal(sigma, rho)
+    props.Reciprocal(conductivity, resistivity)
 
-    def __init__(self, sigma=None, rho=None, rhoMap=None, **kwargs):
+    def __init__(
+        self, conductivity=None, resistivity=None, resistivity_map=None, **kwargs
+    ):
         super().__init__(**kwargs)
-        self.sigma = sigma
-        self.rho = rho
+        self.conductivity = conductivity
+        self.resistivity = resistivity
 
 
 class ReciprocalPropExampleDefaults(props.HasModel):
-    sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
+    conductivity = props.PhysicalProperty("Electrical conductivity (S/m)")
 
-    rho = props.PhysicalProperty("Electrical resistivity (Ohm m)")
+    resistivity = props.PhysicalProperty("Electrical resistivity (Ohm m)")
 
-    props.Reciprocal(sigma, rho)
+    props.Reciprocal(conductivity, resistivity)
 
-    def __init__(self, sigma=None, sigmaMap=None, rho=None, rhoMap=None, **kwargs):
+    def __init__(
+        self,
+        conductivity=None,
+        conductivity_map=None,
+        resistivity=None,
+        resistivity_map=None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
-        if sigma is None:
-            sigma = np.r_[1.0, 2.0, 3.0]
-        self.sigma = sigma
-        self.rho = rho
+        if conductivity is None:
+            conductivity = np.r_[1.0, 2.0, 3.0]
+        self.conductivity = conductivity
+        self.resistivity = resistivity
 
 
 class ComplicatedInversion(props.HasModel):
@@ -126,7 +154,7 @@ class NestedModels(props.HasModel):
 
 
 class OptionalInvertible(props.HasModel):
-    sigma, sigmaMap, sigmaDeriv = props.Invertible(
+    conductivity, conductivity_map, _con_deriv = props.Invertible(
         "Electrical conductivity (S/m)", optional=True
     )
 
@@ -136,33 +164,33 @@ def test_basic(example):
     expMap = maps.ExpMap(discretize.TensorMesh((3,)))
     assert expMap.nP == 3
 
-    PM = example(sigmaMap=expMap)
-    assert PM.sigmaMap is not None
-    assert PM.sigmaMap is expMap
+    PM = example(conductivity_map=expMap)
+    assert PM.conductivity_map is not None
+    assert PM.conductivity_map is expMap
 
-    # There is currently no model, so sigma, which is mapped, fails
+    # There is currently no model, so conductivity, which is mapped, fails
     with pytest.raises(AttributeError):
-        PM.sigma
+        PM.conductivity
 
     PM.model = np.r_[1.0, 2.0, 3.0]
-    assert np.all(PM.sigma == np.exp(np.r_[1.0, 2.0, 3.0]))
+    assert np.all(PM.conductivity == np.exp(np.r_[1.0, 2.0, 3.0]))
     # PM = pickle.loads(pickle.dumps(PM))
     # PM = maps.ExpMap.deserialize(PM.serialize())
 
     assert np.all(
-        PM.sigmaDeriv.todense() == utils.sdiag(np.exp(np.r_[1.0, 2.0, 3.0])).todense()
+        PM._con_deriv.todense() == utils.sdiag(np.exp(np.r_[1.0, 2.0, 3.0])).todense()
     )
 
-    # If we set sigma, we should delete the mapping
-    PM.sigma = np.r_[1.0, 2.0, 3.0]
-    assert np.all(PM.sigma == np.r_[1.0, 2.0, 3.0])
+    # If we set conductivity, we should delete the mapping
+    PM.conductivity = np.r_[1.0, 2.0, 3.0]
+    assert np.all(PM.conductivity == np.r_[1.0, 2.0, 3.0])
     # PM = pickle.loads(pickle.dumps(PM))
-    assert PM.sigmaMap is None
-    assert PM.sigmaDeriv == 0
+    assert PM.conductivity_map is None
+    assert PM._con_deriv == 0
 
     del PM.model
-    # sigma is not changed
-    assert np.all(PM.sigma == np.r_[1.0, 2.0, 3.0])
+    # conductivity is not changed
+    assert np.all(PM.conductivity == np.r_[1.0, 2.0, 3.0])
 
 
 def test_reciprocal():
@@ -171,31 +199,31 @@ def test_reciprocal():
     PM = ReciprocalMappingExample()
 
     with pytest.raises(AttributeError):
-        PM.sigma
-    PM.sigmaMap = expMap
+        PM.conductivity
+    PM.conductivity_map = expMap
     PM.model = np.r_[1.0, 2.0, 3.0]
-    assert np.all(PM.sigma == np.exp(np.r_[1.0, 2.0, 3.0]))
-    assert np.all(PM.rho == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
+    assert np.all(PM.conductivity == np.exp(np.r_[1.0, 2.0, 3.0]))
+    assert np.all(PM.resistivity == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
 
-    PM.rho = np.r_[1.0, 2.0, 3.0]
-    assert PM.rhoMap is None
-    assert PM.sigmaMap is None
-    assert PM.rhoDeriv == 0
-    assert PM.sigmaDeriv == 0
-    assert np.all(PM.sigma == 1.0 / np.r_[1.0, 2.0, 3.0])
+    PM.resistivity = np.r_[1.0, 2.0, 3.0]
+    assert PM.resistivity_map is None
+    assert PM.conductivity_map is None
+    assert PM._res_deriv == 0
+    assert PM._con_deriv == 0
+    assert np.all(PM.conductivity == 1.0 / np.r_[1.0, 2.0, 3.0])
 
-    PM.sigmaMap = expMap
+    PM.conductivity_map = expMap
     # change your mind?
     # PM = pickle.loads(pickle.dumps(PM))
-    PM.rhoMap = expMap
-    assert PM._sigmaMap is None
-    assert len(PM.rhoMap) == 1
-    assert len(PM.sigmaMap) == 2
+    PM.resistivity_map = expMap
+    assert PM._conductivity_map is None
+    assert len(PM.resistivity_map) == 1
+    assert len(PM.conductivity_map) == 2
     # PM = pickle.loads(pickle.dumps(PM))
-    assert np.all(PM.rho == np.exp(np.r_[1.0, 2.0, 3.0]))
-    assert np.all(PM.sigma == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
+    assert np.all(PM.resistivity == np.exp(np.r_[1.0, 2.0, 3.0]))
+    assert np.all(PM.conductivity == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
     # PM = pickle.loads(pickle.dumps(PM))
-    assert isinstance(PM.sigmaDeriv.todense(), np.ndarray)
+    assert isinstance(PM._con_deriv.todense(), np.ndarray)
 
 
 def test_reciprocal_no_map():
@@ -203,53 +231,53 @@ def test_reciprocal_no_map():
 
     PM = ReciprocalExample()
     with pytest.raises(AttributeError):
-        PM.sigma
+        PM.conductivity
 
-    PM.sigmaMap = expMap
+    PM.conductivity_map = expMap
     # PM = pickle.loads(pickle.dumps(PM))
     PM.model = np.r_[1.0, 2.0, 3.0]
-    assert np.all(PM.sigma == np.exp(np.r_[1.0, 2.0, 3.0]))
-    assert np.all(PM.rho == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
+    assert np.all(PM.conductivity == np.exp(np.r_[1.0, 2.0, 3.0]))
+    assert np.all(PM.resistivity == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
 
-    PM.rho = np.r_[1.0, 2.0, 3.0]
-    assert PM.sigmaMap is None
-    assert PM.sigmaDeriv == 0
-    assert np.all(PM.sigma == 1.0 / np.r_[1.0, 2.0, 3.0])
+    PM.resistivity = np.r_[1.0, 2.0, 3.0]
+    assert PM.conductivity_map is None
+    assert PM._con_deriv == 0
+    assert np.all(PM.conductivity == 1.0 / np.r_[1.0, 2.0, 3.0])
 
-    PM.sigmaMap = expMap
-    assert len(PM.sigmaMap) == 1
+    PM.conductivity_map = expMap
+    assert len(PM.conductivity_map) == 1
     # PM = pickle.loads(pickle.dumps(PM))
-    assert np.all(PM.rho == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
-    assert np.all(PM.sigma == np.exp(np.r_[1.0, 2.0, 3.0]))
-    assert isinstance(PM.sigmaDeriv.todense(), np.ndarray)
+    assert np.all(PM.resistivity == 1.0 / np.exp(np.r_[1.0, 2.0, 3.0]))
+    assert np.all(PM.conductivity == np.exp(np.r_[1.0, 2.0, 3.0]))
+    assert isinstance(PM._con_deriv.todense(), np.ndarray)
 
 
 def test_reciprocal_no_maps():
     PM = ReciprocalPropExample()
     with pytest.raises(AttributeError):
-        PM.sigma
+        PM.conductivity
 
     # PM = pickle.loads(pickle.dumps(PM))
-    PM.sigma = np.r_[1.0, 2.0, 3.0]
+    PM.conductivity = np.r_[1.0, 2.0, 3.0]
     # PM = pickle.loads(pickle.dumps(PM))
 
-    assert np.all(PM.sigma == np.r_[1.0, 2.0, 3.0])
+    assert np.all(PM.conductivity == np.r_[1.0, 2.0, 3.0])
     # PM = pickle.loads(pickle.dumps(PM))
-    assert np.all(PM.rho == 1.0 / np.r_[1.0, 2.0, 3.0])
+    assert np.all(PM.resistivity == 1.0 / np.r_[1.0, 2.0, 3.0])
 
-    PM.rho = np.r_[1.0, 2.0, 3.0]
-    assert np.all(PM.sigma == 1.0 / np.r_[1.0, 2.0, 3.0])
+    PM.resistivity = np.r_[1.0, 2.0, 3.0]
+    assert np.all(PM.conductivity == 1.0 / np.r_[1.0, 2.0, 3.0])
 
 
 def test_reciprocal_defaults():
     PM = ReciprocalPropExampleDefaults()
-    assert np.all(PM.sigma == np.r_[1.0, 2.0, 3.0])
-    assert np.all(PM.rho == 1.0 / np.r_[1.0, 2.0, 3.0])
+    assert np.all(PM.conductivity == np.r_[1.0, 2.0, 3.0])
+    assert np.all(PM.resistivity == 1.0 / np.r_[1.0, 2.0, 3.0])
 
-    rho = np.r_[2.0, 4.0, 6.0]
-    PM.rho = rho
-    assert np.all(PM.rho == rho)
-    assert np.all(PM.sigma == 1.0 / rho)
+    resistivity = np.r_[2.0, 4.0, 6.0]
+    PM.resistivity = resistivity
+    assert np.all(PM.resistivity == resistivity)
+    assert np.all(PM.conductivity == 1.0 / resistivity)
 
 
 def test_multi_parameter_inversion():
@@ -271,11 +299,11 @@ def test_nested():
 
 def test_optional_inverted():
     modeler = OptionalInvertible()
-    assert modeler.sigmaMap is None
-    assert modeler.sigma is None
+    assert modeler.conductivity_map is None
+    assert modeler.conductivity is None
 
-    modeler.sigma = 10
-    assert modeler.sigma == 10
+    modeler.conductivity = 10
+    assert modeler.conductivity == 10
 
 
 if __name__ == "__main__":

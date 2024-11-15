@@ -3,18 +3,18 @@ Define simulation classes.
 """
 
 import os
-import inspect
-import numpy as np
-import warnings
+from abc import abstractmethod
 
-from discretize.base import BaseMesh
+import discretize
+import numpy as np
+
 from discretize import TensorMesh
 from discretize.utils import unpack_widths, sdiag, mkvc
 
 from . import props
 from .typing import RandomSeed
-from .data import SyntheticData, Data
-from .survey import BaseSurvey
+from .data import SyntheticData
+from .survey import BaseSurvey, SimpleSurvey
 from .utils import (
     Counter,
     timeIt,
@@ -26,8 +26,7 @@ from .utils import (
     validate_integer,
 )
 import uuid
-
-from .utils.solver_utils import get_default_solver
+import scipy.sparse as sp
 
 __all__ = ["LinearSimulation", "ExponentialSinusoidSimulation"]
 
@@ -51,19 +50,8 @@ class BaseSimulation(props.HasModel):
 
     Parameters
     ----------
-    mesh : discretize.base.BaseMesh, optional
-        Mesh on which the forward problem is discretized.
     survey : simpeg.survey.BaseSurvey, optional
         The survey for the simulation.
-    solver : None or pymatsolver.base.Base, optional
-        Numerical solver used to solve the forward problem. If ``None``,
-        an appropriate solver specific to the simulation class is set by default.
-    solver_opts : dict, optional
-        Solver-specific parameters. If ``None``, default parameters are used for
-        the solver set by ``solver``. Otherwise, the ``dict`` must contain appropriate
-        pairs of keyword arguments and parameter values for the solver. Please visit
-        `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__ to learn more
-        about solvers and their parameters.
     sensitivity_path : str, optional
         Path to directory where sensitivity file is stored.
     counter : None or simpeg.utils.Counter
@@ -76,21 +64,13 @@ class BaseSimulation(props.HasModel):
 
     def __init__(
         self,
-        mesh=None,
         survey=None,
-        solver=None,
-        solver_opts=None,
         sensitivity_path=None,
         counter=None,
         verbose=False,
         **kwargs,
     ):
-        self.mesh = mesh
         self.survey = survey
-        self.solver = solver
-        if solver_opts is None:
-            solver_opts = {}
-        self.solver_opts = solver_opts
         if sensitivity_path is None:
             sensitivity_path = os.path.join(".", "sensitivity")
         self.sensitivity_path = sensitivity_path
@@ -100,25 +80,6 @@ class BaseSimulation(props.HasModel):
         self._uuid = uuid.uuid4()
 
         super().__init__(**kwargs)
-
-    @property
-    def mesh(self):
-        """Mesh for the simulation.
-
-        For more on meshes, visit :py:class:`discretize.base.BaseMesh`.
-
-        Returns
-        -------
-        discretize.base.BaseMesh
-            Mesh on which the forward problem is discretized.
-        """
-        return self._mesh
-
-    @mesh.setter
-    def mesh(self, value):
-        if value is not None:
-            value = validate_type("mesh", value, BaseMesh, cast=False)
-        self._mesh = value
 
     @property
     def survey(self):
@@ -170,64 +131,6 @@ class BaseSimulation(props.HasModel):
         self._sensitivity_path = validate_string("sensitivity_path", value)
 
     @property
-    def solver(self):
-        r"""Numerical solver used in the forward simulation.
-
-        Many forward simulations in SimPEG require solutions to discrete linear
-        systems of the form:
-
-        .. math::
-            \mathbf{A}(\mathbf{m}) \, \mathbf{u} = \mathbf{q}
-
-        where :math:`\mathbf{A}` is an invertible matrix that depends on the
-        model :math:`\mathbf{m}`. The numerical solver can be set using the
-        ``solver`` property. In SimPEG, the
-        `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__ package
-        is used to create solver objects. Parameters specific to each solver
-        can be set manually using the ``solver_opts`` property.
-
-        Returns
-        -------
-        pymatsolver.base.Base
-            Numerical solver used to solve the forward problem.
-        """
-        if self._solver is None:
-            # do not cache this, in case the user wants to
-            # change it after the first time it is requested.
-            return get_default_solver(warn=True)
-        return self._solver
-
-    @solver.setter
-    def solver(self, cls):
-        if cls is not None:
-            if not inspect.isclass(cls):
-                raise TypeError(f"solver must be a class, not a {type(cls)}")
-            if not hasattr(cls, "__mul__"):
-                raise TypeError("solver must support the multiplication operator, `*`.")
-        self._solver = cls
-
-    @property
-    def solver_opts(self):
-        """Solver-specific parameters.
-
-        The parameters specific to the solver set with the ``solver`` property are set
-        upon instantiation. The ``solver_opts`` property is used to set solver-specific properties.
-        This is done by providing a ``dict`` that contains appropriate pairs of keyword arguments
-        and parameter values. Please visit `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__
-        to learn more about solvers and their parameters.
-
-        Returns
-        -------
-        dict
-            keyword arguments and parameters passed to the solver.
-        """
-        return self._solver_opts
-
-    @solver_opts.setter
-    def solver_opts(self, value):
-        self._solver_opts = validate_type("solver_opts", value, dict, cast=False)
-
-    @property
     def verbose(self):
         """Verbose progress printout.
 
@@ -256,8 +159,9 @@ class BaseSimulation(props.HasModel):
             Computed geophysical fields for the model provided.
 
         """
-        raise NotImplementedError("fields has not been implemented for this ")
+        return None
 
+    @abstractmethod
     def dpred(self, m=None, f=None):
         r"""Predicted data for the model provided.
 
@@ -274,26 +178,9 @@ class BaseSimulation(props.HasModel):
         (n_data, ) numpy.ndarray
             The predicted data vector.
         """
-        if self.survey is None:
-            raise AttributeError(
-                "The survey has not yet been set and is required to compute "
-                "data. Please set the survey for the simulation: "
-                "simulation.survey = survey"
-            )
-
-        if f is None:
-            if m is None:
-                m = self.model
-
-            f = self.fields(m)
-
-        data = Data(self.survey)
-        for src in self.survey.source_list:
-            for rx in src.receiver_list:
-                data[src, rx] = rx.eval(src, self.mesh, f)
-        return mkvc(data)
 
     @timeIt
+    @abstractmethod
     def Jvec(self, m, v, f=None):
         r"""Compute the Jacobian times a vector for the model provided.
 
@@ -325,8 +212,8 @@ class BaseSimulation(props.HasModel):
         (n_data, ) numpy.ndarray
             The Jacobian times a vector for the model and vector provided.
         """
-        raise NotImplementedError("Jvec is not yet implemented.")
 
+    @abstractmethod
     @timeIt
     def Jtvec(self, m, v, f=None):
         r"""Compute the Jacobian transpose times a vector for the model provided.
@@ -359,7 +246,6 @@ class BaseSimulation(props.HasModel):
         (n_param, ) numpy.ndarray
             The Jacobian transpose times a vector for the model and vector provided.
         """
-        raise NotImplementedError("Jtvec is not yet implemented.")
 
     @timeIt
     def Jvec_approx(self, m, v, f=None):
@@ -541,9 +427,6 @@ class BaseTimeSimulation(BaseSimulation):
 
     Parameters
     ----------
-    mesh : discretize.base.BaseMesh, optional
-        Mesh on which the forward problem is discretized. This is not necessarily
-        the same as the mesh on which the simulation is defined.
     t0 : float, optional
         Initial time, in seconds, for the time-dependent forward simulation.
     time_steps : (n_steps, ) numpy.ndarray, optional
@@ -572,10 +455,10 @@ class BaseTimeSimulation(BaseSimulation):
     representation.
     """
 
-    def __init__(self, mesh=None, t0=0.0, time_steps=None, **kwargs):
+    def __init__(self, time_steps=None, t0=0.0, **kwargs):
         self.t0 = t0
         self.time_steps = time_steps
-        super().__init__(mesh=mesh, **kwargs)
+        super().__init__(**kwargs)
 
     @property
     def time_steps(self):
@@ -614,7 +497,7 @@ class BaseTimeSimulation(BaseSimulation):
                 value = unpack_widths(value)
             value = validate_ndarray_with_shape("time_steps", value, shape=("*",))
         self._time_steps = value
-        del self.time_mesh
+        self._time_mesh = None
 
     @property
     def t0(self):
@@ -630,7 +513,7 @@ class BaseTimeSimulation(BaseSimulation):
     @t0.setter
     def t0(self, value):
         self._t0 = validate_float("t0", value)
-        del self.time_mesh
+        self._time_mesh = None
 
     @property
     def time_mesh(self):
@@ -649,17 +532,10 @@ class BaseTimeSimulation(BaseSimulation):
         """
         if getattr(self, "_time_mesh", None) is None:
             self._time_mesh = TensorMesh(
-                [
-                    self.time_steps,
-                ],
-                x0=[self.t0],
+                [self.time_steps],
+                origin=[self.t0],
             )
         return self._time_mesh
-
-    @time_mesh.deleter
-    def time_mesh(self):
-        if hasattr(self, "_time_mesh"):
-            del self._time_mesh
 
     @property
     def nT(self):
@@ -686,24 +562,6 @@ class BaseTimeSimulation(BaseSimulation):
             the forward simulation.
         """
         return self.time_mesh.nodes_x
-
-    def dpred(self, m=None, f=None):
-        # Docstring inherited from BaseSimulation.
-        if self.survey is None:
-            raise AttributeError(
-                "The survey has not yet been set and is required to compute "
-                "data. Please set the survey for the simulation: "
-                "simulation.survey = survey"
-            )
-
-        if f is None:
-            f = self.fields(m)
-
-        data = Data(self.survey)
-        for src in self.survey.source_list:
-            for rx in src.receiver_list:
-                data[src, rx] = rx.eval(src, self.mesh, self.time_mesh, f)
-        return data.dobs
 
 
 ##############################################################################
@@ -739,11 +597,6 @@ class LinearSimulation(BaseSimulation):
 
     Parameters
     ----------
-    mesh : discretize.BaseMesh, optional
-        Mesh on which the forward problem is discretized. This is not necessarily
-        the same as the mesh on which the simulation is defined.
-    model_map : simpeg.maps.BaseMap
-        Mapping from the model parameters to vector that the linear operator acts on.
     G : (n_data, n_param) numpy.ndarray or scipy.sparse.csr_matrx
         The linear operator. For a ``model_map`` that maps within the same vector space
         (e.g. the identity map), the dimension ``n_param`` equals the number of model parameters.
@@ -754,23 +607,18 @@ class LinearSimulation(BaseSimulation):
         "The model for a linear problem"
     )
 
-    # linear simulations do not have a solver so set it to `None` here
-    solver = None
-
-    def __init__(self, mesh=None, linear_model=None, model_map=None, G=None, **kwargs):
-        super().__init__(mesh=mesh, **kwargs)
+    def __init__(self, linear_model=None, model_map=None, G=None, **kwargs):
+        super().__init__(**kwargs)
         self.linear_model = linear_model
         self.model_map = model_map
-        if G is not None:
-            self.G = G
+        self.G = G
 
         if self.survey is None:
-            # Give it an empty survey
-            self.survey = BaseSurvey([])
-        if self.survey.nD == 0:
-            # try seting the number of data to G
-            if getattr(self, "G", None) is not None:
-                self.survey._vnD = np.r_[self.G.shape[0]]
+            if self.G is None:
+                n_d = 0
+            else:
+                n_d = self.G.shape[0]
+            self.survey = SimpleSurvey(n_d)
 
     @property
     def G(self):
@@ -786,27 +634,34 @@ class LinearSimulation(BaseSimulation):
         if getattr(self, "_G", None) is not None:
             return self._G
         else:
-            warnings.warn("G has not been implemented for the simulation", stacklevel=2)
-        return None
+            raise AttributeError("G has not been set for the simulation")
 
     @G.setter
-    def G(self, G):
-        # Allows setting G in a LinearSimulation.
-        # TODO should be validated
-        self._G = G
-
-    def fields(self, m):
-        # Docstring inherited from BaseSimulation.
-        self.model = m
-        return self.G.dot(self.linear_model)
+    def G(self, lin_operator):
+        if lin_operator is not None:
+            # Allows setting G in a LinearSimulation.
+            if not hasattr(lin_operator, "shape"):
+                raise TypeError("linear_operator must have a `shape` property")
+            if not hasattr(lin_operator, "dot"):
+                raise TypeError(
+                    "linear_operator must support the `dot` method for matrix multiplication"
+                )
+            if not hasattr(lin_operator, "T"):
+                raise TypeError(
+                    "linear_operator must have a `T` property for transpose operations"
+                )
+            if not hasattr(lin_operator.T, "conjugate"):
+                raise TypeError(
+                    "linear_operator.T must support the `conjugate` method for adjoint matrix multiplication"
+                )
+            self.survey._vnD = np.r_[lin_operator.shape[0]]
+        self._G = lin_operator
 
     def dpred(self, m=None, f=None):
         # Docstring inherited from BaseSimulation
         if m is not None:
             self.model = m
-        if f is not None:
-            return f
-        return self.fields(self.model)
+        return self.G.dot(self.linear_model)
 
     def getJ(self, m, f=None):
         r"""Returns the full Jacobian.
@@ -845,18 +700,31 @@ class LinearSimulation(BaseSimulation):
         """
         self.model = m
         # self.model_deriv is likely a sparse matrix
-        # and G is possibly dense, thus we need to do..
-        return (self.model_deriv.T.dot(self.G.T)).T
+        # and G is probably dense, thus we need to do...
+        G = self.G
+        if not (isinstance(G, np.ndarray) or sp.issparse(G)):
+            # multiply the linear operator by identity to probe it
+            m, n = G.shape
+            if m <= n:
+                I = np.eye(m)
+                G_H = G.T.conjugate().dot(I)
+            else:
+                I = np.eye(n)
+                G_H = G.dot(I).T.conjugate()
+        else:
+            G_H = G.T.conjugate()
+        return (self.model_deriv.T @ G_H).T.conjugate()
 
     def Jvec(self, m, v, f=None):
         # Docstring inherited from BaseSimulation
         self.model = m
-        return self.G.dot(self.model_deriv * v)
+        return self.G.dot(self.model_deriv @ v)
 
     def Jtvec(self, m, v, f=None):
         # Docstring inherited from BaseSimulation
         self.model = m
-        return self.model_deriv.T * self.G.T.dot(v)
+        G_H = self.G.T.conjugate()
+        return self.model_deriv.T @ G_H.dot(v)
 
 
 class ExponentialSinusoidSimulation(LinearSimulation):
@@ -899,6 +767,8 @@ class ExponentialSinusoidSimulation(LinearSimulation):
 
     Parameters
     ----------
+    mesh : discretize.TensorMesh
+        The mesh defining the discretized model.
     n_kernels : int
         The number of kernel factors for the linear problem; i.e. the number of
         :math:`j_i \in [j_0, ... , j_n]`. This sets the number of rows
@@ -913,13 +783,35 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         Maximum value for the spread of the kernel factors.
     """
 
-    def __init__(self, n_kernels=20, p=-0.25, q=0.25, j0=0.0, jn=60.0, **kwargs):
+    def __init__(self, mesh, n_kernels=20, p=-0.25, q=0.25, j0=0.0, jn=60.0, **kwargs):
+        self.mesh = mesh
         self.n_kernels = n_kernels
+        kwargs.pop("survey", None)
         self.p = p
         self.q = q
         self.j0 = j0
         self.jn = jn
-        super(ExponentialSinusoidSimulation, self).__init__(**kwargs)
+        super(ExponentialSinusoidSimulation, self).__init__(
+            survey=self.survey, **kwargs
+        )
+
+    @property
+    def mesh(self):
+        """The 1D mesh for this simulation.
+
+        Returns
+        -------
+        discretize.TensorMesh
+        """
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, mesh):
+        mesh = validate_type("mesh", mesh, discretize.TensorMesh, cast=False)
+        if mesh.dim != 1:
+            raise ValueError("Mesh must be 1D")
+        self._mesh = mesh
+        self._G = None
 
     @property
     def n_kernels(self):
@@ -940,6 +832,8 @@ class ExponentialSinusoidSimulation(LinearSimulation):
     @n_kernels.setter
     def n_kernels(self, value):
         self._n_kernels = validate_integer("n_kernels", value, min_val=1)
+        self._jk = self._G = None
+        self.survey = SimpleSurvey(self._n_kernels)
 
     @property
     def p(self):
@@ -955,6 +849,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
     @p.setter
     def p(self, value):
         self._p = validate_float("p", value)
+        self._G = None
 
     @property
     def q(self):
@@ -970,6 +865,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
     @q.setter
     def q(self, value):
         self._q = validate_float("q", value)
+        self._G = None
 
     @property
     def j0(self):
@@ -985,6 +881,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
     @j0.setter
     def j0(self, value):
         self._j0 = validate_float("j0", value)
+        self._jk = self._G = None
 
     @property
     def jn(self):
@@ -1000,6 +897,7 @@ class ExponentialSinusoidSimulation(LinearSimulation):
     @jn.setter
     def jn(self, value):
         self._jn = validate_float("jn", value)
+        self._jk = self._G = None
 
     @property
     def jk(self):
@@ -1043,13 +941,13 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         (n_kernels, n_param) numpy.ndarray
             The linear forward operator.
         """
-        if getattr(self, "_G", None) is None:
-            G_nodes = np.empty((self.mesh.n_nodes, self.n_kernels))
+        if self._G is None:
+            GT_nodes = np.empty((self.mesh.n_nodes, self.n_kernels), order="F")
 
             for i in range(self.n_kernels):
-                G_nodes[:, i] = self.g(i)
+                GT_nodes[:, i] = self.g(i)
 
-            self._G = (self.mesh.average_node_to_cell @ G_nodes).T @ sdiag(
+            self._G = (self.mesh.average_node_to_cell @ GT_nodes).T @ sdiag(
                 self.mesh.cell_volumes
             )
         return self._G

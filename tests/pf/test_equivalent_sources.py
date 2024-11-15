@@ -290,14 +290,14 @@ class TestGravityEquivalentSourcesForward:
         # Build simulations
         mapping = get_mapping(tensor_mesh)
         sim_3d = gravity.Simulation3DIntegral(
-            survey=gravity_survey, mesh=mesh_3d, rhoMap=mapping
+            survey=gravity_survey, mesh=mesh_3d, density_map=mapping
         )
         eq_sources = gravity.SimulationEquivalentSourceLayer(
             mesh=tensor_mesh,
             cell_z_top=mesh_top,
             cell_z_bottom=mesh_bottom,
             survey=gravity_survey,
-            rhoMap=mapping,
+            density_map=mapping,
             engine=engine,
             store_sensitivities=store_sensitivities,
         )
@@ -330,14 +330,14 @@ class TestGravityEquivalentSourcesForward:
         # Build simulations
         mapping = get_mapping(tensor_mesh)
         sim_3d = gravity.Simulation3DIntegral(
-            survey=survey, mesh=mesh_3d, rhoMap=mapping
+            survey=survey, mesh=mesh_3d, density_map=mapping
         )
         eq_sources = gravity.SimulationEquivalentSourceLayer(
             mesh=tensor_mesh,
             cell_z_top=mesh_top,
             cell_z_bottom=mesh_bottom,
             survey=survey,
-            rhoMap=mapping,
+            density_map=mapping,
             engine=engine,
             store_sensitivities=store_sensitivities,
         )
@@ -371,14 +371,14 @@ class TestGravityEquivalentSourcesForward:
         # Build simulations
         mapping = get_mapping(tensor_mesh)
         sim_3d = gravity.Simulation3DIntegral(
-            survey=gravity_survey, mesh=mesh_3d, rhoMap=mapping
+            survey=gravity_survey, mesh=mesh_3d, density_map=mapping
         )
         eq_sources = gravity.SimulationEquivalentSourceLayer(
             mesh=tensor_mesh,
             cell_z_top=mesh_top,
             cell_z_bottom=mesh_bottom,
             survey=gravity_survey,
-            rhoMap=mapping,
+            density_map=mapping,
             engine=engine,
             store_sensitivities="disk",
             sensitivity_path=str(sensitivity_path),
@@ -423,7 +423,7 @@ class TestGravityEquivalentSourcesForward:
         sim_3d = gravity.Simulation3DIntegral(
             survey=gravity_survey,
             mesh=mesh_3d,
-            rhoMap=mapping,
+            density_map=mapping,
             active_cells=active_cells,
         )
         eq_sources = gravity.SimulationEquivalentSourceLayer(
@@ -431,7 +431,7 @@ class TestGravityEquivalentSourcesForward:
             cell_z_top=mesh_top,
             cell_z_bottom=mesh_bottom,
             survey=gravity_survey,
-            rhoMap=mapping,
+            density_map=mapping,
             engine=engine,
             store_sensitivities=store_sensitivities,
             active_cells=active_cells,
@@ -453,7 +453,7 @@ class TestGravityEquivalentSourcesForward:
             cell_z_top=mesh_top,
             cell_z_bottom=mesh_bottom,
             survey=gravity_survey,
-            rhoMap=mapping,
+            density_map=mapping,
             store_sensitivities=store_sensitivities,
         )
         sim_geoana = gravity.SimulationEquivalentSourceLayer(engine="geoana", **kwargs)
@@ -472,7 +472,7 @@ class TestGravityEquivalentSourcesForward:
             cell_z_top=mesh_top,
             cell_z_bottom=mesh_bottom,
             survey=gravity_survey,
-            rhoMap=mapping,
+            density_map=mapping,
             engine="choclo",
         )
         sim_parallel = gravity.SimulationEquivalentSourceLayer(
@@ -522,7 +522,7 @@ class TestMagneticEquivalentSourcesForward:
         sim_3d = magnetics.Simulation3DIntegral(
             survey=survey,
             mesh=mesh_3d,
-            chiMap=mapping,
+            susceptibility_map=mapping,
             model_type=model_type,
         )
         eq_sources = magnetics.SimulationEquivalentSourceLayer(
@@ -530,7 +530,7 @@ class TestMagneticEquivalentSourcesForward:
             cell_z_top=mesh_top,
             cell_z_bottom=mesh_bottom,
             survey=survey,
-            chiMap=mapping,
+            susceptibility_map=mapping,
             engine=engine,
             store_sensitivities=store_sensitivities,
             model_type=model_type,
@@ -564,14 +564,14 @@ class TestMagneticEquivalentSourcesForward:
         # Build simulations
         mapping = get_mapping(tensor_mesh)
         sim_3d = magnetics.Simulation3DIntegral(
-            survey=magnetic_survey, mesh=mesh_3d, chiMap=mapping
+            survey=magnetic_survey, mesh=mesh_3d, susceptibility_map=mapping
         )
         eq_sources = magnetics.SimulationEquivalentSourceLayer(
             mesh=tensor_mesh,
             cell_z_top=mesh_top,
             cell_z_bottom=mesh_bottom,
             survey=magnetic_survey,
-            chiMap=mapping,
+            susceptibility_map=mapping,
             engine=engine,
             store_sensitivities="disk",
             sensitivity_path=str(sensitivity_path),
@@ -616,7 +616,7 @@ class TestMagneticEquivalentSourcesForward:
         sim_3d = magnetics.Simulation3DIntegral(
             survey=magnetic_survey,
             mesh=mesh_3d,
-            chiMap=mapping,
+            susceptibility_map=mapping,
             active_cells=active_cells,
         )
         eq_sources = magnetics.SimulationEquivalentSourceLayer(
@@ -624,7 +624,7 @@ class TestMagneticEquivalentSourcesForward:
             cell_z_top=mesh_top,
             cell_z_bottom=mesh_bottom,
             survey=magnetic_survey,
-            chiMap=mapping,
+            susceptibility_map=mapping,
             engine=engine,
             store_sensitivities=store_sensitivities,
             active_cells=active_cells,
@@ -646,7 +646,7 @@ class TestMagneticEquivalentSourcesForward:
             cell_z_top=mesh_top,
             cell_z_bottom=mesh_bottom,
             survey=magnetic_survey,
-            chiMap=mapping,
+            susceptibility_map=mapping,
             store_sensitivities=store_sensitivities,
         )
         sim_geoana = magnetics.SimulationEquivalentSourceLayer(
@@ -670,7 +670,7 @@ class TestMagneticEquivalentSourcesForward:
             cell_z_top=mesh_top,
             cell_z_bottom=mesh_bottom,
             survey=magnetic_survey,
-            chiMap=mapping,
+            susceptibility_map=mapping,
             engine="choclo",
             store_sensitivities=store_sensitivities,
         )
@@ -792,7 +792,7 @@ class TestGravityEquivalentSources(BaseFittingEquivalentSources):
             mesh_top,
             mesh_bottom,
             survey=gravity_survey,
-            rhoMap=mapping,
+            density_map=mapping,
             engine=engine,
         )
         # Generate synthetic data
@@ -847,7 +847,7 @@ class TestMagneticEquivalentSources(BaseFittingEquivalentSources):
             mesh_top,
             mesh_bottom,
             survey=magnetic_survey,
-            chiMap=mapping,
+            susceptibility_map=mapping,
             engine=engine,
         )
         # Generate synthetic data

@@ -27,9 +27,9 @@ class SIPProblemTestsCC(unittest.TestCase):
         blkind1 = utils.model_builder.get_indices_sphere(
             np.r_[100.0, 100.0, -200.0], 75.0, mesh.gridCC
         )
-        sigma = np.ones(mesh.nC) * 1e-2
+        conductivity = np.ones(mesh.nC) * 1e-2
         eta = np.zeros(mesh.nC)
-        tau = np.ones_like(sigma) * 1.0
+        tau = np.ones_like(conductivity) * 1.0
         eta[blkind0] = 0.1
         eta[blkind1] = 0.1
         tau[blkind0] = 0.1
@@ -59,7 +59,7 @@ class SIPProblemTestsCC(unittest.TestCase):
         problem = sip.Simulation3DCellCentered(
             mesh,
             survey=survey,
-            rho=1.0 / sigma,
+            resistivity=1.0 / conductivity,
             etaMap=wires.eta,
             tauiMap=wires.taui,
             storeJ=False,
@@ -131,9 +131,9 @@ class SIPProblemTestsN(unittest.TestCase):
         blkind1 = utils.model_builder.get_indices_sphere(
             np.r_[100.0, 100.0, -200.0], 75.0, mesh.gridCC
         )
-        sigma = np.ones(mesh.nC) * 1e-2
+        conductivity = np.ones(mesh.nC) * 1e-2
         eta = np.zeros(mesh.nC)
-        tau = np.ones_like(sigma) * 1.0
+        tau = np.ones_like(conductivity) * 1.0
         eta[blkind0] = 0.1
         eta[blkind1] = 0.1
         tau[blkind0] = 0.1
@@ -160,7 +160,7 @@ class SIPProblemTestsN(unittest.TestCase):
         problem = sip.Simulation3DNodal(
             mesh,
             survey=survey,
-            sigma=sigma,
+            conductivity=conductivity,
             etaMap=wires.eta,
             tauiMap=wires.taui,
             storeJ=False,
@@ -233,12 +233,12 @@ class SIPProblemTestsN_air(unittest.TestCase):
         blkind1 = utils.model_builder.get_indices_sphere(
             np.r_[100.0, 100.0, -200.0], 75.0, mesh.gridCC
         )
-        sigma = np.ones(mesh.nC) * 1e-2
+        conductivity = np.ones(mesh.nC) * 1e-2
         airind = mesh.gridCC[:, 2] > 0.0
-        sigma[airind] = 1e-8
+        conductivity[airind] = 1e-8
         eta = np.zeros(mesh.nC)
-        tau = np.ones_like(sigma) * 1.0
-        c = np.ones_like(sigma) * 0.5
+        tau = np.ones_like(conductivity) * 1.0
+        c = np.ones_like(conductivity) * 0.5
 
         eta[blkind0] = 0.1
         eta[blkind1] = 0.1
@@ -271,7 +271,7 @@ class SIPProblemTestsN_air(unittest.TestCase):
         problem = sip.Simulation3DNodal(
             mesh,
             survey=survey,
-            sigma=sigma,
+            conductivity=conductivity,
             etaMap=actmapeta * wires.eta,
             tauiMap=actmaptau * wires.taui,
             cMap=actmapc * wires.c,

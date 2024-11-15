@@ -435,8 +435,8 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         return q
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        toDelete = super().deleteTheseOnModelUpdate
+    def _delete_on_model_change(self):
+        toDelete = super()._delete_on_model_change
         if self.fix_Jmatrix:
             return toDelete
         return toDelete + ["_Jmatrix"]
@@ -510,9 +510,9 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         G = self.Grad
         if self.bc_type != "Dirichlet":
             G = G - self._MBC[ky]
-        MfRhoI = self.MfRhoI
-        # Get resistivity rho
-        A = D * MfRhoI * G + ky**2 * self.MccSigma
+        MfRhoI = self._inv_Mf_resistivity
+        # Get resistivity resistivity
+        A = D * MfRhoI * G + ky**2 * self._Mcc_conductivity
         if self.bc_type == "Neumann":
             A[0, 0] = A[0, 0] + 1.0
         return A
@@ -523,13 +523,13 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         if self.bc_type != "Dirichlet":
             G = G - self._MBC[ky]
         if adjoint:
-            return self.MfRhoIDeriv(
+            return self._inv_Mf_resistivity_deriv(
                 G * u, D.T * v, adjoint=adjoint
-            ) + ky**2 * self.MccSigmaDeriv(u, v, adjoint=adjoint)
+            ) + ky**2 * self._Mcc_conductivity_deriv(u, v, adjoint=adjoint)
         else:
-            return D * self.MfRhoIDeriv(
+            return D * self._inv_Mf_resistivity_deriv(
                 G * u, v, adjoint=adjoint
-            ) + ky**2 * self.MccSigmaDeriv(u, v, adjoint=adjoint)
+            ) + ky**2 * self._Mcc_conductivity_deriv(u, v, adjoint=adjoint)
 
     def getRHS(self, ky):
         """
@@ -544,9 +544,9 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         """
         Derivative of the right hand side with respect to the model
         """
-        # TODO: add qDeriv for RHS depending on m
-        # qDeriv = src.evalDeriv(self, ky, adjoint=adjoint)
-        # return qDeriv
+        # TODO: add _charge_deriv for RHS depending on m
+        # _charge_deriv = src.evalDeriv(self, ky, adjoint=adjoint)
+        # return _charge_deriv
         return Zero()
 
     def setBC(self, ky=None):
@@ -656,8 +656,8 @@ class Simulation2DNodal(BaseDCSimulation2D):
         # To handle Mixed boundary condition
         self.setBC(ky=ky)
 
-        MeSigma = self.MeSigma
-        MnSigma = self.MnSigma
+        MeSigma = self._Me_conductivity
+        MnSigma = self._Mn_conductivity
         Grad = self.mesh.nodal_gradient
         if self._gradT is None:
             self._gradT = Grad.T.tocsr()  # cache the .tocsr()
@@ -666,9 +666,9 @@ class Simulation2DNodal(BaseDCSimulation2D):
 
         if self.bc_type != "Neumann":
             try:
-                A = A + sdiag(self._AvgBC[ky] @ self.sigma)
+                A = A + sdiag(self._AvgBC[ky] @ self.conductivity)
             except ValueError as err:
-                if len(self.sigma) != len(self.mesh):
+                if len(self.conductivity) != len(self.mesh):
                     raise NotImplementedError(
                         "Anisotropic conductivity is not supported for Robin boundary "
                         "conditions, please use 'Neumann'."
@@ -681,26 +681,26 @@ class Simulation2DNodal(BaseDCSimulation2D):
         Grad = self.mesh.nodal_gradient
 
         if adjoint:
-            out = self.MeSigmaDeriv(
+            out = self._Me_conductivity_deriv(
                 Grad * u, Grad * v, adjoint=adjoint
-            ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
+            ) + ky**2 * self._Mn_conductivity_deriv(u, v, adjoint=adjoint)
         else:
-            out = Grad.T * self.MeSigmaDeriv(
+            out = Grad.T * self._Me_conductivity_deriv(
                 Grad * u, v, adjoint=adjoint
-            ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
-        if self.bc_type != "Neumann" and self.sigmaMap is not None:
-            if getattr(self, "_MBC_sigma", None) is None:
-                self._MBC_sigma = {}
-            if ky not in self._MBC_sigma:
-                self._MBC_sigma[ky] = self._AvgBC[ky] @ self.sigmaDeriv
+            ) + ky**2 * self._Mn_conductivity_deriv(u, v, adjoint=adjoint)
+        if self.bc_type != "Neumann" and self.conductivity_map is not None:
+            if getattr(self, "_MBC_conductivity", None) is None:
+                self._MBC_conductivity = {}
+            if ky not in self._MBC_conductivity:
+                self._MBC_conductivity[ky] = self._AvgBC[ky] @ self._con_deriv
             if not isinstance(u, Zero):
                 u = u.flatten()
                 if v.ndim > 1:
                     u = u[:, None]
                 if not adjoint:
-                    out += u * (self._MBC_sigma[ky] @ v)
+                    out += u * (self._MBC_conductivity[ky] @ v)
                 else:
-                    out += self._MBC_sigma[ky].T @ (u * v)
+                    out += self._MBC_conductivity[ky].T @ (u * v)
         return out
 
     def getRHS(self, ky):
@@ -716,9 +716,9 @@ class Simulation2DNodal(BaseDCSimulation2D):
         """
         Derivative of the right hand side with respect to the model
         """
-        # TODO: add qDeriv for RHS depending on m
-        # qDeriv = src.evalDeriv(self, ky, adjoint=adjoint)
-        # return qDeriv
+        # TODO: add _charge_deriv for RHS depending on m
+        # _charge_deriv = src.evalDeriv(self, ky, adjoint=adjoint)
+        # return _charge_deriv
         return Zero()
 
     def setBC(self, ky=None):

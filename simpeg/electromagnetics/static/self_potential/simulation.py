@@ -14,20 +14,20 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
     ----------
     mesh : discretize.base.BaseMesh
     survey : simpeg.electromagnetics.static.self_potential.Survey
-    sigma, rho : float or array_like
+    conductivity, resistivity : float or array_like
         The conductivity/resistivity model of the subsurface.
-    q : float, array_like, optional
+    charge_density : float, array_like, optional
         The charge density accumulation rate model (C/(s m^3)), also
         physically represents the volumetric current density (A/m^3).
-    qMap : simpeg.maps.IdentityMap, optional
-        The mapping used to go from the simulation model to `q`. Set this
-        to invert for `q`.
+    charge_density_map : simpeg.maps.IdentityMap, optional
+        The mapping used to go from the simulation model to `charge_density`. Set this
+        to invert for `charge_density`.
     **kwargs
         arguments passed on to :class:`.resistivity.Simulation3DCellCentered`
 
     Notes
     -----
-    The charge density accumulation rate, :math:`q`, is related to the self
+    The charge density accumulation rate, :math:`charge_density`, is related to the self
     electric potential, :math:`\phi`, with the same PDE, that relates current
     sources to potential in the resistivity case.
 
@@ -43,47 +43,59 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
     boundary conditions, check out the resistivity simulations.
     """
 
-    q, qMap, qDeriv = props.Invertible("Charge density accumulation rate (C/(s m^3))")
+    charge_density, charge_density_map, _charge_deriv = props.Invertible(
+        "Charge density accumulation rate (C/(s m^3))"
+    )
+    charge_density.no_mass_matrices = True
 
     def __init__(
-        self, mesh, survey=None, sigma=None, rho=None, q=None, qMap=None, **kwargs
+        self,
+        mesh,
+        survey=None,
+        conductivity=None,
+        resistivity=None,
+        charge_density=None,
+        charge_density_map=None,
+        **kwargs,
     ):
         # These below checks can be commented out, correspondingly do
-        # not set sigmaMap and rhoMap to None on the super call, to enable
+        # not set conductivity_map and resistivity_map to None on the super call, to enable
         # derivatives with respect to resistivity/conductivity.
-        if sigma is None:
-            if rho is None:
+        if conductivity is None:
+            if resistivity is None:
                 raise ValueError("Must set either conductivity or resistivity.")
         else:
-            if rho is not None:
+            if resistivity is not None:
                 raise ValueError("Cannot set both conductivity and resistivity.")
         super().__init__(
             mesh=mesh,
             survey=survey,
-            sigma=sigma,
-            rho=rho,
-            sigmaMap=None,
-            rhoMap=None,
+            conductivity=conductivity,
+            resistivity=resistivity,
+            conductivity_map=None,
+            resistivity_map=None,
             **kwargs,
         )
-        self.q = q
-        self.qMap = qMap
+        self.charge_density = charge_density
+        self.charge_density_map = charge_density_map
 
     def getRHS(self):
-        return self.Vol @ self.q
+        return self._Mcc @ self.charge_density
 
     def getRHSDeriv(self, source, v, adjoint=False):
         if adjoint:
-            return self.qDeriv.T @ (self.Vol @ v)
-        return self.Vol @ (self.qDeriv @ v)
+            return self._charge_deriv.T @ (self._Mcc @ v)
+        return self._Mcc @ (self._charge_deriv @ v)
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_change(self):
         # When enabling resistivity derivatives, uncomment these lines
-        # if self.rhoMap is not None:
-        #     return super().deleteTheseOnModelUpdate
-        if self.storeJ and self.qMap is not None and not self.qMap.is_linear:
-            return ["_Jmatrix", "_gtgdiag"]
+        # if self.resistivity_map is not None:
+        #     return super()._delete_on_model_change
+        charge_density_map = self.charge_density_map
+        if self.storeJ and charge_density_map is not None:
+            if not charge_density_map.is_linear:
+                return ["J_matrix", "jtj_diag"]
         return []
 
 

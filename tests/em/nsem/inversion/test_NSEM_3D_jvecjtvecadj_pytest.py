@@ -36,10 +36,10 @@ def mapping(mesh, active_cells):
 
 
 @pytest.fixture
-def sigma_hs(mesh, active_cells):
-    sigma_hs = 1e-8 * np.ones(mesh.nC)
-    sigma_hs[active_cells] = 1e1
-    return sigma_hs
+def conductivity_hs(mesh, active_cells):
+    conductivity_hs = 1e-8 * np.ones(mesh.nC)
+    conductivity_hs[active_cells] = 1e1
+    return conductivity_hs
 
 
 @pytest.fixture
@@ -150,7 +150,7 @@ class TestDerivatives:
         mesh,
         active_cells,
         mapping,
-        sigma_hs,
+        conductivity_hs,
     ):
         survey = get_survey(
             survey_type, orientations, components, locations, frequencies
@@ -158,7 +158,10 @@ class TestDerivatives:
 
         # Define the simulation
         sim = nsem.simulation.Simulation3DPrimarySecondary(
-            mesh, survey=survey, sigmaMap=mapping, sigmaPrimary=sigma_hs
+            mesh,
+            survey=survey,
+            conductivity_map=mapping,
+            conductivityPrimary=conductivity_hs,
         )
 
         n_active = np.sum(active_cells)
@@ -190,7 +193,7 @@ class TestDerivatives:
         mesh,
         active_cells,
         mapping,
-        sigma_hs,
+        conductivity_hs,
     ):
         m0, dmis = self.get_setup_objects(
             survey_type,
@@ -201,7 +204,7 @@ class TestDerivatives:
             mesh,
             active_cells,
             mapping,
-            sigma_hs,
+            conductivity_hs,
         )
         sim = dmis.simulation
 
@@ -225,7 +228,7 @@ class TestDerivatives:
         mesh,
         active_cells,
         mapping,
-        sigma_hs,
+        conductivity_hs,
     ):
         m0, dmis = self.get_setup_objects(
             survey_type,
@@ -236,7 +239,7 @@ class TestDerivatives:
             mesh,
             active_cells,
             mapping,
-            sigma_hs,
+            conductivity_hs,
         )
         sim = dmis.simulation
         n_data = sim.survey.nD

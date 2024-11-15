@@ -211,7 +211,7 @@ model_mapping = maps.ExpMap()
 #
 
 simulation = fdem.Simulation1DLayered(
-    survey=survey, thicknesses=inv_thicknesses, sigmaMap=model_mapping
+    survey=survey, thicknesses=inv_thicknesses, conductivity_map=model_mapping
 )
 
 

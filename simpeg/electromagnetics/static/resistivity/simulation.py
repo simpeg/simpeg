@@ -112,11 +112,12 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return f
 
     def getJ(self, m, f=None):
-        if getattr(self, "_Jmatrix", None) is None:
+        if (J_matrix := self._cache["J_matrix"]) is None:
             if f is None:
                 f = self.fields(m)
-            self._Jmatrix = self._Jtvec(m, v=None, f=f).T
-        return self._Jmatrix
+            J_matrix = self._Jtvec(m, v=None, f=f).T
+            self._cache["J_matrix"] = J_matrix
+        return J_matrix
 
     def dpred(self, m=None, f=None):
         if self._mini_survey is not None:
@@ -136,7 +137,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         """
         Return the diagonal of JtJ
         """
-        if getattr(self, "_gtgdiag", None) is None:
+        if (jtj_diag := self._cache["jtj_diag"]) is None:
             J = self.getJ(m, f=f)
 
             if W is None:
@@ -144,12 +145,12 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
             else:
                 W = W.diagonal() ** 2
 
-            diag = np.zeros(J.shape[1])
+            jtj_diag = np.zeros(J.shape[1])
             for i in range(J.shape[0]):
-                diag += (W[i]) * (J[i] * J[i])
+                jtj_diag += (W[i]) * (J[i] * J[i])
 
-            self._gtgdiag = diag
-        return self._gtgdiag
+            self._cache["jtj_diag"] = jtj_diag
+        return jtj_diag
 
     def Jvec(self, m, v, f=None):
         """
@@ -284,9 +285,9 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return self._q
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        toDelete = super().deleteTheseOnModelUpdate
-        return toDelete + ["_Jmatrix", "_gtgdiag"]
+    def _delete_on_model_change(self):
+        toDelete = super()._delete_on_model_change
+        return toDelete + ["J_matrix", "jtj_diag"]
 
     def _mini_survey_data(self, d_mini):
         if self._mini_survey is not None:
@@ -356,7 +357,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
         D = self.Div
         G = self.Grad
         if resistivity is None:
-            MfRhoI = self.MfRhoI
+            MfRhoI = self._inv_Mf_resistivity
         else:
             MfRhoI = self.mesh.get_face_inner_product(resistivity, invert_matrix=True)
         A = D @ MfRhoI @ G
@@ -374,10 +375,10 @@ class Simulation3DCellCentered(BaseDCSimulation):
         return A
 
     def getADeriv(self, u, v, adjoint=False):
-        if self.rhoMap is not None:
+        if self.resistivity_map is not None:
             D = self.Div
             G = self.Grad
-            MfRhoIDeriv = self.MfRhoIDeriv
+            MfRhoIDeriv = self._inv_Mf_resistivity_deriv
 
             if adjoint:
                 return MfRhoIDeriv(G @ u, D.T @ v, adjoint)
@@ -399,9 +400,9 @@ class Simulation3DCellCentered(BaseDCSimulation):
         """
         Derivative of the right hand side with respect to the model
         """
-        # TODO: add qDeriv for RHS depending on m
-        # qDeriv = source.evalDeriv(self, adjoint=adjoint)
-        # return qDeriv
+        # TODO: add _charge_deriv for RHS depending on m
+        # _charge_deriv = source.evalDeriv(self, adjoint=adjoint)
+        # return _charge_deriv
         return Zero()
 
     def setBC(self):
@@ -521,7 +522,7 @@ class Simulation3DNodal(BaseDCSimulation):
         A = G.T MeSigma G
         """
         if resistivity is None:
-            MeSigma = self.MeSigma
+            MeSigma = self._Me_conductivity
         else:
             MeSigma = self.mesh.get_edge_inner_product(1.0 / resistivity)
         Grad = self.mesh.nodal_gradient
@@ -535,11 +536,11 @@ class Simulation3DNodal(BaseDCSimulation):
             A[0, 0] = 1.0
         else:
             # Dirichlet BC type should already have failed
-            # Also, this will fail if sigma is anisotropic
+            # Also, this will fail if conductivity is anisotropic
             try:
-                A = A + sp.diags(self._AvgBC @ self.sigma, format="csr")
+                A = A + sp.diags(self._AvgBC @ self.conductivity, format="csr")
             except ValueError as err:
-                if len(self.sigma) != len(self.mesh):
+                if len(self.conductivity) != len(self.mesh):
                     raise NotImplementedError(
                         "Anisotropic conductivity is not supported for Robin boundary "
                         "conditions, please use 'Neumann'."
@@ -556,20 +557,20 @@ class Simulation3DNodal(BaseDCSimulation):
         """
         Grad = self.mesh.nodal_gradient
         if not adjoint:
-            out = Grad.T @ self.MeSigmaDeriv(Grad @ u, v, adjoint)
+            out = Grad.T @ self._Me_conductivity_deriv(Grad @ u, v, adjoint)
         else:
-            out = self.MeSigmaDeriv(Grad @ u, Grad @ v, adjoint)
-        if self.bc_type != "Neumann" and self.sigmaMap is not None:
-            if getattr(self, "_MBC_sigma", None) is None:
-                self._MBC_sigma = self._AvgBC @ self.sigmaDeriv
+            out = self._Me_conductivity_deriv(Grad @ u, Grad @ v, adjoint)
+        if self.bc_type != "Neumann" and self.conductivity_map is not None:
+            if getattr(self, "_MBC_conductivity", None) is None:
+                self._MBC_conductivity = self._AvgBC @ self._con_deriv
             if not isinstance(u, Zero):
                 u = u.flatten()
                 if v.ndim > 1:
                     u = u[:, None]
                 if not adjoint:
-                    out += u * (self._MBC_sigma @ v)
+                    out += u * (self._MBC_conductivity @ v)
                 else:
-                    out += self._MBC_sigma.T @ (u * v)
+                    out += self._MBC_conductivity.T @ (u * v)
         return out
 
     def setBC(self):
@@ -658,18 +659,18 @@ class Simulation3DNodal(BaseDCSimulation):
         """
         Derivative of the right hand side with respect to the model
         """
-        # TODO: add qDeriv for RHS depending on m
-        # qDeriv = source.evalDeriv(self, adjoint=adjoint)
-        # return qDeriv
+        # TODO: add _charge_deriv for RHS depending on m
+        # _charge_deriv = source.evalDeriv(self, adjoint=adjoint)
+        # return _charge_deriv
         return Zero()
 
     @property
-    def _clear_on_sigma_update(self):
+    def _clear_on_conductivity_update(self):
         """
         These matrices are deleted if there is an update to the conductivity
         model
         """
-        return super()._clear_on_sigma_update + ["_MBC_sigma"]
+        return super()._clear_on_conductivity_update + ["_MBC_conductivity"]
 
 
 Simulation3DCellCentred = Simulation3DCellCentered  # UK and US!

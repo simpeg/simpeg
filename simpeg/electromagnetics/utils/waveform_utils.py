@@ -20,7 +20,7 @@ def omega(frequency):
     return 2.0 * np.pi * frequency
 
 
-def k(frequency, sigma, mu=mu_0, eps=epsilon_0):
+def k(frequency, conductivity, permeability=mu_0, eps=epsilon_0):
     r"""Wavenumber for EM waves in homogeneous media
 
     See eq 1.47 - 1.49 in Ward and Hohmann
@@ -29,9 +29,9 @@ def k(frequency, sigma, mu=mu_0, eps=epsilon_0):
     ----------
     frequency : float or numpy.ndarray
         Frequencies in Hz
-    sigma : float
+    conductivity : float
         Electrical conductivity in S/m
-    mu : float, default: :math:`4\pi \;\times\; 10^{-7}` H/m
+    permeability : float, default: :math:`4\pi \;\times\; 10^{-7}` H/m
         Magnetic permeability in H/m
     eps : float, default: 8.8541878128 :math:`\times \; 1-^{-12}` F/m
         Dielectric permittivity in F/m
@@ -42,8 +42,12 @@ def k(frequency, sigma, mu=mu_0, eps=epsilon_0):
         Wavenumbers at all input frequencies
     """
     w = omega(frequency)
-    alp = w * np.sqrt(mu * eps / 2 * (np.sqrt(1.0 + (sigma / (eps * w)) ** 2) + 1))
-    beta = w * np.sqrt(mu * eps / 2 * (np.sqrt(1.0 + (sigma / (eps * w)) ** 2) - 1))
+    alp = w * np.sqrt(
+        permeability * eps / 2 * (np.sqrt(1.0 + (conductivity / (eps * w)) ** 2) + 1)
+    )
+    beta = w * np.sqrt(
+        permeability * eps / 2 * (np.sqrt(1.0 + (conductivity / (eps * w)) ** 2) - 1)
+    )
     return alp - 1j * beta
 
 

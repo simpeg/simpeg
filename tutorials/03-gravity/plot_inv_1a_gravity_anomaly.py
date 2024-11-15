@@ -217,7 +217,7 @@ starting_model = np.zeros(nC)
 simulation = gravity.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
-    rhoMap=model_map,
+    density_map=model_map,
     active_cells=ind_active,
     engine="choclo",
 )

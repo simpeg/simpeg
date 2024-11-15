@@ -235,12 +235,14 @@ dc_survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 # Predict DC Resistivity Data
 # ---------------------------
 #
-# Here we predict DC resistivity data. If the keyword argument *sigmaMap* is
+# Here we predict DC resistivity data. If the keyword argument *conductivity_map* is
 # defined, the simulation will expect a conductivity model. If the keyword
-# argument *rhoMap* is defined, the simulation will expect a resistivity model.
+# argument *resistivity_map* is defined, the simulation will expect a resistivity model.
 #
 
-dc_simulation = dc.Simulation2DNodal(mesh, survey=dc_survey, sigmaMap=conductivity_map)
+dc_simulation = dc.Simulation2DNodal(
+    mesh, survey=dc_survey, conductivity_map=conductivity_map
+)
 
 # Predict the data by running the simulation. The data are the raw voltage in
 # units of volts.
@@ -382,14 +384,14 @@ plt.show()
 # model to predict IP data.
 #
 
-# We use the keyword argument *sigma* to define the background conductivity on
-# the mesh. We could use the keyword argument *rho* to accomplish the same thing
+# We use the keyword argument *conductivity* to define the background conductivity on
+# the mesh. We could use the keyword argument *resistivity* to accomplish the same thing
 # using a background resistivity model.
 simulation_ip = ip.Simulation2DNodal(
     mesh,
     survey=ip_survey,
     etaMap=chargeability_map,
-    sigma=conductivity_map * conductivity_model,
+    conductivity=conductivity_map * conductivity_model,
 )
 
 # Run forward simulation and predicted IP data. The data are the voltage (V)

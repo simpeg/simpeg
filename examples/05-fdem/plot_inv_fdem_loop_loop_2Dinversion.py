@@ -37,14 +37,14 @@ from simpeg.electromagnetics import frequency_domain as FDEM
 # Define the survey and model parameters
 #
 
-sigma_surface = 10e-3
-sigma_deep = 40e-3
-sigma_air = 1e-8
+conductivity_surface = 10e-3
+conductivity_deep = 40e-3
+conductivity_air = 1e-8
 
 coil_separations = [0.32, 0.71, 1.18]
 freq = 30e3
 
-print("skin_depth: {:1.2f}m".format(500 / np.sqrt(sigma_deep * freq)))
+print("skin_depth: {:1.2f}m".format(500 / np.sqrt(conductivity_deep * freq)))
 
 
 ###############################################################################
@@ -143,11 +143,11 @@ active_inds = mesh2D.gridCC[:, 1] < 0  # active indices are below the surface
 mapping = (
     maps.Surject2Dto3D(mesh)
     * maps.InjectActiveCells(  # populates 3D space from a 2D model
-        mesh2D, active_inds, sigma_air
+        mesh2D, active_inds, conductivity_air
     )
     * maps.ExpMap(  # adds air cells
         nP=inversion_mesh.nC
-    )  # takes the exponential (log(sigma) --> sigma)
+    )  # takes the exponential (log(conductivity) --> conductivity)
 )
 
 ###############################################################################
@@ -156,13 +156,13 @@ mapping = (
 #
 # Create our true model which we will use to generate synthetic data for
 
-m_true = np.log(sigma_deep) * np.ones(inversion_mesh.nC)
+m_true = np.log(conductivity_deep) * np.ones(inversion_mesh.nC)
 interface_depth = interface(inversion_mesh.gridCC[:, 0])
-m_true[inversion_mesh.gridCC[:, 1] > interface_depth] = np.log(sigma_surface)
+m_true[inversion_mesh.gridCC[:, 1] > interface_depth] = np.log(conductivity_surface)
 
 fig, ax = plt.subplots(1, 1)
 cb = plt.colorbar(inversion_mesh.plot_image(m_true, ax=ax, grid=True)[0], ax=ax)
-cb.set_label(r"$\log(\sigma)$")
+cb.set_label(r"$\log(\conductivity)$")
 ax.set_title("true model")
 ax.set_xlim([-10, 10])
 ax.set_ylim([-2, 0])
@@ -204,7 +204,9 @@ for x in src_locations:
 
 # create the survey and problem objects for running the forward simulation
 survey = FDEM.Survey(source_list)
-prob = FDEM.Simulation3DMagneticFluxDensity(mesh, survey=survey, sigmaMap=mapping)
+prob = FDEM.Simulation3DMagneticFluxDensity(
+    mesh, survey=survey, conductivity_map=mapping
+)
 
 ###############################################################################
 # Set up data for inversion
@@ -296,7 +298,7 @@ print("The target misfit is {:1.2f}".format(target.target))
 #
 # We start from a half-space equal to the deep conductivity.
 
-m0 = np.log(sigma_deep) * np.ones(inversion_mesh.nC)
+m0 = np.log(conductivity_deep) * np.ones(inversion_mesh.nC)
 
 t = time.time()
 mrec = inv.run(m0)
@@ -319,7 +321,7 @@ plot_data(invProb.dpred, ax=ax, color="C1", label="predicted")
 fig, ax = plt.subplots(1, 2, figsize=(12, 5))
 
 # put both plots on the same colorbar
-clim = np.r_[np.log(sigma_surface), np.log(sigma_deep)]
+clim = np.r_[np.log(conductivity_surface), np.log(conductivity_deep)]
 
 # recovered model
 cb = plt.colorbar(

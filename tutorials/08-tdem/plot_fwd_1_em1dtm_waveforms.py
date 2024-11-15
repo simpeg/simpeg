@@ -213,19 +213,19 @@ thicknesses = np.array([40.0, 40.0])
 n_layer = len(thicknesses) + 1
 
 # half-space physical properties
-sigma = 1e-2
+conductivity = 1e-2
 eta = 0.5
 tau = 0.01
 c = 0.5
-chi = 0.0
+susceptibility = 0.0
 
 # physical property models
-sigma_model = sigma * np.ones(n_layer)
+conductivity_model = conductivity * np.ones(n_layer)
 eta_model = eta * np.ones(n_layer)
 tau_model = tau * np.ones(n_layer)
 c_model = c * np.ones(n_layer)
 mu0 = 4 * np.pi * 1e-7
-mu_model = mu0 * (1 + chi) * np.ones(n_layer)
+mu_model = mu0 * (1 + susceptibility) * np.ones(n_layer)
 
 # Define a mapping for conductivities
 model_mapping = maps.IdentityMap(nP=n_layer)
@@ -237,11 +237,14 @@ model_mapping = maps.IdentityMap(nP=n_layer)
 
 # Define the simulation
 simulation = tdem.Simulation1DLayered(
-    survey=survey, thicknesses=thicknesses, sigmaMap=model_mapping, mu=mu_model
+    survey=survey,
+    thicknesses=thicknesses,
+    conductivity_map=model_mapping,
+    permeability=mu_model,
 )
 
 # Predict data for a given model
-dpred = simulation.dpred(sigma_model)
+dpred = simulation.dpred(conductivity_model)
 
 #######################################################################
 # Plotting Results

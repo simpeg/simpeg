@@ -75,17 +75,17 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
     blk_inds_r = utils.model_builder.get_indices_sphere(
         np.r_[140.0, -25.0], 12.5, mesh.gridCC
     )
-    sigma = np.ones(mesh.nC) * 1.0 / 100.0
-    sigma[blk_inds_c] = 1.0 / 10.0
-    sigma[blk_inds_r] = 1.0 / 1000.0
-    sigma[~actind] = 1.0 / 1e8
-    rho = 1.0 / sigma
+    conductivity = np.ones(mesh.nC) * 1.0 / 100.0
+    conductivity[blk_inds_c] = 1.0 / 10.0
+    conductivity[blk_inds_r] = 1.0 / 1000.0
+    conductivity[~actind] = 1.0 / 1e8
+    resistivity = 1.0 / conductivity
 
     # Show the true conductivity model
     if plotIt:
         fig = plt.figure(figsize=(12, 3))
         ax = plt.subplot(111)
-        temp = rho.copy()
+        temp = resistivity.copy()
         temp[~actind] = np.nan
         out = mesh.plot_image(
             temp,
@@ -105,19 +105,19 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
         ax.set_aspect("equal")
         plt.show()
 
-    # Use Exponential Map: m = log(rho)
+    # Use Exponential Map: m = log(resistivity)
     actmap = maps.InjectActiveCells(
         mesh, active_cells=actind, value_inactive=np.log(1e8)
     )
     mapping = maps.ExpMap(mesh) * actmap
 
     # Generate mtrue
-    mtrue = np.log(rho[actind])
+    mtrue = np.log(resistivity[actind])
 
     # Generate 2.5D DC problem
     # "N" means potential is defined at nodes
     prb = DC.Simulation2DNodal(
-        mesh, survey=survey, rhoMap=mapping, storeJ=True, verbose=True
+        mesh, survey=survey, resistivity_map=mapping, storeJ=True, verbose=True
     )
 
     # Make synthetic DC data with 5% Gaussian noise
@@ -169,30 +169,30 @@ def run(plotIt=True, survey_type="dipole-dipole", p=0.0, qx=2.0, qz=2.0):
     # Run inversion
     mopt = inv.run(m0)
 
-    rho_est = mapping * mopt
-    rho_est_l2 = mapping * invProb.l2model
-    rho_est[~actind] = np.nan
-    rho_est_l2[~actind] = np.nan
-    rho_true = rho.copy()
-    rho_true[~actind] = np.nan
+    resistivity_est = mapping * mopt
+    resistivity_est_l2 = mapping * invProb.l2model
+    resistivity_est[~actind] = np.nan
+    resistivity_est_l2[~actind] = np.nan
+    resistivity_true = resistivity.copy()
+    resistivity_true[~actind] = np.nan
 
     # show recovered conductivity
     if plotIt:
         fig, ax = plt.subplots(3, 1, figsize=(20, 9))
         out1 = mesh.plot_image(
-            rho_true,
+            resistivity_true,
             clim=(10, 1000),
             pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm()},
             ax=ax[0],
         )
         out2 = mesh.plot_image(
-            rho_est_l2,
+            resistivity_est_l2,
             clim=(10, 1000),
             pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm()},
             ax=ax[1],
         )
         out3 = mesh.plot_image(
-            rho_est,
+            resistivity_est,
             clim=(10, 1000),
             pcolor_opts={"cmap": "viridis", "norm": colors.LogNorm()},
             ax=ax[2],
