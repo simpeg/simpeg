@@ -426,24 +426,26 @@ class MassMatrixMeta(PhysicalPropertyMetaclass):
                 if prop.mapping is not None:
                     invertible_props.add(prop)
 
-        for name, func in mm_funcs.items():
-            setattr(cls, name, func)
+        for func_name, func in mm_funcs.items():
+            setattr(cls, func_name, func)
 
-        model_change_delete_prop = attrs.get("_delete_on_model_change", None)
+        delete_property = attrs.get("_delete_on_model_change", None)
 
         @property
         def delete_on_model_change(self):
-            if model_change_delete_prop is not None:
-                items = model_change_delete_prop.fget(self)
+            print(f"calling {name}'s deleter")
+            if delete_property is not None:
+                items = delete_property.fget(self)
             else:
                 items = super(bases[0], self)._delete_on_model_change
             for prop in invertible_props:
-                items.extend(prop.cached_items)
                 mapping = getattr(self, prop.mapping.name, None)
-                if mapping is not None and not mapping.is_linear:
-                    # if the mapping is linear (a.k.a. doesn't depend on the model)
-                    # we don't need to clear the mass matrix derivative caches!
-                    items.extend(prop.mapping.cached_items)
+                if mapping is not None:
+                    items.extend(prop.cached_items)
+                    if not mapping.is_linear:
+                        # if the mapping is linear (a.k.a. doesn't depend on the model)
+                        # we don't need to clear the mass matrix derivative caches!
+                        items.extend(prop.mapping.cached_items)
             return items
 
         cls._delete_on_model_change = delete_on_model_change
@@ -658,8 +660,8 @@ class BasePDESimulation(BaseSimulation, metaclass=MassMatrixMeta):
 
 class BaseTimePDESimulation(BaseTimeSimulation, BasePDESimulation):
 
-    def __init__(self, mesh, time_steps, **kwargs):
-        super().__init__(mesh=mesh, time_steps=time_steps, **kwargs)
+    def __init__(self, mesh, **kwargs):
+        super().__init__(mesh=mesh, **kwargs)
 
     def dpred(self, m=None, f=None):
         # Docstring inherited from BaseSimulation.

@@ -1286,16 +1286,16 @@ class MagDipole(BaseTDEMSrc):
         if getattr(self, "_hp", None) is None:
             if simulation._formulation == "EB":
                 bp = simulation.mesh.edge_curl * self._aSrc(simulation)
-                self._Mf__perm_invp = simulation.mesh.get_face_inner_product(
+                self._Mf__perm_inv_primary = simulation.mesh.get_face_inner_product(
                     1.0 / self.permeability
                 )
-                self._inv_Mf__perm_invp = simulation.mesh.get_face_inner_product(
+                self._inv_Mf__perm_inv_primary = simulation.mesh.get_face_inner_product(
                     1.0 / self.permeability, invert_matrix=True
                 )
-                self._hp = self._Mf__perm_invp * bp
+                self._hp = self._Mf__perm_inv_primary * bp
             else:
                 raise NotImplementedError(
-                    "Solving the magnetostatic simulationlem for the initial fields "
+                    "Solving the magnetostatic simulation for the initial fields "
                     "when a permeable model is considered has not yet been "
                     "implemented for the HJ formulation. "
                     "See: https://github.com/simpeg/simpeg/issues/680"
@@ -1303,7 +1303,8 @@ class MagDipole(BaseTDEMSrc):
 
         if simulation._formulation == "EB":
             return -simulation.mesh.face_divergence * (
-                (simulation._inv_Mf__perm_inv - self._inv_Mf__perm_invp) * self._hp
+                (simulation._inv_Mf__perm_inv - self._inv_Mf__perm_inv_primary)
+                * self._hp
             )
         else:
             raise NotImplementedError(

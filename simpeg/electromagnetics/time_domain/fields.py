@@ -588,7 +588,7 @@ class Fields3DMagneticField(FieldsTDEM):
         # Docstring inherited from parent.
         self._times = self.simulation.times
         self._edgeCurl = self.simulation.mesh.edge_curl
-        self._inv_Me_permeabilityI = self.simulation._inv_Me_permeability
+        self._inv_Me_permeability = self.simulation._inv_Me_permeability
         self._Me_permeability = self.simulation._Me_permeability
         self._Mf_resistivity = self.simulation._Mf_resistivity
         self._Mf_resistivity_deriv = self.simulation._Mf_resistivity_deriv

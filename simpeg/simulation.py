@@ -454,7 +454,7 @@ class BaseTimeSimulation(BaseSimulation):
     representation.
     """
 
-    def __init__(self, time_steps, t0=0.0, **kwargs):
+    def __init__(self, time_steps=None, t0=0.0, **kwargs):
         self.t0 = t0
         self.time_steps = time_steps
         super().__init__(**kwargs)
@@ -487,17 +487,16 @@ class BaseTimeSimulation(BaseSimulation):
         (n_steps, ) numpy.ndarray
             The time step lengths for the time domain simulation.
         """
-        return self.time_mesh.h[0]
+        return self._time_steps
 
     @time_steps.setter
     def time_steps(self, value):
-        if isinstance(value, list):
-            value = unpack_widths(value)
-        value = validate_ndarray_with_shape("time_steps", value, shape=("*",))
-        self._time_mesh = TensorMesh(
-            [value],
-            origin=[self.t0],
-        )
+        if value is not None:
+            if isinstance(value, list):
+                value = unpack_widths(value)
+            value = validate_ndarray_with_shape("time_steps", value, shape=("*",))
+        self._time_steps = value
+        self._time_mesh = None
 
     @property
     def t0(self):
@@ -513,7 +512,7 @@ class BaseTimeSimulation(BaseSimulation):
     @t0.setter
     def t0(self, value):
         self._t0 = validate_float("t0", value)
-        self.time_mesh.origin[0] = self._t0
+        self._time_mesh = None
 
     @property
     def time_mesh(self):
@@ -530,6 +529,11 @@ class BaseTimeSimulation(BaseSimulation):
         discretize.TensorMesh
             The time mesh.
         """
+        if getattr(self, "_time_mesh", None) is None:
+            self._time_mesh = TensorMesh(
+                [self.time_steps],
+                origin=[self.t0],
+            )
         return self._time_mesh
 
     @property

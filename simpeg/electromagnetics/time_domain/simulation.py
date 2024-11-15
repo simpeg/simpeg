@@ -1,10 +1,10 @@
 import numpy as np
 import scipy.sparse as sp
 
+from ...base.pde_simulation import BaseTimePDESimulation
 from ...data import Data
-from ...simulation import BaseTimeSimulation
 from ...utils import mkvc, sdiag, speye, Zero, validate_type, validate_float
-from ..base import BaseEMSimulation
+from ..base import BaseEMPDESimulation
 from .survey import Survey
 from .fields import (
     Fields3DMagneticFluxDensity,
@@ -16,7 +16,7 @@ from .fields import (
 )
 
 
-class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
+class BaseTDEMSimulation(BaseTimePDESimulation, BaseEMPDESimulation):
     r"""Base class for quasi-static TDEM simulation with finite volume.
 
     This class is used to define properties and methods necessary for solving
@@ -600,12 +600,27 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                 "Support for galvanic sources has not been implemented for "
                 "{}-formulation".format(self._fieldType)
             )
-        if getattr(self, "_Adcinv", None) is None:
+        if (Adcinv := self._cache["Adcinv"]) is None:
             if self.verbose:
                 print("Factoring the system matrix for the DC problem")
             Adc = self.getAdc()
-            self._Adcinv = self.solver(Adc)
-        return self._Adcinv
+            Adcinv = self.solver(Adc)
+            self._cache["Adcinv"] = Adcinv
+        return Adcinv
+
+    @property
+    def _delete_on_model_change(self):
+        print("did I get called?")
+        items = super()._delete_on_model_change
+        if self.conductivity_map is not None:
+            items += ["Adcinv"]
+        return items
+
+    def _delete_on_property_change(self, property_name):
+        items = super()._delete_on_property_change(property_name)
+        if property_name == "conductivity":
+            items += ["Adcinv"]
+        return items
 
 
 ###############################################################################

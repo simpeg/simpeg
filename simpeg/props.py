@@ -135,6 +135,12 @@ class PhysicalProperty:
             if self.reciprocal.mapping is not None:
                 delattr(instance, self.reciprocal.mapping.name)
 
+    def clear_cache(self, target: "HasModel"):
+        for name in self.cached_items:
+            target._cache.pop(name, None)
+        for name in target._delete_on_property_change(self.name):
+            target._cache.pop(name, None)
+
     def get_property(scope):
         if scope.shape is None:
             shape_str = ""
@@ -205,14 +211,12 @@ class PhysicalProperty:
                 scope.clear_mappings(self)
 
             # clear cached items associated with this value
-            for item in scope.cached_items:
-                self._cache.pop(item, None)
+            scope.clear_cache(self)
             setattr(self, f"_{scope.name}", value)
 
         def fdel(self):
             # clear cached items associated with this value
-            for item in scope.cached_items:
-                self._cache.pop(item, None)
+            scope.clear_cache(self)
             setattr(self, f"_{scope.name}", None)
 
         return property(fget=fget, fset=fset, fdel=fdel, doc=doc)
@@ -332,11 +336,9 @@ class PhysicalPropertyMetaclass(abc.ABCMeta):
         }
 
         # set the physical properties as @properties
-        _physical_properties = classdict.get("_physical_properties", {})
         for key, value in property_dict.items():
             value.name = key
             classdict[key] = value.get_property()
-            _physical_properties[key] = value
 
         map_names = classdict.get("_all_map_names", set())
         # set the mappings as @properties
@@ -363,7 +365,7 @@ class PhysicalPropertyMetaclass(abc.ABCMeta):
             map_names.update(getattr(parent, "_all_map_names", set()))
             nested_modelers.update(getattr(parent, "_nested_modelers", set()))
 
-        newcls._physical_properties = _physical_properties
+        newcls._physical_properties = property_dict
         newcls._all_map_names = map_names
         newcls._nested_modelers = nested_modelers
 
@@ -371,6 +373,8 @@ class PhysicalPropertyMetaclass(abc.ABCMeta):
 
 
 class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
+    _extra_prop_cache_map = {}
+
     def __init__(self, model=None, **kwargs):
         self.model = model
         self._cache = defaultdict(lambda: None)
@@ -397,6 +401,16 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
     @property
     def _delete_on_model_change(self):
         """Items in this object's cache to delete when the model is updated.
+
+        Returns
+        -------
+        list of str
+            For example `['_Me_conductivity', '_inv_Me_conductivity']`.
+        """
+        return []
+
+    def _delete_on_property_change(self, property_name):
+        """Items in this object's cache to delete when a specific property is set.
 
         Returns
         -------

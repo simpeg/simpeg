@@ -292,7 +292,7 @@ class MetaSimulation(BaseSimulation):
         then controlled by how diagonally dominant ``J.T @ J`` is.
         """
         self.model = m
-        if getattr(self, "_jtjdiag", None) is None:
+        if (jtjdiag := self._cache["jtjdiag"]) is None:
             if W is None:
                 W = np.ones(self.survey.nD)
             else:
@@ -300,7 +300,7 @@ class MetaSimulation(BaseSimulation):
                     W = W.diagonal()
                 except (AttributeError, TypeError, ValueError):
                     pass
-            jtj_diag = 0.0
+            jtjdiag = 0.0
             # approximate the JtJ diag on the full model space as:
             # sum((diag(sqrt(jtj_diag)) @ M_deriv))**2)
             # Which is correct for mappings that match input parameters to only 1 output parameter.
@@ -317,16 +317,16 @@ class MetaSimulation(BaseSimulation):
                 sim_w = sp.diags(W[self._data_offsets[i] : self._data_offsets[i + 1]])
                 sim_jtj = sp.diags(np.sqrt(sim.getJtJdiag(sim.model, sim_w, f=field)))
                 m_deriv = mapping.deriv(self.model)
-                jtj_diag += np.asarray(
+                jtjdiag += np.asarray(
                     (sim_jtj @ m_deriv).power(2).sum(axis=0)
                 ).flatten()
-            self._jtjdiag = jtj_diag
+            self._cache["jtjdiag"] = jtjdiag
 
-        return self._jtjdiag
+        return jtjdiag
 
     @property
     def _delete_on_model_change(self):
-        return super()._delete_on_model_change + ["_jtjdiag"]
+        return super()._delete_on_model_change + ["jtjdiag"]
 
 
 class SumMetaSimulation(MetaSimulation):
