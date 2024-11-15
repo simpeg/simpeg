@@ -1,10 +1,11 @@
 import numpy as np
 import scipy.sparse as sp
-from discretize.utils import Zero
+from discretize.utils import Zero, mkvc
 
 from ... import props
 from ...data import Data
-from ...utils import mkvc, validate_type
+from ...utils import validate_type
+from ...base import BaseHierarchicalElectricalSimulation
 from ..base import BaseEMSimulation
 from ..utils import omega
 from .survey import Survey
@@ -1597,7 +1598,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
         MeMuIDeriv = self.MeMuIDeriv(C.T * (MfRho * u))
 
-        if adjoint is True:
+        if adjoint:
             # if self._makeASymmetric:
             #     v = MfRho * v
             return MeMuIDeriv.T * (C.T * v)
@@ -2020,7 +2021,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         """
         MeMuDeriv = self.MeMuDeriv(u)
 
-        if adjoint is True:
+        if adjoint:
             return 1j * omega(freq) * (MeMuDeriv.T * v)
 
         return 1j * omega(freq) * (MeMuDeriv * v)
@@ -2180,3 +2181,74 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
 
         return RHSDeriv + s_mDeriv(v) + C.T * (MfRho * s_eDeriv(v))
+
+
+###############################################################################
+#                               Hierarchical                                  #
+###############################################################################
+class Simulation3DHierarchicalElectricField(
+    BaseHierarchicalElectricalSimulation, Simulation3DElectricField
+):
+    r"""
+    We eliminate :math:`\mathbf{e}` using
+
+    .. math ::
+
+         \mathbf{e} = \left ( \mathbf{M^e_{\sigma}} + \mathbf{M^e_{\tau}} +
+         \mathbf{M^e_{\kappa}}\right )^{-1} \left(\mathbf{C}^{\top}
+         \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{s_e}\right)
+
+    and solve for :math:`\mathbf{b}` using:
+
+    .. math ::
+
+        \left(\mathbf{C} \left ( \mathbf{M^e_{\sigma}} + \mathbf{M^e_{\tau}} +
+        \mathbf{M^e_{\kappa}}\right )^{-1} \mathbf{C}^{\top}
+        \mathbf{M_{\mu^{-1}}^f}  + i \omega \right)\mathbf{b} = \mathbf{s_m} +
+        \left ( \mathbf{M^e_{\sigma}} + \mathbf{M^e_{\tau}} +
+         \mathbf{M^e_{\kappa}}\right )^{-1} \mathbf{M^e}\mathbf{s_e}
+
+    .. note ::
+        The inverse problem will not work with full anisotropy
+
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh mesh
+        The mesh.
+    """
+
+    pass
+
+
+class Simulation3DHierarchicalMagneticFluxDensity(
+    BaseHierarchicalElectricalSimulation, Simulation3DMagneticFluxDensity
+):
+    r"""
+    We eliminate :math:`\mathbf{e}` using
+
+    .. math ::
+
+         \mathbf{e} = \left ( \mathbf{M^e_{\sigma}} + \mathbf{M^e_{\tau}} +
+         \mathbf{M^e_{\kappa}}\right )^{-1} \left(\mathbf{C}^{\top}
+         \mathbf{M_{\mu^{-1}}^f} \mathbf{b} - \mathbf{s_e}\right)
+
+    and solve for :math:`\mathbf{b}` using:
+
+    .. math ::
+
+        \left(\mathbf{C} \left ( \mathbf{M^e_{\sigma}} + \mathbf{M^e_{\tau}} +
+        \mathbf{M^e_{\kappa}}\right )^{-1} \mathbf{C}^{\top}
+        \mathbf{M_{\mu^{-1}}^f}  + i \omega \right)\mathbf{b} = \mathbf{s_m} +
+        \left ( \mathbf{M^e_{\sigma}} + \mathbf{M^e_{\tau}} +
+         \mathbf{M^e_{\kappa}}\right )^{-1} \mathbf{M^e}\mathbf{s_e}
+
+    .. note ::
+        The inverse problem will not work with full anisotropy
+
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh mesh
+        The mesh.
+    """
+
+    pass

@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
-from discretize.utils import Zero, TensorType
+from discretize.utils import Zero, TensorType, sdinv
 from ..simulation import BaseSimulation
 from .. import props
 from scipy.constants import mu_0
@@ -412,6 +412,279 @@ def with_property_mass_matrices(property_name):
     return decorator
 
 
+def with_surface_property_mass_matrices(property_name):
+    """
+    This decorator will automatically populate all of the surface property mass matrices.
+
+    Given the property "prop", this will add properties and functions to the class
+    representing all of the possible mass matrix operations on the mesh.
+
+    For a given property, "prop", they will be named:
+
+    * _MeProp
+    * _MePropDeriv
+    * _MePropI
+    * _MePropIDeriv
+    * _MfProp
+    * _MfPropDeriv
+    * _MfPropI
+    * _MfPropIDeriv
+    """
+
+    def decorator(cls):
+        arg = property_name.lower()
+        arg = arg[0].upper() + arg[1:]
+
+        @property
+        def Mf_prop(self):
+            """
+            Face property inner product surface matrix.
+            """
+            stash_name = f"__Mf_{arg}"
+            if getattr(self, stash_name, None) is None:
+                prop = getattr(self, arg.lower())
+                M_prop = self.mesh.get_face_inner_product_surface(model=prop)
+                setattr(self, stash_name, M_prop)
+            return getattr(self, stash_name)
+
+        setattr(cls, f"_Mf{arg}", Mf_prop)
+
+        @property
+        def Me_prop(self):
+            """
+            Edge property inner product surface matrix.
+            """
+            stash_name = f"__Me_{arg}"
+            if getattr(self, stash_name, None) is None:
+                prop = getattr(self, arg.lower())
+                M_prop = self.mesh.get_edge_inner_product_surface(model=prop)
+                setattr(self, stash_name, M_prop)
+            return getattr(self, stash_name)
+
+        setattr(cls, f"_Me{arg}", Me_prop)
+
+        @property
+        def MfI_prop(self):
+            """
+            Face property inner product inverse matrix.
+            """
+            stash_name = f"__MfI_{arg}"
+            if getattr(self, stash_name, None) is None:
+                prop = getattr(self, arg.lower())
+                M_prop = self.mesh.get_face_inner_product_surface(
+                    model=prop, invert_matrix=True
+                )
+                setattr(self, stash_name, M_prop)
+            return getattr(self, stash_name)
+
+        setattr(cls, f"_Mf{arg}I", MfI_prop)
+
+        @property
+        def MeI_prop(self):
+            """
+            Edge property inner product inverse matrix.
+            """
+            stash_name = f"__MeI_{arg}"
+            if getattr(self, stash_name, None) is None:
+                prop = getattr(self, arg.lower())
+                M_prop = self.mesh.get_edge_inner_product_surface(
+                    model=prop, invert_matrix=True
+                )
+                setattr(self, stash_name, M_prop)
+            return getattr(self, stash_name)
+
+        setattr(cls, f"_Me{arg}I", MeI_prop)
+
+        def MfDeriv_prop(self, u, v=None, adjoint=False):
+            """
+            Derivative of `MfProperty` with respect to the model.
+            """
+            if getattr(self, f"{arg.lower()}Map") is None:
+                return Zero()
+            if isinstance(u, Zero) or isinstance(v, Zero):
+                return Zero()
+            stash_name = f"__Mf_{arg}_deriv"
+            if getattr(self, stash_name, None) is None:
+                M_prop_deriv = self.mesh.get_face_inner_product_surface_deriv(
+                    np.ones(self.mesh.n_faces)
+                )(np.ones(self.mesh.n_faces)) * getattr(self, f"{arg.lower()}Deriv")
+                setattr(self, stash_name, M_prop_deriv)
+            return __inner_mat_mul_op(
+                getattr(self, stash_name), u, v=v, adjoint=adjoint
+            )
+
+        setattr(cls, f"_Mf{arg}Deriv", MfDeriv_prop)
+
+        def MeDeriv_prop(self, u, v=None, adjoint=False):
+            """
+            Derivative of `MeProperty` with respect to the model.
+            """
+            if getattr(self, f"{arg.lower()}Map") is None:
+                return Zero()
+            if isinstance(u, Zero) or isinstance(v, Zero):
+                return Zero()
+            stash_name = f"__Me_{arg}_deriv"
+            if getattr(self, stash_name, None) is None:
+                M_prop_deriv = self.mesh.get_edge_inner_product_surface_deriv(
+                    np.ones(self.mesh.n_faces)
+                )(np.ones(self.mesh.n_edges)) * getattr(self, f"{arg.lower()}Deriv")
+                setattr(self, stash_name, M_prop_deriv)
+            return __inner_mat_mul_op(
+                getattr(self, stash_name), u, v=v, adjoint=adjoint
+            )
+
+        setattr(cls, f"_Me{arg}Deriv", MeDeriv_prop)
+
+        def MfIDeriv_prop(self, u, v=None, adjoint=False):
+            """I
+            Derivative of `MfPropertyI` with respect to the model.
+            """
+            if getattr(self, f"{arg.lower()}Map") is None:
+                return Zero()
+            if isinstance(u, Zero) or isinstance(v, Zero):
+                return Zero()
+
+            MI_prop = getattr(self, f"_Mf{arg}I")
+            u = MI_prop @ (MI_prop @ -u)
+            M_prop_deriv = getattr(self, f"_Mf{arg}Deriv")
+            return M_prop_deriv(u, v, adjoint=adjoint)
+
+        setattr(cls, f"_Mf{arg}IDeriv", MfIDeriv_prop)
+
+        def MeIDeriv_prop(self, u, v=None, adjoint=False):
+            """
+            Derivative of `MePropertyI` with respect to the model.
+            """
+            if getattr(self, f"{arg.lower()}Map") is None:
+                return Zero()
+            if isinstance(u, Zero) or isinstance(v, Zero):
+                return Zero()
+
+            MI_prop = getattr(self, f"_Me{arg}I")
+            u = MI_prop @ (MI_prop @ -u)
+            M_prop_deriv = getattr(self, f"_Me{arg}Deriv")
+            return M_prop_deriv(u, v, adjoint=adjoint)
+
+        setattr(cls, f"_Me{arg}IDeriv", MeIDeriv_prop)
+
+        @property
+        def _clear_on_prop_update(self):
+            items = [
+                f"__Mf_{arg}",
+                f"__Me_{arg}",
+                f"__MfI_{arg}",
+                f"__MeI_{arg}",
+                f"__Mf_{arg}_deriv",
+                f"__Me_{arg}_deriv",
+            ]
+            return items
+
+        setattr(cls, f"_clear_on_{arg.lower()}_update", _clear_on_prop_update)
+        return cls
+
+    return decorator
+
+
+def with_line_property_mass_matrices(property_name):
+    """
+    This decorator will automatically populate all of the line property mass matrices.
+
+    Given the property "prop", this will add properties and functions to the class
+    representing all of the possible mass matrix operations on the mesh.
+
+    For a given property, "prop", they will be named:
+
+    * _MeProp
+    * _MePropDeriv
+    * _MePropI
+    * _MePropIDeriv
+    """
+
+    def decorator(cls):
+        arg = property_name.lower()
+        arg = arg[0].upper() + arg[1:]
+
+        @property
+        def Me_prop(self):
+            """
+            Edge property inner product line matrix.
+            """
+            stash_name = f"__Me_{arg}"
+            if getattr(self, stash_name, None) is None:
+                prop = getattr(self, arg.lower())
+                M_prop = self.mesh.get_edge_inner_product_line(model=prop)
+                setattr(self, stash_name, M_prop)
+            return getattr(self, stash_name)
+
+        setattr(cls, f"_Me{arg}", Me_prop)
+
+        @property
+        def MeI_prop(self):
+            """
+            Edge property inner product inverse matrix.
+            """
+            stash_name = f"__MeI_{arg}"
+            if getattr(self, stash_name, None) is None:
+                prop = getattr(self, arg.lower())
+                M_prop = self.mesh.get_edge_inner_product_line(
+                    model=prop, invert_matrix=True
+                )
+                setattr(self, stash_name, M_prop)
+            return getattr(self, stash_name)
+
+        setattr(cls, f"_Me{arg}I", MeI_prop)
+
+        def MeDeriv_prop(self, u, v=None, adjoint=False):
+            """
+            Derivative of `MeProperty` with respect to the model.
+            """
+            if getattr(self, f"{arg.lower()}Map") is None:
+                return Zero()
+            if isinstance(u, Zero) or isinstance(v, Zero):
+                return Zero()
+            stash_name = f"__Me_{arg}_deriv"
+            if getattr(self, stash_name, None) is None:
+                M_prop_deriv = self.mesh.get_edge_inner_product_line_deriv(
+                    np.ones(self.mesh.n_edges)
+                )(np.ones(self.mesh.n_edges)) * getattr(self, f"{arg.lower()}Deriv")
+                setattr(self, stash_name, M_prop_deriv)
+            return __inner_mat_mul_op(
+                getattr(self, stash_name), u, v=v, adjoint=adjoint
+            )
+
+        setattr(cls, f"_Me{arg}Deriv", MeDeriv_prop)
+
+        def MeIDeriv_prop(self, u, v=None, adjoint=False):
+            """
+            Derivative of `MePropertyI` with respect to the model.
+            """
+            if getattr(self, f"{arg.lower()}Map") is None:
+                return Zero()
+            if isinstance(u, Zero) or isinstance(v, Zero):
+                return Zero()
+
+            MI_prop = getattr(self, f"_Me{arg}I")
+            u = MI_prop @ (MI_prop @ -u)
+            M_prop_deriv = getattr(self, f"_Me{arg}Deriv")
+            return M_prop_deriv(u, v, adjoint=adjoint)
+
+        setattr(cls, f"_Me{arg}IDeriv", MeIDeriv_prop)
+
+        @property
+        def _clear_on_prop_update(self):
+            items = [
+                f"__Me_{arg}",
+                f"__MeI_{arg}",
+                f"__Me_{arg}_deriv",
+            ]
+            return items
+
+        setattr(cls, f"_clear_on_{arg.lower()}_update", _clear_on_prop_update)
+        return cls
+
+    return decorator
+
+
 class BasePDESimulation(BaseSimulation):
     @property
     def Vol(self):
@@ -557,3 +830,144 @@ class BaseMagneticPDESimulation(BasePDESimulation):
         if self.muMap is not None or self.muiMap is not None:
             toDelete = toDelete + self._clear_on_mu_update + self._clear_on_mui_update
         return toDelete
+
+
+@with_line_property_mass_matrices("kappa")
+class BaseElectricalEdgePropertyPDESimulation(BaseElectricalPDESimulation):
+    kappa, kappaMap, kappaDeriv = props.Invertible(
+        "Electrical conductivity times thickness on face elements (S).",
+        optional=True,
+    )
+
+    def __init__(
+        self,
+        mesh,
+        kappa=None,
+        kappaMap=None,
+        **kwargs,
+    ):
+        super().__init__(mesh=mesh, **kwargs)
+        self.kappa = kappa
+        self.kappaMap = kappaMap
+
+    def __setattr__(self, name, value):
+        super().__setattr__(name, value)
+        if name == "kappa":
+            for mat in self._clear_on_kappa_update:
+                if hasattr(self, mat):
+                    delattr(self, mat)
+
+    @property
+    def deleteTheseOnModelUpdate(self):
+        """
+        items to be deleted if the model for Magnetic Permeability is updated
+        """
+        toDelete = super().deleteTheseOnModelUpdate
+        if self.kappaMap is not None:
+            toDelete = toDelete + self._clear_on_kappa_update
+        return toDelete
+
+
+@with_surface_property_mass_matrices("tau")
+class BaseElectricalFacePropertyPDESimulation(BaseElectricalPDESimulation):
+    tau, tauMap, tauDeriv = props.Invertible(
+        "Electrical conductivity times cross-sectional area on edge elements (Sm).",
+        optional=True,
+    )
+
+    def __init__(
+        self,
+        mesh,
+        tau=None,
+        tauMap=None,
+        **kwargs,
+    ):
+        super().__init__(mesh=mesh, **kwargs)
+        self.tau = tau
+        self.tauMap = tauMap
+
+    def __setattr__(self, name, value):
+        super().__setattr__(name, value)
+        if name == "tau":
+            for mat in self._clear_on_tau_update:
+                if hasattr(self, mat):
+                    delattr(self, mat)
+
+    @property
+    def deleteTheseOnModelUpdate(self):
+        """
+        items to be deleted if the model for Magnetic Permeability is updated
+        """
+        toDelete = super().deleteTheseOnModelUpdate
+        if self.tauMap is not None:
+            toDelete = toDelete + self._clear_on_tau_update
+        return toDelete
+
+
+class BaseHierarchicalElectricalSimulation(
+    BaseElectricalEdgePropertyPDESimulation, BaseElectricalFacePropertyPDESimulation
+):
+    """
+    Base class for all Hierarchical EM simulations.
+
+    An electrical simulation can inherit this class and it will replace MeSigma
+    operations with the heirarchical operators.
+    """
+
+    _clean_on_h_prop_update = ["__MeSigmaHeirarchical", "__MeSigmaHeirarchicalI"]
+
+    @property
+    def MeSigma(self):
+        if getattr(self, "__MeSigmaHeirarchical", None) is None:
+            M_prop = super().MeSigma
+            if self.tau is not None:
+                M_prop += self._MeTau
+            if self.kappa is not None:
+                M_prop += self._MeKappa
+            self.__MeSigmaHeirarchical = M_prop
+        return self.__MeSigmaHeirarchical
+
+    @property
+    def MeSigmaI(self):
+        if getattr(self, "__MeSigmaHeirarchicalI", None) is None:
+            # This operation will "work" on unstructured meshes and anisotropic properties,
+            # but it won't be correct as it assumes the matrix is diagonal. Should throw an
+            # error higher up though.
+            M_prop = sdinv(self.MeSigma)
+            self.__MeSigmaHeirarchicalI = M_prop
+        return self.__MeSigmaHeirarchicalI
+
+    def MeSigmaDeriv(self, u, v=None, adjoint=False):
+        out = super().MeSigmaDeriv(u, v, adjoint=adjoint)
+        if self.tauMap is not None:
+            out += self._MeKappaDeriv(u, v, adjoint=adjoint)
+        if self.kappaMap is not None:
+            out += self._MeTauDeriv(u, v, adjoint=adjoint)
+        return out
+
+    def MeSigmaIDeriv(self, u, v=None, adjoint=False):
+        MI_prop = self.MeSigmaI
+        u = MI_prop @ (MI_prop @ -u)
+        return self.MeSigmaDeriv(u, v, adjoint=adjoint)
+
+    @property
+    def deleteTheseOnModelUpdate(self):
+        """
+        items to be deleted if the model for cell, face or edge conductivity is updated
+        """
+        toDelete = super().deleteTheseOnModelUpdate
+        if (
+            self.sigmaMap is not None
+            or self.rhoMap is not None
+            or self.tauMap is not None
+            or self.kappaMap is not None
+        ):
+            toDelete = toDelete + self._clean_on_h_prop_update
+        return toDelete
+
+    def __setattr__(self, name, value):
+        super().__setattr__(name, value)
+        if name in ["sigma", "rho", "tau", "kappa"]:
+            for mat in self._clean_on_h_prop_update:
+                if hasattr(self, mat):
+                    delattr(self, mat)

@@ -33,6 +33,8 @@ MAPS_TO_EXCLUDE_2D = [
     "ComboMap",
     "ActiveCells",
     "InjectActiveCells",
+    "InjectActiveFaces",
+    "InjectActiveEdges",
     "LogMap",
     "LinearMap",
     "ReciprocalMap",
@@ -60,6 +62,8 @@ MAPS_TO_EXCLUDE_3D = [
     "ComboMap",
     "ActiveCells",
     "InjectActiveCells",
+    "InjectActiveFaces",
+    "InjectActiveEdges",
     "LogMap",
     "LinearMap",
     "ReciprocalMap",
@@ -714,6 +718,14 @@ def test_linearity():
         maps.InjectActiveCells(
             mesh3,
             mesh3.cell_centers[:, -1] < 0.75,
+        ),
+        maps.InjectActiveFaces(
+            mesh3,
+            mesh3.faces[:, -1] < 0.75,
+        ),
+        maps.InjectActiveEdges(
+            mesh3,
+            mesh3.edges[:, -1] < 0.75,
         ),
         maps.TileMap(
             mesh_tree,

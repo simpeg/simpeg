@@ -34,6 +34,8 @@ Simulations
   Simulation3DElectricField
   Simulation3DMagneticField
   Simulation3DCurrentDensity
+  Simulation3DHierarchicalMagneticFluxDensity
+  Simulation3DHierarchicalElectricField
 
 Receivers
 =========
@@ -113,6 +115,8 @@ from .simulation import (
     Simulation3DElectricField,
     Simulation3DMagneticField,
     Simulation3DCurrentDensity,
+    Simulation3DHierarchicalElectricField,
+    Simulation3DHierarchicalMagneticFluxDensity,
 )
 from .simulation_1d import Simulation1DLayered
 from .fields import (
