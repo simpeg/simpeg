@@ -1630,9 +1630,10 @@ class LineCurrent(BaseTDEMSrc):
         location=None,
         current=1.0,
         permeability=mu_0,
-        srcType=None,
         **kwargs,
     ):
+        # srcType determined automatically by location setter
+        kwargs.pop("srcType", None)
         super().__init__(receiver_list=receiver_list, location=location, **kwargs)
         for rx in self.receiver_list:
             if getattr(rx, "use_source_receiver_offset", False):

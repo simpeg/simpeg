@@ -474,6 +474,13 @@ class Simulation2DElectricField(BaseFDEMSimulation):
         items += ["boundary_fields"]
         return items
 
+    @property
+    def _delete_on_property_change(self, prop_name):
+        items = super()._delete_on_property_change(prop_name)
+        if prop_name in ["conductivity", "permeability"]:
+            items += ["boundary_fields"]
+        return items
+
 
 class Simulation2DMagneticField(BaseFDEMSimulation):
     """
@@ -695,6 +702,12 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
     def _delete_on_model_change(self):
         items = super()._delete_on_model_change
         items += ["boundary_fields"]
+        return items
+
+    @property
+    def _delete_on_property_change(self, prop_name):
+        items = super()._delete_on_property_change(prop_name)
+        items.append("boundary_fields")
         return items
 
 
