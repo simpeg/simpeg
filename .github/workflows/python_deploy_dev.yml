@@ -5,6 +5,10 @@ on:
     tags:
       - 'v*' # Push events to every version tag (eg. v1.0.0)
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   call-workflow-conda-publish:
     name: Publish development conda package on JFrog Artifactory
@@ -12,7 +16,7 @@ jobs:
     with:
       package-name: 'mira-simpeg'
       python-version: '3.10'
-      virtual-repo-nameS: '["public-conda-dev"]'
+      virtual-repo-names: '["public-conda-dev"]'
     secrets:
       JFROG_ARTIFACTORY_URL: ${{ secrets.JFROG_ARTIFACTORY_URL }}
       JFROG_ARTIFACTORY_TOKEN: ${{ secrets.JFROG_ARTIFACTORY_TOKEN }}
