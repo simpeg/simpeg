@@ -422,9 +422,9 @@ class BasePDESimulation(BaseSimulation):
 
     Parameters
     ----------
-    mesh : discretize.base.BaseMesh
+    mesh : discretize.base.BaseMesh, optional
         Mesh on which the forward problem is discretized.
-    solver : type[pymatsolver.base.Base], optional
+    solver : None or pymatsolver.base.Base, optional
         Numerical solver used to solve the forward problem. If ``None``,
         an appropriate solver specific to the simulation class is set by default.
     solver_opts : dict, optional
@@ -462,7 +462,7 @@ class BasePDESimulation(BaseSimulation):
 
         Returns
         -------
-        type[pymatsolver.solvers.Base]
+        pymatsolver.base.Base
             Numerical solver used to solve the forward problem.
         """
         if self._solver is None:
@@ -475,11 +475,9 @@ class BasePDESimulation(BaseSimulation):
     def solver(self, cls):
         if cls is not None:
             if not inspect.isclass(cls):
-                raise TypeError(f"{type(self).__qualname__}.solver must be a class")
-            if not issubclass(cls, pymatsolver.solvers.Base):
-                raise TypeError(
-                    f"{cls.__qualname__} is not a subclass of pymatsolver.base.BaseSolver"
-                )
+                raise TypeError(f"solver must be a class, not a {type(cls)}")
+            if not hasattr(cls, "__mul__"):
+                raise TypeError("solver must support the multiplication operator, `*`.")
         self._solver = cls
 
     @property
