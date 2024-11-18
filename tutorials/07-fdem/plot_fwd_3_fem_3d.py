@@ -69,7 +69,7 @@ topo_xyz = np.c_[mkvc(xx), mkvc(yy), mkvc(zz)]
 #
 
 # Frequencies being predicted
-frequencies = [100, 500, 2500]
+frequencies = [100]
 
 # Defining transmitter locations
 N = 9
@@ -257,7 +257,7 @@ plot2Ddata(
     clim=(-v_max, v_max),
     contourOpts={"cmap": "bwr"},
 )
-ax1.set_title("Re[$B_z$] at 100 Hz")
+ax1.set_title(f"Re[$B_z$] at {frequencies[frequencies_index]} Hz")
 
 ax2 = fig.add_axes([0.41, 0.05, 0.02, 0.9])
 norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
@@ -277,7 +277,7 @@ plot2Ddata(
     clim=(-v_max, v_max),
     contourOpts={"cmap": "bwr"},
 )
-ax1.set_title("Im[$B_z$] at 100 Hz")
+ax1.set_title(f"Im[$B_z$] at {frequencies[frequencies_index]} Hz")
 
 ax2 = fig.add_axes([0.91, 0.05, 0.02, 0.9])
 norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
