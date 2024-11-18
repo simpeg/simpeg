@@ -828,12 +828,11 @@ class ExponentialSinusoidSimulation(LinearSimulation):
 
     @mesh.setter
     def mesh(self, value):
-        if value is not None:
-            value = validate_type("mesh", value, TensorMesh, cast=False)
-            if value.dim != 1:
-                raise ValueError(
-                    f"{type(self).__name__} mesh must be 1D, received a {value.dim}D mesh."
-                )
+        value = validate_type("mesh", value, TensorMesh, cast=False)
+        if value.dim != 1:
+            raise ValueError(
+                f"{type(self).__name__} mesh must be 1D, received a {value.dim}D mesh."
+            )
         self._mesh = value
 
     @property
