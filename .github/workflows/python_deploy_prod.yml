@@ -33,7 +33,7 @@ jobs:
       JFROG_ARTIFACTORY_URL: ${{ secrets.JFROG_ARTIFACTORY_URL }}
       JFROG_ARTIFACTORY_TOKEN: ${{ secrets.JFROG_ARTIFACTORY_TOKEN }}
   call-workflow-pypi-release:
-    name: Publish production PyPI package (JFrog Artifactory and PyPI)
+    name: Publish production PyPI package (JFrog Artifactory, PyPI)
     if: ${{ github.event_name == 'release' || github.event.inputs.publish-pypi == 'true' }}
     uses: MiraGeoscience/CI-tools/.github/workflows/reusable-python-release_pypi_assets.yml@main
     with:
