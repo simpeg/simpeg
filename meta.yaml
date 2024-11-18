@@ -1,5 +1,5 @@
 {% set name = "mira-simpeg" %}
-{% set version = "0.21.2.1a0" %}
+{% set version = "0.21.2.1b2" %}
 
 package:
   name: {{ name|lower }}
@@ -25,7 +25,7 @@ requirements:
     - discretize >=0.10.0
     - empymod >=2.0.0
     - geoana >=0.5.0
-    - geoh5py >=0.10.0a.1, <0.11
+    - geoh5py >=0.10.0b1, <0.11.0a.dev
     - matplotlib-base
     - numpy >=1.20
     - pandas
