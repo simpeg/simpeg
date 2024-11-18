@@ -79,7 +79,8 @@ class Simulation2DIntegral(LinearSimulation):
     slowness, slownessMap, slownessDeriv = props.Invertible("Slowness model (1/v)")
 
     def __init__(self, mesh, survey=None, slowness=None, slownessMap=None, **kwargs):
-        super().__init__(mesh, survey=survey, **kwargs)
+        self.mesh = mesh
+        super().__init__(survey=survey, **kwargs)
         self.slowness = slowness
         self.slownessMap = slownessMap
 
