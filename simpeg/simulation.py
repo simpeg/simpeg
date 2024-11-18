@@ -66,8 +66,6 @@ class BaseSimulation(props.HasModel):
         self,
         mesh=None,
         survey=None,
-        solver=None,
-        solver_opts=None,
         sensitivity_path=None,
         counter=None,
         verbose=False,
