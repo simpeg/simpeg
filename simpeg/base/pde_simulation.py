@@ -473,10 +473,13 @@ class BasePDESimulation(BaseSimulation):
 
     @solver.setter
     def solver(self, cls):
-        if not issubclass(cls, pymatsolver.solvers.Base):
-            raise TypeError(
-                f"{cls.__name__} is not a subclass of pymatsolver.base.BaseSolver"
-            )
+        if cls is not None:
+            if not inspect.isclass(cls):
+                raise TypeError(f"{type(self).__qualname__}.solver must be a class")
+            if not issubclass(cls, pymatsolver.solvers.Base):
+                raise TypeError(
+                    f"{cls.__qualname__} is not a subclass of pymatsolver.base.BaseSolver"
+                )
         self._solver = cls
 
     @property
