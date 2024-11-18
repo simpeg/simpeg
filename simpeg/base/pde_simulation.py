@@ -3,6 +3,7 @@ import numpy as np
 import pymatsolver
 import scipy.sparse as sp
 from discretize.utils import Zero, TensorType
+import discretize.base
 from ..simulation import BaseSimulation
 from .. import props
 from scipy.constants import mu_0
@@ -437,11 +438,29 @@ class BasePDESimulation(BaseSimulation):
     """
 
     def __init__(self, mesh, solver=None, solver_opts=None, **kwargs):
-        super().__init__(mesh=mesh, **kwargs)
+        self.mesh = mesh
+        super().__init__(**kwargs)
         self.solver = solver
         if solver_opts is None:
             solver_opts = {}
         self.solver_opts = solver_opts
+
+    @property
+    def mesh(self):
+        """Mesh for the simulation.
+
+        For more on meshes, visit :py:class:`discretize.base.BaseMesh`.
+
+        Returns
+        -------
+        discretize.base.BaseMesh
+            Mesh on which the forward problem is discretized.
+        """
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, value):
+        self._mesh = validate_type("mesh", value, discretize.base.BaseMesh, cast=False)
 
     @property
     def solver(self):
