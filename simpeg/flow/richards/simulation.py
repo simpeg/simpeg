@@ -40,8 +40,7 @@ class SimulationNDCellCentered(BaseTimeSimulation, BasePDESimulation):
         debug = kwargs.pop("debug", None)
         if debug is not None:
             self.debug = debug
-        self.mesh = mesh
-        super().__init__(**kwargs)
+        super().__init__(mesh=mesh, **kwargs)
         self.hydraulic_conductivity = hydraulic_conductivity
         self.water_retention = water_retention
         self.boundary_conditions = boundary_conditions
@@ -62,14 +61,14 @@ class SimulationNDCellCentered(BaseTimeSimulation, BasePDESimulation):
 
         Returns
         -------
-        discretize.base.BaseTensorMesh
+        discretize.TensorMesh or discretize.TreeMesh
         """
         return self._mesh
 
     @mesh.setter
     def mesh(self, value):
         self._mesh = validate_type(
-            "mesh", value, discretize.base.BaseTensorMesh, cast=False
+            "mesh", value, (discretize.TensorMesh, discretize.TreeMesh), cast=False
         )
 
     # TODO: This can also be a function(time, u_ii)
