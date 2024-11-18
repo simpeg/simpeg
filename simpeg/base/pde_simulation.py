@@ -1,6 +1,5 @@
-import inspect
-
 import numpy as np
+import pymatsolver
 import scipy.sparse as sp
 from discretize.utils import Zero, TensorType
 from ..simulation import BaseSimulation
@@ -462,7 +461,7 @@ class BasePDESimulation(BaseSimulation):
 
         Returns
         -------
-        type[pymatsolver.base.Base]
+        type[pymatsolver.solvers.Base]
             Numerical solver used to solve the forward problem.
         """
         if self._solver is None:
@@ -473,11 +472,10 @@ class BasePDESimulation(BaseSimulation):
 
     @solver.setter
     def solver(self, cls):
-        if cls is not None:
-            if not inspect.isclass(cls):
-                raise TypeError(f"solver must be a class, not a {type(cls)}")
-            if not hasattr(cls, "__mul__"):
-                raise TypeError("solver must support the multiplication operator, `*`.")
+        if not issubclass(cls, pymatsolver.solvers.Base):
+            raise TypeError(
+                f"{cls.__name__} is not a subclass of pymatsolver.base.BaseSolver"
+            )
         self._solver = cls
 
     @property
