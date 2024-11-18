@@ -2,6 +2,7 @@
 Test BasePFSimulation class
 """
 
+import re
 import pytest
 import numpy as np
 from discretize import CylindricalMesh, TensorMesh, TreeMesh
@@ -93,7 +94,9 @@ class TestEngine:
         ``store_sensitivities="disk"``.
         """
         sensitivity_path = str(tmpdir.mkdir("sensitivities"))
-        msg = f"The passed sensitivity_path '{sensitivity_path}' is a directory."
+        msg = re.escape(
+            f"The passed sensitivity_path '{sensitivity_path}' is a directory."
+        )
         with pytest.raises(ValueError, match=msg):
             mock_simulation_class(
                 tensor_mesh,
@@ -112,14 +115,10 @@ class TestGetActiveNodes:
         """
         Test error on invalid mesh class
         """
-        # Initialize base simulation with valid mesh (so we don't trigger
-        # errors in the constructor)
-        simulation = mock_simulation_class(tensor_mesh)
-        # Assign an invalid mesh to the simulation
-        simulation.mesh = CylindricalMesh(tensor_mesh.h)
-        msg = "Invalid mesh of type CylindricalMesh."
+        # Initialize base simulation with valid mesh
+        msg = "mesh must be an instance of TensorMesh or TreeMesh, not CylindricalMesh"
         with pytest.raises(TypeError, match=msg):
-            simulation._get_active_nodes()
+            mock_simulation_class(CylindricalMesh(tensor_mesh.h))
 
     def test_no_inactive_cells_tensor(self, tensor_mesh, mock_simulation_class):
         """
@@ -298,10 +297,7 @@ class TestInvalidMeshChoclo:
         """
         Test if simulation raises error when passing an invalid mesh and using choclo
         """
-        msg = (
-            "Invalid mesh with 2 dimensions. "
-            "Only 3D meshes are supported when using 'choclo' as engine."
-        )
+        msg = "MockSimulation mesh must be 3D, received a 2D mesh."
         with pytest.raises(ValueError, match=msg):
             mock_simulation_class(mesh, engine="choclo")
 
