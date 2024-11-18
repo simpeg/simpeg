@@ -131,9 +131,6 @@ class BasePFSimulation(LinearSimulation):
         # Check sensitivity_path when engine is "choclo"
         self._check_engine_and_sensitivity_path()
 
-        # Check dimensions of the mesh when engine is "choclo"
-        self._check_engine_and_mesh_dimensions()
-
         # Find non-zero cells indices
         if active_cells is None:
             active_cells = np.ones(mesh.n_cells, dtype=bool)
