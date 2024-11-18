@@ -424,7 +424,7 @@ class BasePDESimulation(BaseSimulation):
     ----------
     mesh : discretize.base.BaseMesh
         Mesh on which the forward problem is discretized.
-    solver : pymatsolver.base.Base, optional
+    solver : type[pymatsolver.base.Base], optional
         Numerical solver used to solve the forward problem. If ``None``,
         an appropriate solver specific to the simulation class is set by default.
     solver_opts : dict, optional
@@ -462,7 +462,7 @@ class BasePDESimulation(BaseSimulation):
 
         Returns
         -------
-        pymatsolver.base.Base
+        type[pymatsolver.base.Base]
             Numerical solver used to solve the forward problem.
         """
         if self._solver is None:
