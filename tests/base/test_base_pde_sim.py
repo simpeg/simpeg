@@ -830,3 +830,15 @@ def test_bad_solver():
     msg = re.escape("str is not a subclass of pymatsolver.base.BaseSolver")
     with pytest.raises(TypeError, match=msg):
         BasePDESimulation(mesh, solver=str)
+
+
+def test_mesh_required():
+    with pytest.raises(TypeError):
+        BasePDESimulation()
+
+
+def test_bad_mesh():
+    with pytest.raises(TypeError):
+        # should error on anything besides a discretize.base.BaseMesh
+        BasePDESimulation(np.array([1, 2, 3]))
+
