@@ -3,6 +3,7 @@ import scipy.sparse as sp
 import time
 
 from ... import utils
+from ...base import BasePDESimulation
 from ...simulation import BaseTimeSimulation
 from ... import optimization
 from ...utils import (
@@ -19,7 +20,7 @@ from .empirical import BaseHydraulicConductivity
 from .empirical import BaseWaterRetention
 
 
-class SimulationNDCellCentered(BaseTimeSimulation):
+class SimulationNDCellCentered(BaseTimeSimulation, BasePDESimulation):
     """Richards Simulation"""
 
     def __init__(
