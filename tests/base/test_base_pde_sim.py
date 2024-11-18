@@ -841,4 +841,3 @@ def test_bad_mesh():
     with pytest.raises(TypeError):
         # should error on anything besides a discretize.base.BaseMesh
         BasePDESimulation(np.array([1, 2, 3]))
-
