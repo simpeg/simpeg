@@ -23,7 +23,6 @@ jobs:
   call-workflow-pypi-publish:
     name: Publish development pypi package (JFrog Artifactory, TestPyPI)
     uses: MiraGeoscience/CI-tools/.github/workflows/reusable-python-publish_pypi_package.yml@main
-    if: false
     with:
       package-manager: 'setuptools'
       package-name: 'mira-simpeg'
