@@ -70,10 +70,10 @@ For example:
 Building the documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can build the documentation pages locally to see how the new changes will look. 
-First, make sure that you have :ref:`created and activated an
-environment with simpeg installed in it <setting-up-environment>`. Then,
-navigate to the ``docs`` folder:
+You can build the documentation pages locally to see how the new changes will
+look. First, make sure that you have :ref:`created and activated an environment
+<setting-up-environment>` with simpeg installed in it. Then, navigate to the
+``docs`` folder:
 
 .. code:: bash
 
