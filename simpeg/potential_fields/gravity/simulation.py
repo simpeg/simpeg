@@ -5,10 +5,9 @@ import scipy.constants as constants
 from geoana.kernels import prism_fz, prism_fzx, prism_fzy, prism_fzz
 from scipy.constants import G as NewtG
 
-from simpeg import props
 from simpeg.utils import mkvc, sdiag
 
-from ...base import BasePDESimulation
+from ...base import BasePDESimulation, BaseDensity
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
 
 from ._numba_functions import (
@@ -117,7 +116,7 @@ def _get_conversion_factor(component):
     return conversion_factor
 
 
-class Simulation3DIntegral(BasePFSimulation):
+class Simulation3DIntegral(BasePFSimulation, BaseDensity):
     """
     Gravity simulation in integral form.
 
@@ -174,20 +173,17 @@ class Simulation3DIntegral(BasePFSimulation):
            ``active_cells`` and will be removed in SimPEG v0.24.0.
     """
 
-    rho, rhoMap, rhoDeriv = props.Invertible("Density")
-
     def __init__(
         self,
         mesh,
-        rho=None,
-        rhoMap=None,
+        *,
         engine="geoana",
         numba_parallel=True,
         **kwargs,
     ):
-        super().__init__(mesh, engine=engine, numba_parallel=numba_parallel, **kwargs)
-        self.rho = rho
-        self.rhoMap = rhoMap
+        super().__init__(
+            mesh=mesh, engine=engine, numba_parallel=numba_parallel, **kwargs
+        )
         self._G = None
         self._gtg_diagonal = None
         self.modelMap = self.rhoMap
@@ -641,12 +637,8 @@ class Simulation3DDifferential(BasePDESimulation):
         \big [ \mathbf{D M_f D^T} \big ] \mathbf{u} = - \mathbf{M_c \, \rho}
     """
 
-    rho, rhoMap, rhoDeriv = props.Invertible("Specific density (g/cc)")
-
-    def __init__(self, mesh, rho=1.0, rhoMap=None, **kwargs):
-        super().__init__(mesh, **kwargs)
-        self.rho = rho
-        self.rhoMap = rhoMap
+    def __init__(self, mesh, **kwargs):
+        super().__init__(mesh=mesh, **kwargs)
 
         self._Div = self.mesh.face_divergence
 

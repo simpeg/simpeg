@@ -56,6 +56,29 @@ class NonLinearModel(props.HasModel):
 
 
 class BaseWaterRetention(NonLinearModel):
+
+    theta_r, theta_rMap, theta_rDeriv = props.Invertible(
+        "residual water content [L3L-3]"
+    )
+
+    theta_s, theta_sMap, theta_sDeriv = props.Invertible(
+        "saturated water content [L3L-3]"
+    )
+
+    def __init__(
+        self,
+        theta_r=None,
+        theta_rMap=theta_rMap,
+        theta_s=None,
+        theta_sMap=theta_rMap,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.theta_r = theta_r
+        self.theta_rMap = theta_rMap
+        self.theta_s = theta_s
+        self.theta_sMap = theta_sMap
+
     def plot(self, ax=None):
         import matplotlib.pyplot as plt
 
@@ -71,6 +94,13 @@ class BaseWaterRetention(NonLinearModel):
 
 
 class BaseHydraulicConductivity(NonLinearModel):
+    Ks, KsMap, KsDeriv = props.Invertible("Saturated hydraulic conductivity")
+
+    def __init__(self, Ks=None, KsMap=None, **kwargs):
+        self.Ks = Ks
+        self.KsMap = KsMap
+        super().__init__(**kwargs)
+
     def plot(self, ax=None):
         import matplotlib.pyplot as plt
 
@@ -86,13 +116,6 @@ class BaseHydraulicConductivity(NonLinearModel):
 
 
 class Haverkamp_theta(BaseWaterRetention):
-    theta_r, theta_rMap, theta_rDeriv = props.Invertible(
-        "residual water content [L3L-3]"
-    )
-
-    theta_s, theta_sMap, theta_sDeriv = props.Invertible(
-        "saturated water content [L3L-3]"
-    )
 
     alpha, alphaMap, alphaDeriv = props.Invertible("")
 
@@ -102,20 +125,16 @@ class Haverkamp_theta(BaseWaterRetention):
         self,
         mesh,
         theta_r=0.075,
-        theta_rMap=None,
         theta_s=0.287,
-        theta_sMap=None,
         alpha=1.611e06,
         alphaMap=None,
         beta=3.96,
         betaMap=None,
         **kwargs,
     ):
-        super().__init__(mesh=mesh, **kwargs)
+        super().__init__(mesh=mesh, theta_r=theta_r, theta_s=theta_s, **kwargs)
         self.theta_r = theta_r
-        self.theta_rMap = theta_rMap
         self.theta_s = theta_s
-        self.theta_sMap = theta_sMap
         self.alpha = alpha
         self.alphaMap = alphaMap
         self.beta = beta
@@ -218,7 +237,6 @@ class Haverkamp_theta(BaseWaterRetention):
 
 
 class Haverkamp_k(BaseHydraulicConductivity):
-    Ks, KsMap, KsDeriv = props.Invertible("Saturated hydraulic conductivity")
 
     A, AMap, ADeriv = props.Invertible("fitting parameter")
 
@@ -235,9 +253,7 @@ class Haverkamp_k(BaseHydraulicConductivity):
         gammaMap=None,
         **kwargs,
     ):
-        super().__init__(mesh=mesh, **kwargs)
-        self.Ks = Ks
-        self.KsMap = KsMap
+        super().__init__(mesh=mesh, Ks=Ks, KsMap=KsMap, **kwargs)
         self.A = A
         self.AMap = AMap
         self.gamma = gamma
@@ -328,13 +344,6 @@ class HaverkampParams(object):
 
 
 class Vangenuchten_theta(BaseWaterRetention):
-    theta_r, theta_rMap, theta_rDeriv = props.Invertible(
-        "residual water content [L3L-3]"
-    )
-
-    theta_s, theta_sMap, theta_sDeriv = props.Invertible(
-        "saturated water content [L3L-3]"
-    )
 
     n, nMap, nDeriv = props.Invertible("measure of the pore-size distribution, >1")
 
@@ -346,20 +355,14 @@ class Vangenuchten_theta(BaseWaterRetention):
         self,
         mesh,
         theta_r=0.078,
-        theta_rMap=None,
         theta_s=0.430,
-        theta_sMap=None,
         n=1.56,
         nMap=None,
         alpha=0.036,
         alphaMap=None,
         **kwargs,
     ):
-        super().__init__(mesh=mesh, **kwargs)
-        self.theta_r = theta_r
-        self.theta_rMap = theta_rMap
-        self.theta_s = theta_s
-        self.theta_sMap = theta_sMap
+        super().__init__(mesh=mesh, theta_r=theta_r, theta_s=theta_s, **kwargs)
         self.alpha = alpha
         self.alphaMap = alphaMap
         self.n = n
@@ -487,7 +490,6 @@ class Vangenuchten_theta(BaseWaterRetention):
 
 
 class Vangenuchten_k(BaseHydraulicConductivity):
-    Ks, KsMap, KsDeriv = props.Invertible("Saturated hydraulic conductivity")
 
     I, IMap, IDeriv = props.Invertible("")
 
@@ -501,7 +503,6 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         self,
         mesh,
         Ks=24.96,
-        KsMap=None,
         I=0.5,
         IMap=None,
         n=1.56,
@@ -510,9 +511,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         alphaMap=None,
         **kwargs,
     ):
-        super().__init__(mesh=mesh, **kwargs)
-        self.Ks = Ks
-        self.KsMap = KsMap
+        super().__init__(mesh=mesh, Ks=Ks, **kwargs)
         self.I = I
         self.IMap = IMap
         self.n = n

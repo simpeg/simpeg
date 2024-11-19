@@ -4,9 +4,9 @@ import pymatsolver
 import scipy.sparse as sp
 from discretize.utils import Zero, TensorType
 import discretize.base
+
+from .physical_property_simulations import BaseConductivity, BasePermeability
 from ..simulation import BaseSimulation
-from .. import props
-from scipy.constants import mu_0
 
 from ..utils import validate_type
 from ..utils.solver_utils import get_default_solver
@@ -600,19 +600,10 @@ class BasePDESimulation(BaseSimulation):
 
 @with_property_mass_matrices("sigma")
 @with_property_mass_matrices("rho")
-class BaseElectricalPDESimulation(BasePDESimulation):
-    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
-    rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
-    props.Reciprocal(sigma, rho)
+class BaseElectricalPDESimulation(BasePDESimulation, BaseConductivity):
 
-    def __init__(
-        self, mesh, sigma=None, sigmaMap=None, rho=None, rhoMap=None, **kwargs
-    ):
+    def __init__(self, mesh, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
-        self.sigma = sigma
-        self.rho = rho
-        self.sigmaMap = sigmaMap
-        self.rhoMap = rhoMap
 
     @property
     def deleteTheseOnModelUpdate(self):
@@ -636,19 +627,10 @@ class BaseElectricalPDESimulation(BasePDESimulation):
 
 @with_property_mass_matrices("mu")
 @with_property_mass_matrices("mui")
-class BaseMagneticPDESimulation(BasePDESimulation):
-    mu, muMap, muDeriv = props.Invertible(
-        "Magnetic Permeability (H/m)",
-    )
-    mui, muiMap, muiDeriv = props.Invertible("Inverse Magnetic Permeability (m/H)")
-    props.Reciprocal(mu, mui)
+class BaseMagneticPDESimulation(BasePDESimulation, BasePermeability):
 
-    def __init__(self, mesh, mu=mu_0, muMap=None, mui=None, muiMap=None, **kwargs):
+    def __init__(self, mesh, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
-        self.mu = mu
-        self.mui = mui
-        self.muMap = muMap
-        self.muiMap = muiMap
 
     def __setattr__(self, name, value):
         super().__setattr__(name, value)

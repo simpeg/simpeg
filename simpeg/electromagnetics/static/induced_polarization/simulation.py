@@ -3,8 +3,8 @@ from functools import cached_property
 import numpy as np
 import scipy.sparse as sp
 
-from .... import maps, props
-from ....base import BasePDESimulation
+from .... import maps
+from ....base import BaseElectricalPDESimulation, BaseChargeability
 from ....data import Data
 from ..resistivity import Simulation2DCellCentered as DC_2D_CC
 from ..resistivity import Simulation2DNodal as DC_2D_N
@@ -12,11 +12,7 @@ from ..resistivity import Simulation3DCellCentered as DC_3D_CC
 from ..resistivity import Simulation3DNodal as DC_3D_N
 
 
-class BaseIPSimulation(BasePDESimulation):
-    sigma = props.PhysicalProperty("Electrical Conductivity (S/m)")
-    rho = props.PhysicalProperty("Electrical Resistivity (Ohm m)")
-    props.Reciprocal(sigma, rho)
-
+class BaseIPSimulation(BaseElectricalPDESimulation, BaseChargeability):
     @property
     def sigmaMap(self):
         return maps.IdentityMap()
@@ -25,12 +21,20 @@ class BaseIPSimulation(BasePDESimulation):
     def sigmaMap(self, arg):
         pass
 
+    @sigmaMap.deleter
+    def sigmaMap(self):
+        pass
+
     @property
     def rhoMap(self):
         return maps.IdentityMap()
 
     @rhoMap.setter
     def rhoMap(self, arg):
+        pass
+
+    @rhoMap.deleter
+    def rhoMap(self):
         pass
 
     @property
@@ -58,25 +62,16 @@ class BaseIPSimulation(BasePDESimulation):
                     scale[src, rx] = 1.0 / rx.eval(src, self.mesh, f)
         return scale.dobs
 
-    eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability (V/V)")
-
     def __init__(
         self,
         mesh,
         survey=None,
-        sigma=None,
-        rho=None,
-        eta=None,
-        etaMap=None,
+        *,
         Ainv=None,  # A DC's Ainv
         _f=None,  # A pre-computed DC field
         **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
-        self.sigma = sigma
-        self.rho = rho
-        self.eta = eta
-        self.etaMap = etaMap
         if Ainv is not None:
             self.Ainv = Ainv
         self._f = _f

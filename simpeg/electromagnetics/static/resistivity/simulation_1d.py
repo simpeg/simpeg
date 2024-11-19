@@ -4,8 +4,8 @@ import libdlf
 import numpy as np
 
 from ...utils.em1d_utils import get_splined_dlf_points
+from ....base import BaseConductivity, BaseThickness
 from ....simulation import BaseSimulation
-from .... import props
 
 from .survey import Survey
 
@@ -102,28 +102,15 @@ def _dphi_tilde(rho, thicknesses, lambdas):
     return J_rho.T, J_h.T
 
 
-class Simulation1DLayers(BaseSimulation):
+class Simulation1DLayers(BaseSimulation, BaseConductivity, BaseThickness):
     """
     1D DC Simulation
     """
 
-    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
-    rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
-    props.Reciprocal(sigma, rho)
-
-    thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
-        "thicknesses of the layers"
-    )
-
     def __init__(
         self,
         survey=None,
-        sigma=None,
-        sigmaMap=None,
-        rho=None,
-        rhoMap=None,
-        thicknesses=None,
-        thicknessesMap=None,
+        *,
         hankel_filter="key_201_2012",
         fix_Jmatrix=False,
         **kwargs,
@@ -142,12 +129,7 @@ class Simulation1DLayers(BaseSimulation):
                 "receiver."
             )
         super().__init__(survey=survey, **kwargs)
-        self.sigma = sigma
-        self.rho = rho
-        self.thicknesses = thicknesses
-        self.sigmaMap = sigmaMap
-        self.rhoMap = rhoMap
-        self.thicknessesMap = thicknessesMap
+
         self.fix_Jmatrix = fix_Jmatrix
         self.hankel_filter = hankel_filter  # Store filter
         self._coefficients_set = False

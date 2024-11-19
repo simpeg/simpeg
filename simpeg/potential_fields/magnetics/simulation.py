@@ -49,6 +49,7 @@ from ._numba_functions import (
     _sensitivity_tmi_derivative_2d_mesh_serial,
     _sensitivity_tmi_derivative_2d_mesh_parallel,
 )
+from ...base import BaseSusceptibility
 
 if choclo is not None:
     CHOCLO_SUPPORTED_COMPONENTS = {
@@ -138,7 +139,7 @@ if choclo is not None:
     }
 
 
-class Simulation3DIntegral(BasePFSimulation):
+class Simulation3DIntegral(BasePFSimulation, BaseSusceptibility):
     """
     Magnetic simulation in integral form.
 
@@ -192,8 +193,7 @@ class Simulation3DIntegral(BasePFSimulation):
     def __init__(
         self,
         mesh,
-        chi=None,
-        chiMap=None,
+        *,
         model_type="scalar",
         is_amplitude_data=False,
         engine="geoana",
@@ -202,8 +202,6 @@ class Simulation3DIntegral(BasePFSimulation):
     ):
         self.model_type = model_type
         super().__init__(mesh, engine=engine, numba_parallel=numba_parallel, **kwargs)
-        self.chi = chi
-        self.chiMap = chiMap
 
         self._G = None
         self._M = None

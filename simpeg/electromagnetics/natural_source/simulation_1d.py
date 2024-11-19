@@ -1,14 +1,14 @@
 import numpy as np
 from scipy.constants import mu_0
 
+from ...base import BaseConductivity, BaseThickness
 from ...simulation import BaseSimulation
-from ... import props
 from ...utils import validate_type
 from ..frequency_domain.survey import Survey
 from .receivers import Impedance
 
 
-class Simulation1DRecursive(BaseSimulation):
+class Simulation1DRecursive(BaseSimulation, BaseConductivity, BaseThickness):
     r"""
     Simulation class for the 1D MT problem using recursive solution.
 
@@ -36,35 +36,15 @@ class Simulation1DRecursive(BaseSimulation):
 
     """
 
-    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
-    rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
-    props.Reciprocal(sigma, rho)
-
-    # Add layer thickness as invertible property
-    thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
-        "thicknesses of the layers starting from the bottom of the mesh"
-    )
-
     def __init__(
         self,
         survey=None,
-        sigma=None,
-        sigmaMap=None,
-        rho=None,
-        rhoMap=None,
-        thicknesses=None,
-        thicknessesMap=None,
+        *,
         fix_Jmatrix=False,
         **kwargs,
     ):
         super().__init__(survey=survey, **kwargs)
         self.fix_Jmatrix = fix_Jmatrix
-        self.sigma = sigma
-        self.rho = rho
-        self.thicknesses = thicknesses
-        self.sigmaMap = sigmaMap
-        self.rhoMap = rhoMap
-        self.thicknessesMap = thicknessesMap
 
     @property
     def survey(self):
