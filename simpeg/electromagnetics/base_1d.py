@@ -5,6 +5,8 @@ import numpy as np
 from scipy import sparse as sp
 from scipy.special import roots_legendre
 
+from ..base import BaseConductivity, BasePermeability
+from ..base.physical_property_simulations import BaseThickness
 from ..simulation import BaseSimulation
 
 # from .time_domain.sources import MagDipole as t_MagDipole, CircularLoop as t_CircularLoop
@@ -35,7 +37,9 @@ for filter_name in libdlf.hankel.__all__:
 ###############################################################################
 
 
-class BaseEM1DSimulation(BaseSimulation):
+class BaseEM1DSimulation(
+    BaseSimulation, BaseConductivity, BasePermeability, BaseThickness
+):
     """
     Base simulation class for simulating the EM response over a 1D layered Earth
     for a single sounding. The simulation computes the fields by solving the
@@ -46,21 +50,10 @@ class BaseEM1DSimulation(BaseSimulation):
     _formulation = "1D"
     _coefficients_set = False
 
-    # Properties for electrical conductivity/resistivity
-    sigma, sigmaMap, sigmaDeriv = props.Invertible(
-        "Electrical conductivity at infinite frequency (S/m)"
-    )
-    rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
-    props.Reciprocal(sigma, rho)
-
     eta = props.PhysicalProperty("Intrinsic chargeability (V/V), 0 <= eta < 1")
     tau = props.PhysicalProperty("Time constant for Cole-Cole model (s)")
     c = props.PhysicalProperty("Frequency Dependency for Cole-Cole model, 0 < c < 1")
 
-    # Properties for magnetic susceptibility
-    mu, muMap, muDeriv = props.Invertible(
-        "Magnetic permeability at infinite frequency (SI)"
-    )
     dchi = props.PhysicalProperty(
         "DC magnetic susceptibility for viscous remanent magnetization contribution (SI)"
     )
@@ -74,20 +67,8 @@ class BaseEM1DSimulation(BaseSimulation):
     # Additional properties
     h, hMap, hDeriv = props.Invertible("Receiver Height (m), h > 0")
 
-    thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
-        "layer thicknesses (m)"
-    )
-
     def __init__(
         self,
-        sigma=None,
-        sigmaMap=None,
-        rho=None,
-        rhoMap=None,
-        thicknesses=None,
-        thicknessesMap=None,
-        mu=mu_0,
-        muMap=None,
         h=None,
         hMap=None,
         eta=0.0,
@@ -103,18 +84,8 @@ class BaseEM1DSimulation(BaseSimulation):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.sigma = sigma
-        self.rho = rho
-        self.sigmaMap = sigmaMap
-        self.rhoMap = rhoMap
-        self.mu = mu
-        self.muMap = muMap
         self.h = h
         self.hMap = hMap
-        if thicknesses is None:
-            thicknesses = np.array([])
-        self.thicknesses = thicknesses
-        self.thicknessesMap = thicknessesMap
         self.eta = eta
         self.tau = tau
         self.c = c

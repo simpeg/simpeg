@@ -3,9 +3,9 @@ import numpy as np
 import scipy.sparse as sp
 import matplotlib.pyplot as plt
 
+from ...base import BaseVelocity
 from ...simulation import LinearSimulation
 from ...utils import sub2ind, validate_type
-from ... import props
 
 
 def _lengthInCell(O, D, x, y, plotIt=False):
@@ -75,14 +75,11 @@ def _lineintegral(M, Tx, Rx):
     return inds, V
 
 
-class Simulation2DIntegral(LinearSimulation):
-    slowness, slownessMap, slownessDeriv = props.Invertible("Slowness model (1/v)")
+class Simulation2DIntegral(LinearSimulation, BaseVelocity):
 
-    def __init__(self, mesh, survey=None, slowness=None, slownessMap=None, **kwargs):
+    def __init__(self, mesh, survey=None, **kwargs):
         self.mesh = mesh
         super().__init__(survey=survey, **kwargs)
-        self.slowness = slowness
-        self.slownessMap = slownessMap
 
     @property
     def mesh(self):
