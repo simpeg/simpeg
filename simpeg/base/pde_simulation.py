@@ -1,9 +1,14 @@
+import inspect
 import numpy as np
+import pymatsolver
 import scipy.sparse as sp
 from discretize.utils import Zero, TensorType
 from ..simulation import BaseSimulation
 from .. import props
 from scipy.constants import mu_0
+
+from ..utils import validate_type
+from ..utils.solver_utils import get_default_solver
 
 
 def __inner_mat_mul_op(M, u, v=None, adjoint=False):
@@ -413,6 +418,91 @@ def with_property_mass_matrices(property_name):
 
 
 class BasePDESimulation(BaseSimulation):
+    """Base simulation for PDE solutions.
+
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        Mesh on which the forward problem is discretized.
+    solver : type[pymatsolver.base.Base], optional
+        Numerical solver used to solve the forward problem. If ``None``,
+        an appropriate solver specific to the simulation class is set by default.
+    solver_opts : dict, optional
+        Solver-specific parameters. If ``None``, default parameters are used for
+        the solver set by ``solver``. Otherwise, the ``dict`` must contain appropriate
+        pairs of keyword arguments and parameter values for the solver. Please visit
+        `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__ to learn more
+        about solvers and their parameters.
+
+    """
+
+    def __init__(self, mesh, solver=None, solver_opts=None, **kwargs):
+        super().__init__(mesh=mesh, **kwargs)
+        self.solver = solver
+        if solver_opts is None:
+            solver_opts = {}
+        self.solver_opts = solver_opts
+
+    @property
+    def solver(self):
+        r"""Numerical solver used in the forward simulation.
+
+        Many forward simulations in SimPEG require solutions to discrete linear
+        systems of the form:
+
+        .. math::
+            \mathbf{A}(\mathbf{m}) \, \mathbf{u} = \mathbf{q}
+
+        where :math:`\mathbf{A}` is an invertible matrix that depends on the
+        model :math:`\mathbf{m}`. The numerical solver can be set using the
+        ``solver`` property. In SimPEG, the
+        `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__ package
+        is used to create solver objects. Parameters specific to each solver
+        can be set manually using the ``solver_opts`` property.
+
+        Returns
+        -------
+        type[pymatsolver.solvers.Base]
+            Numerical solver used to solve the forward problem.
+        """
+        if self._solver is None:
+            # do not cache this, in case the user wants to
+            # change it after the first time it is requested.
+            return get_default_solver(warn=True)
+        return self._solver
+
+    @solver.setter
+    def solver(self, cls):
+        if cls is not None:
+            if not inspect.isclass(cls):
+                raise TypeError(f"{type(self).__qualname__}.solver must be a class")
+            if not issubclass(cls, pymatsolver.solvers.Base):
+                raise TypeError(
+                    f"{cls.__qualname__} is not a subclass of pymatsolver.base.BaseSolver"
+                )
+        self._solver = cls
+
+    @property
+    def solver_opts(self):
+        """Solver-specific parameters.
+
+        The parameters specific to the solver set with the ``solver`` property are set
+        upon instantiation. The ``solver_opts`` property is used to set solver-specific properties.
+        This is done by providing a ``dict`` that contains appropriate pairs of keyword arguments
+        and parameter values. Please visit `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__
+        to learn more about solvers and their parameters.
+
+        Returns
+        -------
+        dict
+            keyword arguments and parameters passed to the solver.
+        """
+        return self._solver_opts
+
+    @solver_opts.setter
+    def solver_opts(self, value):
+        self._solver_opts = validate_type("solver_opts", value, dict, cast=False)
+
     @property
     def Vol(self):
         return self.Mcc

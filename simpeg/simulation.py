@@ -3,7 +3,6 @@ Define simulation classes.
 """
 
 import os
-import inspect
 import numpy as np
 import warnings
 
@@ -26,8 +25,6 @@ from .utils import (
     validate_integer,
 )
 import uuid
-
-from .utils.solver_utils import get_default_solver
 
 __all__ = ["LinearSimulation", "ExponentialSinusoidSimulation"]
 
@@ -55,15 +52,6 @@ class BaseSimulation(props.HasModel):
         Mesh on which the forward problem is discretized.
     survey : simpeg.survey.BaseSurvey, optional
         The survey for the simulation.
-    solver : None or pymatsolver.base.Base, optional
-        Numerical solver used to solve the forward problem. If ``None``,
-        an appropriate solver specific to the simulation class is set by default.
-    solver_opts : dict, optional
-        Solver-specific parameters. If ``None``, default parameters are used for
-        the solver set by ``solver``. Otherwise, the ``dict`` must contain appropriate
-        pairs of keyword arguments and parameter values for the solver. Please visit
-        `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__ to learn more
-        about solvers and their parameters.
     sensitivity_path : str, optional
         Path to directory where sensitivity file is stored.
     counter : None or simpeg.utils.Counter
@@ -78,8 +66,6 @@ class BaseSimulation(props.HasModel):
         self,
         mesh=None,
         survey=None,
-        solver=None,
-        solver_opts=None,
         sensitivity_path=None,
         counter=None,
         verbose=False,
@@ -87,10 +73,6 @@ class BaseSimulation(props.HasModel):
     ):
         self.mesh = mesh
         self.survey = survey
-        self.solver = solver
-        if solver_opts is None:
-            solver_opts = {}
-        self.solver_opts = solver_opts
         if sensitivity_path is None:
             sensitivity_path = os.path.join(".", "sensitivity")
         self.sensitivity_path = sensitivity_path
@@ -168,64 +150,6 @@ class BaseSimulation(props.HasModel):
     @sensitivity_path.setter
     def sensitivity_path(self, value):
         self._sensitivity_path = validate_string("sensitivity_path", value)
-
-    @property
-    def solver(self):
-        r"""Numerical solver used in the forward simulation.
-
-        Many forward simulations in SimPEG require solutions to discrete linear
-        systems of the form:
-
-        .. math::
-            \mathbf{A}(\mathbf{m}) \, \mathbf{u} = \mathbf{q}
-
-        where :math:`\mathbf{A}` is an invertible matrix that depends on the
-        model :math:`\mathbf{m}`. The numerical solver can be set using the
-        ``solver`` property. In SimPEG, the
-        `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__ package
-        is used to create solver objects. Parameters specific to each solver
-        can be set manually using the ``solver_opts`` property.
-
-        Returns
-        -------
-        pymatsolver.base.Base
-            Numerical solver used to solve the forward problem.
-        """
-        if self._solver is None:
-            # do not cache this, in case the user wants to
-            # change it after the first time it is requested.
-            return get_default_solver(warn=True)
-        return self._solver
-
-    @solver.setter
-    def solver(self, cls):
-        if cls is not None:
-            if not inspect.isclass(cls):
-                raise TypeError(f"solver must be a class, not a {type(cls)}")
-            if not hasattr(cls, "__mul__"):
-                raise TypeError("solver must support the multiplication operator, `*`.")
-        self._solver = cls
-
-    @property
-    def solver_opts(self):
-        """Solver-specific parameters.
-
-        The parameters specific to the solver set with the ``solver`` property are set
-        upon instantiation. The ``solver_opts`` property is used to set solver-specific properties.
-        This is done by providing a ``dict`` that contains appropriate pairs of keyword arguments
-        and parameter values. Please visit `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__
-        to learn more about solvers and their parameters.
-
-        Returns
-        -------
-        dict
-            keyword arguments and parameters passed to the solver.
-        """
-        return self._solver_opts
-
-    @solver_opts.setter
-    def solver_opts(self, value):
-        self._solver_opts = validate_type("solver_opts", value, dict, cast=False)
 
     @property
     def verbose(self):
@@ -753,9 +677,6 @@ class LinearSimulation(BaseSimulation):
     linear_model, model_map, model_deriv = props.Invertible(
         "The model for a linear problem"
     )
-
-    # linear simulations do not have a solver so set it to `None` here
-    solver = None
 
     def __init__(self, mesh=None, linear_model=None, model_map=None, G=None, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
