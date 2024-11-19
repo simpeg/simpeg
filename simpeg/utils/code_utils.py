@@ -1121,12 +1121,12 @@ def validate_type(property_name, obj, obj_type, cast=True, strict=False):
 
     if len(obj_type) > 1:
         type_name = (
-            ", ".join(cls.__name__ for cls in obj_type[:-1])
+            ", ".join(cls.__qualname__ for cls in obj_type[:-1])
             + " or "
-            + obj_type[-1].__name__
+            + obj_type[-1].__qualname__
         )
     else:
-        type_name = obj_type[0].__name__
+        type_name = obj_type[0].__qualname__
 
     if cast:
         good_cast = False
@@ -1142,16 +1142,16 @@ def validate_type(property_name, obj, obj_type, cast=True, strict=False):
                 break
         if not good_cast:
             raise TypeError(
-                f"{type(obj).__name__} cannot be converted to {type_name} "
+                f"{type(obj).__qualname__} cannot be converted to {type_name} "
                 f"required for {property_name}."
             ) from err
     if strict and type(obj) not in obj_type:
         raise TypeError(
-            f"{property_name} must be exactly a {type_name}, not {type(obj).__name__}"
+            f"{property_name} must be exactly a {type_name}, not {type(obj).__qualname__}"
         )
     if not isinstance(obj, obj_type):
         raise TypeError(
-            f"{property_name} must be an instance of {type_name}, not {type(obj).__name__}"
+            f"{property_name} must be an instance of {type_name}, not {type(obj).__qualname__}"
         )
     return obj
 
