@@ -102,7 +102,7 @@ class BaseEM1DSimulation(BaseSimulation):
         n_points_per_path=3,
         **kwargs,
     ):
-        super().__init__(mesh=None, **kwargs)
+        super().__init__(**kwargs)
         self.sigma = sigma
         self.rho = rho
         self.sigmaMap = sigmaMap

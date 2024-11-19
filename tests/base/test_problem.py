@@ -1,13 +1,11 @@
 import unittest
-import discretize
 from simpeg import simulation
 import numpy as np
 
 
 class TestTimeSimulation(unittest.TestCase):
     def setUp(self):
-        mesh = discretize.TensorMesh([10, 10])
-        self.sim = simulation.BaseTimeSimulation(mesh)
+        self.sim = simulation.BaseTimeSimulation()
 
     def test_timeProblem_setTimeSteps(self):
         self.sim.time_steps = [(1e-6, 3), 1e-5, (1e-4, 2)]
