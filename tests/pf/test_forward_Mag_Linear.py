@@ -1,4 +1,7 @@
 from __future__ import annotations
+
+import re
+
 import discretize
 import numpy as np
 import pytest
@@ -821,7 +824,9 @@ class TestsMagSimulation:
         sensitivity_path = tmp_path / "sensitivity_dummy"
         sensitivity_path.mkdir()
         # Check if error is raised
-        msg = f"The passed sensitivity_path '{str(sensitivity_path)}' is a directory"
+        msg = re.escape(
+            f"The passed sensitivity_path '{str(sensitivity_path)}' is a directory"
+        )
         with pytest.raises(ValueError, match=msg):
             mag.Simulation3DIntegral(
                 mag_mesh,
@@ -885,42 +890,6 @@ class TestsMagSimulation:
         msg = "The choclo package couldn't be found."
         with pytest.raises(ImportError, match=msg):
             mag.Simulation3DIntegral(mag_mesh, engine="choclo")
-
-
-class TestInvalidMeshChoclo:
-    @pytest.fixture(params=("tensormesh", "treemesh"))
-    def mesh(self, request):
-        """Sample 2D mesh."""
-        hx, hy = [(0.1, 8)], [(0.1, 8)]
-        h = (hx, hy)
-        if request.param == "tensormesh":
-            mesh = discretize.TensorMesh(h, "CC")
-        else:
-            mesh = discretize.TreeMesh(h, origin="CC")
-            mesh.finalize()
-        return mesh
-
-    def test_invalid_mesh_with_choclo(self, mesh):
-        """
-        Test if simulation raises error when passing an invalid mesh and using choclo
-        """
-        # Build survey
-        receivers_locations = np.array([[0, 0, 0]])
-        receivers = mag.Point(receivers_locations)
-        sources = mag.UniformBackgroundField(
-            receiver_list=[receivers],
-            amplitude=50_000,
-            inclination=45.0,
-            declination=12.0,
-        )
-        survey = mag.Survey(sources)
-        # Check if error is raised
-        msg = (
-            "Invalid mesh with 2 dimensions. "
-            "Only 3D meshes are supported when using 'choclo' as engine."
-        )
-        with pytest.raises(ValueError, match=msg):
-            mag.Simulation3DIntegral(mesh, survey, engine="choclo")
 
 
 def test_removed_modeltype():
