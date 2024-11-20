@@ -3,6 +3,7 @@ import scipy.sparse as sp
 from discretize.utils import Zero
 
 from ... import props
+from ...base import DielectricPermittivity
 from ...data import Data
 from ...utils import mkvc, validate_type
 from ..base import BaseEMSimulation
@@ -16,10 +17,8 @@ from .fields import (
     Fields3DCurrentDensity,
 )
 
-import warnings
 
-
-class BaseFDEMSimulation(BaseEMSimulation):
+class BaseFDEMSimulation(BaseEMSimulation, DielectricPermittivity):
     r"""Base finite volume FDEM simulation class.
 
     This class is used to define properties and methods necessary for solving
@@ -64,7 +63,6 @@ class BaseFDEMSimulation(BaseEMSimulation):
     """
 
     fieldsPair = FieldsFDEM
-    permittivity = props.PhysicalProperty("Dielectric permittivity (F/m)")
 
     def __init__(
         self,
@@ -77,11 +75,6 @@ class BaseFDEMSimulation(BaseEMSimulation):
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.forward_only = forward_only
-        if permittivity is not None:
-            warnings.warn(
-                "Simulations using permittivity have not yet been thoroughly tested and derivatives are not implemented. Contributions welcome!",
-                stacklevel=2,
-            )
         self.permittivity = permittivity
         self.storeJ = storeJ
 

@@ -3,7 +3,7 @@ import numpy as np
 import scipy.sparse as sp
 import matplotlib.pyplot as plt
 
-from ...base import BaseVelocity
+from ...base import AcousticVelocity
 from ...simulation import LinearSimulation
 from ...utils import sub2ind, validate_type
 
@@ -75,7 +75,7 @@ def _lineintegral(M, Tx, Rx):
     return inds, V
 
 
-class Simulation2DIntegral(LinearSimulation, BaseVelocity):
+class Simulation2DIntegral(LinearSimulation, AcousticVelocity):
 
     def __init__(self, mesh, survey=None, **kwargs):
         self.mesh = mesh

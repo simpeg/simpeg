@@ -7,7 +7,7 @@ from scipy.constants import G as NewtG
 
 from simpeg.utils import mkvc, sdiag
 
-from ...base import BasePDESimulation, BaseDensity
+from ...base import BasePDESimulation, MassDensity
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
 
 from ._numba_functions import (
@@ -116,7 +116,7 @@ def _get_conversion_factor(component):
     return conversion_factor
 
 
-class Simulation3DIntegral(BasePFSimulation, BaseDensity):
+class Simulation3DIntegral(BasePFSimulation, MassDensity):
     """
     Gravity simulation in integral form.
 

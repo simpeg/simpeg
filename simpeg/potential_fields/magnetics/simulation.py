@@ -49,7 +49,7 @@ from ._numba_functions import (
     _sensitivity_tmi_derivative_2d_mesh_serial,
     _sensitivity_tmi_derivative_2d_mesh_parallel,
 )
-from ...base import BaseSusceptibility
+from ...base import MagneticSusceptibility
 
 if choclo is not None:
     CHOCLO_SUPPORTED_COMPONENTS = {
@@ -139,7 +139,7 @@ if choclo is not None:
     }
 
 
-class Simulation3DIntegral(BasePFSimulation, BaseSusceptibility):
+class Simulation3DIntegral(BasePFSimulation, MagneticSusceptibility):
     """
     Magnetic simulation in integral form.
 

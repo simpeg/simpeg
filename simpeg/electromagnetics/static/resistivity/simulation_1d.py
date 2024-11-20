@@ -4,7 +4,7 @@ import libdlf
 import numpy as np
 
 from ...utils.em1d_utils import get_splined_dlf_points
-from ....base import BaseConductivity, BaseThickness
+from ....base import ElectricalConductivity, LayerThickness
 from ....simulation import BaseSimulation
 
 from .survey import Survey
@@ -102,7 +102,7 @@ def _dphi_tilde(rho, thicknesses, lambdas):
     return J_rho.T, J_h.T
 
 
-class Simulation1DLayers(BaseSimulation, BaseConductivity, BaseThickness):
+class Simulation1DLayers(BaseSimulation, ElectricalConductivity, LayerThickness):
     """
     1D DC Simulation
     """

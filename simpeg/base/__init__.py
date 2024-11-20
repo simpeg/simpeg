@@ -1,11 +1,14 @@
-from .physical_property_simulations import (
-    BaseConductivity,
-    BasePermeability,
-    BaseDensity,
-    BaseThickness,
-    BaseChargeability,
-    BaseSusceptibility,
-    BaseVelocity,
+from .physical_property import (
+    ElectricalConductivity,
+    MagneticPermeability,
+    DielectricPermittivity,
+    MassDensity,
+    LayerThickness,
+    ElectricalChargeability,
+    MagneticSusceptibility,
+    AcousticVelocity,
+    HydraulicConductivity,
+    WaterRetention,
 )
 
 from .pde_simulation import (

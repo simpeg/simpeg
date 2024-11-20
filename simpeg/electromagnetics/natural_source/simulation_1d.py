@@ -1,14 +1,14 @@
 import numpy as np
 from scipy.constants import mu_0
 
-from ...base import BaseConductivity, BaseThickness
+from ...base import ElectricalConductivity, LayerThickness
 from ...simulation import BaseSimulation
 from ...utils import validate_type
 from ..frequency_domain.survey import Survey
 from .receivers import Impedance
 
 
-class Simulation1DRecursive(BaseSimulation, BaseConductivity, BaseThickness):
+class Simulation1DRecursive(BaseSimulation, ElectricalConductivity, LayerThickness):
     r"""
     Simulation class for the 1D MT problem using recursive solution.
 

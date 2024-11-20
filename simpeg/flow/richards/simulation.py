@@ -17,8 +17,8 @@ from ...utils import (
 )
 from ...props import NestedModeler
 
-from .empirical import BaseHydraulicConductivity
-from .empirical import BaseWaterRetention
+from .empirical import HydraulicConductivity
+from .empirical import WaterRetention
 
 
 class SimulationNDCellCentered(BaseTimeSimulation, BasePDESimulation):
@@ -51,9 +51,9 @@ class SimulationNDCellCentered(BaseTimeSimulation, BasePDESimulation):
         self.root_finder_tol = root_finder_tol
 
     hydraulic_conductivity = NestedModeler(
-        BaseHydraulicConductivity, "hydraulic conductivity function"
+        HydraulicConductivity, "hydraulic conductivity function"
     )
-    water_retention = NestedModeler(BaseWaterRetention, "water retention curve")
+    water_retention = NestedModeler(WaterRetention, "water retention curve")
 
     @property
     def mesh(self):
