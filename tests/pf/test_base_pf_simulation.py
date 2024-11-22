@@ -111,15 +111,6 @@ class TestGetActiveNodes:
     Tests _get_active_nodes private method
     """
 
-    def test_invalid_mesh(self, tensor_mesh, mock_simulation_class):
-        """
-        Test error on invalid mesh class
-        """
-        # Initialize base simulation with valid mesh
-        msg = "mesh must be an instance of TensorMesh or TreeMesh, not CylindricalMesh"
-        with pytest.raises(TypeError, match=msg):
-            mock_simulation_class(CylindricalMesh(tensor_mesh.h))
-
     def test_no_inactive_cells_tensor(self, tensor_mesh, mock_simulation_class):
         """
         Test _get_active_nodes when all cells are active on a tensor mesh
@@ -280,9 +271,13 @@ class TestGetComponentsAndReceivers:
         np.testing.assert_equal(receivers, receiver_locations)
 
 
-class TestInvalidMeshChoclo:
+class TestInvalidMesh:
+    """
+    Test if errors are raised after invalid mesh are passed to the base simulation.
+    """
+
     @pytest.fixture(params=("tensormesh", "treemesh"))
-    def mesh(self, request):
+    def mesh_2d(self, request):
         """Sample 2D mesh."""
         hx, hy = [(0.1, 8)], [(0.1, 8)]
         h = (hx, hy)
@@ -293,13 +288,25 @@ class TestInvalidMeshChoclo:
             mesh.finalize()
         return mesh
 
-    def test_invalid_mesh_with_choclo(self, mesh, mock_simulation_class):
+    @pytest.mark.parametrize("engine", ("choclo", "geoana"))
+    def test_invalid_mesh_dimensions(self, mesh_2d, mock_simulation_class, engine):
         """
-        Test if simulation raises error when passing an invalid mesh and using choclo
+        Test error when passing a mesh with invalid dimensions.
         """
-        msg = "MockSimulation mesh must be 3D, received a 2D mesh."
+        msg = re.escape("MockSimulation mesh must be 3D, received a 2D mesh.")
         with pytest.raises(ValueError, match=msg):
-            mock_simulation_class(mesh, engine="choclo")
+            mock_simulation_class(mesh_2d, engine=engine)
+
+    def test_invalid_mesh_type(self, mock_simulation_class):
+        """
+        Test error when passing an invalid mesh class.
+        """
+        h = (3, 3, 3)
+        msg = re.escape(
+            "mesh must be an instance of TensorMesh or TreeMesh, not CylindricalMesh"
+        )
+        with pytest.raises(TypeError, match=msg):
+            mock_simulation_class(CylindricalMesh(h))
 
 
 class TestDeprecationIndActive:
