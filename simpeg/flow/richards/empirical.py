@@ -1,7 +1,9 @@
+import discretize.base
 import numpy as np
 import scipy.sparse as sp
 from scipy import constants
 from ... import utils, props
+from ...utils import validate_type
 
 
 def _get_projections(u):
@@ -34,11 +36,18 @@ class NonLinearModel(props.HasModel):
     """A non linear model that has dependence on the fields and a model"""
 
     counter = None  #: A simpeg.utils.Counter object
-    mesh = None  #: A discretize Mesh
 
     def __init__(self, mesh, **kwargs):
         self.mesh = mesh
         super(NonLinearModel, self).__init__(**kwargs)
+
+    @property
+    def mesh(self):
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, value):
+        self._mesh = validate_type("mesh", value, discretize.base.BaseMesh, cast=False)
 
     @property
     def nP(self):
