@@ -38,7 +38,8 @@ class BaseVRMSimulation(BaseSimulation):
         indActive=None,
         **kwargs,
     ):
-        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        self.mesh = mesh
+        super().__init__(survey=survey, **kwargs)
 
         if refinement_distance is None:
             if refinement_factor is None:
@@ -72,14 +73,25 @@ class BaseVRMSimulation(BaseSimulation):
             active_cells = np.ones(self.mesh.n_cells, dtype=bool)
         self.active_cells = active_cells
 
-    @BaseSimulation.mesh.setter
+    @property
+    def mesh(self):
+        """Mesh for the integral VRM simulations.
+
+        Returns
+        -------
+        discretize.TensorMesh or discretize.TreeMesh
+            3D Mesh on which the forward problem is discretized.
+        """
+        return self._mesh
+
+    @mesh.setter
     def mesh(self, value):
         value = validate_type(
             "mesh", value, (discretize.TensorMesh, discretize.TreeMesh), cast=False
         )
         if value.dim != 3:
             raise ValueError(
-                f"Mesh must be 3D tensor or 3D tree. Current mesh is {value.dim}"
+                f"{type(self).__name__} mesh must be 3D, received a {value.dim}D mesh."
             )
         self._mesh = value
 

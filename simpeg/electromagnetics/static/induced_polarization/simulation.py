@@ -62,7 +62,7 @@ class BaseIPSimulation(BasePDESimulation):
 
     def __init__(
         self,
-        mesh=None,
+        mesh,
         survey=None,
         sigma=None,
         rho=None,

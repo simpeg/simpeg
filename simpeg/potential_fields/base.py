@@ -4,13 +4,14 @@ from multiprocessing.pool import Pool
 
 import discretize
 import numpy as np
+from discretize import TensorMesh, TreeMesh
 from scipy.sparse import csr_matrix as csr
 
 from simpeg.utils import mkvc
 
 from ..simulation import LinearSimulation
 from ..utils import validate_active_indices, validate_integer, validate_string
-from ..utils.code_utils import deprecate_property
+from ..utils.code_utils import deprecate_property, validate_type
 
 try:
     import choclo
@@ -119,18 +120,16 @@ class BasePFSimulation(LinearSimulation):
                 "forwardOnly was removed in SimPEG 0.17.0, please set store_sensitivities='forward_only'"
             )
 
+        self.mesh = mesh
         self.store_sensitivities = store_sensitivities
         self.sensitivity_dtype = sensitivity_dtype
         self.engine = engine
         self.numba_parallel = numba_parallel
-        super().__init__(mesh, **kwargs)
+        super().__init__(**kwargs)
         self.n_processes = n_processes
 
         # Check sensitivity_path when engine is "choclo"
         self._check_engine_and_sensitivity_path()
-
-        # Check dimensions of the mesh when engine is "choclo"
-        self._check_engine_and_mesh_dimensions()
 
         # Find non-zero cells indices
         if active_cells is None:
@@ -173,6 +172,26 @@ class BasePFSimulation(LinearSimulation):
         unique, unique_inv = np.unique(cell_nodes.T, return_inverse=True)
         self._nodes = nodes[unique]  # unique active nodes
         self._unique_inv = unique_inv.reshape(cell_nodes.T.shape)
+
+    @property
+    def mesh(self):
+        """Mesh for the integral potential field simulations.
+
+        Returns
+        -------
+        discretize.TensorMesh or discretize.TreeMesh
+            3D Mesh on which the forward problem is discretized.
+        """
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, value):
+        value = validate_type("mesh", value, (TensorMesh, TreeMesh), cast=False)
+        if value.dim != 3:
+            raise ValueError(
+                f"{type(self).__name__} mesh must be 3D, received a {value.dim}D mesh."
+            )
+        self._mesh = value
 
     @property
     def store_sensitivities(self):
@@ -375,16 +394,6 @@ class BasePFSimulation(LinearSimulation):
                 "should be the path to a new or existing file."
             )
 
-    def _check_engine_and_mesh_dimensions(self):
-        """
-        Check dimensions of the mesh when using choclo as engine
-        """
-        if self.engine == "choclo" and self.mesh.dim != 3:
-            raise ValueError(
-                f"Invalid mesh with {self.mesh.dim} dimensions. "
-                "Only 3D meshes are supported when using 'choclo' as engine."
-            )
-
     def _get_active_nodes(self):
         """
         Return locations of nodes only for active cells
@@ -441,11 +450,7 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
     """
 
     def __init__(self, mesh, cell_z_top, cell_z_bottom, **kwargs):
-
-        if mesh.dim != 2:
-            raise AttributeError("Mesh to equivalent source layer must be 2D.")
-
-        super().__init__(mesh, **kwargs)
+        super().__init__(mesh=mesh, **kwargs)
 
         if isinstance(cell_z_top, (int, float)):
             cell_z_top = float(cell_z_top) * np.ones(self.nC)
@@ -489,17 +494,14 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
         """
         return self._cell_z_bottom
 
-    def _check_engine_and_mesh_dimensions(self):
-        """
-        Check dimensions of the mesh
-
-        Overwrite the parent's method: the equivalent sources class needs 2D
-        meshes, while the potential field simulations work only with 3D meshes.
-
-        This check will run for any given engine.
-        """
-        if self.mesh.dim != 2:
-            raise AttributeError("Mesh to equivalent source layer must be 2D.")
+    @BasePFSimulation.mesh.setter
+    def mesh(self, value):
+        value = validate_type("mesh", value, (TensorMesh, TreeMesh), cast=False)
+        if value.dim != 2:
+            raise ValueError(
+                f"{type(self).__name__} mesh must be 2D, received a {value.dim}D mesh."
+            )
+        self._mesh = value
 
 
 def progress(iteration, prog, final):

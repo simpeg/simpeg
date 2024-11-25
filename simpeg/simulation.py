@@ -6,7 +6,6 @@ import os
 import numpy as np
 import warnings
 
-from discretize.base import BaseMesh
 from discretize import TensorMesh
 from discretize.utils import unpack_widths, sdiag, mkvc
 
@@ -48,8 +47,6 @@ class BaseSimulation(props.HasModel):
 
     Parameters
     ----------
-    mesh : discretize.base.BaseMesh, optional
-        Mesh on which the forward problem is discretized.
     survey : simpeg.survey.BaseSurvey, optional
         The survey for the simulation.
     sensitivity_path : str, optional
@@ -64,14 +61,12 @@ class BaseSimulation(props.HasModel):
 
     def __init__(
         self,
-        mesh=None,
         survey=None,
         sensitivity_path=None,
         counter=None,
         verbose=False,
         **kwargs,
     ):
-        self.mesh = mesh
         self.survey = survey
         if sensitivity_path is None:
             sensitivity_path = os.path.join(".", "sensitivity")
@@ -82,25 +77,6 @@ class BaseSimulation(props.HasModel):
         self._uuid = uuid.uuid4()
 
         super().__init__(**kwargs)
-
-    @property
-    def mesh(self):
-        """Mesh for the simulation.
-
-        For more on meshes, visit :py:class:`discretize.base.BaseMesh`.
-
-        Returns
-        -------
-        discretize.base.BaseMesh
-            Mesh on which the forward problem is discretized.
-        """
-        return self._mesh
-
-    @mesh.setter
-    def mesh(self, value):
-        if value is not None:
-            value = validate_type("mesh", value, BaseMesh, cast=False)
-        self._mesh = value
 
     @property
     def survey(self):
@@ -465,9 +441,6 @@ class BaseTimeSimulation(BaseSimulation):
 
     Parameters
     ----------
-    mesh : discretize.base.BaseMesh, optional
-        Mesh on which the forward problem is discretized. This is not necessarily
-        the same as the mesh on which the simulation is defined.
     t0 : float, optional
         Initial time, in seconds, for the time-dependent forward simulation.
     time_steps : (n_steps, ) numpy.ndarray, optional
@@ -496,10 +469,10 @@ class BaseTimeSimulation(BaseSimulation):
     representation.
     """
 
-    def __init__(self, mesh=None, t0=0.0, time_steps=None, **kwargs):
+    def __init__(self, t0=0.0, time_steps=None, **kwargs):
         self.t0 = t0
         self.time_steps = time_steps
-        super().__init__(mesh=mesh, **kwargs)
+        super().__init__(**kwargs)
 
     @property
     def time_steps(self):
@@ -663,9 +636,6 @@ class LinearSimulation(BaseSimulation):
 
     Parameters
     ----------
-    mesh : discretize.BaseMesh, optional
-        Mesh on which the forward problem is discretized. This is not necessarily
-        the same as the mesh on which the simulation is defined.
     model_map : simpeg.maps.BaseMap
         Mapping from the model parameters to vector that the linear operator acts on.
     G : (n_data, n_param) numpy.ndarray or scipy.sparse.csr_matrx
@@ -678,8 +648,8 @@ class LinearSimulation(BaseSimulation):
         "The model for a linear problem"
     )
 
-    def __init__(self, mesh=None, linear_model=None, model_map=None, G=None, **kwargs):
-        super().__init__(mesh=mesh, **kwargs)
+    def __init__(self, linear_model=None, model_map=None, G=None, **kwargs):
+        super().__init__(**kwargs)
         self.linear_model = linear_model
         self.model_map = model_map
         if G is not None:
@@ -820,6 +790,8 @@ class ExponentialSinusoidSimulation(LinearSimulation):
 
     Parameters
     ----------
+    mesh : discretize.TensorMesh
+        1D TensorMesh defining the discretization of the model space.
     n_kernels : int
         The number of kernel factors for the linear problem; i.e. the number of
         :math:`j_i \in [j_0, ... , j_n]`. This sets the number of rows
@@ -834,13 +806,34 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         Maximum value for the spread of the kernel factors.
     """
 
-    def __init__(self, n_kernels=20, p=-0.25, q=0.25, j0=0.0, jn=60.0, **kwargs):
+    def __init__(self, mesh, n_kernels=20, p=-0.25, q=0.25, j0=0.0, jn=60.0, **kwargs):
+        self.mesh = mesh
         self.n_kernels = n_kernels
         self.p = p
         self.q = q
         self.j0 = j0
         self.jn = jn
         super(ExponentialSinusoidSimulation, self).__init__(**kwargs)
+
+    @property
+    def mesh(self):
+        """Mesh for the simulation.
+
+        Returns
+        -------
+        discretize.TensorMesh
+            Mesh on which the forward problem is discretized.
+        """
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, value):
+        value = validate_type("mesh", value, TensorMesh, cast=False)
+        if value.dim != 1:
+            raise ValueError(
+                f"{type(self).__name__} mesh must be 1D, received a {value.dim}D mesh."
+            )
+        self._mesh = value
 
     @property
     def n_kernels(self):
