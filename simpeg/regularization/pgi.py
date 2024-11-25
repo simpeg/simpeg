@@ -567,25 +567,17 @@ class PGIsmallness(Smallness):
                 if self.non_linear_relationships:
                     raise Exception("Not implemented")
 
-                r = mkvc(
-                    np.r_[[np.dot(self.gmm.precisions_, r0[i]) for i in range(len(r0))]]
-                )
+                r = mkvc(np.dot(self.gmm.precisions_, r0.T).T)
             elif (
                 self.gmm.covariance_type == "diag"
                 or self.gmm.covariance_type == "spherical"
             ) and not self.non_linear_relationships:
-                r = mkvc(
-                    np.r_[
-                        [
-                            np.dot(
-                                self.gmm.precisions_[membership[i]]
-                                * np.eye(len(self.wiresmap.maps)),
-                                r0[i],
-                            )
-                            for i in range(len(r0))
-                        ]
-                    ]
-                )
+                r = np.zeros_like(r0)
+                for i in range(self.gmm.n_components):
+                    selection = membership == i
+                    r[selection] = r0[selection] * self.gmm.precisions_[i].T
+                r = mkvc(r)
+
             else:
                 if self.non_linear_relationships:
                     r = mkvc(
@@ -606,14 +598,11 @@ class PGIsmallness(Smallness):
 
                 else:
                     r0 = (self.W * (mkvc(dm))).reshape(dm.shape, order="F")
-                    r = mkvc(
-                        np.r_[
-                            [
-                                np.dot(self.gmm.precisions_[membership[i]], r0[i])
-                                for i in range(len(r0))
-                            ]
-                        ]
-                    )
+                    r = np.zeros_like(r0)
+                    for i in range(self.gmm.n_components):
+                        selection = membership == i
+                        r[selection] = (self.gmm.precisions_[i] @ r0[selection].T).T
+                    r = mkvc(r)
             return 2 * mkvc(mD.T * (self.W.T * r))
 
         else:
@@ -840,9 +829,7 @@ class PGIsmallness(Smallness):
                 mDv = np.c_[mDv]
                 r0 = (self.W * (mkvc(mDv))).reshape(mDv.shape, order="F")
                 second_deriv_times_r0 = mkvc(
-                    np.r_[
-                        [np.dot(self._r_second_deriv[i], r0[i]) for i in range(len(r0))]
-                    ]
+                    np.einsum("ijk,ik->ij", self._r_second_deriv, r0)
                 )
                 return 2 * mkvc(mD.T * (self.W * second_deriv_times_r0))
             else:
