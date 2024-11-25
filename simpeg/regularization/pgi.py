@@ -600,8 +600,9 @@ class PGIsmallness(Smallness):
                     r0 = (self.W * (mkvc(dm))).reshape(dm.shape, order="F")
                     r = np.zeros_like(r0)
                     for i in range(self.gmm.n_components):
-                        r[membership == i] = (
-                            self.gmm.precisions_[i] @ r0[membership == i].T
+                        selection = membership == i
+                        r[selection] = (
+                            self.gmm.precisions_[i] @ r0[selection].T
                         ).T
                     r = mkvc(r)
             return 2 * mkvc(mD.T * (self.W.T * r))
