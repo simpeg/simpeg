@@ -615,11 +615,11 @@ class BaseElectricalPDESimulation(BasePDESimulation):
         self.rhoMap = rhoMap
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_update(self):
         """
         matrices to be deleted if the model for conductivity/resistivity is updated
         """
-        toDelete = super().deleteTheseOnModelUpdate
+        toDelete = super()._delete_on_model_update
         if self.sigmaMap is not None or self.rhoMap is not None:
             toDelete = (
                 toDelete + self._clear_on_sigma_update + self._clear_on_rho_update
@@ -658,11 +658,11 @@ class BaseMagneticPDESimulation(BasePDESimulation):
                     delattr(self, mat)
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_update(self):
         """
         items to be deleted if the model for Magnetic Permeability is updated
         """
-        toDelete = super().deleteTheseOnModelUpdate
+        toDelete = super()._delete_on_model_update
         if self.muMap is not None or self.muiMap is not None:
             toDelete = toDelete + self._clear_on_mu_update + self._clear_on_mui_update
         return toDelete

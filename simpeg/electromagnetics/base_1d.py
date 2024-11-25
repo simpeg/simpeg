@@ -576,8 +576,8 @@ class BaseEM1DSimulation(BaseSimulation):
         self._W = self._W.tocsr()
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        toDelete = super().deleteTheseOnModelUpdate
+    def _delete_on_model_update(self):
+        toDelete = super()._delete_on_model_update
         if self.fix_Jmatrix is False:
             toDelete += ["_J", "_gtgdiag"]
         return toDelete

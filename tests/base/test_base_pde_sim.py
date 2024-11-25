@@ -32,11 +32,11 @@ class SimpleSim(BasePDESimulation):
         self.muMap = muMap
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_update(self):
         """
         matrices to be deleted if the model for conductivity/resistivity is updated
         """
-        toDelete = super().deleteTheseOnModelUpdate
+        toDelete = super()._delete_on_model_update
         if self.sigmaMap is not None or self.rhoMap is not None:
             toDelete = toDelete + self._clear_on_sigma_update
         return toDelete
