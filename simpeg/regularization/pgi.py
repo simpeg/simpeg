@@ -70,10 +70,10 @@ class PGIsmallness(Smallness):
         ``tensor``, ``QuadTree`` or ``Octree`` meshes.
     approx_gradient : bool
         If ``True``, use the L2-approximation of the gradient by assuming
-        physical property values of different types are uncorrelated.
+        the physical property distributions of each geologic units are distinct
     approx_eval : bool
         If ``True``, use the L2-approximation evaluation of the smallness term by assuming
-        physical property values of different types are uncorrelated.
+        the physical property distributions of each geologic units are distinct
     approx_hessian : bool
         Approximate the Hessian of the regularization function.
     non_linear_relationship : bool
@@ -470,30 +470,22 @@ class PGIsmallness(Smallness):
             r0 = (W * mkvc(dmr)).reshape(dmr.shape, order="F")
 
             if self.gmm.covariance_type == "tied":
-                r1 = np.r_[
-                    [np.dot(self.gmm.precisions_, np.r_[r0[i]]) for i in range(len(r0))]
-                ]
+                r1 = mkvc(np.dot(self.gmm.precisions_, r0.T).T)
             elif (
                 self.gmm.covariance_type == "diag"
                 or self.gmm.covariance_type == "spherical"
             ):
-                r1 = np.r_[
-                    [
-                        np.dot(
-                            self.gmm.precisions_[membership[i]]
-                            * np.eye(len(self.wiresmap.maps)),
-                            np.r_[r0[i]],
-                        )
-                        for i in range(len(r0))
-                    ]
-                ]
+                r1 = np.zeros_like(r0)
+                for i in range(self.gmm.n_components):
+                    selection = membership == i
+                    r1[selection] = r0[selection] * self.gmm.precisions_[i].T
+                r1 = mkvc(r1)
             else:
-                r1 = np.r_[
-                    [
-                        np.dot(self.gmm.precisions_[membership[i]], np.r_[r0[i]])
-                        for i in range(len(r0))
-                    ]
-                ]
+                r1 = np.zeros_like(r0)
+                for i in range(self.gmm.n_components):
+                    selection = membership == i
+                    r1[selection] = (self.gmm.precisions_[i] @ r0[selection].T).T
+                r1 = mkvc(r1)
 
             return mkvc(r0).dot(mkvc(r1))
 
