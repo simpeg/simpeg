@@ -31,6 +31,7 @@ class SimulationNDCellCentered(BaseTimeSimulation, BasePDESimulation):
         water_retention,
         boundary_conditions,
         initial_conditions,
+        *,
         method="mixed",
         do_newton=False,
         root_finder_max_iter=30,

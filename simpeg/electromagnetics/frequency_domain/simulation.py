@@ -2,7 +2,6 @@ import numpy as np
 import scipy.sparse as sp
 from discretize.utils import Zero
 
-from ... import props
 from ...base import DielectricPermittivity
 from ...data import Data
 from ...utils import mkvc, validate_type
@@ -68,6 +67,7 @@ class BaseFDEMSimulation(BaseEMSimulation, DielectricPermittivity):
         self,
         mesh,
         survey=None,
+        *,
         forward_only=False,
         permittivity=None,
         storeJ=False,
@@ -1432,14 +1432,6 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
     _solutionType = "jSolution"
     _formulation = "HJ"
     fieldsPair = Fields3DCurrentDensity
-
-    permittivity = props.PhysicalProperty("Dielectric permittivity (F/m)")
-
-    def __init__(
-        self, mesh, survey=None, forward_only=False, permittivity=None, **kwargs
-    ):
-        super().__init__(mesh=mesh, survey=survey, forward_only=forward_only, **kwargs)
-        self.permittivity = permittivity
 
     def getA(self, freq):
         r"""System matrix for the frequency provided.

@@ -486,7 +486,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
     fieldsPair = Fields2DCellCentered
     fieldsPair_fwd = Fields3DCellCentered
 
-    def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
+    def __init__(self, mesh, survey=None, *, bc_type="Robin", **kwargs):
         super().__init__(mesh, survey=survey, **kwargs)
         V = sdiag(self.mesh.cell_volumes)
         self.Div = V @ self.mesh.face_divergence
@@ -632,7 +632,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
     fieldsPair_fwd = Fields3DNodal
     _gradT = None
 
-    def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
+    def __init__(self, mesh, survey=None, *, bc_type="Robin", **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.solver_opts["is_symmetric"] = True
         self.solver_opts["is_positive_definite"] = True

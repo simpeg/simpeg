@@ -39,6 +39,7 @@ class Haverkamp_theta(WaterRetention):
 
     def __init__(
         self,
+        *,
         theta_r=0.075,
         theta_s=0.287,
         alpha=1.611e06,
@@ -159,6 +160,7 @@ class Haverkamp_k(HydraulicConductivity):
 
     def __init__(
         self,
+        *,
         Ks=9.44e-03,
         KsMap=None,
         A=1.175e06,
@@ -266,6 +268,7 @@ class Vangenuchten_theta(WaterRetention):
 
     def __init__(
         self,
+        *,
         theta_r=0.078,
         theta_s=0.430,
         n=1.56,
@@ -413,6 +416,7 @@ class Vangenuchten_k(HydraulicConductivity):
 
     def __init__(
         self,
+        *,
         Ks=24.96,
         I=0.5,
         IMap=None,
