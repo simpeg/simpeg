@@ -574,7 +574,8 @@ class PGIsmallness(Smallness):
             ) and not self.non_linear_relationships:
                 r = np.zeros_like(r0)
                 for i in range(self.gmm.n_components):
-                    r[membership == i] = r0[membership == i] * self.gmm.precisions_[i].T
+                    selection = membership == i
+                    r[selection] = r0[selection] * self.gmm.precisions_[i].T
                 r = mkvc(r)
 
             else:
