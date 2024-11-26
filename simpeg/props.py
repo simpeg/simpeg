@@ -2,7 +2,7 @@ import warnings
 
 import numpy as np
 
-from build.lib.simpeg.utils import deprecate_property
+from simpeg.utils import deprecate_property
 from .maps import IdentityMap, ReciprocalMap
 from .utils import Zero, validate_type, validate_ndarray_with_shape
 
