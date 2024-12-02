@@ -1,3 +1,5 @@
+import re
+
 from simpeg.base import with_property_mass_matrices, BasePDESimulation
 from simpeg import props, maps
 import unittest
@@ -8,6 +10,8 @@ from discretize.tests import check_derivative
 from discretize.utils import Zero
 import scipy.sparse as sp
 import pytest
+
+from simpeg.utils.solver_utils import get_default_solver
 
 
 # define a very simple class...
@@ -806,3 +810,34 @@ def test_bad_derivative_stash():
 
     with pytest.raises(TypeError):
         sim.MeSigmaDeriv(u, v)
+
+
+def test_solver_defaults():
+    mesh = discretize.TensorMesh([2, 2, 2])
+    sim = BasePDESimulation(mesh)
+    with pytest.warns(UserWarning, match="Using the default solver.*"):
+        solver_class = sim.solver
+
+    assert solver_class is get_default_solver()
+
+
+def test_bad_solver():
+    mesh = discretize.TensorMesh([2, 2, 2])
+    msg = re.escape("BasePDESimulation.solver must be a class")
+    with pytest.raises(TypeError, match=msg):
+        BasePDESimulation(mesh, solver="f")
+
+    msg = re.escape("str is not a subclass of pymatsolver.base.BaseSolver")
+    with pytest.raises(TypeError, match=msg):
+        BasePDESimulation(mesh, solver=str)
+
+
+def test_mesh_required():
+    with pytest.raises(TypeError):
+        BasePDESimulation()
+
+
+def test_bad_mesh():
+    with pytest.raises(TypeError):
+        # should error on anything besides a discretize.base.BaseMesh
+        BasePDESimulation(np.array([1, 2, 3]))

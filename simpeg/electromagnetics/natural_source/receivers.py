@@ -638,7 +638,7 @@ class Tipper(BaseNaturalSourceRx):
         numpy.ndarray
             Roving locations where the magnetic field is measured for all receiver data.
         """
-        return self.locations[0]
+        return self._locations[0]
 
     @property
     def locations_base(self):
@@ -649,7 +649,7 @@ class Tipper(BaseNaturalSourceRx):
         numpy.ndarray
             Base station locations where the horizontal magnetic fields are measured.
         """
-        return self.locations[1]
+        return self._locations[1]
 
     @property
     def component(self):
@@ -1287,7 +1287,7 @@ class PointNaturalSource(Impedance):
                     locations_e = locations[0]
                     locations_h = locations[0]
                 else:
-                    raise Exception("incorrect size of list, must be length of 1 or 2")
+                    raise ValueError("incorrect size of list, must be length of 1 or 2")
             else:
                 locations_e = locations_h = locations
 
@@ -1346,13 +1346,15 @@ class Point3DTipper(Tipper):
         # so can just issue a warning here...
         if locations_e is not None or locations_h is not None:
             warnings.warn(
-                "locations_e and locations_h are unused for this class", stacklevel=2
+                "locations_e and locations_h are unused for this class",
+                UserWarning,
+                stacklevel=2,
             )
         if isinstance(locations, list):
             if len(locations) < 3:
                 locations = locations[0]
             else:
-                raise Exception("incorrect size of list, must be length of 1 or 2")
+                raise ValueError("incorrect size of list, must be length of 1 or 2")
 
         super().__init__(
             locations_h=locations,
@@ -1371,4 +1373,4 @@ class Point3DTipper(Tipper):
             out = super().eval(src, mesh, f)
         return out
 
-    # locations = property(lambda self: self._locations[0], Tipper.locations.fset)
+    locations = property(lambda self: self._locations[0], Tipper.locations.fset)

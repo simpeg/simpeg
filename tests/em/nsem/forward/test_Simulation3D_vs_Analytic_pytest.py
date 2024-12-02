@@ -6,11 +6,8 @@ from simpeg.electromagnetics import natural_source as nsem
 from simpeg.utils import model_builder, mkvc
 from simpeg import maps
 
-REL_TOLERANCE_TEST_1 = 0.05
-ABS_TOLERANCE_TEST_1 = 1e-8
-
-REL_TOLERANCE_TEST_2 = 0.02
-ABS_TOLERANCE_TEST_2 = 1e-8
+REL_TOLERANCE = 0.05
+ABS_TOLERANCE = 1e-13
 
 
 @pytest.fixture
@@ -18,9 +15,9 @@ def mesh():
     # Mesh for testing
     return TensorMesh(
         [
-            [(250, 10, -1.5), (250.0, 8), (250, 10, 1.5)],
-            [(250, 10, -1.5), (250.0, 8), (250, 10, 1.5)],
-            [(250, 10, -1.5), (250.0, 8), (250, 10, 1.5)],
+            [(200, 6, -1.5), (200.0, 4), (200, 6, 1.5)],
+            [(200, 6, -1.5), (200.0, 4), (200, 6, 1.5)],
+            [(200, 8, -1.5), (200.0, 8), (200, 8, 1.5)],
         ],
         "CCC",
     )
@@ -33,30 +30,18 @@ def mapping(mesh):
 
 def get_model(mesh, model_type):
     # Model used for testing
+    model = 1e-8 * np.ones(mesh.nC)
+    model[mesh.cell_centers[:, 2] < 0.0] = 1e-2
 
-    if model_type == "halfspace":
-        model = 1e-8 * np.ones(mesh.nC)
-        model[mesh.cell_centers[:, 2] < 0.0] = 1e-2
-
-    elif model_type == "layer":
-        model = 1e-8 * np.ones(mesh.nC)
-        model[mesh.cell_centers[:, 2] < 0.0] = 1e-2
+    if model_type == "layer":
         model[mesh.cell_centers[:, 2] < -3000.0] = 1e-1
-
     elif model_type == "block":
-        model = 1e-8 * np.ones(mesh.nC)
-        model[mesh.cell_centers[:, 2] < 0.0] = 1e-2
-
-        ind_block = model_builder.get_indices_block(
-            np.array([-500, -500, -1000]),
-            np.array([500, 500, -500]),
+        ind_block = model_builder.get_block_indices(
             mesh.cell_centers,
+            np.array([-1000, -1000, -1500]),
+            np.array([1000, 1000, -1000]),
         )
         model[ind_block] = 1e-1
-
-    elif model_type == "1d":
-        model = 1e-8 * np.ones(len(mesh.h[2]))
-        model[mesh.cell_centers_z < 0.0] = 1e-2
 
     return model
 
@@ -65,7 +50,7 @@ def get_model(mesh, model_type):
 def locations():
     # Receiver locations
     elevation = 0.0
-    rx_x, rx_y = np.meshgrid(np.arange(-300, 301, 200), np.arange(-300, 301, 200))
+    rx_x, rx_y = np.meshgrid(np.arange(-350, 350, 200), np.arange(-350, 350, 200))
     return np.hstack(
         (mkvc(rx_x, 2), mkvc(rx_y, 2), elevation + np.zeros((np.prod(rx_x.shape), 1)))
     )
@@ -74,10 +59,10 @@ def locations():
 @pytest.fixture
 def frequencies():
     # Frequencies being evaluated
-    return [1e-1, 5e-1]
+    return [1e-1, 2e-1]
 
 
-def get_survey(source_type, locations, frequencies, survey_type, component):
+def get_survey(locations, frequencies, survey_type, component):
     source_list = []
 
     for f in frequencies:
@@ -114,7 +99,7 @@ def get_survey(source_type, locations, frequencies, survey_type, component):
             rx_list = [
                 nsem.receivers.Admittance(
                     locations_e=locations,
-                    locations_h=locations + np.c_[0, 0, 100],
+                    locations_h=locations,
                     orientation=ij,
                     component=component,
                 )

@@ -57,7 +57,7 @@ class Simulation1DRecursive(BaseSimulation):
         fix_Jmatrix=False,
         **kwargs,
     ):
-        super().__init__(mesh=None, survey=survey, **kwargs)
+        super().__init__(survey=survey, **kwargs)
         self.fix_Jmatrix = fix_Jmatrix
         self.sigma = sigma
         self.rho = rho
@@ -82,19 +82,12 @@ class Simulation1DRecursive(BaseSimulation):
     def survey(self, value):
         if value is not None:
             value = validate_type("survey", value, Survey, cast=False)
-            # Check for acceptable receiver types
-            is_valid = np.all(
-                [
-                    np.all(
-                        [isinstance(rx_ii, Impedance) for rx_ii in src_ii.receiver_list]
-                    )
-                    for src_ii in value.source_list
-                ]
-            )
-            if not is_valid:
-                raise TypeError(
-                    "1D recursive solution only implemented for 'Impedance' receivers."
-                )
+            for src in value.source_list:
+                for rx in src.receiver_list:
+                    if not isinstance(rx, Impedance):
+                        raise NotImplementedError(
+                            f"{type(self).__name__} does not support {type(rx).__name__} receivers, only implemented for 'Impedance'."
+                        )
         self._survey = value
 
     @property

@@ -8,9 +8,7 @@ from simpeg import (
 from simpeg.utils import mkvc, model_builder
 from simpeg.electromagnetics import natural_source as nsem
 
-REL_TOLERANCE = 5e-2
-ABS_TOLERANCE = 1e-4
-ADJ_TOLERANCE = 1e-10
+ADJ_RTOL = 1e-10
 
 
 @pytest.fixture
@@ -182,7 +180,7 @@ class TestDerivativesPrimarySecondary:
         )
 
         n_active = np.sum(active_cells)
-        np.random.seed(1983)
+        rng = np.random.default_rng(4412)
 
         # Model
         m0 = np.log(1e1) * np.ones(n_active)
@@ -192,7 +190,7 @@ class TestDerivativesPrimarySecondary:
             mesh.cell_centers[active_cells, :],
         )
         m0[ind] = np.log(1e0)
-        m0 += 0.01 * np.random.uniform(low=-1, high=1, size=n_active)
+        m0 += 0.01 * rng.uniform(low=-1, high=1, size=n_active)
 
         # Define data and misfit
         data = sim.make_synthetic_data(m0, add_noise=True)
@@ -356,7 +354,6 @@ class TestDerivativesFictitiousSource:
         active_cells,
         mapping,
         sigma_hs,
-        sigma_background_1d,
     ):
         m0, dmis = self.get_setup_objects(
             survey_type,
@@ -379,5 +376,6 @@ class TestDerivativesFictitiousSource:
             lambda v: sim.Jtvec(m0, v, f=f),
             m0.shape,
             (n_data,),
-            rtol=ADJ_TOLERANCE,
+            rtol=ADJ_RTOL,
+            random_seed=32,
         )
