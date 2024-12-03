@@ -75,7 +75,6 @@ class BasePFSimulation(LinearSimulation):
         self,
         mesh,
         ind_active=None,
-        store_sensitivities="ram",
         n_processes=1,
         sensitivity_dtype=np.float32,
         engine="geoana",
@@ -93,7 +92,6 @@ class BasePFSimulation(LinearSimulation):
                 "forwardOnly was removed in SimPEG 0.17.0, please set store_sensitivities=None"
             )
 
-        self.store_sensitivities = store_sensitivities
         self.sensitivity_dtype = sensitivity_dtype
         self.engine = engine
         self.numba_parallel = numba_parallel
@@ -147,31 +145,6 @@ class BasePFSimulation(LinearSimulation):
         unique, unique_inv = np.unique(cell_nodes.T, return_inverse=True)
         self._nodes = nodes[unique]  # unique active nodes
         self._unique_inv = unique_inv.reshape(cell_nodes.T.shape)
-
-    @property
-    def store_sensitivities(self):
-        """Options for storing sensitivities.
-
-        There are 3 options:
-
-        - 'ram': sensitivity matrix stored in RAM
-        - 'disk': sensitivities written and stored to disk
-        - 'forward_only': sensitivities are not store (only use for forward simulation)
-
-        Returns
-        -------
-        {'disk', 'ram', 'forward_only'}
-            A string defining the model type for the simulation.
-        """
-        if self._store_sensitivities is None:
-            self._store_sensitivities = "ram"
-        return self._store_sensitivities
-
-    @store_sensitivities.setter
-    def store_sensitivities(self, value):
-        self._store_sensitivities = validate_string(
-            "store_sensitivities", value, ["disk", "ram", "forward_only"]
-        )
 
     @property
     def sensitivity_dtype(self):
