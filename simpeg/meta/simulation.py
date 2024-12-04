@@ -216,7 +216,7 @@ class MetaSimulation(BaseSimulation):
             f.append(sim.fields(sim.model))
         return f
 
-    def dpred(self, m=None, f=None):
+    def dpred(self, m=None, f=None, **kwargs):
         if f is None:
             if m is None:
                 m = self.model
@@ -225,7 +225,7 @@ class MetaSimulation(BaseSimulation):
         for mapping, sim, field in zip(self.mappings, self.simulations, f):
             if self._repeat_sim:
                 sim.model = mapping * self.model
-            d_pred.append(sim.dpred(m=sim.model, f=field))
+            d_pred.append(sim.dpred(m=sim.model, f=field, **kwargs))
         return np.concatenate(d_pred)
 
     def Jvec(self, m, v, f=None):
