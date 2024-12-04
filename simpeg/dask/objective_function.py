@@ -72,7 +72,7 @@ def dask_call(self, m, f=None):
         return np.sum(np.r_[multipliers][:, None] * np.vstack(fcts), axis=0).squeeze()
 
 
-ComboObjectiveFunction.__call__ = dask_call
+# ComboObjectiveFunction.__call__ = dask_call
 
 
 def dask_deriv(self, m, f=None):
@@ -118,7 +118,7 @@ def dask_deriv(self, m, f=None):
         return np.sum(np.r_[multipliers][:, None] * np.vstack(g), axis=0).squeeze()
 
 
-ComboObjectiveFunction.deriv = dask_deriv
+# ComboObjectiveFunction.deriv = dask_deriv
 
 
 def dask_deriv2(self, m, v=None, f=None):
@@ -164,4 +164,4 @@ def dask_deriv2(self, m, v=None, f=None):
         return phi_deriv2
 
 
-ComboObjectiveFunction.deriv2 = dask_deriv2
+# ComboObjectiveFunction.deriv2 = dask_deriv2

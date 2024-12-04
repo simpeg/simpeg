@@ -59,7 +59,7 @@ def dask_getFields(self, m, store=False, deleteWarmstart=True):
     return f
 
 
-BaseInvProblem.getFields = dask_getFields
+# BaseInvProblem.getFields = dask_getFields
 
 
 def get_dpred(self, m, f=None, compute_J=False):
@@ -126,7 +126,7 @@ def get_dpred(self, m, f=None, compute_J=False):
     return dpreds
 
 
-BaseInvProblem.get_dpred = get_dpred
+# BaseInvProblem.get_dpred = get_dpred
 
 
 def dask_evalFunction(self, m, return_g=True, return_H=True):
@@ -136,7 +136,7 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
 
     phi_d = 0
     for (_, objfct), pred in zip(self.dmisfit, self.dpred):
-        residual = objfct.W * (objfct.data.dobs - pred)
+        residual = objfct.W * objfct.residual(m, pred)
         phi_d += np.vdot(residual, residual)
 
     phi_d = np.asarray(phi_d)

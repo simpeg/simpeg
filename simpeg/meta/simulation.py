@@ -226,7 +226,7 @@ class MetaSimulation(BaseSimulation):
             if self._repeat_sim:
                 sim.model = mapping * self.model
             d_pred.append(sim.dpred(m=sim.model, f=field, **kwargs))
-        return np.concatenate(d_pred)
+        return d_pred
 
     def Jvec(self, m, v, f=None):
         self.model = m
