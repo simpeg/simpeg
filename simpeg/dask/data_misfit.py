@@ -20,7 +20,7 @@ def dask_call(self, m, f=None):
     return phi_d
 
 
-L2DataMisfit.__call__ = dask_call
+# L2DataMisfit.__call__ = dask_call
 
 
 def dask_deriv(self, m, f=None):
@@ -48,7 +48,7 @@ def dask_deriv(self, m, f=None):
     return Jtvec
 
 
-L2DataMisfit.deriv = dask_deriv
+# L2DataMisfit.deriv = dask_deriv
 
 
 def dask_deriv2(self, m, v, f=None):
@@ -78,7 +78,7 @@ def dask_deriv2(self, m, v, f=None):
     return jtwjvec
 
 
-L2DataMisfit.deriv2 = dask_deriv2
+# L2DataMisfit.deriv2 = dask_deriv2
 
 
 def dask_residual(self, m, f=None):
@@ -93,4 +93,4 @@ def dask_residual(self, m, f=None):
         raise Exception(f"Attribute f must be or type {Fields}, numpy.array or None.")
 
 
-L2DataMisfit.residual = dask_residual
+# L2DataMisfit.residual = dask_residual

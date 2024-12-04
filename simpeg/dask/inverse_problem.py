@@ -75,9 +75,7 @@ def get_dpred(self, m, f=None, compute_J=False):
                 else:
                     vec = m
 
-                compute_sensitivities = compute_J and (
-                    objfct.simulation._Jmatrix is None
-                )
+                compute_sensitivities = compute_J
 
                 if compute_sensitivities and i == 0:
                     print("Computing forward & sensitivities")

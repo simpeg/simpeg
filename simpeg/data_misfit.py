@@ -359,16 +359,16 @@ class L2DataMisfit(BaseDataMisfit):
                 + "Cannot form the sensitivity explicitly"
             )
 
-        mapping_deriv = self.model_map.deriv(m)
-
-        if self.model_map is not None:
-            m = mapping_deriv @ m
+        # mapping_deriv = self.model_map.deriv(m)
+        #
+        # if self.model_map is not None:
+        #     m = mapping_deriv @ m
 
         jtjdiag = self.simulation.getJtJdiag(m, W=self.W)
 
-        if self.model_map is not None:
-            jtjdiag = mkvc(
-                (sdiag(np.sqrt(jtjdiag)) @ mapping_deriv).power(2).sum(axis=0)
-            )
+        # if self.model_map is not None:
+        #     jtjdiag = mkvc(
+        #         (sdiag(np.sqrt(jtjdiag)) @ mapping_deriv).power(2).sum(axis=0)
+        #     )
 
         return jtjdiag
