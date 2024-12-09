@@ -283,11 +283,11 @@ class BaseInvProblem:
 
         return f
 
-    def get_dpred(self, m, f=None, compute_J=False):
+    def get_dpred(self, m, f=None):
         dpred = []
         for i, objfct in enumerate(self.dmisfit.objfcts):
             if hasattr(objfct, "simulation"):
-                dpred += [objfct.simulation.dpred(m, f=f if f is None else f[i], compute_J=compute_J)]
+                dpred += [objfct.simulation.dpred(m, f=f if f is None else f[i])]
             else:
                 dpred += []
         return dpred

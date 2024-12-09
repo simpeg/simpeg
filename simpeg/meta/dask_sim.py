@@ -436,6 +436,22 @@ class DaskMetaSimulation(MetaSimulation):
 
         return self._jtjdiag
 
+    def compute_J(self, m, f=None):
+        self.model = m
+        if f is None:
+            f = self.fields(m)
+        J = []
+        client = self.client
+        for sim, worker, field in zip(self.simulations, self._workers, f):
+            J.append(
+                client.submit(
+                    sim.compute_J,
+                    field,
+                    workers=worker,
+                )
+            )
+        return self.client.gather(J)
+
 
 class DaskSumMetaSimulation(DaskMetaSimulation, SumMetaSimulation):
     """A dask distributed version of :class:`.SumMetaSimulation`.

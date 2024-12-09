@@ -324,6 +324,19 @@ class MetaSimulation(BaseSimulation):
 
         return self._jtjdiag
 
+    def compute_J(self, m, f=None):
+        self.model = m
+        if f is None:
+            f = self.fields(m)
+        J = []
+        for sim, field in zip(self.simulations, f):
+            J.append(
+                sim.compute_J,
+                field,
+                workers=worker,
+            )
+        return J
+
     @property
     def deleteTheseOnModelUpdate(self):
         return super().deleteTheseOnModelUpdate + ["_jtjdiag"]
