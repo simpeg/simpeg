@@ -1,7 +1,7 @@
 from .....electromagnetics.static.resistivity.simulation_2d import (
     BaseDCSimulation2D as Sim,
 )
-from .simulation import dask_getJtJdiag, dask_Jvec, dask_Jtvec
+from .simulation import dask_getJtJdiag
 import dask.array as da
 import numpy as np
 import zarr
@@ -12,8 +12,6 @@ numcodecs.blosc.use_threads = False
 Sim.sensitivity_path = "./sensitivity/"
 
 Sim.getJtJdiag = dask_getJtJdiag
-Sim.Jvec = dask_Jvec
-Sim.Jtvec = dask_Jtvec
 Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag"]
 
 

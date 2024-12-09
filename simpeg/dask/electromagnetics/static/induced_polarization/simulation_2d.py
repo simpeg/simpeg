@@ -9,15 +9,13 @@ numcodecs.blosc.use_threads = False
 
 Sim.sensitivity_path = "./sensitivity/"
 
-from .simulation import dask_getJtJdiag, dask_Jvec, dask_Jtvec, dask_dpred
+from .simulation import dask_getJtJdiag, dask_dpred
 
 from ..resistivity.simulation_2d import compute_J, dask_getSourceTerm
 
 Sim.compute_J = compute_J
 Sim.getSourceTerm = dask_getSourceTerm
 Sim.getJtJdiag = dask_getJtJdiag
-Sim.Jvec = dask_Jvec
-Sim.Jtvec = dask_Jtvec
 Sim.dpred = dask_dpred
 
 

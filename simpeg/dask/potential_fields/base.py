@@ -5,6 +5,10 @@ from dask import delayed, array, config
 from dask.diagnostics import ProgressBar
 from ..utils import compute_chunk_sizes
 
+
+from simpeg.dask.simulation import dask_getJtJdiag
+
+Sim.getJtJdiag = dask_getJtJdiag
 Sim._chunk_format = "row"
 
 

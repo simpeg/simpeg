@@ -9,7 +9,7 @@ import numpy as np
 import scipy.sparse as sp
 from dask import array, delayed
 
-from simpeg.dask.simulation import dask_Jvec, dask_Jtvec, dask_getJtJdiag
+from simpeg.dask.simulation import dask_getJtJdiag
 from simpeg.dask.utils import get_parallel_blocks
 from simpeg.utils import mkvc
 
@@ -18,8 +18,6 @@ from tqdm import tqdm
 
 Sim.sensitivity_path = "./sensitivity/"
 Sim.getJtJdiag = dask_getJtJdiag
-Sim.Jvec = dask_Jvec
-Sim.Jtvec = dask_Jtvec
 Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag"]
 
 

@@ -6,7 +6,7 @@ from multiprocessing import cpu_count
 from dask import array, compute, delayed
 
 # from dask.distributed import get_client, Client, performance_report
-from simpeg.dask.simulation import dask_Jvec, dask_Jtvec, dask_getJtJdiag
+from simpeg.dask.simulation import dask_getJtJdiag
 from simpeg.dask.utils import get_parallel_blocks
 from simpeg.electromagnetics.natural_source.sources import PlanewaveXYPrimary
 import zarr
@@ -16,8 +16,7 @@ Sim.sensitivity_path = "./sensitivity/"
 Sim.gtgdiag = None
 
 Sim.getJtJdiag = dask_getJtJdiag
-Sim.Jvec = dask_Jvec
-Sim.Jtvec = dask_Jtvec
+
 Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag"]
 
 
