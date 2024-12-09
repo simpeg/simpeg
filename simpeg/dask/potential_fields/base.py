@@ -24,7 +24,7 @@ def chunk_format(self, other):
 Sim.chunk_format = chunk_format
 
 
-def dask_dpred(self, m=None, f=None, compute_J=False):
+def dask_dpred(self, m=None, f=None):
     if m is not None:
         self.model = m
     if f is not None:

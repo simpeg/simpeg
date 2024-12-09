@@ -21,7 +21,7 @@ Sim.Jtvec = dask_Jtvec
 Sim.dpred = dask_dpred
 
 
-def dask_fields(self, m=None, return_Ainv=False):
+def dask_fields(self, m=None):
     if m is not None:
         self.model = m
 
@@ -50,8 +50,7 @@ def dask_fields(self, m=None, return_Ainv=False):
                     scale[src, rx] = 1.0 / rx.eval(src, self.mesh, f_fwd)
         self._scale = scale.dobs
 
-    if return_Ainv:
-        self.Ainv = Ainv
+    self.Ainv = Ainv
 
     return f
 

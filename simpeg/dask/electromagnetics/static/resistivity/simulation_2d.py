@@ -17,7 +17,7 @@ Sim.Jtvec = dask_Jtvec
 Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag"]
 
 
-def dask_fields(self, m=None, return_Ainv=False):
+def dask_fields(self, m=None):
     if m is not None:
         self.model = m
 
@@ -33,8 +33,7 @@ def dask_fields(self, m=None, return_Ainv=False):
         RHS = self.getRHS(ky)
         f[:, self._solutionType, iky] = Ainv[iky] * RHS
 
-    if return_Ainv:
-        self.Ainv = Ainv
+    self.Ainv = Ainv
 
     return f
 
@@ -47,7 +46,7 @@ def compute_J(self, f=None):
     weights = self._quad_weights
 
     if f is None:
-        f = self.fields(self.model, return_Ainv=True)
+        f = self.fields(self.model)
 
     m_size = self.model.size
     row_chunks = int(
@@ -135,15 +134,17 @@ def compute_J(self, f=None):
 
     if self.store_sensitivities == "disk":
         del Jmatrix
-        return da.from_zarr(self.sensitivity_path + "J.zarr")
+        self._Jmatrix = da.from_zarr(self.sensitivity_path + "J.zarr")
     else:
-        return Jmatrix
+        self._Jmatrix = Jmatrix
+
+    return self._Jmatrix
 
 
 Sim.compute_J = compute_J
 
 
-def dask_dpred(self, m=None, f=None, compute_J=False):
+def dask_dpred(self, m=None, f=None):
     r"""
     dpred(m, f=None)
     Create the projected data from a model.
@@ -172,7 +173,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
     if f is None:
         if m is None:
             m = self.model
-        f = self.fields(m, return_Ainv=compute_J)
+        f = self.fields(m)
 
     temp = np.empty(survey.nD)
     count = 0
@@ -181,10 +182,6 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
             d = rx.eval(src, self.mesh, f).dot(weights)
             temp[count : count + len(d)] = d
             count += len(d)
-
-    if compute_J:
-        Jmatrix = self.compute_J(f=f)
-        return self._mini_survey_data(temp), Jmatrix
 
     return self._mini_survey_data(temp)
 

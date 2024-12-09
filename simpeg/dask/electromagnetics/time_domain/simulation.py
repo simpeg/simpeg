@@ -92,7 +92,7 @@ def _getField(self, name, ind, src_list):
 TimeFields._getField = _getField
 
 
-def fields(self, m=None, return_Ainv=False):
+def fields(self, m=None):
     if m is not None:
         self.model = m
 
@@ -117,8 +117,7 @@ def fields(self, m=None, return_Ainv=False):
         sol = Ainv[dt] * rhs
         f[:, self._fieldType + "Solution", tInd + 1] = sol
 
-    if return_Ainv:
-        self.Ainv = Ainv
+    self.Ainv = Ainv
 
     return f
 
@@ -179,7 +178,7 @@ def evaluate_receivers(block, mesh, time_mesh, fields, fields_array):
     return np.hstack(data)
 
 
-def dask_dpred(self, m=None, f=None, compute_J=False):
+def dask_dpred(self, m=None, f=None):
     r"""
     dpred(m, f=None)
     Create the projected data from a model.
@@ -202,7 +201,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
     if f is None:
         if m is None:
             m = self.model
-        f = self.fields(m, return_Ainv=compute_J)
+        f = self.fields(m)
 
     rows = []
     receiver_projection = self.survey.source_list[0].receiver_list[0].projField
@@ -233,10 +232,6 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
         )
 
     data = array.hstack(rows).compute()
-
-    if compute_J and self._Jmatrix is None:
-        Jmatrix = self.compute_J(f=f)
-        return data, Jmatrix
 
     return data
 
@@ -501,7 +496,7 @@ def compute_J(self, f=None):
     Compute the rows for the sensitivity matrix.
     """
     if f is None:
-        f = self.fields(self.model, return_Ainv=True)
+        f = self.fields(self.model)
 
     ftype = self._fieldType + "Solution"
     sens_name = self.sensitivity_path[:-5]
@@ -585,9 +580,11 @@ def compute_J(self, f=None):
         A.clean()
 
     if self.store_sensitivities == "ram":
-        return np.asarray(Jmatrix)
+        self._Jmatrix = np.asarray(Jmatrix)
 
-    return Jmatrix
+    self._Jmatrix = Jmatrix
+
+    return self._Jmatrix
 
 
 Sim.compute_J = compute_J

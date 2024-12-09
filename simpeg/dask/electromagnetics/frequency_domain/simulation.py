@@ -87,7 +87,7 @@ def evaluate_receivers(block, mesh, fields):
     return np.hstack(data)
 
 
-def dask_dpred(self, m=None, f=None, compute_J=False):
+def dask_dpred(self, m=None, f=None):
     r"""
     dpred(m, f=None)
     Create the projected data from a model.
@@ -110,7 +110,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
     if f is None:
         if m is None:
             m = self.model
-        f = self.fields(m, return_Ainv=compute_J)
+        f = self.fields(m)
 
     all_receivers = []
 
@@ -136,10 +136,6 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
 
     data = compute(array.hstack(rows))[0]
 
-    if compute_J and self._Jmatrix is None:
-        Jmatrix = self.compute_J(f=f)
-        return data, Jmatrix
-
     return data
 
 
@@ -147,7 +143,7 @@ Sim.dpred = dask_dpred
 Sim.field_derivs = None
 
 
-def fields(self, m=None, return_Ainv=False):
+def fields(self, m=None):
     if m is not None:
         self.model = m
 
@@ -160,14 +156,9 @@ def fields(self, m=None, return_Ainv=False):
         u = Ainv_solve * rhs
         sources = self.survey.get_sources_by_frequency(freq)
         f[sources, self._solutionType] = u
+        Ainv[freq] = Ainv_solve
 
-        if return_Ainv:
-            Ainv[freq] = Ainv_solve
-        else:
-            Ainv_solve.clean()
-
-    if return_Ainv:
-        self.Ainv = Ainv
+    self.Ainv = Ainv
 
     return f
 
@@ -177,7 +168,7 @@ Sim.fields = fields
 
 def compute_J(self, f=None):
     if f is None:
-        f = self.fields(self.model, return_Ainv=True)
+        f = self.fields(self.model)
 
     if len(self.Ainv) > 1:
         raise NotImplementedError(
@@ -238,9 +229,11 @@ def compute_J(self, f=None):
 
     if self.store_sensitivities == "disk":
         del Jmatrix
-        return array.from_zarr(self.sensitivity_path)
+        self._Jmatrix = array.from_zarr(self.sensitivity_path)
     else:
-        return Jmatrix
+        self._Jmatrix = Jmatrix
+
+    return self._Jmatrix
 
 
 Sim.compute_J = compute_J

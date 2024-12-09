@@ -126,7 +126,7 @@ def get_dpred(self, m, f=None, compute_J=False):
     return dpreds
 
 
-# BaseInvProblem.get_dpred = get_dpred
+BaseInvProblem.get_dpred = get_dpred
 
 
 def dask_evalFunction(self, m, return_g=True, return_H=True):

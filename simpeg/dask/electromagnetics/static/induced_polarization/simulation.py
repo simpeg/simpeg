@@ -21,7 +21,7 @@ Sim.compute_J = compute_J
 Sim.getSourceTerm = dask_getSourceTerm
 
 
-def dask_fields(self, m=None, return_Ainv=False):
+def dask_fields(self, m=None):
     if m is not None:
         self.model = m
 
@@ -44,8 +44,7 @@ def dask_fields(self, m=None, return_Ainv=False):
                     scale[src, rx] = 1.0 / rx.eval(src, self.mesh, f)
         self._scale = scale.dobs
 
-    if return_Ainv:
-        self.Ainv = Ainv
+    self.Ainv = Ainv
 
     return f
 
@@ -53,7 +52,7 @@ def dask_fields(self, m=None, return_Ainv=False):
 Sim.fields = dask_fields
 
 
-def dask_dpred(self, m=None, f=None, compute_J=False):
+def dask_dpred(self, m=None, f=None):
     r"""
     dpred(m, f=None)
     Create the projected data from a model.
@@ -72,16 +71,8 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
             "data. Please set the survey for the simulation: "
             "simulation.survey = survey"
         )
-    if self._Jmatrix is None or self._scale is None:
-        if m is None:
-            m = self.model
-        f = self.fields(m, return_Ainv=True)
-        self._Jmatrix = self.compute_J(f=f)
 
     data = self.Jvec(m, m)
-
-    if compute_J:
-        return np.asarray(data), self._Jmatrix
 
     return np.asarray(data)
 
