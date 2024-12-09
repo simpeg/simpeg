@@ -114,7 +114,7 @@ def dask_linear_operator(self):
 Sim.linear_operator = dask_linear_operator
 
 
-def compute_J(self):
+def compute_J(self, _):
     return self.linear_operator()
 
 

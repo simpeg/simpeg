@@ -331,9 +331,7 @@ class MetaSimulation(BaseSimulation):
         J = []
         for sim, field in zip(self.simulations, f):
             J.append(
-                sim.compute_J,
-                field,
-                workers=worker,
+                sim.compute_J(field),
             )
         return J
 

@@ -1,128 +1,40 @@
 from ..inverse_problem import BaseInvProblem
 import numpy as np
-from time import time
-from datetime import timedelta
+
+
 from dask.distributed import Future, get_client
 import dask.array as da
 from scipy.sparse.linalg import LinearOperator
 from ..regularization import WeightedLeastSquares, Sparse
-from ..data_misfit import BaseDataMisfit
-from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 
-
-def dask_getFields(self, m, store=False, deleteWarmstart=True):
-    f = None
-
-    # try:
-    #     client = get_client()
-    #     fields = lambda f, x, workers: client.compute(f(x), workers=workers)
-    # except:
-    #     fields = lambda f, x: f(x)
-
-    for mtest, u_ofmtest in self.warmstart:
-        if m is mtest:
-            f = u_ofmtest
-            if self.debug:
-                print("InvProb is Warm Starting!")
-            break
-
-    if f is None:
-        if isinstance(self.dmisfit, BaseDataMisfit):
-            if self.dmisfit.model_map is not None:
-                vec = self.dmisfit.model_map @ m
-            else:
-                vec = m
-
-            f = fields(self.dmisfit.simulation.fields, vec)
-
-        elif isinstance(self.dmisfit, BaseObjectiveFunction):
-            f = []
-            for objfct in self.dmisfit.objfcts:
-                if hasattr(objfct, "simulation"):
-                    if objfct.model_map is not None:
-                        vec = objfct.model_map @ m
-                    else:
-                        vec = m
-
-                    f += [fields(objfct.simulation.fields, vec, objfct.workers)]
-                else:
-                    f += []
-
-    if isinstance(f, Future) or isinstance(f[0], Future):
-        f = client.gather(f)
-
-    if deleteWarmstart:
-        self.warmstart = []
-    if store:
-        self.warmstart += [(m, f)]
-
-    return f
-
-
-# BaseInvProblem.getFields = dask_getFields
+from ..objective_function import ComboObjectiveFunction
 
 
 def get_dpred(self, m, f=None, compute_J=False):
     dpreds = []
 
-    if isinstance(self.dmisfit, BaseDataMisfit):
-        return self.dmisfit.simulation.dpred(m)
-    elif isinstance(self.dmisfit, BaseObjectiveFunction):
-        for i, objfct in enumerate(self.dmisfit.objfcts):
-            if hasattr(objfct, "simulation"):
-                if getattr(objfct, "model_map", None) is not None:
-                    vec = objfct.model_map @ m
-                else:
-                    vec = m
+    for i, objfct in enumerate(self.dmisfit.objfcts):
 
-                compute_sensitivities = compute_J
+        if compute_J and i == 0:
+            print("Computing forward & sensitivities")
 
-                if compute_sensitivities and i == 0:
-                    print("Computing forward & sensitivities")
+        if f is not None:
+            fields = f[i]
+        else:
+            fields = objfct.simulation.fields(m)
 
-                if objfct.workers is not None:
-                    client = get_client()
-                    future = client.compute(
-                        objfct.simulation.dpred(vec, compute_J=compute_sensitivities),
-                        workers=objfct.workers,
-                    )
-                else:
-                    # For locals, the future is now
-                    ct = time()
+        future = objfct.simulation.dpred(m, f=fields)
 
-                    future = objfct.simulation.dpred(
-                        vec, compute_J=compute_sensitivities
-                    )
+        if compute_J:
+            objfct.simulation.compute_J(m, f=fields)
 
-                    if compute_sensitivities:
-                        runtime = time() - ct
-                        total = len(self.dmisfit.objfcts)
-
-                        message = f"{i+1} of {total} in {timedelta(seconds=runtime)}. "
-                        if (total - i - 1) > 0:
-                            message += (
-                                f"ETA -> {timedelta(seconds=(total - i - 1) * runtime)}"
-                            )
-                        print(message)
-
-                dpreds += [future]
-
-            else:
-                dpreds += []
+        dpreds += [future]
 
     if isinstance(dpreds[0], Future):
         client = get_client()
         dpreds = client.gather(dpreds)
 
-    preds = []
-    if isinstance(dpreds[0], tuple):  # Jmatrix was computed
-        for future, objfct in zip(dpreds, self.dmisfit.objfcts):
-            preds += [future[0]]
-            objfct.simulation._Jmatrix = future[1]
-        return preds
-
-    else:
-        dpreds = da.compute(dpreds)[0]
+    dpreds = da.compute(dpreds)[0]
     return dpreds
 
 

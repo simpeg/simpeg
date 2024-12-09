@@ -14,7 +14,7 @@ def dask_getJtJdiag(self, m, W=None, f=None):
         W = np.ones(self.nD)
     else:
         W = W.diagonal()
-    if getattr(self, "_gtg_diagonal", None) is None:
+    if getattr(self, "_jtj_diag", None) is None:
         if not self.is_amplitude_data:
             diag = ((W[:, None] * self.Jmatrix) ** 2).sum(axis=0).compute()
         else:
@@ -25,9 +25,9 @@ def dask_getJtJdiag(self, m, W=None, f=None):
                 + ampDeriv[2, :, None] * self.Jmatrix[2::3]
             )
             diag = ((W[:, None] * J) ** 2).sum(axis=0).compute()
-        self._gtg_diagonal = diag
+        self._jtj_diag = diag
     else:
-        diag = self._gtg_diagonal
+        diag = self._jtj_diag
 
     return mkvc((sdiag(np.sqrt(diag)) @ self.chiDeriv).power(2).sum(axis=0))
 
