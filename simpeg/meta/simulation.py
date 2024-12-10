@@ -332,6 +332,8 @@ class MetaSimulation(BaseSimulation):
             f = self.fields(m)
         J = []
         for sim, field in zip(self.simulations, f):
+            if getattr(sim, "_Jmatrix", None) is not None:
+                continue
             J.append(
                 sim.compute_J(m, field),
             )

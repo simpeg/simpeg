@@ -3,7 +3,6 @@ import numpy as np
 
 
 from dask.distributed import Future, get_client
-import dask.array as da
 from scipy.sparse.linalg import LinearOperator
 from ..regularization import WeightedLeastSquares, Sparse
 
@@ -34,7 +33,6 @@ def get_dpred(self, m, f=None, compute_J=False):
         client = get_client()
         dpreds = client.gather(dpreds)
 
-    dpreds = da.compute(dpreds)[0]
     return dpreds
 
 
