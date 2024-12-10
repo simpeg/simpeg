@@ -9,7 +9,7 @@ import numpy as np
 import scipy.sparse as sp
 from dask import array, delayed
 
-from simpeg.dask.simulation import dask_getJtJdiag
+from simpeg.dask.simulation import dask_getJtJdiag, dask_Jvec, dask_Jtvec
 from simpeg.dask.utils import get_parallel_blocks
 from simpeg.utils import mkvc
 
@@ -18,6 +18,9 @@ from tqdm import tqdm
 
 Sim.sensitivity_path = "./sensitivity/"
 Sim.getJtJdiag = dask_getJtJdiag
+Sim.Jvec = dask_Jvec
+Sim.Jtvec = dask_Jtvec
+
 Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag"]
 
 
@@ -489,19 +492,19 @@ def compute_rows(
     return np.vstack(rows)
 
 
-def compute_J(self, f=None):
+def compute_J(self, m, f=None):
     """
     Compute the rows for the sensitivity matrix.
     """
     if f is None:
-        f = self.fields(self.model)
+        f = self.fields(m)
 
     ftype = self._fieldType + "Solution"
     sens_name = self.sensitivity_path[:-5]
     if self.store_sensitivities == "disk":
         rows = array.zeros(
-            (self.survey.nD, self.model.size),
-            chunks=(self.max_chunk_size, self.model.size),
+            (self.survey.nD, m.size),
+            chunks=(self.max_chunk_size, m.size),
             dtype=np.float32,
         )
         Jmatrix = array.to_zarr(
@@ -512,11 +515,11 @@ def compute_J(self, f=None):
             overwrite=True,
         )
     else:
-        Jmatrix = np.zeros((self.survey.nD, self.model.size), dtype=np.float64)
+        Jmatrix = np.zeros((self.survey.nD, m.size), dtype=np.float64)
 
     simulation_times = np.r_[0, np.cumsum(self.time_steps)] + self.t0
     data_times = self.survey.source_list[0].receiver_list[0].times
-    compute_row_size = np.ceil(self.max_chunk_size / (self.model.shape[0] * 8.0 * 1e-6))
+    compute_row_size = np.ceil(self.max_chunk_size / (m.shape[0] * 8.0 * 1e-6))
     blocks = get_parallel_blocks(self.survey.source_list, compute_row_size)
     fields_array = f[:, ftype, :]
 
@@ -557,7 +560,7 @@ def compute_J(self, f=None):
                     dtype=np.float32,
                     shape=(
                         np.sum([len(chunk[1][0]) for chunk in block]),
-                        self.model.size,
+                        m.size,
                     ),
                 )
             )

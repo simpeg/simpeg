@@ -1,4 +1,4 @@
-from simpeg.dask.simulation import dask_dpred, dask_getJtJdiag
+from simpeg.dask.simulation import dask_dpred, dask_getJtJdiag, dask_Jvec, dask_Jtvec
 from .....electromagnetics.static.resistivity.simulation import BaseDCSimulation as Sim
 from .....utils import Zero
 import dask.array as da
@@ -17,6 +17,8 @@ Sim.sensitivity_path = "./sensitivity/"
 
 Sim.dpred = dask_dpred
 Sim.getJtJdiag = dask_getJtJdiag
+Sim.Jvec = dask_Jvec
+Sim.Jtvec = dask_Jtvec
 
 Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag"]
 
@@ -40,12 +42,12 @@ def dask_fields(self, m=None):
 Sim.fields = dask_fields
 
 
-def compute_J(self, f=None):
+def compute_J(self, m, f=None):
 
     if f is None:
-        f = self.fields(self.model)
+        f = self.fields(m)
 
-    m_size = self.model.size
+    m_size = m.size
     row_chunks = int(
         np.ceil(
             float(self.survey.nD)

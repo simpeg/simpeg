@@ -44,11 +44,17 @@ BaseInvProblem.get_dpred = get_dpred
 def dask_evalFunction(self, m, return_g=True, return_H=True):
     """evalFunction(m, return_g=True, return_H=True)"""
     self.model = m
-    self.dpred = self.get_dpred(m, compute_J=return_H)
+
+    # Store fields if doing a line-search
+    fields = self.getFields(m, store=(return_g is False and return_H is False))
+
+    # if isinstance(self.dmisfit, BaseDataMisfit):
+    phi_d = self.dmisfit(m, f=fields)
+    self.dpred = self.get_dpred(m, f=fields, compute_J=return_H)
 
     phi_d = 0
     for (_, objfct), pred in zip(self.dmisfit, self.dpred):
-        residual = objfct.W * objfct.residual(m, pred)
+        residual = objfct.W * (objfct.data.dobs - pred)
         phi_d += np.vdot(residual, residual)
 
     phi_d = np.asarray(phi_d)
@@ -105,7 +111,7 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
 
     out = (phi,)
     if return_g:
-        phi_dDeriv = self.dmisfit.deriv(m, f=self.dpred)
+        phi_dDeriv = self.dmisfit.deriv(m, f=fields)
         # if hasattr(self.reg.objfcts[0], "space") and self.reg.objfcts[0].space == "spherical":
         phi_mDeriv = self.reg.deriv(m)
         # else:

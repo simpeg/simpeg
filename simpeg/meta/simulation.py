@@ -226,7 +226,7 @@ class MetaSimulation(BaseSimulation):
             if self._repeat_sim:
                 sim.model = mapping * self.model
             d_pred.append(sim.dpred(m=sim.model, f=field, **kwargs))
-        return d_pred
+        return np.concatenate(d_pred)
 
     def Jvec(self, m, v, f=None):
         self.model = m
@@ -315,7 +315,9 @@ class MetaSimulation(BaseSimulation):
                 if self._repeat_sim:
                     sim.model = mapping * self.model
                 sim_w = sp.diags(W[self._data_offsets[i] : self._data_offsets[i + 1]])
-                sim_jtj = sp.diags(np.sqrt(sim.getJtJdiag(sim.model, sim_w, f=field)))
+                sim_jtj = sp.diags(
+                    np.sqrt(np.asarray(sim.getJtJdiag(sim.model, sim_w, f=field)))
+                )
                 m_deriv = mapping.deriv(self.model)
                 jtj_diag += np.asarray(
                     (sim_jtj @ m_deriv).power(2).sum(axis=0)
@@ -331,7 +333,7 @@ class MetaSimulation(BaseSimulation):
         J = []
         for sim, field in zip(self.simulations, f):
             J.append(
-                sim.compute_J(field),
+                sim.compute_J(m, field),
             )
         return J
 

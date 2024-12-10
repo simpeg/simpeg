@@ -5,8 +5,7 @@ import scipy.sparse as sp
 from multiprocessing import cpu_count
 from dask import array, compute, delayed
 
-# from dask.distributed import get_client, Client, performance_report
-from simpeg.dask.simulation import dask_getJtJdiag
+from simpeg.dask.simulation import dask_getJtJdiag, dask_Jvec, dask_Jtvec
 from simpeg.dask.utils import get_parallel_blocks
 from simpeg.electromagnetics.natural_source.sources import PlanewaveXYPrimary
 import zarr
@@ -16,6 +15,8 @@ Sim.sensitivity_path = "./sensitivity/"
 Sim.gtgdiag = None
 
 Sim.getJtJdiag = dask_getJtJdiag
+Sim.Jvec = dask_Jvec
+Sim.Jtvec = dask_Jtvec
 
 Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag"]
 
@@ -165,9 +166,9 @@ def fields(self, m=None):
 Sim.fields = fields
 
 
-def compute_J(self, f=None):
+def compute_J(self, m, f=None):
     if f is None:
-        f = self.fields(self.model)
+        f = self.fields(m)
 
     if len(self.Ainv) > 1:
         raise NotImplementedError(
@@ -176,7 +177,7 @@ def compute_J(self, f=None):
         )
 
     A_i = list(self.Ainv.values())[0]
-    m_size = self.model.size
+    m_size = m.size
 
     if self.store_sensitivities == "disk":
         Jmatrix = zarr.open(
@@ -220,7 +221,7 @@ def compute_J(self, f=None):
         desc=f"Sensitivities at {list(self.Ainv)[0]} Hz",
     ):
         Jmatrix = parallel_block_compute(
-            self, Jmatrix, block_derivs_chunks, A_i, fields_array, addresses_chunks
+            self, m, Jmatrix, block_derivs_chunks, A_i, fields_array, addresses_chunks
         )
 
     for A in self.Ainv.values():
@@ -239,9 +240,9 @@ Sim.compute_J = compute_J
 
 
 def parallel_block_compute(
-    self, Jmatrix, blocks_receiver_derivs, A_i, fields_array, addresses
+    self, m, Jmatrix, blocks_receiver_derivs, A_i, fields_array, addresses
 ):
-    m_size = self.model.size
+    m_size = m.size
     block_stack = sp.hstack(blocks_receiver_derivs).toarray()
     ATinvdf_duT = delayed(A_i * block_stack)
     count = 0

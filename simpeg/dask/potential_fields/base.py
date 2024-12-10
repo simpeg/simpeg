@@ -123,3 +123,13 @@ def compute_J(self, _):
 
 
 Sim.compute_J = compute_J
+
+
+@property
+def Jmatrix(self):
+    if getattr(self, "_Jmatrix", None) is None:
+        self._Jmatrix = self.linear_operator()
+    return self._Jmatrix
+
+
+Sim.Jmatrix = Jmatrix
