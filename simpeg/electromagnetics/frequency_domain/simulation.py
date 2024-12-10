@@ -479,7 +479,7 @@ class BaseFDEMSimulation(BaseEMSimulation, DielectricPermittivity):
         return s_m, s_e
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_update(self):
         """List of model-dependent attributes to clean upon model update.
 
         Some of the FDEM simulation's attributes are model-dependent. This property specifies
@@ -490,7 +490,7 @@ class BaseFDEMSimulation(BaseEMSimulation, DielectricPermittivity):
         list of str
             List of the model-dependent attributes to clean upon model update.
         """
-        toDelete = super().deleteTheseOnModelUpdate
+        toDelete = super()._delete_on_model_update
         return toDelete + ["_Jmatrix", "_gtgdiag"]
 
 

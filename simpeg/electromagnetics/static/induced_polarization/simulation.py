@@ -127,7 +127,7 @@ class BaseIPSimulation(BaseElectricalPDESimulation, ElectricalChargeability):
         return super().Jtvec(m, v * self._scale, f)
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_update(self):
         toDelete = []
         return toDelete
 

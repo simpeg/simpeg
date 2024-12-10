@@ -332,8 +332,8 @@ class Simulation1DRecursive(BaseSimulation, ElectricalConductivity, LayerThickne
         return JTvec
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        toDelete = super().deleteTheseOnModelUpdate
+    def _delete_on_model_update(self):
+        toDelete = super()._delete_on_model_update
         if self.fix_Jmatrix:
             return toDelete
         else:

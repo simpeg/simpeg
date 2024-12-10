@@ -114,13 +114,11 @@ def test_clears():
     # set qMap as a non-linear map to make sure it adds the correct
     # items to be cleared on model update
     sim.qMap = maps.IdentityMap()
-    assert sim.deleteTheseOnModelUpdate == []
-    assert sim.clean_on_model_update == []
+    assert sim._delete_on_model_update == []
 
     sim.storeJ = True
     sim.qMap = maps.ExpMap()
-    assert sim.deleteTheseOnModelUpdate == ["_Jmatrix", "_gtgdiag"]
-    assert sim.clean_on_model_update == []
+    assert sim._delete_on_model_update == ["_Jmatrix", "_gtgdiag"]
 
 
 def test_deprecations():

@@ -608,7 +608,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         return self._Adcinv
 
     @property
-    def clean_on_model_update(self):
+    def _delete_on_model_update(self):
         """List of model-dependent attributes to clean upon model update.
 
         Some of the TDEM simulation's attributes are model-dependent. This property specifies
@@ -619,8 +619,11 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         list of str
             List of the model-dependent attributes to clean upon model update.
         """
-        items = super().clean_on_model_update
-        return items + ["_Adcinv"]  #: clear DC matrix factors on any model updates
+        items = super()._delete_on_model_update
+        if self.sigmaMap is not None:
+            items = items + ["_Adcinv"]  #: clear DC matrix factors on any model updates
+            # if there is a sigmaMap
+        return items
 
 
 ###############################################################################

@@ -445,8 +445,8 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         return q
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        toDelete = super().deleteTheseOnModelUpdate
+    def _delete_on_model_update(self):
+        toDelete = super()._delete_on_model_update
         if self.fix_Jmatrix:
             return toDelete
         return toDelete + ["_Jmatrix"]

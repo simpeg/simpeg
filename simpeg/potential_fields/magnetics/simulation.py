@@ -680,8 +680,8 @@ class Simulation3DIntegral(BasePFSimulation, MagneticSusceptibility):
         )
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        deletes = super().deleteTheseOnModelUpdate
+    def _delete_on_model_update(self):
+        deletes = super()._delete_on_model_update
         if self.is_amplitude_data:
             deletes = deletes + ["_gtg_diagonal", "_ampDeriv"]
         return deletes
