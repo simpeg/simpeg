@@ -17,8 +17,8 @@ from ...utils import (
 )
 from ...props import NestedModeler
 
-from .empirical import BaseHydraulicConductivity
-from .empirical import BaseWaterRetention
+from .empirical import HydraulicConductivity
+from .empirical import WaterRetention
 
 
 class SimulationNDCellCentered(BaseTimeSimulation, BasePDESimulation):
@@ -31,6 +31,7 @@ class SimulationNDCellCentered(BaseTimeSimulation, BasePDESimulation):
         water_retention,
         boundary_conditions,
         initial_conditions,
+        *,
         method="mixed",
         do_newton=False,
         root_finder_max_iter=30,
@@ -51,9 +52,41 @@ class SimulationNDCellCentered(BaseTimeSimulation, BasePDESimulation):
         self.root_finder_tol = root_finder_tol
 
     hydraulic_conductivity = NestedModeler(
-        BaseHydraulicConductivity, "hydraulic conductivity function"
+        HydraulicConductivity, "hydraulic conductivity function"
     )
-    water_retention = NestedModeler(BaseWaterRetention, "water retention curve")
+    water_retention = NestedModeler(WaterRetention, "water retention curve")
+
+    @property
+    def mesh(self):
+        """Tensor style mesh for the Richards flow simulation.
+
+        Returns
+        -------
+        discretize.TensorMesh or discretize.TreeMesh
+        """
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, value):
+        self._mesh = validate_type(
+            "mesh", value, (discretize.TensorMesh, discretize.TreeMesh), cast=False
+        )
+
+    @property
+    def mesh(self):
+        """Tensor style mesh for the Richards flow simulation.
+
+        Returns
+        -------
+        discretize.TensorMesh or discretize.TreeMesh
+        """
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, value):
+        self._mesh = validate_type(
+            "mesh", value, (discretize.TensorMesh, discretize.TreeMesh), cast=False
+        )
 
     @property
     def mesh(self):
