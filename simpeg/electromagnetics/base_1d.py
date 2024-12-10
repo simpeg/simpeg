@@ -6,7 +6,7 @@ from scipy import sparse as sp
 from scipy.special import roots_legendre
 
 from ..base import ElectricalConductivity, MagneticPermeability
-from ..base.physical_property_simulations import LayerThickness
+from ..base import LayerThickness
 from ..simulation import BaseSimulation
 
 # from .time_domain.sources import MagDipole as t_MagDipole, CircularLoop as t_CircularLoop

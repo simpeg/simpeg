@@ -5,7 +5,7 @@ import scipy.sparse as sp
 from discretize.utils import Zero, TensorType
 import discretize.base
 
-from .physical_property_simulations import ElectricalConductivity, MagneticPermeability
+from .physical_property import ElectricalConductivity, MagneticPermeability
 from ..simulation import BaseSimulation
 
 from ..utils import validate_type
