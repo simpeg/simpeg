@@ -49,8 +49,6 @@ class Haverkamp_theta(WaterRetention):
         **kwargs,
     ):
         super().__init__(theta_r=theta_r, theta_s=theta_s, **kwargs)
-        self.theta_r = theta_r
-        self.theta_s = theta_s
         self.alpha = alpha
         self.alphaMap = alphaMap
         self.beta = beta
@@ -162,14 +160,13 @@ class Haverkamp_k(HydraulicConductivity):
         self,
         *,
         Ks=9.44e-03,
-        KsMap=None,
         A=1.175e06,
         AMap=None,
         gamma=4.74,
         gammaMap=None,
         **kwargs,
     ):
-        super().__init__(Ks=Ks, KsMap=KsMap, **kwargs)
+        super().__init__(Ks=Ks, **kwargs)
         self.A = A
         self.AMap = AMap
         self.gamma = gamma

@@ -1,5 +1,4 @@
 import unittest
-import pytest
 
 import numpy as np
 
@@ -16,8 +15,7 @@ np.random.seed(2)
 
 class TestModels(unittest.TestCase):
     def test_haverkamp_theta_u(self):
-        mesh = discretize.TensorMesh([50])
-        hav = richards.empirical.Haverkamp_theta(mesh)
+        hav = richards.empirical.Haverkamp_theta()
         passed = check_derivative(
             lambda u: (hav(u), hav.derivU(u)),
             np.random.randn(50),
@@ -47,7 +45,8 @@ class TestModels(unittest.TestCase):
         u = np.random.randn(mesh.nC)
 
         for name, opt, _ in opts:
-            van = richards.empirical.Haverkamp_theta(mesh, **opt)
+            print(opt)
+            van = richards.empirical.Haverkamp_theta(**opt)
 
             x0 = np.concatenate([seeds[n] for n in name.split("-")])
 
@@ -61,8 +60,7 @@ class TestModels(unittest.TestCase):
             self.assertTrue(passed, True)
 
     def test_vangenuchten_theta_u(self):
-        mesh = discretize.TensorMesh([50])
-        van = richards.empirical.Vangenuchten_theta(mesh)
+        van = richards.empirical.Vangenuchten_theta()
         passed = check_derivative(
             lambda u: (van(u), van.derivU(u)),
             np.random.randn(50),
@@ -92,7 +90,7 @@ class TestModels(unittest.TestCase):
         u = np.random.randn(mesh.nC)
 
         for name, opt, _ in opts:
-            van = richards.empirical.Vangenuchten_theta(mesh, **opt)
+            van = richards.empirical.Vangenuchten_theta(**opt)
 
             x0 = np.concatenate([seeds[n] for n in name.split("-")])
 
@@ -108,7 +106,7 @@ class TestModels(unittest.TestCase):
     def test_haverkamp_k_u(self):
         mesh = discretize.TensorMesh([5])
 
-        hav = richards.empirical.Haverkamp_k(mesh)
+        hav = richards.empirical.Haverkamp_k()
         print("Haverkamp_k test u deriv")
         passed = check_derivative(
             lambda u: (hav(u), hav.derivU(u)),
@@ -154,7 +152,7 @@ class TestModels(unittest.TestCase):
 
         for name, opt, nM in opts:
             np.random.seed(2)
-            hav = richards.empirical.Haverkamp_k(mesh, **opt)
+            hav = richards.empirical.Haverkamp_k(**opt)
 
             def fun(m):
                 hav.model = m  # noqa: B023
@@ -170,7 +168,7 @@ class TestModels(unittest.TestCase):
     def test_vangenuchten_k_u(self):
         mesh = discretize.TensorMesh([50])
 
-        van = richards.empirical.Vangenuchten_k(mesh)
+        van = richards.empirical.Vangenuchten_k()
 
         print("Vangenuchten_k test u deriv")
         passed = check_derivative(
@@ -206,7 +204,7 @@ class TestModels(unittest.TestCase):
         u = np.random.randn(mesh.nC)
 
         for name, opt, _ in opts:
-            van = richards.empirical.Vangenuchten_k(mesh, **opt)
+            van = richards.empirical.Vangenuchten_k(**opt)
 
             x0 = np.concatenate([seeds[n] for n in name.split("-")])
 
@@ -218,24 +216,6 @@ class TestModels(unittest.TestCase):
 
             passed = check_derivative(fun, x0, plotIt=False, random_seed=918724)
             self.assertTrue(passed, True)
-
-
-@pytest.mark.parametrize(
-    "empirical_class",
-    [
-        richards.empirical.NonLinearModel,
-        richards.empirical.WaterRetention,
-        richards.empirical.HydraulicConductivity,
-        richards.empirical.Haverkamp_theta,
-        richards.empirical.Haverkamp_k,
-        richards.empirical.Vangenuchten_theta,
-        richards.empirical.Vangenuchten_k,
-    ],
-)
-def test_bad_mesh_type(empirical_class):
-    msg = "mesh must be an instance of BaseMesh, not ndarray"
-    with pytest.raises(TypeError, match=msg):
-        empirical_class(np.array([1, 2, 3]))
 
 
 if __name__ == "__main__":
