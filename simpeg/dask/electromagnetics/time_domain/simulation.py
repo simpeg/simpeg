@@ -21,7 +21,7 @@ Sim.getJtJdiag = dask_getJtJdiag
 Sim.Jvec = dask_Jvec
 Sim.Jtvec = dask_Jtvec
 
-Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag"]
+Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag", "_stashed_fields"]
 
 
 @delayed
@@ -97,6 +97,9 @@ def fields(self, m=None):
     if m is not None:
         self.model = m
 
+    if getattr(self, "_stashed_fields", None) is not None:
+        return self._stashed_fields
+
     f = self.fieldsPair(self)
     f[:, self._fieldType + "Solution", 0] = self.getInitialFields()
     Ainv = {}
@@ -119,7 +122,7 @@ def fields(self, m=None):
         f[:, self._fieldType + "Solution", tInd + 1] = sol
 
     self.Ainv = Ainv
-
+    self._stashed_fields = f
     return f
 
 

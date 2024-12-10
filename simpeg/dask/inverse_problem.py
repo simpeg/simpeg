@@ -14,9 +14,6 @@ def get_dpred(self, m, f=None, compute_J=False):
 
     for i, objfct in enumerate(self.dmisfit.objfcts):
 
-        if compute_J and i == 0:
-            print("Computing forward & sensitivities")
-
         if f is not None:
             fields = f[i]
         else:

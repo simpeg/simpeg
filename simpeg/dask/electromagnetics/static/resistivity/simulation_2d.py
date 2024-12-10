@@ -14,12 +14,15 @@ Sim.sensitivity_path = "./sensitivity/"
 Sim.getJtJdiag = dask_getJtJdiag
 Sim.Jvec = dask_Jvec
 Sim.Jtvec = dask_Jtvec
-Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag"]
+Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag", "_stashed_fields"]
 
 
 def dask_fields(self, m=None):
     if m is not None:
         self.model = m
+
+    if getattr(self, "_stashed_fields", None) is not None:
+        return self._stashed_fields
 
     kys = self._quad_points
     f = self.fieldsPair(self)
@@ -35,6 +38,7 @@ def dask_fields(self, m=None):
 
     self.Ainv = Ainv
 
+    self._stashed_fields = f
     return f
 
 
