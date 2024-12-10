@@ -4,7 +4,7 @@ import numpy as np
 import scipy.sparse as sp
 
 from .... import maps
-from ....base import BaseElectricalPDESimulation, BaseChargeability
+from ....base import BaseElectricalPDESimulation, ElectricalChargeability
 from ....data import Data
 from ..resistivity import Simulation2DCellCentered as DC_2D_CC
 from ..resistivity import Simulation2DNodal as DC_2D_N
@@ -12,7 +12,7 @@ from ..resistivity import Simulation3DCellCentered as DC_3D_CC
 from ..resistivity import Simulation3DNodal as DC_3D_N
 
 
-class BaseIPSimulation(BaseElectricalPDESimulation, BaseChargeability):
+class BaseIPSimulation(BaseElectricalPDESimulation, ElectricalChargeability):
     @property
     def sigmaMap(self):
         return maps.IdentityMap()

@@ -5,7 +5,7 @@ import scipy.sparse as sp
 from discretize.utils import Zero, TensorType
 import discretize.base
 
-from .physical_property_simulations import BaseConductivity, BasePermeability
+from .physical_property_simulations import ElectricalConductivity, MagneticPermeability
 from ..simulation import BaseSimulation
 
 from ..utils import validate_type
@@ -600,7 +600,7 @@ class BasePDESimulation(BaseSimulation):
 
 @with_property_mass_matrices("sigma")
 @with_property_mass_matrices("rho")
-class BaseElectricalPDESimulation(BasePDESimulation, BaseConductivity):
+class BaseElectricalPDESimulation(BasePDESimulation, ElectricalConductivity):
 
     def __init__(self, mesh, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
@@ -627,7 +627,7 @@ class BaseElectricalPDESimulation(BasePDESimulation, BaseConductivity):
 
 @with_property_mass_matrices("mu")
 @with_property_mass_matrices("mui")
-class BaseMagneticPDESimulation(BasePDESimulation, BasePermeability):
+class BaseMagneticPDESimulation(BasePDESimulation, MagneticPermeability):
 
     def __init__(self, mesh, **kwargs):
         super().__init__(mesh=mesh, **kwargs)

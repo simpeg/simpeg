@@ -36,6 +36,7 @@ class BaseSIPSimulation(BaseIPSimulation):
         self,
         mesh,
         survey=None,
+        *,
         tau=0.1,
         tauMap=None,
         taui=None,

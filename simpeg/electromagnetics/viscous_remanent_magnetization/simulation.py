@@ -32,6 +32,7 @@ class BaseVRMSimulation(BaseSimulation):
         self,
         mesh,
         survey=None,
+        *,
         refinement_factor=None,
         refinement_distance=None,
         active_cells=None,

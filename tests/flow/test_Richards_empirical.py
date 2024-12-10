@@ -224,8 +224,8 @@ class TestModels(unittest.TestCase):
     "empirical_class",
     [
         richards.empirical.NonLinearModel,
-        richards.empirical.BaseWaterRetention,
-        richards.empirical.BaseHydraulicConductivity,
+        richards.empirical.WaterRetention,
+        richards.empirical.HydraulicConductivity,
         richards.empirical.Haverkamp_theta,
         richards.empirical.Haverkamp_k,
         richards.empirical.Vangenuchten_theta,
