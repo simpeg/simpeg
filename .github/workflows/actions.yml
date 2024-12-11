@@ -1,0 +1,35 @@
+# Lint GitHub Actions for common security issues using zizmor.
+# Docs: https://woodruffw.github.io/zizmor
+
+name: lint-actions
+
+# Only run on PRs and the main branch.
+# Pushes to branches will only trigger a run when a PR is opened.
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install zizmor
+        run: python install zizmor
+
+      - name: List installed packages
+        run: python -m pip freeze
+
+      - name: Lint GitHub Actions
+        run: make check-actions

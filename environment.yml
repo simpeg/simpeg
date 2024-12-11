@@ -60,3 +60,6 @@ dependencies:
 # recommended
   - jupyter
   - pyvista
+
+  pip:
+    - zizmor # lint GitHub Actions workflows
