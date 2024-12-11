@@ -8,6 +8,7 @@ from simpeg.props import HasModel
 import itertools
 from dask.distributed import Client
 from dask.distributed import Future
+from dask import array
 from .simulation import MetaSimulation, SumMetaSimulation
 import scipy.sparse as sp
 from operator import add
@@ -32,20 +33,28 @@ def _calc_dpred(mapping, sim, model, field, apply_map=False):
         return sim.dpred(m=sim.model, f=field)
 
 
+def _compute_J(sim, m, field):
+    if getattr(sim, "_Jmatrix", None) is not None:
+        return sim.Jmatrix
+
+    return sim.compute_J(m, field)
+
+
 def _j_vec_op(mapping, sim, model, field, v, apply_map=False):
+    # return array.from_array(np.zeros(100))
     sim_v = mapping.deriv(model) @ v
     if apply_map:
-        return sim.Jvec(mapping @ model, sim_v, f=field)
+        return array.compute(sim.Jvec(mapping @ model, sim_v, f=field))
     else:
-        return sim.Jvec(sim.model, sim_v, f=field)
+        return array.compute(sim.Jvec(sim.model, sim_v, f=field))
 
 
-def _jt_vec_op(mapping, sim, model, field, v, apply_map=False):
+def _jt_vec_op(mapping, sim, model, field, v, start, end, apply_map=False):
     if apply_map:
-        jtv = sim.Jtvec(mapping @ model, v, f=field)
+        jtv = sim.Jtvec(mapping @ model, v[start:end], f=field)
     else:
-        jtv = sim.Jtvec(sim.model, v, f=field)
-    return mapping.deriv(model).T @ jtv
+        jtv = sim.Jtvec(sim.model, v[start:end], f=field)
+    return mapping.deriv(model).T @ array.compute(jtv)[0]
 
 
 def _get_jtj_diag(mapping, sim, model, field, w, apply_map=False):
@@ -65,7 +74,7 @@ def _reduce(client, operation, items):
         if len(items) % 2 == 1:
             new_reduce[-1] = client.submit(operation, new_reduce[-1], items[-1])
         items = new_reduce
-    return client.gather(items[0])
+    return items[0]
 
 
 def _validate_type_or_future_of_type(
@@ -351,7 +360,7 @@ class DaskMetaSimulation(MetaSimulation):
                     workers=worker,
                 )
             )
-        return np.concatenate(client.gather(dpred))
+        return _reduce(client, array.hstack, dpred)
 
     def Jvec(self, m, v, f=None):
         self.model = m
@@ -376,7 +385,7 @@ class DaskMetaSimulation(MetaSimulation):
                     workers=worker,
                 )
             )
-        return np.concatenate(self.client.gather(j_vec))
+        return _reduce(client, array.hstack, j_vec)
 
     def Jtvec(self, m, v, f=None):
         self.model = m
@@ -395,7 +404,9 @@ class DaskMetaSimulation(MetaSimulation):
                     sim,
                     m_future,
                     field,
-                    v[self._data_offsets[i] : self._data_offsets[i + 1]],
+                    v,
+                    self._data_offsets[i],
+                    self._data_offsets[i + 1],
                     self._repeat_sim,
                     workers=worker,
                 )
@@ -420,6 +431,8 @@ class DaskMetaSimulation(MetaSimulation):
                 zip(self.mappings, self.simulations, self._workers, f)
             ):
                 sim_w = W[self._data_offsets[i] : self._data_offsets[i + 1]]
+                # s = client.gather(sim)
+                # ff = client.gather(field)
                 jtj_diag.append(
                     client.submit(
                         _get_jtj_diag,
@@ -431,6 +444,7 @@ class DaskMetaSimulation(MetaSimulation):
                         self._repeat_sim,
                         workers=worker,
                     )
+                    # s.getJtJdiag(self.model, sim_w, f=ff)
                 )
             self._jtjdiag = _reduce(client, add, jtj_diag)
 
@@ -445,7 +459,9 @@ class DaskMetaSimulation(MetaSimulation):
         for sim, worker, field in zip(self.simulations, self._workers, f):
             J.append(
                 client.submit(
-                    sim.compute_J,
+                    _compute_J,
+                    sim,
+                    m,
                     field,
                     workers=worker,
                 )

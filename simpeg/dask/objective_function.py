@@ -6,8 +6,6 @@ import numpy as np
 from dask.distributed import Future, get_client, Client
 from ..data_misfit import L2DataMisfit
 
-BaseObjectiveFunction._workers = None
-
 
 @property
 def client(self):
@@ -24,19 +22,6 @@ def client(self, client):
 
 
 BaseObjectiveFunction.client = client
-
-
-@property
-def workers(self):
-    return self._workers
-
-
-@workers.setter
-def workers(self, workers):
-    self._workers = workers
-
-
-BaseObjectiveFunction.workers = workers
 
 
 def dask_call(self, m, f=None):
@@ -72,7 +57,7 @@ def dask_call(self, m, f=None):
         return np.sum(np.r_[multipliers][:, None] * np.vstack(fcts), axis=0).squeeze()
 
 
-# ComboObjectiveFunction.__call__ = dask_call
+ComboObjectiveFunction.__call__ = dask_call
 
 
 def dask_deriv(self, m, f=None):
@@ -118,7 +103,7 @@ def dask_deriv(self, m, f=None):
         return np.sum(np.r_[multipliers][:, None] * np.vstack(g), axis=0).squeeze()
 
 
-# ComboObjectiveFunction.deriv = dask_deriv
+ComboObjectiveFunction.deriv = dask_deriv
 
 
 def dask_deriv2(self, m, v=None, f=None):
@@ -164,4 +149,4 @@ def dask_deriv2(self, m, v=None, f=None):
         return phi_deriv2
 
 
-# ComboObjectiveFunction.deriv2 = dask_deriv2
+ComboObjectiveFunction.deriv2 = dask_deriv2

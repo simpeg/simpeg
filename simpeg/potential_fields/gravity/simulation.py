@@ -220,6 +220,8 @@ class Simulation3DIntegral(BasePFSimulation):
                 self._G = self._sensitivity_matrix()
             else:
                 self._G = self.linear_operator()
+
+            self._Jmatrix = self._G
         return self._G
 
     @property
