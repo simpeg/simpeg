@@ -12,7 +12,7 @@ from geoana.kernels import (
 )
 from scipy.constants import mu_0
 
-from simpeg import props, utils
+from simpeg import utils
 from simpeg.utils import mat_utils, mkvc, sdiag
 from simpeg.utils.code_utils import deprecate_property, validate_string, validate_type
 from simpeg.utils.solver_utils import get_default_solver
@@ -187,8 +187,6 @@ class Simulation3DIntegral(BasePFSimulation, MagneticSusceptibility):
            Argument ``ind_active`` is deprecated in favor of
            ``active_cells`` and will be removed in SimPEG v0.24.0.
     """
-
-    chi, chiMap, chiDeriv = props.Invertible("Magnetic Susceptibility (SI)")
 
     def __init__(
         self,
