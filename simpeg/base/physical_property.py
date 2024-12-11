@@ -4,37 +4,35 @@ from scipy.constants import mu_0
 from simpeg import props
 
 
+@props._add_deprecated_physical_property_functions("sigma")
+@props._add_deprecated_physical_property_functions("rho")
 class ElectricalConductivity(props.HasModel):
-    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
-    rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
-    props.Reciprocal(sigma, rho)
+    sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
+    rho = props.PhysicalProperty("Electrical resistivity (Ohm m)")
+    sigma.set_reciprocal(rho)
 
-    def __init__(self, sigma=None, sigmaMap=None, rho=None, rhoMap=None, **kwargs):
+    def __init__(self, sigma=None, rho=None, **kwargs):
         super().__init__(**kwargs)
         self.sigma = sigma
         self.rho = rho
-        self.sigmaMap = sigmaMap
-        self.rhoMap = rhoMap
 
 
+@props._add_deprecated_physical_property_functions("mu")
+@props._add_deprecated_physical_property_functions("mui")
 class MagneticPermeability(props.HasModel):
-    mu, muMap, muDeriv = props.Invertible(
-        "Magnetic Permeability (H/m)",
-    )
-    mui, muiMap, muiDeriv = props.Invertible("Inverse Magnetic Permeability (m/H)")
-    props.Reciprocal(mu, mui)
+    mu = props.PhysicalProperty("Magnetic Permeability (H/m)")
+    mui = props.PhysicalProperty("Inverse Magnetic Permeability (m/H)")
+    mu.set_reciprocal(mui)
 
-    def __init__(self, mu=mu_0, muMap=None, mui=None, muiMap=None, **kwargs):
+    def __init__(self, mu=mu_0, mui=None, **kwargs):
         super().__init__(**kwargs)
         self.mu = mu
         self.mui = mui
-        self.muMap = muMap
-        self.muiMap = muiMap
 
 
 class DielectricPermittivity(props.HasModel):
     permittivity = props.PhysicalProperty(
-        "Dielectric permittivity (F/m)", optional=True
+        "Dielectric permittivity (F/m)", default=None, invertible=False
     )
 
     def __init__(self, permittivity=None, **kwargs):
@@ -48,69 +46,65 @@ class DielectricPermittivity(props.HasModel):
         super().__init__(**kwargs)
 
 
+@props._add_deprecated_physical_property_functions("rho")
 class MassDensity(props.HasModel):
 
-    rho, rhoMap, rhoDeriv = props.Invertible("Specific density (g/cc)")
+    rho = props.PhysicalProperty("Specific density (g/cc)")
 
-    def __init__(self, rho=None, rhoMap=None, **kwargs):
+    def __init__(self, rho=None, **kwargs):
         super().__init__(**kwargs)
         self.rho = rho
-        self.rhoMap = rhoMap
 
 
+@props._add_deprecated_physical_property_functions("chi")
 class MagneticSusceptibility(props.HasModel):
 
-    chi, chiMap, chiDeriv = props.Invertible("Magnetic Susceptibility (SI)")
+    chi = props.PhysicalProperty("Magnetic Susceptibility (SI)")
 
-    def __init__(self, chi=None, chiMap=None, **kwargs):
+    def __init__(self, chi=None, **kwargs):
         super().__init__(**kwargs)
         self.chi = chi
-        self.chiMap = chiMap
 
 
+@props._add_deprecated_physical_property_functions("thicknesses")
 class LayerThickness(props.HasModel):
-    thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
-        "layer thicknesses (m)"
-    )
+    thicknesses = props.PhysicalProperty("layer thicknesses (m)")
 
-    def __init__(self, thicknesses=None, thicknessesMap=None, **kwargs):
+    def __init__(self, thicknesses=None, **kwargs):
         super().__init__(**kwargs)
         if thicknesses is None:
             thicknesses = []
         self.thicknesses = thicknesses
-        self.thicknessesMap = thicknessesMap
 
 
+@props._add_deprecated_physical_property_functions("eta")
 class ElectricalChargeability(props.HasModel):
-    eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability (V/V)")
+    eta = props.PhysicalProperty("Electrical Chargeability (V/V)")
 
-    def __init__(self, eta=None, etaMap=None, **kwargs):
+    def __init__(self, eta=None, **kwargs):
         super().__init__(**kwargs)
         self.eta = eta
-        self.etaMap = etaMap
 
 
+@props._add_deprecated_physical_property_functions("slowness")
+@props._add_deprecated_physical_property_functions("velocity")
 class AcousticVelocity(props.HasModel):
-    slowness, slownessMap, slownessDeriv = props.Invertible("Slowness model (s/m)")
-    velocity, velocityMap, velocityDeriv = props.Invertible("Velocity model (m/s)")
-    props.Reciprocal(slowness, velocity)
+    slowness = props.PhysicalProperty("Slowness model (s/m)")
+    velocity = props.PhysicalProperty("Velocity model (m/s)")
+    slowness.set_reciprocal(velocity)
 
-    def __init__(
-        self, slowness=None, slownessMap=None, velocity=None, velocityMap=None, **kwargs
-    ):
+    def __init__(self, slowness=None, velocity=None, **kwargs):
         super().__init__(**kwargs)
         self.slowness = slowness
-        self.slownessMap = slownessMap
         self.velocity = velocity
-        self.velocityMap = velocityMap
 
 
+@props._add_deprecated_physical_property_functions("Ks")
 class HydraulicConductivity(props.HasModel):
-    Ks, KsMap, KsDeriv = props.Invertible("Saturated hydraulic conductivity")
+    Ks = props.PhysicalProperty("Saturated hydraulic conductivity")
 
-    def __init__(self, Ks=None, KsMap=None, **kwargs):
+    def __init__(self, Ks=None, **kwargs):
         self.Ks = Ks
-        self.KsMap = KsMap
         super().__init__(**kwargs)
 
     # Ideally this becomes an abstract method once the PropertyMeta inherits from
@@ -132,29 +126,22 @@ class HydraulicConductivity(props.HasModel):
         ax.set_ylabel("Hydraulic conductivity, $K$")
 
 
+@props._add_deprecated_physical_property_functions("theta_r")
+@props._add_deprecated_physical_property_functions("theta_s")
 class WaterRetention(props.HasModel):
 
-    theta_r, theta_rMap, theta_rDeriv = props.Invertible(
-        "residual water content [L3L-3]"
-    )
-
-    theta_s, theta_sMap, theta_sDeriv = props.Invertible(
-        "saturated water content [L3L-3]"
-    )
+    theta_r = props.PhysicalProperty("residual water content [L3L-3]")
+    theta_s = props.PhysicalProperty("saturated water content [L3L-3]")
 
     def __init__(
         self,
         theta_r=None,
-        theta_rMap=None,
         theta_s=None,
-        theta_sMap=None,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.theta_r = theta_r
-        self.theta_rMap = theta_rMap
         self.theta_s = theta_s
-        self.theta_sMap = theta_sMap
 
     # Ideally this becomes an abstract method once the PropertyMeta inherits from
     # ABCMeta

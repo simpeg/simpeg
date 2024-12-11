@@ -838,6 +838,7 @@ class BaseVRMSimulation(BaseSimulation):
 #############################################################################
 
 
+@props._add_deprecated_physical_property_functions("xi")
 class Simulation3DLinear(BaseVRMSimulation):
     """"""
 
@@ -846,14 +847,13 @@ class Simulation3DLinear(BaseVRMSimulation):
     _TisSet = False
     _xiMap = None
 
-    xi, xiMap, xiDeriv = props.Invertible(
+    xi = props.PhysicalProperty(
         "Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)"
     )
 
-    def __init__(self, mesh, xi=None, xiMap=None, **kwargs):
+    def __init__(self, mesh, xi=None, **kwargs):
         super().__init__(mesh, **kwargs)
         self.xi = xi
-        self.xiMap = xiMap
 
         nAct = list(self.active_cells).count(True)
         if self.xiMap is None:
@@ -997,10 +997,14 @@ class Simulation3DLogUniform(BaseVRMSimulation):
     _TisSet = False
     # _xiMap = None
 
-    chi0 = props.PhysicalProperty("DC susceptibility")
-    dchi = props.PhysicalProperty("Frequency dependence")
-    tau1 = props.PhysicalProperty("Low bound time-relaxation constant")
-    tau2 = props.PhysicalProperty("Upper bound time-relaxation constant")
+    chi0 = props.PhysicalProperty("DC susceptibility", invertible=False)
+    dchi = props.PhysicalProperty("Frequency dependence", invertible=False)
+    tau1 = props.PhysicalProperty(
+        "Low bound time-relaxation constant", invertible=False
+    )
+    tau2 = props.PhysicalProperty(
+        "Upper bound time-relaxation constant", invertible=False
+    )
 
     def __init__(
         self, mesh, survey=None, chi0=None, dchi=None, tau1=None, tau2=None, **kwargs

@@ -5,7 +5,7 @@ import numpy as np
 from scipy import sparse as sp
 from scipy.special import roots_legendre
 
-from ..base import ElectricalConductivity, MagneticPermeability
+from ..base import ElectricalConductivity, MagneticPermeability, ElectricalChargeability
 from ..base import LayerThickness
 from ..simulation import BaseSimulation
 
@@ -38,7 +38,11 @@ for filter_name in libdlf.hankel.__all__:
 
 
 class BaseEM1DSimulation(
-    BaseSimulation, ElectricalConductivity, MagneticPermeability, LayerThickness
+    BaseSimulation,
+    ElectricalConductivity,
+    MagneticPermeability,
+    LayerThickness,
+    ElectricalChargeability,
 ):
     """
     Base simulation class for simulating the EM response over a 1D layered Earth
@@ -49,28 +53,34 @@ class BaseEM1DSimulation(
 
     _formulation = "1D"
     _coefficients_set = False
+    eta = ElectricalChargeability.eta.set_invertible(False)
 
-    eta = props.PhysicalProperty("Intrinsic chargeability (V/V), 0 <= eta < 1")
-    tau = props.PhysicalProperty("Time constant for Cole-Cole model (s)")
-    c = props.PhysicalProperty("Frequency Dependency for Cole-Cole model, 0 < c < 1")
+    tau = props.PhysicalProperty(
+        "Time constant for Cole-Cole model (s)", invertible=False
+    )
+    c = props.PhysicalProperty(
+        "Frequency Dependency for Cole-Cole model, 0 < c < 1", invertible=False
+    )
 
     dchi = props.PhysicalProperty(
-        "DC magnetic susceptibility for viscous remanent magnetization contribution (SI)"
+        "DC magnetic susceptibility for viscous remanent magnetization contribution (SI)",
+        invertible=False,
     )
     tau1 = props.PhysicalProperty(
-        "Lower bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)"
+        "Lower bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)",
+        invertible=False,
     )
     tau2 = props.PhysicalProperty(
-        "Upper bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)"
+        "Upper bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)",
+        invertible=False,
     )
 
     # Additional properties
-    h, hMap, hDeriv = props.Invertible("Receiver Height (m), h > 0")
+    h = props.PhysicalProperty("Receiver Height (m), h > 0", default=None)
 
     def __init__(
         self,
         h=None,
-        hMap=None,
         eta=0.0,
         tau=1.0,
         c=0.5,
@@ -85,7 +95,6 @@ class BaseEM1DSimulation(
     ):
         super().__init__(**kwargs)
         self.h = h
-        self.hMap = hMap
         self.eta = eta
         self.tau = tau
         self.c = c

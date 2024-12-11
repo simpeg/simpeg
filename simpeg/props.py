@@ -1,228 +1,180 @@
+import functools
 import warnings
 
 import numpy as np
 
 from simpeg.utils import deprecate_property
-from .maps import IdentityMap, ReciprocalMap
+from . import maps
 from .utils import Zero, validate_type, validate_ndarray_with_shape
 
 
-class Mapping:
-    def __init__(self, short_details=None):
-        self.short_details = short_details
+class _Void:
+    """A class used to mark no default value.
 
-    @property
-    def prop(self):
-        return getattr(self, "_prop", None)
+    Note that you can't use `None` as a marker, since `None` could be a default value itself.
+    """
 
-    @prop.setter
-    def prop(self, value):
-        value = validate_type("prop", value, PhysicalProperty, cast=False)
-        value._mapping = self  # Skip the setter
-        self._prop = value
-
-    @property
-    def reciprocal(self):
-        if self.prop and self.prop.reciprocal:
-            return self.prop.reciprocal.mapping
-
-    @property
-    def reciprocal_prop(self):
-        if self.prop and self.prop.reciprocal:
-            return self.prop.reciprocal
-
-    def clear_props(self, instance):
-        for prop in (self.prop, self.reciprocal_prop, self.reciprocal):
-            if prop is not None:
-                delattr(instance, prop.name)
-
-    def get_property(scope):
-        doc = f"""{scope.short_details}
-
-        Returns
-        -------
-        simpeg.maps.IdentityMap
-        """
-
-        def fget(self):
-            value = getattr(self, f"_{scope.name}", None)
-            if value is not None:
-                return value
-            if scope.reciprocal is None:
-                return None
-            reciprocal = getattr(self, f"_{scope.reciprocal.name}", None)
-            if reciprocal is None:
-                return None
-            return ReciprocalMap() * reciprocal
-
-        def fset(self, value):
-            if value is not None:
-                value = validate_type(scope.name, value, IdentityMap, cast=False)
-                scope.clear_props(self)
-            setattr(self, f"_{scope.name}", value)
-
-        def fdel(self):
-            setattr(self, f"_{scope.name}", None)
-
-        return property(fget=fget, fset=fset, fdel=fdel, doc=doc)
+    pass
 
 
-class PhysicalProperty:
+class PhysicalProperty(property):
     reciprocal = None
 
     def __init__(
         self,
-        short_details,
-        mapping=None,
+        short_description,
         shape=None,
-        default=None,
+        default=_Void,
         dtype=None,
-        optional=False,
+        invertible=True,
     ):
-        self.short_details = short_details
-        if mapping is not None:
-            mapping.prop = self
-
-        self._mapping = mapping
-        self.optional = optional
+        self.default = default
+        self.name = None
+        self.cached_name = None
+        self.invertible = invertible
 
         self.shape = shape
         self.dtype = dtype
 
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, value):
-        self._name = value
-
-    @property
-    def mapping(self):
-        return self._mapping
-
-    @mapping.setter
-    def mapping(self, value):
-        value = validate_type("mapping", value, Mapping, cast=False)
-        value._prop = self  # Skip the setter
-        self._mapping = value
-
-    def clear_mappings(self, instance):
-        if self.mapping is not None:
-            delattr(instance, self.mapping.name)
-        if self.reciprocal is not None:
-            if self.reciprocal.mapping is not None:
-                delattr(instance, self.reciprocal.mapping.name)
-
-    def get_property(scope):
-        if scope.shape is None:
+        if shape is None:
             shape_str = ""
         else:
-            shape_str = f"{scope.shape} "
-        if scope.optional:
+            shape_str = f"{shape} "
+        if self.optional:
             shape_str = f"None or {shape_str}"
-        dtype_str = f" of {scope.dtype}"
-        if scope.dtype is None:
+        dtype_str = f" of {dtype}"
+        if dtype is None:
             dtype_str = ""
 
-        doc = f"""{scope.short_details}
+        doc = f"""{short_description}
 
         Returns
         -------
         {shape_str}numpy.ndarray{dtype_str}
         """
 
-        def fget(self):
-            value = getattr(self, f"_{scope.name}", None)
-            if value is not None:
-                return value
-            if scope.reciprocal:
-                value = getattr(self, f"_{scope.reciprocal.name}", None)
-                if value is not None:
-                    return 1.0 / value
-            # If I don't have a mapping
-            if scope.mapping is None:
-                # I dont have a reciprocal, or it doesn't have a mapping
-                if scope.reciprocal is None:
-                    return None
-                if scope.reciprocal.mapping is None:
-                    reciprocal_val = getattr(self, f"_{scope.reciprocal.name}", None)
-                    if reciprocal_val is None:
-                        raise AttributeError(
-                            "Neither a value nor mapping for {}/{} has been set".format(
-                                scope.name, scope.reciprocal.name
-                            )
-                        )
-                # Set by mapped reciprocal
-                return 1.0 / getattr(self, scope.reciprocal.name)
-
-            mapping = getattr(self, scope.mapping.name, None)
-            if mapping is None:
-                if scope.optional:
-                    return None
-                else:
-                    raise AttributeError(
-                        f"Neither a value for `{scope.name}` or mapping for `{scope.mapping.name}` has not been set."
-                    )
-            if self.model is None:
-                raise AttributeError(
-                    f"A `model` is required for physical property {scope.name}"
-                )
-            return mapping * self.model
-
-        def fset(self, value):
-            if value is not None:
-                value = validate_ndarray_with_shape(
-                    scope.name, value, shape=scope.shape, dtype=scope.dtype
-                )
-                if value.ndim == 0:
-                    value = value.item()
-
-                if scope.reciprocal:
-                    delattr(self, scope.reciprocal.name)
-                scope.clear_mappings(self)
-            setattr(self, f"_{scope.name}", value)
-
-        def fdel(self):
-            setattr(self, f"_{scope.name}", None)
-
-        return property(fget=fget, fset=fset, fdel=fdel, doc=doc)
-
-
-class Derivative:
-    def __init__(self, short_details=None, physical_property=None):
-        self.short_details = short_details
-        self.physical_property = physical_property
+        super().__init__(fget=self.fget, fset=self.fset, fdel=self.fdel, doc=doc)
 
     @property
-    def mapping(self):
-        """The mapping looks through to the physical property map."""
-        if self.physical_property is None:
+    def optional(self):
+        return self.default is not _Void
+
+    def set_name(self, name):
+        self.name = name
+        self.cached_name = f"_physical_property_{name}"
+
+    def get_cls_attr_name(self, scope):
+        return f"{type(scope).__name__}.{self.name}"
+
+    def is_mapped(self, scope):
+        is_self_mapped = isinstance(
+            getattr(scope, self.cached_name, None), maps.IdentityMap
+        )
+        if not is_self_mapped and (recip := self.reciprocal):
+            return isinstance(getattr(scope, recip.cached_name, None), maps.IdentityMap)
+        return is_self_mapped
+
+    def mapping(self, scope):
+        stashed = getattr(scope, self.cached_name, None)
+        if isinstance(stashed, maps.IdentityMap):
+            return stashed
+        if stashed is None:
+            if recip := self.reciprocal:
+                stashed = getattr(scope, recip.cached_name, None)
+                if isinstance(stashed, maps.IdentityMap):
+                    return maps.ReciprocalMap() * stashed
             return None
-        return self.physical_property.mapping
 
-    def get_property(scope):
-        doc = f"""{scope.short_details}
+    def fget(self, scope):
+        value = getattr(scope, self.cached_name, None)
+        if value is None:
+            if recip := self.reciprocal:
+                try:
+                    return 1.0 / getattr(scope, recip.name)
+                except AttributeError:
+                    if recip.is_mapped(scope):
+                        raise AttributeError(
+                            f"Reciprocal property '{recip.get_cls_attr_name(scope)}' was set as a map, "
+                            f"but `{type(scope).__name__}.model` is not set"
+                        )
+                    else:
+                        raise AttributeError(
+                            f"'{type(scope).__name__}' has no attribute '{self.name}', "
+                            f"nor its reciprocal '{recip.name}'"
+                        )
+            if self.optional:
+                return self.default
+            raise AttributeError(
+                f"'{type(scope).__name__}' has no attribute '{self.name}'"
+            )
+        if isinstance(value, maps.IdentityMap):
+            # if I was set as a mapping:
+            if (model := scope.model) is None:
+                raise AttributeError(
+                    f"'{self.get_cls_attr_name(scope)}' was set as a map, but `{type(scope).__name__}.model` is not set"
+                )
+            return value @ model
+        # otherwise I was good, so return the value
+        return value
 
-        Returns
-        -------
-        scipy.sparse.spmatrix, discretize.Zero, or discretize.Identity
-        """
+    def fset(self, scope, value):
+        if value is not None:
+            if isinstance(value, maps.IdentityMap):
+                if not self.invertible:
+                    raise ValueError(
+                        f"Cannot assign a map to '{self.get_cls_attr_name(scope)}', "
+                        f"because it is not an invertible property"
+                    )
+            else:
+                value = validate_ndarray_with_shape(
+                    self.name, value, shape=self.shape, dtype=self.dtype
+                )
+            if self.reciprocal:
+                delattr(scope, self.reciprocal.name)
+        setattr(scope, self.cached_name, value)
 
-        def fget(self):
-            if scope.physical_property is None:
-                return Zero()
-            if scope.mapping is None:
-                return Zero()
-            mapping = getattr(self, scope.mapping.name)
-            if mapping is None:
-                return Zero()
-            if self.model is None:
-                return Zero()
+    def fdel(self, scope):
+        if hasattr(scope, self.cached_name):
+            delattr(scope, self.cached_name)
 
-            return mapping.deriv(self.model)
+    def set_reciprocal(self, other):
+        self.reciprocal = other
+        other.reciprocal = self
 
-        return property(fget=fget, doc=doc)
+    def deriv(self, scope, v=None):
+        if not self.invertible:
+            raise NotImplementedError(
+                f"'{self.get_cls_attr_name(scope)}' has no derivative because it is not invertible"
+            )
+        if (mapping := self.mapping(scope)) is None:
+            return Zero()
+        return mapping.deriv(scope.model, v=v)
+
+    def shallow_copy(self):
+        new_prop = PhysicalProperty(
+            "",
+            shape=self.shape,
+            default=self.default,
+            dtype=self.dtype,
+            invertible=self.invertible,
+        )
+        new_prop.__doc__ = self.__doc__
+        return new_prop
+
+    def setter(self, setter_func):
+        new_prop = self.shallow_copy()
+        new_prop.fset = setter_func
+        return new_prop
+
+    def deleter(self, deleter_func):
+        new_prop = self.shallow_copy()
+        new_prop.fdel = deleter_func
+        return new_prop
+
+    def set_invertible(self, invertible):
+        new_prop = self.shallow_copy()
+        new_prop.invertible = invertible
+        return new_prop
 
 
 class NestedModeler:
@@ -252,86 +204,35 @@ class NestedModeler:
         return property(fget=fget, fset=fset, fdel=fdel, doc=doc)
 
 
-def Invertible(property_name, optional=False):
-    mapping = Mapping(f"Mapping of the inversion model to {property_name}.")
-
-    physical_property = PhysicalProperty(
-        f"{property_name.capitalize()} physical property model.",
-        mapping=mapping,
-        optional=optional,
-    )
-
-    property_derivative = Derivative(
-        f"Derivative of {property_name} wrt the model.",
-        physical_property=physical_property,
-    )
-
-    return physical_property, mapping, property_derivative
-
-
-def Reciprocal(prop1, prop2):
-    prop1.reciprocal = prop2
-    prop2.reciprocal = prop1
-
-
 class BaseSimPEG:
     """"""
 
 
 class PhysicalPropertyMetaclass(type):
     def __new__(mcs, name, bases, classdict):
-        # set the phyiscal properties list.
+        # remember the physical properties on class dicts.
 
-        property_dict = {
-            key: value
-            for key, value in classdict.items()
-            if isinstance(value, PhysicalProperty)
-        }
-        map_dict = {
-            key: value for key, value in classdict.items() if isinstance(value, Mapping)
-        }
-        deriv_dict = {
-            key: value
-            for key, value in classdict.items()
-            if isinstance(value, Derivative)
-        }
-        nested_dict = {
-            key: value
-            for key, value in classdict.items()
-            if isinstance(value, NestedModeler)
-        }
+        physical_properties = {}
+        nested_modelers = {}
+        for key, value in classdict.items():
+            if isinstance(value, PhysicalProperty):
+                value.set_name(key)
+                physical_properties[key] = value
+            elif isinstance(value, NestedModeler):
+                nested_modelers[key] = value
 
-        # set the physical properties as @properties
-        for key, value in property_dict.items():
-            value.name = key
+        for key, value in nested_modelers.items():
             classdict[key] = value.get_property()
-
-        map_names = classdict.get("_all_map_names", set())
-        # set the mappings as @properties
-        for key, value in map_dict.items():
-            value.name = key
-            classdict[key] = value.get_property()
-            map_names.add(key)
-
-        # set the derivatives as @properties
-        for key, value in deriv_dict.items():
-            value.name = key
-            classdict[key] = value.get_property()
-
-        # set the nested_modelers as @properties
-        nested_modelers = set()
-        for key, value in nested_dict.items():
-            value.name = key
-            classdict[key] = value.get_property()
-            nested_modelers.add(key)
 
         newcls = super().__new__(mcs, name, bases, classdict)
 
-        for parent in reversed(newcls.__mro__):
-            map_names.update(getattr(parent, "_all_map_names", set()))
-            nested_modelers.update(getattr(parent, "_nested_modelers", set()))
+        for parent in newcls.__mro__:
+            physical_properties = (
+                getattr(parent, "_physical_properties", {}) | physical_properties
+            )
+            nested_modelers = getattr(parent, "_nested_modelers", {}) | nested_modelers
 
-        newcls._all_map_names = map_names
+        newcls._physical_properties = physical_properties
         newcls._nested_modelers = nested_modelers
 
         return newcls
@@ -343,17 +244,34 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         super().__init__(**kwargs)
 
     @property
-    def _act_map_names(self):
-        return set(
-            name
-            for name in self._all_map_names
-            if getattr(self, f"_{name}", None) is not None
-        )
+    def _invertible_properties(self):
+        """Returns a dictionary of string, property pairs of invertible properties."""
+        return {
+            name: prop
+            for name, prop in self._physical_properties.items()
+            if prop.invertible
+        }
+
+    @property
+    def _mapped_properties(self):
+        """Returns a dictionary of string, property pairs of mapped properties."""
+        return {
+            name: prop
+            for name, prop in self._physical_properties.items()
+            if prop.is_mapped(self)
+        }
 
     @property
     def needs_model(self):
         """True if a model is necessary"""
-        return len(self._act_map_names) > 0
+        return len(self._mapped_properties) > 0
+
+    def _prop_map(self, name):
+        return self._physical_properties[name].mapping(self)
+
+    def _prop_deriv(self, name, v=None):
+        # TODO Add support for adjoints here and on mapping derivatives
+        return self._physical_properties[name].deriv(self, v=v)
 
     @property
     def _has_nested_models(self):
@@ -410,9 +328,9 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         if value is not None:
             # check if I need a model
             if not self.needs_model and not self._has_nested_models:
-                raise ValueError(
-                    "Cannot add model as there are no active mappings"
-                    ", choose from: ['{}']".format("', '".join(self._all_map_names))
+                raise AttributeError(
+                    "Cannot set model if no properties have been set as maps. "
+                    f"Choose from: {', '.join(self._invertible_properties.keys())}"
                 )
 
             # coerce to a numpy array
@@ -422,8 +340,8 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
 
             # Check the model is a good shape
             errors = []
-            for name in self._act_map_names:
-                mapping = getattr(self, name)
+            for name, prop in self._mapped_properties.items():
+                mapping = prop.mapping(self)
                 correct_shape = mapping.shape[1] == "*" or mapping.shape[1] == len(
                     value
                 )
@@ -462,10 +380,10 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                 and isinstance(value, np.ndarray)
                 and np.allclose(previous_value, value)
             ):
-                # cached properties to delete
-                for prop in self._delete_on_model_update:
-                    if hasattr(self, prop):
-                        delattr(self, prop)
+                # cached items to delete
+                for item in self._delete_on_model_update:
+                    if hasattr(self, item):
+                        delattr(self, item)
 
                 updated = True
 
@@ -479,7 +397,62 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
     @model.deleter
     def model(self):
         self._model = (None,)
-        # cached properties to delete
-        for prop in self._delete_on_model_update:
-            if hasattr(self, prop):
-                delattr(self, prop)
+        # cached items to delete
+        for item in self._delete_on_model_update:
+            if hasattr(self, item):
+                delattr(self, item)
+
+
+def _add_deprecated_physical_property_functions(new_name, old_name=None):
+
+    if old_name is None:
+        old_name = new_name
+    map_name = f"{old_name}Map"
+    deriv_name = f"{old_name}Deriv"
+
+    @property
+    def prop_map(self):
+        warnings.warn(
+            f"Accessing {map_name} directly is no longer supported. If this is still necessary "
+            f"use _prop_map('{new_name}') instead",
+            UserWarning,
+            stacklevel=2,
+        )
+        return self._prop_map(new_name)
+
+    @prop_map.setter
+    def prop_map(self, value):
+        warnings.warn(
+            f"Setting {map_name} directly is deprecated. Instead directly assign a mapping to {new_name}",
+            UserWarning,
+            stacklevel=2,
+        )
+        setattr(self, new_name, value)
+
+    @property
+    def prop_deriv(self):
+        # derivatives are mostly used internally, and should not be publicly exposed to end users.
+        warnings.warn(
+            f"Accessing {deriv_name} is deprecated, use _prop_deriv('{new_name}') instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self._prop_deriv(new_name)
+
+    def decorator(cls):
+        __init__ = cls.__init__
+
+        @functools.wraps(__init__)
+        def __new_init__(self, *args, **kwargs):
+            old_map = kwargs.pop(map_name, None)
+            __init__(self, *args, **kwargs)
+            if old_map is not None:
+                setattr(self, map_name, old_map)
+
+        cls.__init__ = __new_init__
+        setattr(cls, map_name, prop_map)
+        setattr(cls, deriv_name, prop_deriv)
+
+        return cls
+
+    return decorator

@@ -644,14 +644,11 @@ class LinearSimulation(BaseSimulation):
         If not, the dimension ``n_param`` of the linear operator will depend on the mapping.
     """
 
-    linear_model, model_map, model_deriv = props.Invertible(
-        "The model for a linear problem"
-    )
+    linear_model = props.PhysicalProperty("The model for a linear problem")
 
-    def __init__(self, linear_model=None, model_map=None, G=None, **kwargs):
+    def __init__(self, linear_model=None, G=None, **kwargs):
         super().__init__(**kwargs)
         self.linear_model = linear_model
-        self.model_map = model_map
         if G is not None:
             self.G = G
 
@@ -735,19 +732,22 @@ class LinearSimulation(BaseSimulation):
             Where :math:`f` is :attr:`model_map`.
         """
         self.model = m
+        model_deriv = self._prop_deriv("linear_model")
         # self.model_deriv is likely a sparse matrix
         # and G is possibly dense, thus we need to do..
-        return (self.model_deriv.T.dot(self.G.T)).T
+        return (model_deriv.T.dot(self.G.T)).T
 
     def Jvec(self, m, v, f=None):
         # Docstring inherited from BaseSimulation
         self.model = m
-        return self.G.dot(self.model_deriv * v)
+        model_deriv = self._prop_deriv("linear_model")
+        return self.G.dot(model_deriv * v)
 
     def Jtvec(self, m, v, f=None):
         # Docstring inherited from BaseSimulation
         self.model = m
-        return self.model_deriv.T * self.G.T.dot(v)
+        model_deriv = self._prop_deriv("linear_model")
+        return model_deriv.T * self.G.T.dot(v)
 
 
 class ExponentialSinusoidSimulation(LinearSimulation):
