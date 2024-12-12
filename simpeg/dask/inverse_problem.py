@@ -28,7 +28,7 @@ def get_dpred(self, m, f=None, compute_J=False):
 
     if isinstance(dpreds[0], Future):
         client = get_client()
-        dpreds = np.concatenate(client.gather(dpreds)).flatten()
+        dpreds = client.gather(dpreds)
 
     return dpreds
 
