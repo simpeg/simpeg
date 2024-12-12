@@ -457,7 +457,6 @@ def _add_deprecated_physical_property_functions(new_name, old_name=None):
     -------
     maps.IdentityMap
     """
-    prop_map.__name__ = map_name
 
     @property
     def prop_deriv(self):
@@ -469,7 +468,6 @@ def _add_deprecated_physical_property_functions(new_name, old_name=None):
         )
         return self._prop_deriv(new_name)
 
-    prop_deriv.__name__ = deriv_name
     prop_deriv.__doc__ = f"""
     Derivative of {old_name} w.r.t. the model
 

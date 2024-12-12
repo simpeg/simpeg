@@ -228,17 +228,15 @@ def with_property_mass_matrices(property_name):
             """
             Derivative of `MccProperty` with respect to the model.
             """
-            if getattr(self, f"{arg.lower()}Map") is None:
-                return Zero()
             if isinstance(u, Zero) or isinstance(v, Zero):
                 return Zero()
             stash_name = f"_Mcc_{arg}_deriv"
 
             if getattr(self, stash_name, None) is None:
-                M_prop_deriv = sp.diags(self.mesh.cell_volumes) * getattr(
-                    self, f"{arg.lower()}Deriv"
-                )
-                setattr(self, stash_name, M_prop_deriv)
+                prop_deriv = self._prop_deriv(arg.lower())
+                if not isinstance(prop_deriv, Zero):
+                    prop_deriv = sp.diags(self.mesh.cell_volumes) * prop_deriv
+                setattr(self, stash_name, prop_deriv)
             return __inner_mat_mul_op(
                 getattr(self, stash_name), u, v=v, adjoint=adjoint
             )
@@ -249,18 +247,19 @@ def with_property_mass_matrices(property_name):
             """
             Derivative of `MnProperty` with respect to the model.
             """
-            if getattr(self, f"{arg.lower()}Map") is None:
-                return Zero()
             if isinstance(u, Zero) or isinstance(v, Zero):
                 return Zero()
+
             stash_name = f"_Mn_{arg}_deriv"
             if getattr(self, stash_name, None) is None:
-                M_prop_deriv = (
-                    self.mesh.aveN2CC.T
-                    * sp.diags(self.mesh.cell_volumes)
-                    * getattr(self, f"{arg.lower()}Deriv")
-                )
-                setattr(self, stash_name, M_prop_deriv)
+                prop_deriv = self._prop_deriv(arg.lower())
+                if not isinstance(prop_deriv, Zero):
+                    prop_deriv = (
+                        self.mesh.aveN2CC.T
+                        * sp.diags(self.mesh.cell_volumes)
+                        * prop_deriv
+                    )
+                setattr(self, stash_name, prop_deriv)
             return __inner_mat_mul_op(
                 getattr(self, stash_name), u, v=v, adjoint=adjoint
             )
@@ -271,27 +270,30 @@ def with_property_mass_matrices(property_name):
             """
             Derivative of `MfProperty` with respect to the model.
             """
-            if getattr(self, f"{arg.lower()}Map") is None:
-                return Zero()
             if isinstance(u, Zero) or isinstance(v, Zero):
                 return Zero()
             stash_name = f"_Mf_{arg}_deriv"
             if getattr(self, stash_name, None) is None:
-                prop = getattr(self, arg.lower())
-                t_type = TensorType(self.mesh, prop)
-
-                M_deriv_func = self.mesh.get_face_inner_product_deriv(model=prop)
-                prop_deriv = getattr(self, f"{arg.lower()}Deriv")
-                # t_type == 3 for full tensor model, t_type < 3 for scalar, isotropic, or axis-aligned anisotropy.
-                if t_type < 3 and self.mesh._meshType.lower() in (
-                    "cyl",
-                    "tensor",
-                    "tree",
-                ):
-                    M_prop_deriv = M_deriv_func(np.ones(self.mesh.n_faces)) @ prop_deriv
-                    setattr(self, stash_name, M_prop_deriv)
+                prop_deriv = self._prop_deriv(arg.lower())
+                if isinstance(prop_deriv, Zero):
+                    setattr(self, stash_name, prop_deriv)
                 else:
-                    setattr(self, stash_name, (M_deriv_func, prop_deriv))
+                    prop = getattr(self, arg.lower())
+                    t_type = TensorType(self.mesh, prop)
+
+                    M_deriv_func = self.mesh.get_face_inner_product_deriv(model=prop)
+                    # t_type == 3 for full tensor model, t_type < 3 for scalar, isotropic, or axis-aligned anisotropy.
+                    if t_type < 3 and self.mesh._meshType.lower() in (
+                        "cyl",
+                        "tensor",
+                        "tree",
+                    ):
+                        M_prop_deriv = (
+                            M_deriv_func(np.ones(self.mesh.n_faces)) @ prop_deriv
+                        )
+                        setattr(self, stash_name, M_prop_deriv)
+                    else:
+                        setattr(self, stash_name, (M_deriv_func, prop_deriv))
 
             return __inner_mat_mul_op(
                 getattr(self, stash_name), u, v=v, adjoint=adjoint
@@ -303,27 +305,30 @@ def with_property_mass_matrices(property_name):
             """
             Derivative of `MeProperty` with respect to the model.
             """
-            if getattr(self, f"{arg.lower()}Map") is None:
-                return Zero()
             if isinstance(u, Zero) or isinstance(v, Zero):
                 return Zero()
             stash_name = f"_Me_{arg}_deriv"
             if getattr(self, stash_name, None) is None:
-                prop = getattr(self, arg.lower())
-                t_type = TensorType(self.mesh, prop)
-
-                M_deriv_func = self.mesh.get_edge_inner_product_deriv(model=prop)
-                prop_deriv = getattr(self, f"{arg.lower()}Deriv")
-                # t_type == 3 for full tensor model, t_type < 3 for scalar, isotropic, or axis-aligned anisotropy.
-                if t_type < 3 and self.mesh._meshType.lower() in (
-                    "cyl",
-                    "tensor",
-                    "tree",
-                ):
-                    M_prop_deriv = M_deriv_func(np.ones(self.mesh.n_edges)) @ prop_deriv
-                    setattr(self, stash_name, M_prop_deriv)
+                prop_deriv = self._prop_deriv(arg.lower())
+                if isinstance(prop_deriv, Zero):
+                    setattr(self, stash_name, prop_deriv)
                 else:
-                    setattr(self, stash_name, (M_deriv_func, prop_deriv))
+                    prop = getattr(self, arg.lower())
+                    t_type = TensorType(self.mesh, prop)
+
+                    M_deriv_func = self.mesh.get_edge_inner_product_deriv(model=prop)
+                    # t_type == 3 for full tensor model, t_type < 3 for scalar, isotropic, or axis-aligned anisotropy.
+                    if t_type < 3 and self.mesh._meshType.lower() in (
+                        "cyl",
+                        "tensor",
+                        "tree",
+                    ):
+                        M_prop_deriv = (
+                            M_deriv_func(np.ones(self.mesh.n_edges)) @ prop_deriv
+                        )
+                        setattr(self, stash_name, M_prop_deriv)
+                    else:
+                        setattr(self, stash_name, (M_deriv_func, prop_deriv))
             return __inner_mat_mul_op(
                 getattr(self, stash_name), u, v=v, adjoint=adjoint
             )
@@ -334,8 +339,6 @@ def with_property_mass_matrices(property_name):
             """
             Derivative of `MccPropertyI` with respect to the model.
             """
-            if getattr(self, f"{arg.lower()}Map") is None:
-                return Zero()
             if isinstance(u, Zero) or isinstance(v, Zero):
                 return Zero()
 
@@ -350,8 +353,6 @@ def with_property_mass_matrices(property_name):
             """
             Derivative of `MnPropertyI` with respect to the model.
             """
-            if getattr(self, f"{arg.lower()}Map") is None:
-                return Zero()
             if isinstance(u, Zero) or isinstance(v, Zero):
                 return Zero()
 
@@ -366,8 +367,6 @@ def with_property_mass_matrices(property_name):
             """I
             Derivative of `MfPropertyI` with respect to the model.
             """
-            if getattr(self, f"{arg.lower()}Map") is None:
-                return Zero()
             if isinstance(u, Zero) or isinstance(v, Zero):
                 return Zero()
 
@@ -382,8 +381,6 @@ def with_property_mass_matrices(property_name):
             """
             Derivative of `MePropertyI` with respect to the model.
             """
-            if getattr(self, f"{arg.lower()}Map") is None:
-                return Zero()
             if isinstance(u, Zero) or isinstance(v, Zero):
                 return Zero()
 
