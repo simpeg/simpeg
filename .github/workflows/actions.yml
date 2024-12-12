@@ -31,3 +31,5 @@ jobs:
 
       - name: Lint GitHub Actions
         run: make check-actions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
