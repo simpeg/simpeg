@@ -151,10 +151,8 @@ class Simulation3DIntegral(BasePFSimulation, MagneticSusceptibility):
         Magnetic survey with information of the receivers.
     active_cells : (n_cells) numpy.ndarray, optional
         Array that indicates which cells in ``mesh`` are active cells.
-    chi : numpy.ndarray, optional
+    chi : numpy.ndarray or maps.IdentityMap, optional
         Susceptibility array for the active cells in the mesh.
-    chiMap : Mapping, optional
-        Model mapping.
     model_type : str, optional
         Whether the model are susceptibilities of the cells (``"scalar"``),
         or effective susceptibilities (``"vector"``).
@@ -205,7 +203,6 @@ class Simulation3DIntegral(BasePFSimulation, MagneticSusceptibility):
         self._M = None
         self._gtg_diagonal = None
         self.is_amplitude_data = is_amplitude_data
-        self.modelMap = self.chiMap
 
         # Warn if n_processes has been passed
         if self.engine == "choclo" and "n_processes" in kwargs:

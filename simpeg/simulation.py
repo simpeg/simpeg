@@ -636,8 +636,9 @@ class LinearSimulation(BaseSimulation):
 
     Parameters
     ----------
-    model_map : simpeg.maps.BaseMap
-        Mapping from the model parameters to vector that the linear operator acts on.
+    linear_model : array_like or simpeg.maps.IdentityMap, optional
+        Either the values of the `linear_model`, or a mapping from the model parameters
+        to vector that the linear operator acts on.
     G : (n_data, n_param) numpy.ndarray or scipy.sparse.csr_matrx
         The linear operator. For a ``model_map`` that maps within the same vector space
         (e.g. the identity map), the dimension ``n_param`` equals the number of model parameters.

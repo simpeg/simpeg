@@ -18,7 +18,19 @@ class _Void:
 
 
 class PhysicalProperty(property):
-    reciprocal = None
+    """
+
+    Parameters
+    ----------
+    short_description
+    shape : tuple of int or '*'
+        The shape the expected property array should have.
+    default, optional
+        The default value the parameter should take if it was never assigned.
+    dtype : np.dtype
+    invertible : bool
+    reciprocal, optional
+    """
 
     def __init__(
         self,
@@ -27,11 +39,16 @@ class PhysicalProperty(property):
         default=_Void,
         dtype=None,
         invertible=True,
+        reciprocal=None,
     ):
         self.default = default
         self.name = None
         self.cached_name = None
         self.invertible = invertible
+        if reciprocal is not None:
+            self.set_reciprocal(reciprocal)
+        else:
+            self.reciprocal = None
 
         self.shape = shape
         self.dtype = dtype
@@ -429,6 +446,19 @@ def _add_deprecated_physical_property_functions(new_name, old_name=None):
         )
         setattr(self, new_name, value)
 
+    prop_map.__doc__ = f"""
+    Mapping from the model to {old_name}
+
+    .. deprecated:: 0.24.0
+        The method of interacting with the physical property is deprecated, instead
+        directly assign a mapping to {new_name}.
+
+    Returns
+    -------
+    maps.IdentityMap
+    """
+    prop_map.__name__ = map_name
+
     @property
     def prop_deriv(self):
         # derivatives are mostly used internally, and should not be publicly exposed to end users.
@@ -438,6 +468,19 @@ def _add_deprecated_physical_property_functions(new_name, old_name=None):
             stacklevel=2,
         )
         return self._prop_deriv(new_name)
+
+    prop_deriv.__name__ = deriv_name
+    prop_deriv.__doc__ = f"""
+    Derivative of {old_name} w.r.t. the model
+
+    .. deprecated:: 0.24.0
+        The method of interacting with the physical property derivative is deprecated. If access is still necessary
+        it can be retrieved with `_get_deriv('{old_name}')`.
+
+    Returns
+    -------
+    maps.IdentityMap
+    """
 
     def decorator(cls):
         __init__ = cls.__init__
@@ -456,3 +499,36 @@ def _add_deprecated_physical_property_functions(new_name, old_name=None):
         return cls
 
     return decorator
+
+
+class Mapping:
+    # This should only really have been called by developers/ internally to simpeg,
+    # Make this throw an error alerting developers to the new behavior.
+    def __init__(self, *args, **kwargs):
+        raise NotImplementedError(
+            "'Mapping' is no longer necessary. You can now directly assign a map to a 'PhysicalProperty'. "
+            "If you need to access to the mapping, you can do so by using the 'HasModel._prop_map' method"
+        )
+
+
+class Derivative:
+    # This should only really have been called by developers/ internally to simpeg,
+    # Make this throw an error alerting developers to the new behavior.
+    def __init__(self, *args, **kwargs):
+        raise NotImplementedError(
+            "'Derivative' is no longer necessary, because you can now directly assign a map to a 'PhysicalProperty'. "
+            "If you do need to access the derivative, you can do so by using the 'HasModel._prop_deriv' method"
+        )
+
+
+def Invertible(property_name, optional=False):
+    raise NotImplementedError(
+        "You no longer need to specifically create an 'Invertible' property, instead just create a 'PhysicalProperty'"
+    )
+
+
+def Reciprocal(prop1, prop2):
+    raise NotImplementedError(
+        "Use 'prop1.set_reciprocal(prop2)' within the class to set two 'PhysicalProperty' as being related by "
+        "a reciprocal"
+    )
