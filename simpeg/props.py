@@ -1,7 +1,9 @@
 import functools
 import warnings
+from typing import Union, Optional
 
 import numpy as np
+import numpy.typing as npt
 
 from simpeg.utils import deprecate_property
 from . import maps
@@ -101,7 +103,7 @@ class PhysicalProperty(property):
                     return maps.ReciprocalMap() * stashed
             return None
 
-    def fget(self, scope):
+    def fget(self, scope) -> npt.NDArray:
         value = getattr(scope, self.cached_name, None)
         if value is None:
             if recip := self.reciprocal:
@@ -133,7 +135,7 @@ class PhysicalProperty(property):
         # otherwise I was good, so return the value
         return value
 
-    def fset(self, scope, value):
+    def fset(self, scope, value: Optional[Union[npt.NDArray, maps.IdentityMap]]):
         if value is not None:
             if isinstance(value, maps.IdentityMap):
                 if not self.invertible:
