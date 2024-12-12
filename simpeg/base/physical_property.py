@@ -8,8 +8,7 @@ from simpeg import props
 @props._add_deprecated_physical_property_functions("rho")
 class ElectricalConductivity(props.HasModel):
     sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
-    rho = props.PhysicalProperty("Electrical resistivity (Ohm m)")
-    sigma.set_reciprocal(rho)
+    rho = props.PhysicalProperty("Electrical resistivity (Ohm m)", reciprocal=sigma)
 
     def __init__(self, sigma=None, rho=None, **kwargs):
         super().__init__(**kwargs)
@@ -21,8 +20,7 @@ class ElectricalConductivity(props.HasModel):
 @props._add_deprecated_physical_property_functions("mui")
 class MagneticPermeability(props.HasModel):
     mu = props.PhysicalProperty("Magnetic Permeability (H/m)")
-    mui = props.PhysicalProperty("Inverse Magnetic Permeability (m/H)")
-    mu.set_reciprocal(mui)
+    mui = props.PhysicalProperty("Inverse Magnetic Permeability (m/H)", reciprocal=mu)
 
     def __init__(self, mu=mu_0, mui=None, **kwargs):
         super().__init__(**kwargs)
@@ -90,8 +88,7 @@ class ElectricalChargeability(props.HasModel):
 @props._add_deprecated_physical_property_functions("velocity")
 class AcousticVelocity(props.HasModel):
     slowness = props.PhysicalProperty("Slowness model (s/m)")
-    velocity = props.PhysicalProperty("Velocity model (m/s)")
-    slowness.set_reciprocal(velocity)
+    velocity = props.PhysicalProperty("Velocity model (m/s)", reciprocal=slowness)
 
     def __init__(self, slowness=None, velocity=None, **kwargs):
         super().__init__(**kwargs)

@@ -32,6 +32,8 @@ class PhysicalProperty(property):
     reciprocal, optional
     """
 
+    reciprocal = None
+
     def __init__(
         self,
         short_description,
@@ -45,10 +47,7 @@ class PhysicalProperty(property):
         self.name = None
         self.cached_name = None
         self.invertible = invertible
-        if reciprocal is not None:
-            self.set_reciprocal(reciprocal)
-        else:
-            self.reciprocal = None
+        self.set_reciprocal(reciprocal)
 
         self.shape = shape
         self.dtype = dtype
@@ -154,9 +153,10 @@ class PhysicalProperty(property):
         if hasattr(scope, self.cached_name):
             delattr(scope, self.cached_name)
 
-    def set_reciprocal(self, other):
+    def set_reciprocal(self, other: "PhysicalProperty"):
         self.reciprocal = other
-        other.reciprocal = self
+        if other is not None:
+            other.reciprocal = self
 
     def deriv(self, scope, v=None):
         if not self.invertible:
