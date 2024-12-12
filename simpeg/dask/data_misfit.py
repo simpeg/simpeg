@@ -20,14 +20,12 @@ def dask_call(self, m, f=None):
     """
     Distributed :obj:`simpeg.data_misfit.L2DataMisfit.__call__`
     """
-    dpred = self.simulation.dpred(m, f=f)
+    residuals = self.residual(m, f=f)
 
-    if isinstance(dpred, Future):
+    if isinstance(residuals, Future):
         client = get_client()
-        residuals = client.submit(_data_residual, dpred, self.data.dobs)
         phi_d = client.submit(_misfit, residuals, self.W)
     else:
-        residuals = _data_residual(dpred, self.data.dobs)
         phi_d = _misfit(residuals, self.W)
 
     return phi_d
@@ -36,12 +34,34 @@ def dask_call(self, m, f=None):
 L2DataMisfit.__call__ = dask_call
 
 
+def dask_residual(self, m, f=None):
+    dpred = self.simulation.dpred(m, f=f)
+
+    if isinstance(dpred, Future):
+        client = get_client()
+        residuals = client.submit(_data_residual, dpred, self.data.dobs)
+    else:
+        residuals = _data_residual(dpred, self.data.dobs)
+
+    return residuals
+
+
+L2DataMisfit.residual = dask_residual
+
+
 def dask_deriv(self, m, f=None):
     """
     Distributed :obj:`simpeg.data_misfit.L2DataMisfit.deriv`
     """
-    wtw_d = self.W.diagonal() ** 2.0 * self.residual(m, f=f)
-    Jtvec = self, self.simulation.Jtvec(m, wtw_d)
+    residuals = self.residual(m, f=f)
+
+    if isinstance(residuals, Future):
+        client = get_client()
+        wtw_d = client.submit(_stack_futures, residuals, self.W.diagonal() ** 2.0)
+    else:
+        wtw_d = self.W.diagonal() ** 2.0 * residuals
+
+    Jtvec = self.simulation.Jtvec(m, wtw_d)
 
     return Jtvec
 
@@ -50,7 +70,7 @@ L2DataMisfit.deriv = dask_deriv
 
 
 def _stack_futures(futures, W):
-    return W * np.concatenate(futures)
+    return W * np.hstack(futures).flatten()
 
 
 def dask_deriv2(self, m, v, f=None):
