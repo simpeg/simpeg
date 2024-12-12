@@ -237,9 +237,11 @@ def with_property_mass_matrices(property_name):
                 if not isinstance(prop_deriv, Zero):
                     prop_deriv = sp.diags(self.mesh.cell_volumes) * prop_deriv
                 setattr(self, stash_name, prop_deriv)
-            return __inner_mat_mul_op(
-                getattr(self, stash_name), u, v=v, adjoint=adjoint
-            )
+
+            M_prop_deriv = getattr(self, stash_name)
+            if isinstance(M_prop_deriv, Zero):
+                return Zero()
+            return __inner_mat_mul_op(M_prop_deriv, u, v=v, adjoint=adjoint)
 
         setattr(cls, f"Mcc{arg}Deriv", MccDeriv_prop)
 
@@ -260,9 +262,11 @@ def with_property_mass_matrices(property_name):
                         * prop_deriv
                     )
                 setattr(self, stash_name, prop_deriv)
-            return __inner_mat_mul_op(
-                getattr(self, stash_name), u, v=v, adjoint=adjoint
-            )
+
+            M_prop_deriv = getattr(self, stash_name)
+            if isinstance(M_prop_deriv, Zero):
+                return Zero()
+            return __inner_mat_mul_op(M_prop_deriv, u, v=v, adjoint=adjoint)
 
         setattr(cls, f"Mn{arg}Deriv", MnDeriv_prop)
 
@@ -295,9 +299,10 @@ def with_property_mass_matrices(property_name):
                     else:
                         setattr(self, stash_name, (M_deriv_func, prop_deriv))
 
-            return __inner_mat_mul_op(
-                getattr(self, stash_name), u, v=v, adjoint=adjoint
-            )
+            M_prop_deriv = getattr(self, stash_name)
+            if isinstance(M_prop_deriv, Zero):
+                return Zero()
+            return __inner_mat_mul_op(M_prop_deriv, u, v=v, adjoint=adjoint)
 
         setattr(cls, f"Mf{arg}Deriv", MfDeriv_prop)
 
@@ -329,9 +334,11 @@ def with_property_mass_matrices(property_name):
                         setattr(self, stash_name, M_prop_deriv)
                     else:
                         setattr(self, stash_name, (M_deriv_func, prop_deriv))
-            return __inner_mat_mul_op(
-                getattr(self, stash_name), u, v=v, adjoint=adjoint
-            )
+
+            M_prop_deriv = getattr(self, stash_name)
+            if isinstance(M_prop_deriv, Zero):
+                return Zero()
+            return __inner_mat_mul_op(M_prop_deriv, u, v=v, adjoint=adjoint)
 
         setattr(cls, f"Me{arg}Deriv", MeDeriv_prop)
 
