@@ -1,11 +1,11 @@
 import numpy as np
 from dask import array
 from ....potential_fields.gravity import Simulation3DIntegral as Sim
-from ...simulation import BaseSimulation
+from ..base import BasePFSimulation
 from ....utils import sdiag, mkvc
 
 
-class Simulation3DIntegral(BaseSimulation, Sim):
+class Simulation3DIntegral(BasePFSimulation, Sim):
     """
     Overload the Simulation3DIntegral class to use Dask
     """

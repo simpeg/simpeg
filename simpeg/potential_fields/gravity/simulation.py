@@ -166,7 +166,7 @@ class Simulation3DIntegral(BasePFSimulation):
             if self.engine == "choclo":
                 fields = self._forward(self.rho)
             else:
-                fields = mkvc(self.linear_operator())
+                fields = self.linear_operator()
         else:
             fields = self.G @ (self.rho).astype(self.sensitivity_dtype, copy=False)
         return np.asarray(fields)

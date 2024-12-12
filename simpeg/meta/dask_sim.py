@@ -33,13 +33,6 @@ def _calc_dpred(mapping, sim, model, field, apply_map=False):
         return sim.dpred(m=sim.model, f=field)
 
 
-def _compute_J(sim, m, field):
-    if getattr(sim, "_Jmatrix", None) is not None:
-        return sim.Jmatrix
-
-    return sim.compute_J(m, field)
-
-
 def _j_vec_op(mapping, sim, model, field, v, apply_map=False):
     # return array.from_array(np.zeros(100))
     sim_v = mapping.deriv(model) @ v
@@ -63,7 +56,7 @@ def _get_jtj_diag(mapping, sim, model, field, w, apply_map=False):
         jtj = sim.getJtJdiag(mapping @ model, w, f=field)
     else:
         jtj = sim.getJtJdiag(sim.model, w, f=field)
-    sim_jtj = sp.diags(np.sqrt(jtj))
+    sim_jtj = sp.diags(np.sqrt(np.asarray(jtj)))
     m_deriv = mapping.deriv(model)
     return np.asarray((sim_jtj @ m_deriv).power(2).sum(axis=0)).flatten()
 
@@ -449,24 +442,6 @@ class DaskMetaSimulation(MetaSimulation):
             self._jtjdiag = _reduce(client, add, jtj_diag)
 
         return self._jtjdiag
-
-    def compute_J(self, m, f=None):
-        self.model = m
-        if f is None:
-            f = self.fields(m)
-        J = []
-        client = self.client
-        for sim, worker, field in zip(self.simulations, self._workers, f):
-            J.append(
-                client.submit(
-                    _compute_J,
-                    sim,
-                    m,
-                    field,
-                    workers=worker,
-                )
-            )
-        return self.client.gather(J)
 
 
 class DaskSumMetaSimulation(DaskMetaSimulation, SumMetaSimulation):

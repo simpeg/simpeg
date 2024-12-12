@@ -9,7 +9,7 @@ from ..regularization import WeightedLeastSquares, Sparse
 from ..objective_function import ComboObjectiveFunction
 
 
-def get_dpred(self, m, f=None, compute_J=False):
+def get_dpred(self, m, f=None):
     dpreds = []
 
     for i, objfct in enumerate(self.dmisfit.objfcts):
@@ -20,9 +20,6 @@ def get_dpred(self, m, f=None, compute_J=False):
             fields = objfct.simulation.fields(m)
 
         future = objfct.simulation.dpred(m, f=fields)
-
-        if compute_J:
-            objfct.simulation.compute_J(m, f=fields)
 
         dpreds += [future]
 
@@ -45,7 +42,7 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
 
     # if isinstance(self.dmisfit, BaseDataMisfit):
     phi_d = self.dmisfit(m, f=fields)
-    self.dpred = self.get_dpred(m, f=fields, compute_J=return_H)
+    self.dpred = self.get_dpred(m, f=fields)
 
     phi_d = 0
     for (_, objfct), pred in zip(self.dmisfit, self.dpred):

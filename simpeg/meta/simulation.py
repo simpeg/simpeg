@@ -326,19 +326,6 @@ class MetaSimulation(BaseSimulation):
 
         return self._jtjdiag
 
-    def compute_J(self, m, f=None):
-        self.model = m
-        if f is None:
-            f = self.fields(m)
-        J = []
-        for sim, field in zip(self.simulations, f):
-            if getattr(sim, "_Jmatrix", None) is not None:
-                continue
-            J.append(
-                sim.compute_J(m, field),
-            )
-        return J
-
     @property
     def deleteTheseOnModelUpdate(self):
         return super().deleteTheseOnModelUpdate + ["_jtjdiag"]

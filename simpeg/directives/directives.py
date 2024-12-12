@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import warnings
 import os
 import scipy.sparse as sp
-
+from ..meta.simulation import MetaSimulation
 from ..typing import RandomSeed
 
 from ..data_misfit import BaseDataMisfit
@@ -3501,7 +3501,11 @@ class VectorInversion(InversionDirective):
             self.opt.upper[indices[nC:]] = np.inf
 
             for simulation in self.simulations:
-                simulation.chiMap = SphericalSystem() * simulation.chiMap
+                if isinstance(simulation, MetaSimulation):
+                    for sim in simulation.simulations:
+                        sim.chiMap = SphericalSystem() * sim.chiMap
+                else:
+                    simulation.chiMap = SphericalSystem() * simulation.chiMap
 
             # Add and update directives
             for directive in self.inversion.directiveList.dList:
