@@ -1,7 +1,7 @@
 STYLE_CHECK_FILES = simpeg examples tutorials tests
 GITHUB_ACTIONS=.github/workflows
 
-.PHONY: help docs clean check black flake flake-all zizmor
+.PHONY: help docs clean check black flake flake-all check-actions
 
 help:
 	@echo "Commands:"
