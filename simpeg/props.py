@@ -34,8 +34,6 @@ class PhysicalProperty(property):
     reciprocal, optional
     """
 
-    reciprocal = None
-
     def __init__(
         self,
         short_description,
@@ -49,6 +47,7 @@ class PhysicalProperty(property):
         self.name = None
         self.cached_name = None
         self.invertible = invertible
+        self.reciprocal = None
         self.set_reciprocal(reciprocal)
 
         self.shape = shape
@@ -65,6 +64,13 @@ class PhysicalProperty(property):
             dtype_str = ""
 
         doc = f"""{short_description}
+
+        Parameters
+        ----------
+        prop : {shape_str}array_like{dtype_str} or maps.IdentityMap
+            If set as a mapping, the physical property will be calculated from the mapping and the `model`
+            when the physical property is retrieved. Setting a physical property signals to the simulation
+            that you intend to invert for this parameter.
 
         Returns
         -------
@@ -84,14 +90,6 @@ class PhysicalProperty(property):
     def get_cls_attr_name(self, scope):
         return f"{type(scope).__name__}.{self.name}"
 
-    def is_mapped(self, scope):
-        is_self_mapped = isinstance(
-            getattr(scope, self.cached_name, None), maps.IdentityMap
-        )
-        if not is_self_mapped and (recip := self.reciprocal):
-            return isinstance(getattr(scope, recip.cached_name, None), maps.IdentityMap)
-        return is_self_mapped
-
     def mapping(self, scope):
         stashed = getattr(scope, self.cached_name, None)
         if isinstance(stashed, maps.IdentityMap):
@@ -105,26 +103,6 @@ class PhysicalProperty(property):
 
     def fget(self, scope) -> npt.NDArray:
         value = getattr(scope, self.cached_name, None)
-        if value is None:
-            if recip := self.reciprocal:
-                try:
-                    return 1.0 / getattr(scope, recip.name)
-                except AttributeError:
-                    if recip.is_mapped(scope):
-                        raise AttributeError(
-                            f"Reciprocal property '{recip.get_cls_attr_name(scope)}' was set as a map, "
-                            f"but `{type(scope).__name__}.model` is not set"
-                        )
-                    else:
-                        raise AttributeError(
-                            f"'{type(scope).__name__}' has no attribute '{self.name}', "
-                            f"nor its reciprocal '{recip.name}'"
-                        )
-            if self.optional:
-                return self.default
-            raise AttributeError(
-                f"'{type(scope).__name__}' has no attribute '{self.name}'"
-            )
         if isinstance(value, maps.IdentityMap):
             # if I was set as a mapping:
             if (model := scope.model) is None:
@@ -132,28 +110,63 @@ class PhysicalProperty(property):
                     f"'{self.get_cls_attr_name(scope)}' was set as a map, but `{type(scope).__name__}.model` is not set"
                 )
             return value @ model
-        # otherwise I was good, so return the value
-        return value
+        elif value is not None:
+            return value
+        # Means value was None
+        # Then check my reciprocal for a return value
+        if recip := self.reciprocal:
+            recip_value = getattr(scope, recip.cached_name, None)
+            if isinstance(recip_value, maps.IdentityMap):
+                if (model := scope.model) is None:
+                    raise AttributeError(
+                        f"Reciprocal property '{recip.get_cls_attr_name(scope)}' was set as a map, "
+                        f"but `{type(scope).__name__}.model` is not set"
+                    )
+                recip_value = recip_value @ scope.model
+            elif recip_value is None:
+                if self.optional:
+                    return self.default
+                if not recip.optional:
+                    raise AttributeError(
+                        f"'{type(scope).__name__}' has no attribute '{self.name}', "
+                        f"nor its reciprocal '{recip.name}'"
+                    )
+                else:
+                    recip_value = recip.default
+            if recip_value is not None:
+                return 1.0 / recip_value
+            return recip_value
+
+        if self.optional:
+            return self.default
+
+        raise AttributeError(f"'{type(scope).__name__}' has no attribute '{self.name}'")
 
     def fset(self, scope, value: Optional[Union[npt.NDArray, maps.IdentityMap]]):
+        is_map = isinstance(value, maps.IdentityMap)
+        if is_map:
+            if not self.invertible:
+                raise ValueError(
+                    f"Cannot assign a map to '{self.get_cls_attr_name(scope)}', "
+                    f"because it is not an invertible property"
+                )
         if value is not None:
-            if isinstance(value, maps.IdentityMap):
-                if not self.invertible:
-                    raise ValueError(
-                        f"Cannot assign a map to '{self.get_cls_attr_name(scope)}', "
-                        f"because it is not an invertible property"
-                    )
-            else:
+            if not is_map:
                 value = validate_ndarray_with_shape(
                     self.name, value, shape=self.shape, dtype=self.dtype
                 )
             if self.reciprocal:
                 delattr(scope, self.reciprocal.name)
+        if is_map:
+            scope._mapped_properties[self.name] = self
+        else:
+            scope._mapped_properties.pop(self.name, None)
         setattr(scope, self.cached_name, value)
 
     def fdel(self, scope):
         if hasattr(scope, self.cached_name):
             delattr(scope, self.cached_name)
+        scope._mapped_properties.pop(self.name, None)
 
     def set_reciprocal(self, other: "PhysicalProperty"):
         self.reciprocal = other
@@ -162,9 +175,13 @@ class PhysicalProperty(property):
 
     def deriv(self, scope, v=None):
         if not self.invertible:
-            raise NotImplementedError(
-                f"'{self.get_cls_attr_name(scope)}' has no derivative because it is not invertible"
-            )
+            # check if the reciprocal is invertible...
+            recip = self.reciprocal
+            # if I don't have a reciprocal, or it is also not invertible...
+            if not recip or not recip.invertible:
+                raise NotImplementedError(
+                    f"'{self.get_cls_attr_name(scope)}' has no derivative because it is not invertible"
+                )
         if (mapping := self.mapping(scope)) is None:
             return Zero()
         return mapping.deriv(scope.model, v=v)
@@ -190,7 +207,7 @@ class PhysicalProperty(property):
         new_prop.fdel = deleter_func
         return new_prop
 
-    def set_invertible(self, invertible):
+    def update_invertible(self, invertible):
         new_prop = self.shallow_copy()
         new_prop.invertible = invertible
         return new_prop
@@ -201,24 +218,37 @@ class NestedModeler:
         self.modeler_type = modeler_type
         self.short_details = short_details
 
-    def get_property(scope):
+    def get_property(scope, property_name):
         doc = f"""{scope.short_details}
 
         Returns
         -------
         {scope.modeler_type.__name__}
         """
+        cached_name = f"_{property_name}"
 
         def fget(self):
-            return getattr(self, f"_{scope.name}")
+            value = getattr(self, cached_name, None)
+            if value is None:
+                raise AttributeError(
+                    f"'{type(self).__name__}' has no attribute '{property_name}'"
+                )
+            return value
 
         def fset(self, value):
             if value is not None:
-                value = validate_type(scope.name, value, scope.modeler_type, cast=False)
-            setattr(self, f"_{scope.name}", value)
+                value = validate_type(
+                    property_name, value, scope.modeler_type, cast=False
+                )
+                self._active_nested_modelers[property_name] = value
+            else:
+                self._active_nested_modelers.pop(property_name, None)
+            setattr(self, cached_name, value)
 
         def fdel(self):
-            setattr(self, f"_{scope.name}", None)
+            if hasattr(self, cached_name):
+                delattr(self, cached_name)
+            self._active_nested_modelers.pop(property_name, None)
 
         return property(fget=fget, fset=fset, fdel=fdel, doc=doc)
 
@@ -241,7 +271,7 @@ class PhysicalPropertyMetaclass(type):
                 nested_modelers[key] = value
 
         for key, value in nested_modelers.items():
-            classdict[key] = value.get_property()
+            classdict[key] = value.get_property(key)
 
         newcls = super().__new__(mcs, name, bases, classdict)
 
@@ -252,38 +282,45 @@ class PhysicalPropertyMetaclass(type):
             nested_modelers = getattr(parent, "_nested_modelers", {}) | nested_modelers
 
         newcls._physical_properties = physical_properties
+        newcls._invertible_properties = {
+            name: prop for name, prop in physical_properties.items() if prop.invertible
+        }
         newcls._nested_modelers = nested_modelers
+        newcls._has_nested_models = len(nested_modelers) > 0
 
         return newcls
 
 
 class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
+
     def __init__(self, model=None, **kwargs):
         self.model = model
         super().__init__(**kwargs)
 
     @property
-    def _invertible_properties(self):
-        """Returns a dictionary of string, property pairs of invertible properties."""
-        return {
-            name: prop
-            for name, prop in self._physical_properties.items()
-            if prop.invertible
-        }
+    def needs_model(self):
+        """True if a model is necessary"""
+        has_mapped_props = len(self._mapped_properties) > 0
+        if not has_mapped_props:
+            # check if my nested modelers need models.
+            for modeler_name in self._active_nested_modelers:
+                modeler = getattr(self, modeler_name)
+                has_mapped_props |= modeler.needs_model
+        return has_mapped_props
 
     @property
     def _mapped_properties(self):
-        """Returns a dictionary of string, property pairs of mapped properties."""
-        return {
-            name: prop
-            for name, prop in self._physical_properties.items()
-            if prop.is_mapped(self)
-        }
+        if (mapped := getattr(self, "_mapped_props", None)) is None:
+            mapped = {}
+            self._mapped_props = mapped
+        return mapped
 
     @property
-    def needs_model(self):
-        """True if a model is necessary"""
-        return len(self._mapped_properties) > 0
+    def _active_nested_modelers(self):
+        if (actv := getattr(self, "_act_nest_modelers", None)) is None:
+            actv = {}
+            self._act_nest_modelers = actv
+        return actv
 
     def _prop_map(self, name):
         return self._physical_properties[name].mapping(self)
@@ -291,10 +328,6 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
     def _prop_deriv(self, name, v=None):
         # TODO Add support for adjoints here and on mapping derivatives
         return self._physical_properties[name].deriv(self, v=v)
-
-    @property
-    def _has_nested_models(self):
-        return len(self._nested_modelers) > 0
 
     # TODO: rename to _delete_on_model_update
     @property
@@ -346,12 +379,11 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
     def model(self, value):
         if value is not None:
             # check if I need a model
-            if not self.needs_model and not self._has_nested_models:
+            if not self.needs_model:
                 raise AttributeError(
                     "Cannot set model if no properties have been set as maps. "
                     f"Choose from: {', '.join(self._invertible_properties.keys())}"
                 )
-
             # coerce to a numpy array
             value = validate_ndarray_with_shape(
                 "model", value, shape=("*",), dtype=float

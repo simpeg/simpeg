@@ -13,8 +13,8 @@ from ..resistivity import Simulation3DNodal as DC_3D_N
 
 class BaseIPSimulation(BaseElectricalPDESimulation, ElectricalChargeability):
     # Need to disable the invertibility of sigma and rho for IP classes
-    sigma = BaseElectricalPDESimulation.sigma.set_invertible(False)
-    rho = BaseElectricalPDESimulation.rho.set_invertible(False)
+    sigma = BaseElectricalPDESimulation.sigma.update_invertible(False)
+    rho = BaseElectricalPDESimulation.rho.update_invertible(False)
     sigma.set_reciprocal(rho)
 
     def _prop_deriv(self, name, v=None):

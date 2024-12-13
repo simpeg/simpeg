@@ -53,7 +53,7 @@ class BaseEM1DSimulation(
 
     _formulation = "1D"
     _coefficients_set = False
-    eta = ElectricalChargeability.eta.set_invertible(False)
+    eta = ElectricalChargeability.eta.update_invertible(False)
 
     tau = props.PhysicalProperty(
         "Time constant for Cole-Cole model (s)", invertible=False
