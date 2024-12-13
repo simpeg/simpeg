@@ -1,5 +1,31 @@
 name : Reviewdog PR Annotations
-on: [pull_request_target]
+
+# =========
+# IMPORTANT
+# =========
+#
+# TL;DR:
+#     THIS ACTION SHOULD NOT RUN ANY CODE FROM THE PR BRANCH.
+#
+# This action is triggered after new events in Pull Requests (as the
+# `pull_request` trigger does), but this ones provides the workflow writing
+# permissions to the repo.
+# The second checkout step in each job checks out code from the PR branch.
+# Code from any PR branch should be treated as malicious!
+# Therefore, these action **SHOULD NOT RUN ANY CODE** from the PR branch since
+# the workflow has writting permisions.
+# Doing so introduces a high severity vulnerability that could be exploited to
+# gain access to secrets and/or introduce malicious code.
+#
+# For this particular workflow we need the writting permission in order for
+# reviewdog to publish comments in the PR.
+# zizmor will complain about the `pull_request_target` trigger, so we will
+# ignore it.
+#
+# References:
+# * https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/
+#
+on: [pull_request_target] # zizmor: ignore[dangerous-triggers]
 
 jobs:
   flake8:
@@ -19,6 +45,8 @@ jobs:
       - name: Install dependencies to run the flake8 checks
         run: .ci/install_style.sh
 
+      # Checkout PR branch.
+      # TREAT THIS CODE AS MALICIOUS, DON'T RUN CODE FROM THIS BRANCH.
       - name: checkout pull request source
         uses: actions/checkout@v4
         with:
@@ -50,6 +78,8 @@ jobs:
       - name: Install dependencies to run the black checks
         run: .ci/install_style.sh
 
+      # Checkout PR branch.
+      # TREAT THIS CODE AS MALICIOUS, DON'T RUN CODE FROM THIS BRANCH.
       - name: checkout pull request source
         uses: actions/checkout@v4
         with:
