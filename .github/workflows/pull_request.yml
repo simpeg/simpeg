@@ -22,6 +22,13 @@ name : Reviewdog PR Annotations
 # zizmor will complain about the `pull_request_target` trigger, so we will
 # ignore it.
 #
+# Worth noting that the runner will execute the steps specified in the version
+# of this workflow file that lives in the **target branch** (usually `main`),
+# not the one in the Pull Request branch. This means that even if a contributor
+# opens a PR with a change to this file, the change won't be executed. This is
+# inteded to avoid third-party contributors to run custom code with high
+# privileges on the repo.
+#
 # References:
 # * https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/
 #
