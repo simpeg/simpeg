@@ -8,6 +8,8 @@ jobs:
     steps:
       - name: Checkout target repository source
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Python env
         uses: actions/setup-python@v5
@@ -22,6 +24,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           path: pr_source
+          persist-credentials: false
 
       - name: flake8 review
         uses: reviewdog/action-flake8@v3
@@ -36,6 +39,8 @@ jobs:
     steps:
       - name: Checkout target repository source
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Python env
         uses: actions/setup-python@v5
@@ -50,6 +55,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           path: 'pr_source'
+          persist-credentials: false
 
       - uses: reviewdog/action-black@v3
         with:
