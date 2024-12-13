@@ -32,4 +32,5 @@ jobs:
       - name: Lint GitHub Actions
         run: make check-actions
         env:
+          # Set GH_TOKEN to allow zizmor to check online vulnerabilities
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
