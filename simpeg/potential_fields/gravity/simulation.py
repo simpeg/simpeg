@@ -169,7 +169,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 fields = self.linear_operator()
         else:
             fields = self.G @ (self.rho).astype(self.sensitivity_dtype, copy=False)
-        return np.asarray(fields)
+        return fields
 
     def getJtJdiag(self, m, W=None, f=None):
         """

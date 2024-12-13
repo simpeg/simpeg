@@ -68,7 +68,7 @@ def compute_JtJdiags(data_misfit, m):
     for multiplier, diag in zip(data_misfit.multipliers, jtj_diags):
         jtj_diag += multiplier * diag
 
-    return jtj_diag
+    return np.asarray(jtj_diag)
 
 
 class InversionDirective:

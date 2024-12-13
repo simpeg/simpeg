@@ -1,8 +1,8 @@
 import numpy as np
-from dask import array
+from dask import array, delayed
 from ....potential_fields.gravity import Simulation3DIntegral as Sim
 from ..base import BasePFSimulation
-from ....utils import sdiag, mkvc
+from scipy.sparse import csr_matrix as csr
 
 
 class Simulation3DIntegral(BasePFSimulation, Sim):
@@ -22,11 +22,15 @@ class Simulation3DIntegral(BasePFSimulation, Sim):
             W = W.diagonal()
 
         if getattr(self, "_gtg_diagonal", None) is None:
-            diag = array.einsum(
-                "i,ij,ij->j", W**2, self.Jmatrix, self.Jmatrix
-            ).compute()
+            diag = array.einsum("i,ij,ij->j", W**2, self.Jmatrix, self.Jmatrix)
             self._gtg_diagonal = diag
         else:
             diag = self._gtg_diagonal
 
-        return mkvc((sdiag(np.sqrt(diag)) @ self.rhoDeriv).power(2).sum(axis=0))
+        mapping_deriv = self.rhoDeriv.tocsr().T.power(2)
+        dmudm_jtvec = delayed(csr.dot)(mapping_deriv, diag)
+        jtjdiag = array.from_delayed(
+            dmudm_jtvec, dtype=np.float32, shape=[mapping_deriv.shape[1]]
+        )
+
+        return jtjdiag

@@ -37,9 +37,9 @@ def _j_vec_op(mapping, sim, model, field, v, apply_map=False):
     # return array.from_array(np.zeros(100))
     sim_v = mapping.deriv(model) @ v
     if apply_map:
-        return array.compute(sim.Jvec(mapping @ model, sim_v, f=field))
+        return sim.Jvec(mapping @ model, sim_v, f=field)
     else:
-        return array.compute(sim.Jvec(sim.model, sim_v, f=field))
+        return sim.Jvec(sim.model, sim_v, f=field)
 
 
 def _jt_vec_op(mapping, sim, model, field, v, start, end, apply_map=False):
@@ -47,6 +47,8 @@ def _jt_vec_op(mapping, sim, model, field, v, start, end, apply_map=False):
         jtv = sim.Jtvec(mapping @ model, v[start:end], f=field)
     else:
         jtv = sim.Jtvec(sim.model, v[start:end], f=field)
+
+    # Need to delay this operation until the future is computed
     return mapping.deriv(model).T @ array.compute(jtv)[0]
 
 
