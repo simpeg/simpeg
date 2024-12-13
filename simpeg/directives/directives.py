@@ -1234,7 +1234,7 @@ class TargetMisfit(InversionDirective):
         if self.opt.print_type == "ubc":
             self.opt.print_target = (
                 ">> Target misfit: %.1f (# of data) is achieved"
-            ) % (self.target * self.invProb.opt.factor)
+            ) % (self.target)
 
 
 class MultiTargetMisfits(InversionDirective):

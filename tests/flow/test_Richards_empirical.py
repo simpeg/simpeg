@@ -1,4 +1,5 @@
 import unittest
+import pytest
 
 import numpy as np
 
@@ -217,6 +218,24 @@ class TestModels(unittest.TestCase):
 
             passed = check_derivative(fun, x0, plotIt=False, random_seed=918724)
             self.assertTrue(passed, True)
+
+
+@pytest.mark.parametrize(
+    "empirical_class",
+    [
+        richards.empirical.NonLinearModel,
+        richards.empirical.BaseWaterRetention,
+        richards.empirical.BaseHydraulicConductivity,
+        richards.empirical.Haverkamp_theta,
+        richards.empirical.Haverkamp_k,
+        richards.empirical.Vangenuchten_theta,
+        richards.empirical.Vangenuchten_k,
+    ],
+)
+def test_bad_mesh_type(empirical_class):
+    msg = "mesh must be an instance of BaseMesh, not ndarray"
+    with pytest.raises(TypeError, match=msg):
+        empirical_class(np.array([1, 2, 3]))
 
 
 if __name__ == "__main__":

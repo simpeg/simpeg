@@ -57,7 +57,7 @@ class Simulation1DRecursive(BaseSimulation):
         fix_Jmatrix=False,
         **kwargs,
     ):
-        super().__init__(mesh=None, survey=survey, **kwargs)
+        super().__init__(survey=survey, **kwargs)
         self.fix_Jmatrix = fix_Jmatrix
         self.sigma = sigma
         self.rho = rho
@@ -352,8 +352,8 @@ class Simulation1DRecursive(BaseSimulation):
         return JTvec
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        toDelete = super().deleteTheseOnModelUpdate
+    def _delete_on_model_update(self):
+        toDelete = super()._delete_on_model_update
         if self.fix_Jmatrix:
             return toDelete
         else:

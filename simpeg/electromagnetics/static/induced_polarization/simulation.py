@@ -62,7 +62,7 @@ class BaseIPSimulation(BasePDESimulation):
 
     def __init__(
         self,
-        mesh=None,
+        mesh,
         survey=None,
         sigma=None,
         rho=None,
@@ -132,7 +132,7 @@ class BaseIPSimulation(BasePDESimulation):
         return super().Jtvec(m, v * self._scale, f)
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_update(self):
         toDelete = []
         return toDelete
 

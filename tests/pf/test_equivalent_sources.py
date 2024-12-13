@@ -210,8 +210,8 @@ class Test3DMeshError:
         """
         Test error is raised after passing a 3D mesh to gravity eq source class.
         """
-        msg = "Mesh to equivalent source layer must be 2D."
-        with pytest.raises(AttributeError, match=msg):
+        msg = "SimulationEquivalentSourceLayer mesh must be 2D, received a 3D mesh."
+        with pytest.raises(ValueError, match=msg):
             gravity.SimulationEquivalentSourceLayer(
                 mesh=mesh_3d, cell_z_top=0.0, cell_z_bottom=-2.0, engine=engine
             )
@@ -221,8 +221,8 @@ class Test3DMeshError:
         """
         Test error is raised after passing a 3D mesh to magnetic eq source class.
         """
-        msg = "Mesh to equivalent source layer must be 2D."
-        with pytest.raises(AttributeError, match=msg):
+        msg = "SimulationEquivalentSourceLayer mesh must be 2D, received a 3D mesh."
+        with pytest.raises(ValueError, match=msg):
             magnetics.SimulationEquivalentSourceLayer(
                 mesh=mesh_3d, cell_z_top=0.0, cell_z_bottom=-2.0, engine=engine
             )
@@ -231,39 +231,11 @@ class Test3DMeshError:
         """
         Test error is raised after passing a 3D mesh to the eq source base class.
         """
-        msg = "Mesh to equivalent source layer must be 2D."
-        with pytest.raises(AttributeError, match=msg):
+        msg = "BaseEquivalentSourceLayerSimulation mesh must be 2D, received a 3D mesh."
+        with pytest.raises(ValueError, match=msg):
             base.BaseEquivalentSourceLayerSimulation(
                 mesh=mesh_3d, cell_z_top=0.0, cell_z_bottom=-2.0
             )
-
-    @pytest.mark.parametrize(
-        "eq_sources_class",
-        (
-            gravity.SimulationEquivalentSourceLayer,
-            magnetics.SimulationEquivalentSourceLayer,
-        ),
-    )
-    def test_overridden_method(
-        self, mesh_3d, tensor_mesh, mesh_top, mesh_bottom, eq_sources_class
-    ):
-        """
-        Test for the overridden _check_engine_and_mesh_dimensions method.
-
-        This method is rarely going to trigger an error because if a 3D mesh is
-        passed to the constructor, it'll catch it and raise an error.
-        This test is added to extend coverage.
-        """
-        # Initialize instance with a 2D mesh
-        eq_sources = eq_sources_class(
-            mesh=tensor_mesh, cell_z_top=mesh_top, cell_z_bottom=mesh_bottom
-        )
-        # Set the mesh to the 3D mesh
-        eq_sources.mesh = mesh_3d
-        # Check error in _check_engine_and_mesh_dimensions method
-        msg = "Mesh to equivalent source layer must be 2D."
-        with pytest.raises(AttributeError, match=msg):
-            eq_sources._check_engine_and_mesh_dimensions()
 
 
 class TestGravityEquivalentSourcesForward:

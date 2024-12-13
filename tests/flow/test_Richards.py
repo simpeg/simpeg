@@ -1,5 +1,6 @@
 import unittest
 import numpy as np
+import pytest
 
 from discretize.tests import check_derivative
 import discretize
@@ -283,6 +284,22 @@ class RichardsTests3D(BaseRichardsTest):
 
     def test_sensitivity_full(self):
         self._dotest_sensitivity_full()
+
+
+def test_bad_mesh_type():
+    mesh = discretize.CylindricalMesh([3, 3, 3])
+    params = richards.empirical.HaverkampParams().celia1990
+    k_fun, theta_fun = richards.empirical.haverkamp(mesh, **params)
+
+    msg = "mesh must be an instance of TensorMesh or TreeMesh, not CylindricalMesh"
+    with pytest.raises(TypeError, match=msg):
+        richards.SimulationNDCellCentered(
+            mesh,
+            hydraulic_conductivity=k_fun,
+            water_retention=theta_fun,
+            boundary_conditions=np.array([1.0]),
+            initial_conditions=np.array([1.0]),
+        )
 
 
 if __name__ == "__main__":

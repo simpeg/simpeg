@@ -1,0 +1,210 @@
+.. _0.23.0_notes:
+
+===========================
+SimPEG 0.23.0 Release Notes
+===========================
+
+November 3rd, 2024
+
+.. contents:: Highlights
+    :depth: 3
+
+Updates
+=======
+
+New features
+------------
+
+Full support for Numpy 2.0
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+With this release SimPEG is fully compatible with Numpy 2.0.
+
+Augmented receivers for airborne NSEM
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We added new types of receivers intended to be used for airborne natural-source
+EM simulations:
+
+- :class:`~simpeg.electromagnetics.natural_source.receivers.Impedance`
+- :class:`~simpeg.electromagnetics.natural_source.receivers.Admittance`
+- :class:`~simpeg.electromagnetics.natural_source.receivers.ApparentConductivity`
+- :class:`~simpeg.electromagnetics.natural_source.receivers.Tipper`
+
+They extend the type of airborne NSEM surveys that can be simulated in SimPEG.
+
+See https://github.com/simpeg/simpeg/pull/1454 for more details.
+
+Automatic selection of Solver
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This release includes a new
+:func:`~simpeg.utils.solver_utils.get_default_solver` function that
+automatically selects a solver based on what you have installed on
+your system.
+For example, it'll select ``Pardiso`` as the solver if you are running an Intel
+CPU and have `pydiso` installed in your system. Alternatively, it can choose
+``Mumps`` if you are using Apple silicon and the `python-mumps` package is installed.
+If no fast solver is available, it'll choose SciPy's ``SparseLU`` solver.
+
+.. note::
+    For those installing through `conda-forge`, ``conda install simpeg`` will now also grab
+    better solvers for your system as well, consistent with `simpeg`'s solver priority.
+
+Moreover, simulations will also use this function to get the default solver if no
+solver is being provided by the user, making it easier to run efficient
+finite volume simulations out of the box.
+See https://github.com/simpeg/simpeg/pull/1511 for more information.
+
+Support for magnetic gradiometry in Choclo-based magnetic simulations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Now the magnetic simulations with ``engine="choclo"`` support forward modelling
+the magnetic gradiometry components and TMI derivatives. This fully extends the
+support of the Numba-based simulations to every field that can also be
+computed using ``engine="geoana"``.
+
+See https://github.com/simpeg/simpeg/pull/1543 and
+https://github.com/simpeg/simpeg/pull/1553 for more information.
+
+Numba-based implementation of gravity and equivalent sources
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This release includes new implementations of the gravity and magnetic
+equivalent sources using `Choclo <https://fatiando.org/choclo>`__'s kernels and
+forward modelling functions and `Numba <https://numba.pydata.org/>`__ to
+just-in-time compilations and parallelization, making them faster and more
+memory efficient.
+
+See https://github.com/simpeg/simpeg/pull/1552 and
+https://github.com/simpeg/simpeg/pull/1527.
+
+New ``UpdateIRLS`` directive
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We have renamed the :class:`simpeg.directives.UpdateIRLS` directive for
+applying the Iterative Re-weighted Least-Squares during sparse norm inversions,
+that includes better argument names and an improved implementation.
+See https://github.com/simpeg/simpeg/pull/1349 for more details.
+
+Standardize arguments for active cells and random seeds
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We have standardize the name of the arguments for active cells in meshes through
+all functions and methods in SimPEG. We have deprecated the old
+names like ``indAct``, ``ind_active`` and ``indActive`` in favor of
+``active_cells``.
+
+The arguments for passing random seeds have also been standardized to
+``random_seed``. These arguments generalize a way to specify random states,
+allowing to take seeds as integers or instances of
+:class:`numpy.random.Generator`.
+
+
+Upgraded dependencies
+---------------------
+
+In SimPEG v0.23.0 we dropped support for Python versions <= 3.9. Python 3.8 met
+its end-of-life this year (October 2024). Python 3.10 is the minimum required
+version for Numpy 2.1.0. To keep up with the latest updates in the scientific
+Python ecosystem, we decided to set Python 3.10 as the minimum required version
+for SimPEG as well.
+
+Moreover, we have increased the minimum required versions of ``discretize``,
+``geoana`` and ``pymatsolver`` in order to support Numpy 2.0.
+Lastly, now ``pandas``, ``scikit-learn`` and ``empymod`` are optional
+dependencies (instead of required ones).
+
+
+Documentation
+-------------
+
+This release includes a few fixes to the documentation pages, like improvements
+to some magnetic examples, and fixes to docstrings and math of a few classes.
+
+
+Bugfixes
+--------
+
+We have fixed some issues of Dask-based simulations that were running into
+race-conditions after one of the latest Dask updates. See
+https://github.com/simpeg/simpeg/pull/1469 for more information.
+
+
+Contributors
+============
+
+* `@domfournier <https://github.com/domfournier>`__
+* `@jcapriot <https://github.com/jcapriot>`__
+* `@prisae <https://github.com/prisae>`__
+* `@santisoler <https://github.com/santisoler>`__
+* `@thibaut-kobold <https://github.com/thibaut-kobold>`__
+
+Pull Requests
+=============
+
+- Make ``pandas`` & ``scikit-learn`` optional dependencies by `@prisae <https://github.com/prisae>`__ in
+  https://github.com/simpeg/simpeg/pull/1514
+- Dask races by `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1469
+- Irls refactor by `@domfournier <https://github.com/domfournier>`__ in
+  https://github.com/simpeg/simpeg/pull/1349
+- Minimum python version update by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1522
+- Replace ``ind_active`` for ``active_cells`` in pf simulations by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1520
+- Move push to codecov to its own stage by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1493
+- Minor fix in deprecation notice in docstrings by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1535
+- Replace ``indActive`` and ``actInd`` for ``active_cells`` in maps by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1534
+- Update tests and examples to use the new ``UpdateIRLS`` by
+  `@domfournier <https://github.com/domfournier>`__ in https://github.com/simpeg/simpeg/pull/1472
+- Replace ``indActive`` in VRM simulations for ``active_cells`` by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1536
+- Test assigned values when passing deprecated args by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1544
+- Use random seed when using ``make_synthetic_data`` in tests by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1545
+- Minor improvements to ``UpdateIRLS`` class by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1529
+- Replace ``seed`` for ``random_seed`` in directives by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1538
+- Minor fixes to magnetic examples by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1547
+- Support magnetic gradiometry using Choclo as engine by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1543
+- Update usage of ``random_seed`` in one example by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1549
+- Replace ``seed`` for ``random_seed`` in ``model_builder`` by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1548
+- Replace old args for ``active_cells`` in EM static functions by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1550
+- Implement gravity equivalent sources with Choclo as engine by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1527
+- Implement tmi derivatives with Choclo in magnetic simulation by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1553
+- Implement magnetic eq sources with Choclo by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1552
+- Update links in PR template by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1554
+- Default solver by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1511
+- Fixes for most recent geoana 0.7 by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1557
+- Numpy2.0 and discretize 0.11.0 updates by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1558
+- Add missing seeds by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1560
+- Make use of meshes’ ``cell_bounds`` property by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1559
+- Fix docstring of ``SmoothnessFullGradient`` by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1562
+- Fix math in docstring of eigenvalue_by_power_iteration by `@santisoler <https://github.com/santisoler>`__
+  in https://github.com/simpeg/simpeg/pull/1564
+- Only warn about default solver when set in simulations by `@santisoler <https://github.com/santisoler>`__
+  in https://github.com/simpeg/simpeg/pull/1565
+- Augmented receivers for airborne NSEM by `@dccowan <https://github.com/dccowan>`__ in https://github.com/simpeg/simpeg/pull/1454
+- Try uploading all the coverage files at once. by `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1569
+- Re-implement distance weighting and add a strategy comparison by `@thibaut-kobold <https://github.com/thibaut-kobold>`__ in https://github.com/simpeg/simpeg/pull/1310
+- Remove empymod dependency by `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1571
