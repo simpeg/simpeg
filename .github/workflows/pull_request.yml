@@ -26,6 +26,9 @@ jobs:
           path: pr_source
           persist-credentials: false
 
+      - name: Experiment with new code
+        run: echo "This is a test"
+
       - name: flake8 review
         uses: reviewdog/action-flake8@v3
         with:
