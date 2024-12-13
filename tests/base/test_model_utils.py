@@ -5,7 +5,7 @@ from discretize import TensorMesh
 from simpeg import utils
 
 
-class DepthWeightingTest:
+class TestDepthWeighting:
     def test_depth_weighting_3D(self):
         # Mesh
         dh = 5.0
