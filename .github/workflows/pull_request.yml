@@ -31,6 +31,8 @@ name : Reviewdog PR Annotations
 #
 # References:
 # * https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/
+# * PR that added this action: https://github.com/simpeg/simpeg/pull/1424
+# * PR that added this warning: https://github.com/simpeg/simpeg/pull/1592
 #
 on: [pull_request_target] # zizmor: ignore[dangerous-triggers]
 
