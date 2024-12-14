@@ -1,5 +1,4 @@
 import numpy as np
-from dask.distributed import get_client
 from multiprocessing import cpu_count
 
 
@@ -25,19 +24,6 @@ def compute_chunk_sizes(M, N, target_chunk_size):
         colChunk = int(np.ceil(N / nChunks_col))
         chunk_size = rowChunk * colChunk * 8 * 1e-6  # in Mb
     return rowChunk, colChunk
-
-
-def compute(self, job):
-    """
-    Compute dask job for either dask array or client.
-    """
-    if isinstance(job, np.ndarray):
-        return job
-    try:
-        client = get_client()
-        return client.compute(job, workers=self.workers)
-    except ValueError:
-        return job.compute()
 
 
 def get_parallel_blocks(source_list: list, data_block_size, optimize=True) -> list:

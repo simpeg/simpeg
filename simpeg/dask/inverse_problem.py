@@ -12,26 +12,17 @@ from ..objective_function import ComboObjectiveFunction
 def get_dpred(self, m, f=None):
     dpreds = []
 
-    for i, objfct in enumerate(self.dmisfit.objfcts):
-
-        if f is not None:
-            fields = f[i]
-        else:
-            fields = objfct.simulation.fields(m)
-
-        future = objfct.simulation.dpred(m, f=fields)
-
-        dpreds += [future]
+    for objfct in self.dmisfit.objfcts:
+        dpred = objfct.simulation.dpred(m)
+        dpreds += [dpred]
 
     try:
         client = get_client()
-    except ValueError:
-        client = None
-
-    if client is not None:
         dpreds = client.gather(dpreds)
+    except ValueError:
+        pass
 
-    return np.asarray(dpreds)
+    return dpreds
 
 
 BaseInvProblem.get_dpred = get_dpred
@@ -41,20 +32,12 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
     """evalFunction(m, return_g=True, return_H=True)"""
     self.model = m
 
-    # Store fields if doing a line-search
-    fields = self.getFields(m, store=(return_g is False and return_H is False))
-
-    # if isinstance(self.dmisfit, BaseDataMisfit):
-    phi_d = self.dmisfit(m, f=fields)
-    self.dpred = self.get_dpred(m, f=fields)
+    self.dpred = self.get_dpred(m)
 
     phi_d = 0
     for (_, objfct), pred in zip(self.dmisfit, self.dpred):
         residual = objfct.W * (objfct.data.dobs - pred)
         phi_d += np.vdot(residual, residual)
-
-    phi_d = np.asarray(phi_d)
-    # print(self.dpred[0])
 
     reg2Deriv = []
     if isinstance(self.reg, ComboObjectiveFunction):
@@ -107,11 +90,8 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
 
     out = (phi,)
     if return_g:
-        phi_dDeriv = self.dmisfit.deriv(m, f=fields)
-        # if hasattr(self.reg.objfcts[0], "space") and self.reg.objfcts[0].space == "spherical":
+        phi_dDeriv = self.dmisfit.deriv(m)
         phi_mDeriv = self.reg.deriv(m)
-        # else:
-        #     phi_mDeriv = np.sum([reg2Deriv * obj.f_m for reg2Deriv, obj in zip(self.reg2Deriv, self.reg.objfcts)], axis=0)
 
         g = np.asarray(phi_dDeriv) + self.beta * phi_mDeriv
         out += (g,)
@@ -121,7 +101,6 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
         def H_fun(v):
             phi_d2Deriv = self.dmisfit.deriv2(m, v)
             phi_m2Deriv = self.reg2Deriv * v
-
             H = phi_d2Deriv + self.beta * phi_m2Deriv
 
             return H

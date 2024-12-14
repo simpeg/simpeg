@@ -2,13 +2,11 @@ import numpy as np
 
 from ..data_misfit import L2DataMisfit
 
-from ..utils import mkvc
-
 from dask.distributed import get_client, Future
 
 
 def _data_residual(dpred, dobs):
-    return mkvc(dpred) - dobs
+    return dpred - dobs
 
 
 def _misfit(residual, W):
@@ -57,7 +55,13 @@ def dask_deriv(self, m, f=None):
 
     if isinstance(residuals, Future):
         client = get_client()
-        wtw_d = client.submit(_stack_futures, residuals, self.W.diagonal() ** 2.0)
+        who = client.who_has(residuals)
+        wtw_d = client.submit(
+            _stack_futures,
+            residuals,
+            self.W.diagonal() ** 2.0,
+            workers=who[residuals.key],
+        )
     else:
         wtw_d = self.W.diagonal() ** 2.0 * residuals
 
@@ -70,7 +74,7 @@ L2DataMisfit.deriv = dask_deriv
 
 
 def _stack_futures(futures, W):
-    return W * np.hstack(futures).flatten()
+    return W * futures
 
 
 def dask_deriv2(self, m, v, f=None):
@@ -80,7 +84,10 @@ def dask_deriv2(self, m, v, f=None):
     jvec = self.simulation.Jvec(m, v)
     if isinstance(jvec, Future):
         client = get_client()
-        w_jvec = client.submit(_stack_futures, jvec, self.W.diagonal() ** 2.0)
+        who = client.who_has(jvec)
+        w_jvec = client.submit(
+            _stack_futures, jvec, self.W.diagonal() ** 2.0, workers=who[jvec.key]
+        )
 
     else:
         w_jvec = self.W.diagonal() ** 2.0 * jvec
