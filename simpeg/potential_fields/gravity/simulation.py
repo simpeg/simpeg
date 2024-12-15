@@ -216,6 +216,10 @@ class Simulation3DIntegral(BasePFSimulation):
         Gravity forward operator
         """
         if getattr(self, "_G", None) is None:
+            if self._Jmatrix is not None:
+                self._G = self._Jmatrix
+                return self._G
+
             if self.engine == "choclo":
                 self._G = self._sensitivity_matrix()
             else:
