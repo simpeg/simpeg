@@ -1,9 +1,11 @@
+import re
 import unittest
 
 import numpy as np
 
 import discretize
 from discretize.tests import check_derivative
+import pytest
 
 from simpeg import maps
 from simpeg.flow import richards
@@ -216,6 +218,29 @@ class TestModels(unittest.TestCase):
 
             passed = check_derivative(fun, x0, plotIt=False, random_seed=918724)
             self.assertTrue(passed, True)
+
+
+@pytest.mark.parametrize(
+    "empirical_class",
+    [
+        richards.empirical.Haverkamp_theta,
+        richards.empirical.Haverkamp_k,
+        richards.empirical.Vangenuchten_theta,
+        richards.empirical.Vangenuchten_k,
+    ],
+)
+@pytest.mark.parametrize("arg_type", ["positional", "keyword"])
+def test_no_mesh_arg(empirical_class, arg_type):
+
+    msg = re.escape(
+        f"{empirical_class.__name__}() no longer takes positional arguments. "
+        f"The `mesh` positional argument was unused and has been removed."
+    )
+    with pytest.raises(TypeError, match=msg):
+        if arg_type == "positional":
+            empirical_class("mesh")
+        else:
+            empirical_class(mesh="mesh")
 
 
 if __name__ == "__main__":
