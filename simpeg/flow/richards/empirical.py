@@ -39,7 +39,7 @@ class Haverkamp_theta(WaterRetention):
 
     def __init__(
         self,
-        *,
+        *args,
         theta_r=0.075,
         theta_s=0.287,
         alpha=1.611e06,
@@ -48,6 +48,8 @@ class Haverkamp_theta(WaterRetention):
         betaMap=None,
         **kwargs,
     ):
+        if len(args) > 0:
+            raise AttributeError("`mesh` argument was unused and has been removed.")
         super().__init__(theta_r=theta_r, theta_s=theta_s, **kwargs)
         self.alpha = alpha
         self.alphaMap = alphaMap
@@ -158,7 +160,7 @@ class Haverkamp_k(HydraulicConductivity):
 
     def __init__(
         self,
-        *,
+        *args,
         Ks=9.44e-03,
         A=1.175e06,
         AMap=None,
@@ -166,6 +168,8 @@ class Haverkamp_k(HydraulicConductivity):
         gammaMap=None,
         **kwargs,
     ):
+        if len(args) > 0:
+            raise AttributeError("`mesh` argument was unused and has been removed.")
         super().__init__(Ks=Ks, **kwargs)
         self.A = A
         self.AMap = AMap
@@ -265,7 +269,7 @@ class Vangenuchten_theta(WaterRetention):
 
     def __init__(
         self,
-        *,
+        *args,
         theta_r=0.078,
         theta_s=0.430,
         n=1.56,
@@ -274,6 +278,8 @@ class Vangenuchten_theta(WaterRetention):
         alphaMap=None,
         **kwargs,
     ):
+        if len(args) > 0:
+            raise AttributeError("`mesh` argument was unused and has been removed.")
         super().__init__(theta_r=theta_r, theta_s=theta_s, **kwargs)
         self.alpha = alpha
         self.alphaMap = alphaMap
@@ -413,7 +419,7 @@ class Vangenuchten_k(HydraulicConductivity):
 
     def __init__(
         self,
-        *,
+        *args,
         Ks=24.96,
         I=0.5,
         IMap=None,
@@ -423,6 +429,8 @@ class Vangenuchten_k(HydraulicConductivity):
         alphaMap=None,
         **kwargs,
     ):
+        if len(args) > 0:
+            raise AttributeError("`mesh` argument was unused and has been removed.")
         super().__init__(Ks=Ks, **kwargs)
         self.I = I
         self.IMap = IMap
