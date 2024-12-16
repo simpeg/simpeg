@@ -398,25 +398,56 @@ def with_property_mass_matrices(property_name):
 
         setattr(cls, f"Me{arg}IDeriv", MeIDeriv_prop)
 
+        cached_items = [
+            f"_Mcc_{arg}",
+            f"_Mn_{arg}",
+            f"_Mf_{arg}",
+            f"_Me_{arg}",
+            f"_MccI_{arg}",
+            f"_MnI_{arg}",
+            f"_MfI_{arg}",
+            f"_MeI_{arg}",
+            f"_Mcc_{arg}_deriv",
+            f"_Mn_{arg}_deriv",
+            f"_Mf_{arg}_deriv",
+            f"_Me_{arg}_deriv",
+        ]
+
+        prop = getattr(cls, arg.lower())
+        prop_fset = prop.fset
+        prop_fdel = prop.fdel
+
+        @prop.setter
+        def prop(self, value):
+            prop_fset(self, value)
+            for item in cached_items:
+                if hasattr(self, item):
+                    if hasattr(self, item):
+                        delattr(self, item)
+
+        @prop.deleter
+        def prop(self):
+            prop_fdel(self)
+            for item in cached_items:
+                if hasattr(self, item):
+                    if hasattr(self, item):
+                        delattr(self, item)
+
+        prop.__set_name__(cls, arg.lower())
+
+        setattr(cls, arg.lower(), prop)
+
+        cls_delete_on_model_update = cls._delete_on_model_update
+
         @property
-        def _clear_on_prop_update(self):
-            items = [
-                f"_Mcc_{arg}",
-                f"_Mn_{arg}",
-                f"_Mf_{arg}",
-                f"_Me_{arg}",
-                f"_MccI_{arg}",
-                f"_MnI_{arg}",
-                f"_MfI_{arg}",
-                f"_MeI_{arg}",
-                f"_Mcc_{arg}_deriv",
-                f"_Mn_{arg}_deriv",
-                f"_Mf_{arg}_deriv",
-                f"_Me_{arg}_deriv",
-            ]
+        def _delete_on_model_update(self):
+            items = cls_delete_on_model_update.fget(self)
+            if prop.is_mapped(self):
+                items += cached_items
             return items
 
-        setattr(cls, f"_clear_on_{arg.lower()}_update", _clear_on_prop_update)
+        cls._delete_on_model_update = _delete_on_model_update
+
         return cls
 
     return decorator
@@ -609,25 +640,6 @@ class BaseElectricalPDESimulation(BasePDESimulation, ElectricalConductivity):
     def __init__(self, mesh, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
 
-    @property
-    def _delete_on_model_update(self):
-        """
-        matrices to be deleted if the model for conductivity/resistivity is updated
-        """
-        toDelete = super()._delete_on_model_update
-        if self.sigmaMap is not None or self.rhoMap is not None:
-            toDelete = (
-                toDelete + self._clear_on_sigma_update + self._clear_on_rho_update
-            )
-        return toDelete
-
-    def __setattr__(self, name, value):
-        super().__setattr__(name, value)
-        if name in ["sigma", "rho"]:
-            for mat in self._clear_on_sigma_update + self._clear_on_rho_update:
-                if hasattr(self, mat):
-                    delattr(self, mat)
-
 
 @with_property_mass_matrices("mu")
 @with_property_mass_matrices("mui")
@@ -635,20 +647,3 @@ class BaseMagneticPDESimulation(BasePDESimulation, MagneticPermeability):
 
     def __init__(self, mesh, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
-
-    def __setattr__(self, name, value):
-        super().__setattr__(name, value)
-        if name in ["mu", "mui"]:
-            for mat in self._clear_on_mu_update + self._clear_on_mui_update:
-                if hasattr(self, mat):
-                    delattr(self, mat)
-
-    @property
-    def _delete_on_model_update(self):
-        """
-        items to be deleted if the model for Magnetic Permeability is updated
-        """
-        toDelete = super()._delete_on_model_update
-        if self.muMap is not None or self.muiMap is not None:
-            toDelete = toDelete + self._clear_on_mu_update + self._clear_on_mui_update
-        return toDelete

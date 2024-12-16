@@ -106,6 +106,12 @@ class PhysicalProperty:
     def get_cls_attr_name(self, scope):
         return f"{type(scope).__name__}.{self.__name__}"
 
+    def is_mapped(self, scope):
+        im_mapped = self.__name__ in scope._mapped_properties
+        if not im_mapped and (recip := self.reciprocal):
+            return recip.__name__ in scope._mapped_properties
+        return im_mapped
+
     def mapping(self, scope):
         stashed = getattr(scope, self.cached_name, None)
         if isinstance(stashed, maps.IdentityMap):
@@ -212,6 +218,9 @@ class PhysicalProperty:
             dtype=self.dtype,
             invertible=self.invertible,
         )
+        new_prop.fget = self.fget
+        new_prop.fset = self.fset
+        new_prop.fdel = self.fdel
         new_prop.__doc__ = self.__doc__
         return new_prop
 
@@ -225,9 +234,9 @@ class PhysicalProperty:
         new_prop.fset = fset
         return new_prop
 
-    def deleter(self, deleter_func):
+    def deleter(self, fdel):
         new_prop = self.shallow_copy()
-        new_prop.fdel = deleter_func
+        new_prop.fdel = fdel
         return new_prop
 
     def update_invertible(self, invertible):
