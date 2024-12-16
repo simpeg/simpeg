@@ -42,6 +42,7 @@ class DielectricPermittivity(props.HasModel):
         if permittivity is not None:
             warnings.warn(
                 "Simulations using permittivity have not yet been thoroughly tested and derivatives are not implemented. Contributions welcome!",
+                UserWarning,
                 stacklevel=3,
             )
         self.permittivity = permittivity
