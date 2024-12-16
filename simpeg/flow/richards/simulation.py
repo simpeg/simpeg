@@ -88,22 +88,6 @@ class SimulationNDCellCentered(BaseTimeSimulation, BasePDESimulation):
             "mesh", value, (discretize.TensorMesh, discretize.TreeMesh), cast=False
         )
 
-    @property
-    def mesh(self):
-        """Tensor style mesh for the Richards flow simulation.
-
-        Returns
-        -------
-        discretize.TensorMesh or discretize.TreeMesh
-        """
-        return self._mesh
-
-    @mesh.setter
-    def mesh(self, value):
-        self._mesh = validate_type(
-            "mesh", value, (discretize.TensorMesh, discretize.TreeMesh), cast=False
-        )
-
     # TODO: This can also be a function(time, u_ii)
     @property
     def boundary_conditions(self):
