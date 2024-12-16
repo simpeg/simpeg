@@ -48,8 +48,11 @@ class Haverkamp_theta(WaterRetention):
         betaMap=None,
         **kwargs,
     ):
-        if len(args) > 0:
-            raise AttributeError("`mesh` argument was unused and has been removed.")
+        if len(args) > 0 or "mesh" in kwargs:
+            raise TypeError(
+                "Haverkamp_theta() no longer takes positional arguments. "
+                "The `mesh` positional argument was unused and has been removed."
+            )
         super().__init__(theta_r=theta_r, theta_s=theta_s, **kwargs)
         self.alpha = alpha
         self.alphaMap = alphaMap
@@ -168,8 +171,11 @@ class Haverkamp_k(HydraulicConductivity):
         gammaMap=None,
         **kwargs,
     ):
-        if len(args) > 0:
-            raise AttributeError("`mesh` argument was unused and has been removed.")
+        if len(args) > 0 or "mesh" in kwargs:
+            raise TypeError(
+                "Haverkamp_k() no longer takes positional arguments. "
+                "The `mesh` positional argument was unused and has been removed."
+            )
         super().__init__(Ks=Ks, **kwargs)
         self.A = A
         self.AMap = AMap
@@ -278,8 +284,11 @@ class Vangenuchten_theta(WaterRetention):
         alphaMap=None,
         **kwargs,
     ):
-        if len(args) > 0:
-            raise AttributeError("`mesh` argument was unused and has been removed.")
+        if len(args) > 0 or "mesh" in kwargs:
+            raise TypeError(
+                "Vangenuchten_theta() no longer takes positional arguments. "
+                "The `mesh` positional argument was unused and has been removed."
+            )
         super().__init__(theta_r=theta_r, theta_s=theta_s, **kwargs)
         self.alpha = alpha
         self.alphaMap = alphaMap
@@ -429,8 +438,11 @@ class Vangenuchten_k(HydraulicConductivity):
         alphaMap=None,
         **kwargs,
     ):
-        if len(args) > 0:
-            raise AttributeError("`mesh` argument was unused and has been removed.")
+        if len(args) > 0 or "mesh" in kwargs:
+            raise TypeError(
+                "Vangenuchten_k() no longer takes positional arguments. "
+                "The `mesh` positional argument was unused and has been removed."
+            )
         super().__init__(Ks=Ks, **kwargs)
         self.I = I
         self.IMap = IMap
