@@ -274,8 +274,8 @@ class DaskMetaSimulation(MetaSimulation):
                 # Bad mapping model length
                 return 1
             map_out_shape = mapping.shape[0]
-            for name in sim._act_map_names:
-                sim_mapping = getattr(sim, name)
+            for name in sim._mapped_properties:
+                sim_mapping = sim._prop_map(name)
                 sim_in_shape = sim_mapping.shape[1]
                 if (
                     map_out_shape != "*"
@@ -306,26 +306,10 @@ class DaskMetaSimulation(MetaSimulation):
                 f" are inconsistent."
             )
 
+        self._meta_prop = IdentityMap(nP=model_len)
         self._mappings = mappings
         if self._repeat_sim:
             self._workers = workers
-
-    @property
-    def _model_map(self):
-        # create a bland mapping that has the correct input shape
-        # to test against model inputs, avoids pulling the first
-        # mapping back to the main task.
-        if not hasattr(self, "__model_map"):
-            client = self.client
-            n_m = client.submit(
-                lambda v: v.shape[1],
-                self.mappings[0],
-                workers=self._workers[0],
-                pure=False,
-            )
-            n_m = client.gather(n_m)
-            self.__model_map = IdentityMap(nP=n_m)
-        return self.__model_map
 
     @property
     def client(self):

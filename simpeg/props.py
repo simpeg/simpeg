@@ -19,8 +19,9 @@ class _Void:
     pass
 
 
-class PhysicalProperty(property):
+class PhysicalProperty:
     """
+    Physical properties as implemented as descriptors.
 
     Parameters
     ----------
@@ -44,7 +45,6 @@ class PhysicalProperty(property):
         reciprocal=None,
     ):
         self.default = default
-        self.name = None
         self.cached_name = None
         self.invertible = invertible
         self.reciprocal = None
@@ -76,19 +76,35 @@ class PhysicalProperty(property):
         -------
         {shape_str}numpy.ndarray{dtype_str}
         """
-
-        super().__init__(fget=self.fget, fset=self.fset, fdel=self.fdel, doc=doc)
+        self.__doc__ = doc
 
     @property
     def optional(self):
         return self.default is not _Void
 
-    def set_name(self, name):
-        self.name = name
+    def __set_name__(self, owner, name):
+        self.__name__ = name
         self.cached_name = f"_physical_property_{name}"
 
+    def __get__(self, obj, objtype=None):
+        if obj is None:
+            return self
+        if self.fget is None:
+            raise AttributeError
+        return self.fget(obj)
+
+    def __set__(self, obj, value):
+        if self.fset is None:
+            raise AttributeError
+        self.fset(obj, value)
+
+    def __delete__(self, obj):
+        if self.fdel is None:
+            raise AttributeError
+        self.fdel(obj)
+
     def get_cls_attr_name(self, scope):
-        return f"{type(scope).__name__}.{self.name}"
+        return f"{type(scope).__name__}.{self.__name__}"
 
     def mapping(self, scope):
         stashed = getattr(scope, self.cached_name, None)
@@ -128,8 +144,8 @@ class PhysicalProperty(property):
                     return self.default
                 if not recip.optional:
                     raise AttributeError(
-                        f"'{type(scope).__name__}' has no attribute '{self.name}', "
-                        f"nor its reciprocal '{recip.name}'"
+                        f"'{type(scope).__name__}' has no attribute '{self.__name__}', "
+                        f"nor its reciprocal '{recip.__name__}'"
                     )
                 else:
                     recip_value = recip.default
@@ -140,7 +156,9 @@ class PhysicalProperty(property):
         if self.optional:
             return self.default
 
-        raise AttributeError(f"'{type(scope).__name__}' has no attribute '{self.name}'")
+        raise AttributeError(
+            f"'{type(scope).__name__}' has no attribute '{self.__name__}'"
+        )
 
     def fset(self, scope, value: Optional[Union[npt.NDArray, maps.IdentityMap]]):
         is_map = isinstance(value, maps.IdentityMap)
@@ -153,20 +171,20 @@ class PhysicalProperty(property):
         if value is not None:
             if not is_map:
                 value = validate_ndarray_with_shape(
-                    self.name, value, shape=self.shape, dtype=self.dtype
+                    self.__name__, value, shape=self.shape, dtype=self.dtype
                 )
             if self.reciprocal:
-                delattr(scope, self.reciprocal.name)
+                delattr(scope, self.reciprocal.__name__)
         if is_map:
-            scope._mapped_properties[self.name] = self
+            scope._mapped_properties[self.__name__] = self
         else:
-            scope._mapped_properties.pop(self.name, None)
+            scope._mapped_properties.pop(self.__name__, None)
         setattr(scope, self.cached_name, value)
 
     def fdel(self, scope):
         if hasattr(scope, self.cached_name):
             delattr(scope, self.cached_name)
-        scope._mapped_properties.pop(self.name, None)
+        scope._mapped_properties.pop(self.__name__, None)
 
     def set_reciprocal(self, other: "PhysicalProperty"):
         self.reciprocal = other
@@ -197,9 +215,14 @@ class PhysicalProperty(property):
         new_prop.__doc__ = self.__doc__
         return new_prop
 
-    def setter(self, setter_func):
+    def getter(self, fget):
         new_prop = self.shallow_copy()
-        new_prop.fset = setter_func
+        new_prop.fget = fget
+        return new_prop
+
+    def setter(self, fset):
+        new_prop = self.shallow_copy()
+        new_prop.fset = fset
         return new_prop
 
     def deleter(self, deleter_func):
@@ -260,12 +283,10 @@ class BaseSimPEG:
 class PhysicalPropertyMetaclass(type):
     def __new__(mcs, name, bases, classdict):
         # remember the physical properties on class dicts.
-
         physical_properties = {}
         nested_modelers = {}
         for key, value in classdict.items():
             if isinstance(value, PhysicalProperty):
-                value.set_name(key)
                 physical_properties[key] = value
             elif isinstance(value, NestedModeler):
                 nested_modelers[key] = value

@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 
+from .. import props
 from ..simulation import BaseSimulation
 from ..survey import BaseSurvey
 from ..maps import IdentityMap
@@ -86,6 +87,8 @@ class MetaSimulation(BaseSimulation):
     >>> plt.show()
     """
 
+    _meta_prop = props.PhysicalProperty("The common model for the meta simulation.s")
+
     _repeat_sim = False
 
     def __init__(self, simulations, mappings):
@@ -96,6 +99,7 @@ class MetaSimulation(BaseSimulation):
         self.simulations = simulations
         self.mappings = mappings
         self.model = None
+        self._meta_prop = IdentityMap()
         # give myself a BaseSurvey that has the number of data equal
         # to the sum of the sims' data.
         self.survey = self._make_survey()
@@ -148,8 +152,8 @@ class MetaSimulation(BaseSimulation):
             if mapping.shape[1] != model_len:
                 raise ValueError("All mappings must have the same input length")
             map_out_shape = mapping.shape[0]
-            for name in sim._act_map_names:
-                sim_mapping = getattr(sim, name)
+            for name in sim._mapped_properties:
+                sim_mapping = sim._prop_map(name)
                 sim_in_shape = sim_mapping.shape[1]
                 if (
                     map_out_shape != "*"
@@ -161,20 +165,10 @@ class MetaSimulation(BaseSimulation):
                         f"Simulation mapping shape {sim_in_shape} incompatible with "
                         f"input mapping shape {map_out_shape}."
                     )
+        # set the meta_model as the first map, so that assignments to 'model'
+        # can check it's size.
+        self._meta_prop = value[0]
         self._mappings = value
-
-    @property
-    def _act_map_names(self):
-        # Implement this here to trick the model setter to know about
-        # how long an input model should be.
-        # essentially it points to the first mapping.
-        return ["_model_map"]
-
-    @property
-    def _model_map(self):
-        # all of the mappings have the same input shape, so just return
-        # the first one.
-        return self.mappings[0]
 
     @property
     def model(self):
