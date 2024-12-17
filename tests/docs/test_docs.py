@@ -5,6 +5,8 @@ import multiprocessing
 
 n_cpu = multiprocessing.cpu_count()
 
+raise ImportError("Another error blocking doc building.")
+
 
 class Doc_Test(unittest.TestCase):
     @property
