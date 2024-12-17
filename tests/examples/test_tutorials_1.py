@@ -5,6 +5,7 @@ import glob
 
 import matplotlib
 
+raise ImportError("Block me!")
 matplotlib.use("Agg")
 
 
