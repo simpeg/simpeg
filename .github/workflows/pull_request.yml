@@ -26,7 +26,7 @@ name : Reviewdog PR Annotations
 # of this workflow file that lives in the **target branch** (usually `main`),
 # not the one in the Pull Request branch. This means that even if a contributor
 # opens a PR with a change to this file, the change won't be executed. This is
-# inteded to avoid third-party contributors to run custom code with high
+# intended to prevent third-party contributors from running custom code with high
 # privileges on the repo.
 #
 # References:
