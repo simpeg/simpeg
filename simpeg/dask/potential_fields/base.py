@@ -3,7 +3,7 @@ from ...potential_fields.base import BasePFSimulation as Sim
 
 import os
 from dask import delayed, array, config
-from dask.diagnostics import ProgressBar
+
 from ..utils import compute_chunk_sizes
 
 
@@ -87,32 +87,26 @@ def linear_operator(self):
                 print("Zarr file detected with same shape and chunksize ... re-loading")
                 return kernel
 
-        print("Writing Zarr file to disk")
-        with ProgressBar():
-            print("Saving kernel to zarr: " + sens_name)
-            kernel = array.to_zarr(
-                stack, sens_name, compute=False, return_stored=True, overwrite=True
-            )
-    elif forward_only:
-        # with ProgressBar():
-        # print("Forward calculation: ")
-        kernel = stack  # .compute()
-    else:
-        # with ProgressBar():
-        # print("Computing sensitivities to local ram")
-        kernel = stack  # .persist()
-    return kernel
+        return array.to_zarr(
+            stack, sens_name, compute=False, return_stored=True, overwrite=True
+        )
+    return stack
 
 
-def compute_J(self, _):
-    return self.linear_operator()
+def compute_J(self, _, f=None):
+    return self.linear_operator().persist()
 
 
 @property
 def Jmatrix(self):
     if getattr(self, "_Jmatrix", None) is None:
-        self._Jmatrix = self.linear_operator()
+        self._Jmatrix = self.compute_J()
     return self._Jmatrix
+
+
+@Jmatrix.setter
+def Jmatrix(self, value):
+    self._Jmatrix = value
 
 
 Sim._chunk_format = _chunk_format
