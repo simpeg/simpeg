@@ -179,6 +179,8 @@ class PhysicalProperty:
                 value = validate_ndarray_with_shape(
                     self.__name__, value, shape=self.shape, dtype=self.dtype
                 )
+                if value.ndim == 0:
+                    value = value.item()
             if self.reciprocal:
                 delattr(scope, self.reciprocal.__name__)
         if is_map:
