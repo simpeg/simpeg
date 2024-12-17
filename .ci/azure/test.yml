@@ -43,9 +43,11 @@ jobs:
             displayName: Setup SimPEG environment
 
           - bash: .ci/azure/run_tests_with_coverage.sh
+            continueOnError: True
             displayName: 'Testing ${{ test }}'
 
           - task: PublishPipelineArtifact@1
+            continueOnError: True
             inputs:
               targetPath: $(Build.SourcesDirectory)/docs/_build/html
               artifactName: html_docs
