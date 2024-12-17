@@ -5,6 +5,24 @@ from simpeg import props
 
 
 class ElectricalConductivity(props.HasModel):
+    """The electrical conductivity property model base class.
+
+    This class is meant to be used when a simulation has electrical conductivity or
+    resistivity as a dependent geophysical property.
+
+    Parameters
+    ----------
+    sigma, rho : float, array_like, optional
+        The electrical conductivity (`sigma`) in S/m (or resistivity, `rho`, in Ohm*m) physical
+        property. These two properties have a reciprocal relationship. Both can be accessed, but only one
+        can be set at a time. If one is set, the other is cleared.
+    sigmaMap, rhoMap : simpeg.maps.IdentityMap, optional
+        The mappings for the `sigma` and `rho` physical property. If set the corresponding physical property
+        will be calculated using this mapping and the simulation's `model`, and also enable the derivative of that
+        physical property with respect to the `model` needed for inversions. The reciprocal property will automatically
+        be mapped with a `ReciprocalMap` applied after the set map.
+    """
+
     sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
     rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
     props.Reciprocal(sigma, rho)
@@ -18,6 +36,24 @@ class ElectricalConductivity(props.HasModel):
 
 
 class MagneticPermeability(props.HasModel):
+    """The electrical conductivity property model base class.
+
+    This class is meant to be used when a simulation has electrical conductivity or
+    resistivity as a dependent geophysical property.
+
+    Parameters
+    ----------
+    mu, mui : float, array_like, optional
+        The magnetic permeability (`mu`) in H/m (or inverse magnetic permeability, `mui`, in m/H) physical
+        property. These two properties have a reciprocal relationship. Both can be accessed, but only one can be
+        set at a time. If one is set, the other is cleared.
+    muMap, muiMap : simpeg.maps.IdentityMap, optional
+        The mappings for the `mu` and `mui` physical property. If set the corresponding physical property
+        will be calculated using this mapping and the simulation's `model`, and also enable the derivative of that
+        physical property with respect to the `model` needed for inversions. The reciprocal property will automatically
+        be mapped with a `ReciprocalMap` applied after the set map.
+    """
+
     mu, muMap, muDeriv = props.Invertible(
         "Magnetic Permeability (H/m)",
     )
@@ -33,6 +69,21 @@ class MagneticPermeability(props.HasModel):
 
 
 class DielectricPermittivity(props.HasModel):
+    """The electrical conductivity property model base class.
+
+    This class is meant to be used when a simulation has electrical conductivity or
+    resistivity as a dependent geophysical property.
+
+    Parameters
+    ----------
+    permittivity : float, array_like, optional
+        The dielectric permittivity in F/m physical property.
+
+        .. warning::
+            For most implemented simulations that use this property have not been thoroughly tested,
+            and it does not yet support derivatives. Contributions are welcome!
+    """
+
     permittivity = props.PhysicalProperty(
         "Dielectric permittivity (F/m)", optional=True
     )
@@ -50,6 +101,20 @@ class DielectricPermittivity(props.HasModel):
 
 
 class MassDensity(props.HasModel):
+    """The electrical conductivity property model base class.
+
+    This class is meant to be used when a simulation has electrical conductivity or
+    resistivity as a dependent geophysical property.
+
+    Parameters
+    ----------
+    rho : float, array_like, optional
+        The mass density in g/cc.
+    rhoMap : simpeg.maps.IdentityMap, optional
+        The mapping for the mass density property `rho`. If set, `rho` will be calculated using
+        this mapping and the simulation's `model`, and also enable the derivative of `rho` with respect to the
+        `model` needed for inversions.
+    """
 
     rho, rhoMap, rhoDeriv = props.Invertible("Specific density (g/cc)")
 
@@ -60,6 +125,20 @@ class MassDensity(props.HasModel):
 
 
 class MagneticSusceptibility(props.HasModel):
+    """The electrical conductivity property model base class.
+
+    This class is meant to be used when a simulation has electrical conductivity or
+    resistivity as a dependent geophysical property.
+
+    Parameters
+    ----------
+    chi : float, array_like, optional
+        The magnetic susceptibility in SI units (T/T).
+    chiMap : simpeg.maps.IdentityMap, optional
+        The mapping for the magnetic susceptibility property `chi`. If set, `chi` will be calculated using
+        this mapping and the simulation's `model`, and also enable the derivative of `chi` with respect to the
+        `model` needed for inversions.
+    """
 
     chi, chiMap, chiDeriv = props.Invertible("Magnetic Susceptibility (SI)")
 
@@ -70,6 +149,21 @@ class MagneticSusceptibility(props.HasModel):
 
 
 class LayerThickness(props.HasModel):
+    """The electrical conductivity property model base class.
+
+    This class is meant to be used when a simulation has electrical conductivity or
+    resistivity as a dependent geophysical property.
+
+    Parameters
+    ----------
+    thicknesses : float, array_like, optional
+        The layer thicknesses in meters. Defaults to an empty list.
+    thicknessesMap : simpeg.maps.IdentityMap, optional
+        The mapping for the `thicknesses` property. If set, `thicknesses` will be calculated using
+        this mapping and the simulation's `model`, and also enable the derivative of `thicknesses` with respect to the
+        `model` needed for inversions.
+    """
+
     thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
         "layer thicknesses (m)"
     )
@@ -83,6 +177,21 @@ class LayerThickness(props.HasModel):
 
 
 class ElectricalChargeability(props.HasModel):
+    """The electrical conductivity property model base class.
+
+    This class is meant to be used when a simulation has electrical conductivity or
+    resistivity as a dependent geophysical property.
+
+    Parameters
+    ----------
+    eta : float, array_like, optional
+        The electrical chargeability in V/V.
+    etaMap : simpeg.maps.IdentityMap, optional
+        The mapping for the electrical chargeability `eta` property. If set, `eta` will be calculated using
+        this mapping and the simulation's `model`, and also enable the derivative of `eta` with respect to the
+        `model` needed for inversions.
+    """
+
     eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability (V/V)")
 
     def __init__(self, eta=None, etaMap=None, **kwargs):
@@ -92,6 +201,23 @@ class ElectricalChargeability(props.HasModel):
 
 
 class AcousticVelocity(props.HasModel):
+    """The electrical conductivity property model base class.
+
+    This class is meant to be used when a simulation has electrical conductivity or
+    resistivity as a dependent geophysical property.
+
+    Parameters
+    ----------
+    slowness, velocity : float, array_like, optional
+        The `slowness` (in s/m), or `velocity` (in m/s) physical properties. These two properties have a reciprocal
+        relationship. Both can be accessed, but only one can be set at a time. If one is set, the other is cleared.
+    slownessMap, velocityMap : simpeg.maps.IdentityMap, optional
+        The mappings for the `slowness` and `velocity` physical property. If set the corresponding physical property
+        will be calculated using this mapping and the simulation's `model`, and also enable the derivative of that
+        physical property with respect to the `model` needed for inversions. The reciprocal property will automatically
+        be mapped with a `ReciprocalMap` applied after the set map.
+    """
+
     slowness, slownessMap, slownessDeriv = props.Invertible("Slowness model (s/m)")
     velocity, velocityMap, velocityDeriv = props.Invertible("Velocity model (m/s)")
     props.Reciprocal(slowness, velocity)
@@ -107,6 +233,21 @@ class AcousticVelocity(props.HasModel):
 
 
 class HydraulicConductivity(props.HasModel):
+    """The electrical conductivity property model base class.
+
+    This class is meant to be used when a simulation has electrical conductivity or
+    resistivity as a dependent geophysical property.
+
+    Parameters
+    ----------
+    Ks : float, array_like, optional
+        The saturated hydraulic conductivity.
+    KsMap : simpeg.maps.IdentityMap, optional
+        The mapping for the hydraulic conductivity `Ks` property. If set, `Ks` will be calculated using
+        this mapping and the simulation's `model`, and also enable the derivative of `Ks` with respect to the
+        `model` needed for inversions.
+    """
+
     Ks, KsMap, KsDeriv = props.Invertible("Saturated hydraulic conductivity")
 
     def __init__(self, Ks=None, KsMap=None, **kwargs):
@@ -134,6 +275,20 @@ class HydraulicConductivity(props.HasModel):
 
 
 class WaterRetention(props.HasModel):
+    """The electrical conductivity property model base class.
+
+    This class is meant to be used when a simulation has electrical conductivity or
+    resistivity as a dependent geophysical property.
+
+    Parameters
+    ----------
+    theta_r, theta_s : float, array_like, optional
+        The residual (`theta_r`) and saturated (`theta_s`) water content physical properties.
+    theta_rMap, theta_sMap : simpeg.maps.IdentityMap, optional
+        The mapping for the respective water content properties. If set, that physical property will be calculated using
+        this mapping and the simulation's `model`, and also enable the derivative of the property with respect to the
+        `model` needed for inversions.
+    """
 
     theta_r, theta_rMap, theta_rDeriv = props.Invertible(
         "residual water content [L3L-3]"
