@@ -8,7 +8,6 @@ from simpeg.props import HasModel
 import itertools
 from dask.distributed import Client
 from dask.distributed import Future
-from dask import array
 from .simulation import MetaSimulation, SumMetaSimulation
 import scipy.sparse as sp
 from operator import add
@@ -26,39 +25,36 @@ def _calc_fields(mapping, sim, model, apply_map=False):
         return sim.fields(m=sim.model)
 
 
-def _calc_dpred(mapping, sim, model, fields, apply_map=False):
+def _calc_dpred(mapping, sim, model, field, apply_map=False):
     if apply_map and model is not None:
-        return array.compute(sim.dpred(m=mapping @ model, f=fields))[0]
+        return sim.dpred(m=mapping @ model)
     else:
-        return array.compute(sim.dpred(m=sim.model, f=fields))[0]
+        return sim.dpred(m=sim.model, f=field)
 
 
-def _j_vec_op(mapping, sim, model, v, apply_map=False):
-    # return array.from_array(np.zeros(100))
+def _j_vec_op(mapping, sim, model, field, v, apply_map=False):
     sim_v = mapping.deriv(model) @ v
     if apply_map:
-        return array.compute(sim.Jvec(mapping @ model, sim_v))[0]
+        return sim.Jvec(mapping @ model, sim_v, f=field)
     else:
-        return array.compute(sim.Jvec(sim.model, sim_v))[0]
+        return sim.Jvec(sim.model, sim_v, f=field)
 
 
-def _jt_vec_op(mapping, sim, model, v, start, end, apply_map=False):
+def _jt_vec_op(mapping, sim, model, field, v, apply_map=False):
     if apply_map:
-        jtv = sim.Jtvec(mapping @ model, v[start:end])
+        jtv = sim.Jtvec(mapping @ model, v, f=field)
     else:
-        jtv = sim.Jtvec(sim.model, v[start:end])
-
-    # Need to delay this operation until the future is computed
-    return mapping.deriv(model).T @ array.compute(jtv)[0]
+        jtv = sim.Jtvec(sim.model, v, f=field)
+    return mapping.deriv(model).T @ jtv
 
 
-def _get_jtj_diag(mapping, sim, model, w, apply_map=False):
+def _get_jtj_diag(mapping, sim, model, field, w, apply_map=False):
     w = sp.diags(w)
     if apply_map:
-        jtj = sim.getJtJdiag(mapping @ model, w)
+        jtj = sim.getJtJdiag(mapping @ model, w, f=field)
     else:
-        jtj = sim.getJtJdiag(sim.model, w)
-    sim_jtj = sp.diags(np.sqrt(np.asarray(jtj)))
+        jtj = sim.getJtJdiag(sim.model, w, f=field)
+    sim_jtj = sp.diags(np.sqrt(jtj))
     m_deriv = mapping.deriv(model)
     return np.asarray((sim_jtj @ m_deriv).power(2).sum(axis=0)).flatten()
 
@@ -69,7 +65,7 @@ def _reduce(client, operation, items):
         if len(items) % 2 == 1:
             new_reduce[-1] = client.submit(operation, new_reduce[-1], items[-1])
         items = new_reduce
-    return items[0]
+    return client.gather(items[0])
 
 
 def _validate_type_or_future_of_type(
@@ -355,40 +351,42 @@ class DaskMetaSimulation(MetaSimulation):
                     workers=worker,
                 )
             )
-        return _reduce(client, np.concatenate, dpred)
+        return np.concatenate(client.gather(dpred))
 
     def Jvec(self, m, v, f=None):
         self.model = m
         m_future = self._m_as_future
-        # if f is None:
-        #     f = self.fields(m)
+        if f is None:
+            f = self.fields(m)
         client = self.client
         [v_future] = client.scatter([v], broadcast=True)
         j_vec = []
-        for mapping, sim, worker in zip(self.mappings, self.simulations, self._workers):
+        for mapping, sim, worker, field in zip(
+            self.mappings, self.simulations, self._workers, f
+        ):
             j_vec.append(
                 client.submit(
                     _j_vec_op,
                     mapping,
                     sim,
                     m_future,
-                    # field,
+                    field,
                     v_future,
                     self._repeat_sim,
                     workers=worker,
                 )
             )
-        return _reduce(client, np.concatenate, j_vec)
+        return np.concatenate(self.client.gather(j_vec))
 
     def Jtvec(self, m, v, f=None):
         self.model = m
         m_future = self._m_as_future
-        # if f is None:
-        #     f = self.fields(m)
+        if f is None:
+            f = self.fields(m)
         jt_vec = []
         client = self.client
-        for i, (mapping, sim, worker) in enumerate(
-            zip(self.mappings, self.simulations, self._workers)
+        for i, (mapping, sim, worker, field) in enumerate(
+            zip(self.mappings, self.simulations, self._workers, f)
         ):
             jt_vec.append(
                 client.submit(
@@ -396,10 +394,8 @@ class DaskMetaSimulation(MetaSimulation):
                     mapping,
                     sim,
                     m_future,
-                    # field,
-                    v,
-                    self._data_offsets[i],
-                    self._data_offsets[i + 1],
+                    field,
+                    v[self._data_offsets[i] : self._data_offsets[i + 1]],
                     self._repeat_sim,
                     workers=worker,
                 )
@@ -418,26 +414,23 @@ class DaskMetaSimulation(MetaSimulation):
                 W = W.diagonal()
             jtj_diag = []
             client = self.client
-            # if f is None:
-            #     f = self.fields(m)
-            for i, (mapping, sim, worker) in enumerate(
-                zip(self.mappings, self.simulations, self._workers)
+            if f is None:
+                f = self.fields(m)
+            for i, (mapping, sim, worker, field) in enumerate(
+                zip(self.mappings, self.simulations, self._workers, f)
             ):
                 sim_w = W[self._data_offsets[i] : self._data_offsets[i + 1]]
-                # s = client.gather(sim)
-                # ff = client.gather(field)
                 jtj_diag.append(
                     client.submit(
                         _get_jtj_diag,
                         mapping,
                         sim,
                         m_future,
-                        # field,
+                        field,
                         sim_w,
                         self._repeat_sim,
                         workers=worker,
                     )
-                    # s.getJtJdiag(self.model, sim_w, f=ff)
                 )
             self._jtjdiag = _reduce(client, add, jtj_diag)
 

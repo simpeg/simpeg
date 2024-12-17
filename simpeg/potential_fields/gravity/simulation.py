@@ -201,7 +201,7 @@ class Simulation3DIntegral(BasePFSimulation):
         Sensitivity times a vector
         """
         dmu_dm_v = self.rhoDeriv @ v
-        return self.G @ dmu_dm_v.astype(self.sensitivity_dtype, copy=False)
+        return np.asarray(self.G @ dmu_dm_v.astype(self.sensitivity_dtype, copy=False))
 
     def Jtvec(self, m, v, f=None):
         """
@@ -216,16 +216,10 @@ class Simulation3DIntegral(BasePFSimulation):
         Gravity forward operator
         """
         if getattr(self, "_G", None) is None:
-            if self._Jmatrix is not None:
-                self._G = self._Jmatrix
-                return self._G
-
             if self.engine == "choclo":
                 self._G = self._sensitivity_matrix()
             else:
                 self._G = self.linear_operator()
-
-            self._Jmatrix = self._G
         return self._G
 
     @property

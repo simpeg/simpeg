@@ -198,18 +198,14 @@ class Simulation3DIntegral(BasePFSimulation):
 
     @property
     def G(self):
+        """
+        Gravity forward operator
+        """
         if getattr(self, "_G", None) is None:
-            if self._Jmatrix is not None:
-                self._G = self._Jmatrix
-                return self._G
-
             if self.engine == "choclo":
                 self._G = self._sensitivity_matrix()
             else:
                 self._G = self.linear_operator()
-
-            self._Jmatrix = self._G
-
         return self._G
 
     modelType = deprecate_property(

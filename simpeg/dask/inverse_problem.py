@@ -1,8 +1,7 @@
 from ..inverse_problem import BaseInvProblem
 import numpy as np
 
-
-from dask.distributed import get_client
+from dask.distributed import get_client, Future
 from scipy.sparse.linalg import LinearOperator
 from ..regularization import WeightedLeastSquares, Sparse
 
@@ -16,11 +15,12 @@ def get_dpred(self, m, f=None):
         dpred = objfct.simulation.dpred(m)
         dpreds += [dpred]
 
-    try:
+    if isinstance(dpreds[0], Future):
         client = get_client()
         dpreds = client.gather(dpreds)
-    except ValueError:
-        pass
+    else:
+        for i, dpred in enumerate(dpreds):
+            dpreds[i] = np.asarray(dpred)
 
     return dpreds
 

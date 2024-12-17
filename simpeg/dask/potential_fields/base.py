@@ -93,6 +93,17 @@ def linear_operator(self):
     return stack
 
 
+@property
+def G(self):
+    """
+    Gravity forward operator
+    """
+    if getattr(self, "_G", None) is None:
+        self._G = self.Jmatrix
+
+    return self._G
+
+
 def compute_J(self, _, f=None):
     return self.linear_operator().persist()
 
@@ -100,7 +111,7 @@ def compute_J(self, _, f=None):
 @property
 def Jmatrix(self):
     if getattr(self, "_Jmatrix", None) is None:
-        self._Jmatrix = self.compute_J()
+        self._Jmatrix = self.compute_J(self.model)
     return self._Jmatrix
 
 
@@ -109,6 +120,7 @@ def Jmatrix(self, value):
     self._Jmatrix = value
 
 
+Sim.G = G
 Sim._chunk_format = _chunk_format
 Sim.chunk_format = chunk_format
 Sim.dpred = dpred
