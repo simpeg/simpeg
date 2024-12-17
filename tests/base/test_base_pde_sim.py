@@ -17,29 +17,23 @@ from simpeg.utils.solver_utils import get_default_solver
 # define a very simple class...
 @with_property_mass_matrices("sigma")
 @with_property_mass_matrices("mu")
+@props._add_deprecated_physical_property_functions("sigma")
+@props._add_deprecated_physical_property_functions("mu")
 class SimpleSim(BasePDESimulation):
-    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
+    sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
 
-    mu, muMap, muDeriv = props.Invertible("Magnetic Permeability")
+    mu = props.PhysicalProperty("Magnetic Permeability")
 
     def __init__(
-        self, mesh, survey=None, sigma=None, sigmaMap=None, mu=mu_0, muMap=None
+        self,
+        mesh,
+        survey=None,
+        sigma=None,
+        mu=mu_0,
     ):
         super().__init__(mesh=mesh, survey=survey)
         self.sigma = sigma
         self.mu = mu
-        self.sigmaMap = sigmaMap
-        self.muMap = muMap
-
-    @property
-    def _delete_on_model_update(self):
-        """
-        matrices to be deleted if the model for conductivity/resistivity is updated
-        """
-        toDelete = super()._delete_on_model_update
-        if self.sigmaMap is not None or self.rhoMap is not None:
-            toDelete = toDelete + self._clear_on_sigma_update
-        return toDelete
 
 
 class TestSim(unittest.TestCase):
