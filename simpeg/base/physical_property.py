@@ -7,6 +7,24 @@ from simpeg import props
 @props._add_deprecated_physical_property_functions("sigma")
 @props._add_deprecated_physical_property_functions("rho")
 class ElectricalConductivity(props.HasModel):
+    """The electrical conductivity property model base class.
+
+    This class is meant to be used when a simulation has electrical conductivity or
+    resistivity as a dependent physical property.
+
+    Parameters
+    ----------
+    sigma, rho : float, array_like, optional
+        The electrical conductivity (`sigma`) in S/m (or resistivity, `rho`, in Ohm*m) physical
+        property. These two properties have a reciprocal relationship. Both can be accessed, but only one
+        can be set at a time. If one is set, the other is cleared.
+    sigmaMap, rhoMap : simpeg.maps.IdentityMap, optional
+        The mappings for the `sigma` and `rho` physical property. If set the corresponding physical property
+        will be calculated using this mapping and the simulation's `model`, and also enable the derivative of that
+        physical property with respect to the `model` needed for inversions. The reciprocal property will automatically
+        be mapped with a `ReciprocalMap` applied after the set map.
+    """
+
     sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
     rho = props.PhysicalProperty("Electrical resistivity (Ohm m)", reciprocal=sigma)
 
@@ -19,6 +37,23 @@ class ElectricalConductivity(props.HasModel):
 @props._add_deprecated_physical_property_functions("mu")
 @props._add_deprecated_physical_property_functions("mui")
 class MagneticPermeability(props.HasModel):
+    """The magnetic permeability property model base class.
+
+    This class is meant to be used when a simulation has magnetic permeability as a dependent physical property.
+
+    Parameters
+    ----------
+    mu, mui : float, array_like, optional
+        The magnetic permeability (`mu`) in H/m (or inverse magnetic permeability, `mui`, in m/H) physical
+        property. These two properties have a reciprocal relationship. Both can be accessed, but only one can be
+        set at a time. If one is set, the other is cleared.
+    muMap, muiMap : simpeg.maps.IdentityMap, optional
+        The mappings for the `mu` and `mui` physical property. If set the corresponding physical property
+        will be calculated using this mapping and the simulation's `model`, and also enable the derivative of that
+        physical property with respect to the `model` needed for inversions. The reciprocal property will automatically
+        be mapped with a `ReciprocalMap` applied after the set map.
+    """
+
     mu = props.PhysicalProperty("Magnetic Permeability (H/m)")
     mui = props.PhysicalProperty("Inverse Magnetic Permeability (m/H)", reciprocal=mu)
 
@@ -29,6 +64,20 @@ class MagneticPermeability(props.HasModel):
 
 
 class DielectricPermittivity(props.HasModel):
+    """The dielectric permittivity property model base class.
+
+    This class is meant to be used when a simulation has dielectric permittivity as a dependent physical property.
+
+    Parameters
+    ----------
+    permittivity : float, array_like, optional
+        The dielectric permittivity in F/m physical property.
+
+        .. warning::
+            For most implemented simulations that use this property have not been thoroughly tested,
+            and it does not yet support derivatives. Contributions are welcome!
+    """
+
     permittivity = props.PhysicalProperty(
         "Dielectric permittivity (F/m)", default=None, invertible=False
     )
@@ -47,6 +96,19 @@ class DielectricPermittivity(props.HasModel):
 
 @props._add_deprecated_physical_property_functions("rho")
 class MassDensity(props.HasModel):
+    """The mass density property model base class.
+
+    This class is meant to be used when a simulation has mass density as a dependent physical property.
+
+    Parameters
+    ----------
+    rho : float, array_like, optional
+        The mass density in g/cc.
+    rhoMap : simpeg.maps.IdentityMap, optional
+        The mapping for the mass density property `rho`. If set, `rho` will be calculated using
+        this mapping and the simulation's `model`, and also enable the derivative of `rho` with respect to the
+        `model` needed for inversions.
+    """
 
     rho = props.PhysicalProperty("Specific density (g/cc)")
 
@@ -57,6 +119,19 @@ class MassDensity(props.HasModel):
 
 @props._add_deprecated_physical_property_functions("chi")
 class MagneticSusceptibility(props.HasModel):
+    """The magnetic susceptibility model base class.
+
+    This class is meant to be used when a simulation has magnetic susceptibility as a dependent physical property.
+
+    Parameters
+    ----------
+    chi : float, array_like, optional
+        The magnetic susceptibility in SI units (T/T).
+    chiMap : simpeg.maps.IdentityMap, optional
+        The mapping for the magnetic susceptibility property `chi`. If set, `chi` will be calculated using
+        this mapping and the simulation's `model`, and also enable the derivative of `chi` with respect to the
+        `model` needed for inversions.
+    """
 
     chi = props.PhysicalProperty("Magnetic Susceptibility (SI)")
 
@@ -67,7 +142,19 @@ class MagneticSusceptibility(props.HasModel):
 
 @props._add_deprecated_physical_property_functions("thicknesses")
 class LayerThickness(props.HasModel):
-    thicknesses = props.PhysicalProperty("layer thicknesses (m)")
+    """The layered thickness property model base class.
+
+    This class is meant to be used when a simulation has a layered thickness dependent physical property.
+
+    Parameters
+    ----------
+    thicknesses : float, array_like, optional
+        The layer thicknesses in meters. Defaults to an empty list.
+    thicknessesMap : simpeg.maps.IdentityMap, optional
+        The mapping for the `thicknesses` property. If set, `thicknesses` will be calculated using
+        this mapping and the simulation's `model`, and also enable the derivative of `thicknesses` with respect to the
+        `model` needed for inversions.
+    """
 
     def __init__(self, thicknesses=None, **kwargs):
         super().__init__(**kwargs)
@@ -78,6 +165,20 @@ class LayerThickness(props.HasModel):
 
 @props._add_deprecated_physical_property_functions("eta")
 class ElectricalChargeability(props.HasModel):
+    """The electrical chargeability property model base class.
+
+    This class is meant to be used when a simulation has electrical chargeability as a dependent physical property.
+
+    Parameters
+    ----------
+    eta : float, array_like, optional
+        The electrical chargeability in V/V.
+    etaMap : simpeg.maps.IdentityMap, optional
+        The mapping for the electrical chargeability `eta` property. If set, `eta` will be calculated using
+        this mapping and the simulation's `model`, and also enable the derivative of `eta` with respect to the
+        `model` needed for inversions.
+    """
+
     eta = props.PhysicalProperty("Electrical Chargeability (V/V)")
 
     def __init__(self, eta=None, **kwargs):
@@ -88,6 +189,23 @@ class ElectricalChargeability(props.HasModel):
 @props._add_deprecated_physical_property_functions("slowness")
 @props._add_deprecated_physical_property_functions("velocity")
 class AcousticVelocity(props.HasModel):
+    """The acoustic velocity property model base class.
+
+    This class is meant to be used when a simulation has acoustic velocity or
+    slowness as a dependent physical property.
+
+    Parameters
+    ----------
+    slowness, velocity : float, array_like, optional
+        The `slowness` (in s/m), or `velocity` (in m/s) physical properties. These two properties have a reciprocal
+        relationship. Both can be accessed, but only one can be set at a time. If one is set, the other is cleared.
+    slownessMap, velocityMap : simpeg.maps.IdentityMap, optional
+        The mappings for the `slowness` and `velocity` physical property. If set the corresponding physical property
+        will be calculated using this mapping and the simulation's `model`, and also enable the derivative of that
+        physical property with respect to the `model` needed for inversions. The reciprocal property will automatically
+        be mapped with a `ReciprocalMap` applied after the set map.
+    """
+
     slowness = props.PhysicalProperty("Slowness model (s/m)")
     velocity = props.PhysicalProperty("Velocity model (m/s)", reciprocal=slowness)
 
@@ -99,6 +217,20 @@ class AcousticVelocity(props.HasModel):
 
 @props._add_deprecated_physical_property_functions("Ks")
 class HydraulicConductivity(props.HasModel):
+    """The hydraulic conductivity property model base class.
+
+    This class is meant to be used when a simulation has hydraulic conductivity as a dependent physical property.
+
+    Parameters
+    ----------
+    Ks : float, array_like, optional
+        The saturated hydraulic conductivity.
+    KsMap : simpeg.maps.IdentityMap, optional
+        The mapping for the hydraulic conductivity `Ks` property. If set, `Ks` will be calculated using
+        this mapping and the simulation's `model`, and also enable the derivative of `Ks` with respect to the
+        `model` needed for inversions.
+    """
+
     Ks = props.PhysicalProperty("Saturated hydraulic conductivity")
 
     def __init__(self, Ks=None, **kwargs):
@@ -127,6 +259,19 @@ class HydraulicConductivity(props.HasModel):
 @props._add_deprecated_physical_property_functions("theta_r")
 @props._add_deprecated_physical_property_functions("theta_s")
 class WaterRetention(props.HasModel):
+    """The water saturation property model base class.
+
+    This class is meant to be used when a simulation has water saturation (or retention) as a dependent physical property.
+
+    Parameters
+    ----------
+    theta_r, theta_s : float, array_like, optional
+        The residual (`theta_r`) and saturated (`theta_s`) water content physical properties.
+    theta_rMap, theta_sMap : simpeg.maps.IdentityMap, optional
+        The mapping for the respective water content properties. If set, that physical property will be calculated using
+        this mapping and the simulation's `model`, and also enable the derivative of the property with respect to the
+        `model` needed for inversions.
+    """
 
     theta_r = props.PhysicalProperty("residual water content [L3L-3]")
     theta_s = props.PhysicalProperty("saturated water content [L3L-3]")

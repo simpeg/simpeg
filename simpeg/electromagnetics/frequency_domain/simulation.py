@@ -53,10 +53,6 @@ class BaseFDEMSimulation(BaseEMSimulation, DielectricPermittivity):
         If ``True``, the factorization for the inverse of the system matrix at each
         frequency is discarded after the fields are computed at that frequency.
         If ``False``, the factorizations of the system matrices for all frequencies are stored.
-    permittivity : (n_cells,) numpy.ndarray, optional
-        Dielectric permittivity (F/m) defined on the entire mesh. If ``None``, electric displacement
-        is ignored. Please note that `permittivity` is not an invertible property, and that future
-        development will result in the deprecation of this propery.
     storeJ : bool, optional
         Whether to compute and store the sensitivity matrix.
     """
@@ -69,13 +65,11 @@ class BaseFDEMSimulation(BaseEMSimulation, DielectricPermittivity):
         survey=None,
         *,
         forward_only=False,
-        permittivity=None,
         storeJ=False,
         **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.forward_only = forward_only
-        self.permittivity = permittivity
         self.storeJ = storeJ
 
     @property
