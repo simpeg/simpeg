@@ -1,0 +1,36 @@
+# Lint GitHub Actions for common security issues using zizmor.
+# Docs: https://woodruffw.github.io/zizmor
+
+name: Lint GitHub Actions
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install zizmor
+        run: python -m pip install zizmor
+
+      - name: List installed packages
+        run: python -m pip freeze
+
+      - name: Lint GitHub Actions
+        run: make check-actions
+        env:
+          # Set GH_TOKEN to allow zizmor to check online vulnerabilities
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
