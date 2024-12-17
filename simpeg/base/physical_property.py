@@ -8,7 +8,7 @@ class ElectricalConductivity(props.HasModel):
     """The electrical conductivity property model base class.
 
     This class is meant to be used when a simulation has electrical conductivity or
-    resistivity as a dependent geophysical property.
+    resistivity as a dependent physical property.
 
     Parameters
     ----------
@@ -36,10 +36,9 @@ class ElectricalConductivity(props.HasModel):
 
 
 class MagneticPermeability(props.HasModel):
-    """The electrical conductivity property model base class.
+    """The magnetic permeability property model base class.
 
-    This class is meant to be used when a simulation has electrical conductivity or
-    resistivity as a dependent geophysical property.
+    This class is meant to be used when a simulation has magnetic permeability as a dependent physical property.
 
     Parameters
     ----------
@@ -69,10 +68,9 @@ class MagneticPermeability(props.HasModel):
 
 
 class DielectricPermittivity(props.HasModel):
-    """The electrical conductivity property model base class.
+    """The dielectric permittivity property model base class.
 
-    This class is meant to be used when a simulation has electrical conductivity or
-    resistivity as a dependent geophysical property.
+    This class is meant to be used when a simulation has dielectric permittivity as a dependent physical property.
 
     Parameters
     ----------
@@ -101,10 +99,9 @@ class DielectricPermittivity(props.HasModel):
 
 
 class MassDensity(props.HasModel):
-    """The electrical conductivity property model base class.
+    """The mass density property model base class.
 
-    This class is meant to be used when a simulation has electrical conductivity or
-    resistivity as a dependent geophysical property.
+    This class is meant to be used when a simulation has mass density as a dependent physical property.
 
     Parameters
     ----------
@@ -125,10 +122,9 @@ class MassDensity(props.HasModel):
 
 
 class MagneticSusceptibility(props.HasModel):
-    """The electrical conductivity property model base class.
+    """The magnetic susceptibility model base class.
 
-    This class is meant to be used when a simulation has electrical conductivity or
-    resistivity as a dependent geophysical property.
+    This class is meant to be used when a simulation has magnetic susceptibility as a dependent physical property.
 
     Parameters
     ----------
@@ -149,10 +145,9 @@ class MagneticSusceptibility(props.HasModel):
 
 
 class LayerThickness(props.HasModel):
-    """The electrical conductivity property model base class.
+    """The layered thickness property model base class.
 
-    This class is meant to be used when a simulation has electrical conductivity or
-    resistivity as a dependent geophysical property.
+    This class is meant to be used when a simulation has a layered thickness dependent physical property.
 
     Parameters
     ----------
@@ -177,10 +172,9 @@ class LayerThickness(props.HasModel):
 
 
 class ElectricalChargeability(props.HasModel):
-    """The electrical conductivity property model base class.
+    """The electrical chargeability property model base class.
 
-    This class is meant to be used when a simulation has electrical conductivity or
-    resistivity as a dependent geophysical property.
+    This class is meant to be used when a simulation has electrical chargeability as a dependent physical property.
 
     Parameters
     ----------
@@ -201,10 +195,10 @@ class ElectricalChargeability(props.HasModel):
 
 
 class AcousticVelocity(props.HasModel):
-    """The electrical conductivity property model base class.
+    """The acoustic velocity property model base class.
 
-    This class is meant to be used when a simulation has electrical conductivity or
-    resistivity as a dependent geophysical property.
+    This class is meant to be used when a simulation has acoustic velocity or
+    slowness as a dependent physical property.
 
     Parameters
     ----------
@@ -233,10 +227,9 @@ class AcousticVelocity(props.HasModel):
 
 
 class HydraulicConductivity(props.HasModel):
-    """The electrical conductivity property model base class.
+    """The hydraulic conductivity property model base class.
 
-    This class is meant to be used when a simulation has electrical conductivity or
-    resistivity as a dependent geophysical property.
+    This class is meant to be used when a simulation has hydraulic conductivity as a dependent physical property.
 
     Parameters
     ----------
@@ -275,10 +268,9 @@ class HydraulicConductivity(props.HasModel):
 
 
 class WaterRetention(props.HasModel):
-    """The electrical conductivity property model base class.
+    """The water saturation property model base class.
 
-    This class is meant to be used when a simulation has electrical conductivity or
-    resistivity as a dependent geophysical property.
+    This class is meant to be used when a simulation has water saturation (or retention) as a dependent physical property.
 
     Parameters
     ----------
