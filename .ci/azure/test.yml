@@ -66,3 +66,7 @@ jobs:
               targetPath: $(Build.SourcesDirectory)/coverage-$(jobhash).xml
               artifactName: coverage-$(jobhash)
             displayName: 'Publish coverage artifact'
+
+          - bash: exit 1
+            displayName: Fail build if partially successful
+            condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
