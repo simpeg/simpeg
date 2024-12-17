@@ -1,6 +1,8 @@
 #!/bin/bash
-set -x -o pipefail #echo on and return non-zero status if any line fails
+set -x #echo on
 
 source activate simpeg-test
 pytest $TEST_TARGET --cov --cov-config=pyproject.toml -v -W ignore::DeprecationWarning
+pytest_retval=$?
 coverage xml
+exit $pytest_retval
