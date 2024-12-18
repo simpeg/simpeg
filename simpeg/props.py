@@ -28,11 +28,11 @@ class PhysicalProperty:
     short_description
     shape : tuple of int or '*'
         The shape the expected property array should have.
-    default, optional
-        The default value the parameter should take if it was never assigned.
+    default : Any, optional
+        The default value the parameter should take if it is never assigned.
     dtype : np.dtype
     invertible : bool
-    reciprocal, optional
+    reciprocal : PhysicalProperty, optional
     """
 
     def __init__(
