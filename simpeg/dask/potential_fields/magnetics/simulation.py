@@ -1,7 +1,7 @@
 import numpy as np
 from dask import array
 from ....potential_fields.magnetics import Simulation3DIntegral as Sim
-
+from ..base import G
 from ....utils import sdiag, mkvc
 
 
@@ -37,3 +37,4 @@ def getJtJdiag(self, m, W=None, f=None):
 
 
 Sim.getJtJdiag = getJtJdiag
+Sim.G = G

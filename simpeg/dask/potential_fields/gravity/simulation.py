@@ -1,7 +1,7 @@
 import numpy as np
 from dask import array, delayed
 from ....potential_fields.gravity import Simulation3DIntegral as Sim
-
+from ..base import G
 from scipy.sparse import csr_matrix as csr
 
 
@@ -32,3 +32,4 @@ def getJtJdiag(self, m, W=None, f=None):
 
 
 Sim.getJtJdiag = getJtJdiag
+Sim.G = G
