@@ -44,6 +44,7 @@ stages:
 
   - stage: Codecov
     dependsOn: Testing
+    condition: succeededOrFailed()
     jobs:
       - template: .ci/azure/codecov.yml
 
