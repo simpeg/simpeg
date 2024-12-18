@@ -478,17 +478,23 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                 delattr(self, item)
 
 
-def _add_deprecated_physical_property_functions(new_name, old_name=None):
+def _add_deprecated_physical_property_functions(
+    new_name, old_name=None, old_map=None, old_deriv=None
+):
 
     if old_name is None:
         old_name = new_name
-    map_name = f"{old_name}Map"
-    deriv_name = f"{old_name}Deriv"
+
+    if old_map is None:
+        old_map = f"{old_name}Map"
+
+    if old_deriv is None:
+        old_deriv = f"{old_name}Deriv"
 
     @property
     def prop_map(self):
         warnings.warn(
-            f"Accessing {map_name} directly is no longer supported. If this is still necessary "
+            f"Accessing {old_map} directly is no longer supported. If this is still necessary "
             f"use _prop_map('{new_name}') instead",
             UserWarning,
             stacklevel=2,
@@ -498,7 +504,7 @@ def _add_deprecated_physical_property_functions(new_name, old_name=None):
     @prop_map.setter
     def prop_map(self, value):
         warnings.warn(
-            f"Setting {map_name} directly is deprecated. Instead directly assign a mapping to {new_name}",
+            f"Setting {old_map} directly is deprecated. Instead directly assign a mapping to {new_name}",
             UserWarning,
             stacklevel=2,
         )
@@ -520,7 +526,7 @@ def _add_deprecated_physical_property_functions(new_name, old_name=None):
     def prop_deriv(self):
         # derivatives are mostly used internally, and should not be publicly exposed to end users.
         warnings.warn(
-            f"Accessing {deriv_name} is deprecated, use _prop_deriv('{new_name}') instead.",
+            f"Accessing {old_deriv} is deprecated, use _prop_deriv('{new_name}') instead.",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -543,14 +549,14 @@ def _add_deprecated_physical_property_functions(new_name, old_name=None):
 
         @functools.wraps(__init__)
         def __new_init__(self, *args, **kwargs):
-            old_map = kwargs.pop(map_name, None)
+            mapping = kwargs.pop(old_map, None)
             __init__(self, *args, **kwargs)
-            if old_map is not None:
-                setattr(self, map_name, old_map)
+            if mapping is not None:
+                setattr(self, old_map, mapping)
 
         cls.__init__ = __new_init__
-        setattr(cls, map_name, prop_map)
-        setattr(cls, deriv_name, prop_deriv)
+        setattr(cls, old_map, prop_map)
+        setattr(cls, old_deriv, prop_deriv)
 
         return cls
 

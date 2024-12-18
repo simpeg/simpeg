@@ -610,6 +610,9 @@ class BaseTimeSimulation(BaseSimulation):
 ##############################################################################
 
 
+@props._add_deprecated_physical_property_functions(
+    "linear_model", old_map="model_map", old_deriv="model_deriv"
+)
 class LinearSimulation(BaseSimulation):
     r"""Linear forward simulation class.
 
@@ -648,11 +651,8 @@ class LinearSimulation(BaseSimulation):
     linear_model = props.PhysicalProperty("The model for a linear problem")
 
     def __init__(self, linear_model=None, G=None, **kwargs):
-        old_map = kwargs.pop("model_map", None)
         super().__init__(**kwargs)
         self.linear_model = linear_model
-        if old_map:
-            self.model_map = old_map
         if G is not None:
             self.G = G
 
@@ -752,55 +752,6 @@ class LinearSimulation(BaseSimulation):
         self.model = m
         model_deriv = self._prop_deriv("linear_model")
         return model_deriv.T * self.G.T.dot(v)
-
-    @property
-    def model_map(self):
-        """
-        Mapping from the model to linear_model
-
-        .. deprecated:: 0.24.0
-            The method of interacting with the physical property is deprecated, instead
-            directly assign a mapping to linear_model.
-
-        Returns
-        -------
-        maps.IdentityMap
-        """
-        warnings.warn(
-            "Accessing model_map directly is no longer supported. If this is still necessary "
-            "use _prop_map('linear_model') instead",
-            UserWarning,
-            stacklevel=2,
-        )
-        return self._prop_map("linear_model")
-
-    @model_map.setter
-    def model_map(self, value):
-        warnings.warn(
-            "Setting model_map directly is deprecated. Instead directly assign a mapping to 'linear_model'",
-            UserWarning,
-            stacklevel=2,
-        )
-        self.linear_model = value
-
-    @property
-    def model_deriv(self):
-        """Derivative of linear_model w.r.t. the model
-
-        .. deprecated:: 0.24.0
-            The method of interacting with the physical property derivative is deprecated. If access is still necessary
-            it can be retrieved with `_get_deriv('linear_model')`.
-
-        Returns
-        -------
-        maps.IdentityMap
-        """
-        warnings.warn(
-            "Accessing model_deriv is deprecated, use _prop_deriv('linear_model') instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self._prop_deriv("linear_model")
 
 
 class ExponentialSinusoidSimulation(LinearSimulation):
