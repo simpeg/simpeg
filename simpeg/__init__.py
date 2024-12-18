@@ -24,6 +24,25 @@ Base Simulations
   base.BaseElectricalPDESimulation
   base.BaseMagneticPDESimulation
 
+Base Physical Properties
+------------------------
+These classes contain the implementations of common physical properties as dependent
+properties of simulations.
+
+.. autosummary::
+  :toctree: generated/
+
+  base.ElectricalConductivity
+  base.MagneticPermeability
+  base.DielectricPermittivity
+  base.MassDensity
+  base.LayerThickness
+  base.ElectricalChargeability
+  base.MagneticSusceptibility
+  base.AcousticVelocity
+  base.HydraulicConductivity
+  base.WaterRetention
+
 Base Surveys, Sources and Receivers
 -----------------------------------
 .. autosummary::
@@ -42,9 +61,6 @@ Models
 
   models.Model
   props.PhysicalProperty
-  props.Derivative
-  props.Invertible
-  props.Reciprocal
   props.HasModel
 
 Data
