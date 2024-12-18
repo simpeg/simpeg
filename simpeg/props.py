@@ -202,7 +202,7 @@ class PhysicalProperty:
             return Zero()
         return mapping.deriv(scope.model, v=v)
 
-    def shallow_copy(self, update_reciprocal=True):
+    def shallow_copy(self):
         new_prop = PhysicalProperty(
             "",
             shape=self.shape,
@@ -210,8 +210,6 @@ class PhysicalProperty:
             dtype=self.dtype,
             invertible=self.invertible,
         )
-        if update_reciprocal:
-            new_prop.set_reciprocal(self.reciprocal)
         new_prop.fget = self.fget
         new_prop.fset = self.fset
         new_prop.fdel = self.fdel
@@ -234,8 +232,13 @@ class PhysicalProperty:
         return new_prop
 
     def update_invertible(self, invertible):
-        new_prop = self.shallow_copy(update_reciprocal=False)
+        new_prop = self.shallow_copy()
         new_prop.invertible = invertible
+        return new_prop
+
+    def with_cached_items(self, items):
+        new_prop = self.shallow_copy()
+        new_prop.cached_items = items
         return new_prop
 
 
