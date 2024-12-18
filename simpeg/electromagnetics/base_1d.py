@@ -37,6 +37,7 @@ for filter_name in libdlf.hankel.__all__:
 ###############################################################################
 
 
+@props._add_deprecated_physical_property_functions("h")
 class BaseEM1DSimulation(
     BaseSimulation,
     ElectricalConductivity,

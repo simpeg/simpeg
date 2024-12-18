@@ -156,6 +156,8 @@ class LayerThickness(props.HasModel):
         `model` needed for inversions.
     """
 
+    thicknesses = props.PhysicalProperty("layer thicknesses (m)")
+
     def __init__(self, thicknesses=None, **kwargs):
         super().__init__(**kwargs)
         if thicknesses is None:

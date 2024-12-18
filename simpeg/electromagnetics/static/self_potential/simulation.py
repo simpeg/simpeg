@@ -7,6 +7,7 @@ from .. import resistivity as dc
 from .sources import StreamingCurrents
 
 
+@props._add_deprecated_physical_property_functions("q")
 class Simulation3DCellCentered(dc.Simulation3DCellCentered):
     r"""A self potential simulation.
 
@@ -83,7 +84,7 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
         # if self.rhoMap is not None:
         #     return super()._delete_on_model_update
         if self.storeJ:
-            if q_map := self._physical_properties["q"].mapping:
+            if q_map := self._prop_map("q"):
                 if not q_map.is_linear:
                     return ["_Jmatrix", "_gtgdiag"]
         return []

@@ -89,18 +89,12 @@ class PhysicalProperty:
     def __get__(self, obj, objtype=None):
         if obj is None:
             return self
-        if self.fget is None:
-            raise AttributeError
         return self.fget(obj)
 
     def __set__(self, obj, value):
-        if self.fset is None:
-            raise AttributeError
         self.fset(obj, value)
 
     def __delete__(self, obj):
-        if self.fdel is None:
-            raise AttributeError
         self.fdel(obj)
 
     def get_cls_attr_name(self, scope):
@@ -144,7 +138,7 @@ class PhysicalProperty:
                         f"Reciprocal property '{recip.get_cls_attr_name(scope)}' was set as a map, "
                         f"but `{type(scope).__name__}.model` is not set"
                     )
-                recip_value = recip_value @ scope.model
+                recip_value = recip_value @ model
             elif recip_value is None:
                 if self.optional:
                     return self.default
@@ -201,18 +195,14 @@ class PhysicalProperty:
 
     def deriv(self, scope, v=None):
         if not self.invertible:
-            # check if the reciprocal is invertible...
-            recip = self.reciprocal
             # if I don't have a reciprocal, or it is also not invertible...
-            if not recip or not recip.invertible:
-                raise NotImplementedError(
-                    f"'{self.get_cls_attr_name(scope)}' has no derivative because it is not invertible"
-                )
+            if not (recip := self.reciprocal) or not recip.invertible:
+                return Zero()
         if (mapping := self.mapping(scope)) is None:
             return Zero()
         return mapping.deriv(scope.model, v=v)
 
-    def shallow_copy(self):
+    def shallow_copy(self, update_reciprocal=True):
         new_prop = PhysicalProperty(
             "",
             shape=self.shape,
@@ -220,6 +210,8 @@ class PhysicalProperty:
             dtype=self.dtype,
             invertible=self.invertible,
         )
+        if update_reciprocal:
+            new_prop.set_reciprocal(self.reciprocal)
         new_prop.fget = self.fget
         new_prop.fset = self.fset
         new_prop.fdel = self.fdel
@@ -242,7 +234,7 @@ class PhysicalProperty:
         return new_prop
 
     def update_invertible(self, invertible):
-        new_prop = self.shallow_copy()
+        new_prop = self.shallow_copy(update_reciprocal=False)
         new_prop.invertible = invertible
         return new_prop
 

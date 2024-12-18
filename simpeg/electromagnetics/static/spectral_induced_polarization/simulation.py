@@ -15,10 +15,12 @@ from ..induced_polarization import Simulation3DNodal as BaseSimulation3DNodal
 from .survey import Survey
 
 
+@props._add_deprecated_physical_property_functions("tau")
+@props._add_deprecated_physical_property_functions("taui")
+@props._add_deprecated_physical_property_functions("c")
 class BaseSIPSimulation(BaseIPSimulation):
     tau = props.PhysicalProperty("Time constant (s)")
-    taui = props.PhysicalProperty("Inverse of time constant (1/s)")
-    tau.set_reciprocal(taui)
+    taui = props.PhysicalProperty("Inverse of time constant (1/s)", reciprocal=tau)
 
     c = props.PhysicalProperty("Frequency dependency")
 
