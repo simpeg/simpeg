@@ -6,8 +6,8 @@ Getting Started with SimPEG
 
 .. _installing_python:
 
-Prerequisite: Installing Python
-===============================
+Installing Python
+=================
 
 SimPEG is written in Python_!
 This means we need Python_ in order to run SimPEG.
@@ -28,16 +28,11 @@ install the Python interpreter along with the conda_ package manager.
    <https://www.anaconda.com/pricing/terms-of-service-faqs>`_ if you decide to
    still use Anaconda_.
 
-.. tip::
+.. seealso::
 
    If you are starting with Python_ and want to learn more and feel more
    comfortable with the language, we recommend checking out
    `Software Carpentry <https://software-carpentry.org/>`_'s lessons.
-
-.. image:: https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/220px-Python-logo-notext.svg.png
-    :align: right
-    :width: 100
-    :target: https://www.python.org/
 
 .. _Python: https://www.python.org/
 .. _Anaconda: https://www.anaconda.com/products/individual
@@ -54,15 +49,17 @@ Installing SimPEG
 Conda Forge
 -----------
 
-SimPEG is available through `conda-forge` and you can install is using the
+SimPEG is available through conda-forge_ and you can install is using the
 `conda package manager <https://conda.io/>`_ that comes with Miniforge_ (or
 Anaconda_):
 
-.. code::
+.. code:: bash
 
-    conda install SimPEG --channel conda-forge
+    conda install --channel conda-forge simpeg
 
-Installing through `conda` is our recommended method of installation.
+.. note::
+
+   Installing through ``conda`` is our recommended method of installation.
 
 .. note::
 
@@ -85,32 +82,36 @@ PyPi
 SimPEG is on `pypi <https://pypi.python.org/pypi/SimPEG>`_! First, make sure
 your version of pip is up-to-date
 
-.. code::
+.. code:: bash
 
     pip install --upgrade pip
 
 Then you can install SimPEG
 
-.. code::
+.. code:: bash
 
-    pip install SimPEG
+    pip install simpeg
 
 
 To update SimPEG, you can run
 
-.. code::
+.. code:: bash
 
-    pip install --upgrade SimPEG
+    pip install --upgrade simpeg
 
 
 Installing from Source
 ----------------------
 
-First (you need git)::
+First (you need git):
+
+.. code:: bash
 
     git clone https://github.com/simpeg/simpeg
 
-Second (from the root of the SimPEG repository)::
+Second (from the root of the SimPEG repository):
+
+.. code:: bash
 
     pip install .
 
