@@ -356,10 +356,17 @@ def _clear_on_fdel(items, fdel, obj):
             delattr(obj, item)
 
 
+def _delete_on_model_update_placeholder(cls, obj):
+    return super(cls, obj)._delete_on_model_update
+
+
 def _delete_on_model_update_getter(items, prop, fget, obj):
     other_items = fget(obj)
     if prop.is_mapped(obj):
+        print(f"{prop.__name__} was mapped")
         other_items += items
+    else:
+        print(f"{prop.__name__} was not mapped")
     return other_items
 
 
@@ -406,17 +413,17 @@ def with_property_mass_matrices(property_name):
         new_prop.__set_name__(cls, prop.__name__)
         setattr(cls, prop.__name__, new_prop)
 
-        old_deleter = cls._delete_on_model_update
+        old_deleter = cls.__dict__.get("_delete_on_model_update", None)
+        if old_deleter is not None:
+            old_fget = old_deleter.fget
+        else:
+            old_fget = functools.partial(_delete_on_model_update_placeholder, cls)
 
         new_deleter = property(
             functools.partial(
-                _delete_on_model_update_getter, cached_items, new_prop, old_deleter.fget
+                _delete_on_model_update_getter, cached_items, new_prop, old_fget
             )
         )
-        try:
-            new_deleter.__set_name__(cls, old_deleter.__name__)
-        except AttributeError:
-            pass
 
         cls._delete_on_model_update = new_deleter
 
