@@ -219,9 +219,9 @@ class PhysicalProperty:
             default=self.default,
             dtype=self.dtype,
             invertible=self.invertible,
-            reciprocal=self.reciprocal,
             doc=self.__doc__,
         )
+        new_prop.reciprocal = self.reciprocal
         new_prop.fget = self.fget
         new_prop.fset = self.fset
         new_prop.fdel = self.fdel
