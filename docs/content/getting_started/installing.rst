@@ -124,9 +124,11 @@ Success?
 If you have been successful at downloading and installing SimPEG, you should
 be able to download and run any of the :ref:`examples and tutorials <sphx_glr_content_examples>`.
 
-If not, you can reach out to other people developing and using SimPEG on the
-`google forum <https://groups.google.com/forum/#!forum/simpeg>`_ or on
-`Mattermost <https://mattermost.softwareunderground.org/simpeg>`_.
+If not, you can reach out to other people developing and using SimPEG on our
+Mattermost_ channel or in our `Discourse forum`_.
+
+.. _Discourse forum: https://simpeg.discourse.group/
+.. _Mattermost: https://mattermost.softwareunderground.org/simpeg
 
 Useful Links
 ============
