@@ -6,31 +6,39 @@ Getting Started with SimPEG
 
 .. _installing_python:
 
-Prerequisite: Installing Python
-===============================
+Installing Python
+=================
 
 SimPEG is written in Python_!
-We highly recommend installing it using Anaconda_ (or the alternative Miniforge_).
-It installs `Python <https://www.python.org/>`_,
-`Jupyter <https://jupyter.org/>`_ and other core
-Python libraries for scientific computing.
-If you and Python_ are not yet acquainted, we highly
-recommend checking out `Software Carpentry <https://software-carpentry.org/>`_.
+This means we need Python_ in order to run SimPEG.
+We highly recommend installing a Python distribution like Miniforge_ that will
+install the Python interpreter along with the conda_ package manager.
 
 .. note::
 
-   As of version 0.11.0, we will no longer ensure compatibility with Python 2.7. Please use
-   the latest version of Python 3 with SimPEG. For more information on the transition of the
-   Python ecosystem to Python 3, please see the `Python 3 Statement <https://python3statement.org/>`_.
+   Miniforge_ is a community-driven alternative to Anaconda_, a well-known
+   Python distribution.
 
-.. image:: https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/220px-Python-logo-notext.svg.png
-    :align: right
-    :width: 100
-    :target: https://www.python.org/
+   We recommend Miniforge_ over Anaconda_ because it's more lightweight and
+   because it makes use of the conda-forge_ community-led channel to download
+   packages. Downloading packages from Anaconda_ (usually refered as the
+   ``default`` channel) requires us to adhere to their `Terms of Service
+   <https://legal.anaconda.com/policies/en/>`_.
+   Make sure to read them and their `FAQs
+   <https://www.anaconda.com/pricing/terms-of-service-faqs>`_ if you decide to
+   still use Anaconda_.
+
+.. seealso::
+
+   If you are starting with Python_ and want to learn more and feel more
+   comfortable with the language, we recommend checking out
+   `Software Carpentry <https://software-carpentry.org/>`_'s lessons.
 
 .. _Python: https://www.python.org/
 .. _Anaconda: https://www.anaconda.com/products/individual
 .. _Miniforge: https://github.com/conda-forge/miniforge
+.. _conda: https://docs.conda.io/en/latest
+.. _conda-forge: https://conda-forge.org/
 
 
 .. _installing_simpeg:
@@ -41,15 +49,17 @@ Installing SimPEG
 Conda Forge
 -----------
 
-SimPEG is available through `conda-forge` and you can install is using the
-`conda package manager <https://conda.io/>`_ that comes with the Anaconda_
-or Miniforge_ distributions:
+SimPEG is available through conda-forge_ and you can install is using the
+`conda package manager <https://conda.io/>`_ that comes with Miniforge_ (or
+Anaconda_):
 
-.. code::
+.. code:: bash
 
-    conda install SimPEG --channel conda-forge
+    conda install --channel conda-forge simpeg
 
-Installing through `conda` is our recommended method of installation.
+.. note::
+
+   Installing through ``conda`` is our recommended method of installation.
 
 .. note::
 
@@ -72,32 +82,36 @@ PyPi
 SimPEG is on `pypi <https://pypi.python.org/pypi/SimPEG>`_! First, make sure
 your version of pip is up-to-date
 
-.. code::
+.. code:: bash
 
     pip install --upgrade pip
 
 Then you can install SimPEG
 
-.. code::
+.. code:: bash
 
-    pip install SimPEG
+    pip install simpeg
 
 
 To update SimPEG, you can run
 
-.. code::
+.. code:: bash
 
-    pip install --upgrade SimPEG
+    pip install --upgrade simpeg
 
 
 Installing from Source
 ----------------------
 
-First (you need git)::
+First (you need git):
+
+.. code:: bash
 
     git clone https://github.com/simpeg/simpeg
 
-Second (from the root of the SimPEG repository)::
+Second (from the root of the SimPEG repository):
+
+.. code:: bash
 
     pip install .
 
@@ -110,9 +124,11 @@ Success?
 If you have been successful at downloading and installing SimPEG, you should
 be able to download and run any of the :ref:`examples and tutorials <sphx_glr_content_examples>`.
 
-If not, you can reach out to other people developing and using SimPEG on the
-`google forum <https://groups.google.com/forum/#!forum/simpeg>`_ or on
-`Mattermost <https://mattermost.softwareunderground.org/simpeg>`_.
+If not, you can reach out to other people developing and using SimPEG on our
+Mattermost_ channel or in our `Discourse forum`_.
+
+.. _Discourse forum: https://simpeg.discourse.group/
+.. _Mattermost: https://mattermost.softwareunderground.org/simpeg
 
 Useful Links
 ============
