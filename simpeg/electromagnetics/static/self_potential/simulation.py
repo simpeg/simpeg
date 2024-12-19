@@ -46,7 +46,6 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
 
     sigma = dc.Simulation3DCellCentered.sigma.update_invertible(False)
     rho = dc.Simulation3DCellCentered.rho.update_invertible(False)
-    sigma.set_reciprocal(rho)
 
     q = props.PhysicalProperty("Charge density accumulation rate (C/(s m^3))")
 

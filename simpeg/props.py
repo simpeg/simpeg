@@ -37,15 +37,16 @@ class PhysicalProperty:
 
     def __init__(
         self,
-        short_description,
+        short_description=None,
         shape=None,
         default=_Void,
         dtype=None,
         invertible=True,
         reciprocal=None,
+        doc=None,
     ):
         self.default = default
-        self.cached_name = None
+        self.__set_name__(None, "UNSET")
         self.invertible = invertible
         self.reciprocal = None
         self.set_reciprocal(reciprocal)
@@ -63,19 +64,20 @@ class PhysicalProperty:
         if dtype is None:
             dtype_str = ""
 
-        doc = f"""{short_description}
+        if doc is None:
+            doc = f"""{short_description}
 
-        Parameters
-        ----------
-        prop : {shape_str}array_like{dtype_str} or maps.IdentityMap
-            If set as a mapping, the physical property will be calculated from the mapping and the `model`
-            when the physical property is retrieved. Setting a physical property signals to the simulation
-            that you intend to invert for this parameter.
+            Parameters
+            ----------
+            prop : {shape_str}array_like{dtype_str} or maps.IdentityMap
+                If set as a mapping, the physical property will be calculated from the mapping and the `model`
+                when the physical property is retrieved. Setting a physical property signals to the simulation
+                that you intend to invert for this parameter.
 
-        Returns
-        -------
-        {shape_str}numpy.ndarray{dtype_str}
-        """
+            Returns
+            -------
+            {shape_str}numpy.ndarray{dtype_str}
+            """
         self.__doc__ = doc
 
     @property
@@ -102,7 +104,7 @@ class PhysicalProperty:
 
     def is_mapped(self, scope):
         im_mapped = self.__name__ in scope._mapped_properties
-        if not im_mapped and (recip := self.reciprocal):
+        if not im_mapped and (recip := self.get_scoped_reciprocal(scope)):
             return recip.__name__ in scope._mapped_properties
         return im_mapped
 
@@ -111,7 +113,7 @@ class PhysicalProperty:
         if isinstance(stashed, maps.IdentityMap):
             return stashed
         if stashed is None:
-            if recip := self.reciprocal:
+            if recip := self.get_scoped_reciprocal(scope):
                 stashed = getattr(scope, recip.cached_name, None)
                 if isinstance(stashed, maps.IdentityMap):
                     return maps.ReciprocalMap() * stashed
@@ -130,7 +132,7 @@ class PhysicalProperty:
             return value
         # Means value was None
         # Then check my reciprocal for a return value
-        if recip := self.reciprocal:
+        if recip := self.get_scoped_reciprocal(scope):
             recip_value = getattr(scope, recip.cached_name, None)
             if isinstance(recip_value, maps.IdentityMap):
                 if (model := scope.model) is None:
@@ -175,8 +177,8 @@ class PhysicalProperty:
                 )
                 if value.ndim == 0:
                     value = value.item()
-            if self.reciprocal:
-                delattr(scope, self.reciprocal.__name__)
+            if recip := self.get_scoped_reciprocal(scope):
+                delattr(scope, recip.__name__)
         if is_map:
             scope._mapped_properties[self.__name__] = self
         else:
@@ -193,10 +195,19 @@ class PhysicalProperty:
         if other is not None:
             other.reciprocal = self
 
+    def get_scoped_reciprocal(self, obj):
+        # Use this function to get the reciprocal defined on the class,
+        # not necessarily the exact one I was defined with.
+        # This should account for inheritance, or if a physical property's
+        # getter / setter / deleter get modified.
+        if recip := self.reciprocal:
+            return obj._physical_properties[recip.__name__]
+        return None
+
     def deriv(self, scope, v=None):
         if not self.invertible:
             # if I don't have a reciprocal, or it is also not invertible...
-            if not (recip := self.reciprocal) or not recip.invertible:
+            if not (recip := self.get_scoped_reciprocal(scope)) or not recip.invertible:
                 return Zero()
         if (mapping := self.mapping(scope)) is None:
             return Zero()
@@ -204,16 +215,16 @@ class PhysicalProperty:
 
     def shallow_copy(self):
         new_prop = PhysicalProperty(
-            "",
             shape=self.shape,
             default=self.default,
             dtype=self.dtype,
             invertible=self.invertible,
+            reciprocal=self.reciprocal,
+            doc=self.__doc__,
         )
         new_prop.fget = self.fget
         new_prop.fset = self.fset
         new_prop.fdel = self.fdel
-        new_prop.__doc__ = self.__doc__
         return new_prop
 
     def getter(self, fget):
@@ -234,11 +245,6 @@ class PhysicalProperty:
     def update_invertible(self, invertible):
         new_prop = self.shallow_copy()
         new_prop.invertible = invertible
-        return new_prop
-
-    def with_cached_items(self, items):
-        new_prop = self.shallow_copy()
-        new_prop.cached_items = items
         return new_prop
 
 

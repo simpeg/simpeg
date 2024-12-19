@@ -15,7 +15,6 @@ class BaseIPSimulation(BaseElectricalPDESimulation, ElectricalChargeability):
     # Need to disable the invertibility of sigma and rho for IP classes
     sigma = BaseElectricalPDESimulation.sigma.update_invertible(False)
     rho = BaseElectricalPDESimulation.rho.update_invertible(False)
-    sigma.set_reciprocal(rho)
 
     def _prop_deriv(self, name, v=None):
         # Hijack the sigma and rho derivatives to do IP!

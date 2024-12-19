@@ -400,7 +400,6 @@ def with_property_mass_matrices(property_name):
     def decorator(cls):
         prop = getattr(cls, property_name)
         new_prop = prop.shallow_copy()
-        new_prop.reciprocal = prop.reciprocal
 
         new_prop.fset = functools.partial(_clear_on_fset, cached_items, prop.fset)
         new_prop.fdel = functools.partial(_clear_on_fdel, cached_items, prop.fdel)
@@ -415,7 +414,7 @@ def with_property_mass_matrices(property_name):
             )
         )
         try:
-            new_deleter.__name__ = old_deleter.__name__
+            new_deleter.__set_name__(cls, old_deleter.__name__)
         except AttributeError:
             pass
 
