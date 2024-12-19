@@ -34,12 +34,6 @@ install the Python interpreter along with the conda_ package manager.
    comfortable with the language, we recommend checking out
    `Software Carpentry <https://software-carpentry.org/>`_'s lessons.
 
-.. note::
-
-   As of version 0.11.0, we will no longer ensure compatibility with Python 2.7. Please use
-   the latest version of Python 3 with SimPEG. For more information on the transition of the
-   Python ecosystem to Python 3, please see the `Python 3 Statement <https://python3statement.org/>`_.
-
 .. image:: https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/220px-Python-logo-notext.svg.png
     :align: right
     :width: 100
