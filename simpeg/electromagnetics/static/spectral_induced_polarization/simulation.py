@@ -15,12 +15,14 @@ from ..induced_polarization import Simulation3DNodal as BaseSimulation3DNodal
 from .survey import Survey
 
 
+@props._add_deprecated_physical_property_functions("tau")
+@props._add_deprecated_physical_property_functions("taui")
+@props._add_deprecated_physical_property_functions("c")
 class BaseSIPSimulation(BaseIPSimulation):
-    tau, tauMap, tauDeriv = props.Invertible("Time constant (s)")
-    taui, tauiMap, tauiDeriv = props.Invertible("Inverse of time constant (1/s)")
-    props.Reciprocal(tau, taui)
+    tau = props.PhysicalProperty("Time constant (s)")
+    taui = props.PhysicalProperty("Inverse of time constant (1/s)", reciprocal=tau)
 
-    c, cMap, cDeriv = props.Invertible("Frequency dependency")
+    c = props.PhysicalProperty("Frequency dependency")
 
     Ainv = None
     _f = None
@@ -36,12 +38,10 @@ class BaseSIPSimulation(BaseIPSimulation):
         self,
         mesh,
         survey=None,
+        *,
         tau=0.1,
-        tauMap=None,
         taui=None,
-        tauiMap=None,
         c=0.5,
-        cMap=None,
         storeJ=False,
         actinds=None,
         storeInnerProduct=True,
@@ -50,10 +50,7 @@ class BaseSIPSimulation(BaseIPSimulation):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.tau = tau
         self.taui = taui
-        self.tauMap = tauMap
-        self.tauiMap = tauiMap
         self.c = c
-        self.cMap = cMap
         self.storeJ = storeJ
         self.storeInnerProduct = storeInnerProduct
         self.actinds = actinds
@@ -127,44 +124,50 @@ class BaseSIPSimulation(BaseIPSimulation):
     def n(self):
         return self.mesh.n_nodes
 
-    @property
-    def sigmaDeriv(self):
-        if self.storeJ:
-            dsigma_dlogsigma = sdiag(self.sigma) * self._P
-        else:
-            dsigma_dlogsigma = sdiag(self.sigma)
-        return -dsigma_dlogsigma
+    def _prop_deriv(self, name, v=None):
+        if name == "sigma":
+            if self.storeJ:
+                dsigma_dlogsigma = sdiag(self.sigma) * self._P
+            else:
+                dsigma_dlogsigma = sdiag(self.sigma)
+            if v is not None:
+                return -dsigma_dlogsigma @ v
+            return -dsigma_dlogsigma
 
-    @property
-    def rhoDeriv(self):
-        if self.storeJ:
-            drho_dlogrho = sdiag(self.rho) * self._P
+        elif name == "rho":
+            if self.storeJ:
+                drho_dlogrho = sdiag(self.rho) * self._P
+            else:
+                drho_dlogrho = sdiag(self.rho)
+            if v is not None:
+                return drho_dlogrho @ v
+            return drho_dlogrho
+
         else:
-            drho_dlogrho = sdiag(self.rho)
-        return drho_dlogrho
+            return super()._prop_deriv(name, v)
 
     @property
     def etaDeriv_store(self):
         if getattr(self, "_etaDeriv_store", None) is None:
-            self._etaDeriv_store = self.etaDeriv
+            self._etaDeriv_store = self._prop_deriv("eta")
         return self._etaDeriv_store
 
     @property
     def tauiDeriv_store(self):
         if getattr(self, "_tauiDeriv_store", None) is None:
-            self._tauiDeriv_store = self.tauiDeriv
+            self._tauiDeriv_store = self._prop_deriv("taui")
         return self._tauiDeriv_store
 
     @property
     def tauDeriv_store(self):
         if getattr(self, "_tauDeriv_store", None) is None:
-            self._tauDeriv_store = self.tauDeriv
+            self._tauDeriv_store = self._prop_deriv("tau")
         return self._tauDeriv_store
 
     @property
     def cDeriv_store(self):
         if getattr(self, "_cDeriv_store", None) is None:
-            self._cDeriv_store = self.cDeriv
+            self._cDeriv_store = self._prop_deriv("c")
         return self._cDeriv_store
 
     def get_t_over_tau(self, t):

@@ -52,7 +52,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         Threshold used when determining the unique time-step lengths.
     """
 
-    def __init__(self, mesh, survey=None, dt_threshold=1e-8, **kwargs):
+    def __init__(self, mesh, survey=None, *, dt_threshold=1e-8, **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.dt_threshold = dt_threshold
         if self.muMap is not None:

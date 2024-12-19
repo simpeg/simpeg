@@ -5,6 +5,8 @@ import numpy as np
 from scipy import sparse as sp
 from scipy.special import roots_legendre
 
+from ..base import ElectricalConductivity, MagneticPermeability, ElectricalChargeability
+from ..base import LayerThickness
 from ..simulation import BaseSimulation
 
 # from .time_domain.sources import MagDipole as t_MagDipole, CircularLoop as t_CircularLoop
@@ -35,7 +37,14 @@ for filter_name in libdlf.hankel.__all__:
 ###############################################################################
 
 
-class BaseEM1DSimulation(BaseSimulation):
+@props._add_deprecated_physical_property_functions("h")
+class BaseEM1DSimulation(
+    BaseSimulation,
+    ElectricalConductivity,
+    MagneticPermeability,
+    LayerThickness,
+    ElectricalChargeability,
+):
     """
     Base simulation class for simulating the EM response over a 1D layered Earth
     for a single sounding. The simulation computes the fields by solving the
@@ -45,51 +54,34 @@ class BaseEM1DSimulation(BaseSimulation):
 
     _formulation = "1D"
     _coefficients_set = False
+    eta = ElectricalChargeability.eta.update_invertible(False)
 
-    # Properties for electrical conductivity/resistivity
-    sigma, sigmaMap, sigmaDeriv = props.Invertible(
-        "Electrical conductivity at infinite frequency (S/m)"
+    tau = props.PhysicalProperty(
+        "Time constant for Cole-Cole model (s)", invertible=False
     )
-    rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
-    props.Reciprocal(sigma, rho)
-
-    eta = props.PhysicalProperty("Intrinsic chargeability (V/V), 0 <= eta < 1")
-    tau = props.PhysicalProperty("Time constant for Cole-Cole model (s)")
-    c = props.PhysicalProperty("Frequency Dependency for Cole-Cole model, 0 < c < 1")
-
-    # Properties for magnetic susceptibility
-    mu, muMap, muDeriv = props.Invertible(
-        "Magnetic permeability at infinite frequency (SI)"
+    c = props.PhysicalProperty(
+        "Frequency Dependency for Cole-Cole model, 0 < c < 1", invertible=False
     )
+
     dchi = props.PhysicalProperty(
-        "DC magnetic susceptibility for viscous remanent magnetization contribution (SI)"
+        "DC magnetic susceptibility for viscous remanent magnetization contribution (SI)",
+        invertible=False,
     )
     tau1 = props.PhysicalProperty(
-        "Lower bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)"
+        "Lower bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)",
+        invertible=False,
     )
     tau2 = props.PhysicalProperty(
-        "Upper bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)"
+        "Upper bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)",
+        invertible=False,
     )
 
     # Additional properties
-    h, hMap, hDeriv = props.Invertible("Receiver Height (m), h > 0")
-
-    thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
-        "layer thicknesses (m)"
-    )
+    h = props.PhysicalProperty("Receiver Height (m), h > 0", default=None)
 
     def __init__(
         self,
-        sigma=None,
-        sigmaMap=None,
-        rho=None,
-        rhoMap=None,
-        thicknesses=None,
-        thicknessesMap=None,
-        mu=mu_0,
-        muMap=None,
         h=None,
-        hMap=None,
         eta=0.0,
         tau=1.0,
         c=0.5,
@@ -103,18 +95,7 @@ class BaseEM1DSimulation(BaseSimulation):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.sigma = sigma
-        self.rho = rho
-        self.sigmaMap = sigmaMap
-        self.rhoMap = rhoMap
-        self.mu = mu
-        self.muMap = muMap
         self.h = h
-        self.hMap = hMap
-        if thicknesses is None:
-            thicknesses = np.array([])
-        self.thicknesses = thicknesses
-        self.thicknessesMap = thicknessesMap
         self.eta = eta
         self.tau = tau
         self.c = c
