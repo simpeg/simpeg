@@ -10,12 +10,29 @@ Prerequisite: Installing Python
 ===============================
 
 SimPEG is written in Python_!
-We highly recommend installing it using Anaconda_ (or the alternative Miniforge_).
-It installs `Python <https://www.python.org/>`_,
-`Jupyter <https://jupyter.org/>`_ and other core
-Python libraries for scientific computing.
-If you and Python_ are not yet acquainted, we highly
-recommend checking out `Software Carpentry <https://software-carpentry.org/>`_.
+This means we need Python_ in order to run SimPEG.
+We highly recommend installing a Python distribution like Miniforge_ that will
+install the Python interpreter along with the conda_ package manager.
+
+.. note::
+
+   Miniforge_ is a community-driven alternative to Anaconda_, a well-known
+   Python distribution.
+
+   We recommend Miniforge_ over Anaconda_ because it's more lightweight and
+   because it makes use of the conda-forge_ community-led channel to download
+   packages. Downloading packages from Anaconda_ (usually refered as the
+   ``default`` channel) requires us to adhere to their `Terms of Service
+   <https://legal.anaconda.com/policies/en/>`_.
+   Make sure to read them and their `FAQs
+   <https://www.anaconda.com/pricing/terms-of-service-faqs>`_ if you decide to
+   still use Anaconda_.
+
+.. tip::
+
+   If you are starting with Python_ and want to learn more and feel more
+   comfortable with the language, we recommend checking out
+   `Software Carpentry <https://software-carpentry.org/>`_'s lessons.
 
 .. note::
 
@@ -31,6 +48,8 @@ recommend checking out `Software Carpentry <https://software-carpentry.org/>`_.
 .. _Python: https://www.python.org/
 .. _Anaconda: https://www.anaconda.com/products/individual
 .. _Miniforge: https://github.com/conda-forge/miniforge
+.. _conda: https://docs.conda.io/en/latest
+.. _conda-forge: https://conda-forge.org/
 
 
 .. _installing_simpeg:
@@ -42,8 +61,8 @@ Conda Forge
 -----------
 
 SimPEG is available through `conda-forge` and you can install is using the
-`conda package manager <https://conda.io/>`_ that comes with the Anaconda_
-or Miniforge_ distributions:
+`conda package manager <https://conda.io/>`_ that comes with Miniforge_ (or
+Anaconda_):
 
 .. code::
 
