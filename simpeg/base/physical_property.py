@@ -307,6 +307,9 @@ class WaterRetention(props.HasModel):
         ax.set_ylabel("Water content, $\\theta$")
 
 
+@props._add_deprecated_physical_property_functions("tau")
+@props._add_deprecated_physical_property_functions("taui")
+@props._add_deprecated_physical_property_functions("c")
 class ColeCole(props.HasModel):
     r"""The cole-cole parameterization model base class.
 
@@ -348,29 +351,21 @@ class ColeCole(props.HasModel):
 
     """
 
-    tau, tauMap, tauDeriv = props.Invertible("Time constant (s)")
-    taui, tauiMap, tauiDeriv = props.Invertible("Inverse of time constant (1/s)")
-    props.Reciprocal(tau, taui)
-
-    c, cMap, cDeriv = props.Invertible("Frequency dependency")
+    tau = props.PhysicalProperty("Time constant (s)")
+    taui = props.PhysicalProperty("Inverse of time constant (1/s)", reciprocal=tau)
+    c = props.PhysicalProperty("Frequency dependency")
 
     def __init__(
         self,
         tau=None,
-        tauMap=None,
         taui=None,
-        tauiMap=None,
         c=None,
-        cMap=None,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.tau = tau
-        self.tauMap = tauMap
         self.taui = taui
-        self.tauiMap = tauiMap
         self.c = c
-        self.cMap = cMap
 
 
 class ViscousMagneticSusceptibility(props.HasModel):
@@ -386,12 +381,14 @@ class ViscousMagneticSusceptibility(props.HasModel):
         Upper bound for log-uniform distribution of time-relaxation constants (s)
     """
 
-    dchi = props.PhysicalProperty("Frequency dependence parameter")
+    dchi = props.PhysicalProperty("Frequency dependence parameter", invertible=False)
     tau1 = props.PhysicalProperty(
-        "Lower bound for log-uniform distribution of time-relaxation constants (s)"
+        "Lower bound for log-uniform distribution of time-relaxation constants (s)",
+        invertible=False,
     )
     tau2 = props.PhysicalProperty(
-        "Upper bound for log-uniform distribution of time-relaxation constants (s)"
+        "Upper bound for log-uniform distribution of time-relaxation constants (s)",
+        invertible=False,
     )
 
     def __init__(self, dchi=None, tau1=None, tau2=None, **kwargs):
@@ -401,6 +398,7 @@ class ViscousMagneticSusceptibility(props.HasModel):
         self.tau2 = tau2
 
 
+@props._add_deprecated_physical_property_functions("xi")
 class AmalgamatedViscousMagneticSusceptibility(props.HasModel):
     r"""The amalgamated viscous remanent magnetic susceptibility parameterization model base class
 
@@ -421,11 +419,8 @@ class AmalgamatedViscousMagneticSusceptibility(props.HasModel):
     ViscousMagneticSusceptibility
     """
 
-    xi, xiMap, xiDeriv = props.Invertible(
-        "Amalgamated Viscous Remanent Magnetization Parameter"
-    )
+    xi = props.PhysicalProperty("Amalgamated Viscous Remanent Magnetization Parameter")
 
-    def __init__(self, xi=None, xiMap=None, **kwargs):
+    def __init__(self, xi=None, **kwargs):
         super().__init__(**kwargs)
         self.xi = xi
-        self.xiMap = xiMap
