@@ -369,10 +369,10 @@ def _delete_on_model_update_getter(items, prop, fget, obj):
 
 def with_property_mass_matrices(property_name):
     """
-    This decorator will automatically populate all of the property mass matrices.
+    This decorator will automatically populate all the property mass matrices.
 
     Given the property "prop", this will add properties and functions to the class
-    representing all of the possible mass matrix operations on the mesh.
+    representing all the possible mass matrix operations on the mesh.
 
     For a given property, "prop", they will be named:
 
