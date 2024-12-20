@@ -321,3 +321,127 @@ class WaterRetention(props.HasModel):
         ax.set_title("Water retention curve")
         ax.set_xlabel(r"Soil water potential, $-\psi$")
         ax.set_ylabel("Water content, $\\theta$")
+
+
+class ColeCole(props.HasModel):
+    r"""The cole-cole parameterization model base class.
+
+    This class is meant to be used when a simulation is dependant upon a cole-cole model.
+
+    Parameters
+    ----------
+    tau, taui : float, array_like, optional
+        The Cole-Cole time constant (`tau`) and its inverse (`taui`) parameters.
+    c : float, array_like, optional
+        The Cole-Cole frequency exponent (`c`) parameter.
+    tauMap, tauiMap : simpeg.maps.IdentityMap, optional
+        The mapping for the respective Cole-Cole parameters. If set, that parameter will be calculated using
+        this mapping and the simulation's `model`, and also enable the derivative of the property with respect to the
+        `model` needed for inversions.
+    cMap : simpeg.maps.IdentityMap, optional
+        The mapping for the 'c' Cole-Cole parameter. If set, this parameter will be calculated using
+        this mapping and the simulation's `model`, and also enable the derivative of the property needed
+        for inversions.
+
+    Notes
+    -----
+
+    The Cole-Cole parameterization expresses electrical conductivity :math:`\sigma` as a function of frequency as
+
+    .. math::
+
+        \sigma(\omega) = \sigma_{\infty} - \frac{\eta \sigma_{\infty}}{1 + (i \omega \tau)^{c}}
+
+    with the electrical chargeability, :math:`\eta`, defined as
+
+    .. math::
+
+        \eta = \frac{\sigma_\infty - \sigma_0}{\sigma_\infty}
+
+    See Also
+    --------
+    ElectricalConductivity, ElectricalChargeability
+
+    """
+
+    tau, tauMap, tauDeriv = props.Invertible("Time constant (s)")
+    taui, tauiMap, tauiDeriv = props.Invertible("Inverse of time constant (1/s)")
+    props.Reciprocal(tau, taui)
+
+    c, cMap, cDeriv = props.Invertible("Frequency dependency")
+
+    def __init__(
+        self,
+        tau=None,
+        tauMap=None,
+        taui=None,
+        tauiMap=None,
+        c=None,
+        cMap=None,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.tau = tau
+        self.tauMap = tauMap
+        self.taui = taui
+        self.tauiMap = tauiMap
+        self.c = c
+        self.cMap = cMap
+
+
+class ViscousMagneticSusceptibility(props.HasModel):
+    """The viscous remanent magnetic susceptibility parameterization model base class
+
+    Parameters
+    ----------
+    dchi : float, array_like, optional
+        Frequency dependence parameter
+    tau1 : float, array_like, optional
+        Lower bound for log-uniform distribution of time-relaxation constants (s)
+    tau2 : float, array_like, optional
+        Upper bound for log-uniform distribution of time-relaxation constants (s)
+    """
+
+    dchi = props.PhysicalProperty("Frequency dependence parameter")
+    tau1 = props.PhysicalProperty(
+        "Lower bound for log-uniform distribution of time-relaxation constants (s)"
+    )
+    tau2 = props.PhysicalProperty(
+        "Upper bound for log-uniform distribution of time-relaxation constants (s)"
+    )
+
+    def __init__(self, dchi=None, tau1=None, tau2=None, **kwargs):
+        super().__init__(**kwargs)
+        self.dchi = dchi
+        self.tau1 = tau1
+        self.tau2 = tau2
+
+
+class AmalgamatedViscousMagneticSusceptibility(props.HasModel):
+    r"""The amalgamated viscous remanent magnetic susceptibility parameterization model base class
+
+    Parameters
+    ----------
+    xi : float, array_like, optional
+        Amalgamated Viscous Remanent Magnetization Parameter
+    xiMap :  : simpeg.maps.IdentityMap, optional
+
+    Notes
+    -----
+
+    .. math::
+        \xi = \frac{\Delta\chi}{\log(\tau_2/\tau_1)}
+
+    See Also
+    --------
+    ViscousMagneticSusceptibility
+    """
+
+    xi, xiMap, xiDeriv = props.Invertible(
+        "Amalgamated Viscous Remanent Magnetization Parameter"
+    )
+
+    def __init__(self, xi=None, xiMap=None, **kwargs):
+        super().__init__(**kwargs)
+        self.xi = xi
+        self.xiMap = xiMap

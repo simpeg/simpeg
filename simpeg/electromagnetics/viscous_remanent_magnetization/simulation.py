@@ -3,6 +3,10 @@ import discretize
 import numpy as np
 import scipy.sparse as sp
 
+from ...base import (
+    ViscousMagneticSusceptibility,
+    AmalgamatedViscousMagneticSusceptibility,
+)
 from ...simulation import BaseSimulation
 from ... import props
 from ... import maps
@@ -26,8 +30,6 @@ from ...utils.code_utils import deprecate_property
 class BaseVRMSimulation(BaseSimulation):
     """"""
 
-    _AisSet = False
-
     def __init__(
         self,
         mesh,
@@ -39,6 +41,7 @@ class BaseVRMSimulation(BaseSimulation):
         indActive=None,
         **kwargs,
     ):
+        self._AisSet = False
         self.mesh = mesh
         super().__init__(survey=survey, **kwargs)
 
@@ -838,25 +841,19 @@ class BaseVRMSimulation(BaseSimulation):
 #############################################################################
 
 
-class Simulation3DLinear(BaseVRMSimulation):
+class Simulation3DLinear(BaseVRMSimulation, AmalgamatedViscousMagneticSusceptibility):
     """"""
 
-    _A = None
-    _T = None
-    _TisSet = False
-    _xiMap = None
+    def __init__(self, mesh, survey=None, **kwargs):
 
-    xi, xiMap, xiDeriv = props.Invertible(
-        "Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)"
-    )
+        self._A = None
+        self._T = None
+        self._TisSet = False
 
-    def __init__(self, mesh, xi=None, xiMap=None, **kwargs):
-        super().__init__(mesh, **kwargs)
-        self.xi = xi
-        self.xiMap = xiMap
+        super().__init__(mesh, survey=survey, **kwargs)
 
         nAct = list(self.active_cells).count(True)
-        if self.xiMap is None:
+        if self.xi is None and self.xiMap is None:
             self.xiMap = maps.IdentityMap(nP=nAct)
 
     @property
@@ -989,27 +986,19 @@ class Simulation3DLinear(BaseVRMSimulation):
         return mkvc(dxidm.T * v)
 
 
-class Simulation3DLogUniform(BaseVRMSimulation):
+class Simulation3DLogUniform(BaseVRMSimulation, ViscousMagneticSusceptibility):
     """"""
 
-    _A = None
-    _T = None
-    _TisSet = False
-    # _xiMap = None
-
     chi0 = props.PhysicalProperty("DC susceptibility")
-    dchi = props.PhysicalProperty("Frequency dependence")
-    tau1 = props.PhysicalProperty("Low bound time-relaxation constant")
-    tau2 = props.PhysicalProperty("Upper bound time-relaxation constant")
 
-    def __init__(
-        self, mesh, survey=None, chi0=None, dchi=None, tau1=None, tau2=None, **kwargs
-    ):
-        super(Simulation3DLogUniform, self).__init__(mesh=mesh, survey=survey, **kwargs)
+    def __init__(self, mesh, survey=None, *, chi0=None, **kwargs):
+
+        self._A = None
+        self._T = None
+        self._TisSet = False
+
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.chi0 = chi0
-        self.dchi = dchi
-        self.tau1 = tau1
-        self.tau2 = tau2
 
     @property
     def A(self):
