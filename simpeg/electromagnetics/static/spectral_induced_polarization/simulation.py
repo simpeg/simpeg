@@ -2,7 +2,7 @@ import numpy as np
 import sys
 import gc
 
-from .... import props
+from ...utils.em1d_utils import ColeCole
 from .data import Data
 from ....utils import sdiag, validate_type, validate_active_indices
 import scipy.sparse as sp
@@ -15,14 +15,7 @@ from ..induced_polarization import Simulation3DNodal as BaseSimulation3DNodal
 from .survey import Survey
 
 
-@props._add_deprecated_physical_property_functions("tau")
-@props._add_deprecated_physical_property_functions("taui")
-@props._add_deprecated_physical_property_functions("c")
-class BaseSIPSimulation(BaseIPSimulation):
-    tau = props.PhysicalProperty("Time constant (s)")
-    taui = props.PhysicalProperty("Inverse of time constant (1/s)", reciprocal=tau)
-
-    c = props.PhysicalProperty("Frequency dependency")
+class BaseSIPSimulation(BaseIPSimulation, ColeCole):
 
     Ainv = None
     _f = None
@@ -47,10 +40,7 @@ class BaseSIPSimulation(BaseIPSimulation):
         storeInnerProduct=True,
         **kwargs,
     ):
-        super().__init__(mesh=mesh, survey=survey, **kwargs)
-        self.tau = tau
-        self.taui = taui
-        self.c = c
+        super().__init__(mesh=mesh, survey=survey, tau=tau, taui=taui, c=c, **kwargs)
         self.storeJ = storeJ
         self.storeInnerProduct = storeInnerProduct
         self.actinds = actinds

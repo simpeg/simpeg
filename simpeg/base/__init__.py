@@ -9,6 +9,9 @@ from .physical_property import (
     AcousticVelocity,
     HydraulicConductivity,
     WaterRetention,
+    ColeCole,
+    ViscousMagneticSusceptibility,
+    AmalgamatedViscousMagneticSusceptibility,
 )
 
 from .pde_simulation import (

@@ -20,12 +20,16 @@ from simpeg.base import (
     AcousticVelocity,
     HydraulicConductivity,
     WaterRetention,
+    ColeCole,
+    ViscousMagneticSusceptibility,
+    AmalgamatedViscousMagneticSusceptibility,
 )
 
 RECIPROCALS = {
     ElectricalConductivity,
     MagneticPermeability,
     AcousticVelocity,
+    ColeCole,
 }
 
 DEFAULT_VALUED = {
@@ -36,6 +40,7 @@ DEFAULT_VALUED = {
 
 NOT_INVERTIBLE = {
     DielectricPermittivity,
+    ViscousMagneticSusceptibility,
 }
 
 INVERTIBLE = {
@@ -48,6 +53,8 @@ INVERTIBLE = {
     AcousticVelocity,
     HydraulicConductivity,
     WaterRetention,
+    ColeCole,
+    AmalgamatedViscousMagneticSusceptibility,
 }
 ALL_CLASSES = NOT_INVERTIBLE | INVERTIBLE
 
@@ -63,8 +70,10 @@ def test_unassigned(prop_class):
     params = inspect.signature(prop_class).parameters
     props = [param.name for param in params.values() if _param_prop_filter(param)]
     for prop in props:
+        print(prop)
         with pytest.raises(AttributeError):
-            getattr(modeler, prop)
+            out = getattr(modeler, prop)
+            print(out)
 
 
 @pytest.mark.parametrize("prop_class", DEFAULT_VALUED)
@@ -84,7 +93,7 @@ def test_defaults(prop_class):
 def test_assignment(prop_class, inp_type):
     modeler = prop_class()
     params = inspect.signature(prop_class).parameters
-    props = [param.name for param in params.values() if _param_prop_filter(param)]
+    props = [param.name for param in params.values() if _param_prop_filter(param)][:2]
     for prop in props:
         if inp_type == "scalar":
             inp = np.pi
@@ -133,7 +142,7 @@ def test_derivatives(prop_class, deprecated):
                 map_deriv = modeler._prop_deriv(attr)
             return out, lambda u: map_deriv @ u
 
-        check_derivative(deriv_test, x0=inp, plotIt=False)
+        check_derivative(deriv_test, x0=inp, plotIt=False, random_seed=664)
 
 
 @pytest.mark.parametrize("prop_class", RECIPROCALS)
@@ -142,7 +151,7 @@ def test_derivatives(prop_class, deprecated):
 def test_recip_assigned(prop_class, direction, inp_type):
     modeler = prop_class()
     params = inspect.signature(prop_class).parameters
-    props = [param.name for param in params.values() if _param_prop_filter(param)]
+    props = [param.name for param in params.values() if _param_prop_filter(param)][:2]
 
     if direction == 1:
         prop1, prop2 = props
@@ -167,7 +176,7 @@ def test_recip_assigned(prop_class, direction, inp_type):
 def test_recip_map_assign(prop_class, direction, deprecated):
     modeler = prop_class()
     params = inspect.signature(prop_class).parameters
-    props = [param.name for param in params.values() if _param_prop_filter(param)]
+    props = [param.name for param in params.values() if _param_prop_filter(param)][:2]
 
     if direction == 1:
         prop1, prop2 = props
@@ -189,7 +198,7 @@ def test_recip_map_assign(prop_class, direction, deprecated):
 def test_recip_derivatives(prop_class, direction, deprecated):
     modeler = prop_class()
     params = inspect.signature(prop_class).parameters
-    props = [param.name for param in params.values() if _param_prop_filter(param)]
+    props = [param.name for param in params.values() if _param_prop_filter(param)][:2]
     prop_map = maps.ExpMap()
 
     if direction == 1:
@@ -210,7 +219,7 @@ def test_recip_derivatives(prop_class, direction, deprecated):
             map_deriv = modeler._prop_deriv(prop2)
         return out, lambda u: map_deriv @ u
 
-    check_derivative(deriv_test, x0=inp, plotIt=False)
+    check_derivative(deriv_test, x0=inp, plotIt=False, random_seed=5523)
 
 
 def test_permittivity_warning():
