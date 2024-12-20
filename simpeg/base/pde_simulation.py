@@ -363,10 +363,7 @@ def _delete_on_model_update_placeholder(cls, obj):
 def _delete_on_model_update_getter(items, prop, fget, obj):
     other_items = fget(obj)
     if prop.is_mapped(obj):
-        print(f"{prop.__name__} was mapped")
         other_items += items
-    else:
-        print(f"{prop.__name__} was not mapped")
     return other_items
 
 
