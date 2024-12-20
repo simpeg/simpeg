@@ -7,6 +7,7 @@ from scipy.special import roots_legendre
 
 from ..base import ElectricalConductivity, MagneticPermeability, ElectricalChargeability
 from ..base import LayerThickness
+from ..base import ColeCole, ViscousMagneticSusceptibility
 from ..simulation import BaseSimulation
 
 # from .time_domain.sources import MagDipole as t_MagDipole, CircularLoop as t_CircularLoop
@@ -44,6 +45,8 @@ class BaseEM1DSimulation(
     MagneticPermeability,
     LayerThickness,
     ElectricalChargeability,
+    ColeCole,
+    ViscousMagneticSusceptibility,
 ):
     """
     Base simulation class for simulating the EM response over a 1D layered Earth
@@ -56,25 +59,12 @@ class BaseEM1DSimulation(
     _coefficients_set = False
     eta = ElectricalChargeability.eta.update_invertible(False)
 
-    tau = props.PhysicalProperty(
-        "Time constant for Cole-Cole model (s)", invertible=False
-    )
-    c = props.PhysicalProperty(
-        "Frequency Dependency for Cole-Cole model, 0 < c < 1", invertible=False
-    )
+    tau = ColeCole.tau.update_invertible(False)
+    c = ColeCole.c.update_invertible(False)
 
-    dchi = props.PhysicalProperty(
-        "DC magnetic susceptibility for viscous remanent magnetization contribution (SI)",
-        invertible=False,
-    )
-    tau1 = props.PhysicalProperty(
-        "Lower bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)",
-        invertible=False,
-    )
-    tau2 = props.PhysicalProperty(
-        "Upper bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)",
-        invertible=False,
-    )
+    dchi = ViscousMagneticSusceptibility.dchi.update_invertible(False)
+    tau1 = ViscousMagneticSusceptibility.tau1.update_invertible(False)
+    tau2 = ViscousMagneticSusceptibility.tau2.update_invertible(False)
 
     # Additional properties
     h = props.PhysicalProperty("Receiver Height (m), h > 0", default=None)
