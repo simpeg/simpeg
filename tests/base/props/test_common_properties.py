@@ -106,13 +106,14 @@ def test_assignment(prop_class, inp_type):
 
 
 @pytest.mark.parametrize("prop_class", INVERTIBLE)
-def test_invertible_map_assign(prop_class):
+@pytest.mark.parametrize("deprecated", [True, False])
+def test_invertible_map_assign(prop_class, deprecated):
     modeler = prop_class()
     params = inspect.signature(prop_class).parameters
     props = [param.name for param in params.values() if _param_prop_filter(param)]
     for prop in props:
         inp = np.linspace(10, 12)
-        setattr(modeler, prop + "Map", maps.IdentityMap())
+        setattr(modeler, prop + "Map" if deprecated else prop, maps.IdentityMap())
 
         modeler.model = inp
         calc = getattr(modeler, prop)
@@ -121,20 +122,24 @@ def test_invertible_map_assign(prop_class):
 
 
 @pytest.mark.parametrize("prop_class", INVERTIBLE)
-def test_derivatives(prop_class):
+@pytest.mark.parametrize("deprecated", [True, False])
+def test_derivatives(prop_class, deprecated):
     modeler = prop_class()
     prop_map = maps.ExpMap()
     params = inspect.signature(prop_class).parameters
     props = [param.name for param in params.values() if _param_prop_filter(param)]
     for prop in props:
         inp = np.linspace(10, 12)
-        setattr(modeler, prop + "Map", prop_map)
+        setattr(modeler, prop + "Map" if deprecated else prop, prop_map)
 
         def deriv_test(x, attr=prop):
             modeler.model = x
             out = getattr(modeler, attr)
 
-            map_deriv = getattr(modeler, attr + "Deriv")
+            if deprecated:
+                map_deriv = getattr(modeler, attr + "Deriv")
+            else:
+                map_deriv = modeler._prop_deriv(attr)
             return out, lambda u: map_deriv @ u
 
         check_derivative(deriv_test, x0=inp, plotIt=False, random_seed=664)
@@ -167,7 +172,8 @@ def test_recip_assigned(prop_class, direction, inp_type):
 
 @pytest.mark.parametrize("prop_class", RECIPROCALS & INVERTIBLE)
 @pytest.mark.parametrize("direction", [1, -1])
-def test_recip_map_assign(prop_class, direction):
+@pytest.mark.parametrize("deprecated", [True, False])
+def test_recip_map_assign(prop_class, direction, deprecated):
     modeler = prop_class()
     params = inspect.signature(prop_class).parameters
     props = [param.name for param in params.values() if _param_prop_filter(param)][:2]
@@ -180,7 +186,7 @@ def test_recip_map_assign(prop_class, direction):
     inp = np.linspace(10, 12)
     expected = 1.0 / inp
 
-    setattr(modeler, prop1 + "Map", maps.IdentityMap())
+    setattr(modeler, prop1 + "Map" if deprecated else prop1, maps.IdentityMap())
     modeler.model = inp
     calc = getattr(modeler, prop2)
     npt.assert_equal(calc, expected)
@@ -188,7 +194,8 @@ def test_recip_map_assign(prop_class, direction):
 
 @pytest.mark.parametrize("prop_class", INVERTIBLE & RECIPROCALS)
 @pytest.mark.parametrize("direction", [1, -1])
-def test_recip_derivatives(prop_class, direction):
+@pytest.mark.parametrize("deprecated", [True, False])
+def test_recip_derivatives(prop_class, direction, deprecated):
     modeler = prop_class()
     params = inspect.signature(prop_class).parameters
     props = [param.name for param in params.values() if _param_prop_filter(param)][:2]
@@ -200,13 +207,16 @@ def test_recip_derivatives(prop_class, direction):
         prop2, prop1 = props
     inp = np.linspace(10, 12)
 
-    setattr(modeler, prop1 + "Map", prop_map)
+    setattr(modeler, prop1 + "Map" if deprecated else prop1, prop_map)
 
     def deriv_test(x):
         modeler.model = x
         out = getattr(modeler, prop2)
 
-        map_deriv = getattr(modeler, prop2 + "Deriv")
+        if deprecated:
+            map_deriv = getattr(modeler, prop2 + "Deriv")
+        else:
+            map_deriv = modeler._prop_deriv(prop2)
         return out, lambda u: map_deriv @ u
 
     check_derivative(deriv_test, x0=inp, plotIt=False, random_seed=5523)

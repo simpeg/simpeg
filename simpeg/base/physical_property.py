@@ -4,6 +4,8 @@ from scipy.constants import mu_0
 from simpeg import props
 
 
+@props._add_deprecated_physical_property_functions("sigma")
+@props._add_deprecated_physical_property_functions("rho")
 class ElectricalConductivity(props.HasModel):
     """The electrical conductivity property model base class.
 
@@ -23,18 +25,17 @@ class ElectricalConductivity(props.HasModel):
         be mapped with a `ReciprocalMap` applied after the set map.
     """
 
-    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
-    rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
-    props.Reciprocal(sigma, rho)
+    sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
+    rho = props.PhysicalProperty("Electrical resistivity (Ohm m)", reciprocal=sigma)
 
-    def __init__(self, sigma=None, sigmaMap=None, rho=None, rhoMap=None, **kwargs):
+    def __init__(self, sigma=None, rho=None, **kwargs):
         super().__init__(**kwargs)
         self.sigma = sigma
         self.rho = rho
-        self.sigmaMap = sigmaMap
-        self.rhoMap = rhoMap
 
 
+@props._add_deprecated_physical_property_functions("mu")
+@props._add_deprecated_physical_property_functions("mui")
 class MagneticPermeability(props.HasModel):
     """The magnetic permeability property model base class.
 
@@ -53,18 +54,13 @@ class MagneticPermeability(props.HasModel):
         be mapped with a `ReciprocalMap` applied after the set map.
     """
 
-    mu, muMap, muDeriv = props.Invertible(
-        "Magnetic Permeability (H/m)",
-    )
-    mui, muiMap, muiDeriv = props.Invertible("Inverse Magnetic Permeability (m/H)")
-    props.Reciprocal(mu, mui)
+    mu = props.PhysicalProperty("Magnetic Permeability (H/m)")
+    mui = props.PhysicalProperty("Inverse Magnetic Permeability (m/H)", reciprocal=mu)
 
-    def __init__(self, mu=mu_0, muMap=None, mui=None, muiMap=None, **kwargs):
+    def __init__(self, mu=mu_0, mui=None, **kwargs):
         super().__init__(**kwargs)
         self.mu = mu
         self.mui = mui
-        self.muMap = muMap
-        self.muiMap = muiMap
 
 
 class DielectricPermittivity(props.HasModel):
@@ -83,7 +79,7 @@ class DielectricPermittivity(props.HasModel):
     """
 
     permittivity = props.PhysicalProperty(
-        "Dielectric permittivity (F/m)", optional=True
+        "Dielectric permittivity (F/m)", default=None, invertible=False
     )
 
     def __init__(self, permittivity=None, **kwargs):
@@ -98,6 +94,7 @@ class DielectricPermittivity(props.HasModel):
         super().__init__(**kwargs)
 
 
+@props._add_deprecated_physical_property_functions("rho")
 class MassDensity(props.HasModel):
     """The mass density property model base class.
 
@@ -113,14 +110,14 @@ class MassDensity(props.HasModel):
         `model` needed for inversions.
     """
 
-    rho, rhoMap, rhoDeriv = props.Invertible("Specific density (g/cc)")
+    rho = props.PhysicalProperty("Specific density (g/cc)")
 
-    def __init__(self, rho=None, rhoMap=None, **kwargs):
+    def __init__(self, rho=None, **kwargs):
         super().__init__(**kwargs)
         self.rho = rho
-        self.rhoMap = rhoMap
 
 
+@props._add_deprecated_physical_property_functions("chi")
 class MagneticSusceptibility(props.HasModel):
     """The magnetic susceptibility model base class.
 
@@ -136,14 +133,14 @@ class MagneticSusceptibility(props.HasModel):
         `model` needed for inversions.
     """
 
-    chi, chiMap, chiDeriv = props.Invertible("Magnetic Susceptibility (SI)")
+    chi = props.PhysicalProperty("Magnetic Susceptibility (SI)")
 
-    def __init__(self, chi=None, chiMap=None, **kwargs):
+    def __init__(self, chi=None, **kwargs):
         super().__init__(**kwargs)
         self.chi = chi
-        self.chiMap = chiMap
 
 
+@props._add_deprecated_physical_property_functions("thicknesses")
 class LayerThickness(props.HasModel):
     """The layered thickness property model base class.
 
@@ -159,18 +156,16 @@ class LayerThickness(props.HasModel):
         `model` needed for inversions.
     """
 
-    thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
-        "layer thicknesses (m)"
-    )
+    thicknesses = props.PhysicalProperty("layer thicknesses (m)")
 
-    def __init__(self, thicknesses=None, thicknessesMap=None, **kwargs):
+    def __init__(self, thicknesses=None, **kwargs):
         super().__init__(**kwargs)
         if thicknesses is None:
             thicknesses = []
         self.thicknesses = thicknesses
-        self.thicknessesMap = thicknessesMap
 
 
+@props._add_deprecated_physical_property_functions("eta")
 class ElectricalChargeability(props.HasModel):
     """The electrical chargeability property model base class.
 
@@ -186,14 +181,15 @@ class ElectricalChargeability(props.HasModel):
         `model` needed for inversions.
     """
 
-    eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability (V/V)")
+    eta = props.PhysicalProperty("Electrical Chargeability (V/V)")
 
-    def __init__(self, eta=None, etaMap=None, **kwargs):
+    def __init__(self, eta=None, **kwargs):
         super().__init__(**kwargs)
         self.eta = eta
-        self.etaMap = etaMap
 
 
+@props._add_deprecated_physical_property_functions("slowness")
+@props._add_deprecated_physical_property_functions("velocity")
 class AcousticVelocity(props.HasModel):
     """The acoustic velocity property model base class.
 
@@ -212,20 +208,16 @@ class AcousticVelocity(props.HasModel):
         be mapped with a `ReciprocalMap` applied after the set map.
     """
 
-    slowness, slownessMap, slownessDeriv = props.Invertible("Slowness model (s/m)")
-    velocity, velocityMap, velocityDeriv = props.Invertible("Velocity model (m/s)")
-    props.Reciprocal(slowness, velocity)
+    slowness = props.PhysicalProperty("Slowness model (s/m)")
+    velocity = props.PhysicalProperty("Velocity model (m/s)", reciprocal=slowness)
 
-    def __init__(
-        self, slowness=None, slownessMap=None, velocity=None, velocityMap=None, **kwargs
-    ):
+    def __init__(self, slowness=None, velocity=None, **kwargs):
         super().__init__(**kwargs)
         self.slowness = slowness
-        self.slownessMap = slownessMap
         self.velocity = velocity
-        self.velocityMap = velocityMap
 
 
+@props._add_deprecated_physical_property_functions("Ks")
 class HydraulicConductivity(props.HasModel):
     """The hydraulic conductivity property model base class.
 
@@ -241,11 +233,10 @@ class HydraulicConductivity(props.HasModel):
         `model` needed for inversions.
     """
 
-    Ks, KsMap, KsDeriv = props.Invertible("Saturated hydraulic conductivity")
+    Ks = props.PhysicalProperty("Saturated hydraulic conductivity")
 
-    def __init__(self, Ks=None, KsMap=None, **kwargs):
+    def __init__(self, Ks=None, **kwargs):
         self.Ks = Ks
-        self.KsMap = KsMap
         super().__init__(**kwargs)
 
     # Ideally this becomes an abstract method once the PropertyMeta inherits from
@@ -267,6 +258,8 @@ class HydraulicConductivity(props.HasModel):
         ax.set_ylabel("Hydraulic conductivity, $K$")
 
 
+@props._add_deprecated_physical_property_functions("theta_r")
+@props._add_deprecated_physical_property_functions("theta_s")
 class WaterRetention(props.HasModel):
     """The water saturation property model base class.
 
@@ -282,27 +275,18 @@ class WaterRetention(props.HasModel):
         `model` needed for inversions.
     """
 
-    theta_r, theta_rMap, theta_rDeriv = props.Invertible(
-        "residual water content [L3L-3]"
-    )
-
-    theta_s, theta_sMap, theta_sDeriv = props.Invertible(
-        "saturated water content [L3L-3]"
-    )
+    theta_r = props.PhysicalProperty("residual water content [L3L-3]")
+    theta_s = props.PhysicalProperty("saturated water content [L3L-3]")
 
     def __init__(
         self,
         theta_r=None,
-        theta_rMap=None,
         theta_s=None,
-        theta_sMap=None,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.theta_r = theta_r
-        self.theta_rMap = theta_rMap
         self.theta_s = theta_s
-        self.theta_sMap = theta_sMap
 
     # Ideally this becomes an abstract method once the PropertyMeta inherits from
     # ABCMeta
@@ -323,6 +307,9 @@ class WaterRetention(props.HasModel):
         ax.set_ylabel("Water content, $\\theta$")
 
 
+@props._add_deprecated_physical_property_functions("tau")
+@props._add_deprecated_physical_property_functions("taui")
+@props._add_deprecated_physical_property_functions("c")
 class ColeCole(props.HasModel):
     r"""The cole-cole parameterization model base class.
 
@@ -364,29 +351,21 @@ class ColeCole(props.HasModel):
 
     """
 
-    tau, tauMap, tauDeriv = props.Invertible("Time constant (s)")
-    taui, tauiMap, tauiDeriv = props.Invertible("Inverse of time constant (1/s)")
-    props.Reciprocal(tau, taui)
-
-    c, cMap, cDeriv = props.Invertible("Frequency dependency")
+    tau = props.PhysicalProperty("Time constant (s)")
+    taui = props.PhysicalProperty("Inverse of time constant (1/s)", reciprocal=tau)
+    c = props.PhysicalProperty("Frequency dependency")
 
     def __init__(
         self,
         tau=None,
-        tauMap=None,
         taui=None,
-        tauiMap=None,
         c=None,
-        cMap=None,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.tau = tau
-        self.tauMap = tauMap
         self.taui = taui
-        self.tauiMap = tauiMap
         self.c = c
-        self.cMap = cMap
 
 
 class ViscousMagneticSusceptibility(props.HasModel):
@@ -402,12 +381,14 @@ class ViscousMagneticSusceptibility(props.HasModel):
         Upper bound for log-uniform distribution of time-relaxation constants (s)
     """
 
-    dchi = props.PhysicalProperty("Frequency dependence parameter")
+    dchi = props.PhysicalProperty("Frequency dependence parameter", invertible=False)
     tau1 = props.PhysicalProperty(
-        "Lower bound for log-uniform distribution of time-relaxation constants (s)"
+        "Lower bound for log-uniform distribution of time-relaxation constants (s)",
+        invertible=False,
     )
     tau2 = props.PhysicalProperty(
-        "Upper bound for log-uniform distribution of time-relaxation constants (s)"
+        "Upper bound for log-uniform distribution of time-relaxation constants (s)",
+        invertible=False,
     )
 
     def __init__(self, dchi=None, tau1=None, tau2=None, **kwargs):
@@ -417,6 +398,7 @@ class ViscousMagneticSusceptibility(props.HasModel):
         self.tau2 = tau2
 
 
+@props._add_deprecated_physical_property_functions("xi")
 class AmalgamatedViscousMagneticSusceptibility(props.HasModel):
     r"""The amalgamated viscous remanent magnetic susceptibility parameterization model base class
 
@@ -437,11 +419,8 @@ class AmalgamatedViscousMagneticSusceptibility(props.HasModel):
     ViscousMagneticSusceptibility
     """
 
-    xi, xiMap, xiDeriv = props.Invertible(
-        "Amalgamated Viscous Remanent Magnetization Parameter"
-    )
+    xi = props.PhysicalProperty("Amalgamated Viscous Remanent Magnetization Parameter")
 
-    def __init__(self, xi=None, xiMap=None, **kwargs):
+    def __init__(self, xi=None, **kwargs):
         super().__init__(**kwargs)
         self.xi = xi
-        self.xiMap = xiMap

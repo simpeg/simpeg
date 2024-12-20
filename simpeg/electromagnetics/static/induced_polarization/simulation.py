@@ -3,7 +3,6 @@ from functools import cached_property
 import numpy as np
 import scipy.sparse as sp
 
-from .... import maps
 from ....base import BaseElectricalPDESimulation, ElectricalChargeability
 from ....data import Data
 from ..resistivity import Simulation2DCellCentered as DC_2D_CC
@@ -13,37 +12,17 @@ from ..resistivity import Simulation3DNodal as DC_3D_N
 
 
 class BaseIPSimulation(BaseElectricalPDESimulation, ElectricalChargeability):
-    @property
-    def sigmaMap(self):
-        return maps.IdentityMap()
+    # Need to disable the invertibility of sigma and rho for IP classes
+    sigma = BaseElectricalPDESimulation.sigma.update_invertible(False)
+    rho = BaseElectricalPDESimulation.rho.update_invertible(False)
 
-    @sigmaMap.setter
-    def sigmaMap(self, arg):
-        pass
-
-    @sigmaMap.deleter
-    def sigmaMap(self):
-        pass
-
-    @property
-    def rhoMap(self):
-        return maps.IdentityMap()
-
-    @rhoMap.setter
-    def rhoMap(self, arg):
-        pass
-
-    @rhoMap.deleter
-    def rhoMap(self):
-        pass
-
-    @property
-    def sigmaDeriv(self):
-        return -sp.diags(self.sigma) @ self.etaDeriv
-
-    @property
-    def rhoDeriv(self):
-        return sp.diags(self.rho) @ self.etaDeriv
+    def _prop_deriv(self, name, v=None):
+        # Hijack the sigma and rho derivatives to do IP!
+        if name == "sigma":
+            return -sp.diags(self.sigma) @ self._prop_deriv("eta", v=v)
+        elif name == "rho":
+            return sp.diags(self.rho) @ self._prop_deriv("eta", v=v)
+        return super()._prop_deriv(name, v=v)
 
     @cached_property
     def _scale(self):

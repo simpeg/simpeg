@@ -61,9 +61,6 @@ Models
 
   models.Model
   props.PhysicalProperty
-  props.Derivative
-  props.Invertible
-  props.Reciprocal
   props.HasModel
 
 Data

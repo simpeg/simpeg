@@ -31,11 +31,12 @@ def _partition_args(Hcond, Theta, hcond_args, theta_args, **kwargs):
     return hcond, theta
 
 
+@props._add_deprecated_physical_property_functions("alpha")
+@props._add_deprecated_physical_property_functions("beta")
 class Haverkamp_theta(WaterRetention):
 
-    alpha, alphaMap, alphaDeriv = props.Invertible("")
-
-    beta, betaMap, betaDeriv = props.Invertible("")
+    alpha = props.PhysicalProperty("Haverkamp alpha parameter")
+    beta = props.PhysicalProperty("Haverkamp beta parameter")
 
     def __init__(
         self,
@@ -43,9 +44,7 @@ class Haverkamp_theta(WaterRetention):
         theta_r=0.075,
         theta_s=0.287,
         alpha=1.611e06,
-        alphaMap=None,
         beta=3.96,
-        betaMap=None,
         **kwargs,
     ):
         if len(args) > 0 or "mesh" in kwargs:
@@ -55,9 +54,7 @@ class Haverkamp_theta(WaterRetention):
             )
         super().__init__(theta_r=theta_r, theta_s=theta_s, **kwargs)
         self.alpha = alpha
-        self.alphaMap = alphaMap
         self.beta = beta
-        self.betaMap = betaMap
 
     def _get_params(self):
         return self.theta_r, self.theta_s, self.alpha, self.beta
@@ -155,20 +152,20 @@ class Haverkamp_theta(WaterRetention):
         return g
 
 
+@props._add_deprecated_physical_property_functions("A")
+@props._add_deprecated_physical_property_functions("gamma")
 class Haverkamp_k(HydraulicConductivity):
 
-    A, AMap, ADeriv = props.Invertible("fitting parameter")
+    A = props.PhysicalProperty("fitting parameter A")
 
-    gamma, gammaMap, gammaDeriv = props.Invertible("fitting parameter")
+    gamma = props.PhysicalProperty("fitting parameter gamma")
 
     def __init__(
         self,
         *args,
         Ks=9.44e-03,
         A=1.175e06,
-        AMap=None,
         gamma=4.74,
-        gammaMap=None,
         **kwargs,
     ):
         if len(args) > 0 or "mesh" in kwargs:
@@ -178,9 +175,7 @@ class Haverkamp_k(HydraulicConductivity):
             )
         super().__init__(Ks=Ks, **kwargs)
         self.A = A
-        self.AMap = AMap
         self.gamma = gamma
-        self.gammaMap = gammaMap
 
     def _get_params(self):
         return self.Ks, self.A, self.gamma
@@ -265,11 +260,13 @@ class HaverkampParams(object):
         }
 
 
+@props._add_deprecated_physical_property_functions("n")
+@props._add_deprecated_physical_property_functions("alpha")
 class Vangenuchten_theta(WaterRetention):
 
-    n, nMap, nDeriv = props.Invertible("measure of the pore-size distribution, >1")
+    n = props.PhysicalProperty("measure of the pore-size distribution, >1")
 
-    alpha, alphaMap, alphaDeriv = props.Invertible(
+    alpha = props.PhysicalProperty(
         "related to the inverse of the air entry suction [L-1], >0"
     )
 
@@ -279,9 +276,7 @@ class Vangenuchten_theta(WaterRetention):
         theta_r=0.078,
         theta_s=0.430,
         n=1.56,
-        nMap=None,
         alpha=0.036,
-        alphaMap=None,
         **kwargs,
     ):
         if len(args) > 0 or "mesh" in kwargs:
@@ -291,9 +286,7 @@ class Vangenuchten_theta(WaterRetention):
             )
         super().__init__(theta_r=theta_r, theta_s=theta_s, **kwargs)
         self.alpha = alpha
-        self.alphaMap = alphaMap
         self.n = n
-        self.nMap = nMap
 
     def _get_params(self):
         return self.theta_r, self.theta_s, self.alpha, self.n
@@ -416,13 +409,16 @@ class Vangenuchten_theta(WaterRetention):
         return g
 
 
+@props._add_deprecated_physical_property_functions("I")
+@props._add_deprecated_physical_property_functions("n")
+@props._add_deprecated_physical_property_functions("alpha")
 class Vangenuchten_k(HydraulicConductivity):
 
-    I, IMap, IDeriv = props.Invertible("")
+    I = props.PhysicalProperty("")
 
-    n, nMap, nDeriv = props.Invertible("measure of the pore-size distribution, >1")
+    n = props.PhysicalProperty("measure of the pore-size distribution, >1")
 
-    alpha, alphaMap, alphaDeriv = props.Invertible(
+    alpha = props.PhysicalProperty(
         "related to the inverse of the air entry suction [L-1], >0"
     )
 
@@ -431,11 +427,8 @@ class Vangenuchten_k(HydraulicConductivity):
         *args,
         Ks=24.96,
         I=0.5,
-        IMap=None,
         n=1.56,
-        nMap=None,
         alpha=0.036,
-        alphaMap=None,
         **kwargs,
     ):
         if len(args) > 0 or "mesh" in kwargs:
@@ -445,11 +438,8 @@ class Vangenuchten_k(HydraulicConductivity):
             )
         super().__init__(Ks=Ks, **kwargs)
         self.I = I
-        self.IMap = IMap
         self.n = n
-        self.nMap = nMap
         self.alpha = alpha
-        self.alphaMap = alphaMap
 
     def _get_params(self):
         alpha = self.alpha

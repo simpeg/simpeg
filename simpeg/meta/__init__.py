@@ -91,4 +91,4 @@ except ImportError:
             )
 
     DaskSumMetaSimulation = DaskMetaSimulation
-    DaskRepeatedMetaSimulation = DaskMetaSimulation
+    DaskRepeatedSimulation = DaskMetaSimulation

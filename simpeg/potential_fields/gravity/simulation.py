@@ -142,10 +142,8 @@ class Simulation3DIntegral(BasePFSimulation, MassDensity):
         Gravity survey with information of the receivers.
     active_cells : (n_cells) numpy.ndarray, optional
         Array that indicates which cells in ``mesh`` are active cells.
-    rho : numpy.ndarray, optional
+    rho : numpy.ndarray or simpeg.maps.IdentityMap, optional
         Density array for the active cells in the mesh.
-    rhoMap : Mapping, optional
-        Model mapping.
     sensitivity_dtype : numpy.dtype, optional
         Data type that will be used to build the sensitivity matrix.
     store_sensitivities : {"ram", "disk", "forward_only"}
@@ -186,7 +184,6 @@ class Simulation3DIntegral(BasePFSimulation, MassDensity):
         )
         self._G = None
         self._gtg_diagonal = None
-        self.modelMap = self.rhoMap
 
         # Warn if n_processes has been passed
         if self.engine == "choclo" and "n_processes" in kwargs:

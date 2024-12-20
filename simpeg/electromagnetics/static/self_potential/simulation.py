@@ -7,6 +7,7 @@ from .. import resistivity as dc
 from .sources import StreamingCurrents
 
 
+@props._add_deprecated_physical_property_functions("q")
 class Simulation3DCellCentered(dc.Simulation3DCellCentered):
     r"""A self potential simulation.
 
@@ -43,11 +44,12 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
     boundary conditions, check out the resistivity simulations.
     """
 
-    q, qMap, qDeriv = props.Invertible("Charge density accumulation rate (C/(s m^3))")
+    sigma = dc.Simulation3DCellCentered.sigma.update_invertible(False)
+    rho = dc.Simulation3DCellCentered.rho.update_invertible(False)
 
-    def __init__(
-        self, mesh, survey=None, *, sigma=None, rho=None, q=None, qMap=None, **kwargs
-    ):
+    q = props.PhysicalProperty("Charge density accumulation rate (C/(s m^3))")
+
+    def __init__(self, mesh, survey=None, *, sigma=None, rho=None, q=None, **kwargs):
         # These below checks can be commented out, correspondingly do
         # not set sigmaMap and rhoMap to None on the super call, to enable
         # derivatives with respect to resistivity/conductivity.
@@ -62,28 +64,28 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
             survey=survey,
             sigma=sigma,
             rho=rho,
-            sigmaMap=None,
-            rhoMap=None,
             **kwargs,
         )
         self.q = q
-        self.qMap = qMap
 
     def getRHS(self):
         return self.Vol @ self.q
 
     def getRHSDeriv(self, source, v, adjoint=False):
+        q_deriv = self._prop_deriv("q")
         if adjoint:
-            return self.qDeriv.T @ (self.Vol @ v)
-        return self.Vol @ (self.qDeriv @ v)
+            return q_deriv.T @ (self.Vol @ v)
+        return self.Vol @ (q_deriv @ v)
 
     @property
     def _delete_on_model_update(self):
         # When enabling resistivity derivatives, uncomment these lines
         # if self.rhoMap is not None:
         #     return super()._delete_on_model_update
-        if self.storeJ and self.qMap is not None and not self.qMap.is_linear:
-            return ["_Jmatrix", "_gtgdiag"]
+        if self.storeJ:
+            if q_map := self._prop_map("q"):
+                if not q_map.is_linear:
+                    return ["_Jmatrix", "_gtgdiag"]
         return []
 
 

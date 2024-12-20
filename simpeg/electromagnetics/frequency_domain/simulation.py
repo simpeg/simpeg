@@ -870,15 +870,15 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         MfMui = self.MfMui
         s_m, s_e = self.getSourceTerm(freq)
         s_mDeriv, s_eDeriv = src.evalDeriv(self, adjoint=adjoint)
-        MfMuiDeriv = self.MfMuiDeriv(s_m)
+        MfMuiDeriv = self.MfMuiDeriv
 
         if adjoint:
             return (
                 s_mDeriv(MfMui * (C * v))
-                + MfMuiDeriv.T * (C * v)
+                + MfMuiDeriv(s_m, C * v, adjoint=True)
                 - 1j * omega(freq) * s_eDeriv(v)
             )
-        return C.T * (MfMui * s_mDeriv(v) + MfMuiDeriv * v) - 1j * omega(
+        return C.T * (MfMui * s_mDeriv(v) + MfMuiDeriv(s_m, v)) - 1j * omega(
             freq
         ) * s_eDeriv(v)
 
