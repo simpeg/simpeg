@@ -2,7 +2,7 @@ import numpy as np
 import sys
 import gc
 
-from ...utils.em1d_utils import ColeCole
+from ....base import ColeCole
 from .data import Data
 from ....utils import sdiag, validate_type, validate_active_indices
 import scipy.sparse as sp
