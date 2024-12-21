@@ -32,12 +32,14 @@ class BaseSIPSimulation(BaseIPSimulation, ColeCole):
         mesh,
         survey=None,
         *,
+        tau=0.1,
+        c=0.5,
         storeJ=False,
         actinds=None,
         storeInnerProduct=True,
         **kwargs,
     ):
-        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        super().__init__(mesh=mesh, survey=survey, tau=tau, c=c, **kwargs)
         self.storeJ = storeJ
         self.storeInnerProduct = storeInnerProduct
         self.actinds = actinds
