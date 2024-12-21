@@ -844,7 +844,7 @@ class BaseVRMSimulation(BaseSimulation):
 class Simulation3DLinear(BaseVRMSimulation, AmalgamatedViscousMagneticSusceptibility):
     """"""
 
-    def __init__(self, mesh, survey=None, **kwargs):
+    def __init__(self, mesh, survey=None, *, xi=None, xiMap=None, **kwargs):
 
         self._A = None
         self._T = None
@@ -853,8 +853,10 @@ class Simulation3DLinear(BaseVRMSimulation, AmalgamatedViscousMagneticSusceptibi
         super().__init__(mesh, survey=survey, **kwargs)
 
         nAct = list(self.active_cells).count(True)
-        if self.xi is None and self.xiMap is None:
-            self.xiMap = maps.IdentityMap(nP=nAct)
+        if xi is None and xiMap is None:
+            xiMap = maps.IdentityMap(nP=nAct)
+        self.xi = xi
+        self.xiMap = xiMap
 
     @property
     def A(self):
