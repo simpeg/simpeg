@@ -42,6 +42,9 @@ properties of simulations.
   base.AcousticVelocity
   base.HydraulicConductivity
   base.WaterRetention
+  base.ColeCole
+  base.ViscousMagneticSusceptibility
+  base.AmalgamatedViscousMagneticSusceptibility
 
 Base Surveys, Sources and Receivers
 -----------------------------------
