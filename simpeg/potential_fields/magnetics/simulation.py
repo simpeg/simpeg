@@ -12,7 +12,7 @@ from geoana.kernels import (
 )
 from scipy.constants import mu_0
 
-from simpeg import props, utils
+from simpeg import utils
 from simpeg.utils import mat_utils, mkvc, sdiag
 from simpeg.utils.code_utils import deprecate_property, validate_string, validate_type
 from simpeg.utils.solver_utils import get_default_solver
@@ -49,6 +49,7 @@ from ._numba_functions import (
     _sensitivity_tmi_derivative_2d_mesh_serial,
     _sensitivity_tmi_derivative_2d_mesh_parallel,
 )
+from ...base import MagneticSusceptibility
 
 if choclo is not None:
     CHOCLO_SUPPORTED_COMPONENTS = {
@@ -138,7 +139,7 @@ if choclo is not None:
     }
 
 
-class Simulation3DIntegral(BasePFSimulation):
+class Simulation3DIntegral(BasePFSimulation, MagneticSusceptibility):
     """
     Magnetic simulation in integral form.
 
@@ -187,13 +188,10 @@ class Simulation3DIntegral(BasePFSimulation):
            ``active_cells`` and will be removed in SimPEG v0.24.0.
     """
 
-    chi, chiMap, chiDeriv = props.Invertible("Magnetic Susceptibility (SI)")
-
     def __init__(
         self,
         mesh,
-        chi=None,
-        chiMap=None,
+        *,
         model_type="scalar",
         is_amplitude_data=False,
         engine="geoana",
@@ -202,8 +200,6 @@ class Simulation3DIntegral(BasePFSimulation):
     ):
         self.model_type = model_type
         super().__init__(mesh, engine=engine, numba_parallel=numba_parallel, **kwargs)
-        self.chi = chi
-        self.chiMap = chiMap
 
         self._G = None
         self._M = None
@@ -889,6 +885,8 @@ class SimulationEquivalentSourceLayer(
     cell_z_bottom : numpy.ndarray or float
         Define the elevations for the bottom face of all cells in the layer.
         If an array it should be the same size as the active cell set.
+    survey : simpeg.potential_fields.gravity.Survey
+        Gravity survey with information of the receivers.
     engine : {"geoana", "choclo"}, optional
         Choose which engine should be used to run the forward model.
     numba_parallel : bool, optional
@@ -903,6 +901,8 @@ class SimulationEquivalentSourceLayer(
         mesh,
         cell_z_top,
         cell_z_bottom,
+        survey=None,
+        *,
         engine="geoana",
         numba_parallel=True,
         **kwargs,
@@ -911,6 +911,7 @@ class SimulationEquivalentSourceLayer(
             mesh,
             cell_z_top,
             cell_z_bottom,
+            survey=survey,
             engine=engine,
             numba_parallel=numba_parallel,
             **kwargs,
