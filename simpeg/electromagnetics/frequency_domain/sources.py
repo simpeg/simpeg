@@ -612,36 +612,36 @@ class MagDipole(BaseFDEMSrc):
             return -C.T * (MMui_s * self.bPrimary(simulation))
 
     def s_eDeriv(self, simulation, v, adjoint=False):
-        if not hasattr(simulation, "muMap") or not hasattr(simulation, "muiMap"):
-            return Zero()
-        else:
-            formulation = simulation._formulation
-
-            if formulation == "EB":
-                mui_s = simulation.mui - 1.0 / self.mu
-                MMui_sDeriv = (
-                    simulation.mesh.get_face_inner_product_deriv(mui_s)(
-                        self.bPrimary(simulation)
-                    )
-                    * simulation.muiDeriv
-                )
-                C = simulation.mesh.edge_curl
-
-                if adjoint:
-                    return -MMui_sDeriv.T * (C * v)
-
-                return -C.T * (MMui_sDeriv * v)
-
-            elif formulation == "HJ":
+        formulation = simulation._formulation
+        if formulation == "EB":
+            if not simulation.muiMap:
                 return Zero()
-                # raise NotImplementedError
-                mu_s = simulation.mu - self.mu
-                MMui_s = simulation.mesh.get_edge_inner_product(
-                    mu_s, invert_matrix=True
+            mui_s = simulation.mui - 1.0 / self.mu
+            MMui_sDeriv = (
+                simulation.mesh.get_face_inner_product_deriv(mui_s)(
+                    self.bPrimary(simulation)
                 )
-                C = simulation.mesh.edge_curl.T
+                * simulation.muiDeriv
+            )
+            C = simulation.mesh.edge_curl
 
-                return -C.T * (MMui_s * self.bPrimary(simulation))
+            if adjoint:
+                return -MMui_sDeriv.T * (C * v)
+
+            return -C.T * (MMui_sDeriv * v)
+
+        elif formulation == "HJ":
+            return Zero()
+            # raise NotImplementedError
+            # if not simulation.muMap:
+            #     return Zero()
+            # mu_s = simulation.mu - self.mu
+            # MMui_s = simulation.mesh.get_edge_inner_product(
+            #     mu_s, invert_matrix=True
+            # )
+            # C = simulation.mesh.edge_curl.T
+            #
+            # return -C.T * (MMui_s * self.bPrimary(simulation))
 
 
 class MagDipole_Bfield(MagDipole):

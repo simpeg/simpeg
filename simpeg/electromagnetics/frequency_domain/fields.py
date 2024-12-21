@@ -1122,7 +1122,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
         self._MfRho = self.simulation.MfRho
         self._MfRhoDeriv = self.simulation.MfRhoDeriv
         self._rho = self.simulation.rho
-        self._mu = self.simulation.mui
+        self._mu = self.simulation.mu
         self._aveF2CCV = self.simulation.mesh.aveF2CCV
         self._aveE2CCV = self.simulation.mesh.aveE2CCV
         self._nC = self.simulation.mesh.nC
@@ -1550,7 +1550,7 @@ class Fields3DMagneticField(FieldsFDEM):
         self._MfRho = self.simulation.MfRho
         self._MfRhoDeriv = self.simulation.MfRhoDeriv
         self._rho = self.simulation.rho
-        self._mu = self.simulation.mui
+        self._mu = self.simulation.mu
         self._aveF2CCV = self.simulation.mesh.aveF2CCV
         self._aveE2CCV = self.simulation.mesh.aveE2CCV
         self._nC = self.simulation.mesh.nC

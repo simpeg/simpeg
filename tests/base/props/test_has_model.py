@@ -9,16 +9,12 @@ from simpeg import props, maps
 @pytest.fixture(scope="module")
 def mock_model_class():
     class MockModel(props.HasModel):
-        prop, prop_map, _prop_deriv = props.Invertible("test physical property")
-        other, other_map, _other_deriv = props.Invertible("another physical property")
+        prop = props.PhysicalProperty("test physical property")
+        other = props.PhysicalProperty("another physical property")
 
-        def __init__(
-            self, prop=None, prop_map=None, other=None, other_map=None, **kwargs
-        ):
+        def __init__(self, prop=None, other=None, **kwargs):
             self.prop = prop
-            self.prop_map = prop_map
             self.other = other
-            self.other_map = other_map
             super().__init__(**kwargs)
 
         @property
@@ -30,7 +26,7 @@ def mock_model_class():
 
         @property
         def _delete_on_model_update(self):
-            if self.prop_map is not None:
+            if "prop" in self._mapped_properties:
                 return ["_prop_dependent_property"]
             return []
 
@@ -40,7 +36,7 @@ def mock_model_class():
 @pytest.fixture()
 def modeler(mock_model_class):
     prop_map = maps.ExpMap()
-    modeler = mock_model_class(prop_map=prop_map)
+    modeler = mock_model_class(prop=prop_map)
     return modeler
 
 
@@ -80,12 +76,11 @@ def test_no_clear_on_model_reassign(modeler):
 
 def test_map_clearing(modeler):
     modeler.prop = np.ones(10)
-    assert modeler.prop_map is None
+    assert modeler._prop_map("prop") is None
 
 
 def test_no_clear_without_mapping(modeler):
-    modeler.prop_map = None
-    modeler.other_map = maps.ExpMap()
+    modeler.other = maps.ExpMap()
     modeler.prop = np.ones(10)
     item1 = modeler.prop_dependent_property
     assert item1 is not None
@@ -101,7 +96,13 @@ def test_model_needed(modeler):
 
 
 def test_no_model_needed(modeler):
-    modeler.prop_map = None
+    modeler.prop = None
+    assert not modeler.needs_model
+
+    modeler.prop = maps.ExpMap()
+    assert modeler.needs_model
+
+    modeler.prop = np.ones(10)
     assert not modeler.needs_model
 
 

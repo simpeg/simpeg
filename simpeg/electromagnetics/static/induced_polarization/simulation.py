@@ -3,8 +3,7 @@ from functools import cached_property
 import numpy as np
 import scipy.sparse as sp
 
-from .... import maps, props
-from ....base import BasePDESimulation
+from ....base import BaseElectricalPDESimulation, ElectricalChargeability
 from ....data import Data
 from ..resistivity import Simulation2DCellCentered as DC_2D_CC
 from ..resistivity import Simulation2DNodal as DC_2D_N
@@ -12,34 +11,18 @@ from ..resistivity import Simulation3DCellCentered as DC_3D_CC
 from ..resistivity import Simulation3DNodal as DC_3D_N
 
 
-class BaseIPSimulation(BasePDESimulation):
-    sigma = props.PhysicalProperty("Electrical Conductivity (S/m)")
-    rho = props.PhysicalProperty("Electrical Resistivity (Ohm m)")
-    props.Reciprocal(sigma, rho)
+class BaseIPSimulation(BaseElectricalPDESimulation, ElectricalChargeability):
+    # Need to disable the invertibility of sigma and rho for IP classes
+    sigma = BaseElectricalPDESimulation.sigma.update_invertible(False)
+    rho = BaseElectricalPDESimulation.rho.update_invertible(False)
 
-    @property
-    def sigmaMap(self):
-        return maps.IdentityMap()
-
-    @sigmaMap.setter
-    def sigmaMap(self, arg):
-        pass
-
-    @property
-    def rhoMap(self):
-        return maps.IdentityMap()
-
-    @rhoMap.setter
-    def rhoMap(self, arg):
-        pass
-
-    @property
-    def sigmaDeriv(self):
-        return -sp.diags(self.sigma) @ self.etaDeriv
-
-    @property
-    def rhoDeriv(self):
-        return sp.diags(self.rho) @ self.etaDeriv
+    def _prop_deriv(self, name, v=None):
+        # Hijack the sigma and rho derivatives to do IP!
+        if name == "sigma":
+            return -sp.diags(self.sigma) @ self._prop_deriv("eta", v=v)
+        elif name == "rho":
+            return sp.diags(self.rho) @ self._prop_deriv("eta", v=v)
+        return super()._prop_deriv(name, v=v)
 
     @cached_property
     def _scale(self):
@@ -58,25 +41,16 @@ class BaseIPSimulation(BasePDESimulation):
                     scale[src, rx] = 1.0 / rx.eval(src, self.mesh, f)
         return scale.dobs
 
-    eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability (V/V)")
-
     def __init__(
         self,
         mesh,
         survey=None,
-        sigma=None,
-        rho=None,
-        eta=None,
-        etaMap=None,
+        *,
         Ainv=None,  # A DC's Ainv
         _f=None,  # A pre-computed DC field
         **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
-        self.sigma = sigma
-        self.rho = rho
-        self.eta = eta
-        self.etaMap = etaMap
         if Ainv is not None:
             self.Ainv = Ainv
         self._f = _f

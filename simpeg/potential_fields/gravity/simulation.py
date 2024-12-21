@@ -5,10 +5,9 @@ import scipy.constants as constants
 from geoana.kernels import prism_fz, prism_fzx, prism_fzy, prism_fzz
 from scipy.constants import G as NewtG
 
-from simpeg import props
 from simpeg.utils import mkvc, sdiag
 
-from ...base import BasePDESimulation
+from ...base import BasePDESimulation, MassDensity
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
 
 from ._numba_functions import (
@@ -117,7 +116,7 @@ def _get_conversion_factor(component):
     return conversion_factor
 
 
-class Simulation3DIntegral(BasePFSimulation):
+class Simulation3DIntegral(BasePFSimulation, MassDensity):
     """
     Gravity simulation in integral form.
 
@@ -143,10 +142,8 @@ class Simulation3DIntegral(BasePFSimulation):
         Gravity survey with information of the receivers.
     active_cells : (n_cells) numpy.ndarray, optional
         Array that indicates which cells in ``mesh`` are active cells.
-    rho : numpy.ndarray, optional
+    rho : numpy.ndarray or simpeg.maps.IdentityMap, optional
         Density array for the active cells in the mesh.
-    rhoMap : Mapping, optional
-        Model mapping.
     sensitivity_dtype : numpy.dtype, optional
         Data type that will be used to build the sensitivity matrix.
     store_sensitivities : {"ram", "disk", "forward_only"}
@@ -174,23 +171,19 @@ class Simulation3DIntegral(BasePFSimulation):
            ``active_cells`` and will be removed in SimPEG v0.24.0.
     """
 
-    rho, rhoMap, rhoDeriv = props.Invertible("Density")
-
     def __init__(
         self,
         mesh,
-        rho=None,
-        rhoMap=None,
+        *,
         engine="geoana",
         numba_parallel=True,
         **kwargs,
     ):
-        super().__init__(mesh, engine=engine, numba_parallel=numba_parallel, **kwargs)
-        self.rho = rho
-        self.rhoMap = rhoMap
+        super().__init__(
+            mesh=mesh, engine=engine, numba_parallel=numba_parallel, **kwargs
+        )
         self._G = None
         self._gtg_diagonal = None
-        self.modelMap = self.rhoMap
 
         # Warn if n_processes has been passed
         if self.engine == "choclo" and "n_processes" in kwargs:
@@ -497,6 +490,8 @@ class SimulationEquivalentSourceLayer(
     cell_z_bottom : numpy.ndarray or float
         Define the elevations for the bottom face of all cells in the layer.
         If an array it should be the same size as the active cell set.
+    survey : simpeg.potential_fields.gravity.Survey
+        Gravity survey with information of the receivers.
     engine : {"geoana", "choclo"}, optional
         Choose which engine should be used to run the forward model.
     numba_parallel : bool, optional
@@ -510,6 +505,8 @@ class SimulationEquivalentSourceLayer(
         mesh,
         cell_z_top,
         cell_z_bottom,
+        survey=None,
+        *,
         engine="geoana",
         numba_parallel=True,
         **kwargs,
@@ -518,6 +515,7 @@ class SimulationEquivalentSourceLayer(
             mesh,
             cell_z_top,
             cell_z_bottom,
+            survey=survey,
             engine=engine,
             numba_parallel=numba_parallel,
             **kwargs,
@@ -641,12 +639,8 @@ class Simulation3DDifferential(BasePDESimulation):
         \big [ \mathbf{D M_f D^T} \big ] \mathbf{u} = - \mathbf{M_c \, \rho}
     """
 
-    rho, rhoMap, rhoDeriv = props.Invertible("Specific density (g/cc)")
-
-    def __init__(self, mesh, rho=1.0, rhoMap=None, **kwargs):
-        super().__init__(mesh, **kwargs)
-        self.rho = rho
-        self.rhoMap = rhoMap
+    def __init__(self, mesh, **kwargs):
+        super().__init__(mesh=mesh, **kwargs)
 
         self._Div = self.mesh.face_divergence
 
