@@ -89,10 +89,10 @@ class MetaSimulation(BaseSimulation):
     _repeat_sim = False
 
     def __init__(self, simulations, mappings):
-        warnings.warn(
-            "The MetaSimulation class is a work in progress and might change in the future",
-            stacklevel=2,
-        )
+        # warnings.warn(
+        #     "The MetaSimulation class is a work in progress and might change in the future",
+        #     stacklevel=2,
+        # )
         self.simulations = simulations
         self.mappings = mappings
         self.model = None

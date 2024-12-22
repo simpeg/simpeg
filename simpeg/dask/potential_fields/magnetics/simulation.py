@@ -36,5 +36,6 @@ def getJtJdiag(self, m, W=None, f=None):
     return mkvc((sdiag(np.sqrt(diag)) @ self.chiDeriv).power(2).sum(axis=0))
 
 
+Sim.clean_on_model_update = []
 Sim.getJtJdiag = getJtJdiag
 Sim.G = G

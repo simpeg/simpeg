@@ -112,9 +112,11 @@ def getSourceTerm(self, freq, source=None):
             if len(block) == 0:
                 continue
 
-            block_compute.append(source_evaluation(self, block))
+            block_compute.append(
+                self.client.submit(source_evaluation, self, block, workers=self.worker)
+            )
 
-        blocks = compute(block_compute)[0]
+        blocks = self.client.gather(block_compute)
         s_m, s_e = [], []
         for block in blocks:
             if block[0]:
@@ -197,8 +199,8 @@ def fields(self, m=None):
     if m is not None:
         self.model = m
 
-    if getattr(self, "_stashed_fields", None) is not None:
-        return self._stashed_fields
+    # if getattr(self, "_stashed_fields", None) is not None:
+    #     return self._stashed_fields
 
     f = self.fieldsPair(self)
     Ainv = {}
@@ -211,9 +213,9 @@ def fields(self, m=None):
         f[sources, self._solutionType] = u
         Ainv[freq] = Ainv_solve
 
-    self.Ainv = Ainv
-
-    self._stashed_fields = f
+    # Ainv = Ainv
+    #
+    # self._stashed_fields = f
 
     return f
 
@@ -224,13 +226,19 @@ def compute_J(self, m, f=None):
     if f is None:
         f = self.fields(m)
 
-    if len(self.Ainv) > 1:
+    Ainv = {}
+    for freq in self.survey.frequencies:
+        A = self.getA(freq)
+        Ainv_solve = self.solver(sp.csr_matrix(A), **self.solver_opts)
+        Ainv[freq] = Ainv_solve
+
+    if len(Ainv) > 1:
         raise NotImplementedError(
             "Current implementation of parallelization assumes a single frequency per simulation. "
             "Consider creating one misfit per frequency."
         )
 
-    A_i = list(self.Ainv.values())[0]
+    A_i = list(Ainv.values())[0]
     m_size = m.size
 
     if self.store_sensitivities == "disk":
@@ -269,22 +277,20 @@ def compute_J(self, m, f=None):
     for block_derivs_chunks, addresses_chunks in tqdm(
         zip(blocks_receiver_derivs, blocks),
         ncols=len(blocks_receiver_derivs),
-        desc=f"Sensitivities at {list(self.Ainv)[0]} Hz",
+        desc=f"Sensitivities at {list(Ainv)[0]} Hz",
     ):
         Jmatrix = self.parallel_block_compute(
             m, Jmatrix, block_derivs_chunks, A_i, fields_array, addresses_chunks
         )
 
-    for A in self.Ainv.values():
+    for A in Ainv.values():
         A.clean()
 
     if self.store_sensitivities == "disk":
         del Jmatrix
-        self._Jmatrix = array.from_zarr(self.sensitivity_path)
-    else:
-        self._Jmatrix = Jmatrix
+        Jmatrix = array.from_zarr(self.sensitivity_path)
 
-    return self._Jmatrix
+    return Jmatrix
 
 
 def parallel_block_compute(

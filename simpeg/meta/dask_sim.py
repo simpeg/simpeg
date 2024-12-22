@@ -1,11 +1,13 @@
 import numpy as np
 
 from simpeg.simulation import BaseSimulation
+
 from simpeg.survey import BaseSurvey
 from simpeg.maps import IdentityMap
 from simpeg.utils import validate_list_of_types, validate_type
 from simpeg.props import HasModel
 import itertools
+
 from dask.distributed import Client
 from dask.distributed import Future
 from .simulation import MetaSimulation, SumMetaSimulation
@@ -152,6 +154,7 @@ class DaskMetaSimulation(MetaSimulation):
 
     def __init__(self, simulations, mappings, client):
         self._client = validate_type("client", client, Client, cast=False)
+        self._concrete_simulations = None
         super().__init__(simulations, mappings)
 
     def _make_survey(self):
@@ -177,6 +180,7 @@ class DaskMetaSimulation(MetaSimulation):
     @simulations.setter
     def simulations(self, value):
         client = self.client
+        self._concrete_simulations = client.gather(value)
         simulations, workers = _validate_type_or_future_of_type(
             "simulations", value, BaseSimulation, client, return_workers=True
         )
@@ -420,6 +424,93 @@ class DaskMetaSimulation(MetaSimulation):
                 zip(self.mappings, self.simulations, self._workers, f)
             ):
                 sim_w = W[self._data_offsets[i] : self._data_offsets[i + 1]]
+                jtj_diag.append(
+                    client.submit(
+                        _get_jtj_diag,
+                        mapping,
+                        sim,
+                        m_future,
+                        field,
+                        sim_w,
+                        self._repeat_sim,
+                        workers=worker,
+                    )
+                )
+            self._jtjdiag = _reduce(client, add, jtj_diag)
+
+        return self._jtjdiag
+
+
+def _compute_j(sim, model):
+    sim.model = model
+    jmatrix = getattr(sim, "_Jmatrix", None)
+
+    if jmatrix is None:
+        jmatrix = sim.compute_J(model)
+
+    return jmatrix
+
+
+def set_jmatrix(sim, jmatrix):
+    sim._Jmatrix = jmatrix
+    return sim
+
+
+class DaskMetaSimulationExplicit(DaskMetaSimulation):
+    clean_on_model_update = ["_Jmatrix", "_stashed_fields"]
+
+    def fields(self, m):
+        self.model = m
+
+        if getattr(self, "_stashed_fields", None) is not None:
+            return self._stashed_fields
+
+        client = self.client
+        m_future = self._m_as_future
+        # The above should pass the model to all the internal simulations.
+        f = []
+        simulations = []
+        for mapping, sim, worker in zip(self.mappings, self.simulations, self._workers):
+            jmatrix = client.submit(
+                _compute_j,
+                sim,
+                m_future,
+                workers=worker,
+            )
+            sim = client.submit(set_jmatrix, sim, jmatrix, workers=worker)
+            f.append(
+                client.submit(
+                    _calc_fields,
+                    mapping,
+                    sim,
+                    m_future,
+                    self._repeat_sim,
+                    workers=worker,
+                )
+            )
+            simulations.append(sim)
+
+        self._stashed_fields = f
+        self.simulations = simulations
+        return f
+
+    def getJtJdiag(self, m, W=None, f=None):
+        self.model = m
+        m_future = self._m_as_future
+        if getattr(self, "_jtjdiag", None) is None:
+            if W is None:
+                W = np.ones(self.survey.nD)
+            else:
+                W = W.diagonal()
+            jtj_diag = []
+            client = self.client
+            if f is None:
+                f = self.fields(m)
+            for i, (mapping, sim, worker, field) in enumerate(
+                zip(self.mappings, self.simulations, self._workers, f)
+            ):
+                sim_w = W[self._data_offsets[i] : self._data_offsets[i + 1]]
+
                 jtj_diag.append(
                     client.submit(
                         _get_jtj_diag,

@@ -53,7 +53,9 @@ def getJtJdiag(self, m, W=None, f=None):
         else:
             W = W.diagonal()
 
-        self._jtj_diag = array.einsum("i,ij,ij->j", W**2, self.Jmatrix, self.Jmatrix)
+        self._jtj_diag = np.asarray(
+            np.einsum("i,ij,ij->j", W**2, self.Jmatrix, self.Jmatrix)
+        )
 
     return self._jtj_diag
 

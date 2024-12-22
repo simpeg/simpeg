@@ -88,9 +88,9 @@ def linear_operator(self):
                 return kernel
 
         return array.to_zarr(
-            stack, sens_name, compute=False, return_stored=True, overwrite=True
+            stack, sens_name, compute=True, return_stored=True, overwrite=True
         )
-    return stack
+    return stack.compute()
 
 
 @property
@@ -105,7 +105,7 @@ def G(self):
 
 
 def compute_J(self, _, f=None):
-    return self.linear_operator().persist()
+    return self.linear_operator()
 
 
 @property
