@@ -3,7 +3,7 @@ import unittest
 
 import numpy as np
 from discretize import TensorMesh
-from discretize.utils import mesh_builder_xyz, mkvc, refine_tree_xyz
+from discretize.utils import mesh_builder_xyz, mkvc
 
 from simpeg import (
     data_misfit,
@@ -50,20 +50,15 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             padDist = np.ones((2, 2)) * 100
             nCpad = [2, 4]
 
-            mesh = mesh_builder_xyz(
+            self.mesh = mesh_builder_xyz(
                 topo[:, :2],
                 h,
                 padding_distance=padDist,
                 mesh_type="TREE",
             )
 
-            self.mesh = refine_tree_xyz(
-                mesh,
-                data[:, :2],
-                method="radial",
-                octree_levels=nCpad,
-                octree_levels_padding=nCpad,
-                finalize=True,
+            self.mesh.refine_points(
+                data[:, :2], padding_cells_by_level=nCpad, finalize=True
             )
 
             # elevations are Nx2 array of [bottom-southwest, top-northeast] corners
