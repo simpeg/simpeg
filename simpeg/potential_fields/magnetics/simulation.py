@@ -178,9 +178,10 @@ class Simulation3DIntegral(BasePFSimulation):
             M = np.asarray(M)
             self._M = M.reshape((self.nC, 3))
 
-    def fields(self, model):
-        self.model = model
-        # model = self.chiMap * model
+    def fields(self, m=None):
+        if m is not None:
+            self.model = m
+
         if self.store_sensitivities == "forward_only":
             if self.engine == "choclo":
                 fields = self._forward(self.chi)
