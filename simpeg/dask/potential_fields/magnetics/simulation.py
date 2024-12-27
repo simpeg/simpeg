@@ -28,7 +28,7 @@ def getJtJdiag(self, m, W=None, f=None):
                 + ampDeriv[1, :, None] * self.Jmatrix[1::3]
                 + ampDeriv[2, :, None] * self.Jmatrix[2::3]
             )
-            diag = ((W[:, None] * J) ** 2).sum(axis=0).compute()
+            diag = array.einsum("i,ij,ij->j", W**2, J, J).compute()
         self._gtg_diagonal = diag
     else:
         diag = self._gtg_diagonal

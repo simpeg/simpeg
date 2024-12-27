@@ -53,7 +53,7 @@ def linear_operator(self):
         n_cells *= 3
 
     n_components = len(self.survey.components)
-    n_blocks = int(
+    n_blocks = np.ceil(
         (n_cells * n_components * self.survey.receiver_locations.shape[0] * 8.0 * 1e-6)
         / self.max_chunk_size
     )
@@ -140,6 +140,7 @@ def Jmatrix(self, value):
     self._Jmatrix = value
 
 
+Sim.clean_on_model_update = []
 Sim.G = G
 Sim._chunk_format = _chunk_format
 Sim.chunk_format = chunk_format

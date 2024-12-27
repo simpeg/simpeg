@@ -70,6 +70,11 @@ def _reduce(client, operation, items):
     return client.gather(items[0])
 
 
+def _set_worker(obj, worker):
+    obj.worker = worker
+    return obj
+
+
 def _validate_type_or_future_of_type(
     property_name,
     objects,
@@ -112,6 +117,7 @@ def _validate_type_or_future_of_type(
                 warnings.warn(
                     f"{property_name} {i} is not on the expected worker.", stacklevel=2
                 )
+            obj = client.submit(_set_worker, obj, worker)
 
     # Ensure this runs on the expected worker
     futures = []
@@ -471,13 +477,13 @@ class DaskMetaSimulationExplicit(DaskMetaSimulation):
         f = []
         simulations = []
         for mapping, sim, worker in zip(self.mappings, self.simulations, self._workers):
-            jmatrix = client.submit(
-                _compute_j,
-                sim,
-                m_future,
-                workers=worker,
-            )
-            sim = client.submit(set_jmatrix, sim, jmatrix, workers=worker)
+            # jmatrix = client.submit(
+            #     _compute_j,
+            #     sim,
+            #     m_future,
+            #     workers=worker,
+            # )
+            # sim = client.submit(set_jmatrix, sim, jmatrix, workers=worker)
             f.append(
                 client.submit(
                     _calc_fields,
