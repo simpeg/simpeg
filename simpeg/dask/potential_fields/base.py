@@ -3,7 +3,6 @@ from ...potential_fields.base import BasePFSimulation as Sim
 
 import os
 from dask import delayed, array, config
-
 from ..utils import compute_chunk_sizes
 
 
@@ -35,20 +34,41 @@ def residual(self, m, dobs, f=None):
     return self.dpred(m, f=f) - dobs
 
 
+@delayed
+def block_compute(sim, rows, components):
+    block = []
+    for row in rows:
+        block.append(sim.evaluate_integral(row, components))
+
+    if sim.store_sensitivities == "forward_only":
+        return np.hstack(block)
+
+    return np.vstack(block)
+
+
 def linear_operator(self):
     forward_only = self.store_sensitivities == "forward_only"
-    row = delayed(self.evaluate_integral, pure=True)
     n_cells = self.nC
     if getattr(self, "model_type", None) == "vector":
         n_cells *= 3
 
+    n_components = len(self.survey.components)
+    n_blocks = int(
+        (n_cells * n_components * self.survey.receiver_locations.shape[0] * 8.0 * 1e-6)
+        / self.max_chunk_size
+    )
+    block_split = np.array_split(self.survey.receiver_locations, n_blocks)
     rows = [
         array.from_delayed(
-            row(receiver_location, components),
+            block_compute(self, block, self.survey.components),
             dtype=self.sensitivity_dtype,
-            shape=((len(components),) if forward_only else (len(components), n_cells)),
+            shape=(
+                (len(block) * n_components,)
+                if forward_only
+                else (len(block) * n_components, n_cells)
+            ),
         )
-        for receiver_location, components in self.survey._location_component_iterator()
+        for block in block_split
     ]
     if forward_only:
         stack = array.concatenate(rows)
