@@ -115,7 +115,6 @@ def Jmatrix(self):
     """
     if getattr(self, "_Jmatrix", None) is None:
         self._Jmatrix = self.compute_J(self.model)
-        self._stashed_fields = None
 
     return self._Jmatrix
 
