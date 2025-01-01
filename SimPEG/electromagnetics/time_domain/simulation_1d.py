@@ -34,7 +34,7 @@ else:
 try:
     from pyMKL import mkl_set_num_threads
 except Exception as e:
-    print("No MKL support: ", e)
+    # print("No MKL support: ", e)
     mkl_set_num_threads = None
 
 

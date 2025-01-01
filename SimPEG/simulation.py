@@ -21,7 +21,7 @@ try:
     print("Using Pardiso solver as default if not otherwise defined")
 except ImportError:
     from .utils.solver_utils import SolverLU as DefaultSolver
-    print("Cannot import Pardiso, will use SolverLU")
+    # print("Cannot import Pardiso, will use SolverLU")
 
 __all__ = ["LinearSimulation", "ExponentialSinusoidSimulation"]
 
