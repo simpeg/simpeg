@@ -1,6 +1,5 @@
 try:
     import simpeg.dask.simulation
-    import simpeg.dask.data_misfit
     import simpeg.dask.electromagnetics.frequency_domain.simulation
     import simpeg.dask.electromagnetics.static.resistivity.simulation
     import simpeg.dask.electromagnetics.static.resistivity.simulation_2d
