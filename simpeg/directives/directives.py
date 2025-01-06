@@ -48,7 +48,6 @@ from ..utils.code_utils import (
     validate_float,
     validate_ndarray_with_shape,
 )
-from dask.distributed import get_client, Future
 from geoh5py.groups.property_group import GroupTypeEnum
 from geoh5py.groups import PropertyGroup, UIJsonGroup
 from geoh5py.objects import ObjectBase
@@ -56,17 +55,16 @@ from geoh5py.ui_json.utils import fetch_active_workspace
 
 
 def compute_JtJdiags(data_misfit, m):
-    jtj_diags = []
-    for dmisfit in data_misfit.objfcts:
-        jtj_diags.append(dmisfit.getJtJdiag(m))
+    if hasattr(data_misfit, "getJtJdiag"):
+        return data_misfit.getJtJdiag(m)
+    else:
+        jtj_diags = []
+        for dmisfit in data_misfit.objfcts:
+            jtj_diags.append(dmisfit.getJtJdiag(m))
 
-    if isinstance(jtj_diags[0], Future):
-        client = get_client()
-        jtj_diags = client.gather(jtj_diags)
-
-    jtj_diag = np.zeros_like(jtj_diags[0])
-    for multiplier, diag in zip(data_misfit.multipliers, jtj_diags):
-        jtj_diag += multiplier * diag
+        jtj_diag = np.zeros_like(jtj_diags[0])
+        for multiplier, diag in zip(data_misfit.multipliers, jtj_diags):
+            jtj_diag += multiplier * diag
 
     return np.asarray(jtj_diag)
 

@@ -1,152 +1,405 @@
 from ..objective_function import ComboObjectiveFunction, BaseObjectiveFunction
 
-import dask.array as da
-
 import numpy as np
-from dask.distributed import Future, get_client, Client
+import scipy.sparse as sp
 from ..data_misfit import L2DataMisfit
+from simpeg.maps import IdentityMap
+from simpeg.meta.dask_sim import _validate_type_or_future_of_type, _reduce
+
+from operator import add
 
 
-@property
-def client(self):
-    if getattr(self, "_client", None) is None:
-        self._client = get_client()
-
-    return self._client
+def _calc_fields(objfct, model):
+    return objfct.simulation.fields(m=objfct.simulation.model)
 
 
-@client.setter
-def client(self, client):
-    assert isinstance(client, Client)
-    self._client = client
+def _calc_dpred(objfct, model, field):
+    return objfct.simulation.dpred(m=objfct.simulation.model, f=field)
 
 
-BaseObjectiveFunction.client = client
+def _calc_residual(objfct, model, field):
+    return objfct.W * (
+        objfct.data.dobs - objfct.simulation.dpred(m=objfct.simulation.model, f=field)
+    )
 
 
-def dask_call(self, m, f=None):
-    fcts = []
-    multipliers = []
-    for i, phi in enumerate(self):
-        multiplier, objfct = phi
-        if multiplier == 0.0:  # don't evaluate the fct
-            continue
-        else:
+def _deriv(objfct, multiplier, mapping, model, fields):
+    if fields is not None and objfct.has_fields:
+        return (
+            2
+            * multiplier
+            * mapping.deriv(model).T
+            @ objfct.deriv(objfct.simulation.model, f=fields)
+        )
+    else:
+        return (
+            2
+            * multiplier
+            * mapping.deriv(model).T
+            @ objfct.deriv(objfct.simulation.model)
+        )
 
-            if f is not None and objfct._has_fields:
-                fct = objfct(m, f=f[i])
-            else:
-                fct = objfct(m)
 
-            if isinstance(fct, Future):
-                future = self.client.compute(
-                    self.client.submit(da.multiply, multiplier, fct).result()
+def _deriv2(objfct, multiplier, mapping, model, v, fields):
+    sim_v = mapping.deriv(model) @ v
+    if fields is not None and objfct.has_fields:
+        return (
+            2
+            * multiplier
+            * mapping.deriv(model).T
+            @ objfct.deriv2(objfct.simulation.model, sim_v, f=fields)
+        )
+    else:
+        return (
+            2
+            * multiplier
+            * mapping.deriv(model).T
+            @ objfct.deriv2(objfct.simulation.model, sim_v)
+        )
+
+
+def _store_model(mapping, objfct, model):
+    objfct.simulation.model = mapping * model
+
+
+def _get_jtj_diag(mapping, objfct, model, field):
+    jtj = objfct.simulation.getJtJdiag(objfct.simulation.model, objfct.W, f=field)
+    sim_jtj = sp.diags(np.sqrt(jtj))
+    m_deriv = mapping.deriv(model)
+    return np.asarray((sim_jtj @ m_deriv).power(2).sum(axis=0)).flatten()
+
+
+class DaskComboMisfits(ComboObjectiveFunction):
+    """
+    A composite objective function for distributed computing.
+    """
+
+    def __init__(
+        self,
+        objfcts: list[BaseObjectiveFunction],
+        mappings: list[IdentityMap],
+        multipliers=None,
+        client: Client | None = None,
+        **kwargs,
+    ):
+        self._model: np.ndarray | None = None
+        self.client = client
+
+        super().__init__(objfcts=objfcts, multipliers=multipliers, **kwargs)
+
+        self.mappings = mappings
+        self._repeat_sim = False  # Flag to indicate if the simulation is repeated
+
+    def __call__(self, m, f=None):
+        self.model = m
+        client = self.client
+        m_future = self._m_as_future
+
+        if f is None:
+            f = self.fields(m)
+
+        values = []
+        for phi, field, worker in zip(self, f, self._workers):
+            multiplier, objfct = phi
+            if multiplier == 0.0:  # don't evaluate the fct
+                continue
+
+            values.append(
+                client.submit(
+                    _calc_objective, objfct, multiplier, m_future, field, workers=worker
                 )
-                fcts += [future]
-            else:
-                fcts += [fct]
+            )
 
-            multipliers += [multiplier]
+        return _reduce(client, add, values)
 
-    if isinstance(fcts[0], Future):
-        phi = self.client.submit(
-            da.sum, self.client.submit(da.vstack, fcts), axis=0
-        ).result()
-        return phi
-    else:
-        return np.sum(np.r_[multipliers][:, None] * np.vstack(fcts), axis=0).squeeze()
+    @property
+    def client(self):
+        """
+        Get the dask.distributed.Client instance.
+        """
+        return self._client
 
+    @client.setter
+    def client(self, client):
+        if not isinstance(client, Client):
+            raise TypeError("client must be a dask.distributed.Client")
 
-ComboObjectiveFunction.__call__ = dask_call
+        self._client = client
 
+    def deriv(self, m, f=None):
+        """
+        First derivative of the composite objective function is the sum of the
+        derivatives of each objective function in the list, weighted by their
+        respective multplier.
 
-def dask_deriv(self, m, f=None):
-    """
-    First derivative of the composite objective function is the sum of the
-    derivatives of each objective function in the list, weighted by their
-    respective multplier.
+        :param numpy.ndarray m: model
+        :param SimPEG.Fields f: Fields object (if applicable)
+        """
+        self.model = m
+        client = self.client
+        m_future = self._m_as_future
 
-    :param numpy.ndarray m: model
-    :param SimPEG.Fields f: Fields object (if applicable)
-    """
+        if f is None:
+            f = self.fields(m)
 
-    g = []
-    multipliers = []
-    for i, phi in enumerate(self):
-        multiplier, objfct = phi
-        if multiplier == 0.0:  # don't evaluate the fct
-            continue
-        else:
+        derivs = []
+        for multiplier, objfct, mapping, field, worker in zip(
+            self.multipliers, self._futures, self.mappings, f, self._workers
+        ):
+            if multiplier == 0.0:  # don't evaluate the fct
+                continue
 
-            if f is not None and isinstance(objfct, L2DataMisfit):
-                fct = objfct.deriv(m, f=f[i])
-            else:
-                fct = objfct.deriv(m)
-
-            if isinstance(fct, Future):
-                future = self.client.compute(
-                    self.client.submit(da.multiply, multiplier, fct)
+            derivs.append(
+                client.submit(
+                    _deriv, objfct, multiplier, mapping, m_future, field, workers=worker
                 )
-                g += [future]
-            else:
-                g += [fct]
+            )
 
-            multipliers += [multiplier]
+        return _reduce(client, add, derivs)
 
-    if isinstance(g[0], Future):
-        big_future = self.client.submit(
-            da.sum, self.client.submit(da.vstack, g), axis=0
-        ).result()
-        return self.client.compute(big_future).result()
+    def deriv2(self, m, v=None, f=None):
+        """
+        Second derivative of the composite objective function is the sum of the
+        second derivatives of each objective function in the list, weighted by
+        their respective multplier.
 
-    else:
-        return np.sum(np.r_[multipliers][:, None] * np.vstack(g), axis=0).squeeze()
+        :param numpy.ndarray m: model
+        :param numpy.ndarray v: vector we are multiplying by
+        :param SimPEG.Fields f: Fields object (if applicable)
+        """
+        self.model = m
+        client = self.client
+        m_future = self._m_as_future
+        [v_future] = client.scatter([v], broadcast=True)
 
+        if f is None:
+            f = self.fields(m)
 
-ComboObjectiveFunction.deriv = dask_deriv
+        derivs = []
+        for multiplier, objfct, mapping, field, worker in zip(
+            self.multipliers, self._futures, self.mappings, f, self._workers
+        ):
+            if multiplier == 0.0:  # don't evaluate the fct
+                continue
 
+            derivs.append(
+                client.submit(
+                    _deriv2,
+                    objfct,
+                    multiplier,
+                    mapping,
+                    m_future,
+                    v_future,
+                    field,
+                    workers=worker,
+                )
+            )
 
-def dask_deriv2(self, m, v=None, f=None):
-    """
-    Second derivative of the composite objective function is the sum of the
-    second derivatives of each objective function in the list, weighted by
-    their respective multplier.
+        return _reduce(client, add, derivs)
 
-    :param numpy.ndarray m: model
-    :param numpy.ndarray v: vector we are multiplying by
-    :param SimPEG.Fields f: Fields object (if applicable)
-    """
+    def get_dpred(self, m, f=None):
+        self.model = m
 
-    H = []
-    multipliers = []
-    for phi in self:
-        multiplier, objfct = phi
-        if multiplier == 0.0:  # don't evaluate the fct
-            continue
-        else:
-            fct = objfct.deriv2(m, v)
+        if f is None:
+            f = self.fields(m)
 
-            if isinstance(fct, Future):
-                future = self.client.submit(da.multiply, multiplier, fct)
-                H += [future]
-            else:
-                H += [fct]
+        client = self.client
+        m_future = self._m_as_future
+        dpred = []
+        for objfct, worker, field in zip(self._futures, self._workers, f):
+            dpred.append(
+                client.submit(
+                    _calc_dpred,
+                    objfct,
+                    m_future,
+                    field,
+                    workers=worker,
+                )
+            )
+        return client.gather(dpred)
 
-            multipliers += [multiplier]
+    def getJtJdiag(self, m, f=None):
+        self.model = m
+        m_future = self._m_as_future
+        if getattr(self, "_jtjdiag", None) is None:
 
-    if isinstance(H[0], Future):
-        big_future = self.client.submit(
-            da.sum, self.client.submit(da.vstack, H), axis=0
-        ).result()
+            jtj_diag = []
+            client = self.client
+            if f is None:
+                f = self.fields(m)
+            for mapping, objfct, worker, field in zip(
+                self.mappings, self._futures, self._workers, f
+            ):
+                jtj_diag.append(
+                    client.submit(
+                        _get_jtj_diag,
+                        mapping,
+                        objfct,
+                        m_future,
+                        field,
+                        workers=worker,
+                    )
+                )
+            self._jtjdiag = _reduce(client, add, jtj_diag)
 
-        return np.asarray(big_future)
+        return self._jtjdiag
 
-    else:
-        phi_deriv2 = 0
-        for multiplier, h in zip(multipliers, H):
-            phi_deriv2 += multiplier * h
+    def fields(self, m):
+        self.model = m
+        client = self.client
+        m_future = self._m_as_future
+        if getattr(self, "_stashed_fields", None) is not None:
+            return self._stashed_fields
+        # The above should pass the model to all the internal simulations.
+        f = []
+        for objfct, worker in zip(self._futures, self._workers):
+            f.append(
+                client.submit(
+                    _calc_fields,
+                    objfct,
+                    m_future,
+                    workers=worker,
+                )
+            )
+        self._stashed_fields = f
+        return f
 
-        return phi_deriv2
+    @property
+    def mappings(self):
+        """The future mappings paired to each data misfit.
 
+        Every mapping should accept the same length model, and output
+        a model that is consistent with the simulation.
 
-ComboObjectiveFunction.deriv2 = dask_deriv2
+        Returns
+        -------
+        (n_sim) list of distributed.Future simpeg.maps.IdentityMap
+        """
+        return self._mappings
+
+    @mappings.setter
+    def mappings(self, value):
+        client = self.client
+
+        workers = self._workers
+        if len(value) != len(self.objfcts):
+            raise ValueError(
+                "Must provide the same number of mappings and simulations."
+            )
+        mappings = _validate_type_or_future_of_type(
+            "mappings", value, IdentityMap, client, workers=workers
+        )
+
+        # validate mapping shapes and simulation shapes
+        model_len = client.submit(lambda v: v.shape[1], mappings[0]).result()
+
+        def check_mapping(mapping, objfct, model_len):
+            if mapping.shape[1] != model_len:
+                # Bad mapping model length
+                return 1
+            map_out_shape = mapping.shape[0]
+            for name in objfct.simulation._act_map_names:
+                sim_mapping = getattr(objfct.simulation, name)
+                sim_in_shape = sim_mapping.shape[1]
+                if (
+                    map_out_shape != "*"
+                    and sim_in_shape != "*"
+                    and sim_in_shape != map_out_shape
+                ):
+                    # Inconsistent simulation input and mapping output
+                    return 2
+            # All good
+            return 0
+
+        error_checks = []
+        for mapping, objfct, worker in zip(mappings, self._futures, workers):
+            # if it was a repeat objfct, this should cause the simulation to be transfered
+            # to each worker.
+            error_checks.append(
+                client.submit(check_mapping, mapping, objfct, model_len, workers=worker)
+            )
+        error_checks = np.asarray(client.gather(error_checks))
+
+        if np.any(error_checks == 1):
+            raise ValueError("All mappings must have the same input length")
+        if np.any(error_checks == 2):
+            raise ValueError(
+                f"Simulations and mappings at indices {np.where(error_checks == 2)}"
+                f" are inconsistent."
+            )
+
+        self._mappings = mappings
+
+    @property
+    def model(self):
+        return self._model
+
+    @model.setter
+    def model(self, value):
+        # Only send the model to the internal simulations if it was updated.
+        if value is self.model:
+            return
+
+        client = self.client
+        [self._m_as_future] = client.scatter([value], broadcast=True)
+
+        futures = []
+        for mapping, objfct, worker in zip(self.mappings, self._futures, self._workers):
+            futures.append(
+                client.submit(
+                    _store_model,
+                    mapping,
+                    objfct,
+                    self._m_as_future,
+                    workers=worker,
+                )
+            )
+        self.client.gather(futures)  # blocking call to ensure all models were stored
+
+    @property
+    def objfcts(self):
+        return self._objfcts
+
+    @objfcts.setter
+    def objfcts(self, objfcts):
+        client = self.client
+
+        futures, workers = _validate_type_or_future_of_type(
+            "objfcts", objfcts, L2DataMisfit, client, return_workers=True
+        )
+        for objfct, future in zip(objfcts, futures):
+            if hasattr(objfct, "name"):
+                future.name = objfct.name
+
+        self._objfcts = objfcts
+        self._futures = futures
+        self._workers = workers
+
+    def residuals(self, m, f=None):
+        """
+        Compute the residual for the data misfit.
+        """
+        self.model = m
+        if f is None:
+            f = self.fields(m)
+        client = self.client
+        m_future = self._m_as_future
+        residuals = []
+        for objfct, worker, field in zip(self._futures, self._workers, f):
+            residuals.append(
+                client.submit(
+                    _calc_residual,
+                    objfct,
+                    m_future,
+                    field,
+                    workers=worker,
+                )
+            )
+        return client.gather(residuals)
+
+    @property
+    def workers(self):
+        """
+        Get the list of dask.distributed.workers associated with the objective functions.
+        """
+        return self._workers

@@ -1,26 +1,21 @@
 from ..inverse_problem import BaseInvProblem
 import numpy as np
 
-from dask.distributed import get_client, Future
+from .objective_function import DaskComboMisfits
 from scipy.sparse.linalg import LinearOperator
 from ..regularization import WeightedLeastSquares, Sparse
-
 from ..objective_function import ComboObjectiveFunction
 
 
 def get_dpred(self, m, f=None):
     dpreds = []
 
-    for objfct in self.dmisfit.objfcts:
-        dpred = objfct.simulation.dpred(m)
-        dpreds += [dpred]
+    if isinstance(self.dmisfit, DaskComboMisfits):
+        return self.dmisfit.get_dpred(m, f=f)
 
-    if isinstance(dpreds[0], Future):
-        client = get_client()
-        dpreds = client.gather(dpreds)
-    else:
-        for i, dpred in enumerate(dpreds):
-            dpreds[i] = np.asarray(dpred)
+    for objfct in self.dmisfit.objfcts:
+        dpred = objfct.simulation.dpred(m, f=f)
+        dpreds += [np.asarray(dpred)]
 
     return dpreds
 
@@ -34,9 +29,15 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
 
     self.dpred = self.get_dpred(m)
 
-    phi_d = 0
-    for (_, objfct), pred in zip(self.dmisfit, self.dpred):
-        residual = objfct.W * (objfct.data.dobs - pred)
+    residuals = []
+    if isinstance(self.dmisfit, DaskComboMisfits):
+        residuals = self.dmisfit.residuals(m)
+    else:
+        for (_, objfct), pred in zip(self.dmisfit, self.dpred):
+            residuals.append(objfct.W * (objfct.data.dobs - pred))
+
+    phi_d = 0.0
+    for residual in residuals:
         phi_d += np.vdot(residual, residual)
 
     reg2Deriv = []

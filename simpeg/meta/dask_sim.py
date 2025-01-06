@@ -162,7 +162,7 @@ class DaskMetaSimulation(MetaSimulation):
 
     def __init__(self, simulations, mappings, client):
         self._client = validate_type("client", client, Client, cast=False)
-        self._concrete_simulations = None
+
         super().__init__(simulations, mappings)
 
     def _make_survey(self):
@@ -188,7 +188,7 @@ class DaskMetaSimulation(MetaSimulation):
     @simulations.setter
     def simulations(self, value):
         client = self.client
-        self._concrete_simulations = client.gather(value)
+
         simulations, workers = _validate_type_or_future_of_type(
             "simulations", value, BaseSimulation, client, return_workers=True
         )
