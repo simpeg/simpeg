@@ -1,9 +1,8 @@
 from ..objective_function import ComboObjectiveFunction, BaseObjectiveFunction
 
 import numpy as np
-import scipy.sparse as sp
+from dask.distributed import Client
 from ..data_misfit import L2DataMisfit
-from simpeg.maps import IdentityMap
 from simpeg.meta.dask_sim import _validate_type_or_future_of_type, _reduce
 
 from operator import add
@@ -23,50 +22,27 @@ def _calc_residual(objfct, model, field):
     )
 
 
-def _deriv(objfct, multiplier, mapping, model, fields):
+def _deriv(objfct, multiplier, model, fields):
     if fields is not None and objfct.has_fields:
-        return (
-            2
-            * multiplier
-            * mapping.deriv(model).T
-            @ objfct.deriv(objfct.simulation.model, f=fields)
-        )
+        return 2 * multiplier * objfct.deriv(objfct.simulation.model, f=fields)
     else:
-        return (
-            2
-            * multiplier
-            * mapping.deriv(model).T
-            @ objfct.deriv(objfct.simulation.model)
-        )
+        return 2 * multiplier * objfct.deriv(objfct.simulation.model)
 
 
-def _deriv2(objfct, multiplier, mapping, model, v, fields):
-    sim_v = mapping.deriv(model) @ v
+def _deriv2(objfct, multiplier, model, v, fields):
     if fields is not None and objfct.has_fields:
-        return (
-            2
-            * multiplier
-            * mapping.deriv(model).T
-            @ objfct.deriv2(objfct.simulation.model, sim_v, f=fields)
-        )
+        return 2 * multiplier * objfct.deriv2(objfct.simulation.model, v, f=fields)
     else:
-        return (
-            2
-            * multiplier
-            * mapping.deriv(model).T
-            @ objfct.deriv2(objfct.simulation.model, sim_v)
-        )
+        return 2 * multiplier * objfct.deriv2(objfct.simulation.model, v)
 
 
-def _store_model(mapping, objfct, model):
-    objfct.simulation.model = mapping * model
+def _store_model(objfct, model):
+    objfct.simulation.model = model
 
 
-def _get_jtj_diag(mapping, objfct, model, field):
+def _get_jtj_diag(objfct, model, field):
     jtj = objfct.simulation.getJtJdiag(objfct.simulation.model, objfct.W, f=field)
-    sim_jtj = sp.diags(np.sqrt(jtj))
-    m_deriv = mapping.deriv(model)
-    return np.asarray((sim_jtj @ m_deriv).power(2).sum(axis=0)).flatten()
+    return jtj.flatten()
 
 
 class DaskComboMisfits(ComboObjectiveFunction):
@@ -77,7 +53,6 @@ class DaskComboMisfits(ComboObjectiveFunction):
     def __init__(
         self,
         objfcts: list[BaseObjectiveFunction],
-        mappings: list[IdentityMap],
         multipliers=None,
         client: Client | None = None,
         **kwargs,
@@ -86,9 +61,6 @@ class DaskComboMisfits(ComboObjectiveFunction):
         self.client = client
 
         super().__init__(objfcts=objfcts, multipliers=multipliers, **kwargs)
-
-        self.mappings = mappings
-        self._repeat_sim = False  # Flag to indicate if the simulation is repeated
 
     def __call__(self, m, f=None):
         self.model = m
@@ -143,15 +115,15 @@ class DaskComboMisfits(ComboObjectiveFunction):
             f = self.fields(m)
 
         derivs = []
-        for multiplier, objfct, mapping, field, worker in zip(
-            self.multipliers, self._futures, self.mappings, f, self._workers
+        for multiplier, objfct, field, worker in zip(
+            self.multipliers, self._futures, f, self._workers
         ):
             if multiplier == 0.0:  # don't evaluate the fct
                 continue
 
             derivs.append(
                 client.submit(
-                    _deriv, objfct, multiplier, mapping, m_future, field, workers=worker
+                    _deriv, objfct, multiplier, m_future, field, workers=worker
                 )
             )
 
@@ -176,8 +148,8 @@ class DaskComboMisfits(ComboObjectiveFunction):
             f = self.fields(m)
 
         derivs = []
-        for multiplier, objfct, mapping, field, worker in zip(
-            self.multipliers, self._futures, self.mappings, f, self._workers
+        for multiplier, objfct, field, worker in zip(
+            self.multipliers, self._futures, f, self._workers
         ):
             if multiplier == 0.0:  # don't evaluate the fct
                 continue
@@ -187,7 +159,6 @@ class DaskComboMisfits(ComboObjectiveFunction):
                     _deriv2,
                     objfct,
                     multiplier,
-                    mapping,
                     m_future,
                     v_future,
                     field,
@@ -227,13 +198,10 @@ class DaskComboMisfits(ComboObjectiveFunction):
             client = self.client
             if f is None:
                 f = self.fields(m)
-            for mapping, objfct, worker, field in zip(
-                self.mappings, self._futures, self._workers, f
-            ):
+            for objfct, worker, field in zip(self._futures, self._workers, f):
                 jtj_diag.append(
                     client.submit(
                         _get_jtj_diag,
-                        mapping,
                         objfct,
                         m_future,
                         field,
@@ -265,72 +233,6 @@ class DaskComboMisfits(ComboObjectiveFunction):
         return f
 
     @property
-    def mappings(self):
-        """The future mappings paired to each data misfit.
-
-        Every mapping should accept the same length model, and output
-        a model that is consistent with the simulation.
-
-        Returns
-        -------
-        (n_sim) list of distributed.Future simpeg.maps.IdentityMap
-        """
-        return self._mappings
-
-    @mappings.setter
-    def mappings(self, value):
-        client = self.client
-
-        workers = self._workers
-        if len(value) != len(self.objfcts):
-            raise ValueError(
-                "Must provide the same number of mappings and simulations."
-            )
-        mappings = _validate_type_or_future_of_type(
-            "mappings", value, IdentityMap, client, workers=workers
-        )
-
-        # validate mapping shapes and simulation shapes
-        model_len = client.submit(lambda v: v.shape[1], mappings[0]).result()
-
-        def check_mapping(mapping, objfct, model_len):
-            if mapping.shape[1] != model_len:
-                # Bad mapping model length
-                return 1
-            map_out_shape = mapping.shape[0]
-            for name in objfct.simulation._act_map_names:
-                sim_mapping = getattr(objfct.simulation, name)
-                sim_in_shape = sim_mapping.shape[1]
-                if (
-                    map_out_shape != "*"
-                    and sim_in_shape != "*"
-                    and sim_in_shape != map_out_shape
-                ):
-                    # Inconsistent simulation input and mapping output
-                    return 2
-            # All good
-            return 0
-
-        error_checks = []
-        for mapping, objfct, worker in zip(mappings, self._futures, workers):
-            # if it was a repeat objfct, this should cause the simulation to be transfered
-            # to each worker.
-            error_checks.append(
-                client.submit(check_mapping, mapping, objfct, model_len, workers=worker)
-            )
-        error_checks = np.asarray(client.gather(error_checks))
-
-        if np.any(error_checks == 1):
-            raise ValueError("All mappings must have the same input length")
-        if np.any(error_checks == 2):
-            raise ValueError(
-                f"Simulations and mappings at indices {np.where(error_checks == 2)}"
-                f" are inconsistent."
-            )
-
-        self._mappings = mappings
-
-    @property
     def model(self):
         return self._model
 
@@ -340,15 +242,17 @@ class DaskComboMisfits(ComboObjectiveFunction):
         if value is self.model:
             return
 
+        self._stashed_fields = None
+        self._jtjdiag = None
+
         client = self.client
         [self._m_as_future] = client.scatter([value], broadcast=True)
 
         futures = []
-        for mapping, objfct, worker in zip(self.mappings, self._futures, self._workers):
+        for objfct, worker in zip(self._futures, self._workers):
             futures.append(
                 client.submit(
                     _store_model,
-                    mapping,
                     objfct,
                     self._m_as_future,
                     workers=worker,
