@@ -24,16 +24,16 @@ def _calc_residual(objfct, model, field):
 
 def _deriv(objfct, multiplier, model, fields):
     if fields is not None and objfct.has_fields:
-        return 2 * multiplier * objfct.deriv(objfct.simulation.model, f=fields)
+        return multiplier * objfct.deriv(objfct.simulation.model, f=fields)
     else:
-        return 2 * multiplier * objfct.deriv(objfct.simulation.model)
+        return multiplier * objfct.deriv(objfct.simulation.model)
 
 
 def _deriv2(objfct, multiplier, model, v, fields):
     if fields is not None and objfct.has_fields:
-        return 2 * multiplier * objfct.deriv2(objfct.simulation.model, v, f=fields)
+        return multiplier * objfct.deriv2(objfct.simulation.model, v, f=fields)
     else:
-        return 2 * multiplier * objfct.deriv2(objfct.simulation.model, v)
+        return multiplier * objfct.deriv2(objfct.simulation.model, v)
 
 
 def _store_model(objfct, model):
@@ -229,7 +229,7 @@ class DaskComboMisfits(ComboObjectiveFunction):
                     workers=worker,
                 )
             )
-        self._stashed_fields = f
+        self._stashed_fields = client.compute(f)
         return f
 
     @property
