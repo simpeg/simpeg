@@ -126,8 +126,8 @@ class DaskComboMisfits(ComboObjectiveFunction):
                     _deriv, objfct, multiplier, m_future, field, workers=worker
                 )
             )
-
-        return _reduce(client, add, derivs)
+        derivs = _reduce(client, add, derivs)
+        return derivs
 
     def deriv2(self, m, v=None, f=None):
         """
@@ -166,7 +166,9 @@ class DaskComboMisfits(ComboObjectiveFunction):
                 )
             )
 
-        return _reduce(client, add, derivs)
+        derivs = _reduce(client, add, derivs)
+
+        return derivs
 
     def get_dpred(self, m, f=None):
         self.model = m
@@ -229,7 +231,7 @@ class DaskComboMisfits(ComboObjectiveFunction):
                     workers=worker,
                 )
             )
-        self._stashed_fields = client.compute(f)
+        self._stashed_fields = f
         return f
 
     @property
@@ -259,6 +261,7 @@ class DaskComboMisfits(ComboObjectiveFunction):
                 )
             )
         self.client.gather(futures)  # blocking call to ensure all models were stored
+        self._model = value
 
     @property
     def objfcts(self):

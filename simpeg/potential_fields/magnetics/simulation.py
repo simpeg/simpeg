@@ -246,8 +246,7 @@ class Simulation3DIntegral(BasePFSimulation):
         if getattr(self, "_gtg_diagonal", None) is None:
             diag = np.zeros(self.Jmatrix.shape[1])
             if not self.is_amplitude_data:
-                for i in range(len(W)):
-                    diag += W[i] * (self.Jmatrix[i] * self.Jmatrix[i])
+                diag = np.einsum("i,ij,ij->j", W, self.Jmatrix, self.Jmatrix)
             else:
                 ampDeriv = self.ampDeriv
                 Gx = self.Jmatrix[::3]
