@@ -4,7 +4,7 @@ import os
 from ....electromagnetics.time_domain.simulation import BaseTDEMSimulation as Sim
 
 from ....utils import Zero
-from ...simulation import getJtJdiag, Jvec, Jtvec, Jmatrix
+from ...simulation import client, getJtJdiag, Jvec, Jtvec, Jmatrix
 from simpeg.fields import TimeFields
 from multiprocessing import cpu_count
 import numpy as np
@@ -15,7 +15,6 @@ from simpeg.dask.utils import get_parallel_blocks
 from simpeg.utils import mkvc
 
 from time import time
-from tqdm import tqdm
 
 
 def fields(self, m=None):
@@ -60,10 +59,29 @@ def getSourceTerm(self, tInd):
     source_block = np.array_split(source_list, cpu_count())
 
     block_compute = []
-    for block in source_block:
-        block_compute.append(source_evaluation(self, block, self.times[tInd]))
 
-    blocks = dask.compute(block_compute)[0]
+    if self.client:
+        sim = self.client.scatter(self)
+    else:
+        delayed_source_eval = delayed(source_evaluation)
+
+    for block in source_block:
+        if self.client:
+            block_compute.append(
+                self.client.submit(
+                    source_evaluation,
+                    sim,
+                    block,
+                    self.times[tInd],
+                )
+            )
+        else:
+            block_compute.append(delayed_source_eval(self, block, self.times[tInd]))
+
+    if self.client:
+        blocks = self.client.gather(block_compute)
+    else:
+        blocks = dask.compute(block_compute)[0]
 
     s_m, s_e = [], []
     for block in blocks:
@@ -77,62 +95,62 @@ def getSourceTerm(self, tInd):
     return np.vstack(s_m).T, np.vstack(s_e).T
 
 
-def dpred(self, m=None, f=None):
-    r"""
-    dpred(m, f=None)
-    Create the projected data from a model.
-    The fields, f, (if provided) will be used for the predicted data
-    instead of recalculating the fields (which may be expensive!).
-
-    .. math::
-
-        d_\\text{pred} = P(f(m))
-
-    Where P is a projection of the fields onto the data space.
-    """
-    if self.survey is None:
-        raise AttributeError(
-            "The survey has not yet been set and is required to compute "
-            "data. Please set the survey for the simulation: "
-            "simulation.survey = survey"
-        )
-
-    if f is None:
-        if m is None:
-            m = self.model
-        f = self.fields(m)
-
-    rows = []
-    receiver_projection = self.survey.source_list[0].receiver_list[0].projField
-    fields_array = f[:, receiver_projection, :]
-
-    if len(self.survey.source_list) == 1:
-        fields_array = fields_array[:, np.newaxis, :]
-
-    all_receivers = []
-
-    for ind, src in enumerate(self.survey.source_list):
-        for rx in src.receiver_list:
-            all_receivers.append((src, ind, rx))
-
-    receiver_blocks = np.array_split(all_receivers, cpu_count())
-
-    for block in receiver_blocks:
-        n_data = np.sum([rec.nD for _, _, rec in block])
-        if n_data == 0:
-            continue
-
-        rows.append(
-            array.from_delayed(
-                evaluate_receivers(block, self.mesh, self.time_mesh, f, fields_array),
-                dtype=np.float64,
-                shape=(n_data,),
-            )
-        )
-
-    data = array.hstack(rows).compute()
-
-    return data
+# def dpred(self, m=None, f=None):
+#     r"""
+#     dpred(m, f=None)
+#     Create the projected data from a model.
+#     The fields, f, (if provided) will be used for the predicted data
+#     instead of recalculating the fields (which may be expensive!).
+#
+#     .. math::
+#
+#         d_\\text{pred} = P(f(m))
+#
+#     Where P is a projection of the fields onto the data space.
+#     """
+#     if self.survey is None:
+#         raise AttributeError(
+#             "The survey has not yet been set and is required to compute "
+#             "data. Please set the survey for the simulation: "
+#             "simulation.survey = survey"
+#         )
+#
+#     if f is None:
+#         if m is None:
+#             m = self.model
+#         f = self.fields(m)
+#
+#     rows = []
+#     receiver_projection = self.survey.source_list[0].receiver_list[0].projField
+#     fields_array = f[:, receiver_projection, :]
+#
+#     if len(self.survey.source_list) == 1:
+#         fields_array = fields_array[:, np.newaxis, :]
+#
+#     all_receivers = []
+#
+#     for ind, src in enumerate(self.survey.source_list):
+#         for rx in src.receiver_list:
+#             all_receivers.append((src, ind, rx))
+#
+#     receiver_blocks = np.array_split(all_receivers, cpu_count())
+#
+#     for block in receiver_blocks:
+#         n_data = np.sum([rec.nD for _, _, rec in block])
+#         if n_data == 0:
+#             continue
+#
+#         rows.append(
+#             array.from_delayed(
+#                 evaluate_receivers(block, self.mesh, self.time_mesh, f, fields_array),
+#                 dtype=np.float64,
+#                 shape=(n_data,),
+#             )
+#         )
+#
+#     data = array.hstack(rows).compute()
+#
+#     return data
 
 
 def compute_J(self, m, f=None):
@@ -174,7 +192,14 @@ def compute_J(self, m, f=None):
     )
 
     ATinv_df_duT_v = {}
-    for tInd, dt in tqdm(zip(reversed(range(self.nT)), reversed(self.time_steps))):
+
+    if self.client:
+        fields_array = self.client.scatter(fields_array)
+        sim = self.client.scatter(self)
+    else:
+        delayed_compute_rows = delayed(compute_rows)
+
+    for tInd, dt in zip(reversed(range(self.nT)), reversed(self.time_steps)):
         AdiagTinv = self.Ainv[dt]
         j_row_updates = []
         time_mask = data_times > simulation_times[tInd]
@@ -190,35 +215,54 @@ def compute_J(self, m, f=None):
             if len(block) == 0:
                 continue
 
-            j_row_updates.append(
-                array.from_delayed(
-                    compute_rows(
-                        self,
+            if self.client:
+                j_row_updates.append(
+                    self.client.submit(
+                        compute_rows,
+                        sim,
                         tInd,
                         block,
                         ATinv_df_duT_v,
                         fields_array,
                         time_mask,
-                    ),
-                    dtype=np.float32,
-                    shape=(
-                        np.sum([len(chunk[1][0]) for chunk in block]),
-                        m.size,
-                    ),
+                    )
                 )
-            )
+            else:
+                j_row_updates.append(
+                    array.from_delayed(
+                        delayed_compute_rows(
+                            self,
+                            tInd,
+                            block,
+                            ATinv_df_duT_v,
+                            fields_array,
+                            time_mask,
+                        ),
+                        dtype=np.float32,
+                        shape=(
+                            np.sum([len(chunk[1][0]) for chunk in block]),
+                            m.size,
+                        ),
+                    )
+                )
+
+        if self.client:
+            j_row_updates = np.vstack(self.client.gather(j_row_updates))
+
+        else:
+            j_row_updates = array.vstack(j_row_updates).compute()
 
         if self.store_sensitivities == "disk":
             sens_name = self.sensitivity_path[:-5] + f"_{tInd % 2}.zarr"
             array.to_zarr(
-                Jmatrix + array.vstack(j_row_updates),
+                Jmatrix + j_row_updates,
                 sens_name,
                 compute=True,
                 overwrite=True,
             )
             Jmatrix = array.from_zarr(sens_name)
         else:
-            Jmatrix += array.vstack(j_row_updates).compute()
+            Jmatrix += j_row_updates
 
     for A in self.Ainv.values():
         A.clean()
@@ -268,25 +312,51 @@ def _getField(self, name, ind, src_list):
         else:  # loop over the time steps
             arrays = []
 
-            for i, TIND_i in enumerate(timeII):  # Need to parallelize this
-                arrays.append(
-                    array.from_delayed(
-                        field_projection(pointerFields, src_list, i, TIND_i, func),
-                        dtype=np.float32,
-                        shape=(pointerShape[0], pointerShape[1], 1),
-                    )
-                )
+            if self.client:
+                pointerFields = self.client.scatter(pointerFields)
+                src_list = self.client.scatter(src_list)
+                func = self.client.scatter(func)
+            else:
+                delayed_field_comp = delayed(field_projection)
 
-            out = array.dstack(arrays).compute()
+            for i, TIND_i in enumerate(timeII):  # Need to parallelize this
+
+                if self.client:
+                    arrays.append(
+                        self.client.submit(
+                            field_projection,
+                            pointerFields,
+                            src_list,
+                            i,
+                            TIND_i,
+                            func,
+                        )
+                    )
+                else:
+                    arrays.append(
+                        array.from_delayed(
+                            delayed_field_comp(
+                                pointerFields, src_list, i, TIND_i, func
+                            ),
+                            dtype=np.float32,
+                            shape=(pointerShape[0], pointerShape[1], 1),
+                        )
+                    )
+
+            if self.client:
+                arrays = self.client.gather(arrays)
+                out = np.dstack(arrays)
+            else:
+                out = array.dstack(arrays).compute()
 
     shape = self._correctShape(name, ind, deflate=True)
     return out.reshape(shape, order="F")
 
 
-TimeFields._getField = _getField
+# TimeFields._getField = _getField
+TimeFields.client = client
 
 
-@delayed
 def field_projection(field_array, src_list, array_ind, time_ind, func):
     fieldI = field_array[:, :, array_ind]
     if fieldI.shape[0] == fieldI.size:
@@ -300,7 +370,6 @@ def field_projection(field_array, src_list, array_ind, time_ind, func):
     return new_array
 
 
-@delayed
 def source_evaluation(simulation, sources, time_channel):
     s_m, s_e = [], []
     for source in sources:
@@ -311,7 +380,6 @@ def source_evaluation(simulation, sources, time_channel):
     return s_m, s_e
 
 
-@delayed
 def evaluate_receivers(block, mesh, time_mesh, fields, fields_array):
     data = []
     for _, ind, receiver in block:
@@ -324,31 +392,61 @@ def evaluate_receivers(block, mesh, time_mesh, fields, fields_array):
     return np.hstack(data)
 
 
-def compute_field_derivs(simulation, fields, blocks, Jmatrix, fields_shape):
+def compute_field_derivs(self, fields, blocks, Jmatrix, fields_shape):
     """
     Compute the derivative of the fields
     """
     delayed_chunks = []
+
+    if self.client:
+        mesh = self.client.scatter(self.mesh)
+        time_mesh = self.client.scatter(self.time_mesh)
+        fields = self.client.scatter(fields)
+    else:
+        mesh = self.mesh
+        time_mesh = self.time_mesh
+        delayed_block_deriv = delayed(block_deriv)
+
     for chunks in blocks:
         if len(chunks) == 0:
             continue
 
-        delayed_block = delayed_block_deriv(
-            simulation.nT,
-            chunks,
-            fields_shape[0],
-            simulation.survey.source_list,
-            simulation.mesh,
-            simulation.time_mesh,
-            fields,
-            simulation.model.size,
-        )
-        delayed_chunks.append(delayed_block)
+        if self.client:
+            delayed_chunks.append(
+                self.client.submit(
+                    block_deriv,
+                    self.nT,
+                    chunks,
+                    fields_shape[0],
+                    self.survey.source_list,
+                    mesh,
+                    time_mesh,
+                    fields,
+                    self.model.size,
+                )
+            )
+        else:
+            delayed_chunks.append(
+                delayed_block_deriv(
+                    self.nT,
+                    chunks,
+                    fields_shape[0],
+                    self.survey.source_list,
+                    self.mesh,
+                    self.time_mesh,
+                    fields,
+                    self.model.size,
+                )
+            )
 
-    result = dask.compute(delayed_chunks)[0]
+    if self.client:
+        result = self.client.gather(delayed_chunks)
+    else:
+        result = dask.compute(delayed_chunks)[0]
+
     df_duT = [
         [[[] for _ in block] for block in blocks if len(block) > 0]
-        for _ in range(simulation.nT + 1)
+        for _ in range(self.nT + 1)
     ]
     j_updates = []
 
@@ -362,8 +460,8 @@ def compute_field_derivs(simulation, fields, blocks, Jmatrix, fields_shape):
 
     if len(j_updates.data) > 0:
         Jmatrix += j_updates
-        if simulation.store_sensitivities == "disk":
-            sens_name = simulation.sensitivity_path[:-5] + f"_{time() % 2}.zarr"
+        if self.store_sensitivities == "disk":
+            sens_name = self.sensitivity_path[:-5] + f"_{time() % 2}.zarr"
             array.to_zarr(Jmatrix, sens_name, compute=True, overwrite=True)
             Jmatrix = array.from_zarr(sens_name)
 
@@ -385,7 +483,7 @@ def update_deriv_blocks(address, indices, derivatives, solve, shape):
 
 
 def get_field_deriv_block(
-    simulation,
+    self,
     block: list,
     field_derivs: list,
     tInd: int,
@@ -401,9 +499,10 @@ def get_field_deriv_block(
     count = 0
 
     Asubdiag = None
-    if tInd < simulation.nT - 1:
-        Asubdiag = simulation.getAsubdiag(tInd + 1)
+    if tInd < self.nT - 1:
+        Asubdiag = self.getAsubdiag(tInd + 1)
 
+    delayed_deriv = delayed(deriv_block)
     for ((s_id, r_id, b_id), (rx_ind, _, shape)), field_deriv in zip(
         block, field_derivs
     ):
@@ -419,28 +518,49 @@ def get_field_deriv_block(
             local_ind,
         )
         count += len(local_ind)
-        deriv_comp = deriv_block(
-            s_id,
-            r_id,
-            b_id,
-            ATinv_df_duT_v,
-            Asubdiag,
-            local_ind,
-            field_deriv,
-            tInd,
-        )
-        stacked_blocks.append(
-            array.from_delayed(
-                deriv_comp,
-                dtype=float,
-                shape=(
-                    field_deriv.shape[0],
-                    len(local_ind),
-                ),
+
+        if self.client:
+            stacked_blocks.append(
+                self.client.submit(
+                    deriv_block,
+                    s_id,
+                    r_id,
+                    b_id,
+                    ATinv_df_duT_v,
+                    Asubdiag,
+                    local_ind,
+                    field_deriv,
+                    tInd,
+                )
             )
-        )
+        else:
+            deriv_comp = delayed_deriv(
+                s_id,
+                r_id,
+                b_id,
+                ATinv_df_duT_v,
+                Asubdiag,
+                local_ind,
+                field_deriv,
+                tInd,
+            )
+            stacked_blocks.append(
+                array.from_delayed(
+                    deriv_comp,
+                    dtype=float,
+                    shape=(
+                        field_deriv.shape[0],
+                        len(local_ind),
+                    ),
+                )
+            )
     if len(stacked_blocks) > 0:
-        blocks = array.hstack(stacked_blocks).compute()
+
+        if self.client:
+            blocks = np.hstack(self.client.gather(stacked_blocks))
+        else:
+            blocks = array.hstack(stacked_blocks).compute()
+
         solve = (AdiagTinv * blocks).reshape(blocks.shape)
     else:
         solve = None
@@ -456,8 +576,7 @@ def get_field_deriv_block(
     return ATinv_df_duT_v
 
 
-@delayed
-def delayed_block_deriv(
+def block_deriv(
     n_times, chunks, field_len, source_list, mesh, time_mesh, fields, shape
 ):
     """Compute derivatives for sources and receivers in a block"""
@@ -504,7 +623,6 @@ def delayed_block_deriv(
     return df_duT, j_updates
 
 
-@delayed
 def deriv_block(
     s_id, r_id, b_id, ATinv_df_duT_v, Asubdiag, local_ind, field_derivs, tInd
 ):
@@ -521,7 +639,6 @@ def deriv_block(
     return stacked_block
 
 
-@delayed
 def compute_rows(
     simulation,
     tInd,
@@ -575,10 +692,11 @@ def compute_rows(
     return np.vstack(rows)
 
 
+Sim.client = client
 Sim.fields = fields
 Sim.getJtJdiag = getJtJdiag
 Sim.getSourceTerm = getSourceTerm
-Sim.dpred = dpred
+# Sim.dpred = dpred
 Sim.compute_J = compute_J
 Sim.getJtJdiag = getJtJdiag
 Sim.Jvec = Jvec

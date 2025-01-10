@@ -1,3 +1,5 @@
+import gc
+
 from ....electromagnetics.frequency_domain.simulation import BaseFDEMSimulation as Sim
 from ....utils import Zero
 from ...simulation import getJtJdiag, Jvec, Jtvec, Jmatrix
@@ -304,7 +306,7 @@ def compute_J(self, m, f=None):
         A.clean()
 
     del self.Ainv
-
+    gc.collect()
     if self.store_sensitivities == "disk":
         del Jmatrix
         Jmatrix = array.from_zarr(self.sensitivity_path)
