@@ -168,33 +168,35 @@ def dpred(self, m=None, f=None):
             m = self.model
         f = self.fields(m)
 
-    all_receivers = []
-
-    for ind, src in enumerate(self.survey.source_list):
-        for rx in src.receiver_list:
-            all_receivers.append((src, ind, rx))
-
     if self.client:
         f = self.client.scatter(f)
         mesh = self.client.scatter(self.mesh)
+    else:
+        mesh = delayed(self.mesh)
+        delayed_block_eval = delayed(evaluate_receivers)
 
-    receiver_blocks = np.array_split(np.asarray(all_receivers), cpu_count())
     rows = []
-    for block in receiver_blocks:
-        n_data = np.sum([rec.nD for _, _, rec in block])
-        if n_data == 0:
-            continue
+    for ind, src in enumerate(self.survey.source_list):
+        for rx in src.receiver_list:
+            block = [(src, ind, rx)]
 
-        if self.client:
-            rows.append(self.client.submit(evaluate_receivers, block, mesh, f))
-        else:
-            rows.append(
-                array.from_delayed(
-                    delayed(evaluate_receivers, block, mesh, f),
-                    dtype=np.float64,
-                    shape=(n_data,),
+            # receiver_blocks = np.array_split(np.asarray(all_receivers), cpu_count())
+            # rows = []
+            # for block in receiver_blocks:
+            #         n_data = np.sum([rec.nD for _, _, rec in block])
+            if rx.nD == 0:
+                continue
+
+            if self.client:
+                rows.append(self.client.submit(evaluate_receivers, block, mesh, f))
+            else:
+                rows.append(
+                    array.from_delayed(
+                        delayed_block_eval(block, mesh, f),
+                        dtype=np.float64,
+                        shape=(rx.nD,),
+                    )
                 )
-            )
 
     if self.client:
         data = np.hstack(self.client.gather(rows))
@@ -387,5 +389,5 @@ Sim.Jvec = Jvec
 Sim.Jtvec = Jtvec
 Sim.Jmatrix = Jmatrix
 Sim.fields = fields
-Sim.dpred = dpred
+# Sim.dpred = dpred
 Sim.getSourceTerm = getSourceTerm

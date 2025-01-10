@@ -241,7 +241,11 @@ class DaskComboMisfits(ComboObjectiveFunction):
     @model.setter
     def model(self, value):
         # Only send the model to the internal simulations if it was updated.
-        if value is self.model:
+        if (
+            isinstance(value, np.ndarray)
+            and isinstance(self.model, np.ndarray)
+            and np.allclose(value, self.model)
+        ):
             return
 
         self._stashed_fields = None

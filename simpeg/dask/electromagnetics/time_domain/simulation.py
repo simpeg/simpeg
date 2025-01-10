@@ -4,6 +4,7 @@ import os
 from ....electromagnetics.time_domain.simulation import BaseTDEMSimulation as Sim
 
 from ....utils import Zero
+from ...simulation import getJtJdiag, Jvec, Jtvec, Jmatrix
 from simpeg.fields import TimeFields
 from multiprocessing import cpu_count
 import numpy as np
@@ -575,6 +576,11 @@ def compute_rows(
 
 
 Sim.fields = fields
+Sim.getJtJdiag = getJtJdiag
 Sim.getSourceTerm = getSourceTerm
 Sim.dpred = dpred
 Sim.compute_J = compute_J
+Sim.getJtJdiag = getJtJdiag
+Sim.Jvec = Jvec
+Sim.Jtvec = Jtvec
+Sim.Jmatrix = Jmatrix
