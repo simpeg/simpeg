@@ -93,13 +93,13 @@ def dask_linear_operator(self):
                 # Check that loaded kernel matches supplied data and mesh
                 print("Zarr file detected with same shape and chunksize ... re-loading")
                 return kernel
-        else:
-            print("Writing Zarr file to disk")
-            with ProgressBar():
-                print("Saving kernel to zarr: " + sens_name)
-                kernel = array.to_zarr(
-                    stack, sens_name, compute=True, return_stored=True, overwrite=True
-                )
+
+        print("Writing Zarr file to disk")
+        with ProgressBar():
+            print("Saving kernel to zarr: " + sens_name)
+            kernel = array.to_zarr(
+                stack, sens_name, compute=True, return_stored=True, overwrite=True
+            )
     elif forward_only:
         with ProgressBar():
             print("Forward calculation: ")
