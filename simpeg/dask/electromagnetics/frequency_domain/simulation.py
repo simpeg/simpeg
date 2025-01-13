@@ -270,24 +270,19 @@ def compute_J(self, m, f=None):
     blocks = get_parallel_blocks(
         self.survey.source_list, compute_row_size, optimize=False
     )
+    fields_array = f[:, self._solutionType]
+    blocks_receiver_derivs = []
     if self.client:
-        fields_array = self.client.scatter(f[:, self._solutionType])
-        fields = self.client.scatter(f)
-        survey = self.client.scatter(self.survey)
-        mesh = self.client.scatter(self.mesh)
-        blocks_receiver_derivs = self.client.map(
-            receiver_derivs,
-            [survey] * len(blocks),
-            [mesh] * len(blocks),
-            [fields] * len(blocks),
-            blocks,
-        )
+        for block in blocks:
+            blocks_receiver_derivs.append(
+                receiver_derivs(self.survey, self.mesh, f, block)
+            )
     else:
         fields_array = delayed(f[:, self._solutionType])
         fields = delayed(f)
         survey = delayed(self.survey)
         mesh = delayed(self.mesh)
-        blocks_receiver_derivs = []
+
         delayed_derivs = delayed(receiver_derivs)
         for block in blocks:
             blocks_receiver_derivs.append(
@@ -300,9 +295,7 @@ def compute_J(self, m, f=None):
             )
 
     # Dask process for all derivatives
-    if self.client:
-        blocks_receiver_derivs = self.client.gather(blocks_receiver_derivs)
-    else:
+    if not self.client:
         blocks_receiver_derivs = compute(blocks_receiver_derivs)[0]
 
     for block_derivs_chunks, addresses_chunks in zip(blocks_receiver_derivs, blocks):
@@ -329,10 +322,7 @@ def parallel_block_compute(
     block_stack = sp.hstack(blocks_receiver_derivs).toarray()
 
     ATinvdf_duT = A_i * block_stack
-    if self.client:
-        ATinvdf_duT = self.client.scatter(ATinvdf_duT)
-        sim = self.client.scatter(self)
-    else:
+    if not self.client:
         ATinvdf_duT = delayed(ATinvdf_duT)
     count = 0
     rows = []
@@ -344,9 +334,8 @@ def parallel_block_compute(
 
         if self.client:
             block_delayed.append(
-                self.client.submit(
-                    eval_block,
-                    sim,
+                eval_block(
+                    self,
                     ATinvdf_duT,
                     np.arange(count, count + n_cols),
                     Zero(),
@@ -376,7 +365,7 @@ def parallel_block_compute(
     indices = np.hstack(rows)
 
     if self.client:
-        block = np.vstack(self.client.gather(block_delayed))
+        block = np.vstack(block_delayed)
     else:
         block = compute(array.vstack(block_delayed))[0]
 
