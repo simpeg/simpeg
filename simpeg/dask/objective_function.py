@@ -55,10 +55,12 @@ class DaskComboMisfits(ComboObjectiveFunction):
         objfcts: list[BaseObjectiveFunction],
         multipliers=None,
         client: Client | None = None,
+        workers: list[str] | None = None,
         **kwargs,
     ):
         self._model: np.ndarray | None = None
         self.client = client
+        self.workers = workers
 
         super().__init__(objfcts=objfcts, multipliers=multipliers, **kwargs)
 
@@ -97,6 +99,20 @@ class DaskComboMisfits(ComboObjectiveFunction):
             raise TypeError("client must be a dask.distributed.Client")
 
         self._client = client
+
+    @property
+    def workers(self):
+        """
+        List of worker addresses
+        """
+        return self._workers
+
+    @workers.setter
+    def workers(self, workers):
+        if not isinstance(workers, list | type(None)):
+            raise TypeError("workers must be a list of strings")
+
+        self._workers = workers
 
     def deriv(self, m, f=None):
         """
@@ -276,7 +292,12 @@ class DaskComboMisfits(ComboObjectiveFunction):
         client = self.client
 
         futures, workers = _validate_type_or_future_of_type(
-            "objfcts", objfcts, L2DataMisfit, client, return_workers=True
+            "objfcts",
+            objfcts,
+            L2DataMisfit,
+            client,
+            workers=self.workers,
+            return_workers=True,
         )
         for objfct, future in zip(objfcts, futures):
             if hasattr(objfct, "name"):
@@ -307,10 +328,3 @@ class DaskComboMisfits(ComboObjectiveFunction):
                 )
             )
         return client.gather(residuals)
-
-    @property
-    def workers(self):
-        """
-        Get the list of dask.distributed.workers associated with the objective functions.
-        """
-        return self._workers

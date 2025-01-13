@@ -70,7 +70,7 @@ def dpred(self, m=None, f=None):
     return np.asarray(data)
 
 
-def getJtJdiag(self, m, W=None):
+def getJtJdiag(self, m, W=None, f=None):
     """
     Return the diagonal of JtJ
     """

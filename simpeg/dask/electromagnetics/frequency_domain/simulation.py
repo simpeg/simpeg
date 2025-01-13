@@ -5,7 +5,8 @@ from ....utils import Zero
 from ...simulation import getJtJdiag, Jvec, Jtvec, Jmatrix
 import numpy as np
 import scipy.sparse as sp
-from multiprocessing import cpu_count
+
+# from multiprocessing import cpu_count
 from dask import array, compute, delayed
 from simpeg.dask.utils import get_parallel_blocks
 from simpeg.electromagnetics.natural_source.sources import PlanewaveXYPrimary
@@ -98,32 +99,39 @@ def getSourceTerm(self, freq, source=None):
     of the correct size
     """
     if source is None:
-        source_list = self.survey.get_sources_by_frequency(freq)
-        source_block = np.array_split(source_list, cpu_count())
-
-        block_compute = []
-
-        if self.client:
-            sim = self.client.scatter(self)
-
-        for block in source_block:
-            if len(block) == 0:
-                continue
-
-            if self.client:
-                block_compute.append(self.client.submit(source_evaluation, sim, block))
-            else:
-                block_compute.append(delayed(source_evaluation)(self, block))
-
-        if self.client:
-            blocks = self.client.gather(block_compute)
-        else:
-            blocks = compute(block_compute)[0]
+        # if self.client:
+        #     n_splits = int(self.client.cluster.scheduler.total_nthreads / len(self.client.cluster.scheduler.workers))
+        # else:
+        #     n_splits = cpu_count()
+        #
+        # source_list = self.survey.get_sources_by_frequency(freq)
+        # source_block = np.array_split(source_list, n_splits)
+        #
+        # block_compute = []
+        #
+        # if self.client:
+        #     sim = self.client.scatter(self)
+        #     source_block = self.client.scatter(source_block)
+        #
+        # for block in source_block:
+        #     if self.client:
+        #         block_compute.append(self.client.submit(source_evaluation, sim, block))
+        #     else:
+        #         block_compute.append(delayed(source_evaluation)(self, block))
+        #
+        # if self.client:
+        #     blocks = self.client.gather(block_compute)
+        # else:
+        #     blocks = compute(block_compute)[0]
         s_m, s_e = [], []
-        for block in blocks:
-            if block[0]:
-                s_m += block[0]
-                s_e += block[1]
+        # for block in blocks:
+        #     if block[0]:
+        for source in self.survey.get_sources_by_frequency(freq):
+            sm, se = source.eval(self)
+            s_m.append(sm)
+            s_e.append(se)
+            # s_m += block[0]
+            # s_e += block[1]
 
     else:
         sm, se = source.eval(self)
