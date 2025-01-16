@@ -1,4 +1,5 @@
 import numpy as np
+
 from ...potential_fields.base import BasePFSimulation as Sim
 
 import os
@@ -34,7 +35,6 @@ def residual(self, m, dobs, f=None):
     return self.dpred(m, f=f) - dobs
 
 
-@delayed
 def block_compute(sim, rows, components):
     block = []
     for row in rows:
@@ -58,18 +58,43 @@ def linear_operator(self):
         / self.max_chunk_size
     )
     block_split = np.array_split(self.survey.receiver_locations, n_blocks)
-    rows = [
-        array.from_delayed(
-            block_compute(self, block, self.survey.components),
-            dtype=self.sensitivity_dtype,
-            shape=(
-                (len(block) * n_components,)
-                if forward_only
-                else (len(block) * n_components, n_cells)
-            ),
-        )
-        for block in block_split
-    ]
+
+    if self.client:
+        sim = self.client.scatter(self, workers=self.worker)
+    else:
+        delayed_compute = delayed(block_compute)
+
+    rows = []
+    for block in block_split:
+        if self.client:
+            rows.append(
+                self.client.submit(
+                    block_compute,
+                    sim,
+                    block,
+                    self.survey.components,
+                    workers=self.worker,
+                )
+            )
+        else:
+            chunk = delayed_compute(self, block, self.survey.components)
+            rows.append(
+                array.from_delayed(
+                    chunk,
+                    dtype=self.sensitivity_dtype,
+                    shape=(
+                        (len(block) * n_components,)
+                        if forward_only
+                        else (len(block) * n_components, n_cells)
+                    ),
+                )
+            )
+
+    if self.client:
+        if forward_only:
+            return np.hstack(self.client.gather(rows))
+        return np.vstack(self.client.gather(rows))
+
     if forward_only:
         stack = array.concatenate(rows)
     else:
@@ -113,17 +138,6 @@ def linear_operator(self):
     return stack.compute()
 
 
-@property
-def G(self):
-    """
-    Gravity forward operator
-    """
-    if getattr(self, "_G", None) is None:
-        self._G = self.Jmatrix
-
-    return self._G
-
-
 def compute_J(self, _, f=None):
     return self.linear_operator()
 
@@ -141,7 +155,6 @@ def Jmatrix(self, value):
 
 
 Sim.clean_on_model_update = []
-Sim.G = G
 Sim._chunk_format = _chunk_format
 Sim.chunk_format = chunk_format
 Sim.dpred = dpred
