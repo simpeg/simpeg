@@ -120,3 +120,20 @@ def Jmatrix(self):
 
 
 Sim.Jmatrix = Jmatrix
+
+
+@property
+def n_threads(self):
+    """
+    Number of threads used by Dask
+    """
+    if getattr(self, "_n_threads", None) is None:
+        if self.client:
+            self._n_threads = self.client.nthreads()[self.worker[0]]
+        else:
+            self._n_threads = cpu_count()
+
+    return self._n_threads
+
+
+Sim.n_threads = n_threads

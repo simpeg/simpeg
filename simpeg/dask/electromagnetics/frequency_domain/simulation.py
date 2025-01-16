@@ -6,14 +6,13 @@ from ...simulation import getJtJdiag, Jvec, Jtvec, Jmatrix
 import numpy as np
 import scipy.sparse as sp
 
-# from multiprocessing import cpu_count
 from dask import array, compute, delayed
 from simpeg.dask.utils import get_parallel_blocks
 from simpeg.electromagnetics.natural_source.sources import PlanewaveXYPrimary
 import zarr
 
 
-def evaluate_receivers(block, mesh, fields):
+def receivers_eval(block, mesh, fields):
     data = []
     for source, _, receiver in block:
         data.append(receiver.eval(source, mesh, fields).flatten())
@@ -21,7 +20,7 @@ def evaluate_receivers(block, mesh, fields):
     return np.hstack(data)
 
 
-def source_evaluation(simulation, sources):
+def source_eval(simulation, sources):
     s_m, s_e = [], []
     for source in sources:
         sm, se = source.eval(simulation)
@@ -99,39 +98,39 @@ def getSourceTerm(self, freq, source=None):
     of the correct size
     """
     if source is None:
-        # if self.client:
-        #     n_splits = int(self.client.cluster.scheduler.total_nthreads / len(self.client.cluster.scheduler.workers))
-        # else:
-        #     n_splits = cpu_count()
-        #
-        # source_list = self.survey.get_sources_by_frequency(freq)
-        # source_block = np.array_split(source_list, n_splits)
-        #
-        # block_compute = []
-        #
-        # if self.client:
-        #     sim = self.client.scatter(self)
-        #     source_block = self.client.scatter(source_block)
-        #
-        # for block in source_block:
-        #     if self.client:
-        #         block_compute.append(self.client.submit(source_evaluation, sim, block))
-        #     else:
-        #         block_compute.append(delayed(source_evaluation)(self, block))
-        #
-        # if self.client:
-        #     blocks = self.client.gather(block_compute)
-        # else:
-        #     blocks = compute(block_compute)[0]
+
+        source_list = self.survey.get_sources_by_frequency(freq)
+        source_block = np.array_split(source_list, self.n_threads)
+
+        block_compute = []
+
+        if self.client:
+            sim = self.client.scatter(self, workers=self.worker)
+            source_block = self.client.scatter(source_block, workers=self.worker)
+        else:
+            delayed_source_eval = delayed(source_eval)
+
+        for block in source_block:
+            if self.client:
+                block_compute.append(
+                    self.client.submit(source_eval, sim, block, workers=self.worker)
+                )
+            else:
+                block_compute.append(delayed_source_eval(self, block))
+
+        if self.client:
+            blocks = self.client.gather(block_compute)
+        else:
+            blocks = compute(block_compute)[0]
         s_m, s_e = [], []
-        # for block in blocks:
-        #     if block[0]:
-        for source in self.survey.get_sources_by_frequency(freq):
-            sm, se = source.eval(self)
-            s_m.append(sm)
-            s_e.append(se)
-            # s_m += block[0]
-            # s_e += block[1]
+        for block in blocks:
+            if block[0]:
+                # for source in self.survey.get_sources_by_frequency(freq):
+                #     sm, se = source.eval(self)
+                #     s_m.append(sm)
+                #     s_e.append(se)
+                s_m += block[0]
+                s_e += block[1]
 
     else:
         sm, se = source.eval(self)
@@ -153,7 +152,7 @@ def getSourceTerm(self, freq, source=None):
     return s_m, s_e
 
 
-def dpred(self, m=None, f=None):
+def dpred(self, m=None, f=None, compute_J=False):
     r"""
     dpred(m, f=None)
     Create the projected data from a model.
@@ -178,42 +177,46 @@ def dpred(self, m=None, f=None):
             m = self.model
         f = self.fields(m)
 
-    if self.client:
-        f = self.client.scatter(f)
-        mesh = self.client.scatter(self.mesh)
-    else:
-        mesh = delayed(self.mesh)
-        delayed_block_eval = delayed(evaluate_receivers)
+    all_receivers = []
 
-    rows = []
     for ind, src in enumerate(self.survey.source_list):
         for rx in src.receiver_list:
-            block = [(src, ind, rx)]
+            all_receivers.append((src, ind, rx))
 
-            # receiver_blocks = np.array_split(np.asarray(all_receivers), cpu_count())
-            # rows = []
-            # for block in receiver_blocks:
-            #         n_data = np.sum([rec.nD for _, _, rec in block])
-            if rx.nD == 0:
-                continue
-
-            if self.client:
-                rows.append(self.client.submit(evaluate_receivers, block, mesh, f))
-            else:
-                rows.append(
-                    array.from_delayed(
-                        delayed_block_eval(block, mesh, f),
-                        dtype=np.float64,
-                        shape=(rx.nD,),
-                    )
-                )
+    receiver_blocks = np.array_split(np.asarray(all_receivers), self.n_threads)
+    rows = []
 
     if self.client:
-        data = np.hstack(self.client.gather(rows))
+        f = self.client.scatter(f, workers=self.worker)
+        mesh = self.client.scatter(self.mesh, workers=self.worker)
     else:
-        data = compute(array.hstack(rows))[0]
+        delayed_receivers_eval = delayed(receivers_eval)
+        mesh = delayed(self.mesh)
 
-    return data
+    for block in receiver_blocks:
+        n_data = np.sum([rec.nD for _, _, rec in block])
+        if n_data == 0:
+            continue
+
+        if self.client:
+            rows.append(
+                self.client.submit(receivers_eval, block, mesh, f, workers=self.worker)
+            )
+        else:
+            rows.append(
+                array.from_delayed(
+                    delayed_receivers_eval(block, mesh, f),
+                    dtype=np.float64,
+                    shape=(n_data,),
+                )
+            )
+
+    if self.client:
+        rows = np.hstack(self.client.gather(rows))
+    else:
+        rows = compute(array.hstack(rows))[0]
+
+    return rows
 
 
 def fields(self, m=None):
@@ -273,9 +276,22 @@ def compute_J(self, m, f=None):
     fields_array = f[:, self._solutionType]
     blocks_receiver_derivs = []
     if self.client:
+        fields_array = self.client.scatter(
+            f[:, self._solutionType], workers=self.worker
+        )
+        fields = self.client.scatter(f, workers=self.worker)
+        survey = self.client.scatter(self.survey, workers=self.worker)
+        mesh = self.client.scatter(self.mesh, workers=self.worker)
         for block in blocks:
             blocks_receiver_derivs.append(
-                receiver_derivs(self.survey, self.mesh, f, block)
+                self.client.submit(
+                    receiver_derivs,
+                    survey,
+                    mesh,
+                    fields,
+                    block,
+                    workers=self.worker,
+                )
             )
     else:
         fields_array = delayed(f[:, self._solutionType])
@@ -295,7 +311,9 @@ def compute_J(self, m, f=None):
             )
 
     # Dask process for all derivatives
-    if not self.client:
+    if self.client:
+        blocks_receiver_derivs = self.client.gather(blocks_receiver_derivs)
+    else:
         blocks_receiver_derivs = compute(blocks_receiver_derivs)[0]
 
     for block_derivs_chunks, addresses_chunks in zip(blocks_receiver_derivs, blocks):
@@ -322,7 +340,9 @@ def parallel_block_compute(
     block_stack = sp.hstack(blocks_receiver_derivs).toarray()
 
     ATinvdf_duT = A_i * block_stack
-    if not self.client:
+    if self.client:
+        ATinvdf_duT = self.client.scatter(ATinvdf_duT, workers=self.worker)
+    else:
         ATinvdf_duT = delayed(ATinvdf_duT)
     count = 0
     rows = []
@@ -333,14 +353,17 @@ def parallel_block_compute(
         n_rows = address[1][2]
 
         if self.client:
+            sim = self.client.scatter(self, workers=self.worker)
             block_delayed.append(
-                eval_block(
-                    self,
+                self.client.submit(
+                    eval_block,
+                    sim,
                     ATinvdf_duT,
                     np.arange(count, count + n_cols),
                     Zero(),
                     fields_array,
                     address,
+                    workers=self.worker,
                 )
             )
         else:
@@ -365,6 +388,7 @@ def parallel_block_compute(
     indices = np.hstack(rows)
 
     if self.client:
+        block_delayed = self.client.gather(block_delayed)
         block = np.vstack(block_delayed)
     else:
         block = compute(array.vstack(block_delayed))[0]
@@ -388,5 +412,5 @@ Sim.Jvec = Jvec
 Sim.Jtvec = Jtvec
 Sim.Jmatrix = Jmatrix
 Sim.fields = fields
-# Sim.dpred = dpred
+Sim.dpred = dpred
 Sim.getSourceTerm = getSourceTerm
