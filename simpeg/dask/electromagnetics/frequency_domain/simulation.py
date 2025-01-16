@@ -234,7 +234,7 @@ def fields(self, m=None):
         f[sources, self._solutionType] = u
         Ainv[freq] = Ainv_solve
 
-    # self.Ainv = Ainv
+    self.Ainv = Ainv
 
     self._stashed_fields = f
 
@@ -247,18 +247,13 @@ def compute_J(self, m, f=None):
     if f is None:
         f = self.fields(m)
 
-    Ainv = {}
-    for freq in self.survey.frequencies:
-        A = self.getA(freq)
-        Ainv[freq] = self.solver(sp.csr_matrix(A), **self.solver_opts)
-
-    if len(Ainv) > 1:
+    if len(self.Ainv) > 1:
         raise NotImplementedError(
             "Current implementation of parallelization assumes a single frequency per simulation. "
             "Consider creating one misfit per frequency."
         )
 
-    A_i = list(Ainv.values())[0]
+    A_i = list(self.Ainv.values())[0]
     m_size = m.size
 
     if self.store_sensitivities == "disk":
@@ -308,10 +303,10 @@ def compute_J(self, m, f=None):
             m, Jmatrix, block_derivs_chunks, A_i, fields_array, addresses_chunks
         )
 
-    for A in Ainv.values():
+    for A in self.Ainv.values():
         A.clean()
 
-    del Ainv
+    del self.Ainv
     gc.collect()
     if self.store_sensitivities == "disk":
         del Jmatrix

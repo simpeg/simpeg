@@ -1,6 +1,16 @@
 from ....potential_fields.magnetics import Simulation3DIntegral as Sim
-from ..base import G
 from ...simulation import getJtJdiag
+
+
+@property
+def G(self):
+    """
+    Gravity forward operator
+    """
+    if getattr(self, "_G", None) is None:
+        self._G = self.Jmatrix
+
+    return self._G
 
 
 Sim.clean_on_model_update = []

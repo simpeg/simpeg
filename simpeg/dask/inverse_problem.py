@@ -5,6 +5,8 @@ from .objective_function import DaskComboMisfits
 from scipy.sparse.linalg import LinearOperator
 from ..regularization import WeightedLeastSquares, Sparse
 from ..objective_function import ComboObjectiveFunction
+from simpeg.utils import call_hooks
+from simpeg.version import __version__ as simpeg_version
 
 
 def get_dpred(self, m, f=None):
@@ -112,3 +114,32 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
 
 
 BaseInvProblem.evalFunction = dask_evalFunction
+
+
+@call_hooks("startup")
+def startup(self, m0):
+    """startup(m0)
+
+    Called when inversion is first starting.
+    """
+    if self.debug:
+        print("Calling InvProblem.startup")
+
+    if self.print_version:
+        print(f"\nRunning inversion with SimPEG v{simpeg_version}")
+
+    for fct in self.reg.objfcts:
+        if (
+            hasattr(fct, "reference_model")
+            and getattr(fct, "reference_model", None) is None
+        ):
+            print("simpeg.InvProblem will set Regularization.reference_model to m0.")
+            fct.reference_model = m0
+
+    self.phi_d = np.nan
+    self.phi_m = np.nan
+
+    self.model = m0
+
+
+BaseInvProblem.startup = startup

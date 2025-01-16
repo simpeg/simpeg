@@ -22,26 +22,26 @@ def _calc_residual(objfct, model, field):
     )
 
 
-def _deriv(objfct, multiplier, model, fields):
-    if fields is not None and objfct.has_fields:
-        return multiplier * objfct.deriv(objfct.simulation.model, f=fields)
-    else:
-        return multiplier * objfct.deriv(objfct.simulation.model)
+def _deriv(objfct, multiplier, model):
+    # if fields is not None and objfct.has_fields:
+    #     return multiplier * objfct.deriv(objfct.simulation.model)
+    # else:
+    return multiplier * objfct.deriv(objfct.simulation.model)
 
 
-def _deriv2(objfct, multiplier, model, v, fields):
-    if fields is not None and objfct.has_fields:
-        return multiplier * objfct.deriv2(objfct.simulation.model, v, f=fields)
-    else:
-        return multiplier * objfct.deriv2(objfct.simulation.model, v)
+def _deriv2(objfct, multiplier, model, v):
+    # if fields is not None and objfct.has_fields:
+    #     return multiplier * objfct.deriv2(objfct.simulation.model, v)
+    # else:
+    return multiplier * objfct.deriv2(objfct.simulation.model, v)
 
 
 def _store_model(objfct, model):
     objfct.simulation.model = model
 
 
-def _get_jtj_diag(objfct, model, field):
-    jtj = objfct.simulation.getJtJdiag(objfct.simulation.model, objfct.W, f=field)
+def _get_jtj_diag(objfct, model):
+    jtj = objfct.simulation.getJtJdiag(objfct.simulation.model, objfct.W)
     return jtj.flatten()
 
 
@@ -127,20 +127,18 @@ class DaskComboMisfits(ComboObjectiveFunction):
         client = self.client
         m_future = self._m_as_future
 
-        if f is None:
-            f = self.fields(m)
+        # if f is None:
+        #     f = self.fields(m)
 
         derivs = []
-        for multiplier, objfct, field, worker in zip(
-            self.multipliers, self._futures, f, self._workers
+        for multiplier, objfct, worker in zip(
+            self.multipliers, self._futures, self._workers
         ):
             if multiplier == 0.0:  # don't evaluate the fct
                 continue
 
             derivs.append(
-                client.submit(
-                    _deriv, objfct, multiplier, m_future, field, workers=worker
-                )
+                client.submit(_deriv, objfct, multiplier, m_future, workers=worker)
             )
         derivs = _reduce(client, add, derivs)
         return derivs
@@ -160,12 +158,12 @@ class DaskComboMisfits(ComboObjectiveFunction):
         m_future = self._m_as_future
         [v_future] = client.scatter([v], broadcast=True)
 
-        if f is None:
-            f = self.fields(m)
+        # if f is None:
+        #     f = self.fields(m)
 
         derivs = []
-        for multiplier, objfct, field, worker in zip(
-            self.multipliers, self._futures, f, self._workers
+        for multiplier, objfct, worker in zip(
+            self.multipliers, self._futures, self._workers
         ):
             if multiplier == 0.0:  # don't evaluate the fct
                 continue
@@ -177,7 +175,7 @@ class DaskComboMisfits(ComboObjectiveFunction):
                     multiplier,
                     m_future,
                     v_future,
-                    field,
+                    # field,
                     workers=worker,
                 )
             )
@@ -214,15 +212,15 @@ class DaskComboMisfits(ComboObjectiveFunction):
 
             jtj_diag = []
             client = self.client
-            if f is None:
-                f = self.fields(m)
-            for objfct, worker, field in zip(self._futures, self._workers, f):
+            # if f is None:
+            #     f = self.fields(m)
+            for objfct, worker in zip(self._futures, self._workers):
                 jtj_diag.append(
                     client.submit(
                         _get_jtj_diag,
                         objfct,
                         m_future,
-                        field,
+                        # field,
                         workers=worker,
                     )
                 )

@@ -70,9 +70,9 @@ def _reduce(client, operation, items):
     return client.gather(items[0])
 
 
-def _set_worker(obj, worker):
-    obj.worker = worker
-    return obj
+# def _set_worker(obj, worker):
+#     obj.worker = worker
+#     return obj
 
 
 def _validate_type_or_future_of_type(
@@ -85,9 +85,11 @@ def _validate_type_or_future_of_type(
 ):
     try:
         # validate as a list of things that need to be sent.
+        # workers = [(worker.worker_address,) for worker in client.cluster.workers.values()]
         objects = validate_list_of_types(
             property_name, objects, obj_type, ensure_unique=True
         )
+        # objects[0].simulation.simulations[0].worker = workers[0]
         if workers is None:
             objects = client.scatter(objects)
         else:
@@ -117,7 +119,7 @@ def _validate_type_or_future_of_type(
                 warnings.warn(
                     f"{property_name} {i} is not on the expected worker.", stacklevel=2
                 )
-            obj = client.submit(_set_worker, obj, worker)
+            # obj = client.submit(_set_worker, obj, worker)
 
     # Ensure this runs on the expected worker
     futures = []
