@@ -360,6 +360,7 @@ class DirectiveList(object):
             '", "'.join(directives)
         )
         for r in self.dList:
+            print(f"Running directive {r}")
             getattr(r, ruleType)()
 
     def validate(self):
