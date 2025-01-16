@@ -3,9 +3,8 @@ from ..objective_function import ComboObjectiveFunction, BaseObjectiveFunction
 import numpy as np
 from dask.distributed import Client
 from ..data_misfit import L2DataMisfit
-from simpeg.meta.dask_sim import _reduce
+
 from simpeg.utils import validate_list_of_types
-from operator import add
 
 
 def _calc_fields(objfct, model):
@@ -161,7 +160,8 @@ class DaskComboMisfits(ComboObjectiveFunction):
                 )
             )
 
-        return _reduce(client, add, values)
+        values = self.client.gather(values)
+        return np.sum(values)
 
     @property
     def client(self):
@@ -225,8 +225,8 @@ class DaskComboMisfits(ComboObjectiveFunction):
                 )
             count += 1
 
-        derivs = _reduce(client, add, derivs)
-        return derivs
+        derivs = self.client.gather(derivs)
+        return np.sum(derivs, axis=0)
 
     def deriv2(self, m, v=None, f=None):
         """
@@ -266,7 +266,8 @@ class DaskComboMisfits(ComboObjectiveFunction):
                 )
                 count += 1
 
-        derivs = _reduce(client, add, derivs)
+        derivs = self.client.gather(derivs)
+        derivs = np.sum(derivs, axis=0)
 
         return derivs
 
@@ -313,7 +314,8 @@ class DaskComboMisfits(ComboObjectiveFunction):
                             workers=worker,
                         )
                     )
-                jtj_diag += _reduce(client, add, work)
+                work = client.gather(work)
+                jtj_diag += np.sum(work, axis=0)
 
             self._jtjdiag = jtj_diag
 
