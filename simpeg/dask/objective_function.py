@@ -11,13 +11,13 @@ def _calc_fields(objfct, model):
     return objfct.simulation.fields(m=objfct.simulation.model)
 
 
-def _calc_dpred(objfct, model, field):
-    return objfct.simulation.dpred(m=objfct.simulation.model, f=field)
+def _calc_dpred(objfct, model):
+    return objfct.simulation.dpred(m=objfct.simulation.model)
 
 
-def _calc_residual(objfct, model, field):
+def _calc_residual(objfct, model):
     return objfct.W * (
-        objfct.data.dobs - objfct.simulation.dpred(m=objfct.simulation.model, f=field)
+        objfct.data.dobs - objfct.simulation.dpred(m=objfct.simulation.model)
     )
 
 
@@ -145,20 +145,23 @@ class DaskComboMisfits(ComboObjectiveFunction):
         client = self.client
         m_future = self._m_as_future
 
-        if f is None:
-            f = self.fields(m)
-
         values = []
-        for phi, field, worker in zip(self, f, self._workers):
-            multiplier, objfct = phi
-            if multiplier == 0.0:  # don't evaluate the fct
-                continue
+        count = 0
+        for futures in self._futures:
+            for objfct, worker in zip(futures, self._workers):
 
-            values.append(
-                client.submit(
-                    _calc_objective, objfct, multiplier, m_future, field, workers=worker
+                if self.multipliers[count] == 0.0:
+                    continue
+
+                values.append(
+                    client.submit(
+                        _calc_objective,
+                        objfct,
+                        self.multipliers[count],
+                        m_future,
+                        workers=worker,
+                    )
                 )
-            )
 
         values = self.client.gather(values)
         return np.sum(values)
@@ -274,20 +277,16 @@ class DaskComboMisfits(ComboObjectiveFunction):
     def get_dpred(self, m, f=None):
         self.model = m
 
-        if f is None:
-            f = self.fields(m)
-
         client = self.client
         m_future = self._m_as_future
         dpred = []
-        for futures, fields in zip(self._futures, f):
-            for objfct, worker, field in zip(futures, self._workers, fields):
+        for futures in self._futures:
+            for objfct, worker in zip(futures, self._workers):
                 dpred.append(
                     client.submit(
                         _calc_dpred,
                         objfct,
                         m_future,
-                        field,
                         workers=worker,
                     )
                 )
@@ -393,9 +392,6 @@ class DaskComboMisfits(ComboObjectiveFunction):
             workers=self.workers,
             return_workers=True,
         )
-        # for objfct, future in zip(objfcts, futures):
-        #     if hasattr(objfct, "name"):
-        #         future.name = objfct.name
 
         self._objfcts = objfcts
         self._futures = futures
@@ -406,19 +402,17 @@ class DaskComboMisfits(ComboObjectiveFunction):
         Compute the residual for the data misfit.
         """
         self.model = m
-        if f is None:
-            f = self.fields(m)
+
         client = self.client
         m_future = self._m_as_future
         residuals = []
-        for futures, fields in zip(self._futures, f):
-            for objfct, worker, field in zip(futures, self._workers, fields):
+        for futures in self._futures:
+            for objfct, worker in zip(futures, self._workers):
                 residuals.append(
                     client.submit(
                         _calc_residual,
                         objfct,
                         m_future,
-                        field,
                         workers=worker,
                     )
                 )
