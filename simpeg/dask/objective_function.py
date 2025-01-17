@@ -15,10 +15,8 @@ def _calc_dpred(objfct, model):
     return objfct.simulation.dpred(m=objfct.simulation.model)
 
 
-def _calc_residual(objfct, model):
-    return objfct.W * (
-        objfct.data.dobs - objfct.simulation.dpred(m=objfct.simulation.model)
-    )
+def _calc_residual(objfct, dpred):
+    return objfct.W * (objfct.data.dobs - dpred)
 
 
 def _deriv(objfct, multiplier, model):
@@ -280,6 +278,7 @@ class DaskComboMisfits(ComboObjectiveFunction):
         client = self.client
         m_future = self._m_as_future
         dpred = []
+        print("in dpred")
         for futures in self._futures:
             for objfct, worker in zip(futures, self._workers):
                 dpred.append(
@@ -397,22 +396,20 @@ class DaskComboMisfits(ComboObjectiveFunction):
         self._futures = futures
         self._workers = workers
 
-    def residuals(self, m, f=None):
+    def residuals(self, m, dpreds, f=None):
         """
         Compute the residual for the data misfit.
         """
         self.model = m
-
         client = self.client
-        m_future = self._m_as_future
         residuals = []
         for futures in self._futures:
-            for objfct, worker in zip(futures, self._workers):
+            for objfct, worker, dpred in zip(futures, self._workers, dpreds):
                 residuals.append(
                     client.submit(
                         _calc_residual,
                         objfct,
-                        m_future,
+                        dpred,
                         workers=worker,
                     )
                 )
