@@ -281,8 +281,9 @@ class DaskComboMisfits(ComboObjectiveFunction):
         m_future = self._m_as_future
         dpred = []
         for futures in self._futures:
+            future_preds = []
             for objfct, worker in zip(futures, self._workers):
-                dpred.append(
+                future_preds.append(
                     client.submit(
                         _calc_dpred,
                         objfct,
@@ -290,7 +291,9 @@ class DaskComboMisfits(ComboObjectiveFunction):
                         workers=worker,
                     )
                 )
-        return client.gather(dpred)
+            dpred += client.gather(future_preds)
+
+        return dpred
 
     def getJtJdiag(self, m, f=None):
         self.model = m
