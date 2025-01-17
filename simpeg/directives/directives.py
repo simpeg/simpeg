@@ -3271,7 +3271,7 @@ class SaveDataGeoH5(SaveArrayGeoH5):
                 print("Computing dpred")
                 dpred = self.invProb.get_dpred(self.invProb.model)
                 self.invProb.dpred = dpred
-                print("Done")
+
             if self.joint_index is not None:
                 dpred = [dpred[ind] for ind in self.joint_index]
 

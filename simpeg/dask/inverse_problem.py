@@ -35,7 +35,7 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
     residuals = []
     print("Computing residuals")
     if isinstance(self.dmisfit, DaskComboMisfits):
-        residuals = self.dmisfit.residuals(m, self.dpred)
+        residuals = self.dmisfit.residuals(m)
     else:
         for (_, objfct), pred in zip(self.dmisfit, self.dpred):
             residuals.append(objfct.W * (objfct.data.dobs - pred))
