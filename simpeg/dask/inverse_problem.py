@@ -28,12 +28,9 @@ BaseInvProblem.get_dpred = get_dpred
 def dask_evalFunction(self, m, return_g=True, return_H=True):
     """evalFunction(m, return_g=True, return_H=True)"""
     self.model = m
-
-    print("Computing dpred")
     self.dpred = self.get_dpred(m)
-
     residuals = []
-    print("Computing residuals")
+
     if isinstance(self.dmisfit, DaskComboMisfits):
         residuals = self.dmisfit.residuals(m)
     else:
@@ -95,7 +92,6 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
 
     out = (phi,)
     if return_g:
-        print("Computing gradient")
         phi_dDeriv = self.dmisfit.deriv(m)
         phi_mDeriv = self.reg.deriv(m)
 
