@@ -246,9 +246,6 @@ class DaskComboMisfits(ComboObjectiveFunction):
         m_future = self._m_as_future
         [v_future] = client.scatter([v], broadcast=True)
 
-        # if f is None:
-        #     f = self.fields(m)
-
         derivs = []
         count = 0
         for futures in self._futures:
@@ -410,8 +407,9 @@ class DaskComboMisfits(ComboObjectiveFunction):
         m_future = self._m_as_future
         residuals = []
         for futures in self._futures:
+            future_residuals = []
             for objfct, worker in zip(futures, self._workers):
-                residuals.append(
+                future_residuals.append(
                     client.submit(
                         _calc_residual,
                         objfct,
@@ -419,4 +417,6 @@ class DaskComboMisfits(ComboObjectiveFunction):
                         workers=worker,
                     )
                 )
-        return client.gather(residuals)
+            residuals += client.gather(future_residuals)
+
+        return residuals
