@@ -3176,6 +3176,7 @@ class SaveArrayGeoH5(BaseSaveGeoH5, ABC):
         # Save results
         with fetch_active_workspace(self._geoh5, mode="r+") as w_s:
             h5_object = w_s.get_entity(self.h5_object)[0]
+            print("Saving to file")
             for cc, component in enumerate(self.components):
                 if component not in self.data_type:
                     self.data_type[component] = {}
@@ -3267,6 +3268,7 @@ class SaveDataGeoH5(SaveArrayGeoH5):
         else:
             dpred = getattr(self.invProb, "dpred", None)
             if dpred is None:
+                print("Computing dpred")
                 dpred = self.invProb.get_dpred(self.invProb.model)
                 self.invProb.dpred = dpred
 
