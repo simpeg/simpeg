@@ -219,7 +219,7 @@ def dpred(self, m=None, f=None, compute_J=False):
     return rows
 
 
-def fields(self, m=None):
+def fields(self, m=None, return_Ainv=False):
     if m is not None:
         self.model = m
 
@@ -237,10 +237,12 @@ def fields(self, m=None):
         f[sources, self._solutionType] = u
         Ainv[freq] = Ainv_solve
 
-    self.Ainv = Ainv
+    # self.Ainv = Ainv
 
     self._stashed_fields = f
 
+    if return_Ainv:
+        return f, Ainv
     return f
 
 
@@ -248,15 +250,15 @@ def compute_J(self, m, f=None):
     self.model = m
 
     if f is None:
-        f = self.fields(m)
+        f, Ainv = self.fields(m=m, return_Ainv=True)
 
-    if len(self.Ainv) > 1:
+    if len(Ainv) > 1:
         raise NotImplementedError(
             "Current implementation of parallelization assumes a single frequency per simulation. "
             "Consider creating one misfit per frequency."
         )
 
-    A_i = list(self.Ainv.values())[0]
+    A_i = list(Ainv.values())[0]
     m_size = m.size
 
     if self.store_sensitivities == "disk":
@@ -321,10 +323,10 @@ def compute_J(self, m, f=None):
             m, Jmatrix, block_derivs_chunks, A_i, fields_array, addresses_chunks
         )
 
-    for A in self.Ainv.values():
+    for A in Ainv.values():
         A.clean()
 
-    del self.Ainv
+    del Ainv
     gc.collect()
     if self.store_sensitivities == "disk":
         del Jmatrix
