@@ -603,3 +603,124 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         for prop in self._delete_on_model_update:
             if hasattr(self, prop):
                 delattr(self, prop)
+
+
+def _add_deprecated_physical_property_functions(
+    new_name, old_name=None, old_map=None, old_deriv=None
+):
+
+    if old_name is None:
+        old_name = new_name
+
+    if old_map is None:
+        old_map = f"{old_name}Map"
+
+    if old_deriv is None:
+        old_deriv = f"{old_name}Deriv"
+
+    @property
+    def prop_map(self):
+        cls_name = type(self).__name__
+        warnings.warn(
+            f"Getting `{cls_name}.{old_map}` directly is no longer supported. If this is still necessary "
+            f"use `{cls_name}.parametrizations.{new_name}` instead",
+            UserWarning,
+            stacklevel=2,
+        )
+        return getattr(self.parametrizations, new_name)
+
+    @prop_map.setter
+    def prop_map(self, value):
+        cls_name = type(self).__name__
+        warnings.warn(
+            f"Setting `{cls_name}.{old_map}` directly is deprecated. Instead register a parametrization with `{cls_name}.parametrize('{new_name}')`",
+            UserWarning,
+            stacklevel=2,
+        )
+        setattr(self, new_name, value)
+
+    prop_map.__doc__ = f"""
+    Mapping from the model to {old_name}
+
+    .. deprecated:: 0.24.0
+        The method of interacting with the physical property is deprecated, instead
+        register a mapping with the `parametrize()` method, and access it using the
+        `parametrizations` property.
+
+    Returns
+    -------
+    maps.IdentityMap
+    """
+
+    @property
+    def prop_deriv(self):
+        cls_name = type(self).__name__
+        warnings.warn(
+            f"Getting `{cls_name}.{old_deriv}` is deprecated, use `{cls_name}._prop_deriv('{new_name}')` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self._prop_deriv(new_name)
+
+    prop_deriv.__doc__ = f"""
+    Derivative of {old_name} w.r.t. the model
+
+    .. deprecated:: 0.24.0
+        The method of interacting with the physical property derivative is deprecated. If access is still necessary
+        it can be retrieved with `_get_deriv('{old_name}')`.
+
+    Returns
+    -------
+    maps.IdentityMap
+    """
+
+    def decorator(cls):
+        __init__ = cls.__init__
+
+        @functools.wraps(__init__)
+        def __new_init__(self, *args, **kwargs):
+            mapping = kwargs.pop(old_map, None)
+            __init__(self, *args, **kwargs)
+            if mapping is not None:
+                setattr(self, old_map, mapping)
+
+        cls.__init__ = __new_init__
+        setattr(cls, old_map, prop_map)
+        setattr(cls, old_deriv, prop_deriv)
+
+        return cls
+
+    return decorator
+
+
+class Mapping:
+    # This should only really have been called by developers/ internally to simpeg,
+    # Make this throw an error alerting developers to the new behavior.
+    def __init__(self, *args, **kwargs):
+        raise SyntaxError(
+            "'Mapping' is no longer necessary. You should interact with mappings using the `HasModel.parametrize' and "
+            "'HasModel.parametrizations' methods."
+        )
+
+
+class Derivative:
+    # This should only really have been called by developers/ internally to simpeg,
+    # Make this throw an error alerting developers to the new behavior.
+    def __init__(self, *args, **kwargs):
+        raise SyntaxError(
+            "'Derivative' is no longer necessary. You should interact with mappings using the `HasModel.parametrize' and "
+            "'HasModel.parametrizations' methods."
+        )
+
+
+def Invertible(property_name, optional=False):
+    raise SyntaxError(
+        "You no longer need to specifically create an 'Invertible' property, instead just create a 'PhysicalProperty'"
+    )
+
+
+def Reciprocal(prop1, prop2):
+    raise SyntaxError(
+        "To assign reciprocal relationships for physical properties, you must pass the first physical property"
+        "to the second physical properties `reciprocal` argument on initialization."
+    )
