@@ -2,11 +2,10 @@ import warnings
 from collections import namedtuple
 
 import numpy as np
-from numba import short
 
 from simpeg.utils import deprecate_property
 from . import maps
-from .maps import IdentityMap, ReciprocalMap
+import functools
 from .utils import Zero, validate_type, validate_ndarray_with_shape
 
 
@@ -60,7 +59,7 @@ class PhysicalProperty:
         """
         if self.invertible:
             doc += f"""
-            
+
         Notes
         -----
         `{self.name}` is an invertible property.
@@ -466,11 +465,22 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
             )
 
         self.parametrizations._fields[attr] = parametrization
+        if recip := prop.reciprocal:
+            self.parametrizations._fields[recip.name] = (
+                maps.ReciprocalMap() @ parametrization
+            )
 
     def _remove_parametrization(self, attr):
         """Remove attr's parametrization"""
         # just silently succeed here as it is an internal method.
         self.parametrizations._fields.pop(attr, None)
+
+    def _prop_deriv(self, attr, v=None):
+        # TODO Add support for adjoints here and on mapping derivatives
+        paramers = self.parametrizations
+        if attr not in paramers:
+            return Zero()
+        return self.parametrizations[attr].deriv(self, v=v)
 
     @property
     def needs_model(self):
@@ -667,7 +677,7 @@ def _add_deprecated_physical_property_functions(
 
     .. deprecated:: 0.24.0
         The method of interacting with the physical property derivative is deprecated. If access is still necessary
-        it can be retrieved with `_get_deriv('{old_name}')`.
+        it can be retrieved with `_prop_deriv('{old_name}')`.
 
     Returns
     -------
