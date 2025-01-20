@@ -223,7 +223,7 @@ def fields(self, m=None, return_Ainv=False):
     if m is not None:
         self.model = m
 
-    if getattr(self, "_stashed_fields", None) is not None:
+    if getattr(self, "_stashed_fields", None) is not None and not return_Ainv:
         return self._stashed_fields
 
     f = self.fieldsPair(self)
