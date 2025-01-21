@@ -2,11 +2,13 @@ import scipy.sparse as sp
 import numpy as np
 
 from .... import maps, props
+from ....props import _add_deprecated_physical_property_functions
 from ....utils import validate_list_of_types, validate_active_indices
 from .. import resistivity as dc
 from .sources import StreamingCurrents
 
 
+@_add_deprecated_physical_property_functions("q")
 class Simulation3DCellCentered(dc.Simulation3DCellCentered):
     r"""A self potential simulation.
 
@@ -43,31 +45,25 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
     boundary conditions, check out the resistivity simulations.
     """
 
-    q, qMap, qDeriv = props.Invertible("Charge density accumulation rate (C/(s m^3))")
+    sigma = dc.Simulation3DCellCentered.sigma.set_feature(invertible=False)
+    rho = dc.Simulation3DCellCentered.rho.set_feature(invertible=False)
 
-    def __init__(
-        self, mesh, survey=None, sigma=None, rho=None, q=None, qMap=None, **kwargs
-    ):
+    q = props.PhysicalProperty(
+        "Charge density accumulation rate (C/(s m^3))", dtype=float
+    )
+
+    def __init__(self, mesh, survey=None, sigma=None, rho=None, q=None, **kwargs):
         # These below checks can be commented out, correspondingly do
         # not set sigmaMap and rhoMap to None on the super call, to enable
         # derivatives with respect to resistivity/conductivity.
-        if sigma is None:
-            if rho is None:
-                raise ValueError("Must set either conductivity or resistivity.")
-        else:
-            if rho is not None:
-                raise ValueError("Cannot set both conductivity and resistivity.")
         super().__init__(
             mesh=mesh,
             survey=survey,
             sigma=sigma,
             rho=rho,
-            sigmaMap=None,
-            rhoMap=None,
             **kwargs,
         )
-        self.q = q
-        self.qMap = qMap
+        self._init_property(q=q)
 
     def getRHS(self):
         return self.Vol @ self.q

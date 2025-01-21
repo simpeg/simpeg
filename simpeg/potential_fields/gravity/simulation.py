@@ -22,6 +22,7 @@ from ._numba_functions import (
     _sensitivity_gravity_2d_mesh_serial,
     _sensitivity_gravity_2d_mesh_parallel,
 )
+from ...props import _add_deprecated_physical_property_functions
 
 if choclo is not None:
     from numba import jit
@@ -117,6 +118,7 @@ def _get_conversion_factor(component):
     return conversion_factor
 
 
+@_add_deprecated_physical_property_functions("rho")
 class Simulation3DIntegral(BasePFSimulation):
     """
     Gravity simulation in integral form.
@@ -174,20 +176,19 @@ class Simulation3DIntegral(BasePFSimulation):
            ``active_cells`` and will be removed in SimPEG v0.24.0.
     """
 
-    rho, rhoMap, rhoDeriv = props.Invertible("Density")
+    rho = props.PhysicalProperty("Density", dtype=float)
 
     def __init__(
         self,
         mesh,
         rho=None,
-        rhoMap=None,
         engine="geoana",
         numba_parallel=True,
         **kwargs,
     ):
         super().__init__(mesh, engine=engine, numba_parallel=numba_parallel, **kwargs)
-        self.rho = rho
-        self.rhoMap = rhoMap
+        self._init_property(rho=rho)
+
         self._G = None
         self._gtg_diagonal = None
         self.modelMap = self.rhoMap
@@ -620,6 +621,7 @@ class SimulationEquivalentSourceLayer(
         return sensitivity_matrix
 
 
+@_add_deprecated_physical_property_functions("rho")
 class Simulation3DDifferential(BasePDESimulation):
     r"""Finite volume simulation class for gravity.
 
@@ -641,12 +643,11 @@ class Simulation3DDifferential(BasePDESimulation):
         \big [ \mathbf{D M_f D^T} \big ] \mathbf{u} = - \mathbf{M_c \, \rho}
     """
 
-    rho, rhoMap, rhoDeriv = props.Invertible("Specific density (g/cc)")
+    rho = props.PhysicalProperty("Specific density (g/cc)", dtype=float)
 
-    def __init__(self, mesh, rho=1.0, rhoMap=None, **kwargs):
+    def __init__(self, mesh, rho=1.0, **kwargs):
         super().__init__(mesh, **kwargs)
-        self.rho = rho
-        self.rhoMap = rhoMap
+        self._init_property(rho=rho)
 
         self._Div = self.mesh.face_divergence
 

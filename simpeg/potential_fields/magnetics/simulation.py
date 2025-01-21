@@ -49,6 +49,7 @@ from ._numba_functions import (
     _sensitivity_tmi_derivative_2d_mesh_serial,
     _sensitivity_tmi_derivative_2d_mesh_parallel,
 )
+from ...props import _add_deprecated_physical_property_functions
 
 if choclo is not None:
     CHOCLO_SUPPORTED_COMPONENTS = {
@@ -138,6 +139,7 @@ if choclo is not None:
     }
 
 
+@_add_deprecated_physical_property_functions("chi")
 class Simulation3DIntegral(BasePFSimulation):
     """
     Magnetic simulation in integral form.
@@ -187,13 +189,12 @@ class Simulation3DIntegral(BasePFSimulation):
            ``active_cells`` and will be removed in SimPEG v0.24.0.
     """
 
-    chi, chiMap, chiDeriv = props.Invertible("Magnetic Susceptibility (SI)")
+    chi = props.PhysicalProperty("Magnetic Susceptibility (SI)", dtype=float)
 
     def __init__(
         self,
         mesh,
         chi=None,
-        chiMap=None,
         model_type="scalar",
         is_amplitude_data=False,
         engine="geoana",
@@ -202,8 +203,7 @@ class Simulation3DIntegral(BasePFSimulation):
     ):
         self.model_type = model_type
         super().__init__(mesh, engine=engine, numba_parallel=numba_parallel, **kwargs)
-        self.chi = chi
-        self.chiMap = chiMap
+        self._init_property(chi=chi)
 
         self._G = None
         self._M = None

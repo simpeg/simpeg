@@ -10,6 +10,7 @@ from discretize import TensorMesh
 from discretize.utils import unpack_widths, sdiag, mkvc
 
 from . import props
+from .props import _add_deprecated_physical_property_functions
 from .typing import RandomSeed
 from .data import SyntheticData, Data
 from .survey import BaseSurvey
@@ -610,6 +611,9 @@ class BaseTimeSimulation(BaseSimulation):
 ##############################################################################
 
 
+@_add_deprecated_physical_property_functions(
+    "linear_model", old_map="model_map", old_deriv="model_deriv"
+)
 class LinearSimulation(BaseSimulation):
     r"""Linear forward simulation class.
 
@@ -644,14 +648,13 @@ class LinearSimulation(BaseSimulation):
         If not, the dimension ``n_param`` of the linear operator will depend on the mapping.
     """
 
-    linear_model, model_map, model_deriv = props.Invertible(
-        "The model for a linear problem"
+    linear_model = props.PhysicalProperty(
+        "The model for a linear problem", default=None, dtype=float
     )
 
-    def __init__(self, linear_model=None, model_map=None, G=None, **kwargs):
+    def __init__(self, linear_model=None, G=None, **kwargs):
         super().__init__(**kwargs)
-        self.linear_model = linear_model
-        self.model_map = model_map
+        self._init_property(linear_model=linear_model)
         if G is not None:
             self.G = G
 

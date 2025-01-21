@@ -294,14 +294,12 @@ class PhysicalProperty:
         new_prop.fvalidate = fvalidate
         return new_prop
 
-    def set_default(self, value):
+    def set_feature(self, **kwargs):
         new_prop = self.shallow_copy()
-        new_prop.default = value
-        return new_prop
-
-    def set_invertible(self, invertible):
-        new_prop = self.shallow_copy()
-        new_prop.invertible = invertible
+        for attr, value in kwargs.items():
+            if attr == "reciprocal":
+                raise SyntaxError("Cannot change a reciprocal property")
+            setattr(new_prop, attr, value)
         return new_prop
 
 
@@ -410,6 +408,38 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
 
         self.__paramers = ParametrizationList()
         super().__init__(**kwargs)
+
+    def _init_property(self, **kwargs):
+        """Initialize physical properties, or a pair of reciprocal properties."""
+        for attr, value in kwargs.items():
+            if isinstance(value, maps.IdentityMap):
+                self.parametrize(attr, value)
+            else:
+                setattr(self, attr, value)
+
+    def _init_recip_properties(self, **kwargs):
+        """Initialize a pair of reciprocal properties."""
+        if len(kwargs) != 2:
+            raise ValueError("Must give two reciprocal properties")
+        prop1, prop2 = kwargs.keys()
+        inp1, inp2 = kwargs.values()
+        prop1 = getattr(type(self), prop1)
+        prop2 = getattr(type(self), prop2)
+        if inp1 is not None and inp2 is not None:
+            raise TypeError(
+                f"Can only specify one of `{prop1.name}` or `{prop2.name}` for `{type(self).__name__}`"
+            )
+        required = not prop1.optional and not prop2.optional
+        if required and inp1 is None and inp2 is None:
+            raise TypeError(
+                f"`{type(self).__name__}` requires one of `{prop1.name}` or `{prop2.name}`"
+            )
+        if inp2 is not None:
+            inp = {prop2.name: inp2}
+        else:
+            inp = {prop1.name: inp1}
+
+        self._init_property(**inp)
 
     @classmethod
     def physical_properties(cls) -> dict[str, PhysicalPropertyInfo]:
@@ -670,7 +700,7 @@ def _add_deprecated_physical_property_functions(
             DeprecationWarning,
             stacklevel=2,
         )
-        return self._prop_deriv(new_name)
+        return self._prop_deriv(new_name, v=None)
 
     prop_deriv.__doc__ = f"""
     Derivative of {old_name} w.r.t. the model

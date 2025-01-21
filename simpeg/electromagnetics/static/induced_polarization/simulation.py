@@ -3,43 +3,28 @@ from functools import cached_property
 import numpy as np
 import scipy.sparse as sp
 
-from .... import maps, props
-from ....base import BasePDESimulation
+from .... import props
+from ....base import BaseElectricalPDESimulation
 from ....data import Data
 from ..resistivity import Simulation2DCellCentered as DC_2D_CC
 from ..resistivity import Simulation2DNodal as DC_2D_N
 from ..resistivity import Simulation3DCellCentered as DC_3D_CC
 from ..resistivity import Simulation3DNodal as DC_3D_N
+from ....props import _add_deprecated_physical_property_functions
 
 
-class BaseIPSimulation(BasePDESimulation):
-    sigma = props.PhysicalProperty("Electrical Conductivity (S/m)")
-    rho = props.PhysicalProperty("Electrical Resistivity (Ohm m)")
-    props.Reciprocal(sigma, rho)
+@_add_deprecated_physical_property_functions("eta")
+class BaseIPSimulation(BaseElectricalPDESimulation):
+    sigma = BaseElectricalPDESimulation.sigma.set_feature(invertible=False)
+    rho = BaseElectricalPDESimulation.rho.set_feature(invertible=False)
 
-    @property
-    def sigmaMap(self):
-        return maps.IdentityMap()
+    eta = props.PhysicalProperty("Electrical Chargeability (V/V)")
 
-    @sigmaMap.setter
-    def sigmaMap(self, arg):
-        pass
-
-    @property
-    def rhoMap(self):
-        return maps.IdentityMap()
-
-    @rhoMap.setter
-    def rhoMap(self, arg):
-        pass
-
-    @property
-    def sigmaDeriv(self):
-        return -sp.diags(self.sigma) @ self.etaDeriv
-
-    @property
-    def rhoDeriv(self):
-        return sp.diags(self.rho) @ self.etaDeriv
+    def _prop_deriv(self, attr, v=None):
+        if attr == "sigma":
+            return -sp.diags(self.sigma) @ self._prop_deriv("eta")
+        elif attr == "rho":
+            return sp.diags(self.rho) @ self._prop_deriv("eta")
 
     @cached_property
     def _scale(self):
@@ -57,8 +42,6 @@ class BaseIPSimulation(BasePDESimulation):
                 if rx.data_type == "apparent_chargeability":
                     scale[src, rx] = 1.0 / rx.eval(src, self.mesh, f)
         return scale.dobs
-
-    eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability (V/V)")
 
     def __init__(
         self,

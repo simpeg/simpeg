@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.constants import mu_0
 
+from ...props import _add_deprecated_physical_property_functions
 from ...simulation import BaseSimulation
 from ... import props
 from ...utils import validate_type
@@ -8,6 +9,9 @@ from ..frequency_domain.survey import Survey
 from .receivers import Impedance
 
 
+@_add_deprecated_physical_property_functions("sigma")
+@_add_deprecated_physical_property_functions("rho")
+@_add_deprecated_physical_property_functions("thicknesses")
 class Simulation1DRecursive(BaseSimulation):
     r"""
     Simulation class for the 1D MT problem using recursive solution.
@@ -36,35 +40,36 @@ class Simulation1DRecursive(BaseSimulation):
 
     """
 
-    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
-    rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
-    props.Reciprocal(sigma, rho)
+    sigma = props.PhysicalProperty(
+        "Electrical conductivity (S/m)", shape=("*",), dtype=(float, complex)
+    )
+    rho = props.PhysicalProperty(
+        "Electrical resistivity (Ohm m)",
+        reciprocal=sigma,
+        shape=("*",),
+        dtype=(float, complex),
+    )
 
     # Add layer thickness as invertible property
-    thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
-        "thicknesses of the layers starting from the bottom of the mesh"
+    thicknesses = props.PhysicalProperty(
+        "thicknesses of the layers starting from the bottom of the mesh",
+        shape=("*",),
+        dtype=float,
     )
 
     def __init__(
         self,
         survey=None,
         sigma=None,
-        sigmaMap=None,
         rho=None,
-        rhoMap=None,
         thicknesses=None,
-        thicknessesMap=None,
         fix_Jmatrix=False,
         **kwargs,
     ):
         super().__init__(survey=survey, **kwargs)
         self.fix_Jmatrix = fix_Jmatrix
-        self.sigma = sigma
-        self.rho = rho
-        self.thicknesses = thicknesses
-        self.sigmaMap = sigmaMap
-        self.rhoMap = rhoMap
-        self.thicknessesMap = thicknessesMap
+        self._init_recip_properties(sigma=sigma, rho=rho)
+        self._init_property(thicknesses=thicknesses)
 
     @property
     def survey(self):

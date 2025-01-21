@@ -3,6 +3,7 @@ import numpy as np
 import scipy.sparse as sp
 from scipy import constants
 from ... import utils, props
+from ...props import _add_deprecated_physical_property_functions
 from ...utils import validate_type
 
 
@@ -85,41 +86,27 @@ class BaseHydraulicConductivity(NonLinearModel):
         ax.set_ylabel("Hydraulic conductivity, $K$")
 
 
+@_add_deprecated_physical_property_functions("theta_r")
+@_add_deprecated_physical_property_functions("theta_s")
+@_add_deprecated_physical_property_functions("alpha")
+@_add_deprecated_physical_property_functions("beta")
 class Haverkamp_theta(BaseWaterRetention):
-    theta_r, theta_rMap, theta_rDeriv = props.Invertible(
-        "residual water content [L3L-3]"
-    )
-
-    theta_s, theta_sMap, theta_sDeriv = props.Invertible(
-        "saturated water content [L3L-3]"
-    )
-
-    alpha, alphaMap, alphaDeriv = props.Invertible("")
-
-    beta, betaMap, betaDeriv = props.Invertible("")
+    theta_r = props.PhysicalProperty("residual water content [L3L-3]", dtype=float)
+    theta_s = props.PhysicalProperty("saturated water content [L3L-3]", dtype=float)
+    alpha = props.PhysicalProperty("", dtype=float)
+    beta = props.PhysicalProperty("", dtype=float)
 
     def __init__(
         self,
         mesh,
         theta_r=0.075,
-        theta_rMap=None,
         theta_s=0.287,
-        theta_sMap=None,
         alpha=1.611e06,
-        alphaMap=None,
         beta=3.96,
-        betaMap=None,
         **kwargs,
     ):
         super().__init__(mesh=mesh, **kwargs)
-        self.theta_r = theta_r
-        self.theta_rMap = theta_rMap
-        self.theta_s = theta_s
-        self.theta_sMap = theta_sMap
-        self.alpha = alpha
-        self.alphaMap = alphaMap
-        self.beta = beta
-        self.betaMap = betaMap
+        self._init_property(theta_r=theta_r, theta_s=theta_s, alpha=alpha, beta=beta)
 
     def _get_params(self):
         return self.theta_r, self.theta_s, self.alpha, self.beta
@@ -217,31 +204,24 @@ class Haverkamp_theta(BaseWaterRetention):
         return g
 
 
+@_add_deprecated_physical_property_functions("Ks")
+@_add_deprecated_physical_property_functions("A")
+@_add_deprecated_physical_property_functions("gamma")
 class Haverkamp_k(BaseHydraulicConductivity):
-    Ks, KsMap, KsDeriv = props.Invertible("Saturated hydraulic conductivity")
-
-    A, AMap, ADeriv = props.Invertible("fitting parameter")
-
-    gamma, gammaMap, gammaDeriv = props.Invertible("fitting parameter")
+    Ks = props.PhysicalProperty("Saturated hydraulic conductivity", dtype=float)
+    A = props.PhysicalProperty("fitting parameter", dtype=float)
+    gamma = props.PhysicalProperty("fitting parameter", dtype=float)
 
     def __init__(
         self,
         mesh,
         Ks=9.44e-03,
-        KsMap=None,
         A=1.175e06,
-        AMap=None,
         gamma=4.74,
-        gammaMap=None,
         **kwargs,
     ):
         super().__init__(mesh=mesh, **kwargs)
-        self.Ks = Ks
-        self.KsMap = KsMap
-        self.A = A
-        self.AMap = AMap
-        self.gamma = gamma
-        self.gammaMap = gammaMap
+        self._init_property(Ks=Ks, A=A, gamma=gamma)
 
     def _get_params(self):
         return self.Ks, self.A, self.gamma
@@ -327,43 +307,29 @@ class HaverkampParams(object):
         }
 
 
+@_add_deprecated_physical_property_functions("theta_r")
+@_add_deprecated_physical_property_functions("theta_s")
+@_add_deprecated_physical_property_functions("n")
+@_add_deprecated_physical_property_functions("alpha")
 class Vangenuchten_theta(BaseWaterRetention):
-    theta_r, theta_rMap, theta_rDeriv = props.Invertible(
-        "residual water content [L3L-3]"
-    )
-
-    theta_s, theta_sMap, theta_sDeriv = props.Invertible(
-        "saturated water content [L3L-3]"
-    )
-
-    n, nMap, nDeriv = props.Invertible("measure of the pore-size distribution, >1")
-
-    alpha, alphaMap, alphaDeriv = props.Invertible(
-        "related to the inverse of the air entry suction [L-1], >0"
+    theta_r = props.PhysicalProperty("residual water content [L3L-3]", dtype=float)
+    theta_s = props.PhysicalProperty("saturated water content [L3L-3]", dtype=float)
+    n = props.PhysicalProperty("measure of the pore-size distribution, >1", dtype=float)
+    alpha = props.PhysicalProperty(
+        "related to the inverse of the air entry suction [L-1], >0", dtype=float
     )
 
     def __init__(
         self,
         mesh,
         theta_r=0.078,
-        theta_rMap=None,
         theta_s=0.430,
-        theta_sMap=None,
         n=1.56,
-        nMap=None,
         alpha=0.036,
-        alphaMap=None,
         **kwargs,
     ):
         super().__init__(mesh=mesh, **kwargs)
-        self.theta_r = theta_r
-        self.theta_rMap = theta_rMap
-        self.theta_s = theta_s
-        self.theta_sMap = theta_sMap
-        self.alpha = alpha
-        self.alphaMap = alphaMap
-        self.n = n
-        self.nMap = nMap
+        self._init_property(theta_r=theta_r, theta_s=theta_s, n=n, alpha=alpha)
 
     def _get_params(self):
         return self.theta_r, self.theta_s, self.alpha, self.n
@@ -486,39 +452,29 @@ class Vangenuchten_theta(BaseWaterRetention):
         return g
 
 
+@_add_deprecated_physical_property_functions("Ks")
+@_add_deprecated_physical_property_functions("I")
+@_add_deprecated_physical_property_functions("n")
+@_add_deprecated_physical_property_functions("alpha")
 class Vangenuchten_k(BaseHydraulicConductivity):
-    Ks, KsMap, KsDeriv = props.Invertible("Saturated hydraulic conductivity")
-
-    I, IMap, IDeriv = props.Invertible("")
-
-    n, nMap, nDeriv = props.Invertible("measure of the pore-size distribution, >1")
-
-    alpha, alphaMap, alphaDeriv = props.Invertible(
-        "related to the inverse of the air entry suction [L-1], >0"
+    Ks = props.PhysicalProperty("Saturated hydraulic conductivity", dtype=float)
+    I = props.PhysicalProperty("", dtype=float)
+    n = props.PhysicalProperty("measure of the pore-size distribution, >1", dtype=float)
+    alpha = props.PhysicalProperty(
+        "related to the inverse of the air entry suction [L-1], >0", dtype=float
     )
 
     def __init__(
         self,
         mesh,
         Ks=24.96,
-        KsMap=None,
         I=0.5,
-        IMap=None,
         n=1.56,
-        nMap=None,
         alpha=0.036,
-        alphaMap=None,
         **kwargs,
     ):
         super().__init__(mesh=mesh, **kwargs)
-        self.Ks = Ks
-        self.KsMap = KsMap
-        self.I = I
-        self.IMap = IMap
-        self.n = n
-        self.nMap = nMap
-        self.alpha = alpha
-        self.alphaMap = alphaMap
+        self._init_property(Ks=Ks, I=I, n=n, alpha=alpha)
 
     def _get_params(self):
         alpha = self.alpha

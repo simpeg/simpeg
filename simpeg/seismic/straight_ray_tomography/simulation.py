@@ -3,6 +3,7 @@ import numpy as np
 import scipy.sparse as sp
 import matplotlib.pyplot as plt
 
+from ...props import _add_deprecated_physical_property_functions
 from ...simulation import LinearSimulation
 from ...utils import sub2ind, validate_type
 from ... import props
@@ -75,14 +76,17 @@ def _lineintegral(M, Tx, Rx):
     return inds, V
 
 
+@_add_deprecated_physical_property_functions("slowness")
 class Simulation2DIntegral(LinearSimulation):
-    slowness, slownessMap, slownessDeriv = props.Invertible("Slowness model (1/v)")
+    slowness = props.PhysicalProperty("Slowness model (s/m)", dtype=float)
+    velocity = props.PhysicalProperty(
+        "Velocity (m/s)", reciprocal=slowness, dtype=float
+    )
 
-    def __init__(self, mesh, survey=None, slowness=None, slownessMap=None, **kwargs):
+    def __init__(self, mesh, survey=None, slowness=None, velocity=None, **kwargs):
         self.mesh = mesh
         super().__init__(survey=survey, **kwargs)
-        self.slowness = slowness
-        self.slownessMap = slownessMap
+        self._init_recip_properties(slowness=slowness, velocity=velocity)
 
     @property
     def mesh(self):

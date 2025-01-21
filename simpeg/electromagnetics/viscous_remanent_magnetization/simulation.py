@@ -3,6 +3,7 @@ import discretize
 import numpy as np
 import scipy.sparse as sp
 
+from ...props import _add_deprecated_physical_property_functions
 from ...simulation import BaseSimulation
 from ... import props
 from ... import maps
@@ -837,6 +838,7 @@ class BaseVRMSimulation(BaseSimulation):
 #############################################################################
 
 
+@_add_deprecated_physical_property_functions("xi")
 class Simulation3DLinear(BaseVRMSimulation):
     """"""
 
@@ -845,18 +847,17 @@ class Simulation3DLinear(BaseVRMSimulation):
     _TisSet = False
     _xiMap = None
 
-    xi, xiMap, xiDeriv = props.Invertible(
-        "Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)"
+    xi = props.PhysicalProperty(
+        "Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)",
+        dtype=float,
     )
 
-    def __init__(self, mesh, xi=None, xiMap=None, **kwargs):
+    def __init__(self, mesh, xi=None, **kwargs):
         super().__init__(mesh, **kwargs)
-        self.xi = xi
-        self.xiMap = xiMap
-
-        nAct = list(self.active_cells).count(True)
-        if self.xiMap is None:
-            self.xiMap = maps.IdentityMap(nP=nAct)
+        if xi is None:
+            nAct = list(self.active_cells).count(True)
+            xi = maps.IdentityMap(nP=nAct)
+        self._init_property(xi=xi)
 
     @property
     def A(self):
@@ -996,19 +997,20 @@ class Simulation3DLogUniform(BaseVRMSimulation):
     _TisSet = False
     # _xiMap = None
 
-    chi0 = props.PhysicalProperty("DC susceptibility")
-    dchi = props.PhysicalProperty("Frequency dependence")
-    tau1 = props.PhysicalProperty("Low bound time-relaxation constant")
-    tau2 = props.PhysicalProperty("Upper bound time-relaxation constant")
+    chi0 = props.PhysicalProperty("DC susceptibility", invertible=False, dtype=float)
+    dchi = props.PhysicalProperty("Frequency dependence", invertible=False, dtype=float)
+    tau1 = props.PhysicalProperty(
+        "Low bound time-relaxation constant", invertible=False, dtype=float
+    )
+    tau2 = props.PhysicalProperty(
+        "Upper bound time-relaxation constant", invertible=False, dtype=float
+    )
 
     def __init__(
         self, mesh, survey=None, chi0=None, dchi=None, tau1=None, tau2=None, **kwargs
     ):
         super(Simulation3DLogUniform, self).__init__(mesh=mesh, survey=survey, **kwargs)
-        self.chi0 = chi0
-        self.dchi = dchi
-        self.tau1 = tau1
-        self.tau2 = tau2
+        self._init_property(chi0=chi0, dchi=dchi, tau1=tau1, tau2=tau2)
 
     @property
     def A(self):

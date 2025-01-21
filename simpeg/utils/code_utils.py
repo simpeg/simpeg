@@ -1070,7 +1070,9 @@ def validate_ndarray_with_shape(property_name, var, shape=None, dtype=float):
         shape_error = False
         dim_error = var.ndim > len(shp)
         if not dim_error:
-            if len(shp) == 1:
+            if len(shp) == 0:
+                var_array = np.asarray(var)
+            elif len(shp) == 1:
                 var_array = np.atleast_1d(var)
             elif len(shp) == 2:
                 var_array = np.atleast_2d(var)

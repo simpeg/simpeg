@@ -4,11 +4,13 @@ import pymatsolver
 import scipy.sparse as sp
 from discretize.utils import Zero, TensorType
 import discretize.base
+
+from ..props import _add_deprecated_physical_property_functions
 from ..simulation import BaseSimulation
 from .. import props
 from scipy.constants import mu_0
 
-from ..utils import validate_type
+from ..utils import validate_type, validate_ndarray_with_shape
 from ..utils.solver_utils import get_default_solver
 
 
@@ -598,21 +600,37 @@ class BasePDESimulation(BaseSimulation):
         return self._MeI
 
 
+@_add_deprecated_physical_property_functions("sigma")
+@_add_deprecated_physical_property_functions("rho")
 @with_property_mass_matrices("sigma")
 @with_property_mass_matrices("rho")
 class BaseElectricalPDESimulation(BasePDESimulation):
-    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
-    rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
-    props.Reciprocal(sigma, rho)
+    sigma = props.PhysicalProperty("Electrical conductivity (S/m)", dtype=float)
+    rho = props.PhysicalProperty(
+        "Electrical resistivity (Ohm m)", reciprocal=sigma, dtype=float
+    )
 
-    def __init__(
-        self, mesh, sigma=None, sigmaMap=None, rho=None, rhoMap=None, **kwargs
-    ):
+    def __init__(self, mesh, sigma=None, rho=None, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
-        self.sigma = sigma
-        self.rho = rho
-        self.sigmaMap = sigmaMap
-        self.rhoMap = rhoMap
+        self._init_recip_properties(sigma=sigma, rho=rho)
+
+    @sigma.validator
+    def sigma(self, value):
+        return validate_ndarray_with_shape(
+            f"`{type(self.name)}.sigma`",
+            value,
+            shape=[(), (1,), (self.mesh.n_cells,)],
+            dtype=float,
+        )
+
+    @rho.validator
+    def rho(self, value):
+        return validate_ndarray_with_shape(
+            f"`{type(self.name)}.rho`",
+            value,
+            shape=[(), (1,), (self.mesh.n_cells,)],
+            dtype=float,
+        )
 
     @property
     def _delete_on_model_update(self):
@@ -634,21 +652,40 @@ class BaseElectricalPDESimulation(BasePDESimulation):
                     delattr(self, mat)
 
 
+@_add_deprecated_physical_property_functions("mu")
+@_add_deprecated_physical_property_functions("mui")
 @with_property_mass_matrices("mu")
 @with_property_mass_matrices("mui")
 class BaseMagneticPDESimulation(BasePDESimulation):
-    mu, muMap, muDeriv = props.Invertible(
+    mu = props.PhysicalProperty(
         "Magnetic Permeability (H/m)",
+        dtype=float,
     )
-    mui, muiMap, muiDeriv = props.Invertible("Inverse Magnetic Permeability (m/H)")
-    props.Reciprocal(mu, mui)
+    mui = props.PhysicalProperty(
+        "Inverse Magnetic Permeability (m/H)", reciprocal=mu, dtype=float
+    )
 
-    def __init__(self, mesh, mu=mu_0, muMap=None, mui=None, muiMap=None, **kwargs):
+    def __init__(self, mesh, mu=mu_0, mui=None, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
-        self.mu = mu
-        self.mui = mui
-        self.muMap = muMap
-        self.muiMap = muiMap
+        self._init_recip_properties(mu=mu, mui=mui)
+
+    @mu.validator
+    def mu(self, value):
+        return validate_ndarray_with_shape(
+            f"`{type(self.name)}.sigma`",
+            value,
+            shape=[(), (1,), (self.mesh.n_cells,)],
+            dtype=float,
+        )
+
+    @mui.validator
+    def rho(self, value):
+        return validate_ndarray_with_shape(
+            f"`{type(self.name)}.rho`",
+            value,
+            shape=[(), (1,), (self.mesh.n_cells,)],
+            dtype=float,
+        )
 
     def __setattr__(self, name, value):
         super().__setattr__(name, value)
