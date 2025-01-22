@@ -100,35 +100,14 @@ def getSourceTerm(self, freq, source=None):
     if source is None:
 
         source_list = self.survey.get_sources_by_frequency(freq)
-        source_block = np.array_split(source_list, self.n_threads)
-
         block_compute = []
 
-        if self.client:
-            sim = self.client.scatter(self, workers=self.worker)
-            source_block = self.client.scatter(source_block, workers=self.worker)
-        else:
-            delayed_source_eval = delayed(source_eval)
+        for block in [source_list]:
+            block_compute.append(source_eval(self, block))
 
-        for block in source_block:
-            if self.client:
-                block_compute.append(
-                    self.client.submit(source_eval, sim, block, workers=self.worker)
-                )
-            else:
-                block_compute.append(delayed_source_eval(self, block))
-
-        if self.client:
-            blocks = self.client.gather(block_compute)
-        else:
-            blocks = compute(block_compute)[0]
         s_m, s_e = [], []
-        for block in blocks:
+        for block in block_compute:
             if block[0]:
-                # for source in self.survey.get_sources_by_frequency(freq):
-                #     sm, se = source.eval(self)
-                #     s_m.append(sm)
-                #     s_e.append(se)
                 s_m += block[0]
                 s_e += block[1]
 
