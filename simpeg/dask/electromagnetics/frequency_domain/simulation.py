@@ -10,7 +10,6 @@ from dask import array, compute, delayed
 from simpeg.dask.utils import get_parallel_blocks
 from simpeg.electromagnetics.natural_source.sources import PlanewaveXYPrimary
 import zarr
-from dask.distributed import get_client
 
 
 def receivers_eval(block, mesh, fields):
@@ -229,8 +228,6 @@ def fields(self, m=None, return_Ainv=False):
 def compute_J(self, m, f=None):
     self.model = m
 
-    client = get_client()
-
     if f is None:
         f, Ainv = self.fields(m=m, return_Ainv=True)
 
@@ -259,14 +256,16 @@ def compute_J(self, m, f=None):
     )
     fields_array = f[:, self._solutionType]
     blocks_receiver_derivs = []
-    if client:
-        fields_array = client.scatter(f[:, self._solutionType], workers=self.worker)
-        fields = client.scatter(f, workers=self.worker)
-        survey = client.scatter(self.survey, workers=self.worker)
-        mesh = client.scatter(self.mesh, workers=self.worker)
+    if self.client:
+        fields_array = self.client.scatter(
+            f[:, self._solutionType], workers=self.worker
+        )
+        fields = self.client.scatter(f, workers=self.worker)
+        survey = self.client.scatter(self.survey, workers=self.worker)
+        mesh = self.client.scatter(self.mesh, workers=self.worker)
         for block in blocks:
             blocks_receiver_derivs.append(
-                client.submit(
+                self.client.submit(
                     receiver_derivs,
                     survey,
                     mesh,
@@ -293,14 +292,14 @@ def compute_J(self, m, f=None):
             )
 
     # Dask process for all derivatives
-    if client:
-        blocks_receiver_derivs = client.gather(blocks_receiver_derivs)
+    if self.client:
+        blocks_receiver_derivs = self.client.gather(blocks_receiver_derivs)
     else:
         blocks_receiver_derivs = compute(blocks_receiver_derivs)[0]
 
     for block_derivs_chunks, addresses_chunks in zip(blocks_receiver_derivs, blocks):
         Jmatrix = self.parallel_block_compute(
-            m, Jmatrix, block_derivs_chunks, A_i, fields_array, addresses_chunks, client
+            m, Jmatrix, block_derivs_chunks, A_i, fields_array, addresses_chunks
         )
 
     for A in Ainv.values():
@@ -316,14 +315,14 @@ def compute_J(self, m, f=None):
 
 
 def parallel_block_compute(
-    self, m, Jmatrix, blocks_receiver_derivs, A_i, fields_array, addresses, client
+    self, m, Jmatrix, blocks_receiver_derivs, A_i, fields_array, addresses
 ):
     m_size = m.size
     block_stack = sp.hstack(blocks_receiver_derivs).toarray()
 
     ATinvdf_duT = A_i * block_stack
-    if client:
-        ATinvdf_duT = client.scatter(ATinvdf_duT, workers=self.worker)
+    if self.client:
+        ATinvdf_duT = self.client.scatter(ATinvdf_duT, workers=self.worker)
     else:
         ATinvdf_duT = delayed(ATinvdf_duT)
     count = 0
@@ -334,10 +333,10 @@ def parallel_block_compute(
         n_cols = dfduT.shape[1]
         n_rows = address[1][2]
 
-        if client:
-            sim = client.scatter(self, workers=self.worker)
+        if self.client:
+            sim = self.client.scatter(self, workers=self.worker)
             block_delayed.append(
-                client.submit(
+                self.client.submit(
                     eval_block,
                     sim,
                     ATinvdf_duT,
@@ -369,8 +368,8 @@ def parallel_block_compute(
 
     indices = np.hstack(rows)
 
-    if client:
-        block_delayed = client.gather(block_delayed)
+    if self.client:
+        block_delayed = self.client.gather(block_delayed)
         block = np.vstack(block_delayed)
     else:
         block = compute(array.vstack(block_delayed))[0]
