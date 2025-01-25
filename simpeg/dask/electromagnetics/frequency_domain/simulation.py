@@ -258,14 +258,19 @@ def compute_J(self, m, f=None):
     fields_array = f[:, self._solutionType]
     blocks_receiver_derivs = []
 
-    client = get_client()
+    try:
+        client = get_client()
+        worker = self.worker
+    except ValueError:
+        client = None
+        worker = None
 
     if client:
-        fields_array = client.scatter(f[:, self._solutionType], workers=self.worker)
-        fields = client.scatter(f, workers=self.worker)
-        survey = client.scatter(self.survey, workers=self.worker)
-        mesh = client.scatter(self.mesh, workers=self.worker)
-        simulation = client.scatter(self, workers=self.worker)
+        fields_array = client.scatter(f[:, self._solutionType], workers=worker)
+        fields = client.scatter(f, workers=worker)
+        survey = client.scatter(self.survey, workers=worker)
+        mesh = client.scatter(self.mesh, workers=worker)
+        simulation = client.scatter(self, workers=worker)
         for block in blocks:
             blocks_receiver_derivs.append(
                 client.submit(
@@ -274,7 +279,7 @@ def compute_J(self, m, f=None):
                     mesh,
                     fields,
                     block,
-                    workers=self.worker,
+                    workers=worker,
                 )
             )
     else:
@@ -310,7 +315,7 @@ def compute_J(self, m, f=None):
             fields_array,
             addresses_chunks,
             client,
-            self.worker,
+            worker,
             store_sensitivities=self.store_sensitivities,
         )
 
@@ -335,7 +340,7 @@ def parallel_block_compute(
     fields_array,
     addresses,
     client,
-    worker,
+    worker=None,
     store_sensitivities="disk",
 ):
     m_size = m.size
