@@ -4,12 +4,14 @@ import os
 from ....electromagnetics.time_domain.simulation import BaseTDEMSimulation as Sim
 
 from ....utils import Zero
-from ...simulation import client, getJtJdiag, Jvec, Jtvec, Jmatrix
-from simpeg.fields import TimeFields
-from multiprocessing import cpu_count
+from ...simulation import getJtJdiag, Jvec, Jtvec, Jmatrix
+
+# from simpeg.fields import TimeFields
+# from multiprocessing import cpu_count
 import numpy as np
 import scipy.sparse as sp
 from dask import array, delayed
+from dask.distributed import get_client
 
 from simpeg.dask.utils import get_parallel_blocks
 from simpeg.utils import mkvc
@@ -50,49 +52,49 @@ def fields(self, m=None):
     return f
 
 
-def getSourceTerm(self, tInd):
-    """
-    Assemble the source term. This ensures that the RHS is a vector / array
-    of the correct size
-    """
-    source_list = self.survey.source_list
-    source_block = np.array_split(source_list, cpu_count())
-
-    block_compute = []
-
-    if self.client:
-        sim = self.client.scatter(self)
-    else:
-        delayed_source_eval = delayed(source_evaluation)
-
-    for block in source_block:
-        if self.client:
-            block_compute.append(
-                self.client.submit(
-                    source_evaluation,
-                    sim,
-                    block,
-                    self.times[tInd],
-                )
-            )
-        else:
-            block_compute.append(delayed_source_eval(self, block, self.times[tInd]))
-
-    if self.client:
-        blocks = self.client.gather(block_compute)
-    else:
-        blocks = dask.compute(block_compute)[0]
-
-    s_m, s_e = [], []
-    for block in blocks:
-        if block[0]:
-            s_m.append(block[0])
-            s_e.append(block[1])
-
-    if isinstance(s_m[0][0], Zero):
-        return Zero(), np.vstack(s_e).T
-
-    return np.vstack(s_m).T, np.vstack(s_e).T
+# # def getSourceTerm(self, tInd):
+#     """
+#     Assemble the source term. This ensures that the RHS is a vector / array
+#     of the correct size
+#     """
+#     source_list = self.survey.source_list
+#     source_block = np.array_split(source_list, cpu_count())
+#
+#     block_compute = []
+#
+#     if client:
+#         sim = client.scatter(self, workers=self.worker)
+#     else:
+#         delayed_source_eval = delayed(source_evaluation)
+#
+#     for block in source_block:
+#         if client:
+#             block_compute.append(
+#                 client.submit(
+#                     source_evaluation,
+#                     sim,
+#                     block,
+#                     self.times[tInd],
+#                 )
+#             )
+#         else:
+#             block_compute.append(delayed_source_eval(self, block, self.times[tInd]))
+#
+#     if client:
+#         blocks = client.gather(block_compute)
+#     else:
+#         blocks = dask.compute(block_compute)[0]
+#
+#     s_m, s_e = [], []
+#     for block in blocks:
+#         if block[0]:
+#             s_m.append(block[0])
+#             s_e.append(block[1])
+#
+#     if isinstance(s_m[0][0], Zero):
+#         return Zero(), np.vstack(s_e).T
+#
+#     return np.vstack(s_m).T, np.vstack(s_e).T
 
 
 # def dpred(self, m=None, f=None):
@@ -183,19 +185,19 @@ def compute_J(self, m, f=None):
     compute_row_size = np.ceil(self.max_chunk_size / (m.shape[0] * 8.0 * 1e-6))
     blocks = get_parallel_blocks(self.survey.source_list, compute_row_size)
     fields_array = f[:, ftype, :]
-
+    client = get_client()
     if len(self.survey.source_list) == 1:
         fields_array = fields_array[:, np.newaxis, :]
 
     times_field_derivs, Jmatrix = compute_field_derivs(
-        self, f, blocks, Jmatrix, fields_array.shape
+        self, f, blocks, Jmatrix, fields_array.shape, client
     )
 
     ATinv_df_duT_v = {}
 
-    if self.client:
-        fields_array = self.client.scatter(fields_array)
-        sim = self.client.scatter(self)
+    if client:
+        fields_array = client.scatter(fields_array, workers=self.worker)
+        sim = client.scatter(self, workers=self.worker)
     else:
         delayed_compute_rows = delayed(compute_rows)
 
@@ -215,9 +217,9 @@ def compute_J(self, m, f=None):
             if len(block) == 0:
                 continue
 
-            if self.client:
+            if client:
                 j_row_updates.append(
-                    self.client.submit(
+                    client.submit(
                         compute_rows,
                         sim,
                         tInd,
@@ -225,6 +227,7 @@ def compute_J(self, m, f=None):
                         ATinv_df_duT_v,
                         fields_array,
                         time_mask,
+                        workers=self.worker,
                     )
                 )
             else:
@@ -246,8 +249,8 @@ def compute_J(self, m, f=None):
                     )
                 )
 
-        if self.client:
-            j_row_updates = np.vstack(self.client.gather(j_row_updates))
+        if client:
+            j_row_updates = np.vstack(client.gather(j_row_updates))
 
         else:
             j_row_updates = array.vstack(j_row_updates).compute()
@@ -312,24 +315,25 @@ def _getField(self, name, ind, src_list):
         else:  # loop over the time steps
             arrays = []
 
-            if self.client:
-                pointerFields = self.client.scatter(pointerFields)
-                src_list = self.client.scatter(src_list)
-                func = self.client.scatter(func)
+            if client:
+                pointerFields = client.scatter(pointerFields, workers=self.worker)
+                src_list = client.scatter(src_list, workers=self.worker)
+                func = client.scatter(func, workers=self.worker)
             else:
                 delayed_field_comp = delayed(field_projection)
 
             for i, TIND_i in enumerate(timeII):  # Need to parallelize this
 
-                if self.client:
+                if client:
                     arrays.append(
-                        self.client.submit(
+                        client.submit(
                             field_projection,
                             pointerFields,
                             src_list,
                             i,
                             TIND_i,
                             func,
+                            workers=self.worker,
                         )
                     )
                 else:
@@ -343,8 +347,8 @@ def _getField(self, name, ind, src_list):
                         )
                     )
 
-            if self.client:
-                arrays = self.client.gather(arrays)
+            if client:
+                arrays = client.gather(arrays)
                 out = np.dstack(arrays)
             else:
                 out = array.dstack(arrays).compute()
@@ -354,7 +358,6 @@ def _getField(self, name, ind, src_list):
 
 
 # TimeFields._getField = _getField
-TimeFields.client = client
 
 
 def field_projection(field_array, src_list, array_ind, time_ind, func):
@@ -392,16 +395,16 @@ def evaluate_receivers(block, mesh, time_mesh, fields, fields_array):
     return np.hstack(data)
 
 
-def compute_field_derivs(self, fields, blocks, Jmatrix, fields_shape):
+def compute_field_derivs(self, fields, blocks, Jmatrix, fields_shape, client):
     """
     Compute the derivative of the fields
     """
     delayed_chunks = []
 
-    if self.client:
-        mesh = self.client.scatter(self.mesh)
-        time_mesh = self.client.scatter(self.time_mesh)
-        fields = self.client.scatter(fields)
+    if client:
+        mesh = client.scatter(self.mesh, workers=self.worker)
+        time_mesh = client.scatter(self.time_mesh, workers=self.worker)
+        fields = client.scatter(fields, workers=self.worker)
     else:
         mesh = self.mesh
         time_mesh = self.time_mesh
@@ -411,9 +414,9 @@ def compute_field_derivs(self, fields, blocks, Jmatrix, fields_shape):
         if len(chunks) == 0:
             continue
 
-        if self.client:
+        if client:
             delayed_chunks.append(
-                self.client.submit(
+                client.submit(
                     block_deriv,
                     self.nT,
                     chunks,
@@ -423,6 +426,7 @@ def compute_field_derivs(self, fields, blocks, Jmatrix, fields_shape):
                     time_mesh,
                     fields,
                     self.model.size,
+                    workers=self.worker,
                 )
             )
         else:
@@ -439,8 +443,8 @@ def compute_field_derivs(self, fields, blocks, Jmatrix, fields_shape):
                 )
             )
 
-    if self.client:
-        result = self.client.gather(delayed_chunks)
+    if client:
+        result = client.gather(delayed_chunks)
     else:
         result = dask.compute(delayed_chunks)[0]
 
@@ -519,9 +523,9 @@ def get_field_deriv_block(
         )
         count += len(local_ind)
 
-        if self.client:
+        if client:
             stacked_blocks.append(
-                self.client.submit(
+                client.submit(
                     deriv_block,
                     s_id,
                     r_id,
@@ -531,6 +535,7 @@ def get_field_deriv_block(
                     local_ind,
                     field_deriv,
                     tInd,
+                    workers=self.worker,
                 )
             )
         else:
@@ -556,8 +561,8 @@ def get_field_deriv_block(
             )
     if len(stacked_blocks) > 0:
 
-        if self.client:
-            blocks = np.hstack(self.client.gather(stacked_blocks))
+        if client:
+            blocks = np.hstack(client.gather(stacked_blocks))
         else:
             blocks = array.hstack(stacked_blocks).compute()
 
@@ -692,10 +697,9 @@ def compute_rows(
     return np.vstack(rows)
 
 
-Sim.client = client
 Sim.fields = fields
 Sim.getJtJdiag = getJtJdiag
-Sim.getSourceTerm = getSourceTerm
+# Sim.getSourceTerm = getSourceTerm
 # Sim.dpred = dpred
 Sim.compute_J = compute_J
 Sim.getJtJdiag = getJtJdiag

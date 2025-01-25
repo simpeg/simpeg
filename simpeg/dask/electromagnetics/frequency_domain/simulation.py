@@ -132,71 +132,71 @@ def getSourceTerm(self, freq, source=None):
     return s_m, s_e
 
 
-def dpred(self, m=None, f=None, compute_J=False):
-    r"""
-    dpred(m, f=None)
-    Create the projected data from a model.
-    The fields, f, (if provided) will be used for the predicted data
-    instead of recalculating the fields (which may be expensive!).
-
-    .. math::
-
-        d_\\text{pred} = P(f(m))
-
-    Where P is a projection of the fields onto the data space.
-    """
-    if self.survey is None:
-        raise AttributeError(
-            "The survey has not yet been set and is required to compute "
-            "data. Please set the survey for the simulation: "
-            "simulation.survey = survey"
-        )
-
-    if f is None:
-        if m is None:
-            m = self.model
-        f = self.fields(m)
-
-    all_receivers = []
-
-    for ind, src in enumerate(self.survey.source_list):
-        for rx in src.receiver_list:
-            all_receivers.append((src, ind, rx))
-
-    receiver_blocks = np.array_split(np.asarray(all_receivers), self.n_threads)
-    rows = []
-
-    if self.client:
-        f = self.client.scatter(f, workers=self.worker)
-        mesh = self.client.scatter(self.mesh, workers=self.worker)
-    else:
-        delayed_receivers_eval = delayed(receivers_eval)
-        mesh = delayed(self.mesh)
-
-    for block in receiver_blocks:
-        n_data = np.sum([rec.nD for _, _, rec in block])
-        if n_data == 0:
-            continue
-
-        if self.client:
-            rows.append(
-                self.client.submit(receivers_eval, block, mesh, f, workers=self.worker)
-            )
-        else:
-            rows.append(
-                array.from_delayed(
-                    delayed_receivers_eval(block, mesh, f),
-                    dtype=np.float64,
-                    shape=(n_data,),
-                )
-            )
-
-    if self.client:
-        rows = np.hstack(self.client.gather(rows))
-    else:
-        rows = compute(array.hstack(rows))[0]
-
-    return rows
+# def dpred(self, m=None, f=None, compute_J=False):
+#     r"""
+#     dpred(m, f=None)
+#     Create the projected data from a model.
+#     The fields, f, (if provided) will be used for the predicted data
+#     instead of recalculating the fields (which may be expensive!).
+#
+#     .. math::
+#
+#         d_\\text{pred} = P(f(m))
+#
+#     Where P is a projection of the fields onto the data space.
+#     """
+#     if self.survey is None:
+#         raise AttributeError(
+#             "The survey has not yet been set and is required to compute "
+#             "data. Please set the survey for the simulation: "
+#             "simulation.survey = survey"
+#         )
+#
+#     if f is None:
+#         if m is None:
+#             m = self.model
+#         f = self.fields(m)
+#
+#     all_receivers = []
+#
+#     for ind, src in enumerate(self.survey.source_list):
+#         for rx in src.receiver_list:
+#             all_receivers.append((src, ind, rx))
+#
+#     receiver_blocks = np.array_split(np.asarray(all_receivers), self.n_threads)
+#     rows = []
+#
+#     if self.client:
+#         f = self.client.scatter(f, workers=self.worker)
+#         mesh = self.client.scatter(self.mesh, workers=self.worker)
+#     else:
+#         delayed_receivers_eval = delayed(receivers_eval)
+#         mesh = delayed(self.mesh)
+#
+#     for block in receiver_blocks:
+#         n_data = np.sum([rec.nD for _, _, rec in block])
+#         if n_data == 0:
+#             continue
+#
+#         if self.client:
+#             rows.append(
+#                 self.client.submit(receivers_eval, block, mesh, f, workers=self.worker)
+#             )
+#         else:
+#             rows.append(
+#                 array.from_delayed(
+#                     delayed_receivers_eval(block, mesh, f),
+#                     dtype=np.float64,
+#                     shape=(n_data,),
+#                 )
+#             )
+#
+#     if self.client:
+#         rows = np.hstack(self.client.gather(rows))
+#     else:
+#         rows = compute(array.hstack(rows))[0]
+#
+#     return rows
 
 
 def fields(self, m=None, return_Ainv=False):

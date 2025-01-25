@@ -1,7 +1,6 @@
 from ..simulation import BaseSimulation as Sim
 
 from dask import array
-from dask.distributed import get_client
 import numpy as np
 
 Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag", "_stashed_fields"]
@@ -40,20 +39,6 @@ def max_chunk_size(self, other):
 
 
 Sim.max_chunk_size = max_chunk_size
-
-
-@property
-def client(self):
-    if getattr(self, "_client", None) is None:
-        try:
-            self._client = get_client()
-        except ValueError:
-            self._client = False
-
-    return self._client
-
-
-Sim.client = client
 
 
 def getJtJdiag(self, m, W=None, f=None):
@@ -122,14 +107,13 @@ def Jmatrix(self):
 Sim.Jmatrix = Jmatrix
 
 
-@property
-def n_threads(self):
+def n_threads(self, client=None):
     """
     Number of threads used by Dask
     """
     if getattr(self, "_n_threads", None) is None:
-        if self.client:
-            self._n_threads = self.client.nthreads()[self.worker[0]]
+        if client:
+            self._n_threads = client.nthreads()[self.worker[0]]
         else:
             self._n_threads = cpu_count()
 

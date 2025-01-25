@@ -5,6 +5,7 @@ from dask.distributed import Client
 from ..data_misfit import L2DataMisfit
 import os
 from simpeg.utils import validate_list_of_types
+from time import time
 
 OUTFILE = os.getcwd() + "/update.txt"
 
@@ -323,7 +324,7 @@ class DaskComboMisfits(ComboObjectiveFunction):
             #     f = self.fields(m)
             for ii, futures in enumerate(self._futures):
                 work = []
-                write_message(f"Future {ii} of {len(self._futures)}")
+                ct = time()
                 for objfct, worker in zip(futures, self._workers):
                     work.append(
                         client.submit(
@@ -334,7 +335,11 @@ class DaskComboMisfits(ComboObjectiveFunction):
                             workers=worker,
                         )
                     )
+
                 work = client.gather(work)
+                write_message(
+                    f"Future {ii} of {len(self._futures)} in {time() - ct:.3f} sec"
+                )
                 jtj_diag += np.sum(work, axis=0)
 
             self._jtjdiag = jtj_diag
