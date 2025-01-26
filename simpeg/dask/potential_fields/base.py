@@ -1,7 +1,7 @@
 import numpy as np
 
 from ...potential_fields.base import BasePFSimulation as Sim
-
+from dask.distributed import get_client
 import os
 from dask import delayed, array, config
 from ..utils import compute_chunk_sizes
@@ -59,16 +59,21 @@ def linear_operator(self):
     )
     block_split = np.array_split(self.survey.receiver_locations, n_blocks)
 
-    if self.client:
-        sim = self.client.scatter(self, workers=self.worker)
+    try:
+        client = get_client()
+    except ValueError:
+        client = None
+
+    if client:
+        sim = client.scatter(self, workers=self.worker)
     else:
         delayed_compute = delayed(block_compute)
 
     rows = []
     for block in block_split:
-        if self.client:
+        if client:
             rows.append(
-                self.client.submit(
+                client.submit(
                     block_compute,
                     sim,
                     block,
@@ -90,10 +95,10 @@ def linear_operator(self):
                 )
             )
 
-    if self.client:
+    if client:
         if forward_only:
-            return np.hstack(self.client.gather(rows))
-        return np.vstack(self.client.gather(rows))
+            return np.hstack(client.gather(rows))
+        return np.vstack(client.gather(rows))
 
     if forward_only:
         stack = array.concatenate(rows)
