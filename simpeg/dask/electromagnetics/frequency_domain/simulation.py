@@ -98,13 +98,32 @@ def getSourceTerm(self, freq, source=None):
     Assemble the source term. This ensures that the RHS is a vector / array
     of the correct size
     """
+    try:
+        client = get_client()
+        sim = client.scatter(self, workers=self.worker)
+    except ValueError:
+        client = None
+        sim = self
+
     if source is None:
 
         source_list = self.survey.get_sources_by_frequency(freq)
+        source_blocks = np.array_split(source_list, self.n_threads(client=client))
         block_compute = []
 
-        for block in [source_list]:
-            block_compute.append(source_eval(self, block))
+        for block in source_blocks:
+            if len(block) == 0:
+                continue
+
+            if client:
+                block_compute.append(
+                    client.submit(source_eval, sim, block, workers=self.worker)
+                )
+            else:
+                block_compute.append(source_eval(sim, block))
+
+        if client:
+            block_compute = client.gather(block_compute)
 
         s_m, s_e = [], []
         for block in block_compute:
@@ -130,73 +149,6 @@ def getSourceTerm(self, freq, source=None):
         if s_e.shape[0] < s_e.shape[1]:
             s_e = s_e.T
     return s_m, s_e
-
-
-# def dpred(self, m=None, f=None, compute_J=False):
-#     r"""
-#     dpred(m, f=None)
-#     Create the projected data from a model.
-#     The fields, f, (if provided) will be used for the predicted data
-#     instead of recalculating the fields (which may be expensive!).
-#
-#     .. math::
-#
-#         d_\\text{pred} = P(f(m))
-#
-#     Where P is a projection of the fields onto the data space.
-#     """
-#     if self.survey is None:
-#         raise AttributeError(
-#             "The survey has not yet been set and is required to compute "
-#             "data. Please set the survey for the simulation: "
-#             "simulation.survey = survey"
-#         )
-#
-#     if f is None:
-#         if m is None:
-#             m = self.model
-#         f = self.fields(m)
-#
-#     all_receivers = []
-#
-#     for ind, src in enumerate(self.survey.source_list):
-#         for rx in src.receiver_list:
-#             all_receivers.append((src, ind, rx))
-#
-#     receiver_blocks = np.array_split(np.asarray(all_receivers), self.n_threads)
-#     rows = []
-#
-#     if self.client:
-#         f = self.client.scatter(f, workers=self.worker)
-#         mesh = self.client.scatter(self.mesh, workers=self.worker)
-#     else:
-#         delayed_receivers_eval = delayed(receivers_eval)
-#         mesh = delayed(self.mesh)
-#
-#     for block in receiver_blocks:
-#         n_data = np.sum([rec.nD for _, _, rec in block])
-#         if n_data == 0:
-#             continue
-#
-#         if self.client:
-#             rows.append(
-#                 self.client.submit(receivers_eval, block, mesh, f, workers=self.worker)
-#             )
-#         else:
-#             rows.append(
-#                 array.from_delayed(
-#                     delayed_receivers_eval(block, mesh, f),
-#                     dtype=np.float64,
-#                     shape=(n_data,),
-#                 )
-#             )
-#
-#     if self.client:
-#         rows = np.hstack(self.client.gather(rows))
-#     else:
-#         rows = compute(array.hstack(rows))[0]
-#
-#     return rows
 
 
 def fields(self, m=None, return_Ainv=False):
@@ -419,5 +371,4 @@ Sim.Jvec = Jvec
 Sim.Jtvec = Jtvec
 Sim.Jmatrix = Jmatrix
 Sim.fields = fields
-# Sim.dpred = dpred
 Sim.getSourceTerm = getSourceTerm

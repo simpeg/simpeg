@@ -185,7 +185,12 @@ def compute_J(self, m, f=None):
     compute_row_size = np.ceil(self.max_chunk_size / (m.shape[0] * 8.0 * 1e-6))
     blocks = get_parallel_blocks(self.survey.source_list, compute_row_size)
     fields_array = f[:, ftype, :]
-    client = get_client()
+
+    try:
+        client = get_client()
+    except ValueError:
+        client = None
+
     if len(self.survey.source_list) == 1:
         fields_array = fields_array[:, np.newaxis, :]
 
@@ -211,7 +216,14 @@ def compute_J(self, m, f=None):
 
         for block, field_deriv in zip(blocks, times_field_derivs[tInd + 1]):
             ATinv_df_duT_v = get_field_deriv_block(
-                self, block, field_deriv, tInd, AdiagTinv, ATinv_df_duT_v, time_mask
+                self,
+                block,
+                field_deriv,
+                tInd,
+                AdiagTinv,
+                ATinv_df_duT_v,
+                time_mask,
+                client,
             )
 
             if len(block) == 0:
@@ -494,6 +506,7 @@ def get_field_deriv_block(
     AdiagTinv,
     ATinv_df_duT_v: dict,
     time_mask,
+    client,
 ):
     """
     Stack the blocks of field derivatives for a given timestep and call the direct solver.

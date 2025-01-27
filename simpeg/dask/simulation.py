@@ -2,6 +2,7 @@ from ..simulation import BaseSimulation as Sim
 
 from dask import array
 import numpy as np
+from multiprocessing import cpu_count
 
 Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag", "_stashed_fields"]
 Sim.sensitivity_path = "./sensitivity/"
@@ -121,3 +122,40 @@ def n_threads(self, client=None):
 
 
 Sim.n_threads = n_threads
+
+
+# TODO: Make dpred parallel
+def dpred(self, m=None, f=None):
+    r"""Predicted data for the model provided.
+
+    Parameters
+    ----------
+    m : (n_param,) numpy.ndarray
+        The model parameters.
+    f : simpeg.fields.Fields, optional
+        If provided, will be used to compute the predicted data
+        without recalculating the fields.
+
+    Returns
+    -------
+    (n_data, ) numpy.ndarray
+        The predicted data vector.
+    """
+    if self.survey is None:
+        raise AttributeError(
+            "The survey has not yet been set and is required to compute "
+            "data. Please set the survey for the simulation: "
+            "simulation.survey = survey"
+        )
+
+    if f is None:
+        if m is None:
+            m = self.model
+
+        f = self.fields(m)
+
+    data = Data(self.survey)
+    for src in self.survey.source_list:
+        for rx in src.receiver_list:
+            data[src, rx] = rx.eval(src, self.mesh, f)
+    return mkvc(data)
