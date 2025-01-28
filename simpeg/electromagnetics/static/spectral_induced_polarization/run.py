@@ -133,18 +133,18 @@ def run_inversion(
     # Set Upper and Lower bounds
     e = np.ones(actind.sum())
 
-    if np.isscalar(eta_lower):
+    if np.ndim(eta_lower) == 0:
         eta_lower = e * eta_lower
-    if np.isscalar(tau_lower):
+    if np.ndim(tau_lower) == 0:
         tau_lower = e * tau_lower
-    if np.isscalar(c_lower):
+    if np.ndim(c_lower) == 0:
         c_lower = e * c_lower
 
-    if np.isscalar(eta_upper):
+    if np.ndim(eta_upper) == 0:
         eta_upper = e * eta_upper
-    if np.isscalar(tau_upper):
+    if np.ndim(tau_upper) == 0:
         tau_upper = e * tau_upper
-    if np.isscalar(c_upper):
+    if np.ndim(c_upper) == 0:
         c_upper = e * c_upper
 
     if is_log_eta:

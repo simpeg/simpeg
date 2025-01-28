@@ -412,9 +412,9 @@ def dependent_property(name, value, children, doc):
         return getattr(self, name, value)
 
     def fset(self, val):
-        if (np.isscalar(val) and getattr(self, name, value) == val) or val is getattr(
-            self, name, value
-        ):
+        if (
+            (np.ndim(val) == 0) and getattr(self, name, value) == val
+        ) or val is getattr(self, name, value):
             return  # it is the same!
         for child in children:
             if hasattr(self, child):

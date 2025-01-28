@@ -116,7 +116,7 @@ class Haverkamp_theta(BaseWaterRetention):
 
         f = alpha * (theta_s - theta_r) / (alpha + abs(u) ** beta) + theta_r
 
-        if np.isscalar(theta_s):
+        if np.ndim(theta_s) == 0:
             f[u >= 0] = theta_s
         else:
             f[u >= 0] = theta_s[u >= 0]
@@ -339,7 +339,7 @@ class Vangenuchten_theta(BaseWaterRetention):
         f = (theta_s - theta_r) / (
             (1.0 + abs(alpha * u) ** n) ** (1.0 - 1.0 / n)
         ) + theta_r
-        if np.isscalar(theta_s):
+        if np.ndim(theta_s) == 0:
             f[u >= 0] = theta_s
         else:
             f[u >= 0] = theta_s[u >= 0]
