@@ -364,12 +364,14 @@ class ParametrizationList:
             ) from None
 
     def __getattr__(self, key):
-        try:
-            return self._fields[key]
-        except KeyError:
-            raise AttributeError(
-                f"'{type(self).__name__}' object has no attribute '{key}'"
-            ) from None
+        if key != "_fields":
+            try:
+                return self._fields[key]
+            except KeyError:
+                raise AttributeError(
+                    f"'{type(self).__name__}' object has no attribute '{key}'"
+                ) from None
+        raise AttributeError
 
     def __contains__(self, key):
         return key in self._fields
@@ -670,7 +672,6 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
 
         # trigger model update function.
         previous_value = getattr(self, "_model", None)
-        updated = False
         if previous_value is not value:
             if not (
                 isinstance(previous_value, np.ndarray)
@@ -682,14 +683,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                     if hasattr(self, prop):
                         delattr(self, prop)
 
-                updated = True
-
         self._model = value
-        # Most of the time this return value is completely ignored
-        # However if you need to know if the model was updated in
-        # and child class, you can always access the method:
-        # HasModel.model.fset
-        return updated
 
     @model.deleter
     def model(self):

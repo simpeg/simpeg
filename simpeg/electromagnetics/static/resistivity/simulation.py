@@ -176,7 +176,6 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
             u_source = f[source, self._solutionType]  # solution vector
             dA_dm_v = self.getADeriv(u_source, v)
             dRHS_dm_v = self.getRHSDeriv(source, v)
-            print(type(dA_dm_v), type(dRHS_dm_v))
             du_dm_v = self.Ainv * (-dA_dm_v + dRHS_dm_v)
             for rx in source.receiver_list:
                 df_dmFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
