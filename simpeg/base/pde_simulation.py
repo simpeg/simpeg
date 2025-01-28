@@ -679,13 +679,13 @@ class BaseElectricalPDESimulation(BasePDESimulation):
 @with_property_mass_matrices("mu")
 @with_property_mass_matrices("mui")
 class BaseMagneticPDESimulation(BasePDESimulation):
-    mu = props.PhysicalProperty("Magnetic Permeability (H/m)", reciprocal="mui")
+    mu = props.PhysicalProperty(
+        "Magnetic Permeability (H/m)", reciprocal="mui", default=mu_0
+    )
     mui = props.PhysicalProperty("Inverse Magnetic Permeability (m/H)", reciprocal="mu")
 
     def __init__(self, mesh, mu=None, mui=None, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
-        if mu is None and mui is None:
-            mu = mu_0
         self._init_recip_properties(mu=mu, mui=mui)
 
     @mu.setter

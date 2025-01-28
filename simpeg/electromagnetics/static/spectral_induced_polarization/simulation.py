@@ -20,10 +20,10 @@ from .survey import Survey
 @_add_deprecated_physical_property_functions("taui")
 @_add_deprecated_physical_property_functions("c")
 class BaseSIPSimulation(BaseIPSimulation):
-    tau = props.PhysicalProperty("Time constant (s)", reciprocal="taui")
+    tau = props.PhysicalProperty("Time constant (s)", reciprocal="taui", default=0.1)
     taui = props.PhysicalProperty("Inverse of time constant (1/s)", reciprocal="tau")
 
-    c = props.PhysicalProperty("Frequency dependency")
+    c = props.PhysicalProperty("Frequency dependency", default=0.5)
 
     Ainv = None
     _f = None
@@ -41,15 +41,13 @@ class BaseSIPSimulation(BaseIPSimulation):
         survey=None,
         tau=None,
         taui=None,
-        c=0.5,
+        c=None,
         storeJ=False,
         actinds=None,
         storeInnerProduct=True,
         **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
-        if tau is None and taui is None:
-            tau = 0.1
         self._init_recip_properties(tau=tau, taui=taui)
         self._init_property(c=c)
 
