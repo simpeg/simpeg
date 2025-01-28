@@ -14,10 +14,6 @@ class _Void:
     pass
 
 
-class MissingModelError(AttributeError):
-    pass
-
-
 class PhysicalProperty:
 
     def __init__(
@@ -185,7 +181,7 @@ class PhysicalProperty:
                         f"{inst_name}.model is required for parametrized physical property {inst_name}.{self.name}"
                     )
                 else:
-                    raise MissingModelError(
+                    raise AttributeError(
                         f"{inst_name}.model is required for physical property {inst_name}.{from_reciprocal}'s parameterized reciprocal {inst_name}.{self.name}"
                     )
             return paramer * model
