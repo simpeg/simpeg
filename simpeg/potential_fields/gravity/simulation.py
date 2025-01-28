@@ -176,7 +176,7 @@ class Simulation3DIntegral(BasePFSimulation):
            ``active_cells`` and will be removed in SimPEG v0.24.0.
     """
 
-    rho = props.PhysicalProperty("Density", dtype=float)
+    rho = props.PhysicalProperty("Density")
 
     def __init__(
         self,
@@ -643,7 +643,7 @@ class Simulation3DDifferential(BasePDESimulation):
         \big [ \mathbf{D M_f D^T} \big ] \mathbf{u} = - \mathbf{M_c \, \rho}
     """
 
-    rho = props.PhysicalProperty("Specific density (g/cc)", dtype=float)
+    rho = props.PhysicalProperty("Specific density (g/cc)")
 
     def __init__(self, mesh, rho=1.0, **kwargs):
         super().__init__(mesh, **kwargs)

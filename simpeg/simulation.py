@@ -649,7 +649,7 @@ class LinearSimulation(BaseSimulation):
     """
 
     linear_model = props.PhysicalProperty(
-        "The model for a linear problem", default=None, dtype=float
+        "The model for a linear problem", default=None
     )
 
     def __init__(self, linear_model=None, G=None, **kwargs):

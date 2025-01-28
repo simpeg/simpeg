@@ -54,29 +54,28 @@ class BaseEM1DSimulation(BaseSimulation):
 
     # Properties for electrical conductivity/resistivity
     sigma = props.PhysicalProperty(
-        "Electrical conductivity at infinite frequency (S/m)", dtype=(float, complex)
+        "Electrical conductivity at infinite frequency (S/m)",
+        reciprocal="rho",
+        dtype=(float, complex),
     )
     rho = props.PhysicalProperty(
-        "Electrical resistivity (Ohm m)", reciprocal=sigma, dtype=(float, complex)
+        "Electrical resistivity (Ohm m)", reciprocal="sigma", dtype=(float, complex)
     )
 
     eta = props.PhysicalProperty(
         "Intrinsic chargeability (V/V), 0 <= eta < 1",
         invertible=False,
         default=0.0,
-        dtype=float,
     )
     tau = props.PhysicalProperty(
         "Time constant for Cole-Cole model (s)",
         invertible=False,
         default=0.5,
-        dtype=float,
     )
     c = props.PhysicalProperty(
         "Frequency Dependency for Cole-Cole model, 0 < c < 1",
         invertible=False,
         default=1.0,
-        dtype=float,
     )
 
     # Properties for magnetic susceptibility
@@ -87,26 +86,20 @@ class BaseEM1DSimulation(BaseSimulation):
     dchi = props.PhysicalProperty(
         "DC magnetic susceptibility for viscous remanent magnetization contribution (SI)",
         invertible=False,
-        default=0.0,
-        dtype=float,
     )
     tau1 = props.PhysicalProperty(
         "Lower bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)",
         invertible=False,
-        default=1.0e-10,
-        dtype=float,
     )
     tau2 = props.PhysicalProperty(
         "Upper bound for log-uniform distribution of time-relaxation constants for viscous remanent magnetization (s)",
         invertible=False,
-        default=10.0,
-        dtype=float,
     )
 
     # Additional properties
-    h = props.PhysicalProperty("Receiver Height (m), h > 0", dtype=float)
+    h = props.PhysicalProperty("Receiver Height (m), h > 0")
 
-    thicknesses = props.PhysicalProperty("layer thicknesses (m)", dtype=float)
+    thicknesses = props.PhysicalProperty("layer thicknesses (m)")
 
     def __init__(
         self,
@@ -128,7 +121,7 @@ class BaseEM1DSimulation(BaseSimulation):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self._init_recip_properties(sigma, rho)
+        self._init_recip_properties(sigma=sigma, rho=rho)
         if thicknesses is None:
             thicknesses = np.array([])
         self._init_property(
@@ -282,7 +275,7 @@ class BaseEM1DSimulation(BaseSimulation):
 
         # IP effect
         else:
-            if np.isscalar(self.eta):
+            if np.ndim(self.eta) == 0:
                 eta = self.eta
                 tau = self.tau
                 c = self.c
@@ -319,7 +312,7 @@ class BaseEM1DSimulation(BaseSimulation):
         :return: complex magnetic susceptibility matrix
         """
 
-        if np.isscalar(self.mu):
+        if np.ndim(self.mu) == 0:
             mu = np.ones_like(self.sigma) * self.mu
         else:
             mu = self.mu
@@ -336,7 +329,7 @@ class BaseEM1DSimulation(BaseSimulation):
 
         # Magnetic viscosity
         else:
-            if np.isscalar(self.dchi):
+            if np.ndim(self.dchi) == 0:
                 dchi = self.dchi * np.ones_like(self.mu)
                 tau1 = self.tau1 * np.ones_like(self.mu)
                 tau2 = self.tau2 * np.ones_like(self.mu)

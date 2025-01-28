@@ -41,11 +41,14 @@ class Simulation1DRecursive(BaseSimulation):
     """
 
     sigma = props.PhysicalProperty(
-        "Electrical conductivity (S/m)", shape=("*",), dtype=(float, complex)
+        "Electrical conductivity (S/m)",
+        reciprocal="rho",
+        shape=("*",),
+        dtype=(float, complex),
     )
     rho = props.PhysicalProperty(
         "Electrical resistivity (Ohm m)",
-        reciprocal=sigma,
+        reciprocal="sigma",
         shape=("*",),
         dtype=(float, complex),
     )
@@ -54,7 +57,6 @@ class Simulation1DRecursive(BaseSimulation):
     thicknesses = props.PhysicalProperty(
         "thicknesses of the layers starting from the bottom of the mesh",
         shape=("*",),
-        dtype=float,
     )
 
     def __init__(

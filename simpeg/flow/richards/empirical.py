@@ -91,10 +91,10 @@ class BaseHydraulicConductivity(NonLinearModel):
 @_add_deprecated_physical_property_functions("alpha")
 @_add_deprecated_physical_property_functions("beta")
 class Haverkamp_theta(BaseWaterRetention):
-    theta_r = props.PhysicalProperty("residual water content [L3L-3]", dtype=float)
-    theta_s = props.PhysicalProperty("saturated water content [L3L-3]", dtype=float)
-    alpha = props.PhysicalProperty("", dtype=float)
-    beta = props.PhysicalProperty("", dtype=float)
+    theta_r = props.PhysicalProperty("residual water content [L3L-3]")
+    theta_s = props.PhysicalProperty("saturated water content [L3L-3]")
+    alpha = props.PhysicalProperty("")
+    beta = props.PhysicalProperty("")
 
     def __init__(
         self,
@@ -208,9 +208,9 @@ class Haverkamp_theta(BaseWaterRetention):
 @_add_deprecated_physical_property_functions("A")
 @_add_deprecated_physical_property_functions("gamma")
 class Haverkamp_k(BaseHydraulicConductivity):
-    Ks = props.PhysicalProperty("Saturated hydraulic conductivity", dtype=float)
-    A = props.PhysicalProperty("fitting parameter", dtype=float)
-    gamma = props.PhysicalProperty("fitting parameter", dtype=float)
+    Ks = props.PhysicalProperty("Saturated hydraulic conductivity")
+    A = props.PhysicalProperty("fitting parameter")
+    gamma = props.PhysicalProperty("fitting parameter")
 
     def __init__(
         self,
@@ -312,11 +312,11 @@ class HaverkampParams(object):
 @_add_deprecated_physical_property_functions("n")
 @_add_deprecated_physical_property_functions("alpha")
 class Vangenuchten_theta(BaseWaterRetention):
-    theta_r = props.PhysicalProperty("residual water content [L3L-3]", dtype=float)
-    theta_s = props.PhysicalProperty("saturated water content [L3L-3]", dtype=float)
-    n = props.PhysicalProperty("measure of the pore-size distribution, >1", dtype=float)
+    theta_r = props.PhysicalProperty("residual water content [L3L-3]")
+    theta_s = props.PhysicalProperty("saturated water content [L3L-3]")
+    n = props.PhysicalProperty("measure of the pore-size distribution, >1")
     alpha = props.PhysicalProperty(
-        "related to the inverse of the air entry suction [L-1], >0", dtype=float
+        "related to the inverse of the air entry suction [L-1], >0"
     )
 
     def __init__(
@@ -457,11 +457,11 @@ class Vangenuchten_theta(BaseWaterRetention):
 @_add_deprecated_physical_property_functions("n")
 @_add_deprecated_physical_property_functions("alpha")
 class Vangenuchten_k(BaseHydraulicConductivity):
-    Ks = props.PhysicalProperty("Saturated hydraulic conductivity", dtype=float)
-    I = props.PhysicalProperty("", dtype=float)
-    n = props.PhysicalProperty("measure of the pore-size distribution, >1", dtype=float)
+    Ks = props.PhysicalProperty("Saturated hydraulic conductivity")
+    I = props.PhysicalProperty("")
+    n = props.PhysicalProperty("measure of the pore-size distribution, >1")
     alpha = props.PhysicalProperty(
-        "related to the inverse of the air entry suction [L-1], >0", dtype=float
+        "related to the inverse of the air entry suction [L-1], >0"
     )
 
     def __init__(

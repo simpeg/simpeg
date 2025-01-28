@@ -189,7 +189,7 @@ class Simulation3DIntegral(BasePFSimulation):
            ``active_cells`` and will be removed in SimPEG v0.24.0.
     """
 
-    chi = props.PhysicalProperty("Magnetic Susceptibility (SI)", dtype=float)
+    chi = props.PhysicalProperty("Magnetic Susceptibility (SI)")
 
     def __init__(
         self,

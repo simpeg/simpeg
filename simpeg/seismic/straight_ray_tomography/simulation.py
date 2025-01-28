@@ -78,10 +78,8 @@ def _lineintegral(M, Tx, Rx):
 
 @_add_deprecated_physical_property_functions("slowness")
 class Simulation2DIntegral(LinearSimulation):
-    slowness = props.PhysicalProperty("Slowness model (s/m)", dtype=float)
-    velocity = props.PhysicalProperty(
-        "Velocity (m/s)", reciprocal=slowness, dtype=float
-    )
+    slowness = props.PhysicalProperty("Slowness model (s/m)", reciprocal="velocity")
+    velocity = props.PhysicalProperty("Velocity (m/s)", reciprocal="slowness")
 
     def __init__(self, mesh, survey=None, slowness=None, velocity=None, **kwargs):
         self.mesh = mesh

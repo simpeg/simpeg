@@ -48,9 +48,7 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
     sigma = dc.Simulation3DCellCentered.sigma.set_feature(invertible=False)
     rho = dc.Simulation3DCellCentered.rho.set_feature(invertible=False)
 
-    q = props.PhysicalProperty(
-        "Charge density accumulation rate (C/(s m^3))", dtype=float
-    )
+    q = props.PhysicalProperty("Charge density accumulation rate (C/(s m^3))")
 
     def __init__(self, mesh, survey=None, sigma=None, rho=None, q=None, **kwargs):
         # These below checks can be commented out, correspondingly do

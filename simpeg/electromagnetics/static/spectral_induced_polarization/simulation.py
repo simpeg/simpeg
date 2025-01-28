@@ -20,12 +20,10 @@ from .survey import Survey
 @_add_deprecated_physical_property_functions("taui")
 @_add_deprecated_physical_property_functions("c")
 class BaseSIPSimulation(BaseIPSimulation):
-    tau = props.PhysicalProperty("Time constant (s)", dtype=float)
-    taui = props.PhysicalProperty(
-        "Inverse of time constant (1/s)", reciprocal=tau, dtype=float
-    )
+    tau = props.PhysicalProperty("Time constant (s)", reciprocal="taui")
+    taui = props.PhysicalProperty("Inverse of time constant (1/s)", reciprocal="tau")
 
-    c = props.PhysicalProperty("Frequency dependency", dtype=float)
+    c = props.PhysicalProperty("Frequency dependency")
 
     Ainv = None
     _f = None
@@ -41,7 +39,7 @@ class BaseSIPSimulation(BaseIPSimulation):
         self,
         mesh,
         survey=None,
-        tau=0.1,
+        tau=None,
         taui=None,
         c=0.5,
         storeJ=False,
@@ -50,6 +48,8 @@ class BaseSIPSimulation(BaseIPSimulation):
         **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
+        if tau is None and taui is None:
+            tau = 0.1
         self._init_recip_properties(tau=tau, taui=taui)
         self._init_property(c=c)
 
@@ -126,21 +126,11 @@ class BaseSIPSimulation(BaseIPSimulation):
     def n(self):
         return self.mesh.n_nodes
 
-    @property
-    def sigmaDeriv(self):
-        if self.storeJ:
-            dsigma_dlogsigma = sdiag(self.sigma) * self._P
-        else:
-            dsigma_dlogsigma = sdiag(self.sigma)
-        return -dsigma_dlogsigma
-
-    @property
-    def rhoDeriv(self):
-        if self.storeJ:
-            drho_dlogrho = sdiag(self.rho) * self._P
-        else:
-            drho_dlogrho = sdiag(self.rho)
-        return drho_dlogrho
+    def _prop_deriv(self, attr):
+        d = super()._prop_deriv(attr)
+        if self.storeJ and attr in ["sigma", "rho"]:
+            d = d @ self._P
+        return d
 
     @property
     def etaDeriv_store(self):

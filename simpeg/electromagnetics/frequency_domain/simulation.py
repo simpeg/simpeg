@@ -69,7 +69,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     fieldsPair = FieldsFDEM
     permittivity = props.PhysicalProperty(
-        "Dielectric permittivity (F/m)", default=None, invertible=False, dtype=float
+        "Dielectric permittivity (F/m)", default=None, invertible=False
     )
 
     def __init__(
@@ -86,8 +86,9 @@ class BaseFDEMSimulation(BaseEMSimulation):
         self._init_property(permittivity=permittivity)
         self.storeJ = storeJ
 
-    @permittivity.validator
+    @permittivity.setter
     def permittivity(self, value):
+        prop = type(self).permittivity
         if value is not None:
             warnings.warn(
                 "Simulations using permittivity have not yet been thoroughly tested and derivatives are not implemented. Contributions welcome!",
@@ -102,7 +103,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
                     (self.mesh.n_cells,),
                 ],
             )
-        return value
+        setattr(self, prop.private_name, value)
 
     @property
     def survey(self):

@@ -20,11 +20,18 @@ class BaseIPSimulation(BaseElectricalPDESimulation):
 
     eta = props.PhysicalProperty("Electrical Chargeability (V/V)")
 
-    def _prop_deriv(self, attr, v=None):
+    def _prop_deriv(self, attr):
         if attr == "sigma":
-            return -sp.diags(self.sigma) @ self._prop_deriv("eta")
+            return -sp.diags(self.sigma)
         elif attr == "rho":
-            return sp.diags(self.rho) @ self._prop_deriv("eta")
+            return sp.diags(self.rho)
+        return super()._prop_deriv(attr)
+
+    def is_parametrized(self, attr):
+        if attr == "sigma" or attr == "rho":
+            return True
+        else:
+            return super().is_parametrized(attr)
 
     @cached_property
     def _scale(self):
@@ -50,16 +57,13 @@ class BaseIPSimulation(BaseElectricalPDESimulation):
         sigma=None,
         rho=None,
         eta=None,
-        etaMap=None,
         Ainv=None,  # A DC's Ainv
         _f=None,  # A pre-computed DC field
         **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
-        self.sigma = sigma
-        self.rho = rho
-        self.eta = eta
-        self.etaMap = etaMap
+        self._init_recip_properties(sigma=sigma, rho=rho)
+        self._init_property(eta=eta)
         if Ainv is not None:
             self.Ainv = Ainv
         self._f = _f
@@ -94,6 +98,7 @@ class BaseIPSimulation(BaseElectricalPDESimulation):
         return self._pred
 
     def getJtJdiag(self, m, W=None, f=None):
+        self.model = m
         if getattr(self, "_gtgdiag", None) is None:
             J = self.getJ(m, f=f)
             if W is None:
@@ -106,13 +111,17 @@ class BaseIPSimulation(BaseElectricalPDESimulation):
         return self._gtgdiag
 
     def Jvec(self, m, v, f=None):
-        return self._scale * super().Jvec(m, v, f)
+        self.model = m
+        return self._scale * super().Jvec(m, self._prop_deriv("eta") @ v, f)
 
     def forward(self, m, f=None):
-        return np.asarray(self.Jvec(m, m, f=f))
+        self.model = m
+        jvec = super().Jvec(m, self.eta, f=f)
+        return np.asarray(self._scale * jvec)
 
     def Jtvec(self, m, v, f=None):
-        return super().Jtvec(m, v * self._scale, f)
+        self.model = m
+        return self._prop_deriv("eta").T @ super().Jtvec(m, v * self._scale, f)
 
     @property
     def _delete_on_model_update(self):

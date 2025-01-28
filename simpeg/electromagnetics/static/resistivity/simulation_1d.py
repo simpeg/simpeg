@@ -112,15 +112,13 @@ class Simulation1DLayers(BaseSimulation):
     """
 
     sigma = props.PhysicalProperty(
-        "Electrical conductivity (S/m)", shape=("*",), dtype=float
+        "Electrical conductivity (S/m)", shape=("*",), reciprocal="rho"
     )
     rho = props.PhysicalProperty(
-        "Electrical resistivity (Ohm m)", shape=("*",), reciprocal=sigma, dtype=float
+        "Electrical resistivity (Ohm m)", shape=("*",), reciprocal="sigma"
     )
 
-    thicknesses = props.PhysicalProperty(
-        "thicknesses of the layers", shape=("*",), dtype=float
-    )
+    thicknesses = props.PhysicalProperty("thicknesses of the layers", shape=("*",))
 
     def __init__(
         self,

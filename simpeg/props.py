@@ -1,5 +1,5 @@
+import inspect
 import warnings
-from collections import namedtuple
 
 import numpy as np
 
@@ -25,19 +25,28 @@ class PhysicalProperty:
         short_details=None,
         shape=None,
         default=_Void,  # use this as a marker for not having a default value
-        dtype=None,
+        dtype=float,
         reciprocal=None,
         invertible=True,
+        fget=None,
+        fset=None,
+        fdel=None,
+        doc=None,
     ):
         self.short_details = short_details
         self.default = default
 
         self.shape = shape
         self.dtype = dtype
-        self.reciprocal = reciprocal
-        if reciprocal is not None:
-            reciprocal.reciprocal = self
+        if reciprocal is not None and not isinstance(reciprocal, str):
+            raise TypeError("reciprocal must be a string, or None")
+        self._reciprocal = reciprocal
         self.invertible = invertible
+
+        self.fget = fget
+        self.fset = fset
+        self.fdel = fdel
+        self.__doc__ = doc
 
     def build_doc(self):
         # buildup my doc string
@@ -83,30 +92,27 @@ class PhysicalProperty:
             # happens on a class (not instance)
             return self
 
-        # basic logic is:
-        # Get a value from my fget, return it if not None
-        # then get a value from my reciprocal.fget, return its inverse if not None
-        # then if I'm optional, return my default value
-        # then if my reciprocal is optional, return the inverse of its default value (if not None), otherwise return None
-        # finally issue an AttributeError if these all fail.
-        my_value = self.fget(obj)
+        # Try to evaluate myself
+        if self.fget is not None:
+            my_value = self.fget(obj)
+        else:
+            my_value = self._fget(obj)
+
+        # return a successful value
         if my_value is not None:
             return my_value
-        # If my fget returned None, try the reciprocal
-        if recip := self.get_class_reciprocal(objtype):
-            try:
-                r_value = recip.fget(self)
-            # Catch this error to re-issue it with a more relevant message
-            except MissingModelError:
-                objname = objtype.__name__
-                raise MissingModelError(
-                    f"{objname}.model is required for physical property {objname}.{self.name}'s parameterized reciprocal {objname}.{self.reciprocal.name}"
-                ) from None
+        # Else try getting the reciprocal's value
+        if recip := self.get_reciprocal(objtype):
+            if recip.fget is not None:
+                r_value = recip.fget(obj)
+            else:
+                r_value = recip._fget(obj, from_reciprocal=self.name)
             if r_value is not None:
                 return 1.0 / r_value
         # This point in the code would mean:
-        # * my fget successfully returned None
-        # * recip successfully returned None (if I had one).
+        # * my getter successfully returned None
+        # and
+        # * recip successfully returned None (if I had a reciprocal).
 
         # If I'm optional, return my default value
         if self.optional:
@@ -120,8 +126,6 @@ class PhysicalProperty:
             return val
 
         # This point would be all errors
-        # 1) I am a required physical property on the class
-        # I am a required physical property
         inst_name = objtype.__name__
         error_message = (
             f"Required physical property {inst_name}.{self.name} has not been set"
@@ -134,43 +138,25 @@ class PhysicalProperty:
             )
         raise AttributeError(error_message)
 
-    def __set__(self, obj, value):
-        value = self.fvalidate(obj, value)
-        self.fset(obj, value)
+    def __set__(self, obj: "HasModel", value):
+        if self.fset is not None:
+            self.fset(obj, value)
+        else:
+            self._fset(obj, value)
+        obj._remove_parametrization(self.name)
+        if recip := self.get_reciprocal(obj):
+            recip.__delete__(obj)
 
-    def __delete__(self, obj):
-        self.fdel(obj)
+    def __delete__(self, obj: "HasModel"):
+        if self.fdel is not None:
+            self.fdel(obj)
+        else:
+            if hasattr(obj, self.private_name):
+                delattr(obj, self.private_name)
+        obj._remove_parametrization(self.name)
 
-    def get_class_reciprocal(self, objtype):
-        """Return the reciprocal property defined on the class
-
-        Use this function to get the reciprocal that is defined on the instance,
-        not necessarily the exact reciprocal this was defined with. This will
-        account for inheritance and re-defined getters, setters, deleters, etc...
-
-        Parameters
-        ----------
-        instance
-
-        Returns
-        -------
-        PhysicalProperty or None
-
-        """
-        if recip := self.reciprocal:
-            return getattr(objtype, recip.name)
-        return None
-
-    @property
-    def optional(self):
-        """Whether the PhysicalProperty has a default value."""
-        return self.default is not _Void
-
-    def fget(self, instance):
+    def _fget(self, obj, from_reciprocal=""):
         """Return my value (or calculate it from a model if I was parametrized) from an object.
-
-        If overwriting this function, you should not need to make a call to get its
-        reciprocal value, as that should be handled by `PhysicalProperty.__get__`.
 
         If this attribute hasn't been set, and is not parametrized, this should return `None`
         and then `__get__` will return the default value if this is optional, otherwise it will
@@ -178,80 +164,81 @@ class PhysicalProperty:
 
         Parameters
         ----------
-        instance
+        obj
             The object to access my value from.
+        from_reciprocal : str, optional
+            The name of the reciprocal class calling this function
 
         Returns
         -------
         value
             The value of this property. Or `None` if no value was set.
         """
-        # If I was set with a value, get it.
-        if (value := getattr(instance, self.private_name, None)) is not None:
+        if (value := getattr(obj, self.private_name, None)) is not None:
             return value
         # If I was parametrized, compute myself
-        elif paramer := getattr(instance.parametrizations, self.name, None):
-            if model := instance.model is None:
-                inst_name = type(instance).__name__
-                raise MissingModelError(
-                    f"{inst_name}.model is required for parametrized physical property {inst_name}.{self.name}"
-                )
+        elif paramer := getattr(obj.parametrizations, self.name, None):
+            if (model := obj.model) is None:
+                inst_name = type(obj).__name__
+                if not from_reciprocal:
+                    raise AttributeError(
+                        f"{inst_name}.model is required for parametrized physical property {inst_name}.{self.name}"
+                    )
+                else:
+                    raise MissingModelError(
+                        f"{inst_name}.model is required for physical property {inst_name}.{from_reciprocal}'s parameterized reciprocal {inst_name}.{self.name}"
+                    )
             return paramer * model
-        else:
-            return None
+        return None
 
-    def fvalidate(self, instance, value):
-        """Validate the input value to be set on an object
-
-        By default, this validates a physical property to be array_like with any dimension,
-        and also allows `None` if the physical property is optional.
-
-        You can overwrite this method using the `PhysicalProperty.validator` decorator.
-
-        This is called prior to `PhysicalProperty.fset`.
-
-        Parameters
-        ----------
-        value
-
-        Returns
-        -------
-        value
-            The validated value to be set on the class.
-        """
+    def _fset(self, obj, value):
         if value is None:
-            if self.optional:
-                raise TypeError(
-                    f"Cannot set required physical property {type(instance).__name__}.{self.name} to None"
+            if not self.optional:
+                warnings.warn(
+                    f"Setting a required physical property {type(obj).__name__}.{self.name} to None is deprecated behavior. "
+                    f"This will change to an error in simpeg X.X",
+                    FutureWarning,
+                    stacklevel=4,
                 )
         else:
             value = validate_ndarray_with_shape(
-                f"{type(instance).__name__}.{self.name}",
+                f"{type(obj).__name__}.{self.name}",
                 value,
                 shape=self.shape,
                 dtype=self.dtype,
             )
-        return value
+        setattr(obj, self.private_name, value)
 
-    def fset(self, instance, valid_value):
-        """Set the PhysicalProperty attribute on an object with a valid value."""
-        if valid_value is None:
-            # Should only be validated for optional properties
-            # in which case, delete my private stashed name from instance (if there was one)
-            if hasattr(instance, self.private_name):
-                delattr(instance, self.private_name)
-        setattr(instance, self.private_name, valid_value)
-        # clear any parametrization
-        instance._remove_parametrization(self.name)
-        # and cleanup my reciprocal
-        if recip := self.reciprocal:
-            delattr(instance, recip.name)
+    def get_reciprocal(self, objtype):
+        """Return the reciprocal property defined on the object's class
 
-    def fdel(self, instance):
-        """Delete this PhysicalProperty on an object."""
-        if hasattr(instance, self.private_name):
-            delattr(instance, self.private_name)
-        instance._remove_parametrization(self.name)
+        Use this function to get the reciprocal that is defined on the instance,
+        not necessarily the exact reciprocal this was defined with. This will
+        account for inheritance and re-defined getters, setters, deleters, etc...
+
+        Parameters
+        ----------
+        obj
+
+        Returns
+        -------
+        PhysicalProperty or None
+
+        """
+        if (recip_name := self._reciprocal) is not None:
+            if not inspect.isclass(objtype):
+                objtype = type(objtype)
+            return getattr(objtype, recip_name)
+        return None
+
+    @property
+    def has_reciprocal(self):
+        return self._reciprocal is not None
+
+    @property
+    def optional(self):
+        """Whether the PhysicalProperty has a default value."""
+        return self.default is not _Void
 
     def shallow_copy(self):
         """Make a shallow copy of this PhysicalProperty."""
@@ -260,14 +247,13 @@ class PhysicalProperty:
             shape=self.shape,
             default=self.default,
             dtype=self.dtype,
-            reciprocal=self.reciprocal,
+            reciprocal=self._reciprocal,
             invertible=self.invertible,
+            fget=self.fget,
+            fset=self.fset,
+            fdel=self.fdel,
+            doc=self.__doc__,
         )
-        copy.fget = self.fget
-        copy.fset = self.fset
-        copy.fdel = self.fdel
-        copy.fvalidate = self.fvalidate
-        copy.__doc__ = self.__doc__
         return copy
 
     def getter(self, fget):
@@ -288,17 +274,13 @@ class PhysicalProperty:
         new_prop.fdel = fdel
         return new_prop
 
-    def validator(self, fvalidate):
-        """Decorate a function used to validate the input value to a PhysicalProperty."""
+    def set_feature(self, **features):
         new_prop = self.shallow_copy()
-        new_prop.fvalidate = fvalidate
-        return new_prop
-
-    def set_feature(self, **kwargs):
-        new_prop = self.shallow_copy()
-        for attr, value in kwargs.items():
-            if attr == "reciprocal":
-                raise SyntaxError("Cannot change a reciprocal property")
+        for attr, value in features.items():
+            if attr not in dir(new_prop):
+                raise AttributeError(
+                    f"{attr} is not a valid attribute of PhysicalProperty."
+                )
             setattr(new_prop, attr, value)
         return new_prop
 
@@ -317,7 +299,9 @@ class NestedModeler:
         """
 
         def fget(self):
-            return getattr(self, f"_{scope.name}")
+            if (ret_val := getattr(self, f"_{scope.name}", None)) is None:
+                raise AttributeError(f"NestedModeler `{scope.name}` has not been set.")
+            return ret_val
 
         def fset(self, value):
             if value is not None:
@@ -355,6 +339,7 @@ class PhysicalPropertyMetaclass(type):
             nested_modelers.update(getattr(parent, "_nested_modelers", set()))
 
         newcls._nested_modelers = nested_modelers
+        newcls._has_nested_models = len(nested_modelers) > 0
 
         return newcls
 
@@ -398,15 +383,31 @@ class ParametrizationList:
     def __iter__(self):
         return iter(self._fields)
 
+    def items(self):
+        return self._fields.items()
 
-PhysicalPropertyInfo = namedtuple("PhysicalPropertyInfo", ("invertible", "optional"))
+    def keys(self):
+        return self._fields.keys()
+
+    def values(self):
+        return self._fields.values()
 
 
 class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
     def __init__(self, model=None, **kwargs):
         self.model = model
-
-        self.__paramers = ParametrizationList()
+        # A helper for initializing leftover property keyword arguments.
+        if kwargs:
+            props = self.physical_properties()
+            prop_kwargs = {}
+            other_kwargs = {}
+            for key, value in kwargs.items():
+                if key in props:
+                    prop_kwargs[key] = value
+                else:
+                    other_kwargs[key] = value
+            self._init_property(**prop_kwargs)
+            kwargs = other_kwargs
         super().__init__(**kwargs)
 
     def _init_property(self, **kwargs):
@@ -431,8 +432,13 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
             )
         required = not prop1.optional and not prop2.optional
         if required and inp1 is None and inp2 is None:
-            raise TypeError(
-                f"`{type(self).__name__}` requires one of `{prop1.name}` or `{prop2.name}`"
+            warnings.warn(
+                f"Setting both `{prop1.name}` and `{prop2.name}` to None for `{type(self).__name__}`'s required "
+                f"physical properties is deprecated behavior. This message will be changed to an error in simpeg "
+                f"version X.X",
+                FutureWarning,
+                stacklevel=3,
+                # f"`{type(self).__name__}` requires one of `{prop1.name}` or `{prop2.name}`"
             )
         if inp2 is not None:
             inp = {prop2.name: inp2}
@@ -442,7 +448,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         self._init_property(**inp)
 
     @classmethod
-    def physical_properties(cls) -> dict[str, PhysicalPropertyInfo]:
+    def physical_properties(cls) -> dict[str, PhysicalProperty]:
         """Which physical properties are defined on this class.
 
         The dictionary keys are the physical property names, and their respective values
@@ -450,14 +456,25 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
 
         Returns
         -------
-        dict[str, PhysicalPropertyInfo]
+        dict[str, PhysicalProperty]
         """
+
         props = {}
         for attr_name in dir(cls):
             attr = getattr(cls, attr_name)
             if isinstance(attr, PhysicalProperty):
-                props[attr_name] = PhysicalPropertyInfo(attr.invertible, attr.optional)
+                props[attr_name] = attr
+
         return props
+
+    @classmethod
+    def invertible_properties(cls) -> dict[str, PhysicalProperty]:
+        all_props = cls.physical_properties()
+        inv_props = {}
+        for name, prop in all_props.items():
+            if prop.invertible:
+                inv_props[name] = prop
+        return inv_props
 
     @property
     def parametrizations(self):
@@ -471,18 +488,22 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         tuple of simpeg.maps.IdentityMap
 
         """
-        return self.__paramers
+        if getattr(self, "_parametrizations", None) is None:
+            self._parametrizations = ParametrizationList()
+        return self._parametrizations
 
     def parametrize(self, attr, parametrization):
         """Parametrize a physical property, so that its value is dynamically calculated from the model.
 
         Parameters
         ----------
+        attr : str
+            PhysicalProperty attribute to parametrize
         parametrization : simpeg.maps.IdentityMap
         """
         if not isinstance(parametrization, maps.IdentityMap):
             raise TypeError(
-                f"simpeg currently only supports using a mapping as a parametrizer, not a {type(parametrization).__name__}"
+                f"simpeg currently only supports using a mapping as a PhysicalProperty parametrizer, not a {type(parametrization).__name__}"
             )
 
         # Let this throw an attribute error on its own
@@ -494,32 +515,61 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                 f"{type(self).__name__}.{attr} is not an invertible PhysicalProperty and cannot be parametrized"
             )
 
+        # cleanup myself and my reciprocal
+        prop.__delete__(self)
+        if recip := prop.get_reciprocal(self):
+            recip.__delete__(self)
+
         self.parametrizations._fields[attr] = parametrization
-        if recip := prop.reciprocal:
-            self.parametrizations._fields[recip.name] = (
-                maps.ReciprocalMap() @ parametrization
-            )
+
+    def is_parametrized(self, attr):
+        """Determine if a physical property has been parametrized.
+
+        Parameters
+        ----------
+        attr : str
+            PhysicalProperty attribute name.
+
+        Returns
+        -------
+        bool
+        """
+        prop = getattr(type(self), attr)
+        if not isinstance(prop, PhysicalProperty):
+            raise TypeError(f"{type(self).__name__}.{attr} is not a PhysicalProperty")
+        if attr in self.parametrizations:
+            return True
+        return prop._reciprocal in self.parametrizations
 
     def _remove_parametrization(self, attr):
         """Remove attr's parametrization"""
         # just silently succeed here as it is an internal method.
         self.parametrizations._fields.pop(attr, None)
 
-    def _prop_deriv(self, attr, v=None):
+    def _prop_deriv(self, attr):
         # TODO Add support for adjoints here and on mapping derivatives
+        # TODO Add support for passing v to the maps
         paramers = self.parametrizations
         if attr not in paramers:
-            return Zero()
-        return self.parametrizations[attr].deriv(self, v=v)
+            my_class = type(self)
+            recip = getattr(my_class, attr).get_reciprocal(my_class)
+            if recip and recip.name in paramers:
+                paramer = maps.ReciprocalMap() @ paramers[recip.name]
+            else:
+                return Zero()
+        else:
+            paramer = paramers[attr]
+        if self.model is not None:
+            return paramer.deriv(self.model)
+        else:
+            raise AttributeError(
+                f"{type(self).__name__}.model, required for a derivative, is not set"
+            )
 
     @property
     def needs_model(self):
         """True if a model is necessary"""
         return bool(self.parametrizations)
-
-    @property
-    def _has_nested_models(self):
-        return len(self._nested_modelers) > 0
 
     # TODO: rename to _delete_on_model_update
     @property
@@ -565,7 +615,10 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         -------
         numpy.ndarray
         """
-        return self._model
+        try:
+            return self._model
+        except AttributeError:
+            return None
 
     @model.setter
     def model(self, value):
@@ -573,9 +626,11 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
             # check if I need a model
             paramers = self.parametrizations
             if not paramers and not self._has_nested_models:
-                raise ValueError(
-                    "Cannot add model as there are no active mappings"
-                    ", choose from: ['{}']".format("', '".join(self._all_map_names))
+                raise AttributeError(
+                    "Cannot add model as there are no parametrized properties"
+                    ", choose from: ['{}']".format(
+                        "', '".join(self.invertible_properties().keys())
+                    )
                 )
 
             # coerce to a numpy array
@@ -585,7 +640,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
 
             # Check the model is a good shape
             errors = []
-            for name, mapping in paramers:
+            for name, mapping in paramers.items():
                 correct_shape = mapping.shape[1] == "*" or mapping.shape[1] == len(
                     value
                 )
@@ -660,24 +715,32 @@ def _add_deprecated_physical_property_functions(
 
     @property
     def prop_map(self):
-        cls_name = type(self).__name__
+        cls = type(self)
+        cls_name = cls.__name__
         warnings.warn(
-            f"Getting `{cls_name}.{old_map}` directly is no longer supported. If this is still necessary "
+            f"Getting `{cls_name}.{old_map}` directly is deprecated. If this is still necessary "
             f"use `{cls_name}.parametrizations.{new_name}` instead",
-            UserWarning,
+            FutureWarning,
             stacklevel=2,
         )
-        return getattr(self.parametrizations, new_name)
+        if (my_map := getattr(self.parametrizations, new_name, None)) is not None:
+            return my_map
+        if recip_name := getattr(cls, new_name)._reciprocal:
+            if (
+                recip_map := getattr(self.parametrizations, recip_name, None)
+            ) is not None:
+                return maps.ReciprocalMap() @ recip_map
+        return None
 
     @prop_map.setter
     def prop_map(self, value):
         cls_name = type(self).__name__
         warnings.warn(
             f"Setting `{cls_name}.{old_map}` directly is deprecated. Instead register a parametrization with `{cls_name}.parametrize('{new_name}')`",
-            UserWarning,
+            FutureWarning,
             stacklevel=2,
         )
-        setattr(self, new_name, value)
+        self.parametrize(new_name, value)
 
     prop_map.__doc__ = f"""
     Mapping from the model to {old_name}
@@ -697,10 +760,10 @@ def _add_deprecated_physical_property_functions(
         cls_name = type(self).__name__
         warnings.warn(
             f"Getting `{cls_name}.{old_deriv}` is deprecated, use `{cls_name}._prop_deriv('{new_name}')` instead.",
-            DeprecationWarning,
+            FutureWarning,
             stacklevel=2,
         )
-        return self._prop_deriv(new_name, v=None)
+        return self._prop_deriv(new_name)
 
     prop_deriv.__doc__ = f"""
     Derivative of {old_name} w.r.t. the model
@@ -720,13 +783,21 @@ def _add_deprecated_physical_property_functions(
         @functools.wraps(__init__)
         def __new_init__(self, *args, **kwargs):
             mapping = kwargs.pop(old_map, None)
-            __init__(self, *args, **kwargs)
             if mapping is not None:
-                setattr(self, old_map, mapping)
+                warnings.warn(
+                    f"Passing argument {old_map} to {type(self).__name__} is deprecated. Instead "
+                    f"use the {new_name} argument.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
+                kwargs[new_name] = mapping
+            __init__(self, *args, **kwargs)
 
         cls.__init__ = __new_init__
         setattr(cls, old_map, prop_map)
+        prop_map.__set_name__(old_map, cls)
         setattr(cls, old_deriv, prop_deriv)
+        prop_deriv.__set_name__(old_deriv, cls)
 
         return cls
 
