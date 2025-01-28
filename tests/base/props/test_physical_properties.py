@@ -1,3 +1,4 @@
+import re
 import unittest
 import numpy as np
 import numpy.testing as npt
@@ -176,7 +177,7 @@ def test_invertible_map_assignment(modeler, dep):
         if dep == "init":
             with pytest.warns(
                 FutureWarning,
-                match=f"Passing argument sigmaMap to {cls_name} is deprecated.*",
+                match=f"Passing mapping argument sigmaMap to {cls_name} is deprecated.*",
             ):
                 pm = modeler(sigmaMap=exp_map)
         else:
@@ -282,13 +283,14 @@ def test_reciprocal_two_mapped_retrieve(assign, retrieve):
     desired = 1.0 / np.exp(np.array([1, 2, 3]))
     npt.assert_equal(value, desired)
 
-    with pytest.warns(FutureWarning, match="Dd"):
+    match_string = "Getting `ReciprocalExample.{0}Map` directly is deprecated. If this is still necessary use `ReciprocalExample.parametrizations.{0}` instead"
+    with pytest.warns(FutureWarning, match=re.escape(match_string.format(assign))):
         assert getattr(pm, assign + "Map") is getattr(pm.parametrizations, assign)
 
-    with pytest.warns(FutureWarning, match="Dd"):
+    with pytest.warns(FutureWarning, match=re.escape(match_string.format(retrieve))):
         rMap = getattr(pm, retrieve + "Map")
     assert rMap is not None
-    assert npt.assert_equal(rMap @ pm.model, desired)
+    npt.assert_equal(rMap @ pm.model, desired)
 
 
 @pytest.mark.parametrize("modeler", RECIPROCAL_CLASSES & INVERTIBLE_SIGMA_CLASSES)

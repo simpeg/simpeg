@@ -502,6 +502,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         attr : str
             PhysicalProperty attribute to parametrize
         parametrization : simpeg.maps.IdentityMap
+            Relationship between `attr` and `model`.
         """
         if not isinstance(parametrization, maps.IdentityMap):
             raise TypeError(
@@ -525,7 +526,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         self.parametrizations._fields[attr] = parametrization
 
     def is_parametrized(self, attr):
-        """Determine if a physical property has been parametrized.
+        """Determine if a physical property (or its reciprocal) has been parametrized.
 
         Parameters
         ----------
@@ -550,7 +551,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
 
     def _prop_deriv(self, attr):
         # TODO Add support for adjoints here and on mapping derivatives
-        # TODO Add support for passing v to the maps
+        # TODO Add support for passing v to the parametrization
         paramers = self.parametrizations
         if attr not in paramers:
             my_class = type(self)
@@ -571,7 +572,16 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
     @property
     def needs_model(self):
         """True if a model is necessary"""
-        return bool(self.parametrizations)
+
+        needs_model = bool(self.parametrizations)
+
+        if not needs_model and self._has_nested_models:
+            needs_model = any(
+                getattr(self, modeler_name).needs_model
+                for modeler_name in self._nested_modelers
+            )
+
+        return needs_model
 
     # TODO: rename to _delete_on_model_update
     @property
@@ -627,11 +637,14 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         if value is not None:
             # check if I need a model
             paramers = self.parametrizations
-            if not paramers and not self._has_nested_models:
+            if not self.needs_model:
                 raise AttributeError(
                     "Cannot add model as there are no parametrized properties"
                     ", choose from: ['{}']".format(
-                        "', '".join(self.invertible_properties().keys())
+                        "', '".join(
+                            set(self.invertible_properties().keys())
+                            | self._nested_modelers
+                        )
                     )
                 )
 
@@ -779,8 +792,8 @@ def _add_deprecated_physical_property_functions(
             mapping = kwargs.pop(old_map, None)
             if mapping is not None:
                 warnings.warn(
-                    f"Passing argument {old_map} to {type(self).__name__} is deprecated. Instead "
-                    f"use the {new_name} argument.",
+                    f"Passing mapping argument {old_map} to {type(self).__name__} is deprecated. Instead "
+                    f"you can now use the {new_name} argument.",
                     FutureWarning,
                     stacklevel=2,
                 )

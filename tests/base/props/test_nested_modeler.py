@@ -66,8 +66,8 @@ def test_needs_model(prop1, prop2):
     inner1 = InnerProp(phys_prop=prop1)
     inner2 = InnerProp(phys_prop=prop2)
     pm = NestedSim(nest_model=inner1, nest_two=inner2)
-    assert pm.needs_model == isinstance(prop1, maps.IdentityMap) or isinstance(
-        prop2, maps.IdentityMap
+    assert pm.needs_model == (
+        isinstance(prop1, maps.IdentityMap) or isinstance(prop2, maps.IdentityMap)
     )
 
 
