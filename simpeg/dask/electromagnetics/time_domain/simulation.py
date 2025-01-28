@@ -52,107 +52,56 @@ def fields(self, m=None):
     return f
 
 
-# # def getSourceTerm(self, tInd):
-#     """
-#     Assemble the source term. This ensures that the RHS is a vector / array
-#     of the correct size
-#     """
-#     source_list = self.survey.source_list
-#     source_block = np.array_split(source_list, cpu_count())
-#
-#     block_compute = []
-#
-#     if client:
-#         sim = client.scatter(self, workers=self.worker)
-#     else:
-#         delayed_source_eval = delayed(source_evaluation)
-#
-#     for block in source_block:
-#         if client:
-#             block_compute.append(
-#                 client.submit(
-#                     source_evaluation,
-#                     sim,
-#                     block,
-#                     self.times[tInd],
-#                 )
-#             )
-#         else:
-#             block_compute.append(delayed_source_eval(self, block, self.times[tInd]))
-#
-#     if client:
-#         blocks = client.gather(block_compute)
-#     else:
-#         blocks = dask.compute(block_compute)[0]
-#
-#     s_m, s_e = [], []
-#     for block in blocks:
-#         if block[0]:
-#             s_m.append(block[0])
-#             s_e.append(block[1])
-#
-#     if isinstance(s_m[0][0], Zero):
-#         return Zero(), np.vstack(s_e).T
-#
-#     return np.vstack(s_m).T, np.vstack(s_e).T
+def getSourceTerm(self, tInd):
+    """
+    Assemble the source term. This ensures that the RHS is a vector / array
+    of the correct size
+    """
+    try:
+        client = get_client()
+        sim = client.scatter(self, workers=self.worker)
+    except ValueError:
+        client = None
+        sim = self
 
+    source_list = self.survey.source_list
+    source_block = np.array_split(source_list, self.n_threads(client=client))
 
-# def dpred(self, m=None, f=None):
-#     r"""
-#     dpred(m, f=None)
-#     Create the projected data from a model.
-#     The fields, f, (if provided) will be used for the predicted data
-#     instead of recalculating the fields (which may be expensive!).
-#
-#     .. math::
-#
-#         d_\\text{pred} = P(f(m))
-#
-#     Where P is a projection of the fields onto the data space.
-#     """
-#     if self.survey is None:
-#         raise AttributeError(
-#             "The survey has not yet been set and is required to compute "
-#             "data. Please set the survey for the simulation: "
-#             "simulation.survey = survey"
-#         )
-#
-#     if f is None:
-#         if m is None:
-#             m = self.model
-#         f = self.fields(m)
-#
-#     rows = []
-#     receiver_projection = self.survey.source_list[0].receiver_list[0].projField
-#     fields_array = f[:, receiver_projection, :]
-#
-#     if len(self.survey.source_list) == 1:
-#         fields_array = fields_array[:, np.newaxis, :]
-#
-#     all_receivers = []
-#
-#     for ind, src in enumerate(self.survey.source_list):
-#         for rx in src.receiver_list:
-#             all_receivers.append((src, ind, rx))
-#
-#     receiver_blocks = np.array_split(all_receivers, cpu_count())
-#
-#     for block in receiver_blocks:
-#         n_data = np.sum([rec.nD for _, _, rec in block])
-#         if n_data == 0:
-#             continue
-#
-#         rows.append(
-#             array.from_delayed(
-#                 evaluate_receivers(block, self.mesh, self.time_mesh, f, fields_array),
-#                 dtype=np.float64,
-#                 shape=(n_data,),
-#             )
-#         )
-#
-#     data = array.hstack(rows).compute()
-#
-#     return data
+    if client:
+        sim = client.scatter(self, workers=self.worker)
+    else:
+        delayed_source_eval = delayed(source_evaluation)
+        sim = self
+
+    block_compute = []
+    for block in source_block:
+        if client:
+            block_compute.append(
+                client.submit(
+                    source_evaluation,
+                    sim,
+                    block,
+                    self.times[tInd],
+                )
+            )
+        else:
+            block_compute.append(delayed_source_eval(self, block, self.times[tInd]))
+
+    if client:
+        blocks = client.gather(block_compute)
+    else:
+        blocks = dask.compute(block_compute)[0]
+
+    s_m, s_e = [], []
+    for block in blocks:
+        if block[0]:
+            s_m.append(block[0])
+            s_e.append(block[1])
+
+    if isinstance(s_m[0][0], Zero):
+        return Zero(), np.vstack(s_e).T
+
+    return np.vstack(s_m).T, np.vstack(s_e).T
 
 
 def compute_J(self, m, f=None):
@@ -712,8 +661,7 @@ def compute_rows(
 
 Sim.fields = fields
 Sim.getJtJdiag = getJtJdiag
-# Sim.getSourceTerm = getSourceTerm
-# Sim.dpred = dpred
+Sim.getSourceTerm = getSourceTerm
 Sim.compute_J = compute_J
 Sim.getJtJdiag = getJtJdiag
 Sim.Jvec = Jvec
