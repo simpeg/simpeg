@@ -112,12 +112,12 @@ wires = maps.Wires(("m1", mesh.nC), ("m2", mesh.nC))
 relatrive_error = 0.01
 noise_floor = 0.0
 
-prob1 = simulation.LinearSimulation(mesh, G=G, model_map=wires.m1)
+prob1 = simulation.LinearSimulation(G=G, model_map=wires.m1)
 survey1 = prob1.make_synthetic_data(
     m, relative_error=relatrive_error, noise_floor=noise_floor, add_noise=True
 )
 
-prob2 = simulation.LinearSimulation(mesh, G=G, model_map=wires.m2)
+prob2 = simulation.LinearSimulation(G=G, model_map=wires.m2)
 survey2 = prob2.make_synthetic_data(
     m, relative_error=relatrive_error, noise_floor=noise_floor, add_noise=True
 )

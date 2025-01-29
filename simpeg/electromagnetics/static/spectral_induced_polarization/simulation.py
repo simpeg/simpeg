@@ -125,10 +125,15 @@ class BaseSIPSimulation(BaseIPSimulation):
         return self.mesh.n_nodes
 
     def _prop_deriv(self, attr):
-        d = super()._prop_deriv(attr)
-        if self.storeJ and attr in ["sigma", "rho"]:
-            d = d @ self._P
-        return d
+        if attr in ["sigma", "rho"]:
+            if attr == "sigma":
+                d = -sp.diags(self.sigma)
+            else:
+                d = sp.diags(self.rho)
+            if self.storeJ:
+                d = d @ self._P
+            return d
+        return super()._prop_deriv(attr)
 
     @property
     def etaDeriv_store(self):

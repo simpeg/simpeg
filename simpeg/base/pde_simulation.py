@@ -604,8 +604,16 @@ class BasePDESimulation(BaseSimulation):
 @with_property_mass_matrices("rho")
 class BaseElectricalPDESimulation(BasePDESimulation):
 
-    sigma = props.PhysicalProperty("Electrical conductivity (S/m)", reciprocal="rho")
-    rho = props.PhysicalProperty("Electrical resistivity (Ohm m)", reciprocal="sigma")
+    sigma = props.PhysicalProperty(
+        "Electrical conductivity (S/m)",
+        reciprocal="rho",
+        shape=[(), (1,), ("mesh.n_cells",)],
+    )
+    rho = props.PhysicalProperty(
+        "Electrical resistivity (Ohm m)",
+        reciprocal="sigma",
+        shape=[(), (1,), ("mesh.n_cells",)],
+    )
 
     def __init__(self, mesh, sigma=None, rho=None, **kwargs):
         super().__init__(mesh=mesh, **kwargs)

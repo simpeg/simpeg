@@ -22,9 +22,9 @@ class BaseIPSimulation(BaseElectricalPDESimulation):
 
     def _prop_deriv(self, attr):
         if attr == "sigma":
-            return -sp.diags(self.sigma)
+            return -sp.diags(self.sigma) @ self._prop_deriv("eta")
         elif attr == "rho":
-            return sp.diags(self.rho)
+            return sp.diags(self.rho) @ self._prop_deriv("eta")
         return super()._prop_deriv(attr)
 
     def is_parametrized(self, attr):
@@ -111,17 +111,13 @@ class BaseIPSimulation(BaseElectricalPDESimulation):
         return self._gtgdiag
 
     def Jvec(self, m, v, f=None):
-        self.model = m
-        return self._scale * super().Jvec(m, self._prop_deriv("eta") @ v, f)
+        return self._scale * super().Jvec(m, v, f)
 
     def forward(self, m, f=None):
-        self.model = m
-        jvec = super().Jvec(m, self.eta, f=f)
-        return np.asarray(self._scale * jvec)
+        return np.asarray(self.Jvec(m, m, f=f))
 
     def Jtvec(self, m, v, f=None):
-        self.model = m
-        return self._prop_deriv("eta").T @ super().Jtvec(m, v * self._scale, f)
+        return super().Jtvec(m, v * self._scale, f)
 
     @property
     def _delete_on_model_update(self):
