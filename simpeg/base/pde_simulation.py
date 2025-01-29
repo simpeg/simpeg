@@ -613,14 +613,15 @@ class BaseElectricalPDESimulation(BasePDESimulation):
 
     @sigma.setter
     def sigma(self, value):
-        prop = type(self).sigma
-        value = validate_ndarray_with_shape(
-            f"`{type(self).__name__}.sigma`",
-            value,
-            shape=[(), (1,), (self.mesh.n_cells,)],
-            dtype=float,
-        )
-        setattr(self, prop.private_name, value)
+        if value is not None:
+            prop = type(self).sigma
+            value = validate_ndarray_with_shape(
+                f"`{type(self).__name__}.sigma`",
+                value,
+                shape=[(), (1,), (self.mesh.n_cells,)],
+                dtype=float,
+            )
+            setattr(self, prop.private_name, value)
 
         for mat in self._clear_on_sigma_update:
             if hasattr(self, mat):
@@ -638,14 +639,15 @@ class BaseElectricalPDESimulation(BasePDESimulation):
 
     @rho.setter
     def rho(self, value):
-        prop = type(self).rho
-        value = validate_ndarray_with_shape(
-            f"`{type(self).__name__}.rho`",
-            value,
-            shape=[(), (1,), (self.mesh.n_cells,)],
-            dtype=float,
-        )
-        setattr(self, prop.private_name, value)
+        if value is not None:
+            prop = type(self).rho
+            value = validate_ndarray_with_shape(
+                f"`{type(self).__name__}.rho`",
+                value,
+                shape=[(), (1,), (self.mesh.n_cells,)],
+                dtype=float,
+            )
+            setattr(self, prop.private_name, value)
 
         for mat in self._clear_on_rho_update:
             if hasattr(self, mat):
@@ -690,14 +692,15 @@ class BaseMagneticPDESimulation(BasePDESimulation):
 
     @mu.setter
     def mu(self, value):
-        prop = type(self).mu
-        value = validate_ndarray_with_shape(
-            f"`{type(self).__name__}.mu`",
-            value,
-            shape=[(), (1,), (self.mesh.n_cells,)],
-            dtype=float,
-        )
-        setattr(self, prop.private_name, value)
+        if value is not None:
+            prop = type(self).mu
+            value = validate_ndarray_with_shape(
+                f"`{type(self).__name__}.mu`",
+                value,
+                shape=[(), (1,), (self.mesh.n_cells,)],
+                dtype=float,
+            )
+            setattr(self, prop.private_name, value)
 
         for mat in self._clear_on_mu_update:
             if hasattr(self, mat):
@@ -715,14 +718,15 @@ class BaseMagneticPDESimulation(BasePDESimulation):
 
     @mui.setter
     def mui(self, value):
-        prop = type(self).mui
-        value = validate_ndarray_with_shape(
-            f"`{type(self).__name__}.mui`",
-            value,
-            shape=[(), (1,), (self.mesh.n_cells,)],
-            dtype=float,
-        )
-        setattr(self, prop.private_name, value)
+        if value is not None:
+            prop = type(self).mui
+            value = validate_ndarray_with_shape(
+                f"`{type(self).__name__}.mui`",
+                value,
+                shape=[(), (1,), (self.mesh.n_cells,)],
+                dtype=float,
+            )
+            setattr(self, prop.private_name, value)
 
         for mat in self._clear_on_mui_update:
             if hasattr(self, mat):
