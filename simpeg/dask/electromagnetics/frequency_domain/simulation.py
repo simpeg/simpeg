@@ -1,5 +1,5 @@
 import gc
-
+import os
 from ....electromagnetics.frequency_domain.simulation import BaseFDEMSimulation as Sim
 from ....utils import Zero
 from ...simulation import getJtJdiag, Jvec, Jtvec, Jmatrix
@@ -11,6 +11,14 @@ from dask.distributed import get_client
 from simpeg.dask.utils import get_parallel_blocks
 from simpeg.electromagnetics.natural_source.sources import PlanewaveXYPrimary
 import zarr
+from time import time
+
+OUTFILE = os.getcwd() + "/update.txt"
+
+
+def write_message(message, mode="a"):
+    with open(OUTFILE, mode) as f:
+        f.write(message + "\n")
 
 
 def receivers_eval(block, mesh, fields):
@@ -21,10 +29,10 @@ def receivers_eval(block, mesh, fields):
     return np.hstack(data)
 
 
-def source_eval(simulation, sources):
+def source_eval(simulation, sources, indices):
     s_m, s_e = [], []
-    for source in sources:
-        sm, se = source.eval(simulation)
+    for ind in indices:
+        sm, se = sources[ind].eval(simulation)
         s_m.append(sm)
         s_e.append(se)
 
@@ -55,6 +63,7 @@ def eval_block(simulation, Ainv_deriv_u, deriv_indices, deriv_m, fields, address
     """
     Evaluate the sensitivities for the block or data
     """
+
     if Ainv_deriv_u.ndim == 1:
         deriv_columns = Ainv_deriv_u[:, np.newaxis]
     else:
@@ -78,12 +87,14 @@ def eval_block(simulation, Ainv_deriv_u, deriv_indices, deriv_m, fields, address
         deriv_columns,
         adjoint=True,
     )
+
     dRHS_dmT = simulation.getRHSDeriv(
         source.frequency,
         source,
         deriv_columns,
         adjoint=True,
     )
+
     du_dmT = -dA_dmT
     if not isinstance(dRHS_dmT, Zero):
         du_dmT += dRHS_dmT
@@ -98,30 +109,42 @@ def getSourceTerm(self, freq, source=None):
     Assemble the source term. This ensures that the RHS is a vector / array
     of the correct size
     """
-    try:
-        client = get_client()
-        sim = client.scatter(self, workers=self.worker)
-    except ValueError:
-        client = None
-        sim = self
+    ct = time()
 
     if source is None:
+        ct = time()
+        try:
+            client = get_client()
+            sim = client.scatter(self, workers=self.worker)
+        except ValueError:
+            client = None
+            sim = self
+
+        write_message("Time to scatter simulation: {}".format(time() - ct))
 
         source_list = self.survey.get_sources_by_frequency(freq)
-        source_blocks = np.array_split(source_list, self.n_threads(client=client))
-        block_compute = []
+        source_blocks = np.array_split(
+            np.arange(len(source_list)), self.n_threads(client=client)
+        )
 
+        if client:
+            source_list = client.scatter(source_list, workers=self.worker)
+
+        block_compute = []
+        ct = time()
         for block in source_blocks:
             if len(block) == 0:
                 continue
 
             if client:
                 block_compute.append(
-                    client.submit(source_eval, sim, block, workers=self.worker)
+                    client.submit(
+                        source_eval, sim, source_list, block, workers=self.worker
+                    )
                 )
             else:
-                block_compute.append(source_eval(sim, block))
-
+                block_compute.append(source_eval(sim, source_list, block))
+        write_message("Time to submit source terms: {}".format(time() - ct))
         if client:
             block_compute = client.gather(block_compute)
 
@@ -148,6 +171,7 @@ def getSourceTerm(self, freq, source=None):
         s_e = np.vstack(s_e)
         if s_e.shape[0] < s_e.shape[1]:
             s_e = s_e.T
+
     return s_m, s_e
 
 
