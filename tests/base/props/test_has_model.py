@@ -78,7 +78,7 @@ def test_map_clearing(modeler):
 
 
 def test_no_clear_without_mapping(modeler):
-    modeler.parametrize("other", maps.ExpMap())
+    modeler.parametrize(other=maps.ExpMap())
     modeler.prop = np.ones(10)
     item1 = modeler.prop_dependent_property
     assert item1 is not None
@@ -97,7 +97,7 @@ def test_no_model_needed(modeler):
     modeler.prop = None
     assert not modeler.needs_model
 
-    modeler.parametrize("prop", maps.ExpMap())
+    modeler.parametrize(prop=maps.ExpMap())
     assert modeler.needs_model
 
     modeler.prop = np.ones(10)

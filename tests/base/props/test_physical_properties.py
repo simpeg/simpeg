@@ -276,7 +276,7 @@ def test_reciprocal_assigned(modeler, assign, retrieve):
 @pytest.mark.parametrize("assign, retrieve", [("sigma", "rho"), ("rho", "sigma")])
 def test_reciprocal_two_mapped_retrieve(assign, retrieve):
     pm = ReciprocalExample()
-    pm.parametrize(assign, maps.ExpMap())
+    pm.parametrize(**{assign: maps.ExpMap()})
     pm.model = np.array([1, 2, 3])
 
     value = getattr(pm, retrieve)
@@ -296,7 +296,7 @@ def test_reciprocal_two_mapped_retrieve(assign, retrieve):
 @pytest.mark.parametrize("modeler", RECIPROCAL_CLASSES & INVERTIBLE_SIGMA_CLASSES)
 def test_reciprocal_sigma_mapped_retrieve(modeler):
     pm = modeler()
-    pm.parametrize("sigma", maps.ExpMap())
+    pm.parametrize(sigma=maps.ExpMap())
     assert pm.is_parametrized("rho")
     pm.model = np.array([1, 2, 3])
     value = pm.rho

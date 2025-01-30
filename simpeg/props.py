@@ -412,7 +412,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         """Initialize physical properties, or a pair of reciprocal properties."""
         for attr, value in kwargs.items():
             if isinstance(value, maps.IdentityMap):
-                self.parametrize(attr, value)
+                self.parametrize(**{attr: value})
             else:
                 setattr(self, attr, value)
 
@@ -490,36 +490,43 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
             self._parametrizations = ParametrizationList()
         return self._parametrizations
 
-    def parametrize(self, attr, parametrization):
+    def parametrize(self, **kwargs):
         """Parametrize a physical property, so that its value is dynamically calculated from the model.
 
         Parameters
         ----------
-        attr : str
-            PhysicalProperty attribute to parametrize
-        parametrization : simpeg.maps.IdentityMap
-            Relationship between `attr` and `model`.
+        **kwargs : dict[str, simpeg.maps.IdentityMap]
+            Each attribute keyword is parametrized by the given relationship.
+
+        Examples
+        --------
+
+        >>> sim.parametrize(sigma=maps.ExpMap())
+
         """
-        if not isinstance(parametrization, maps.IdentityMap):
-            raise TypeError(
-                f"simpeg currently only supports using a mapping as a PhysicalProperty parametrizer, not a {type(parametrization).__name__}"
-            )
+        for attr, parametrization in kwargs.items():
+            if not isinstance(parametrization, maps.IdentityMap):
+                raise TypeError(
+                    f"simpeg currently only supports using a mapping as a PhysicalProperty parametrizer, not a {type(parametrization).__name__}"
+                )
 
-        # Let this throw an attribute error on its own
-        prop = getattr(type(self), attr)
-        if not isinstance(prop, PhysicalProperty):
-            raise TypeError(f"{type(self).__name__}.{attr} is not a PhysicalProperty")
-        if not prop.invertible:
-            raise TypeError(
-                f"{type(self).__name__}.{attr} is not an invertible PhysicalProperty and cannot be parametrized"
-            )
+            # Let this throw an attribute error on its own
+            prop = getattr(type(self), attr)
+            if not isinstance(prop, PhysicalProperty):
+                raise TypeError(
+                    f"{type(self).__name__}.{attr} is not a PhysicalProperty"
+                )
+            if not prop.invertible:
+                raise TypeError(
+                    f"{type(self).__name__}.{attr} is not an invertible PhysicalProperty and cannot be parametrized"
+                )
 
-        # cleanup myself and my reciprocal
-        prop.__delete__(self)
-        if recip := prop.get_reciprocal(self):
-            recip.__delete__(self)
+            # cleanup myself and my reciprocal
+            prop.__delete__(self)
+            if recip := prop.get_reciprocal(self):
+                recip.__delete__(self)
 
-        self.parametrizations._fields[attr] = parametrization
+            self.parametrizations._fields[attr] = parametrization
 
     def is_parametrized(self, attr):
         """Determine if a physical property (or its reciprocal) has been parametrized.
@@ -743,7 +750,7 @@ def _add_deprecated_physical_property_functions(
             FutureWarning,
             stacklevel=2,
         )
-        self.parametrize(new_name, value)
+        self.parametrize(**{new_name: value})
 
     prop_map.__doc__ = f"""
     Mapping from the model to {old_name}
