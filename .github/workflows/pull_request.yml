@@ -36,6 +36,10 @@ name : Reviewdog PR Annotations
 #
 on: [pull_request_target] # zizmor: ignore[dangerous-triggers]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   flake8:
     runs-on: ubuntu-latest
