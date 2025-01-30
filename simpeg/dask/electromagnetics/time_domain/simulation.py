@@ -6,8 +6,6 @@ from ....electromagnetics.time_domain.simulation import BaseTDEMSimulation as Si
 from ....utils import Zero
 from ...simulation import getJtJdiag, Jvec, Jtvec, Jmatrix
 
-# from simpeg.fields import TimeFields
-
 import numpy as np
 import scipy.sparse as sp
 from dask import array, delayed
@@ -17,6 +15,13 @@ from simpeg.dask.utils import get_parallel_blocks
 from simpeg.utils import mkvc
 
 from time import time
+
+OUTFILE = os.getcwd() + "/update.txt"
+
+
+def write_message(message, mode="a"):
+    with open(OUTFILE, mode) as f:
+        f.write(message + "\n")
 
 
 def fields(self, m=None, return_Ainv=False):
@@ -77,12 +82,18 @@ def getSourceTerm(self, tInd):
         delayed_source_eval = delayed(source_evaluation)
         sim = self
 
+    ct = time()
     block_compute = []
     for block in source_block:
         if client:
             block_compute.append(
                 client.submit(
-                    source_evaluation, sim, block, self.times[tInd], source_list
+                    source_evaluation,
+                    sim,
+                    block,
+                    self.times[tInd],
+                    source_list,
+                    workers=self.worker,
                 )
             )
         else:
@@ -95,6 +106,7 @@ def getSourceTerm(self, tInd):
     else:
         blocks = dask.compute(block_compute)[0]
 
+    write_message(f"Source term computation: {time() - ct:.3e} sec")
     s_m, s_e = [], []
     for block in blocks:
         if block[0]:
@@ -140,7 +152,11 @@ def compute_J(self, m, f=None):
     simulation_times = np.r_[0, np.cumsum(self.time_steps)] + self.t0
     data_times = self.survey.source_list[0].receiver_list[0].times
     compute_row_size = np.ceil(self.max_chunk_size / (m.shape[0] * 8.0 * 1e-6))
-    blocks = get_parallel_blocks(self.survey.source_list, compute_row_size)
+    blocks = get_parallel_blocks(
+        self.survey.source_list,
+        compute_row_size,
+        thread_count=self.n_threads(client=client),
+    )
     fields_array = f[:, ftype, :]
 
     if len(self.survey.source_list) == 1:
@@ -150,7 +166,7 @@ def compute_J(self, m, f=None):
         self, f, blocks, Jmatrix, fields_array.shape, client
     )
 
-    ATinv_df_duT_v = {}
+    ATinv_df_duT_v = [[] for _ in blocks]
 
     if client:
         fields_array = client.scatter(fields_array, workers=self.worker)
@@ -167,29 +183,37 @@ def compute_J(self, m, f=None):
         if not np.any(time_mask):
             continue
 
-        for block, field_deriv in zip(blocks, times_field_derivs[tInd + 1]):
-            ATinv_df_duT_v = get_field_deriv_block(
+        for ind, (block, field_deriv) in enumerate(
+            zip(blocks, times_field_derivs[tInd + 1])
+        ):
+            ct = time()
+            ATinv_df_duT_v[ind] = get_field_deriv_block(
                 self,
                 block,
                 field_deriv,
                 tInd,
                 AdiagTinv,
-                ATinv_df_duT_v,
+                ATinv_df_duT_v[ind],
                 time_mask,
                 client,
             )
+            write_message(f"Field deriv block computation: {time() - ct:.3e} sec")
 
             if len(block) == 0:
                 continue
 
+            ct = time()
             if client:
+                field_derivatives = client.scatter(
+                    ATinv_df_duT_v[ind], workers=self.worker
+                )
                 j_row_updates.append(
                     client.submit(
                         compute_rows,
                         sim,
                         tInd,
                         block,
-                        ATinv_df_duT_v,
+                        field_derivatives,
                         fields_array,
                         time_mask,
                         workers=self.worker,
@@ -202,7 +226,7 @@ def compute_J(self, m, f=None):
                             sim,
                             tInd,
                             block,
-                            ATinv_df_duT_v,
+                            ATinv_df_duT_v[ind],
                             fields_array,
                             time_mask,
                         ),
@@ -240,88 +264,6 @@ def compute_J(self, m, f=None):
     self._Jmatrix = Jmatrix
 
     return self._Jmatrix
-
-
-# def _getField(self, name, ind, src_list):
-#     srcInd, timeInd = ind
-#
-#     if name in self._fields:
-#         out = self._fields[name][:, srcInd, timeInd]
-#     else:
-#         # Aliased fields
-#         alias, loc, func = self.aliasFields[name]
-#         if isinstance(func, str):
-#             assert hasattr(self, func), (
-#                 "The alias field function is a string, but it does "
-#                 "not exist in the Fields class."
-#             )
-#             func = getattr(self, func)
-#         pointerFields = self._fields[alias][:, srcInd, timeInd]
-#         pointerShape = self._correctShape(alias, ind)
-#         pointerFields = pointerFields.reshape(pointerShape, order="F")
-#
-#         # First try to return the function as three arguments (without timeInd)
-#         if timeInd == slice(None, None, None):
-#             try:
-#                 # assume it will take care of integrating over all times
-#                 return func(pointerFields, srcInd)
-#             except TypeError:
-#                 pass
-#
-#         timeII = np.arange(self.simulation.nT + 1)[timeInd]
-#         if not isinstance(src_list, list):
-#             src_list = [src_list]
-#
-#         if timeII.size == 1:
-#             pointerShapeDeflated = self._correctShape(alias, ind, deflate=True)
-#             pointerFields = pointerFields.reshape(pointerShapeDeflated, order="F")
-#             out = func(pointerFields, src_list, timeII)
-#         else:  # loop over the time steps
-#             arrays = []
-#
-#             if client:
-#                 pointerFields = client.scatter(pointerFields, workers=self.worker)
-#                 src_list = client.scatter(src_list, workers=self.worker)
-#                 func = client.scatter(func, workers=self.worker)
-#             else:
-#                 delayed_field_comp = delayed(field_projection)
-#
-#             for i, TIND_i in enumerate(timeII):  # Need to parallelize this
-#
-#                 if client:
-#                     arrays.append(
-#                         client.submit(
-#                             field_projection,
-#                             pointerFields,
-#                             src_list,
-#                             i,
-#                             TIND_i,
-#                             func,
-#                             workers=self.worker,
-#                         )
-#                     )
-#                 else:
-#                     arrays.append(
-#                         array.from_delayed(
-#                             delayed_field_comp(
-#                                 pointerFields, src_list, i, TIND_i, func
-#                             ),
-#                             dtype=np.float32,
-#                             shape=(pointerShape[0], pointerShape[1], 1),
-#                         )
-#                     )
-#
-#             if client:
-#                 arrays = client.gather(arrays)
-#                 out = np.dstack(arrays)
-#             else:
-#                 out = array.dstack(arrays).compute()
-#
-#     shape = self._correctShape(name, ind, deflate=True)
-#     return out.reshape(shape, order="F")
-
-
-# TimeFields._getField = _getField
 
 
 def field_projection(field_array, src_list, array_ind, time_ind, func):
@@ -436,27 +378,13 @@ def compute_field_derivs(self, fields, blocks, Jmatrix, fields_shape, client):
     return df_duT, Jmatrix
 
 
-def update_deriv_blocks(address, indices, derivatives, solve, shape):
-    if address not in derivatives:
-        deriv_array = np.zeros(shape)
-    else:
-        deriv_array = derivatives[address]
-
-    if address in indices:
-        columns, local_ind = indices[address]
-        if solve is not None:
-            deriv_array[:, local_ind] = solve[:, columns]
-
-    derivatives[address] = deriv_array
-
-
 def get_field_deriv_block(
     self,
     block: list,
     field_derivs: list,
     tInd: int,
     AdiagTinv,
-    ATinv_df_duT_v: dict,
+    ATinv_df_duT_v,
     time_mask,
     client,
 ):
@@ -464,7 +392,9 @@ def get_field_deriv_block(
     Stack the blocks of field derivatives for a given timestep and call the direct solver.
     """
     stacked_blocks = []
-    indices = {}
+    if len(ATinv_df_duT_v) == 0:
+        ATinv_df_duT_v = [[] for _ in block]
+    indices = []
     count = 0
 
     Asubdiag = None
@@ -472,8 +402,8 @@ def get_field_deriv_block(
         Asubdiag = self.getAsubdiag(tInd + 1)
 
     delayed_deriv = delayed(deriv_block)
-    for ((s_id, r_id, b_id), (rx_ind, _, shape)), field_deriv in zip(
-        block, field_derivs
+    for (_, (rx_ind, _, shape)), field_deriv, ATinv_chunk in zip(
+        block, field_derivs, ATinv_df_duT_v
     ):
         # Cut out early data
         time_check = np.kron(time_mask, np.ones(shape, dtype=bool))[rx_ind]
@@ -482,9 +412,8 @@ def get_field_deriv_block(
         if len(local_ind) < 1:
             continue
 
-        indices[(s_id, r_id, b_id)] = (
-            np.arange(count, count + len(local_ind)),
-            local_ind,
+        indices.append(
+            (np.arange(count, count + len(local_ind)), local_ind),
         )
         count += len(local_ind)
 
@@ -492,27 +421,19 @@ def get_field_deriv_block(
             stacked_blocks.append(
                 client.submit(
                     deriv_block,
-                    s_id,
-                    r_id,
-                    b_id,
-                    ATinv_df_duT_v,
+                    ATinv_chunk,
                     Asubdiag,
                     local_ind,
                     field_deriv,
-                    tInd,
                     workers=self.worker,
                 )
             )
         else:
             deriv_comp = delayed_deriv(
-                s_id,
-                r_id,
-                b_id,
-                ATinv_df_duT_v,
+                ATinv_chunk,
                 Asubdiag,
                 local_ind,
                 field_deriv,
-                tInd,
             )
             stacked_blocks.append(
                 array.from_delayed(
@@ -535,15 +456,25 @@ def get_field_deriv_block(
     else:
         solve = None
 
-    for (address, arrays), field_deriv in zip(block, field_derivs):
-        shape = (
-            field_deriv.shape[0],
-            len(arrays[0]),
-        )
+    updated_ATinv_df_duT_v = []
+    for (_, arrays), field_deriv, ATinv_chunk, (columns, local_ind) in zip(
+        block, field_derivs, ATinv_df_duT_v, indices
+    ):
 
-        update_deriv_blocks(address, indices, ATinv_df_duT_v, solve, shape)
+        if len(ATinv_chunk) == 0:
+            shape = (
+                field_deriv.shape[0],
+                len(arrays[0]),
+            )
+            ATinv_chunk = np.zeros(shape, dtype=np.float32)
 
-    return ATinv_df_duT_v
+        if solve is None:
+            continue
+
+        ATinv_chunk[:, local_ind] = solve[:, columns]
+        updated_ATinv_df_duT_v.append(ATinv_chunk)
+
+    return updated_ATinv_df_duT_v
 
 
 def block_deriv(
@@ -593,17 +524,14 @@ def block_deriv(
     return df_duT, j_updates
 
 
-def deriv_block(
-    s_id, r_id, b_id, ATinv_df_duT_v, Asubdiag, local_ind, field_derivs, tInd
-):
-    if (s_id, r_id, b_id) not in ATinv_df_duT_v:
+def deriv_block(ATinv_df_duT_v, Asubdiag, local_ind, field_derivs):
+    if len(ATinv_df_duT_v) == 0:
         # last timestep (first to be solved)
         stacked_block = field_derivs.toarray()[:, local_ind]
 
     else:
         stacked_block = np.asarray(
-            field_derivs[:, local_ind]
-            - Asubdiag.T * ATinv_df_duT_v[(s_id, r_id, b_id)][:, local_ind]
+            field_derivs[:, local_ind] - Asubdiag.T * ATinv_df_duT_v[:, local_ind]
         )
 
     return stacked_block
@@ -622,7 +550,7 @@ def compute_rows(
     """
     rows = []
 
-    for address, ind_array in chunks:
+    for (address, ind_array), field_derivs in zip(chunks, ATinv_df_duT_v):
         src = simulation.survey.source_list[address[0]]
         time_check = np.kron(time_mask, np.ones(ind_array[2], dtype=bool))[ind_array[0]]
         local_ind = np.arange(len(ind_array[0]))[time_check]
@@ -634,7 +562,6 @@ def compute_rows(
             rows.append(row_block)
             continue
 
-        field_derivs = ATinv_df_duT_v[address]
         dAsubdiagT_dm_v = simulation.getAsubdiagDeriv(
             tInd,
             fields[:, address[0], tInd],
