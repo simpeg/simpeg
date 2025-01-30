@@ -7,7 +7,7 @@ from ....utils import Zero
 from ...simulation import getJtJdiag, Jvec, Jtvec, Jmatrix
 
 # from simpeg.fields import TimeFields
-# from multiprocessing import cpu_count
+
 import numpy as np
 import scipy.sparse as sp
 from dask import array, delayed
@@ -19,11 +19,11 @@ from simpeg.utils import mkvc
 from time import time
 
 
-def fields(self, m=None):
+def fields(self, m=None, return_Ainv=False):
     if m is not None:
         self.model = m
 
-    if getattr(self, "_stashed_fields", None) is not None:
+    if getattr(self, "_stashed_fields", None) is not None and not return_Ainv:
         return self._stashed_fields
 
     f = self.fieldsPair(self)
@@ -47,8 +47,9 @@ def fields(self, m=None):
         sol = Ainv[dt] * rhs
         f[:, self._fieldType + "Solution", tInd + 1] = sol
 
-    self.Ainv = Ainv
     self._stashed_fields = f
+    if return_Ainv:
+        return f, Ainv
     return f
 
 
@@ -65,10 +66,13 @@ def getSourceTerm(self, tInd):
         sim = self
 
     source_list = self.survey.source_list
-    source_block = np.array_split(source_list, self.n_threads(client=client))
+    source_block = np.array_split(
+        np.arange(len(source_list)), self.n_threads(client=client)
+    )
 
     if client:
         sim = client.scatter(self, workers=self.worker)
+        source_list = client.scatter(source_list, workers=self.worker)
     else:
         delayed_source_eval = delayed(source_evaluation)
         sim = self
@@ -78,14 +82,13 @@ def getSourceTerm(self, tInd):
         if client:
             block_compute.append(
                 client.submit(
-                    source_evaluation,
-                    sim,
-                    block,
-                    self.times[tInd],
+                    source_evaluation, sim, block, self.times[tInd], source_list
                 )
             )
         else:
-            block_compute.append(delayed_source_eval(self, block, self.times[tInd]))
+            block_compute.append(
+                delayed_source_eval(self, block, self.times[tInd], source_list)
+            )
 
     if client:
         blocks = client.gather(block_compute)
@@ -109,7 +112,12 @@ def compute_J(self, m, f=None):
     Compute the rows for the sensitivity matrix.
     """
     if f is None:
-        f = self.fields(m)
+        f, Ainv = self.fields(m=m, return_Ainv=True)
+
+    try:
+        client = get_client()
+    except ValueError:
+        client = None
 
     ftype = self._fieldType + "Solution"
     sens_name = self.sensitivity_path[:-5]
@@ -135,11 +143,6 @@ def compute_J(self, m, f=None):
     blocks = get_parallel_blocks(self.survey.source_list, compute_row_size)
     fields_array = f[:, ftype, :]
 
-    try:
-        client = get_client()
-    except ValueError:
-        client = None
-
     if len(self.survey.source_list) == 1:
         fields_array = fields_array[:, np.newaxis, :]
 
@@ -154,9 +157,10 @@ def compute_J(self, m, f=None):
         sim = client.scatter(self, workers=self.worker)
     else:
         delayed_compute_rows = delayed(compute_rows)
+        sim = self
 
     for tInd, dt in zip(reversed(range(self.nT)), reversed(self.time_steps)):
-        AdiagTinv = self.Ainv[dt]
+        AdiagTinv = Ainv[dt]
         j_row_updates = []
         time_mask = data_times > simulation_times[tInd]
 
@@ -195,7 +199,7 @@ def compute_J(self, m, f=None):
                 j_row_updates.append(
                     array.from_delayed(
                         delayed_compute_rows(
-                            self,
+                            sim,
                             tInd,
                             block,
                             ATinv_df_duT_v,
@@ -212,7 +216,6 @@ def compute_J(self, m, f=None):
 
         if client:
             j_row_updates = np.vstack(client.gather(j_row_updates))
-
         else:
             j_row_updates = array.vstack(j_row_updates).compute()
 
@@ -228,7 +231,7 @@ def compute_J(self, m, f=None):
         else:
             Jmatrix += j_row_updates
 
-    for A in self.Ainv.values():
+    for A in Ainv.values():
         A.clean()
 
     if self.store_sensitivities == "ram":
@@ -239,83 +242,83 @@ def compute_J(self, m, f=None):
     return self._Jmatrix
 
 
-def _getField(self, name, ind, src_list):
-    srcInd, timeInd = ind
-
-    if name in self._fields:
-        out = self._fields[name][:, srcInd, timeInd]
-    else:
-        # Aliased fields
-        alias, loc, func = self.aliasFields[name]
-        if isinstance(func, str):
-            assert hasattr(self, func), (
-                "The alias field function is a string, but it does "
-                "not exist in the Fields class."
-            )
-            func = getattr(self, func)
-        pointerFields = self._fields[alias][:, srcInd, timeInd]
-        pointerShape = self._correctShape(alias, ind)
-        pointerFields = pointerFields.reshape(pointerShape, order="F")
-
-        # First try to return the function as three arguments (without timeInd)
-        if timeInd == slice(None, None, None):
-            try:
-                # assume it will take care of integrating over all times
-                return func(pointerFields, srcInd)
-            except TypeError:
-                pass
-
-        timeII = np.arange(self.simulation.nT + 1)[timeInd]
-        if not isinstance(src_list, list):
-            src_list = [src_list]
-
-        if timeII.size == 1:
-            pointerShapeDeflated = self._correctShape(alias, ind, deflate=True)
-            pointerFields = pointerFields.reshape(pointerShapeDeflated, order="F")
-            out = func(pointerFields, src_list, timeII)
-        else:  # loop over the time steps
-            arrays = []
-
-            if client:
-                pointerFields = client.scatter(pointerFields, workers=self.worker)
-                src_list = client.scatter(src_list, workers=self.worker)
-                func = client.scatter(func, workers=self.worker)
-            else:
-                delayed_field_comp = delayed(field_projection)
-
-            for i, TIND_i in enumerate(timeII):  # Need to parallelize this
-
-                if client:
-                    arrays.append(
-                        client.submit(
-                            field_projection,
-                            pointerFields,
-                            src_list,
-                            i,
-                            TIND_i,
-                            func,
-                            workers=self.worker,
-                        )
-                    )
-                else:
-                    arrays.append(
-                        array.from_delayed(
-                            delayed_field_comp(
-                                pointerFields, src_list, i, TIND_i, func
-                            ),
-                            dtype=np.float32,
-                            shape=(pointerShape[0], pointerShape[1], 1),
-                        )
-                    )
-
-            if client:
-                arrays = client.gather(arrays)
-                out = np.dstack(arrays)
-            else:
-                out = array.dstack(arrays).compute()
-
-    shape = self._correctShape(name, ind, deflate=True)
-    return out.reshape(shape, order="F")
+# def _getField(self, name, ind, src_list):
+#     srcInd, timeInd = ind
+#
+#     if name in self._fields:
+#         out = self._fields[name][:, srcInd, timeInd]
+#     else:
+#         # Aliased fields
+#         alias, loc, func = self.aliasFields[name]
+#         if isinstance(func, str):
+#             assert hasattr(self, func), (
+#                 "The alias field function is a string, but it does "
+#                 "not exist in the Fields class."
+#             )
+#             func = getattr(self, func)
+#         pointerFields = self._fields[alias][:, srcInd, timeInd]
+#         pointerShape = self._correctShape(alias, ind)
+#         pointerFields = pointerFields.reshape(pointerShape, order="F")
+#
+#         # First try to return the function as three arguments (without timeInd)
+#         if timeInd == slice(None, None, None):
+#             try:
+#                 # assume it will take care of integrating over all times
+#                 return func(pointerFields, srcInd)
+#             except TypeError:
+#                 pass
+#
+#         timeII = np.arange(self.simulation.nT + 1)[timeInd]
+#         if not isinstance(src_list, list):
+#             src_list = [src_list]
+#
+#         if timeII.size == 1:
+#             pointerShapeDeflated = self._correctShape(alias, ind, deflate=True)
+#             pointerFields = pointerFields.reshape(pointerShapeDeflated, order="F")
+#             out = func(pointerFields, src_list, timeII)
+#         else:  # loop over the time steps
+#             arrays = []
+#
+#             if client:
+#                 pointerFields = client.scatter(pointerFields, workers=self.worker)
+#                 src_list = client.scatter(src_list, workers=self.worker)
+#                 func = client.scatter(func, workers=self.worker)
+#             else:
+#                 delayed_field_comp = delayed(field_projection)
+#
+#             for i, TIND_i in enumerate(timeII):  # Need to parallelize this
+#
+#                 if client:
+#                     arrays.append(
+#                         client.submit(
+#                             field_projection,
+#                             pointerFields,
+#                             src_list,
+#                             i,
+#                             TIND_i,
+#                             func,
+#                             workers=self.worker,
+#                         )
+#                     )
+#                 else:
+#                     arrays.append(
+#                         array.from_delayed(
+#                             delayed_field_comp(
+#                                 pointerFields, src_list, i, TIND_i, func
+#                             ),
+#                             dtype=np.float32,
+#                             shape=(pointerShape[0], pointerShape[1], 1),
+#                         )
+#                     )
+#
+#             if client:
+#                 arrays = client.gather(arrays)
+#                 out = np.dstack(arrays)
+#             else:
+#                 out = array.dstack(arrays).compute()
+#
+#     shape = self._correctShape(name, ind, deflate=True)
+#     return out.reshape(shape, order="F")
 
 
 # TimeFields._getField = _getField
@@ -334,10 +337,10 @@ def field_projection(field_array, src_list, array_ind, time_ind, func):
     return new_array
 
 
-def source_evaluation(simulation, sources, time_channel):
+def source_evaluation(simulation, indices, time_channel, sources):
     s_m, s_e = [], []
-    for source in sources:
-        sm, se = source.eval(simulation, time_channel)
+    for ind in indices:
+        sm, se = sources[ind].eval(simulation, time_channel)
         s_m.append(sm)
         s_e.append(se)
 
