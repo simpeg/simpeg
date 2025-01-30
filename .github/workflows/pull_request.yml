@@ -36,14 +36,14 @@ name : Reviewdog PR Annotations
 #
 on: [pull_request_target] # zizmor: ignore[dangerous-triggers]
 
-permissions:
-  contents: read
-  pull-requests: write
-
 jobs:
   flake8:
     runs-on: ubuntu-latest
     name: Flake8 check
+    permissions:
+      contents: read
+      pull-requests: write
+
     steps:
       - name: Checkout target repository source
         uses: actions/checkout@v4
@@ -77,6 +77,10 @@ jobs:
   black:
     name: Black check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
     steps:
       - name: Checkout target repository source
         uses: actions/checkout@v4
