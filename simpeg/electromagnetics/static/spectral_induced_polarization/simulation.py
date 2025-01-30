@@ -4,6 +4,7 @@ import gc
 
 from .... import props
 from .data import Data
+from ....props import _add_deprecated_physical_property_functions
 from ....utils import sdiag, validate_type, validate_active_indices
 import scipy.sparse as sp
 
@@ -15,12 +16,14 @@ from ..induced_polarization import Simulation3DNodal as BaseSimulation3DNodal
 from .survey import Survey
 
 
+@_add_deprecated_physical_property_functions("tau")
+@_add_deprecated_physical_property_functions("taui")
+@_add_deprecated_physical_property_functions("c")
 class BaseSIPSimulation(BaseIPSimulation):
-    tau, tauMap, tauDeriv = props.Invertible("Time constant (s)")
-    taui, tauiMap, tauiDeriv = props.Invertible("Inverse of time constant (1/s)")
-    props.Reciprocal(tau, taui)
+    tau = props.PhysicalProperty("Time constant (s)", reciprocal="taui", default=0.1)
+    taui = props.PhysicalProperty("Inverse of time constant (1/s)", reciprocal="tau")
 
-    c, cMap, cDeriv = props.Invertible("Frequency dependency")
+    c = props.PhysicalProperty("Frequency dependency", default=0.5)
 
     Ainv = None
     _f = None
@@ -36,24 +39,18 @@ class BaseSIPSimulation(BaseIPSimulation):
         self,
         mesh,
         survey=None,
-        tau=0.1,
-        tauMap=None,
+        tau=None,
         taui=None,
-        tauiMap=None,
-        c=0.5,
-        cMap=None,
+        c=None,
         storeJ=False,
         actinds=None,
         storeInnerProduct=True,
         **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
-        self.tau = tau
-        self.taui = taui
-        self.tauMap = tauMap
-        self.tauiMap = tauiMap
-        self.c = c
-        self.cMap = cMap
+        self._init_recip_properties(tau=tau, taui=taui)
+        self._init_property(c=c)
+
         self.storeJ = storeJ
         self.storeInnerProduct = storeInnerProduct
         self.actinds = actinds
@@ -127,21 +124,16 @@ class BaseSIPSimulation(BaseIPSimulation):
     def n(self):
         return self.mesh.n_nodes
 
-    @property
-    def sigmaDeriv(self):
-        if self.storeJ:
-            dsigma_dlogsigma = sdiag(self.sigma) * self._P
-        else:
-            dsigma_dlogsigma = sdiag(self.sigma)
-        return -dsigma_dlogsigma
-
-    @property
-    def rhoDeriv(self):
-        if self.storeJ:
-            drho_dlogrho = sdiag(self.rho) * self._P
-        else:
-            drho_dlogrho = sdiag(self.rho)
-        return drho_dlogrho
+    def _prop_deriv(self, attr):
+        if attr in ["sigma", "rho"]:
+            if attr == "sigma":
+                d = -sp.diags(self.sigma)
+            else:
+                d = sp.diags(self.rho)
+            if self.storeJ:
+                d = d @ self._P
+            return d
+        return super()._prop_deriv(attr)
 
     @property
     def etaDeriv_store(self):

@@ -536,7 +536,7 @@ class ParametricPolyMap(IdentityMap):
         int
             The number of parameters the mapping acts on.
         """
-        if np.isscalar(self.order):
+        if np.ndim(self.order) == 0:
             nP = self.order + 3
         else:
             nP = (self.order[0] + 1) * (self.order[1] + 1) + 2
