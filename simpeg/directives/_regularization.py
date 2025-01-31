@@ -403,17 +403,22 @@ class UpdateIRLS(InversionDirective):
                 )
             return True
 
-        # Check if the function has changed enough
-        f_change = np.abs(self.metrics.f_old - phim_new) / (self.metrics.f_old + 1e-12)
+        # Get how much the regularization has changed from previous value
+        f_change = (
+            np.abs(self.metrics.f_old - phim_new) / self.metrics.f_old
+            if self.metrics.f_old != 0.0
+            else np.inf
+        )
+
+        # Get target chi factor minus current chi factor
+        chi_factor_diff = 1.0 - self.invProb.phi_d / self.misfit_from_chi_factor(
+            self.chifact_target
+        )
 
         if (
             f_change < self.f_min_change
             and self.metrics.irls_iteration_count > 1
-            and np.abs(
-                1.0
-                - self.invProb.phi_d / self.misfit_from_chi_factor(self.chifact_target)
-            )
-            < self.misfit_tolerance
+            and (0 < chi_factor_diff < self.misfit_tolerance)
         ):
             if self.verbose:
                 print("Minimum decrease in regularization. End of IRLS")
