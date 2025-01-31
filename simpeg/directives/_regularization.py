@@ -418,7 +418,7 @@ class UpdateIRLS(InversionDirective):
         if (
             f_change < self.f_min_change
             and self.metrics.irls_iteration_count > 1
-            and (0 < chi_factor_diff < self.misfit_tolerance)
+            and (0 <= chi_factor_diff < self.misfit_tolerance)
         ):
             if self.verbose:
                 print("Minimum decrease in regularization. End of IRLS")
