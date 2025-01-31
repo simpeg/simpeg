@@ -5,6 +5,7 @@ from ... import maps
 from ..frequency_domain.sources import BaseFDEMSrc
 from ..utils import omega
 from .utils.source_utils import homo1DModelSource
+from .utils.solutions_1d import get1DEfields
 import discretize
 from discretize.utils import volume_average
 
@@ -331,22 +332,24 @@ class FictitiousSource3D(BaseFDEMSrc):
                 [hz], origin=[mesh_3d.origin[2] - hz[0] * n_pad]
             )
 
-            # Solve the 1D problem for electric fields on nodes
-            G = mesh_1d.nodal_gradient
-            MeMui = mesh_1d.get_edge_inner_product(model=mu_0, invert_model=True)
-            MfSigma = mesh_1d.get_face_inner_product(model=sigma_1d)
+            # # Solve the 1D problem for electric fields on nodes
+            # G = mesh_1d.nodal_gradient
+            # MeMui = mesh_1d.get_edge_inner_product(model=mu_0, invert_model=True)
+            # MfSigma = mesh_1d.get_face_inner_product(model=sigma_1d)
 
-            A = G.T.tocsr() @ MeMui @ G + 1j * omega(self.frequency) * MfSigma
+            # A = G.T.tocsr() @ MeMui @ G + 1j * omega(self.frequency) * MfSigma
 
-            RHS = (
-                1j
-                * omega(self.frequency)
-                * mesh_1d.boundary_node_vector_integral
-                * [0 + 0j, 1 + 0j]
-            )
+            # RHS = (
+            #     1j
+            #     * omega(self.frequency)
+            #     * mesh_1d.boundary_node_vector_integral
+            #     * [0 + 0j, 1 + 0j]
+            # )
 
-            Ainv = simulation.solver(A, **simulation.solver_opts)
-            u_1d = Ainv * RHS
+            # Ainv = simulation.solver(A, **simulation.solver_opts)
+            # u_1d = Ainv * RHS
+
+            u_1d = get1DEfields(mesh_1d, sigma_1d, self.frequency)
 
             # Project to X and Y edges
             fields_x = (
