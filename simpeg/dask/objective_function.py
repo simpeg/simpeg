@@ -3,19 +3,21 @@ from ..objective_function import ComboObjectiveFunction, BaseObjectiveFunction
 import numpy as np
 from dask.distributed import Client
 from ..data_misfit import L2DataMisfit
-import os
+
 from simpeg.utils import validate_list_of_types
-from time import time
 
-OUTFILE = os.getcwd() + "/update.txt"
-
-
-def write_message(message, mode="a"):
-    with open(OUTFILE, mode) as f:
-        f.write(message + "\n")
-
-
-write_message("Starting", mode="w+")
+# import os
+# from time import time
+#
+# OUTFILE = os.getcwd() + "/update.txt"
+#
+#
+# def write_message(message, mode="a"):
+#     with open(OUTFILE, mode) as f:
+#         f.write(message + "\n")
+#
+#
+# write_message("Starting", mode="w+")
 
 
 def _calc_fields(objfct, model):
@@ -33,16 +35,10 @@ def _calc_residual(objfct, model):
 
 
 def _deriv(objfct, multiplier, model):
-    # if fields is not None and objfct.has_fields:
-    #     return multiplier * objfct.deriv(objfct.simulation.model)
-    # else:
     return multiplier * objfct.deriv(objfct.simulation.model)
 
 
 def _deriv2(objfct, multiplier, model, v):
-    # if fields is not None and objfct.has_fields:
-    #     return multiplier * objfct.deriv2(objfct.simulation.model, v)
-    # else:
     return multiplier * objfct.deriv2(objfct.simulation.model, v)
 
 
@@ -84,35 +80,6 @@ def _validate_type_or_future_of_type(
         workload[-1].append(future)
         count += 1
 
-        # objects[0].simulation.simulations[0].worker = workers[0]
-        # if workers is None:
-        #     objects = client.scatter(objects)
-        # else:
-        #     tmp = []
-        #     for obj, worker in zip(objects, workers):
-        #         tmp.append(client.scatter([obj], workers=worker)[0])
-        #     objects = tmp
-    # except TypeError:
-    #     pass
-    # ensure list of futures
-    # objects = validate_list_of_types(
-    #     property_name,
-    #     objects,
-    #     Future,
-    # )
-    # Figure out where everything lives
-
-    # who = client.who_has(workload)
-    # # if workers is None:
-    # #     workers = []
-    # for ii, worker in enumerate(who.values()):
-    #     if worker != workers[ii % len(workers)]:
-    #         warnings.warn(
-    #             f"{property_name} {i} is not on the expected worker.", stacklevel=2
-    #         )
-    #         # obj = client.submit(_set_worker, obj, worker)
-
-    # Ensure this runs on the expected worker
     futures = []
     for work in workload:
 
@@ -223,7 +190,7 @@ class DaskComboMisfits(ComboObjectiveFunction):
 
         derivs = 0.0
         count = 0
-        write_message("Calculating deriv")
+
         for futures in self._futures:
             future_deriv = []
             for objfct, worker in zip(futures, self._workers):
@@ -263,7 +230,7 @@ class DaskComboMisfits(ComboObjectiveFunction):
 
         derivs = 0.0
         count = 0
-        write_message("Calculating deriv2")
+
         for futures in self._futures:
 
             future_derivs = []
@@ -290,12 +257,15 @@ class DaskComboMisfits(ComboObjectiveFunction):
         return derivs
 
     def get_dpred(self, m, f=None):
+        """
+        Request calculation of predicted data from all simulations.
+        """
         self.model = m
 
         client = self.client
         m_future = self._m_as_future
         dpred = []
-        write_message("Calculating dpred")
+
         for futures in self._futures:
             future_preds = []
             for objfct, worker in zip(futures, self._workers):
@@ -312,6 +282,9 @@ class DaskComboMisfits(ComboObjectiveFunction):
         return dpred
 
     def getJtJdiag(self, m, f=None):
+        """
+        Request calculation of the diagonal of JtJ from all simulations.
+        """
         self.model = m
         m_future = self._m_as_future
         if getattr(self, "_jtjdiag", None) is None:
@@ -319,27 +292,20 @@ class DaskComboMisfits(ComboObjectiveFunction):
             jtj_diag = 0.0
             client = self.client
 
-            write_message("Calculating JtJdiag")
-            # if f is None:
-            #     f = self.fields(m)
-            for ii, futures in enumerate(self._futures):
+            for futures in self._futures:
                 work = []
-                ct = time()
+
                 for objfct, worker in zip(futures, self._workers):
                     work.append(
                         client.submit(
                             _get_jtj_diag,
                             objfct,
                             m_future,
-                            # field,
                             workers=worker,
                         )
                     )
 
                 work = client.gather(work)
-                write_message(
-                    f"Future {ii} of {len(self._futures)} in {time() - ct:.3f} sec"
-                )
                 jtj_diag += np.sum(work, axis=0)
 
             self._jtjdiag = jtj_diag
@@ -347,6 +313,11 @@ class DaskComboMisfits(ComboObjectiveFunction):
         return self._jtjdiag
 
     def fields(self, m):
+        """
+        Request calculation of fields from all simulations.
+
+        Store list of futures for fields in self._stashed_fields.
+        """
         self.model = m
         client = self.client
         m_future = self._m_as_future
@@ -354,7 +325,7 @@ class DaskComboMisfits(ComboObjectiveFunction):
             return self._stashed_fields
         # The above should pass the model to all the internal simulations.
         f = []
-        write_message("Calculating fields")
+
         for futures in self._futures:
             f.append([])
             for objfct, worker in zip(futures, self._workers):
@@ -405,6 +376,9 @@ class DaskComboMisfits(ComboObjectiveFunction):
 
     @property
     def objfcts(self):
+        """
+        List of objective functions associated with the data misfit.
+        """
         return self._objfcts
 
     @objfcts.setter
@@ -433,7 +407,7 @@ class DaskComboMisfits(ComboObjectiveFunction):
         client = self.client
         m_future = self._m_as_future
         residuals = []
-        write_message("Calculating residuals")
+
         for futures in self._futures:
             future_residuals = []
             for objfct, worker in zip(futures, self._workers):
