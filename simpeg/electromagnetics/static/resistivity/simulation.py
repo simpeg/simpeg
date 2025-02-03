@@ -606,7 +606,7 @@ class Simulation3DNodal(BaseDCSimulation):
             # TODO: Implement Zhang et al. (1995)
 
             r_vec = boundary_faces - source_point
-            r = np.linalg.norm(r_vec, axis=-1)
+            r = np.linalg.norm(r_vec, axis=-1) + 1e-12
             r_hat = r_vec / r[:, None]
             r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
 
