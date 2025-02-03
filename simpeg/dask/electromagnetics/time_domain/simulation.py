@@ -14,15 +14,6 @@ from dask.distributed import get_client
 from simpeg.dask.utils import get_parallel_blocks
 from simpeg.utils import mkvc
 
-from time import time
-
-OUTFILE = os.getcwd() + "/update.txt"
-
-
-def write_message(message, mode="a"):
-    with open(OUTFILE, mode) as f:
-        f.write(message + "\n")
-
 
 def fields(self, m=None, return_Ainv=False):
     if m is not None:
@@ -42,14 +33,13 @@ def fields(self, m=None, return_Ainv=False):
 
         Asubdiag = self.getAsubdiag(tInd)
         rhs = -Asubdiag * f[:, (self._fieldType + "Solution"), tInd]
-
         if (
             np.abs(self.survey.source_list[0].waveform.eval(self.times[tInd + 1]))
             > 1e-8
         ):
             rhs += self.getRHS(tInd + 1)
 
-        sol = Ainv[dt] * rhs
+        sol = Ainv[dt] * np.asarray(rhs)
         f[:, self._fieldType + "Solution", tInd + 1] = sol
 
     self._stashed_fields = f
@@ -63,6 +53,14 @@ def getSourceTerm(self, tInd):
     Assemble the source term. This ensures that the RHS is a vector / array
     of the correct size
     """
+    if (
+        getattr(self, "_stashed_sources", None) is not None
+        and tInd in self._stashed_sources
+    ):
+        return self._stashed_sources[tInd]
+    elif getattr(self, "_stashed_sources", None) is None:
+        self._stashed_sources = {}
+
     try:
         client = get_client()
         sim = client.scatter(self, workers=self.worker)
@@ -82,7 +80,6 @@ def getSourceTerm(self, tInd):
         delayed_source_eval = delayed(source_evaluation)
         sim = self
 
-    ct = time()
     block_compute = []
     for block in source_block:
         if client:
@@ -106,7 +103,6 @@ def getSourceTerm(self, tInd):
     else:
         blocks = dask.compute(block_compute)[0]
 
-    write_message(f"Source term computation: {time() - ct:.3e} sec")
     s_m, s_e = [], []
     for block in blocks:
         if block[0]:
@@ -114,9 +110,13 @@ def getSourceTerm(self, tInd):
             s_e.append(block[1])
 
     if isinstance(s_m[0][0], Zero):
-        return Zero(), np.vstack(s_e).T
+        self._stashed_sources[tInd] = Zero(), sp.csr_matrix(np.vstack(s_e).T)
+    else:
+        self._stashed_sources[tInd] = sp.csr_matrix(np.vstack(s_m).T), sp.csr_matrix(
+            np.vstack(s_e).T
+        )
 
-    return np.vstack(s_m).T, np.vstack(s_e).T
+    return self._stashed_sources[tInd]
 
 
 def compute_J(self, m, f=None):
@@ -174,7 +174,6 @@ def compute_J(self, m, f=None):
     else:
         delayed_compute_rows = delayed(compute_rows)
         sim = self
-
     for tInd, dt in zip(reversed(range(self.nT)), reversed(self.time_steps)):
         AdiagTinv = Ainv[dt]
         j_row_updates = []
@@ -186,7 +185,6 @@ def compute_J(self, m, f=None):
         for ind, (block, field_deriv) in enumerate(
             zip(blocks, times_field_derivs[tInd + 1])
         ):
-            ct = time()
             ATinv_df_duT_v[ind] = get_field_deriv_block(
                 self,
                 block,
@@ -197,12 +195,10 @@ def compute_J(self, m, f=None):
                 time_mask,
                 client,
             )
-            write_message(f"Field deriv block computation: {time() - ct:.3e} sec")
 
             if len(block) == 0:
                 continue
 
-            ct = time()
             if client:
                 field_derivatives = client.scatter(
                     ATinv_df_duT_v[ind], workers=self.worker
@@ -311,10 +307,12 @@ def compute_field_derivs(self, fields, blocks, Jmatrix, fields_shape, client):
         mesh = client.scatter(self.mesh, workers=self.worker)
         time_mesh = client.scatter(self.time_mesh, workers=self.worker)
         fields = client.scatter(fields, workers=self.worker)
+        source_list = client.scatter(self.survey.source_list, workers=self.worker)
     else:
         mesh = self.mesh
         time_mesh = self.time_mesh
         delayed_block_deriv = delayed(block_deriv)
+        source_list = self.survey.source_list
 
     for chunks in blocks:
         if len(chunks) == 0:
@@ -327,7 +325,7 @@ def compute_field_derivs(self, fields, blocks, Jmatrix, fields_shape, client):
                     self.nT,
                     chunks,
                     fields_shape[0],
-                    self.survey.source_list,
+                    source_list,
                     mesh,
                     time_mesh,
                     fields,
@@ -341,7 +339,7 @@ def compute_field_derivs(self, fields, blocks, Jmatrix, fields_shape, client):
                     self.nT,
                     chunks,
                     fields_shape[0],
-                    self.survey.source_list,
+                    source_list,
                     self.mesh,
                     self.time_mesh,
                     fields,
@@ -401,7 +399,6 @@ def get_field_deriv_block(
     if tInd < self.nT - 1:
         Asubdiag = self.getAsubdiag(tInd + 1)
 
-    delayed_deriv = delayed(deriv_block)
     for (_, (rx_ind, _, shape)), field_deriv, ATinv_chunk in zip(
         block, field_derivs, ATinv_df_duT_v
     ):
@@ -417,40 +414,19 @@ def get_field_deriv_block(
         )
         count += len(local_ind)
 
-        if client:
-            stacked_blocks.append(
-                client.submit(
-                    deriv_block,
-                    ATinv_chunk,
-                    Asubdiag,
-                    local_ind,
-                    field_deriv,
-                    workers=self.worker,
-                )
-            )
-        else:
-            deriv_comp = delayed_deriv(
-                ATinv_chunk,
-                Asubdiag,
-                local_ind,
-                field_deriv,
-            )
-            stacked_blocks.append(
-                array.from_delayed(
-                    deriv_comp,
-                    dtype=float,
-                    shape=(
-                        field_deriv.shape[0],
-                        len(local_ind),
-                    ),
-                )
-            )
-    if len(stacked_blocks) > 0:
+        if len(ATinv_chunk) == 0:
+            # last timestep (first to be solved)
+            stacked_block = field_deriv.toarray()[:, local_ind]
 
-        if client:
-            blocks = np.hstack(client.gather(stacked_blocks))
         else:
-            blocks = array.hstack(stacked_blocks).compute()
+            stacked_block = np.asarray(
+                field_deriv[:, local_ind] - Asubdiag.T * ATinv_chunk[:, local_ind]
+            )
+
+        stacked_blocks.append(stacked_block)
+
+    if len(stacked_blocks) > 0:
+        blocks = np.hstack(stacked_blocks)
 
         solve = (AdiagTinv * blocks).reshape(blocks.shape)
     else:
