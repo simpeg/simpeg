@@ -43,6 +43,7 @@ def _deriv2(objfct, multiplier, model, v):
     # if fields is not None and objfct.has_fields:
     #     return multiplier * objfct.deriv2(objfct.simulation.model, v)
     # else:
+    print("Calculating deriv2")
     return multiplier * objfct.deriv2(objfct.simulation.model, v)
 
 

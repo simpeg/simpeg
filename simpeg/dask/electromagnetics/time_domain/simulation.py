@@ -566,7 +566,6 @@ def compute_rows(
 
 
 Sim.fields = fields
-Sim.getJtJdiag = getJtJdiag
 Sim.getSourceTerm = getSourceTerm
 Sim.compute_J = compute_J
 Sim.getJtJdiag = getJtJdiag

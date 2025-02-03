@@ -1,5 +1,7 @@
 from .....electromagnetics.static.resistivity.simulation import Simulation3DNodal as Sim
 
+from ....simulation import getJtJdiag, Jvec, Jtvec, Jmatrix
+
 from .....utils import Zero
 from dask.distributed import get_client
 import dask.array as da
@@ -16,11 +18,11 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 numcodecs.blosc.use_threads = False
 
 
-def fields(self, m=None):
+def fields(self, m=None, return_Ainv=False):
     if m is not None:
         self.model = m
 
-    if getattr(self, "_stashed_fields", None) is not None:
+    if getattr(self, "_stashed_fields", None) is not None and not return_Ainv:
         return self._stashed_fields
 
     A = self.getA()
@@ -30,17 +32,15 @@ def fields(self, m=None):
     f = self.fieldsPair(self)
     f[:, self._solutionType] = Ainv * np.asarray(RHS.todense())
 
-    self.Ainv = Ainv
-
     self._stashed_fields = f
-
+    if return_Ainv:
+        return f, Ainv
     return f
 
 
 def compute_J(self, m, f=None):
 
-    if f is None:
-        f = self.fields(m)
+    f, Ainv = self.fields(m=m, return_Ainv=True)
 
     m_size = m.size
     row_chunks = int(
@@ -67,7 +67,7 @@ def compute_J(self, m, f=None):
 
         for rx in source.receiver_list:
 
-            if rx.orientation is not None:
+            if getattr(rx, "orientation", None) is not None:
                 projected_grid = f._GLoc(rx.projField) + rx.orientation
             else:
                 projected_grid = f._GLoc(rx.projField)
@@ -82,7 +82,7 @@ def compute_J(self, m, f=None):
                 df_duT, df_dmT = df_duTFun(
                     source, None, PTv[:, start:end], adjoint=True
                 )
-                ATinvdf_duT = self.Ainv * df_duT
+                ATinvdf_duT = Ainv * df_duT
                 dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
                 dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
                 du_dmT = -dA_dmT
@@ -126,7 +126,7 @@ def compute_J(self, m, f=None):
         else:
             Jmatrix[count : self.survey.nD, :] = blocks.astype(np.float32)
 
-    self.Ainv.clean()
+    Ainv.clean()
 
     if self.store_sensitivities == "disk":
         del Jmatrix
@@ -189,3 +189,8 @@ def getSourceTerm(self):
 Sim.getSourceTerm = getSourceTerm
 Sim.fields = fields
 Sim.compute_J = compute_J
+
+Sim.getJtJdiag = getJtJdiag
+Sim.Jvec = Jvec
+Sim.Jtvec = Jtvec
+Sim.Jmatrix = Jmatrix
