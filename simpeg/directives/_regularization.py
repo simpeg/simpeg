@@ -410,9 +410,10 @@ class UpdateIRLS(InversionDirective):
             else np.inf
         )
 
-        # Get misfit_ratio as: 1 - (phi_d / phi_d_star)
+        # Get misfit_ratio as: (phi_d - phi_d_star) / phi_d_star
         phi_d_star = self.misfit_from_chi_factor(self.chifact_target)
-        misfit_ratio = 1.0 - self.invProb.phi_d / phi_d_star
+        phi_d = self.invProb.phi_d
+        misfit_ratio = (phi_d - phi_d_star) / phi_d_star
         if (
             f_change < self.f_min_change
             and self.metrics.irls_iteration_count > 1
