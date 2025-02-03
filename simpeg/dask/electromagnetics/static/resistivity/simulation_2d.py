@@ -1,6 +1,7 @@
 from .....electromagnetics.static.resistivity.simulation_2d import (
     Simulation2DNodal as Sim,
 )
+from ....simulation import getJtJdiag, Jvec, Jtvec, Jmatrix
 
 import dask.array as da
 import numpy as np
@@ -10,11 +11,11 @@ import numcodecs
 numcodecs.blosc.use_threads = False
 
 
-def fields(self, m=None):
+def fields(self, m=None, return_Ainv=False):
     if m is not None:
         self.model = m
 
-    if getattr(self, "_stashed_fields", None) is not None:
+    if getattr(self, "_stashed_fields", None) is not None and not return_Ainv:
         return self._stashed_fields
 
     kys = self._quad_points
@@ -29,9 +30,9 @@ def fields(self, m=None):
         RHS = self.getRHS(ky)
         f[:, self._solutionType, iky] = Ainv[iky] * RHS
 
-    self.Ainv = Ainv
-
     self._stashed_fields = f
+    if return_Ainv:
+        return f, Ainv
     return f
 
 
@@ -39,8 +40,7 @@ def compute_J(self, m, f=None):
     kys = self._quad_points
     weights = self._quad_weights
 
-    if f is None:
-        f = self.fields(m)
+    f, Ainv = self.fields(m, return_Ainv=True)
 
     m_size = m.size
     row_chunks = int(
@@ -72,7 +72,7 @@ def compute_J(self, m, f=None):
     for i_src, source in enumerate(self.survey.source_list):
         for rx in source.receiver_list:
 
-            if rx.orientation is not None:
+            if getattr(rx, "orientation", None) is not None:
                 projected_grid = f._GLoc(rx.projField) + rx.orientation
             else:
                 projected_grid = f._GLoc(rx.projField)
@@ -88,7 +88,7 @@ def compute_J(self, m, f=None):
 
                     u_ky = f[:, self._solutionType, iky]
                     u_source = u_ky[:, i_src]
-                    ATinvdf_duT = self.Ainv[iky] * PTv[:, start:end]
+                    ATinvdf_duT = Ainv[iky] * PTv[:, start:end]
                     dA_dmT = self.getADeriv(ky, u_source, ATinvdf_duT, adjoint=True)
                     du_dmT = -weights[iky] * dA_dmT
                     block += du_dmT.T.reshape((-1, m_size))
@@ -124,7 +124,7 @@ def compute_J(self, m, f=None):
             Jmatrix[count : self.survey.nD, :] = blocks.astype(np.float32)
 
     for iky, _ in enumerate(kys):
-        self.Ainv[iky].clean()
+        Ainv[iky].clean()
 
     if self.store_sensitivities == "disk":
         del Jmatrix
@@ -212,3 +212,8 @@ Sim.fields = fields
 Sim.compute_J = compute_J
 Sim.dpred = dpred
 Sim.getSourceTerm = getSourceTerm
+
+Sim.getJtJdiag = getJtJdiag
+Sim.Jvec = Jvec
+Sim.Jtvec = Jtvec
+Sim.Jmatrix = Jmatrix
