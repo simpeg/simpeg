@@ -410,15 +410,13 @@ class UpdateIRLS(InversionDirective):
             else np.inf
         )
 
-        # Get target chi factor minus current chi factor
-        chi_factor_diff = 1.0 - self.invProb.phi_d / self.misfit_from_chi_factor(
-            self.chifact_target
-        )
-
+        # Get misfit_ratio as: 1 - (phi_d / phi_d_star)
+        phi_d_star = self.misfit_from_chi_factor(self.chifact_target)
+        misfit_ratio = 1.0 - self.invProb.phi_d / phi_d_star
         if (
             f_change < self.f_min_change
             and self.metrics.irls_iteration_count > 1
-            and (0 <= chi_factor_diff < self.misfit_tolerance)
+            and (0 <= misfit_ratio < self.misfit_tolerance)
         ):
             if self.verbose:
                 print("Minimum decrease in regularization. End of IRLS")
