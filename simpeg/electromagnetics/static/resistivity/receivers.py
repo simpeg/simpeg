@@ -410,15 +410,15 @@ class Dipole(BaseRx):
             P, the interpolation matrix
 
         """
-        if mesh in self._Ps:
-            return self._Ps[mesh]
+        if mesh.n_cells in self._Ps:
+            return self._Ps[mesh.n_cells]
 
         P0 = mesh.get_interpolation_matrix(self.locations[0], projected_grid)
         P1 = mesh.get_interpolation_matrix(self.locations[1], projected_grid)
         P = P0 - P1
 
         if self.storeProjections:
-            self._Ps[mesh] = P
+            self._Ps[mesh.n_cells] = P
 
         if transpose:
             P = P.toarray().T
@@ -489,12 +489,12 @@ class Pole(BaseRx):
             P, the interpolation matrix
 
         """
-        if mesh in self._Ps:
-            return self._Ps[mesh]
+        if mesh.n_cells in self._Ps:
+            return self._Ps[mesh.n_cells]
 
         P = mesh.get_interpolation_matrix(self.locations, projected_grid)
 
         if self.storeProjections:
-            self._Ps[mesh] = P
+            self._Ps[mesh.n_cells] = P
 
         return P

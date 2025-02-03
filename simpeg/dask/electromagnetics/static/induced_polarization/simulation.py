@@ -26,7 +26,7 @@ def fields(self, m=None):
     RHS = self.getRHS()
 
     f = self.fieldsPair(self)
-    f[:, self._solutionType] = Ainv * RHS
+    f[:, self._solutionType] = Ainv * np.asarray(RHS.todense())
 
     if self._scale is None:
         scale = Data(self.survey, np.ones(self.survey.nD))

@@ -1,8 +1,10 @@
 from .....electromagnetics.static.resistivity.simulation import Simulation3DNodal as Sim
 
 from .....utils import Zero
+from dask.distributed import get_client
 import dask.array as da
 import numpy as np
+from scipy import sparse as sp
 import zarr
 
 import numcodecs
@@ -26,7 +28,7 @@ def fields(self, m=None):
     RHS = self.getRHS()
 
     f = self.fieldsPair(self)
-    f[:, self._solutionType] = Ainv * RHS
+    f[:, self._solutionType] = Ainv * np.asarray(RHS.todense())
 
     self.Ainv = Ainv
 
@@ -135,6 +137,17 @@ def compute_J(self, m, f=None):
     return self._Jmatrix
 
 
+def source_eval(simulation, sources, indices):
+    """
+    Evaluate the source term for the given source and index
+    """
+    blocks = []
+    for ind in indices:
+        blocks.append(sources[ind].eval(simulation))
+
+    return sp.csr_matrix(np.vstack(blocks).T)
+
+
 def getSourceTerm(self):
     """
     Evaluates the sources, and puts them in matrix form
@@ -145,23 +158,30 @@ def getSourceTerm(self):
     if getattr(self, "_q", None) is None:
 
         if self._mini_survey is not None:
-            Srcs = self._mini_survey.source_list
+            source_list = self._mini_survey.source_list
         else:
-            Srcs = self.survey.source_list
+            source_list = self.survey.source_list
 
-        if self._formulation == "EB":
-            n = self.mesh.nN
-            # return NotImplementedError
+        indices = np.arange(len(source_list))
+        try:
 
-        elif self._formulation == "HJ":
-            n = self.mesh.nC
+            client = get_client()
+            sim = client.scatter(self, workers=self.worker)
+            future_list = client.scatter(source_list, workers=self.worker)
+            indices = np.array_split(indices, self.n_threads(client=client))
+            blocks = []
+            for ind in indices:
+                blocks.append(
+                    client.submit(
+                        source_eval, sim, future_list, ind, workers=self.worker
+                    )
+                )
 
-        q = np.zeros((n, len(Srcs)), order="F")
+            blocks = sp.hstack(client.gather(blocks))
+        except ValueError:
+            blocks = source_eval(self, source_list, indices)
 
-        for i, source in enumerate(Srcs):
-            q[:, i] = source.eval(self)
-
-        self._q = q
+        self._q = blocks
 
     return self._q
 
