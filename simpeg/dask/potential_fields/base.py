@@ -137,10 +137,16 @@ def linear_operator(self):
                 print("Zarr file detected with same shape and chunksize ... re-loading")
                 return kernel
 
-        return array.to_zarr(
-            stack, sens_name, compute=True, return_stored=True, overwrite=True
-        )
-    return stack.compute()
+        print("Writing Zarr file to disk")
+        with ProgressBar():
+            print("Saving kernel to zarr: " + sens_name)
+            kernel = array.to_zarr(
+                stack, sens_name, compute=True, return_stored=True, overwrite=True
+            )
+
+    with ProgressBar():
+        kernel = stack.compute()
+    return kernel
 
 
 def compute_J(self, _, f=None):
