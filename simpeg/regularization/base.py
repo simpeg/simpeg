@@ -539,8 +539,9 @@ class Smallness(BaseRegularization):
         Boolean array defining the set of :py:class:`~.regularization.RegularizationMesh`
         cells that are active in the inversion. If ``None``, all cells are active.
     mapping : None, simpeg.maps.BaseMap
-        The mapping from the model parameters to the active cells in the inversion.
-        If ``None``, the mapping is the identity map.
+        The mapping function applied to the model parameters. Use a mapping to
+        get from model parameters to physical properties in active cells in the
+        mesh. If ``None``, the mapping is the identity map.
     reference_model : None, (n_param, ) numpy.ndarray
         Reference model. If ``None``, the reference model in the inversion is set to
         the starting model.
@@ -557,35 +558,47 @@ class Smallness(BaseRegularization):
     We define the regularization function (objective function) for smallness as:
 
     .. math::
+
         \phi (m) = \int_\Omega \, w(r) \,
-        \Big [ m(r) - m^{(ref)}(r) \Big ]^2 \, dv
+        \Big [ \mu(m(r)) - \mu(m^\text{ref}(r)) \Big ]^2 \, dv
 
-    where :math:`m(r)` is the model, :math:`m^{(ref)}(r)` is the reference model and :math:`w(r)`
-    is a user-defined weighting function.
+    where :math:`m(r)` is the model, :math:`m^\text{ref}(r)` is the reference
+    model, :math:`\mu` is the mapping function, and :math:`w(r)` is
+    a user-defined weighting function.
 
-    For implementation within SimPEG, the regularization function and its variables
-    must be discretized onto a `mesh`. The discretized approximation for the regularization
-    function (objective function) is expressed in linear form as:
+    For implementation within SimPEG, the regularization function and its
+    variables must be discretized onto a `mesh`. The discretized approximation
+    for the regularization function (objective function) is expressed in linear
+    form as:
 
     .. math::
+
         \phi (\mathbf{m}) = \sum_i
-        \tilde{w}_i \, \bigg | \, m_i - m_i^{(ref)} \, \bigg |^2
+        \tilde{w}_i \, \bigg | \, \mu(m_i) - \mu(m_i^\text{ref}) \, \bigg |^2
 
-    where :math:`m_i \in \mathbf{m}` are the discrete model parameter values defined on the mesh and
-    :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting constants that 1) account
-    for cell dimensions in the discretization and 2) apply any user-defined weighting.
-    This is equivalent to an objective function of the form:
+    where :math:`m_i \in \mathbf{m}` are the discrete model parameter values
+    defined on the mesh, :math:`\mu` is the mapping function, and
+    :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting
+    constants that:
+
+    1. account for cell dimensions in the discretization and
+    2. apply any user-defined weighting. This is equivalent to an objective
+       function of the form:
 
     .. math::
+
         \phi (\mathbf{m}) =
-        \Big \| \mathbf{W} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
+        \Big \| \mathbf{W} \big [ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \big ] \Big \|^2
 
     where
 
-        - :math:`\mathbf{m}^{(ref)}` is a reference model (set using `reference_model`), and
-        - :math:`\mathbf{W}` is the weighting matrix.
+    - :math:`\mathbf{m}^\text{ref}` is a reference model (set using
+      ``reference_model``),
+    - :math:`\mu` is the mapping function, and
+    - :math:`\mathbf{W}` is the weighting matrix.
 
-    **Custom weights and the weighting matrix:**
+    Custom weights and the weighting matrix
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     Let :math:`\mathbf{w_1, \; w_2, \; w_3, \; ...}` each represent an optional set of
     custom cell weights. The weighting applied within the objective function is given by:
@@ -627,10 +640,13 @@ class Smallness(BaseRegularization):
         For smallness regularization, the regularization kernel function is given by:
 
         .. math::
-            \mathbf{f_m}(\mathbf{m}) = \mathbf{m} - \mathbf{m}^{(ref)}
 
-        where :math:`\mathbf{m}` are the discrete model parameters and :math:`\mathbf{m}^{(ref)}`
-        is a reference model. For a more detailed description, see the *Notes* section below.
+            \mathbf{f_m}(\mathbf{m}) = \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref})
+
+        where :math:`\mathbf{m}` are the discrete model parameters,
+        :math:`\mathbf{m}^\text{ref}`
+        is a reference model, and :math:`\mu` is the mapping function.
+        For a more detailed description, see the *Notes* section below.
 
         Parameters
         ----------
@@ -647,36 +663,59 @@ class Smallness(BaseRegularization):
         The objective function for smallness regularization is given by:
 
         .. math::
-            \phi_m (\mathbf{m}) =
-            \Big \| \mathbf{W} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
-        where :math:`\mathbf{m}` are the discrete model parameters defined on the mesh (model),
-        :math:`\mathbf{m}^{(ref)}` is the reference model, and :math:`\mathbf{W}` is
-        the weighting matrix. See the :class:`Smallness` class documentation for more detail.
+            \phi_m (\mathbf{m}) =
+            \Big \|
+                \mathbf{W}
+                \left[ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \right]
+            \Big \|^2
+
+        where :math:`\mathbf{m}` are the discrete model parameters defined on
+        the mesh (model), :math:`\mathbf{m}^\text{ref}` is the reference
+        model, :math:`\mu` is the mapping function, and :math:`\mathbf{W}` is
+        the weighting matrix.
+        See the :class:`Smallness` class documentation for more details.
 
         We define the regularization kernel function :math:`\mathbf{f_m}` as:
 
         .. math::
-            \mathbf{f_m}(\mathbf{m}) = \mathbf{m} - \mathbf{m}^{(ref)}
+
+            \mathbf{f_m}(\mathbf{m}) =
+            \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref})
 
         such that
 
         .. math::
+
             \phi_m (\mathbf{m}) = \Big \| \mathbf{W} \, \mathbf{f_m} \Big \|^2
 
         """
-        return self.mapping * self._delta_m(m)
+        f_m = (
+            self.mapping * m - self.mapping * self.reference_model
+            if self.reference_model is not None
+            else self.mapping * m
+        )
+        return f_m
 
     def f_m_deriv(self, m) -> csr_matrix:
         r"""Derivative of the regularization kernel function.
 
-        For ``Smallness`` regularization, the derivative of the regularization kernel function
-        with respect to the model is given by:
+        For ``Smallness`` regularization, the derivative of the regularization
+        kernel function with respect to the model is given by:
 
         .. math::
-            \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{I}
 
-        where :math:`\mathbf{I}` is the identity matrix.
+            \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} =
+            \frac{\partial \mu{\mathbf{m}}}{\partial \mathbf{m}}
+
+        where :math:`\mu` is the mapping function. If the mapping is the
+        identity function (:math:`\mu(\mathbf{m}) = \mathbf{m}`) then the
+        derivative of the kernel function is the  is the identity matrix
+        math:`\mathbf{I}`:
+
+        .. math::
+
+            \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{I}
 
         Parameters
         ----------
@@ -693,31 +732,43 @@ class Smallness(BaseRegularization):
         The objective function for smallness regularization is given by:
 
         .. math::
-            \phi_m (\mathbf{m}) =
-            \Big \| \mathbf{W} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
-        where :math:`\mathbf{m}` are the discrete model parameters defined on the mesh (model),
-        :math:`\mathbf{m}^{(ref)}` is the reference model, and :math:`\mathbf{W}` is
-        the weighting matrix. See the :class:`Smallness` class documentation for more detail.
+            \phi_m (\mathbf{m}) =
+            \Big \|
+                \mathbf{W}
+                \big [ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \big ]
+            \Big \|^2
+
+        where :math:`\mathbf{m}` are the discrete model parameters defined on
+        the mesh (model), :math:`\mathbf{m}^{(ref)}` is the reference model,
+        :math:`\mu` is the mapping function, and :math:`\mathbf{W}` is the
+        weighting matrix. See the :class:`Smallness` class documentation for
+        more details.
 
         We define the regularization kernel function :math:`\mathbf{f_m}` as:
 
         .. math::
-            \mathbf{f_m}(\mathbf{m}) = \mathbf{m} - \mathbf{m}^{(ref)}
+
+            \mathbf{f_m}(\mathbf{m}) = \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref})
 
         such that
 
         .. math::
-            \phi_m (\mathbf{m}) = \Big \| \mathbf{W} \, \mathbf{f_m} \Big \|^2
+
+            \phi_m (\mathbf{m}) = \Big \| \mathbf{W} \, \mu(\mathbf{f_m}) \Big \|^2
 
         Thus, the derivative with respect to the model is:
 
         .. math::
-            \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{I}
 
-        where :math:`\mathbf{I}` is the identity matrix.
+            \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} =
+            \mathbf{I}
+            \frac{\partial \mu{\mathbf{m}}}{\partial \mathbf{m}}
+
+        where :math:`\mu` is the mapping function, and :math:`\mathbf{I}` is
+        the identity matrix.
         """
-        return self.mapping.deriv(self._delta_m(m))
+        return self.mapping.deriv(m)
 
 
 class SmoothnessFirstOrder(BaseRegularization):
