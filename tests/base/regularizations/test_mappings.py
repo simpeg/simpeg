@@ -41,7 +41,7 @@ class TestMappingInSmallness:
 
     def test_default_mapping(self, tensor_mesh, active_cells, model, reference_model):
         """
-        Test if default mapping is set to IdentityMap.
+        Test regularization using the default (identity) mapping.
         """
         reg = Smallness(
             mesh=tensor_mesh, active_cells=active_cells, reference_model=reference_model
