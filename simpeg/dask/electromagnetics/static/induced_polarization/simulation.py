@@ -17,7 +17,7 @@ import numcodecs
 numcodecs.blosc.use_threads = False
 
 
-def fields(self, m=None):
+def fields(self, m=None, return_Ainv=False):
     if m is not None:
         self.model = m
 
@@ -40,8 +40,9 @@ def fields(self, m=None):
                     scale[src, rx] = 1.0 / rx.eval(src, self.mesh, f)
         self._scale = scale.dobs
 
-    self.Ainv = Ainv
-
+    self._stashed_fields = f
+    if return_Ainv:
+        return f, Ainv
     return f
 
 
