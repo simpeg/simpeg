@@ -207,8 +207,9 @@ class DaskComboMisfits(ComboObjectiveFunction):
                     )
                 )
 
-            count += 1
+                count += 1
             future_deriv = client.gather(future_deriv)
+
             derivs += np.sum(future_deriv, axis=0)
 
         return derivs
