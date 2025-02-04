@@ -140,6 +140,7 @@ class DaskComboMisfits(ComboObjectiveFunction):
                         workers=worker,
                     )
                 )
+                count += 1
 
         values = self.client.gather(values)
         return np.sum(values)
