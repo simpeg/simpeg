@@ -21,7 +21,6 @@ from ...base import BaseMagneticPDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
 from .analytics import CongruousMagBC
 from .survey import Survey
-from ..gravity.simulation import _get_cell_bounds
 
 from ._numba_functions import (
     choclo,
@@ -683,8 +682,8 @@ class Simulation3DIntegral(BasePFSimulation):
         )
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        deletes = super().deleteTheseOnModelUpdate
+    def _delete_on_model_update(self):
+        deletes = super()._delete_on_model_update
         if self.is_amplitude_data:
             deletes = deletes + ["_gtg_diagonal", "_ampDeriv"]
         return deletes
@@ -958,10 +957,8 @@ class SimulationEquivalentSourceLayer(
         (nD, ) array
             Always return a ``np.float64`` array.
         """
-        # Get cells in the 2D mesh
-        cells_bounds = _get_cell_bounds(self.mesh)
-        # Keep only active cells
-        cells_bounds_active = cells_bounds[self.active_cells]
+        # Get cells in the 2D mesh and keep only active cells
+        cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
         # Get regional field
         regional_field = self.survey.source_field.b0
         # Allocate fields array
@@ -1036,10 +1033,8 @@ class SimulationEquivalentSourceLayer(
         -------
         (nD, n_active_cells) array
         """
-        # Get cells in the 2D mesh
-        cells_bounds = _get_cell_bounds(self.mesh)
-        # Keep only active cells
-        cells_bounds_active = cells_bounds[self.active_cells]
+        # Get cells in the 2D mesh and keep only active cells
+        cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
         # Get regional field
         regional_field = self.survey.source_field.b0
         # Allocate sensitivity matrix
@@ -1617,7 +1612,7 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
 
     # Create an optimization program
     opt = optimization.InexactGaussNewton(maxIter=miter)
-    opt.bfgsH0 = get_default_solver()(sp.identity(model.nP), flag="D")
+    opt.bfgsH0 = get_default_solver(warn=True)(sp.identity(model.nP), flag="D")
     # Create a regularization program
     reg = regularization.WeightedLeastSquares(model)
     # Create an objective function

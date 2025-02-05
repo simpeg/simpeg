@@ -420,7 +420,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         grav_survey = gravity.Survey(grav_srcField)
 
         self.assertRaises(
-            AttributeError,
+            ValueError,
             gravity.SimulationEquivalentSourceLayer,
             mesh3D,
             0.0,

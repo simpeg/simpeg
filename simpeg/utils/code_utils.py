@@ -478,8 +478,8 @@ class Report(ScoobyReport):
             "numpy",
             "scipy",
             "matplotlib",
-            "empymod",
             "geoana",
+            "libdlf",
         ]
 
         # Optional packages.
@@ -516,7 +516,11 @@ class Report(ScoobyReport):
 
 
 def deprecate_class(
-    removal_version=None, new_location=None, future_warn=False, error=False
+    removal_version=None,
+    new_location=None,
+    future_warn=False,
+    error=False,
+    replace_docstring=True,
 ):
     """Utility function to deprecate a class
 
@@ -563,7 +567,8 @@ def deprecate_class(
         cls.__init__ = __init__
         if new_location is not None:
             parent_name = f"{new_location}.{parent_name}"
-        cls.__doc__ = f""" This class has been deprecated, see `{parent_name}` for documentation"""
+        if replace_docstring:
+            cls.__doc__ = f""" This class has been deprecated, see `{parent_name}` for documentation"""
         return cls
 
     return decorator
@@ -1111,21 +1116,42 @@ def validate_type(property_name, obj, obj_type, cast=True, strict=False):
     obj_type
         Returns the object in the specified type when validated
     """
+    if not isinstance(obj_type, tuple):
+        obj_type = (obj_type,)
+
+    if len(obj_type) > 1:
+        type_name = (
+            ", ".join(cls.__qualname__ for cls in obj_type[:-1])
+            + " or "
+            + obj_type[-1].__qualname__
+        )
+    else:
+        type_name = obj_type[0].__qualname__
+
     if cast:
-        try:
-            obj = obj_type(obj)
-        except Exception as err:
+        good_cast = False
+        err = None
+        for cls in obj_type:
+            try:
+                new_obj = cls(obj)
+                good_cast = True
+            except Exception as trial_error:
+                err = trial_error
+            if good_cast:
+                obj = new_obj
+                break
+        if not good_cast:
             raise TypeError(
-                f"{type(obj).__name__} cannot be converted to type {obj_type.__name__} "
+                f"{type(obj).__qualname__} cannot be converted to {type_name} "
                 f"required for {property_name}."
             ) from err
-    if strict and type(obj) is not obj_type:
+    if strict and type(obj) not in obj_type:
         raise TypeError(
-            f"Object must be exactly a {obj_type.__name__} for {property_name}"
+            f"{property_name} must be exactly a {type_name}, not {type(obj).__qualname__}"
         )
     if not isinstance(obj, obj_type):
         raise TypeError(
-            f"Object must be an instance of {obj_type.__name__} for {property_name}"
+            f"{property_name} must be an instance of {type_name}, not {type(obj).__qualname__}"
         )
     return obj
 

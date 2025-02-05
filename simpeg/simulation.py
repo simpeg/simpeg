@@ -3,11 +3,9 @@ Define simulation classes.
 """
 
 import os
-import inspect
 import numpy as np
 import warnings
 
-from discretize.base import BaseMesh
 from discretize import TensorMesh
 from discretize.utils import unpack_widths, sdiag, mkvc
 
@@ -26,8 +24,6 @@ from .utils import (
     validate_integer,
 )
 import uuid
-
-from .utils.solver_utils import get_default_solver
 
 __all__ = ["LinearSimulation", "ExponentialSinusoidSimulation"]
 
@@ -51,19 +47,8 @@ class BaseSimulation(props.HasModel):
 
     Parameters
     ----------
-    mesh : discretize.base.BaseMesh, optional
-        Mesh on which the forward problem is discretized.
     survey : simpeg.survey.BaseSurvey, optional
         The survey for the simulation.
-    solver : None or pymatsolver.base.Base, optional
-        Numerical solver used to solve the forward problem. If ``None``,
-        an appropriate solver specific to the simulation class is set by default.
-    solver_opts : dict, optional
-        Solver-specific parameters. If ``None``, default parameters are used for
-        the solver set by ``solver``. Otherwise, the ``dict`` must contain appropriate
-        pairs of keyword arguments and parameter values for the solver. Please visit
-        `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__ to learn more
-        about solvers and their parameters.
     sensitivity_path : str, optional
         Path to directory where sensitivity file is stored.
     counter : None or simpeg.utils.Counter
@@ -76,21 +61,13 @@ class BaseSimulation(props.HasModel):
 
     def __init__(
         self,
-        mesh=None,
         survey=None,
-        solver=None,
-        solver_opts=None,
         sensitivity_path=None,
         counter=None,
         verbose=False,
         **kwargs,
     ):
-        self.mesh = mesh
         self.survey = survey
-        self.solver = solver
-        if solver_opts is None:
-            solver_opts = {}
-        self.solver_opts = solver_opts
         if sensitivity_path is None:
             sensitivity_path = os.path.join(".", "sensitivity")
         self.sensitivity_path = sensitivity_path
@@ -100,25 +77,6 @@ class BaseSimulation(props.HasModel):
         self._uuid = uuid.uuid4()
 
         super().__init__(**kwargs)
-
-    @property
-    def mesh(self):
-        """Mesh for the simulation.
-
-        For more on meshes, visit :py:class:`discretize.base.BaseMesh`.
-
-        Returns
-        -------
-        discretize.base.BaseMesh
-            Mesh on which the forward problem is discretized.
-        """
-        return self._mesh
-
-    @mesh.setter
-    def mesh(self, value):
-        if value is not None:
-            value = validate_type("mesh", value, BaseMesh, cast=False)
-        self._mesh = value
 
     @property
     def survey(self):
@@ -168,64 +126,6 @@ class BaseSimulation(props.HasModel):
     @sensitivity_path.setter
     def sensitivity_path(self, value):
         self._sensitivity_path = validate_string("sensitivity_path", value)
-
-    @property
-    def solver(self):
-        r"""Numerical solver used in the forward simulation.
-
-        Many forward simulations in SimPEG require solutions to discrete linear
-        systems of the form:
-
-        .. math::
-            \mathbf{A}(\mathbf{m}) \, \mathbf{u} = \mathbf{q}
-
-        where :math:`\mathbf{A}` is an invertible matrix that depends on the
-        model :math:`\mathbf{m}`. The numerical solver can be set using the
-        ``solver`` property. In SimPEG, the
-        `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__ package
-        is used to create solver objects. Parameters specific to each solver
-        can be set manually using the ``solver_opts`` property.
-
-        Returns
-        -------
-        pymatsolver.base.Base
-            Numerical solver used to solve the forward problem.
-        """
-        if self._solver is None:
-            # do not cache this, in case the user wants to
-            # change it after the first time it is requested.
-            return get_default_solver()
-        return self._solver
-
-    @solver.setter
-    def solver(self, cls):
-        if cls is not None:
-            if not inspect.isclass(cls):
-                raise TypeError(f"solver must be a class, not a {type(cls)}")
-            if not hasattr(cls, "__mul__"):
-                raise TypeError("solver must support the multiplication operator, `*`.")
-        self._solver = cls
-
-    @property
-    def solver_opts(self):
-        """Solver-specific parameters.
-
-        The parameters specific to the solver set with the ``solver`` property are set
-        upon instantiation. The ``solver_opts`` property is used to set solver-specific properties.
-        This is done by providing a ``dict`` that contains appropriate pairs of keyword arguments
-        and parameter values. Please visit `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__
-        to learn more about solvers and their parameters.
-
-        Returns
-        -------
-        dict
-            keyword arguments and parameters passed to the solver.
-        """
-        return self._solver_opts
-
-    @solver_opts.setter
-    def solver_opts(self, value):
-        self._solver_opts = validate_type("solver_opts", value, dict, cast=False)
 
     @property
     def verbose(self):
@@ -541,9 +441,6 @@ class BaseTimeSimulation(BaseSimulation):
 
     Parameters
     ----------
-    mesh : discretize.base.BaseMesh, optional
-        Mesh on which the forward problem is discretized. This is not necessarily
-        the same as the mesh on which the simulation is defined.
     t0 : float, optional
         Initial time, in seconds, for the time-dependent forward simulation.
     time_steps : (n_steps, ) numpy.ndarray, optional
@@ -572,10 +469,10 @@ class BaseTimeSimulation(BaseSimulation):
     representation.
     """
 
-    def __init__(self, mesh=None, t0=0.0, time_steps=None, **kwargs):
+    def __init__(self, t0=0.0, time_steps=None, **kwargs):
         self.t0 = t0
         self.time_steps = time_steps
-        super().__init__(mesh=mesh, **kwargs)
+        super().__init__(**kwargs)
 
     @property
     def time_steps(self):
@@ -739,9 +636,6 @@ class LinearSimulation(BaseSimulation):
 
     Parameters
     ----------
-    mesh : discretize.BaseMesh, optional
-        Mesh on which the forward problem is discretized. This is not necessarily
-        the same as the mesh on which the simulation is defined.
     model_map : simpeg.maps.BaseMap
         Mapping from the model parameters to vector that the linear operator acts on.
     G : (n_data, n_param) numpy.ndarray or scipy.sparse.csr_matrx
@@ -754,11 +648,8 @@ class LinearSimulation(BaseSimulation):
         "The model for a linear problem"
     )
 
-    # linear simulations do not have a solver so set it to `None` here
-    solver = None
-
-    def __init__(self, mesh=None, linear_model=None, model_map=None, G=None, **kwargs):
-        super().__init__(mesh=mesh, **kwargs)
+    def __init__(self, linear_model=None, model_map=None, G=None, **kwargs):
+        super().__init__(**kwargs)
         self.linear_model = linear_model
         self.model_map = model_map
         if G is not None:
@@ -899,6 +790,8 @@ class ExponentialSinusoidSimulation(LinearSimulation):
 
     Parameters
     ----------
+    mesh : discretize.TensorMesh
+        1D TensorMesh defining the discretization of the model space.
     n_kernels : int
         The number of kernel factors for the linear problem; i.e. the number of
         :math:`j_i \in [j_0, ... , j_n]`. This sets the number of rows
@@ -913,13 +806,34 @@ class ExponentialSinusoidSimulation(LinearSimulation):
         Maximum value for the spread of the kernel factors.
     """
 
-    def __init__(self, n_kernels=20, p=-0.25, q=0.25, j0=0.0, jn=60.0, **kwargs):
+    def __init__(self, mesh, n_kernels=20, p=-0.25, q=0.25, j0=0.0, jn=60.0, **kwargs):
+        self.mesh = mesh
         self.n_kernels = n_kernels
         self.p = p
         self.q = q
         self.j0 = j0
         self.jn = jn
         super(ExponentialSinusoidSimulation, self).__init__(**kwargs)
+
+    @property
+    def mesh(self):
+        """Mesh for the simulation.
+
+        Returns
+        -------
+        discretize.TensorMesh
+            Mesh on which the forward problem is discretized.
+        """
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, value):
+        value = validate_type("mesh", value, TensorMesh, cast=False)
+        if value.dim != 1:
+            raise ValueError(
+                f"{type(self).__name__} mesh must be 1D, received a {value.dim}D mesh."
+            )
+        self._mesh = value
 
     @property
     def n_kernels(self):

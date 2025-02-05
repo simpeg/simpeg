@@ -205,38 +205,38 @@ class IterationPrinters(object):
     }
     phi_d = {
         "title": "phi_d",
-        "value": lambda M: M.parent.phi_d * M.parent.opt.factor,
+        "value": lambda M: M.parent.phi_d,
         "width": 10,
         "format": "%1.2e",
     }
     phi_m = {
         "title": "phi_m",
-        "value": lambda M: M.parent.phi_m * M.parent.opt.factor,
+        "value": lambda M: M.parent.phi_m,
         "width": 10,
         "format": "%1.2e",
     }
 
     phi_s = {
         "title": "phi_s",
-        "value": lambda M: M.parent.phi_s * M.parent.opt.factor,
+        "value": lambda M: M.parent.phi_s,
         "width": 10,
         "format": "%1.2e",
     }
     phi_x = {
         "title": "phi_x",
-        "value": lambda M: M.parent.phi_x * M.parent.opt.factor,
+        "value": lambda M: M.parent.phi_x,
         "width": 10,
         "format": "%1.2e",
     }
     phi_y = {
         "title": "phi_y",
-        "value": lambda M: M.parent.phi_y * M.parent.opt.factor,
+        "value": lambda M: M.parent.phi_y,
         "width": 10,
         "format": "%1.2e",
     }
     phi_z = {
         "title": "phi_z",
-        "value": lambda M: M.parent.phi_z * M.parent.opt.factor,
+        "value": lambda M: M.parent.phi_z,
         "width": 10,
         "format": "%1.2e",
     }
@@ -282,7 +282,6 @@ class Minimize(object):
     parent = None  #: This is the parent of the optimization routine.
 
     print_type = None
-    factor = 1.0
 
     def __init__(self, **kwargs):
         set_kwargs(self, **kwargs)
@@ -303,7 +302,6 @@ class Minimize(object):
         ]
 
         if self.print_type == "ubc":
-            self.factor = 2.0
             self.stoppers = [StoppingCriteria.iteration]
             self.printers = [
                 IterationPrinters.iteration,

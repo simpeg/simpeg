@@ -21,6 +21,7 @@ from .fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
 from .utils import _mini_pole_pole
 from scipy.special import k0e, k1e, k0
 from discretize.utils import make_boundary_bool
+import discretize.base
 
 
 class BaseDCSimulation2D(BaseElectricalPDESimulation):
@@ -127,6 +128,15 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         miniaturize = validate_type("miniaturize", miniaturize, bool)
         if miniaturize:
             self._dipoles, self._invs, self._mini_survey = _mini_pole_pole(self.survey)
+
+    @BaseElectricalPDESimulation.mesh.setter
+    def mesh(self, value):
+        value = validate_type("mesh", value, discretize.base.BaseMesh, cast=False)
+        if value.dim != 2:
+            raise ValueError(
+                f"{type(self).__name__} mesh must be 2D, received a {value.dim}D mesh."
+            )
+        self._mesh = value
 
     @property
     def survey(self):
@@ -435,8 +445,8 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         return q
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        toDelete = super().deleteTheseOnModelUpdate
+    def _delete_on_model_update(self):
+        toDelete = super()._delete_on_model_update
         if self.fix_Jmatrix:
             return toDelete
         return toDelete + ["_Jmatrix"]

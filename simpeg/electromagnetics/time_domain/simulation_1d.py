@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 from ..base_1d import BaseEM1DSimulation
 from .sources import StepOffWaveform
 from .receivers import (
@@ -12,12 +14,18 @@ from scipy.constants import mu_0
 from scipy.interpolate import InterpolatedUnivariateSpline as iuSpline
 from scipy.special import roots_legendre
 
-from empymod import filters
-from empymod.transform import get_dlf_points
+import libdlf
 
 from geoana.kernels.tranverse_electric_reflections import rTE_forward, rTE_gradient
 
+from ..utils.em1d_utils import get_splined_dlf_points
 from ...utils import validate_type, validate_string
+
+COS_FILTERS = {}
+for filter_name in libdlf.fourier.__all__:
+    fourier_filter = getattr(libdlf.fourier, filter_name)
+    if "cos" in fourier_filter.values:
+        COS_FILTERS[filter_name] = fourier_filter
 
 
 class Simulation1DLayered(BaseEM1DSimulation):
@@ -26,7 +34,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
     for a single sounding.
     """
 
-    def __init__(self, survey=None, time_filter="key_81_CosSin_2009", **kwargs):
+    def __init__(self, survey=None, time_filter="key_81_2009", **kwargs):
         super().__init__(survey=survey, **kwargs)
         self._coefficients_set = False
         self.time_filter = time_filter
@@ -54,18 +62,20 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
     @time_filter.setter
     def time_filter(self, value):
+        # translate old accepted keys to the names in libdlf for compatibility.
+        if value in [
+            "key_81_CosSin_2009",
+            "key_201_CosSin_2012",
+            "key_601_CosSin_2009",
+        ]:
+            value = value.replace("CosSin_", "")
         self._time_filter = validate_string(
-            "time_filter",
-            value,
-            ["key_81_CosSin_2009", "key_201_CosSin_2012", "key_601_CosSin_2009"],
+            "time_filter", value, list(COS_FILTERS.keys())
         )
-
-        if self._time_filter == "key_81_CosSin_2009":
-            self._fftfilt = filters.key_81_CosSin_2009()
-        elif self._time_filter == "key_201_CosSin_2012":
-            self._fftfilt = filters.key_201_CosSin_2012()
-        elif self._time_filter == "key_601_CosSin_2009":
-            self._fftfilt = filters.key_601_CosSin_2009()
+        filt = COS_FILTERS[self._time_filter]()
+        cos_filt = namedtuple("CosineFilter", "base cos")
+        self._fftfilt = cos_filt(filt[0], filt[-1])
+        self._coefficients_set = False
 
     def get_coefficients(self):
         if self._coefficients_set is False:
@@ -123,8 +133,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
                             f"Unsupported source waveform object of {src.waveform}"
                         )
 
-        omegas, t_spline_points = get_dlf_points(self._fftfilt, np.r_[t_min, t_max], -1)
-        omegas = omegas.reshape(-1)
+        omegas, t_spline_points = get_splined_dlf_points(self._fftfilt, t_min, t_max)
+
         n_omega = len(omegas)
         n_t = len(t_spline_points)
 

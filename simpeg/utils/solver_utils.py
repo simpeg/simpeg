@@ -49,22 +49,30 @@ class DefaultSolverWarning(UserWarning):
     pass
 
 
-def get_default_solver() -> Type[Base]:
+def get_default_solver(warn=False) -> Type[Base]:
     """Return the default solver used by simpeg.
+
+    Parameters
+    ----------
+    warn : bool, optional
+        If True, a warning will be raised to let users know that the default
+        solver is being chosen depending on their system.
 
     Returns
     -------
     solver
         The default solver class used by simpeg's simulations.
     """
-    warnings.warn(
-        f"Using the default solver: {_DEFAULT_SOLVER.__name__}. \n\n"
-        f"If you would like to suppress this notification, add \n"
-        f"warnings.filterwarnings('ignore', simpeg.utils.solver_utils.DefaultSolverWarning)\n"
-        f" to your script.",
-        DefaultSolverWarning,
-        stacklevel=2,
-    )
+    if warn:
+        warnings.warn(
+            f"Using the default solver: {_DEFAULT_SOLVER.__name__}. \n\n"
+            f"If you would like to suppress this notification, add \n"
+            f"warnings.filterwarnings("
+            "'ignore', simpeg.utils.solver_utils.DefaultSolverWarning)\n"
+            f" to your script.",
+            DefaultSolverWarning,
+            stacklevel=2,
+        )
     return _DEFAULT_SOLVER
 
 

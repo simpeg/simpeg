@@ -70,18 +70,44 @@ For example:
 Building the documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you would like to see the documentation changes.
-In the repo's root directory, enter the following in your terminal.
+You can build the documentation pages locally to see how the new changes will
+look. First, make sure that you have :ref:`created and activated an environment
+<setting-up-environment>` with simpeg installed in it. Then, navigate to the
+``docs`` folder:
 
-.. code::
+.. code:: bash
 
-    make all
+    cd docs
+
+And run the following to build the docs:
+
+.. code:: bash
+
+    make html
+
+.. note::
+
+   This command will build all documentation pages, including all the examples
+   and tutorials. Running the examples might take considerable amount of time.
+
+   If you want to build the docs, but avoid running the examples, you can
+   alternatively run:
+
+   .. code:: bash
+
+       make html-noplot
 
 Serving the documentation locally
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Once the documentation is built. You can view it directly using the following command. This will automatically serve the docs and you can see them in your browser.
+Once the documentation is built, you can view it using the following
+command (make sure you are in the ``docs`` directory):
 
-.. code::
+.. code:: bash
 
     make serve
+
+It will automatically serve the docs and you can see them in your browser.
+
+Alternatively, you can open your file manager and open the ``index.html`` file
+in the ``docs/_build/html`` folder.
