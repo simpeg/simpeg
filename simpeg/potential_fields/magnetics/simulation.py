@@ -178,9 +178,10 @@ class Simulation3DIntegral(BasePFSimulation):
             M = np.asarray(M)
             self._M = M.reshape((self.nC, 3))
 
-    def fields(self, model):
-        self.model = model
-        # model = self.chiMap * model
+    def fields(self, m=None):
+        if m is not None:
+            self.model = m
+
         if self.store_sensitivities == "forward_only":
             if self.engine == "choclo":
                 fields = self._forward(self.chi)
@@ -198,12 +199,14 @@ class Simulation3DIntegral(BasePFSimulation):
 
     @property
     def G(self):
+        """
+        Gravity forward operator
+        """
         if getattr(self, "_G", None) is None:
             if self.engine == "choclo":
                 self._G = self._sensitivity_matrix()
             else:
                 self._G = self.linear_operator()
-
         return self._G
 
     modelType = deprecate_property(
@@ -243,8 +246,7 @@ class Simulation3DIntegral(BasePFSimulation):
         if getattr(self, "_gtg_diagonal", None) is None:
             diag = np.zeros(self.Jmatrix.shape[1])
             if not self.is_amplitude_data:
-                for i in range(len(W)):
-                    diag += W[i] * (self.Jmatrix[i] * self.Jmatrix[i])
+                diag = np.einsum("i,ij,ij->j", W, self.Jmatrix, self.Jmatrix)
             else:
                 ampDeriv = self.ampDeriv
                 Gx = self.Jmatrix[::3]

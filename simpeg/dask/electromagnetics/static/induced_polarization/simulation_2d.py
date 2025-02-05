@@ -6,22 +6,11 @@ import numpy as np
 import numcodecs
 
 numcodecs.blosc.use_threads = False
-
-Sim.sensitivity_path = "./sensitivity/"
-
-from .simulation import dask_getJtJdiag, dask_Jvec, dask_Jtvec, dask_dpred
-
-from ..resistivity.simulation_2d import compute_J, dask_getSourceTerm
-
-Sim.compute_J = compute_J
-Sim.getSourceTerm = dask_getSourceTerm
-Sim.getJtJdiag = dask_getJtJdiag
-Sim.Jvec = dask_Jvec
-Sim.Jtvec = dask_Jtvec
-Sim.dpred = dask_dpred
+from .simulation import getJtJdiag, Jvec, Jtvec, dpred
+from ..resistivity.simulation_2d import compute_J, getSourceTerm
 
 
-def dask_fields(self, m=None, return_Ainv=False):
+def fields(self, m=None, return_Ainv=False):
     if m is not None:
         self.model = m
 
@@ -50,10 +39,16 @@ def dask_fields(self, m=None, return_Ainv=False):
                     scale[src, rx] = 1.0 / rx.eval(src, self.mesh, f_fwd)
         self._scale = scale.dobs
 
+    self._stashed_fields = f
     if return_Ainv:
-        self.Ainv = Ainv
-
+        return f, Ainv
     return f
 
 
-Sim.fields = dask_fields
+Sim.getJtJdiag = getJtJdiag
+Sim.Jvec = Jvec
+Sim.Jtvec = Jtvec
+Sim.dpred = dpred
+Sim.fields = fields
+Sim.compute_J = compute_J
+Sim.getSourceTerm = getSourceTerm

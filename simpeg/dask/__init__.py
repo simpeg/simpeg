@@ -10,7 +10,6 @@ try:
     import simpeg.dask.potential_fields.gravity.simulation
     import simpeg.dask.potential_fields.magnetics.simulation
     import simpeg.dask.simulation
-    import simpeg.dask.data_misfit
     import simpeg.dask.inverse_problem
     import simpeg.dask.objective_function
 

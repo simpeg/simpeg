@@ -283,14 +283,14 @@ class BaseInvProblem:
 
         return f
 
-    def get_dpred(self, m, f):
+    def get_dpred(self, m, f=None):
         dpred = []
         for i, objfct in enumerate(self.dmisfit.objfcts):
             if hasattr(objfct, "simulation"):
-                dpred += [objfct.simulation.dpred(m, f=f[i])]
+                dpred += [objfct.simulation.dpred(m, f=f if f is None else f[i])]
             else:
                 dpred += []
-        return np.hstack(dpred)
+        return dpred
 
     @timeIt
     def evalFunction(self, m, return_g=True, return_H=True):

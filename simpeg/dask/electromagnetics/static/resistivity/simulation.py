@@ -1,8 +1,12 @@
-from simpeg.dask.simulation import dask_dpred, dask_Jvec, dask_Jtvec, dask_getJtJdiag
-from .....electromagnetics.static.resistivity.simulation import BaseDCSimulation as Sim
+from .....electromagnetics.static.resistivity.simulation import Simulation3DNodal as Sim
+
+from ....simulation import getJtJdiag, Jvec, Jtvec, Jmatrix
+
 from .....utils import Zero
+from dask.distributed import get_client
 import dask.array as da
 import numpy as np
+from scipy import sparse as sp
 import zarr
 
 import numcodecs
@@ -13,41 +17,32 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 
 numcodecs.blosc.use_threads = False
 
-Sim.sensitivity_path = "./sensitivity/"
 
-Sim.dpred = dask_dpred
-Sim.getJtJdiag = dask_getJtJdiag
-Sim.Jvec = dask_Jvec
-Sim.Jtvec = dask_Jtvec
-Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag"]
-
-
-def dask_fields(self, m=None, return_Ainv=False):
+def fields(self, m=None, return_Ainv=False):
     if m is not None:
         self.model = m
+
+    if getattr(self, "_stashed_fields", None) is not None and not return_Ainv:
+        return self._stashed_fields
 
     A = self.getA()
     Ainv = self.solver(A, **self.solver_opts)
     RHS = self.getRHS()
 
     f = self.fieldsPair(self)
-    f[:, self._solutionType] = Ainv * RHS
+    f[:, self._solutionType] = Ainv * np.asarray(RHS.todense())
 
+    self._stashed_fields = f
     if return_Ainv:
-        self.Ainv = Ainv
-
+        return f, Ainv
     return f
 
 
-Sim.fields = dask_fields
+def compute_J(self, m, f=None):
 
+    f, Ainv = self.fields(m=m, return_Ainv=True)
 
-def compute_J(self, f=None):
-
-    if f is None:
-        f = self.fields(self.model, return_Ainv=True)
-
-    m_size = self.model.size
+    m_size = m.size
     row_chunks = int(
         np.ceil(
             float(self.survey.nD)
@@ -72,7 +67,7 @@ def compute_J(self, f=None):
 
         for rx in source.receiver_list:
 
-            if rx.orientation is not None:
+            if getattr(rx, "orientation", None) is not None:
                 projected_grid = f._GLoc(rx.projField) + rx.orientation
             else:
                 projected_grid = f._GLoc(rx.projField)
@@ -87,7 +82,7 @@ def compute_J(self, f=None):
                 df_duT, df_dmT = df_duTFun(
                     source, None, PTv[:, start:end], adjoint=True
                 )
-                ATinvdf_duT = self.Ainv * df_duT
+                ATinvdf_duT = Ainv * df_duT
                 dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
                 dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
                 du_dmT = -dA_dmT
@@ -131,19 +126,29 @@ def compute_J(self, f=None):
         else:
             Jmatrix[count : self.survey.nD, :] = blocks.astype(np.float32)
 
-    self.Ainv.clean()
+    Ainv.clean()
 
     if self.store_sensitivities == "disk":
         del Jmatrix
-        return da.from_zarr(self.sensitivity_path + "J.zarr")
+        self._Jmatrix = da.from_zarr(self.sensitivity_path + "J.zarr")
     else:
-        return Jmatrix
+        self._Jmatrix = Jmatrix
+
+    return self._Jmatrix
 
 
-Sim.compute_J = compute_J
+def source_eval(simulation, sources, indices):
+    """
+    Evaluate the source term for the given source and index
+    """
+    blocks = []
+    for ind in indices:
+        blocks.append(sources[ind].eval(simulation))
+
+    return sp.csr_matrix(np.vstack(blocks).T)
 
 
-def dask_getSourceTerm(self):
+def getSourceTerm(self):
     """
     Evaluates the sources, and puts them in matrix form
     :rtype: tuple
@@ -153,25 +158,39 @@ def dask_getSourceTerm(self):
     if getattr(self, "_q", None) is None:
 
         if self._mini_survey is not None:
-            Srcs = self._mini_survey.source_list
+            source_list = self._mini_survey.source_list
         else:
-            Srcs = self.survey.source_list
+            source_list = self.survey.source_list
 
-        if self._formulation == "EB":
-            n = self.mesh.nN
-            # return NotImplementedError
+        indices = np.arange(len(source_list))
+        try:
 
-        elif self._formulation == "HJ":
-            n = self.mesh.nC
+            client = get_client()
+            sim = client.scatter(self, workers=self.worker)
+            future_list = client.scatter(source_list, workers=self.worker)
+            indices = np.array_split(indices, self.n_threads(client=client))
+            blocks = []
+            for ind in indices:
+                blocks.append(
+                    client.submit(
+                        source_eval, sim, future_list, ind, workers=self.worker
+                    )
+                )
 
-        q = np.zeros((n, len(Srcs)), order="F")
+            blocks = sp.hstack(client.gather(blocks))
+        except ValueError:
+            blocks = source_eval(self, source_list, indices)
 
-        for i, source in enumerate(Srcs):
-            q[:, i] = source.eval(self)
-
-        self._q = q
+        self._q = blocks
 
     return self._q
 
 
-Sim.getSourceTerm = dask_getSourceTerm
+Sim.getSourceTerm = getSourceTerm
+Sim.fields = fields
+Sim.compute_J = compute_J
+
+Sim.getJtJdiag = getJtJdiag
+Sim.Jvec = Jvec
+Sim.Jtvec = Jtvec
+Sim.Jmatrix = Jmatrix

@@ -1,11 +1,14 @@
 import numpy as np
+
 from ...potential_fields.base import BasePFSimulation as Sim
+from dask.distributed import get_client
 import os
 from dask import delayed, array, config
 from dask.diagnostics import ProgressBar
 from ..utils import compute_chunk_sizes
 
-Sim._chunk_format = "row"
+
+_chunk_format = "row"
 
 
 @property
@@ -21,10 +24,7 @@ def chunk_format(self, other):
     self._chunk_format = other
 
 
-Sim.chunk_format = chunk_format
-
-
-def dask_dpred(self, m=None, f=None, compute_J=False):
+def dpred(self, m=None, f=None):
     if m is not None:
         self.model = m
     if f is not None:
@@ -32,31 +32,75 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
     return self.fields(self.model)
 
 
-Sim.dpred = dask_dpred
-
-
-def dask_residual(self, m, dobs, f=None):
+def residual(self, m, dobs, f=None):
     return self.dpred(m, f=f) - dobs
 
 
-Sim.residual = dask_residual
+def block_compute(sim, rows, components):
+    block = []
+    for row in rows:
+        block.append(sim.evaluate_integral(row, components))
+
+    if sim.store_sensitivities == "forward_only":
+        return np.hstack(block)
+
+    return np.vstack(block)
 
 
-def dask_linear_operator(self):
+def linear_operator(self):
     forward_only = self.store_sensitivities == "forward_only"
-    row = delayed(self.evaluate_integral, pure=True)
     n_cells = self.nC
     if getattr(self, "model_type", None) == "vector":
         n_cells *= 3
 
-    rows = [
-        array.from_delayed(
-            row(receiver_location, components),
-            dtype=self.sensitivity_dtype,
-            shape=(len(components),) if forward_only else (len(components), n_cells),
-        )
-        for receiver_location, components in self.survey._location_component_iterator()
-    ]
+    n_components = len(self.survey.components)
+    n_blocks = np.ceil(
+        (n_cells * n_components * self.survey.receiver_locations.shape[0] * 8.0 * 1e-6)
+        / self.max_chunk_size
+    )
+    block_split = np.array_split(self.survey.receiver_locations, n_blocks)
+
+    try:
+        client = get_client()
+    except ValueError:
+        client = None
+
+    if client:
+        sim = client.scatter(self, workers=self.worker)
+    else:
+        delayed_compute = delayed(block_compute)
+
+    rows = []
+    for block in block_split:
+        if client:
+            rows.append(
+                client.submit(
+                    block_compute,
+                    sim,
+                    block,
+                    self.survey.components,
+                    workers=self.worker,
+                )
+            )
+        else:
+            chunk = delayed_compute(self, block, self.survey.components)
+            rows.append(
+                array.from_delayed(
+                    chunk,
+                    dtype=self.sensitivity_dtype,
+                    shape=(
+                        (len(block) * n_components,)
+                        if forward_only
+                        else (len(block) * n_components, n_cells)
+                    ),
+                )
+            )
+
+    if client:
+        if forward_only:
+            return np.hstack(client.gather(rows))
+        return np.vstack(client.gather(rows))
+
     if forward_only:
         stack = array.concatenate(rows)
     else:
@@ -100,22 +144,33 @@ def dask_linear_operator(self):
             kernel = array.to_zarr(
                 stack, sens_name, compute=True, return_stored=True, overwrite=True
             )
-    elif forward_only:
-        with ProgressBar():
-            print("Forward calculation: ")
-            kernel = stack.compute()
-    else:
-        with ProgressBar():
-            print("Computing sensitivities to local ram")
-            kernel = stack.persist()
+
+    with ProgressBar():
+        kernel = stack.compute()
     return kernel
 
 
-Sim.linear_operator = dask_linear_operator
-
-
-def compute_J(self):
+def compute_J(self, _, f=None):
     return self.linear_operator()
 
 
+@property
+def Jmatrix(self):
+    if getattr(self, "_Jmatrix", None) is None:
+        self._Jmatrix = self.compute_J(self.model)
+    return self._Jmatrix
+
+
+@Jmatrix.setter
+def Jmatrix(self, value):
+    self._Jmatrix = value
+
+
+Sim.clean_on_model_update = []
+Sim._chunk_format = _chunk_format
+Sim.chunk_format = chunk_format
+Sim.dpred = dpred
+Sim.residual = residual
+Sim.linear_operator = linear_operator
 Sim.compute_J = compute_J
+Sim.Jmatrix = Jmatrix

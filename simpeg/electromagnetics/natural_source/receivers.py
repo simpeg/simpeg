@@ -175,8 +175,8 @@ class PointNaturalSource(BaseRx):
         if mesh.dim < 3:
             return super().getP(mesh, projected_grid)
 
-        if (mesh, projected_grid, field) in self._Ps:
-            return self._Ps[(mesh, projected_grid, field)]
+        if (mesh.n_cells, projected_grid, field) in self._Ps:
+            return self._Ps[(mesh.n_cells, projected_grid, field)]
 
         if field == "e":
             locs = self.locations_e
@@ -184,7 +184,7 @@ class PointNaturalSource(BaseRx):
             locs = self.locations_h
         P = mesh.get_interpolation_matrix(locs, projected_grid)
         if self.storeProjections:
-            self._Ps[(mesh, projected_grid, field)] = P
+            self._Ps[(mesh.n_cells, projected_grid, field)] = P
         return P
 
     def _eval_impedance(self, src, mesh, f):

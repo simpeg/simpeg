@@ -1,7 +1,8 @@
 from .....electromagnetics.static.resistivity.simulation_2d import (
-    BaseDCSimulation2D as Sim,
+    Simulation2DNodal as Sim,
 )
-from .simulation import dask_getJtJdiag, dask_Jvec, dask_Jtvec
+from ....simulation import getJtJdiag, Jvec, Jtvec, Jmatrix
+
 import dask.array as da
 import numpy as np
 import zarr
@@ -9,17 +10,13 @@ import numcodecs
 
 numcodecs.blosc.use_threads = False
 
-Sim.sensitivity_path = "./sensitivity/"
 
-Sim.getJtJdiag = dask_getJtJdiag
-Sim.Jvec = dask_Jvec
-Sim.Jtvec = dask_Jtvec
-Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag"]
-
-
-def dask_fields(self, m=None, return_Ainv=False):
+def fields(self, m=None, return_Ainv=False):
     if m is not None:
         self.model = m
+
+    if getattr(self, "_stashed_fields", None) is not None and not return_Ainv:
+        return self._stashed_fields
 
     kys = self._quad_points
     f = self.fieldsPair(self)
@@ -33,23 +30,19 @@ def dask_fields(self, m=None, return_Ainv=False):
         RHS = self.getRHS(ky)
         f[:, self._solutionType, iky] = Ainv[iky] * RHS
 
+    self._stashed_fields = f
     if return_Ainv:
-        self.Ainv = Ainv
-
+        return f, Ainv
     return f
 
 
-Sim.fields = dask_fields
-
-
-def compute_J(self, f=None):
+def compute_J(self, m, f=None):
     kys = self._quad_points
     weights = self._quad_weights
 
-    if f is None:
-        f = self.fields(self.model, return_Ainv=True)
+    f, Ainv = self.fields(m, return_Ainv=True)
 
-    m_size = self.model.size
+    m_size = m.size
     row_chunks = int(
         np.ceil(
             float(self.survey.nD)
@@ -79,7 +72,7 @@ def compute_J(self, f=None):
     for i_src, source in enumerate(self.survey.source_list):
         for rx in source.receiver_list:
 
-            if rx.orientation is not None:
+            if getattr(rx, "orientation", None) is not None:
                 projected_grid = f._GLoc(rx.projField) + rx.orientation
             else:
                 projected_grid = f._GLoc(rx.projField)
@@ -95,7 +88,7 @@ def compute_J(self, f=None):
 
                     u_ky = f[:, self._solutionType, iky]
                     u_source = u_ky[:, i_src]
-                    ATinvdf_duT = self.Ainv[iky] * PTv[:, start:end]
+                    ATinvdf_duT = Ainv[iky] * PTv[:, start:end]
                     dA_dmT = self.getADeriv(ky, u_source, ATinvdf_duT, adjoint=True)
                     du_dmT = -weights[iky] * dA_dmT
                     block += du_dmT.T.reshape((-1, m_size))
@@ -131,19 +124,18 @@ def compute_J(self, f=None):
             Jmatrix[count : self.survey.nD, :] = blocks.astype(np.float32)
 
     for iky, _ in enumerate(kys):
-        self.Ainv[iky].clean()
+        Ainv[iky].clean()
 
     if self.store_sensitivities == "disk":
         del Jmatrix
-        return da.from_zarr(self.sensitivity_path + "J.zarr")
+        self._Jmatrix = da.from_zarr(self.sensitivity_path + "J.zarr")
     else:
-        return Jmatrix
+        self._Jmatrix = Jmatrix
+
+    return self._Jmatrix
 
 
-Sim.compute_J = compute_J
-
-
-def dask_dpred(self, m=None, f=None, compute_J=False):
+def dpred(self, m=None, f=None):
     r"""
     dpred(m, f=None)
     Create the projected data from a model.
@@ -172,7 +164,7 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
     if f is None:
         if m is None:
             m = self.model
-        f = self.fields(m, return_Ainv=compute_J)
+        f = self.fields(m)
 
     temp = np.empty(survey.nD)
     count = 0
@@ -182,17 +174,10 @@ def dask_dpred(self, m=None, f=None, compute_J=False):
             temp[count : count + len(d)] = d
             count += len(d)
 
-    if compute_J:
-        Jmatrix = self.compute_J(f=f)
-        return self._mini_survey_data(temp), Jmatrix
-
     return self._mini_survey_data(temp)
 
 
-Sim.dpred = dask_dpred
-
-
-def dask_getSourceTerm(self, _):
+def getSourceTerm(self, _):
     """
     Evaluates the sources, and puts them in matrix form
     :rtype: tuple
@@ -223,4 +208,12 @@ def dask_getSourceTerm(self, _):
     return self._q
 
 
-Sim.getSourceTerm = dask_getSourceTerm
+Sim.fields = fields
+Sim.compute_J = compute_J
+Sim.dpred = dpred
+Sim.getSourceTerm = getSourceTerm
+
+Sim.getJtJdiag = getJtJdiag
+Sim.Jvec = Jvec
+Sim.Jtvec = Jtvec
+Sim.Jmatrix = Jmatrix

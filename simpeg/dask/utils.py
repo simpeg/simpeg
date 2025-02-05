@@ -1,5 +1,4 @@
 import numpy as np
-from dask.distributed import get_client
 from multiprocessing import cpu_count
 
 
@@ -27,20 +26,9 @@ def compute_chunk_sizes(M, N, target_chunk_size):
     return rowChunk, colChunk
 
 
-def compute(self, job):
-    """
-    Compute dask job for either dask array or client.
-    """
-    if isinstance(job, np.ndarray):
-        return job
-    try:
-        client = get_client()
-        return client.compute(job, workers=self.workers)
-    except ValueError:
-        return job.compute()
-
-
-def get_parallel_blocks(source_list: list, data_block_size, optimize=True) -> list:
+def get_parallel_blocks(
+    source_list: list, data_block_size, optimize=True, thread_count=64
+) -> list:
     """
     Get the blocks of sources and receivers to be computed in parallel.
 
@@ -64,7 +52,7 @@ def get_parallel_blocks(source_list: list, data_block_size, optimize=True) -> li
                 chunk_size = len(chunk)
 
                 # Condition to start a new block
-                if (row_count + chunk_size) > (data_block_size * cpu_count()):
+                if (row_count + chunk_size) > (data_block_size * thread_count):
                     row_count = 0
                     block_count += 1
                     blocks.append([])
@@ -83,7 +71,7 @@ def get_parallel_blocks(source_list: list, data_block_size, optimize=True) -> li
                 row_count += chunk_size
 
     # Re-split over cpu_count if too few blocks
-    if len(blocks) < cpu_count() and optimize:
+    if len(blocks) < thread_count and optimize:
         flatten_blocks = []
         for block in blocks:
             flatten_blocks += block

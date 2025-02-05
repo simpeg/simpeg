@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import warnings
 import os
 import scipy.sparse as sp
-
+from ..meta.simulation import MetaSimulation
 from ..typing import RandomSeed
 
 from ..data_misfit import BaseDataMisfit
@@ -48,11 +48,25 @@ from ..utils.code_utils import (
     validate_float,
     validate_ndarray_with_shape,
 )
-
 from geoh5py.groups.property_group import GroupTypeEnum
 from geoh5py.groups import PropertyGroup, UIJsonGroup
 from geoh5py.objects import ObjectBase
 from geoh5py.ui_json.utils import fetch_active_workspace
+
+
+def compute_JtJdiags(data_misfit, m):
+    if hasattr(data_misfit, "getJtJdiag"):
+        return data_misfit.getJtJdiag(m)
+    else:
+        jtj_diags = []
+        for dmisfit in data_misfit.objfcts:
+            jtj_diags.append(dmisfit.getJtJdiag(m))
+
+        jtj_diag = np.zeros_like(jtj_diags[0])
+        for multiplier, diag in zip(data_misfit.multipliers, jtj_diags):
+            jtj_diag += multiplier * diag
+
+    return np.asarray(jtj_diag)
 
 
 class InversionDirective:
@@ -2466,18 +2480,7 @@ class UpdatePreconditioner(InversionDirective):
             if not isinstance(rdg, Zero):
                 regDiag += multiplier * rdg.diagonal()
 
-        JtJdiag = np.zeros_like(self.invProb.model)
-        for sim, (multiplier, dmisfit) in zip(self.simulation, self.dmisfit):
-            if getattr(sim, "getJtJdiag", None) is None:
-                assert getattr(sim, "getJ", None) is not None, (
-                    "Simulation does not have a getJ attribute."
-                    + "Cannot form the sensitivity explicitly"
-                )
-                JtJdiag += multiplier * np.sum(
-                    np.power((dmisfit.W * sim.getJ(m)), 2), axis=0
-                )
-            else:
-                JtJdiag += multiplier * dmisfit.getJtJdiag(m)
+        JtJdiag = compute_JtJdiags(self.dmisfit, self.invProb.model)
 
         diagA = JtJdiag + self.invProb.beta * regDiag
         diagA[diagA != 0] = diagA[diagA != 0] ** -1.0
@@ -2498,18 +2501,7 @@ class UpdatePreconditioner(InversionDirective):
             # Check if regularization has a projection
             regDiag += multiplier * reg.deriv2(m).diagonal()
 
-        JtJdiag = np.zeros_like(self.invProb.model)
-        for sim, (multiplier, dmisfit) in zip(self.simulation, self.dmisfit):
-            if getattr(sim, "getJtJdiag", None) is None:
-                assert getattr(sim, "getJ", None) is not None, (
-                    "Simulation does not have a getJ attribute."
-                    + "Cannot form the sensitivity explicitly"
-                )
-                JtJdiag += multiplier * np.sum(
-                    np.power((dmisfit.W * sim.getJ(m)), 2), axis=0
-                )
-            else:
-                JtJdiag += multiplier * dmisfit.getJtJdiag(m)
+        JtJdiag = compute_JtJdiags(self.dmisfit, m)
 
         diagA = JtJdiag + self.invProb.beta * regDiag
         diagA[diagA != 0] = diagA[diagA != 0] ** -1.0
@@ -2833,21 +2825,7 @@ class UpdateSensitivityWeights(InversionDirective):
     def update(self):
         """Update sensitivity weights"""
 
-        jtj_diag = np.zeros_like(self.invProb.model)
-        m = self.invProb.model
-
-        for sim, (multiplier, dmisfit) in zip(self.simulation, self.dmisfit):
-            if getattr(sim, "getJtJdiag", None) is None:
-                if getattr(sim, "getJ", None) is None:
-                    raise AttributeError(
-                        "Simulation does not have a getJ attribute."
-                        + "Cannot form the sensitivity explicitly"
-                    )
-                jtj_diag += multiplier * mkvc(
-                    np.sum((dmisfit.W * sim.getJ(m)) ** 2.0, axis=0)
-                )
-            else:
-                jtj_diag += multiplier * dmisfit.getJtJdiag(m)
+        jtj_diag = compute_JtJdiags(self.dmisfit, self.invProb.model)
 
         # Compute and sum root-mean squared sensitivities for all objective functions
         wr = np.zeros_like(self.invProb.model)
@@ -3263,9 +3241,7 @@ class SaveSensitivityGeoH5(SaveArrayGeoH5):
 
     def get_values(self, values: list[np.ndarray] | None):
         if values is None:
-            values = np.zeros_like(self.invProb.model)
-            for fun in self.dmisfit.objfcts:
-                values += fun.getJtJdiag(self.invProb.model)
+            values = compute_JtJdiags(self.dmisfit, self.invProb.model)
 
         return values
 
@@ -3523,7 +3499,11 @@ class VectorInversion(InversionDirective):
             self.opt.upper[indices[nC:]] = np.inf
 
             for simulation in self.simulations:
-                simulation.chiMap = SphericalSystem() * simulation.chiMap
+                if isinstance(simulation, MetaSimulation):
+                    for sim in simulation.simulations:
+                        sim.chiMap = SphericalSystem() * sim.chiMap
+                else:
+                    simulation.chiMap = SphericalSystem() * simulation.chiMap
 
             # Add and update directives
             for directive in self.inversion.directiveList.dList:
