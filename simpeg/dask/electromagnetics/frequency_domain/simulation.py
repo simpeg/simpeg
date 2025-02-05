@@ -268,7 +268,9 @@ def compute_J(self, m, f=None):
     else:
         blocks_receiver_derivs = compute(blocks_receiver_derivs)[0]
 
-    for block_derivs_chunks, addresses_chunks in zip(blocks_receiver_derivs, blocks):
+    for block_derivs_chunks, addresses_chunks in zip(
+        blocks_receiver_derivs, blocks, strict=True
+    ):
         Jmatrix = parallel_block_compute(
             simulation,
             m,

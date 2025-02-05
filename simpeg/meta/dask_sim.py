@@ -70,11 +70,6 @@ def _reduce(client, operation, items):
     return client.gather(items[0])
 
 
-# def _set_worker(obj, worker):
-#     obj.worker = worker
-#     return obj
-
-
 def _validate_type_or_future_of_type(
     property_name,
     objects,
@@ -85,11 +80,10 @@ def _validate_type_or_future_of_type(
 ):
     try:
         # validate as a list of things that need to be sent.
-        # workers = [(worker.worker_address,) for worker in client.cluster.workers.values()]
         objects = validate_list_of_types(
             property_name, objects, obj_type, ensure_unique=True
         )
-        # objects[0].simulation.simulations[0].worker = workers[0]
+
         if workers is None:
             objects = client.scatter(objects)
         else:
@@ -261,7 +255,7 @@ class DaskMetaSimulation(MetaSimulation):
             raise ValueError("All mappings must have the same input length")
         if np.any(error_checks == 2):
             raise ValueError(
-                f"Simulations and mappings at indices {np.where(error_checks==2)}"
+                f"Simulations and mappings at indices {np.where(error_checks == 2)}"
                 f" are inconsistent."
             )
 
@@ -452,94 +446,6 @@ class DaskMetaSimulation(MetaSimulation):
             self._jtjdiag = _reduce(client, add, jtj_diag)
 
         return self._jtjdiag
-
-
-#
-# def _compute_j(sim, model):
-#     sim.model = model
-#     jmatrix = getattr(sim, "_Jmatrix", None)
-#
-#     if jmatrix is None:
-#         jmatrix = sim.compute_J(model)
-#
-#     return jmatrix
-#
-#
-# def set_jmatrix(sim, jmatrix):
-#     sim._Jmatrix = jmatrix
-#     return sim
-
-
-# class DaskMetaSimulationExplicit(DaskMetaSimulation):
-#     clean_on_model_update = ["_Jmatrix", "_stashed_fields"]
-#
-#     def fields(self, m):
-#         self.model = m
-#
-#         if getattr(self, "_stashed_fields", None) is not None:
-#             return self._stashed_fields
-#
-#         client = self.client
-#         m_future = self._m_as_future
-#         # The above should pass the model to all the internal simulations.
-#         f = []
-#         simulations = []
-#         for mapping, sim, worker in zip(self.mappings, self.simulations, self._workers):
-#             # jmatrix = client.submit(
-#             #     _compute_j,
-#             #     sim,
-#             #     m_future,
-#             #     workers=worker,
-#             # )
-#             # sim = client.submit(set_jmatrix, sim, jmatrix, workers=worker)
-#             f.append(
-#                 client.submit(
-#                     _calc_fields,
-#                     mapping,
-#                     sim,
-#                     m_future,
-#                     self._repeat_sim,
-#                     workers=worker,
-#                 )
-#             )
-#             simulations.append(sim)
-#
-#         self._stashed_fields = f
-#         # self.simulations = simulations
-#         return f
-#
-#     def getJtJdiag(self, m, W=None, f=None):
-#         self.model = m
-#         m_future = self._m_as_future
-#         if getattr(self, "_jtjdiag", None) is None:
-#             if W is None:
-#                 W = np.ones(self.survey.nD)
-#             else:
-#                 W = W.diagonal()
-#             jtj_diag = []
-#             client = self.client
-#             if f is None:
-#                 f = self.fields(m)
-#             for i, (mapping, sim, worker, field) in enumerate(
-#                 zip(self.mappings, self.simulations, self._workers, f)
-#             ):
-#                 sim_w = W[self._data_offsets[i] : self._data_offsets[i + 1]]
-#
-#                 jtj_diag.append(
-#                     client.submit(
-#                         _get_jtj_diag,
-#                         mapping,
-#                         sim,
-#                         m_future,
-#                         field,
-#                         sim_w,
-#                         self._repeat_sim,
-#                         workers=worker,
-#                     )
-#                 )
-#             self._jtjdiag = _reduce(client, add, jtj_diag)
-#
-#         return self._jtjdiag
 
 
 class DaskSumMetaSimulation(DaskMetaSimulation, SumMetaSimulation):

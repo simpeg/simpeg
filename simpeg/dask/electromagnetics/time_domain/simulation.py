@@ -183,7 +183,7 @@ def compute_J(self, m, f=None):
             continue
 
         for ind, (block, field_deriv) in enumerate(
-            zip(blocks, times_field_derivs[tInd + 1])
+            zip(blocks, times_field_derivs[tInd + 1], strict=True)
         ):
             ATinv_df_duT_v[ind] = get_field_deriv_block(
                 self,
@@ -434,7 +434,7 @@ def get_field_deriv_block(
 
     updated_ATinv_df_duT_v = []
     for (_, arrays), field_deriv, ATinv_chunk, (columns, local_ind) in zip(
-        block, field_derivs, ATinv_df_duT_v, indices
+        block, field_derivs, ATinv_df_duT_v, indices, strict=True
     ):
 
         if len(ATinv_chunk) == 0:

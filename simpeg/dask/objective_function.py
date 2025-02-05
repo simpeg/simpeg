@@ -6,39 +6,26 @@ from ..data_misfit import L2DataMisfit
 
 from simpeg.utils import validate_list_of_types
 
-# import os
-# from time import time
-#
-# OUTFILE = os.getcwd() + "/update.txt"
-#
-#
-# def write_message(message, mode="a"):
-#     with open(OUTFILE, mode) as f:
-#         f.write(message + "\n")
-#
-#
-# write_message("Starting", mode="w+")
 
-
-def _calc_fields(objfct, model):
+def _calc_fields(objfct, _):
     return objfct.simulation.fields(m=objfct.simulation.model)
 
 
-def _calc_dpred(objfct, model):
+def _calc_dpred(objfct, _):
     return objfct.simulation.dpred(m=objfct.simulation.model)
 
 
-def _calc_residual(objfct, model):
+def _calc_residual(objfct, _):
     return objfct.W * (
         objfct.data.dobs - objfct.simulation.dpred(m=objfct.simulation.model)
     )
 
 
-def _deriv(objfct, multiplier, model):
+def _deriv(objfct, multiplier, _):
     return multiplier * objfct.deriv(objfct.simulation.model)
 
 
-def _deriv2(objfct, multiplier, model, v):
+def _deriv2(objfct, multiplier, _, v):
     return multiplier * objfct.deriv2(objfct.simulation.model, v)
 
 
@@ -46,7 +33,7 @@ def _store_model(objfct, model):
     objfct.simulation.model = model
 
 
-def _get_jtj_diag(objfct, model):
+def _get_jtj_diag(objfct, _):
     jtj = objfct.simulation.getJtJdiag(objfct.simulation.model, objfct.W)
     return jtj.flatten()
 
@@ -56,12 +43,15 @@ def _validate_type_or_future_of_type(
     objects,
     obj_type,
     client,
-    workers=None,
+    workers: list[str] | None = None,
     return_workers=False,
 ):
-    # try:
-    #     # validate as a list of things that need to be sent.
-    workers = [(worker.worker_address,) for worker in client.cluster.workers.values()]
+
+    if workers is None:
+        workers = [
+            (worker.worker_address,) for worker in client.cluster.workers.values()
+        ]
+
     objects = validate_list_of_types(
         property_name, objects, obj_type, ensure_unique=True
     )
@@ -126,7 +116,7 @@ class DaskComboMisfits(ComboObjectiveFunction):
         values = []
         count = 0
         for futures in self._futures:
-            for objfct, worker in zip(futures, self._workers):
+            for objfct, worker in zip(futures, self._workers, strict=True):
 
                 if self.multipliers[count] == 0.0:
                     continue
@@ -185,9 +175,6 @@ class DaskComboMisfits(ComboObjectiveFunction):
         self.model = m
         client = self.client
         m_future = self._m_as_future
-
-        # if f is None:
-        #     f = self.fields(m)
 
         derivs = 0.0
         count = 0

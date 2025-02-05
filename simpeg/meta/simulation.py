@@ -307,8 +307,6 @@ class MetaSimulation(BaseSimulation):
             # (i.e. projections, multipliers, etc.).
             # It is usually close within a scaling factor for others, whose accuracy is controlled
             # by how diagonally dominant JtJ is.
-            # if f is None:
-            #     f = self.fields(m)
             for i, (mapping, sim) in enumerate(zip(self.mappings, self.simulations)):
                 if self._repeat_sim:
                     sim.model = mapping * self.model
