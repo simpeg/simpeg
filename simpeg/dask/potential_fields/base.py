@@ -4,6 +4,7 @@ from ...potential_fields.base import BasePFSimulation as Sim
 from dask.distributed import get_client
 import os
 from dask import delayed, array, config
+from dask.diagnostics import ProgressBar
 from ..utils import compute_chunk_sizes
 
 
