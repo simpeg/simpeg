@@ -10,3 +10,4 @@ jobs:
     secrets: inherit
     with:
       project-key: 'GEOPY'
+      components: '[{"name": "simpeg"}]'
