@@ -77,5 +77,8 @@ def get_parallel_blocks(
             flatten_blocks += block
 
         chunks = np.array_split(np.arange(len(flatten_blocks)), cpu_count())
-        return [[flatten_blocks[i] for i in chunk] for chunk in chunks]
+        return [
+            [flatten_blocks[i] for i in chunk] for chunk in chunks if len(chunk) > 0
+        ]
+
     return blocks
