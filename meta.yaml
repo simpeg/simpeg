@@ -1,5 +1,5 @@
 {% set name = "mira-simpeg" %}
-{% set version = "0.21.2.1b3" %}
+{% set version = "0.21.2.2a1" %}
 
 package:
   name: {{ name|lower }}
