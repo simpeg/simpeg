@@ -537,7 +537,7 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
     The initial trade-off parameter (beta) is estimated by scaling the ratio
     between the largest eigenvalue in the second derivative of the data
     misfit and the model objective function. The largest eigenvalues are estimated
-    using the power iteration method; see :func:`simpeg.utils.eigenvalue_by_power_iteration`.
+    using the power iteration method; see :func:`simpeg.directives.BetaEstimate_ByEig.eigenvalue_by_power_iteration`.
     The estimated trade-off parameter is used to update the **beta** property in the
     associated :class:`simpeg.inverse_problem.BaseInvProblem` object prior to running the inversion.
     Note that a separate directive is used for updating the trade-off parameter at successive
@@ -583,7 +583,7 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
     parameter 'n_pw_iter' sets the number of power iterations used in the estimate.
 
     For a description of the power iteration approach for estimating the larges eigenvalue,
-    see :func:`simpeg.utils.eigenvalue_by_power_iteration`.
+    see :func:`simpeg.directives.BetaEstimate_ByEig.eigenvalue_by_power_iteration`.
 
     """
 

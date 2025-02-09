@@ -54,7 +54,6 @@ Matrix Utility Functions
   cartesian2spherical
   coterminal
   define_plane_from_points
-  eigenvalue_by_power_iteration
   estimate_diagonal
   spherical2cartesian
   unique_rows
