@@ -286,10 +286,10 @@ class BaseObjectiveFunction(BaseSimPEG):
         for instance in (self, other):
             if isinstance(instance, ComboObjectiveFunction) and instance.unpack_on_add:
                 objective_functions += instance.components
-            elif isinstance(instance, WeightedObjectiveFunction):
+            elif isinstance(instance, ScaledObjectiveFunction):
                 objective_functions.append(instance)
             else:
-                objective_functions.append(WeightedObjectiveFunction(instance))
+                objective_functions.append(ScaledObjectiveFunction(instance))
 
         combo = ComboObjectiveFunction(objfcts=objective_functions)
         return combo
@@ -298,7 +298,7 @@ class BaseObjectiveFunction(BaseSimPEG):
         return self + other
 
     def __mul__(self, multiplier):
-        return WeightedObjectiveFunction(self, multiplier=multiplier)
+        return ScaledObjectiveFunction(self, multiplier=multiplier)
 
     def __rmul__(self, multiplier):
         return self * multiplier
@@ -313,7 +313,7 @@ class BaseObjectiveFunction(BaseSimPEG):
         return self * (1.0 / denominator)
 
 
-class WeightedObjectiveFunction(BaseObjectiveFunction):
+class ScaledObjectiveFunction(BaseObjectiveFunction):
     r"""
     Scale an objective function by a constant factor.
 
@@ -335,7 +335,7 @@ class WeightedObjectiveFunction(BaseObjectiveFunction):
     Build a scaled objective function:
 
     >>> objective_fun = L2ObjectiveFunction(nP=3)
-    >>> scaled_objfct = WeightedObjectiveFunction(objective_fun, 2.5)
+    >>> scaled_objfct = ScaledObjectiveFunction(objective_fun, 2.5)
     >>> print(scaled_objfct.multiplier)
     2.5
     """
@@ -520,7 +520,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
 
         objfcts, multipliers = _validate_objective_functions(objfcts, multipliers)
 
-        self.components: list[WeightedObjectiveFunction] = objfcts
+        self.components: list[ScaledObjectiveFunction] = objfcts
         self._multipliers = Multipliers(multipliers, self)
         self._unpack_on_add = unpack_on_add
 
@@ -816,7 +816,7 @@ class Multipliers(list):
 
 def _validate_objective_functions(
     objective_functions, multipliers
-) -> tuple[list[WeightedObjectiveFunction], list[float]]:
+) -> tuple[list[ScaledObjectiveFunction], list[float]]:
     """
     Validate objective functions.
 
@@ -833,13 +833,8 @@ def _validate_objective_functions(
                 "All objective functions must inherit from BaseObjectiveFunction."
             )
 
-        if (
-            not isinstance(function, WeightedObjectiveFunction)
-            or multiplier is not None
-        ):
-            validated_list.append(
-                WeightedObjectiveFunction(function, multiplier or 1.0)
-            )
+        if not isinstance(function, ScaledObjectiveFunction) or multiplier is not None:
+            validated_list.append(ScaledObjectiveFunction(function, multiplier or 1.0))
         else:
             validated_list.append(function)
 
