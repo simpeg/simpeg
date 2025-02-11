@@ -559,14 +559,16 @@ class Smallness(BaseRegularization):
 
     .. math::
 
-        \phi (m) = \int_\Omega \, w(r) \,
-        \Big [ \mu(m(r)) - \mu(m^\text{ref}(r)) \Big ]^2 \, dv
+        \phi (m) = \int_\Omega \, w(\mathbf{r}) \,
+        \left\lVert
+        \mu(m(\mathbf{r})) - \mu(m^\text{ref}(\mathbf{r}))
+        \right\rVert^2 \, d\mathbf{r}
 
-    where :math:`m(r)` is the model, :math:`m^\text{ref}(r)` is the reference
-    model, :math:`\mu` is the mapping function, and :math:`w(r)` is
-    a user-defined weighting function.
+    where :math:`m(\mathbf{r})` is the model, :math:`m^\text{ref}(\mathbf{r})`
+    is the reference model, :math:`\mu` is the mapping function, and
+    :math:`w(\mathbf{r})` is a user-defined weighting function.
 
-    For implementation within SimPEG, the regularization function and its
+    For the implementation within SimPEG, the regularization function and its
     variables must be discretized onto a `mesh`. The discretized approximation
     for the regularization function (objective function) is expressed in linear
     form as:
@@ -574,7 +576,10 @@ class Smallness(BaseRegularization):
     .. math::
 
         \phi (\mathbf{m}) = \sum_i
-        \tilde{w}_i \, \bigg | \, \mu(m_i) - \mu(m_i^\text{ref}) \, \bigg |^2
+        \tilde{w}_i \,
+        \left\lvert \,
+        \mu(m_i) - \mu(m_i^\text{ref}) \,
+        \right\rvert^2
 
     where :math:`m_i \in \mathbf{m}` are the discrete model parameter values
     defined on the mesh, :math:`\mu` is the mapping function, and
@@ -588,7 +593,9 @@ class Smallness(BaseRegularization):
     .. math::
 
         \phi (\mathbf{m}) =
-        \Big \| \mathbf{W} \big [ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \big ] \Big \|^2
+        \left\lVert
+        \mathbf{W} \left[ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \right]
+        \right\rVert^2
 
     where
 
@@ -665,10 +672,10 @@ class Smallness(BaseRegularization):
         .. math::
 
             \phi_m (\mathbf{m}) =
-            \Big \|
+            \left\lVert
                 \mathbf{W}
                 \left[ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \right]
-            \Big \|^2
+            \right\rVert^2
 
         where :math:`\mathbf{m}` are the discrete model parameters defined on
         the mesh (model), :math:`\mathbf{m}^\text{ref}` is the reference
@@ -687,7 +694,7 @@ class Smallness(BaseRegularization):
 
         .. math::
 
-            \phi_m (\mathbf{m}) = \Big \| \mathbf{W} \, \mathbf{f_m} \Big \|^2
+            \phi_m(\mathbf{m}) = \left\lVert \mathbf{W} \, \mathbf{f_m} \right\rVert^2
 
         """
         f_m = (
@@ -706,12 +713,12 @@ class Smallness(BaseRegularization):
         .. math::
 
             \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} =
-            \frac{\partial \mu{\mathbf{m}}}{\partial \mathbf{m}}
+            \frac{\partial \mu(\mathbf{m})}{\partial \mathbf{m}}
 
         where :math:`\mu` is the mapping function. If the mapping is the
         identity function (:math:`\mu(\mathbf{m}) = \mathbf{m}`) then the
         derivative of the kernel function is the  is the identity matrix
-        math:`\mathbf{I}`:
+        :math:`\mathbf{I}`:
 
         .. math::
 
@@ -734,10 +741,10 @@ class Smallness(BaseRegularization):
         .. math::
 
             \phi_m (\mathbf{m}) =
-            \Big \|
+            \left\lVert
                 \mathbf{W}
-                \big [ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \big ]
-            \Big \|^2
+                \left[ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \right]
+            \right\rVert^2
 
         where :math:`\mathbf{m}` are the discrete model parameters defined on
         the mesh (model), :math:`\mathbf{m}^{(ref)}` is the reference model,
@@ -755,15 +762,17 @@ class Smallness(BaseRegularization):
 
         .. math::
 
-            \phi_m (\mathbf{m}) = \Big \| \mathbf{W} \, \mu(\mathbf{f_m}) \Big \|^2
+            \phi_m (\mathbf{m}) =
+            \left\lVert
+            \mathbf{W} \, \mu(\mathbf{f_m})
+            \right\rVert^2
 
         Thus, the derivative with respect to the model is:
 
         .. math::
 
             \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} =
-            \mathbf{I}
-            \frac{\partial \mu{\mathbf{m}}}{\partial \mathbf{m}}
+            \frac{\partial \mu(\mathbf{m})}{\partial \mathbf{m}}
 
         where :math:`\mu` is the mapping function, and :math:`\mathbf{I}` is
         the identity matrix.
