@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import warnings
 import os
 import scipy.sparse as sp
+from discretize.utils import Zero
+
 from ..typing import RandomSeed
 from ..data_misfit import BaseDataMisfit
 from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
@@ -27,8 +29,6 @@ from ..utils import (
     estimate_diagonal,
     spherical2cartesian,
     cartesian2spherical,
-    Zero,
-    eigenvalue_by_power_iteration,
     validate_string,
 )
 from ..utils.code_utils import (
@@ -165,7 +165,9 @@ class InversionDirective:
             ), "Regularization must be in {}, not {}".format(self._regPair, type(value))
 
             if isinstance(value, WeightedLeastSquares):
-                value = 1 * value  # turn it into a combo objective function
+                value = ComboObjectiveFunction(
+                    objfcts=[value]
+                )  # turn it into a combo objective function
         self._reg = value
 
     @property
@@ -189,7 +191,9 @@ class InversionDirective:
             ), "Misfit must be in {}, not {}".format(self._dmisfitPair, type(value))
 
             if not isinstance(value, ComboObjectiveFunction):
-                value = 1 * value  # turn it into a combo objective function
+                value = ComboObjectiveFunction(
+                    objfcts=[value]
+                )  # turn it into a combo objective function
         self._dmisfit = value
 
     @property
@@ -533,7 +537,7 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
     The initial trade-off parameter (beta) is estimated by scaling the ratio
     between the largest eigenvalue in the second derivative of the data
     misfit and the model objective function. The largest eigenvalues are estimated
-    using the power iteration method; see :func:`simpeg.utils.eigenvalue_by_power_iteration`.
+    using the power iteration method; see :func:`simpeg.directives.BetaEstimate_ByEig.eigenvalue_by_power_iteration`.
     The estimated trade-off parameter is used to update the **beta** property in the
     associated :class:`simpeg.inverse_problem.BaseInvProblem` object prior to running the inversion.
     Note that a separate directive is used for updating the trade-off parameter at successive
@@ -579,7 +583,7 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
     parameter 'n_pw_iter' sets the number of power iterations used in the estimate.
 
     For a description of the power iteration approach for estimating the larges eigenvalue,
-    see :func:`simpeg.utils.eigenvalue_by_power_iteration`.
+    see :func:`simpeg.directives.BetaEstimate_ByEig.eigenvalue_by_power_iteration`.
 
     """
 
@@ -619,13 +623,13 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
 
         m = self.invProb.model
 
-        dm_eigenvalue = eigenvalue_by_power_iteration(
+        dm_eigenvalue = BetaEstimate_ByEig.eigenvalue_by_power_iteration(
             self.dmisfit,
             m,
             n_pw_iter=self.n_pw_iter,
             random_seed=rng,
         )
-        reg_eigenvalue = eigenvalue_by_power_iteration(
+        reg_eigenvalue = BetaEstimate_ByEig.eigenvalue_by_power_iteration(
             self.reg,
             m,
             n_pw_iter=self.n_pw_iter,
@@ -635,6 +639,140 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
         self.ratio = np.asarray(dm_eigenvalue / reg_eigenvalue)
         self.beta0 = self.beta0_ratio * self.ratio
         self.invProb.beta = self.beta0
+
+    @staticmethod
+    def eigenvalue_by_power_iteration(
+        combo_objfct: ComboObjectiveFunction | BaseObjectiveFunction,
+        model,
+        n_pw_iter=4,
+        fields_list=None,
+        random_seed: RandomSeed | None = None,
+        seed: RandomSeed | None = None,
+    ):
+        r"""Estimate largest eigenvalue in absolute value using power iteration.
+
+        Uses the power iteration approach to estimate the largest eigenvalue in absolute
+        value for a single :class:`simpeg.BaseObjectiveFunction` or a combination of
+        objective functions stored in a :class:`simpeg.ComboObjectiveFunction`.
+
+        Parameters
+        ----------
+        combo_objfct : simpeg.BaseObjectiveFunction
+            Objective function or a combo objective function
+        model : numpy.ndarray
+            Current model
+        n_pw_iter : int
+            Number of power iterations used to estimate the highest eigenvalue
+        fields_list : list (optional)
+            ``list`` of fields objects for each data misfit term in combo_objfct. If none given,
+            they will be evaluated within the function. If combo_objfct mixs data misfit and regularization
+            terms, the list should contains simpeg.fields for the data misfit terms and None for the
+            regularization term.
+        random_seed : None or :class:`~simpeg.typing.RandomSeed`, optional
+            Random seed for the initial random guess of eigenvector. It can either
+            be an int, a predefined Numpy random number generator, or any valid
+            input to ``numpy.random.default_rng``.
+        seed : None or :class:`~simpeg.typing.RandomSeed`, optional
+
+            .. deprecated:: 0.23.0
+
+               Argument ``seed`` is deprecated in favor of ``random_seed`` and will
+               be removed in SimPEG v0.24.0.
+
+        Returns
+        -------
+        float
+            Estimated value of the highest eigenvalue in absolute value
+
+        Notes
+        -----
+        After *k* power iterations, the largest eigenvalue in absolute value is
+        approximated by the Rayleigh quotient:
+
+        .. math::
+            \lambda_k = \frac{\mathbf{x_k^T A x_k}}{\mathbf{x_k^T x_k}}
+
+        where :math:`\mathfb{A}` is our matrix and :math:`\mathfb{x_k}` is computed
+        recursively according to:
+
+        .. math::
+            \mathbf{x_{k+1}} = \frac{\mathbf{A x_k}}{\| \mathbf{Ax_k} \|}
+
+        The elements of the initial vector :math:`\mathbf{x_0}` are randomly
+        selected from a uniform distribution.
+
+        """
+        # Deprecate seed argument
+        if seed is not None:
+            if random_seed is not None:
+                raise TypeError(
+                    "Cannot pass both 'random_seed' and 'seed'."
+                    "'seed' has been deprecated and will be removed in "
+                    " SimPEG v0.24.0, please use 'random_seed' instead.",
+                )
+            warnings.warn(
+                "'seed' has been deprecated and will be removed in "
+                " SimPEG v0.24.0, please use 'random_seed' instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            random_seed = seed
+        rng = np.random.default_rng(seed=random_seed)
+
+        # Initial guess for eigen-vector
+        x0 = rng.random(size=model.shape)
+        x0 = x0 / np.linalg.norm(x0)
+
+        # transform to ComboObjectiveFunction if required
+        if not isinstance(combo_objfct, ComboObjectiveFunction):
+            combo_objfct = ComboObjectiveFunction(objfcts=[combo_objfct])
+
+        # create Field for data misfit if necessary and not provided
+        if fields_list is None:
+            fields_list = []
+            for obj in combo_objfct.objfcts:
+                if hasattr(obj, "simulation"):
+                    fields_list += [obj.simulation.fields(model)]
+                else:
+                    # required to put None to conserve it in the list
+                    # The idea is that the function can have a mixed of dmis and reg terms
+                    # (see test)
+                    fields_list += [None]
+        elif not isinstance(fields_list, (list, tuple, np.ndarray)):
+            fields_list = [fields_list]
+
+        # Power iteration: estimate eigenvector
+        for _ in range(n_pw_iter):
+            x1 = 0.0
+            for j, (mult, obj) in enumerate(
+                zip(combo_objfct.multipliers, combo_objfct.objfcts)
+            ):
+                if hasattr(obj, "simulation"):  # if data misfit term
+                    aux = obj.deriv2(model, v=x0, f=fields_list[j])
+                    if not isinstance(aux, Zero):
+                        x1 += mult * aux
+                else:
+                    aux = obj.deriv2(model, v=x0)
+                    if not isinstance(aux, Zero):
+                        x1 += mult * aux
+            x0 = x1 / np.linalg.norm(x1)
+
+        # Compute highest eigenvalue from estimated eigenvector
+        eigenvalue = 0.0
+        for j, (mult, obj) in enumerate(
+            zip(combo_objfct.multipliers, combo_objfct.objfcts)
+        ):
+            if hasattr(obj, "simulation"):  # if data misfit term
+                eigenvalue += mult * x0.dot(obj.deriv2(model, v=x0, f=fields_list[j]))
+            else:
+                eigenvalue += mult * x0.dot(
+                    obj.deriv2(
+                        model,
+                        v=x0,
+                    )
+                )
+
+        return eigenvalue
 
 
 class BetaSchedule(InversionDirective):
@@ -836,7 +974,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
                 "Directive 'AlphasSmoothEstimate_ByEig' requires a regularization with at least one Small instance."
             )
 
-        smallness_eigenvalue = eigenvalue_by_power_iteration(
+        smallness_eigenvalue = BetaEstimate_ByEig.eigenvalue_by_power_iteration(
             smallness[0],
             self.invProb.model,
             n_pw_iter=self.n_pw_iter,
@@ -852,7 +990,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
 
         alphas = []
         for user_alpha, obj in zip(self.alpha0_ratio, smoothness):
-            smooth_i_eigenvalue = eigenvalue_by_power_iteration(
+            smooth_i_eigenvalue = BetaEstimate_ByEig.eigenvalue_by_power_iteration(
                 obj,
                 self.invProb.model,
                 n_pw_iter=self.n_pw_iter,
@@ -994,7 +1132,7 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
         dm_eigenvalue_list = []
         for dm in self.dmisfit.objfcts:
             dm_eigenvalue_list += [
-                eigenvalue_by_power_iteration(dm, m, random_seed=rng)
+                BetaEstimate_ByEig.eigenvalue_by_power_iteration(dm, m, random_seed=rng)
             ]
 
         self.chi0 = self.chi0_ratio / np.r_[dm_eigenvalue_list]
