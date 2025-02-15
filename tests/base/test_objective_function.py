@@ -64,6 +64,27 @@ class TestBaseObjFct(unittest.TestCase):
         self.assertTrue(len(objfct_c.multipliers) == 2)
         self.assertTrue(len(objfct_c) == 2)
 
+        self.assertTrue(objfct_b.function is objfct_a)
+
+        objfct_d = scalar * objfct_b
+
+        self.assertTrue(objfct_d.function is objfct_a)
+
+    def test_scalarmul2(self):
+        scalar = 10.0
+        nP = 100
+        objfct_a = objective_function.ScaledObjectiveFunction(
+            multiplier=scalar,
+            function=objective_function.L2ObjectiveFunction(
+                W=utils.sdiag(np.random.randn(nP))
+            ),
+        )
+
+        objfct_b = scalar * objfct_a
+        self.assertTrue(objfct_b.multiplier == scalar**2.0)
+        self.assertTrue(objfct_a is not objfct_b)
+        self.assertTrue(objfct_b.function is objfct_a)
+
     def test_sum(self):
         scalar = 10.0
         nP = 100.0
