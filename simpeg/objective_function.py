@@ -301,16 +301,16 @@ class BaseObjectiveFunction(BaseSimPEG):
         return ScaledObjectiveFunction(self, multiplier=multiplier)
 
     def __rmul__(self, multiplier):
-        return self * multiplier
+        return ScaledObjectiveFunction(self, multiplier=multiplier)
 
     def __div__(self, denominator):
-        return self * (1.0 / denominator)
+        return ScaledObjectiveFunction(self, multiplier=(1 / denominator))
 
     def __truediv__(self, denominator):
-        return self * (1.0 / denominator)
+        return ScaledObjectiveFunction(self, multiplier=(1 / denominator))
 
     def __rdiv__(self, denominator):
-        return self * (1.0 / denominator)
+        return ScaledObjectiveFunction(self, multiplier=(1 / denominator))
 
 
 class ScaledObjectiveFunction(BaseObjectiveFunction):
@@ -418,6 +418,26 @@ class ScaledObjectiveFunction(BaseObjectiveFunction):
     def __mul__(self, scaler):
         return ScaledObjectiveFunction(
             self.function, multiplier=self.multiplier * scaler
+        )
+
+    def __rmul__(self, scaler):
+        return ScaledObjectiveFunction(
+            self.function, multiplier=self.multiplier * scaler
+        )
+
+    def __div__(self, denominator):
+        return ScaledObjectiveFunction(
+            self.function, multiplier=(self.multiplier / denominator)
+        )
+
+    def __truediv__(self, denominator):
+        return ScaledObjectiveFunction(
+            self.function, multiplier=(self.multiplier / denominator)
+        )
+
+    def __rdiv__(self, denominator):
+        return ScaledObjectiveFunction(
+            self.function, multiplier=(self.multiplier / denominator)
         )
 
 

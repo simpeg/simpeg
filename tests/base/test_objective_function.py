@@ -83,7 +83,21 @@ class TestBaseObjFct(unittest.TestCase):
         objfct_b = scalar * objfct_a
         self.assertTrue(objfct_b.multiplier == scalar**2.0)
         self.assertTrue(objfct_a is not objfct_b)
-        self.assertTrue(objfct_b.function is objfct_a)
+        self.assertTrue(objfct_b.function is objfct_a.function)
+
+    def test_scalardiv(self):
+        scalar = 10.0
+        nP = 100
+        objfct_a = objective_function.L2ObjectiveFunction(
+            W=utils.sdiag(np.random.randn(nP))
+        )
+
+        objfct_b = objfct_a / scalar
+        self.assertTrue(objfct_b.multiplier == 1 / scalar)
+
+        objfct_c = objfct_b / scalar
+        self.assertTrue(objfct_c.multiplier == 1 / scalar**2.0)
+        self.assertTrue(objfct_c.function is objfct_a)
 
     def test_sum(self):
         scalar = 10.0
