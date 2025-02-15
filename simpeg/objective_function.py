@@ -415,6 +415,11 @@ class ScaledObjectiveFunction(BaseObjectiveFunction):
             )
         self._function = value
 
+    def __mul__(self, scaler):
+        return ScaledObjectiveFunction(
+            self.function, multiplier=self.multiplier * scaler
+        )
+
 
 class ComboObjectiveFunction(BaseObjectiveFunction):
     r"""Composite for multiple objective functions.
@@ -781,7 +786,7 @@ class L2ObjectiveFunction(BaseObjectiveFunction):
 
 class Multipliers(list):
     """
-    Accessor of multipliers from the list of ScaledFunction
+    Accessor of multipliers from the list of ScaledObjectiveFunctions
     stored under a ComboObjectiveFunction.
     """
 
