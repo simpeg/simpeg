@@ -7,7 +7,7 @@ from ..utils import omega
 from .utils.source_utils import homo1DModelSource
 from .utils.solutions_1d import get1DEfields
 import discretize
-from discretize.utils import volume_average
+from discretize.utils import volume_average, sdiag
 from pymatsolver import Solver
 
 
@@ -318,51 +318,48 @@ class FictitiousSource3D(BaseFDEMSrc):
         # Fictitious source from 1D
         if len(simulation.sigma_background) == len(simulation.mesh.h[2]):
 
-            # Generate 1D mesh and conductivity averaged to nodes on
+            # Generate 1D mesh and conductivity
             mesh_3d = simulation.mesh
             hz = mesh_3d.h[2]
             sigma_1d = simulation.sigma_background
+            mesh_1d = discretize.TensorMesh([hz], origin=[mesh_3d.origin[2]])
 
+            # Generate extended 1D            
             n_pad = 2000  # arbitrary num of padding cells added
-            hz = np.r_[hz[0] * np.ones(n_pad), hz, hz[-1] * np.ones(n_pad)]
-            sigma_1d = np.r_[
-                sigma_1d[0] * np.ones(n_pad), sigma_1d, sigma_1d[-1] * np.ones(n_pad)
-            ]
-
-            mesh_1d = discretize.TensorMesh(
-                [hz], origin=[mesh_3d.origin[2] - hz[0] * n_pad]
-            )
-
-            sigma_1d = mesh_1d.average_face_to_cell.T * sigma_1d
-            sigma_1d[0] = sigma_1d[1]
-            sigma_1d[-1] = sigma_1d[-2]
+            hz_ext = np.r_[hz[0] * np.ones(n_pad), hz, hz[-1] * np.ones(n_pad)]
+            mesh_1d_ext = discretize.TensorMesh([hz_ext], origin=[mesh_3d.origin[2] - hz[0] * n_pad])
+            
+            sigma_1d_ext = np.r_[sigma_1d[0] * np.ones(n_pad), sigma_1d, sigma_1d[-1] * np.ones(n_pad)]
+            sigma_1d_ext = mesh_1d_ext.average_face_to_cell.T * sigma_1d_ext
+            sigma_1d_ext[0] = sigma_1d[1]
+            sigma_1d_ext[-1] = sigma_1d[-2]
 
             # Solve the 1D problem for electric fields on nodes
             w = 2*np.pi*self.frequency
-            k = np.sqrt(-1.j * w * mu_0 * sigma_1d[0])
+            k = np.sqrt(-1.j * w * mu_0 * sigma_1d_ext[0])
 
-            A = mesh_1d.nodal_gradient.T @ mesh_1d.nodal_gradient + 1j*w*mu_0 * sdiag(sigma_1d)
+            A = mesh_1d_ext.nodal_gradient.T @ mesh_1d_ext.nodal_gradient + 1j*w*mu_0 * sdiag(sigma_1d_ext)
             A[0, 0] = (1. + 1j*k*hz[0]) / hz[0]**2 + 1j*w*mu_0*sigma_1d[0]
             A[0, 1] = -1 / hz[0]**2
 
-            q = np.zeros(mesh_1d.n_faces, dtype=np.complex128)
+            q = np.zeros(mesh_1d_ext.n_faces, dtype=np.complex128)
             q[-1] = -1j*w*mu_0 / hz[-1]
 
             Ainv = Solver(A)
-            u_1 = Ainv * q
+            u_1d = Ainv * q
 
             # Project to X and Y edges
             fields_x = (
                 mesh_1d.get_interpolation_matrix(
                     mesh_3d.edges_x[:, 2], location_type="nodes"
                 )
-                @ u_1d
+                @ u_1d[n_pad:-n_pad]
             )
             fields_y = (
                 mesh_1d.get_interpolation_matrix(
                     mesh_3d.edges_y[:, 2], location_type="nodes"
                 )
-                @ u_1d
+                @ u_1d[n_pad:-n_pad]
             )
 
             fields_x = np.r_[fields_x, np.zeros(mesh_3d.n_edges_y + mesh_3d.n_edges_z)]
