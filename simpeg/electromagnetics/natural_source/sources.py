@@ -8,6 +8,7 @@ from .utils.source_utils import homo1DModelSource
 from .utils.solutions_1d import get1DEfields
 import discretize
 from discretize.utils import volume_average
+from pymatsolver import Solver
 
 
 #################
@@ -317,12 +318,12 @@ class FictitiousSource3D(BaseFDEMSrc):
         # Fictitious source from 1D
         if len(simulation.sigma_background) == len(simulation.mesh.h[2]):
 
-            # Generate 1D mesh and conductivity on extended 1D mesh
+            # Generate 1D mesh and conductivity averaged to nodes on
             mesh_3d = simulation.mesh
             hz = mesh_3d.h[2]
             sigma_1d = simulation.sigma_background
 
-            n_pad = 200  # arbitrary num of padding cells added
+            n_pad = 2000  # arbitrary num of padding cells added
             hz = np.r_[hz[0] * np.ones(n_pad), hz, hz[-1] * np.ones(n_pad)]
             sigma_1d = np.r_[
                 sigma_1d[0] * np.ones(n_pad), sigma_1d, sigma_1d[-1] * np.ones(n_pad)
@@ -332,24 +333,23 @@ class FictitiousSource3D(BaseFDEMSrc):
                 [hz], origin=[mesh_3d.origin[2] - hz[0] * n_pad]
             )
 
-            # # Solve the 1D problem for electric fields on nodes
-            # G = mesh_1d.nodal_gradient
-            # MeMui = mesh_1d.get_edge_inner_product(model=mu_0, invert_model=True)
-            # MfSigma = mesh_1d.get_face_inner_product(model=sigma_1d)
+            sigma_1d = mesh_1d.average_face_to_cell.T * sigma_1d
+            sigma_1d[0] = sigma_1d[1]
+            sigma_1d[-1] = sigma_1d[-2]
 
-            # A = G.T.tocsr() @ MeMui @ G + 1j * omega(self.frequency) * MfSigma
+            # Solve the 1D problem for electric fields on nodes
+            w = 2*np.pi*self.frequency
+            k = np.sqrt(-1.j * w * mu_0 * sigma_1d[0])
 
-            # RHS = (
-            #     1j
-            #     * omega(self.frequency)
-            #     * mesh_1d.boundary_node_vector_integral
-            #     * [0 + 0j, 1 + 0j]
-            # )
+            A = mesh_1d.nodal_gradient.T @ mesh_1d.nodal_gradient + 1j*w*mu_0 * sdiag(sigma_1d)
+            A[0, 0] = (1. + 1j*k*hz[0]) / hz[0]**2 + 1j*w*mu_0*sigma_1d[0]
+            A[0, 1] = -1 / hz[0]**2
 
-            # Ainv = simulation.solver(A, **simulation.solver_opts)
-            # u_1d = Ainv * RHS
+            q = np.zeros(mesh_1d.n_faces, dtype=np.complex128)
+            q[-1] = -1j*w*mu_0 / hz[-1]
 
-            u_1d = get1DEfields(mesh_1d, sigma_1d, self.frequency)
+            Ainv = Solver(A)
+            u_1 = Ainv * q
 
             # Project to X and Y edges
             fields_x = (
