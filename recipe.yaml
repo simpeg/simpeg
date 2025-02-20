@@ -1,0 +1,96 @@
+schema_version: 1
+
+context:
+  name: "mira-simpeg"
+  version: "0.21.2.2"
+  python_min: "3.10"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  path: ../simpeg
+
+build:
+  number: 0
+  noarch: python
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps
+
+requirements:
+  host:
+    - python 3.10.*
+    - poetry-core >=1.0.0
+    - setuptools >=64
+    - setuptools_scm >=8
+    - pip
+  run:
+    - python >=${{ python_min }}
+    - discretize >=0.10.0
+    - empymod >=2.0.0
+    - geoana >=0.5.0
+    - geoh5py >=0.10.0, <0.11.dev
+    - matplotlib-base
+    - numpy >=1.20
+    - pandas
+    - pymatsolver >=0.3.0, <0.4.dev
+    - scikit-learn >=1.2
+    - scipy >=1.8.0
+  run_constraints:
+    - dask-core *
+    - distributed *
+    - fsspec >=0.3.3
+    - zarr *
+
+tests:
+  - python:
+      imports:
+        - simpeg
+        - simpeg.electromagnetics
+        - simpeg.electromagnetics.analytics
+        - simpeg.electromagnetics.frequency_domain
+        - simpeg.electromagnetics.natural_source
+        - simpeg.electromagnetics.natural_source.utils
+        - simpeg.electromagnetics.static
+        - simpeg.electromagnetics.static.resistivity
+        - simpeg.electromagnetics.static.induced_polarization
+        - simpeg.electromagnetics.static.spectral_induced_polarization
+        - simpeg.electromagnetics.static.utils
+        - simpeg.electromagnetics.time_domain
+        - simpeg.electromagnetics.utils
+        - simpeg.electromagnetics.viscous_remanent_magnetization
+        - simpeg.flow
+        - simpeg.flow.richards
+        - simpeg.potential_fields
+        - simpeg.potential_fields.gravity
+        - simpeg.potential_fields.magnetics
+        - simpeg.seismic
+        - simpeg.seismic.straight_ray_tomography
+        - simpeg.utils
+        - simpeg.utils.drivers
+        - simpeg.regularization
+        - simpeg.meta
+  - requirements:
+      run:
+        - pip
+    script:
+      - pip check
+
+about:
+  summary: "Mira Geoscience fork of SimPEG: Simulation and Parameter Estimation in Geophysics"
+  description: |
+    Simulation and Parameter Estimation in Geophysics - A python package for simulation and
+    gradient based parameter estimation in the context of geophysical applications.
+
+    Warning: This is a fork created by Mira Geoscience.
+  license: MIT
+  license_file:
+    - LICENSE
+  homepage: https://docs.simpeg.xyz/
+  repository: https://github.com/MiraGeoscience/simpeg
+  documentation: https://docs.simpeg.xyz/
+
+extra:
+  recipe-maintainers:
+    - SophieCurinier
+    - sebhmg
