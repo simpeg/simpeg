@@ -20,11 +20,11 @@ dependencies = [
     "discretize>=0.11.0",
     "empymod>=2.0.0",
     "geoana>=0.5.0",
-    "geoh5py>=0.11.0a1, <0.12",
+    "geoh5py>=0.11.0a1, <0.12.dev",
     "matplotlib",
     "numpy>=1.20",
     "pandas",
-    "pymatsolver>=0.2, <0.3.0",
+    "pymatsolver>=0.3, <0.4.dev",
     "scikit-learn>=1.2",
     "scipy>=1.8.0",
 ]
