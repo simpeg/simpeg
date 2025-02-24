@@ -4,7 +4,7 @@ from dask import array
 import numpy as np
 from multiprocessing import cpu_count
 
-Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag", "_stashed_fields"]
+Sim._delete_on_model_update = ["_Jmatrix", "_jtjdiag", "_stashed_fields"]
 Sim.sensitivity_path = "./sensitivity/"
 Sim._max_ram = 16
 Sim._max_chunk_size = 128

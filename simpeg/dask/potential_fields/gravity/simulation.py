@@ -13,6 +13,6 @@ def G(self):
     return self._G
 
 
-Sim.clean_on_model_update = []
+Sim._delete_on_model_update = []
 Sim.getJtJdiag = getJtJdiag
 Sim.G = G

@@ -203,7 +203,7 @@ class DaskMetaSimulation(MetaSimulation):
         The dask client to use for communication.
     """
 
-    clean_on_model_update = ["_jtjdiag", "_stashed_fields"]
+    _delete_on_model_update = ["_jtjdiag", "_stashed_fields"]
 
     def __init__(self, simulations, mappings, client):
         self._client = validate_type("client", client, Client, cast=False)

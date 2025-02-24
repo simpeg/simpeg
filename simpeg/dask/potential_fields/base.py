@@ -166,7 +166,7 @@ def Jmatrix(self, value):
     self._Jmatrix = value
 
 
-Sim.clean_on_model_update = []
+Sim._delete_on_model_update = []
 Sim._chunk_format = _chunk_format
 Sim.chunk_format = chunk_format
 Sim.dpred = dpred
