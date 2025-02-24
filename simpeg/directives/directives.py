@@ -1,4 +1,3 @@
-
 from __future__ import annotations  # needed to use type operands in Python 3.8
 
 from abc import ABC, abstractmethod
@@ -74,6 +73,7 @@ def compute_JtJdiags(data_misfit, m):
             jtj_diag += multiplier * diag
 
     return np.asarray(jtj_diag)
+
 
 if TYPE_CHECKING:
     from ..simulation import BaseSimulation
@@ -467,7 +467,6 @@ class BaseBetaEstimator(InversionDirective):
             raise TypeError(msg) from err
 
         self._random_seed = value
-
 
     def validate(self, directive_list):
         ind = [isinstance(d, BaseBetaEstimator) for d in directive_list.dList]

@@ -1356,7 +1356,6 @@ class Point3DTipper(Tipper):
         locations_e=None,
         locations_h=None,
         **kwargs,
-
     ):
         # note locations_e and locations_h never did anything for this class anyways
         # so can just issue a warning here...
@@ -1379,7 +1378,6 @@ class Point3DTipper(Tipper):
             **kwargs,
         )
 
-
     def eval(self, src, mesh, f, return_complex=False):  # noqa: A003
         if return_complex:
             warnings.warn(
@@ -1395,6 +1393,4 @@ class Point3DTipper(Tipper):
             out = super().eval(src, mesh, f)
         return out
 
-
     locations = property(lambda self: self._locations[0], Tipper.locations.fset)
-

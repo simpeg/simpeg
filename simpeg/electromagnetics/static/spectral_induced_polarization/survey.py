@@ -32,7 +32,6 @@ class Survey(BaseTimeSurvey):
             )
             kwargs.pop(key)
 
-
         if source_list is None:
             raise AttributeError("Survey cannot be instantiated without sources")
         super(Survey, self).__init__(source_list, **kwargs)

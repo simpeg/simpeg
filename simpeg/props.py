@@ -472,7 +472,6 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                     if hasattr(self, prop):
                         delattr(self, prop)
 
-
                 updated = True
 
         self._model = value

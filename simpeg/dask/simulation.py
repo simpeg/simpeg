@@ -62,6 +62,7 @@ def getJtJdiag(self, m, W=None, f=None):
 
 Sim.getJtJdiag = getJtJdiag
 
+
 def __init__(
     self,
     survey=None,
