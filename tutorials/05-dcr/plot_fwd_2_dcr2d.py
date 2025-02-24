@@ -40,10 +40,6 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import SolverLU as Solver
 
 write_output = False
 mpl.rcParams.update({"font.size": 16})
@@ -102,7 +98,7 @@ source_list = generate_dcip_sources_line(
 )
 
 # Define survey
-survey = dc.survey.Survey(source_list, survey_type=survey_type)
+survey = dc.survey.Survey(source_list)
 
 ###############################################################
 # Create Tree Mesh
@@ -233,7 +229,7 @@ survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 #
 
 simulation = dc.simulation_2d.Simulation2DNodal(
-    mesh, survey=survey, sigmaMap=conductivity_map, solver=Solver
+    mesh, survey=survey, sigmaMap=conductivity_map
 )
 
 # Predict the data by running the simulation. The data are the raw voltage in

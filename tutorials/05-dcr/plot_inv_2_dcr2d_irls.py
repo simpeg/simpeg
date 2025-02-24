@@ -49,11 +49,6 @@ from simpeg.electromagnetics.static.utils.static_utils import (
 )
 from simpeg.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import SolverLU as Solver
-
 mpl.rcParams.update({"font.size": 16})
 # sphinx_gallery_thumbnail_number = 3
 
@@ -268,7 +263,7 @@ starting_conductivity_model = background_conductivity * np.ones(nC)
 
 # Define the problem. Define the cells below topography and the mapping
 simulation = dc.simulation_2d.Simulation2DNodal(
-    mesh, survey=survey, sigmaMap=conductivity_map, solver=Solver, storeJ=True
+    mesh, survey=survey, sigmaMap=conductivity_map, storeJ=True
 )
 
 #######################################################################
@@ -332,9 +327,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 update_sensitivity_weighting = directives.UpdateSensitivityWeights()
 
 # Reach target misfit for L2 solution, then use IRLS until model stops changing.
-update_IRLS = directives.Update_IRLS(
-    max_irls_iterations=25, minGNiter=1, chifact_start=1.0
-)
+update_IRLS = directives.UpdateIRLS(max_irls_iterations=25, chifact_start=1.0)
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
@@ -387,7 +380,7 @@ true_conductivity_model[ind_conductor] = true_conductor_conductivity
 ind_resistor = model_builder.get_indices_sphere(np.r_[120.0, -180.0], 60.0, mesh.gridCC)
 true_conductivity_model[ind_resistor] = true_resistor_conductivity
 
-true_conductivity_model[~ind_active] = np.NaN
+true_conductivity_model[~ind_active] = np.nan
 
 ############################################################
 # Plotting True and Recovered Conductivity Model
@@ -396,10 +389,10 @@ true_conductivity_model[~ind_active] = np.NaN
 
 # Get L2 and sparse recovered model in base 10
 l2_conductivity = conductivity_map * inv_prob.l2model
-l2_conductivity[~ind_active] = np.NaN
+l2_conductivity[~ind_active] = np.nan
 
 recovered_conductivity = conductivity_map * recovered_conductivity_model
-recovered_conductivity[~ind_active] = np.NaN
+recovered_conductivity[~ind_active] = np.nan
 
 # Plot True Model
 norm = LogNorm(vmin=1e-3, vmax=1e-1)

@@ -78,10 +78,10 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
         return self.Vol @ (self.qDeriv @ v)
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_update(self):
         # When enabling resistivity derivatives, uncomment these lines
         # if self.rhoMap is not None:
-        #     return super().deleteTheseOnModelUpdate
+        #     return super()._delete_on_model_update
         if self.storeJ and self.qMap is not None and not self.qMap.is_linear:
             return ["_Jmatrix", "_jtjdiag"]
         return []
@@ -166,7 +166,7 @@ class Survey(dc.Survey):
 
     Parameters
     ----------
-    source_list : list of sources.StreamingCurrents
+    source_list : list of .sources.StreamingCurrents
     """
 
     @property
@@ -175,7 +175,7 @@ class Survey(dc.Survey):
 
         Returns
         -------
-        list of sources.StreamingCurrents
+        list of .sources.StreamingCurrents
         """
         return self._source_list
 

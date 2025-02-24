@@ -1,0 +1,46 @@
+name: simpeg-test
+channels:
+  - conda-forge
+dependencies:
+  - numpy>=1.22
+  - scipy>=1.8
+  - pymatsolver>=0.3
+  - matplotlib-base
+  - discretize>=0.11
+  - geoana>=0.7
+  - libdlf
+
+# optional dependencies
+  - dask
+  - zarr
+  - fsspec>=0.3.3
+  - choclo>=0.3.0
+  - scooby
+  - plotly
+  - scikit-learn>=1.2
+  - pandas
+
+# documentation building
+  - sphinx
+  - sphinx-gallery>=0.1.13
+  - sphinxcontrib-apidoc
+  - pydata-sphinx-theme
+  - nbsphinx
+  - numpydoc
+  - pillow
+  - empymod>=2.0.0
+  - sympy
+  - memory_profiler
+  - python-kaleido
+  - h5py
+
+# testing
+  - pytest
+  - pytest-cov
+
+# Testing environment doesn't need style checkers
+
+# PyPI uploading
+  - wheel
+  - twine
+  - build

@@ -2,6 +2,7 @@
 Test BasePFSimulation class
 """
 
+import re
 import pytest
 import numpy as np
 from discretize import CylindricalMesh, TensorMesh, TreeMesh
@@ -93,7 +94,9 @@ class TestEngine:
         ``store_sensitivities="disk"``.
         """
         sensitivity_path = str(tmpdir.mkdir("sensitivities"))
-        msg = f"The passed sensitivity_path '{sensitivity_path}' is a directory."
+        msg = re.escape(
+            f"The passed sensitivity_path '{sensitivity_path}' is a directory."
+        )
         with pytest.raises(ValueError, match=msg):
             mock_simulation_class(
                 tensor_mesh,
@@ -107,19 +110,6 @@ class TestGetActiveNodes:
     """
     Tests _get_active_nodes private method
     """
-
-    def test_invalid_mesh(self, tensor_mesh, mock_simulation_class):
-        """
-        Test error on invalid mesh class
-        """
-        # Initialize base simulation with valid mesh (so we don't trigger
-        # errors in the constructor)
-        simulation = mock_simulation_class(tensor_mesh)
-        # Assign an invalid mesh to the simulation
-        simulation.mesh = CylindricalMesh(tensor_mesh.h)
-        msg = "Invalid mesh of type CylindricalMesh."
-        with pytest.raises(TypeError, match=msg):
-            simulation._get_active_nodes()
 
     def test_no_inactive_cells_tensor(self, tensor_mesh, mock_simulation_class):
         """
@@ -147,7 +137,7 @@ class TestGetActiveNodes:
         active_cells = np.zeros(tensor_mesh.n_cells, dtype=bool)
         active_cells[0] = True
         # Initialize simulation
-        simulation = mock_simulation_class(tensor_mesh, ind_active=active_cells)
+        simulation = mock_simulation_class(tensor_mesh, active_cells=active_cells)
         # Build expected active_nodes and active_cell_nodes
         expected_active_nodes = tensor_mesh.nodes[tensor_mesh[0].nodes]
         expected_active_cell_nodes = np.atleast_2d(np.arange(8, dtype=int))
@@ -165,7 +155,7 @@ class TestGetActiveNodes:
         active_cells[0] = True
 
         # Initialize simulation
-        simulation = mock_simulation_class(tree_mesh, ind_active=active_cells)
+        simulation = mock_simulation_class(tree_mesh, active_cells=active_cells)
 
         # Build expected active_nodes (in the right order for a single cell)
         expected_active_nodes = [
@@ -281,9 +271,13 @@ class TestGetComponentsAndReceivers:
         np.testing.assert_equal(receivers, receiver_locations)
 
 
-class TestInvalidMeshChoclo:
+class TestInvalidMesh:
+    """
+    Test if errors are raised after invalid mesh are passed to the base simulation.
+    """
+
     @pytest.fixture(params=("tensormesh", "treemesh"))
-    def mesh(self, request):
+    def mesh_2d(self, request):
         """Sample 2D mesh."""
         hx, hy = [(0.1, 8)], [(0.1, 8)]
         h = (hx, hy)
@@ -294,13 +288,61 @@ class TestInvalidMeshChoclo:
             mesh.finalize()
         return mesh
 
-    def test_invalid_mesh_with_choclo(self, mesh, mock_simulation_class):
+    @pytest.mark.parametrize("engine", ("choclo", "geoana"))
+    def test_invalid_mesh_dimensions(self, mesh_2d, mock_simulation_class, engine):
         """
-        Test if simulation raises error when passing an invalid mesh and using choclo
+        Test error when passing a mesh with invalid dimensions.
         """
-        msg = (
-            "Invalid mesh with 2 dimensions. "
-            "Only 3D meshes are supported when using 'choclo' as engine."
-        )
+        msg = re.escape("MockSimulation mesh must be 3D, received a 2D mesh.")
         with pytest.raises(ValueError, match=msg):
-            mock_simulation_class(mesh, engine="choclo")
+            mock_simulation_class(mesh_2d, engine=engine)
+
+    def test_invalid_mesh_type(self, mock_simulation_class):
+        """
+        Test error when passing an invalid mesh class.
+        """
+        h = (3, 3, 3)
+        msg = re.escape(
+            "mesh must be an instance of TensorMesh or TreeMesh, not CylindricalMesh"
+        )
+        with pytest.raises(TypeError, match=msg):
+            mock_simulation_class(CylindricalMesh(h))
+
+
+class TestDeprecationIndActive:
+    """
+    Test if using the deprecated ind_active argument/property raise warnings/errors
+    """
+
+    def test_deprecated_argument(self, tensor_mesh, mock_simulation_class):
+        """Test if passing ind_active argument raises warning."""
+        ind_active = np.ones(tensor_mesh.n_cells, dtype=bool)
+        version_regex = "v[0-9]+.[0-9]+.[0-9]+"
+        msg = (
+            "'ind_active' has been deprecated and will be removed in "
+            f" SimPEG {version_regex}, please use 'active_cells' instead."
+        )
+        with pytest.warns(FutureWarning, match=msg):
+            sim = mock_simulation_class(tensor_mesh, ind_active=ind_active)
+        np.testing.assert_allclose(sim.active_cells, ind_active)
+
+    def test_error_both_args(self, tensor_mesh, mock_simulation_class):
+        """Test if passing both ind_active and active_cells raises error."""
+        ind_active = np.ones(tensor_mesh.n_cells, dtype=bool)
+        version_regex = "v[0-9]+.[0-9]+.[0-9]+"
+        msg = (
+            f"Cannot pass both 'active_cells' and 'ind_active'."
+            "'ind_active' has been deprecated and will be removed in "
+            f" SimPEG {version_regex}, please use 'active_cells' instead."
+        )
+        with pytest.raises(TypeError, match=msg):
+            mock_simulation_class(
+                tensor_mesh, active_cells=ind_active, ind_active=ind_active
+            )
+
+    def test_deprecated_property(self, tensor_mesh, mock_simulation_class):
+        """Test if passing both ind_active and active_cells raises error."""
+        ind_active = np.ones(tensor_mesh.n_cells, dtype=bool)
+        simulation = mock_simulation_class(tensor_mesh, active_cells=ind_active)
+        with pytest.warns(FutureWarning):
+            simulation.ind_active

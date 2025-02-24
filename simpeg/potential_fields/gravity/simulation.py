@@ -1,3 +1,4 @@
+from __future__ import annotations
 import warnings
 import numpy as np
 import scipy.constants as constants
@@ -16,6 +17,10 @@ from ._numba_functions import (
     _sensitivity_gravity_parallel,
     _forward_gravity_serial,
     _forward_gravity_parallel,
+    _forward_gravity_2d_mesh_serial,
+    _forward_gravity_2d_mesh_parallel,
+    _sensitivity_gravity_2d_mesh_serial,
+    _sensitivity_gravity_2d_mesh_parallel,
 )
 
 if choclo is not None:
@@ -30,6 +35,48 @@ if choclo is not None:
         )
         return result
 
+    @jit(nopython=True)
+    def gravity_uv(
+        easting,
+        northing,
+        upward,
+        prism_west,
+        prism_east,
+        prism_south,
+        prism_north,
+        prism_bottom,
+        prism_top,
+        density,
+    ):
+        """Forward model the Guv gradiometry component."""
+        result = 0.5 * (
+            choclo.prism.gravity_nn(
+                easting,
+                northing,
+                upward,
+                prism_west,
+                prism_east,
+                prism_south,
+                prism_north,
+                prism_bottom,
+                prism_top,
+                density,
+            )
+            - choclo.prism.gravity_ee(
+                easting,
+                northing,
+                upward,
+                prism_west,
+                prism_east,
+                prism_south,
+                prism_north,
+                prism_bottom,
+                prism_top,
+                density,
+            )
+        )
+        return result
+
     CHOCLO_KERNELS = {
         "gx": choclo.prism.kernel_e,
         "gy": choclo.prism.kernel_n,
@@ -41,6 +88,19 @@ if choclo is not None:
         "gxz": choclo.prism.kernel_eu,
         "gyz": choclo.prism.kernel_nu,
         "guv": kernel_uv,
+    }
+
+    CHOCLO_FORWARD_FUNCS = {
+        "gx": choclo.prism.gravity_e,
+        "gy": choclo.prism.gravity_n,
+        "gz": choclo.prism.gravity_u,
+        "gxx": choclo.prism.gravity_ee,
+        "gyy": choclo.prism.gravity_nn,
+        "gzz": choclo.prism.gravity_uu,
+        "gxy": choclo.prism.gravity_en,
+        "gxz": choclo.prism.gravity_eu,
+        "gyz": choclo.prism.gravity_nu,
+        "guv": gravity_uv,
     }
 
 
@@ -81,7 +141,7 @@ class Simulation3DIntegral(BasePFSimulation):
         Mesh use to run the gravity simulation.
     survey : simpeg.potential_fields.gravity.Survey
         Gravity survey with information of the receivers.
-    ind_active : (n_cells) numpy.ndarray, optional
+    active_cells : (n_cells) numpy.ndarray, optional
         Array that indicates which cells in ``mesh`` are active cells.
     rho : numpy.ndarray, optional
         Density array for the active cells in the mesh.
@@ -106,6 +166,12 @@ class Simulation3DIntegral(BasePFSimulation):
         If True, the simulation will run in parallel. If False, it will
         run in serial. If ``engine`` is not ``"choclo"`` this argument will be
         ignored.
+    ind_active : np.ndarray of int or bool
+
+        .. deprecated:: 0.23.0
+
+           Argument ``ind_active`` is deprecated in favor of
+           ``active_cells`` and will be removed in SimPEG v0.24.0.
     """
 
     rho, rhoMap, rhoDeriv = props.Invertible("Density")
@@ -428,12 +494,132 @@ class SimulationEquivalentSourceLayer(
     mesh : discretize.BaseMesh
         A 2D tensor or tree mesh defining discretization along the x and y directions
     cell_z_top : numpy.ndarray or float
-        Define the elevations for the top face of all cells in the layer. If an array it should be the same size as
-        the active cell set.
+        Define the elevations for the top face of all cells in the layer.
+        If an array it should be the same size as the active cell set.
     cell_z_bottom : numpy.ndarray or float
-        Define the elevations for the bottom face of all cells in the layer. If an array it should be the same size as
-        the active cell set.
+        Define the elevations for the bottom face of all cells in the layer.
+        If an array it should be the same size as the active cell set.
+    engine : {"geoana", "choclo"}, optional
+        Choose which engine should be used to run the forward model.
+    numba_parallel : bool, optional
+        If True, the simulation will run in parallel. If False, it will
+        run in serial. If ``engine`` is not ``"choclo"`` this argument will be
+        ignored.
     """
+
+    def __init__(
+        self,
+        mesh,
+        cell_z_top,
+        cell_z_bottom,
+        engine="geoana",
+        numba_parallel=True,
+        **kwargs,
+    ):
+        super().__init__(
+            mesh,
+            cell_z_top,
+            cell_z_bottom,
+            engine=engine,
+            numba_parallel=numba_parallel,
+            **kwargs,
+        )
+
+        if self.engine == "choclo":
+            if self.numba_parallel:
+                self._sensitivity_gravity = _sensitivity_gravity_2d_mesh_parallel
+                self._forward_gravity = _forward_gravity_2d_mesh_parallel
+            else:
+                self._sensitivity_gravity = _sensitivity_gravity_2d_mesh_serial
+                self._forward_gravity = _forward_gravity_2d_mesh_serial
+
+    def _forward(self, densities):
+        """
+        Forward model the fields of active cells in the mesh on receivers.
+
+        Parameters
+        ----------
+        densities : (n_active_cells) numpy.ndarray
+            Array containing the densities of the active cells in the mesh, in
+            g/cc.
+
+        Returns
+        -------
+        (nD,) numpy.ndarray
+            Always return a ``np.float64`` array.
+        """
+        # Get cells in the 2D mesh and keep only active cells
+        cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
+        # Allocate fields array
+        fields = np.zeros(self.survey.nD, dtype=self.sensitivity_dtype)
+        # Compute fields
+        index_offset = 0
+        for components, receivers in self._get_components_and_receivers():
+            n_components = len(components)
+            n_elements = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                forward_func = CHOCLO_FORWARD_FUNCS[component]
+                conversion_factor = _get_conversion_factor(component)
+                vector_slice = slice(
+                    index_offset + i, index_offset + n_elements, n_components
+                )
+                self._forward_gravity(
+                    receivers,
+                    cells_bounds_active,
+                    self.cell_z_top,
+                    self.cell_z_bottom,
+                    densities,
+                    fields[vector_slice],
+                    forward_func,
+                    conversion_factor,
+                )
+            index_offset += n_elements
+        return fields
+
+    def _sensitivity_matrix(self):
+        """
+        Compute the sensitivity matrix G
+
+        Returns
+        -------
+        (nD, n_active_cells) numpy.ndarray
+        """
+        # Get cells in the 2D mesh and keep only active cells
+        cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
+        # Allocate sensitivity matrix
+        shape = (self.survey.nD, self.nC)
+        if self.store_sensitivities == "disk":
+            sensitivity_matrix = np.memmap(
+                self.sensitivity_path,
+                shape=shape,
+                dtype=self.sensitivity_dtype,
+                order="C",  # it's more efficient to write in row major
+                mode="w+",
+            )
+        else:
+            sensitivity_matrix = np.empty(shape, dtype=self.sensitivity_dtype)
+        # Start filling the sensitivity matrix
+        index_offset = 0
+        for components, receivers in self._get_components_and_receivers():
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                forward_func = CHOCLO_FORWARD_FUNCS[component]
+                conversion_factor = _get_conversion_factor(component)
+                matrix_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
+                )
+                self._sensitivity_gravity(
+                    receivers,
+                    cells_bounds_active,
+                    self.cell_z_top,
+                    self.cell_z_bottom,
+                    sensitivity_matrix[matrix_slice, :],
+                    forward_func,
+                    conversion_factor,
+                )
+            index_offset += n_rows
+        return sensitivity_matrix
 
 
 class Simulation3DDifferential(BasePDESimulation):

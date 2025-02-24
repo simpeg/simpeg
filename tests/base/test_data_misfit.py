@@ -6,8 +6,6 @@ import discretize
 from simpeg import maps
 from simpeg import data_misfit, simulation, survey
 
-np.random.seed(17)
-
 
 class DataMisfitTest(unittest.TestCase):
     def setUp(self):
@@ -23,7 +21,7 @@ class DataMisfitTest(unittest.TestCase):
             mesh=mesh, survey=survey.BaseSurvey([source]), model_map=maps.ExpMap(mesh)
         )
 
-        synthetic_data = sim.make_synthetic_data(model)
+        synthetic_data = sim.make_synthetic_data(model, random_seed=17)
 
         self.relative = 0.01
         self.noise_floor = 1e-8
@@ -68,7 +66,7 @@ class DataMisfitTest(unittest.TestCase):
     def test_DataMisfitOrder(self):
         self.data.relative_error = self.relative
         self.data.noise_floor = self.noise_floor
-        self.dmis.test(x=self.model)
+        self.dmis.test(x=self.model, random_seed=17)
 
 
 if __name__ == "__main__":

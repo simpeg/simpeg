@@ -55,6 +55,8 @@ Directives related to sparse inversions
 .. autosummary::
    :toctree: generated/
 
+   UpdateIRLS
+   SphericalUnitsWeights
    Update_IRLS
 
 
@@ -109,7 +111,6 @@ from .directives import (
     SaveModelEveryIteration,
     SaveOutputEveryIteration,
     SaveOutputDictEveryIteration,
-    Update_IRLS,
     UpdatePreconditioner,
     Update_Wj,
     AlphasSmoothEstimate_ByEig,
@@ -123,6 +124,7 @@ from .directives import (
     SaveModelGeoH5,
     SavePropertyGroup,
     SaveSensitivityGeoH5,
+    Update_IRLS,
     ProjectSphericalBounds,
     ScaleMisfitMultipliers,
 )
@@ -132,6 +134,8 @@ from .pgi_directives import (
     PGI_BetaAlphaSchedule,
     PGI_AddMrefInSmooth,
 )
+
+from ._regularization import UpdateIRLS, SphericalUnitsWeights
 
 from .sim_directives import (
     SimilarityMeasureInversionDirective,

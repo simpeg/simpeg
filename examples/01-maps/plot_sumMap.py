@@ -96,7 +96,7 @@ def run(plotIt=True):
         mesh,
         survey=survey,
         chiMap=idenMap,
-        ind_active=actv,
+        active_cells=actv,
         store_sensitivities="forward_only",
     )
 
@@ -117,7 +117,7 @@ def run(plotIt=True):
 
     # Create the forward model operator
     prob = magnetics.Simulation3DIntegral(
-        mesh, survey=survey, chiMap=sumMap, ind_active=actv, store_sensitivities="ram"
+        mesh, survey=survey, chiMap=sumMap, active_cells=actv, store_sensitivities="ram"
     )
 
     # Make sensitivity weighting
@@ -175,7 +175,8 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a threshold parameter empirically based on the distribution of
     #  model parameters
-    IRLS = directives.Update_IRLS(f_min_change=1e-3, minGNiter=1)
+    IRLS = directives.UpdateIRLS(f_min_change=1e-3)
+
     update_Jacobi = directives.UpdatePreconditioner()
     inv = inversion.BaseInversion(invProb, directiveList=[IRLS, betaest, update_Jacobi])
 

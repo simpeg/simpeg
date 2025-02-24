@@ -250,7 +250,7 @@ simpeg_version = parse(simpeg.__version__)
 if simpeg_version.is_devrelease:
     switcher_version = "dev"
 else:
-    switcher_version = f"v{simpeg_version.public}"
+    switcher_version = simpeg_version.public
 
 # Use Pydata Sphinx theme
 html_theme = "pydata_sphinx_theme"
@@ -293,8 +293,9 @@ html_theme_options = {
     # Configure version switcher
     "switcher": {
         "version_match": switcher_version,
-        "json_url": "https://doctest.simpeg.xyz/latest/_static/versions.json",
+        "json_url": "https://docs.simpeg.xyz/latest/_static/versions.json",
     },
+    "show_version_warning_banner": True,
 }
 
 html_logo = "images/simpeg-logo.png"
@@ -467,14 +468,8 @@ tut_gallery_dirs = ["content/tutorials/" + os.path.basename(f) for f in tutorial
 
 # Scaping images to generate on website
 from plotly.io._sg_scraper import plotly_sg_scraper
-import pyvista
 
-# Make sure off screen is set to true when building locally
-pyvista.OFF_SCREEN = True
-# necessary when building the sphinx gallery
-pyvista.BUILDING_GALLERY = True
-
-image_scrapers = ("matplotlib", plotly_sg_scraper, pyvista.Scraper())
+image_scrapers = ("matplotlib", plotly_sg_scraper)
 
 # Sphinx Gallery
 sphinx_gallery_conf = {
@@ -505,6 +500,8 @@ sphinx_gallery_conf = {
 
 autodoc_member_order = "bysource"
 
+# Don't show type hints in signatures
+autodoc_typehints = "none"
 
 # def supress_nonlocal_image_warn():
 #     import sphinx.environment

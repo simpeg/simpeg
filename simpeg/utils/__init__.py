@@ -76,6 +76,7 @@ Model Utility Functions
   :toctree: generated/
 
   depth_weighting
+  distance_weighting
   model_builder.add_block
   model_builder.create_2_layer_model
   model_builder.create_block_in_wholespace
@@ -141,6 +142,16 @@ Many of the functions here are used internally to SimPEG and have minimal docume
   validate_direction
   validate_active_indices
 
+Solver utilities
+----------------
+This module contains utilities to get and set the default solver
+used by SimPEG simulations.
+
+.. autosummary::
+  :toctree: generated/
+
+  solver_utils.get_default_solver
+  solver_utils.set_default_solver
 """
 
 from discretize.utils.interpolation_utils import interpolation_matrix
@@ -225,7 +236,7 @@ from .coord_utils import (
     rotation_matrix_from_normals,
     rotate_points_from_normals,
 )
-from .model_utils import depth_weighting
+from .model_utils import depth_weighting, distance_weighting
 from .plot_utils import plot2Ddata, plotLayer, plot_1d_layer_model
 from .io_utils import download
 from .pgi_utils import (

@@ -16,10 +16,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import SolverLU as Solver
 
 import discretize
 from simpeg import (
@@ -208,9 +204,7 @@ for x in src_locations:
 
 # create the survey and problem objects for running the forward simulation
 survey = FDEM.Survey(source_list)
-prob = FDEM.Simulation3DMagneticFluxDensity(
-    mesh, survey=survey, sigmaMap=mapping, solver=Solver
-)
+prob = FDEM.Simulation3DMagneticFluxDensity(mesh, survey=survey, sigmaMap=mapping)
 
 ###############################################################################
 # Set up data for inversion
@@ -288,7 +282,7 @@ reg = regularization.WeightedLeastSquares(inversion_mesh)
 opt = optimization.InexactGaussNewton(maxIterCG=10, remember="xc")
 invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
-betaest = directives.BetaEstimate_ByEig(beta0_ratio=0.05, n_pw_iter=1, seed=1)
+betaest = directives.BetaEstimate_ByEig(beta0_ratio=0.05, n_pw_iter=1, random_seed=1)
 target = directives.TargetMisfit()
 
 directiveList = [betaest, target]

@@ -35,7 +35,7 @@ class Error_if_Hit_ObjFct(objective_function.BaseObjectiveFunction):
 class TestBaseObjFct(unittest.TestCase):
     def test_derivs(self):
         objfct = objective_function.L2ObjectiveFunction()
-        self.assertTrue(objfct.test(eps=1e-9))
+        self.assertTrue(objfct.test(eps=1e-9, random_seed=42))
 
     def test_deriv2(self):
         nP = 100
@@ -70,7 +70,7 @@ class TestBaseObjFct(unittest.TestCase):
         objfct = objective_function.L2ObjectiveFunction(
             W=sp.eye(nP)
         ) + scalar * objective_function.L2ObjectiveFunction(W=sp.eye(nP))
-        self.assertTrue(objfct.test(eps=1e-9))
+        self.assertTrue(objfct.test(eps=1e-9, random_seed=42))
 
         self.assertTrue(np.all(objfct.multipliers == np.r_[1.0, scalar]))
 
@@ -84,7 +84,7 @@ class TestBaseObjFct(unittest.TestCase):
             + alpha1 * objective_function.L2ObjectiveFunction()
         )
         phi2 = objective_function.L2ObjectiveFunction() + alpha2 * phi1
-        self.assertTrue(phi2.test(eps=EPS))
+        self.assertTrue(phi2.test(eps=EPS, random_seed=42))
 
         self.assertTrue(len(phi1.multipliers) == 2)
         self.assertTrue(len(phi2.multipliers) == 2)

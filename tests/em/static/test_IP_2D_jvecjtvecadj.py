@@ -14,8 +14,6 @@ from simpeg import tests
 from simpeg.electromagnetics import resistivity as dc
 from simpeg.electromagnetics import induced_polarization as ip
 
-np.random.seed(30)
-
 
 class IPProblemTestsCC(unittest.TestCase):
     def setUp(self):
@@ -49,7 +47,7 @@ class IPProblemTestsCC(unittest.TestCase):
         )
 
         mSynth = np.ones(mesh.nC) * 0.1
-        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.WeightedLeastSquares(mesh)
@@ -73,14 +71,16 @@ class IPProblemTestsCC(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=63426,
         )
         self.assertTrue(passed)
 
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.survey.nD)
+        rng = np.random.default_rng(seed=30)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
@@ -89,7 +89,11 @@ class IPProblemTestsCC(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=7861325,
         )
         self.assertTrue(passed)
 
@@ -126,7 +130,7 @@ class IPProblemTestsN(unittest.TestCase):
         )
 
         mSynth = np.ones(mesh.nC) * 0.1
-        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.WeightedLeastSquares(mesh)
@@ -150,14 +154,16 @@ class IPProblemTestsN(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=87643,
         )
         self.assertTrue(passed)
 
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.survey.nD)
+        rng = np.random.default_rng(seed=30)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
@@ -166,7 +172,11 @@ class IPProblemTestsN(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=25938764,
         )
         self.assertTrue(passed)
 
