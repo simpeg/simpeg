@@ -276,5 +276,14 @@ class EM1D_TD_LineCurrent_FwdProblemTests(unittest.TestCase):
         np.testing.assert_allclose(self.bzdt, empymod_solution, rtol=1e-2)
 
 
+def test_backwards_compatible_filter_key():
+
+    srv = tdem.Survey([])
+    sim = tdem.Simulation1DLayered(survey=srv)
+    sim.time_filter = "key_81_CosSin_2009"
+
+    assert sim.time_filter == "key_81_2009"
+
+
 if __name__ == "__main__":
     unittest.main()

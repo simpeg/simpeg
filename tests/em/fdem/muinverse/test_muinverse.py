@@ -181,8 +181,9 @@ class MuTests(unittest.TestCase):
         rng = np.random.default_rng(seed=3321)
         dx = rng.uniform(size=mod.shape) * (mod.max() - mod.min()) * 0.01
 
-        np.random.seed(1983)  # set a random seed for check_derivative
-        return tests.check_derivative(fun, mod, dx=dx, num=4, plotIt=False)
+        return tests.check_derivative(
+            fun, mod, dx=dx, num=4, plotIt=False, random_seed=55
+        )
 
     def JtvecTest(
         self, prbtype="ElectricField", sigmaInInversion=False, invertMui=False

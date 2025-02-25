@@ -223,6 +223,12 @@ def test_ndarray_validation():
     assert np.issubdtype(out.dtype, complex)
     np.testing.assert_equal(out, np.array([3.0j, 4.0j, 5.0j]))
 
+    out = validate_ndarray_with_shape(
+        "array_prop", np.array([3j, 4j, 5j]), dtype=(float, complex)
+    )
+    assert np.issubdtype(out.dtype, complex)
+    np.testing.assert_equal(out, np.array([3.0j, 4.0j, 5.0j]))
+
     # Valid any shaped arrays
     assert validate_ndarray_with_shape(
         "NDarrayProperty", np.random.rand(3, 3, 3), ("*", "*", "*"), float
@@ -301,30 +307,65 @@ def test_ndarray_validation():
         )
 
 
-def test_type_validation():
+def test_type_validation_casting():
     # should try to cast to type
     assert type(validate_type("type_prop", 4.0, int)) == int
+
+    # should be okay if only able to cast to one of the possible types
+    assert type(validate_type("type_prop", "four", (float, str))) == str
+
+    # should error if unable to cast to single type
+    with pytest.raises(TypeError):
+        validate_type("type_prop", "four", float)
 
     # isinstance without casting should pass through
     assert type(validate_type("type_prop", 4.0, object, cast=False)) == float
 
-    # should return object without casting if isinstance
-    assert type(validate_type("type_prop", True, int, cast=False)) == bool
+    # should error if unable to cast to multiple types
+    with pytest.raises(TypeError):
+        validate_type("type_prop", "four", (float, int, complex))
+
+
+def test_type_validation_strict():
 
     # strict type checking
-    assert type(validate_type("type_prop", 4.0, float, strict=True)) == float
+    assert (
+        type(validate_type("type_prop", 4.0, float, cast=False, strict=True)) == float
+    )
 
-    # should error if unable to cast to type
-    with pytest.raises(TypeError):
-        validate_type("type_prop", "four", float)
+    # should ok if strict and is exact of one of the classes
+    assert (
+        type(
+            validate_type(
+                "type_prop", True, (int, float, bool), cast=False, strict=True
+            )
+        )
+        == bool
+    )
 
     # should error if strict and not an exact same class
     with pytest.raises(TypeError):
         validate_type("type_prop", True, int, cast=False, strict=True)
 
+    # should error if strict and not any class
+    with pytest.raises(TypeError):
+        validate_type("type_prop", True, (int, float, complex), cast=False, strict=True)
+
+
+def test_type_validation_subclasses():
+
+    # should return object without casting if isinstance
+    assert type(validate_type("type_prop", True, int, cast=False)) == bool
+
+    # ok if object without casting isinstance of one of multiple classes
+    assert type(validate_type("type_prop", True, (int, float, str), cast=False)) == bool
+
     # should error if not strict and not subclass
     with pytest.raises(TypeError):
         validate_type("type_prop", True, float, cast=False)
+
+    with pytest.raises(TypeError):
+        validate_type("type_prop", True, (float, complex, str), cast=False)
 
 
 def test_callable_validation():

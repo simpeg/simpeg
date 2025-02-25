@@ -13,10 +13,8 @@ from simpeg import (
 )
 from simpeg.utils import mkvc
 from simpeg.electromagnetics import resistivity as dc
-from pymatsolver import Pardiso
 import shutil
 
-np.random.seed(40)
 
 TOL = 1e-5
 FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
@@ -46,7 +44,7 @@ class DCProblemTestsCC(unittest.TestCase):
         )
 
         mSynth = np.ones(mesh.nC)
-        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
@@ -72,14 +70,16 @@ class DCProblemTestsCC(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=918367,
         )
         self.assertTrue(passed)
 
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(mkvc(self.dobs).shape[0])
+        rng = np.random.default_rng(seed=42)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=mkvc(self.dobs).shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
@@ -88,7 +88,11 @@ class DCProblemTestsCC(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=6
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=6,
+            random_seed=63,
         )
         self.assertTrue(passed)
 
@@ -129,27 +133,28 @@ class DCProblemTestsCC_fields(unittest.TestCase):
             mesh=mesh,
             survey=self.survey,
             sigmaMap=self.sigma_map,
-            solver=Pardiso,
             bc_type="Dirichlet",
         )
 
     def test_e_deriv(self):
-        x0 = -1 + 1e-1 * np.random.rand(self.sigma_map.nP)
+        rng = np.random.default_rng(seed=42)
+        x0 = -1 + 1e-1 * rng.uniform(size=self.sigma_map.nP)
 
         def fun(x):
             return self.prob.dpred(x), lambda x: self.prob.Jvec(x0, x)
 
-        return tests.check_derivative(fun, x0, num=3, plotIt=False)
+        return tests.check_derivative(fun, x0, num=3, plotIt=False, random_seed=98253)
 
     def test_e_adjoint(self):
         print("Adjoint Test for e")
 
-        m = -1 + 1e-1 * np.random.rand(self.sigma_map.nP)
+        rng = np.random.default_rng(seed=42)
+        m = -1 + 1e-1 * rng.uniform(size=self.sigma_map.nP)
         u = self.prob.fields(m)
         # u = u[self.survey.source_list,'e']
 
-        v = np.random.rand(self.survey.nD)
-        w = np.random.rand(self.sigma_map.nP)
+        v = rng.uniform(size=self.survey.nD)
+        w = rng.uniform(size=self.sigma_map.nP)
 
         vJw = v.dot(self.prob.Jvec(m, w, u))
         wJtv = w.dot(self.prob.Jtvec(m, v, u))
@@ -185,7 +190,7 @@ class DCProblemTestsN(unittest.TestCase):
         )
 
         mSynth = np.ones(mesh.nC)
-        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
@@ -211,14 +216,16 @@ class DCProblemTestsN(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=825,
         )
         self.assertTrue(passed)
 
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(mkvc(self.dobs).shape[0])
+        rng = np.random.default_rng(seed=42)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=mkvc(self.dobs).shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
@@ -227,7 +234,11 @@ class DCProblemTestsN(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=3456845,
         )
         self.assertTrue(passed)
 
@@ -282,14 +293,16 @@ class DCProblemTestsN_Robin(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=562,
         )
         self.assertTrue(passed)
 
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(mkvc(self.dobs).shape[0])
+        rng = np.random.default_rng(seed=42)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=mkvc(self.dobs).shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
@@ -298,7 +311,11 @@ class DCProblemTestsN_Robin(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=1254,
         )
         self.assertTrue(passed)
 
@@ -327,7 +344,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         )
 
         mSynth = np.ones(mesh.nC)
-        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
@@ -353,14 +370,16 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=98670234,
         )
         self.assertTrue(passed)
 
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(mkvc(self.dobs).shape[0])
+        rng = np.random.default_rng(seed=42)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=mkvc(self.dobs).shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
@@ -369,7 +388,11 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=4
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=4,
+            random_seed=5613789,
         )
         self.assertTrue(passed)
 
@@ -405,7 +428,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
         )
 
         mSynth = np.ones(mesh.nC)
-        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
@@ -431,14 +454,16 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=346,
         )
         self.assertTrue(passed)
 
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(mkvc(self.dobs).shape[0])
+        rng = np.random.default_rng(seed=42)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=mkvc(self.dobs).shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
@@ -447,7 +472,11 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=83475902,
         )
         self.assertTrue(passed)
 
@@ -487,7 +516,7 @@ class DCProblemTestsN_storeJ_Robin(unittest.TestCase):
         )
 
         mSynth = np.ones(mesh.nC)
-        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
@@ -513,14 +542,16 @@ class DCProblemTestsN_storeJ_Robin(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=908762,
         )
         self.assertTrue(passed)
 
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(mkvc(self.dobs).shape[0])
+        rng = np.random.default_rng(seed=42)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=mkvc(self.dobs).shape[0])
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
@@ -529,7 +560,11 @@ class DCProblemTestsN_storeJ_Robin(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=63426,
         )
         self.assertTrue(passed)
 

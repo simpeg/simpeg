@@ -44,14 +44,11 @@ def JvecAdjointTest(
     )
 
     u = simulation.fields(m)
-    np.random.seed(1983)
-    v = np.random.rand(
-        simulation.survey.nD,
-    )
+    rng = np.random.default_rng(seed=1983)
+    v = rng.uniform(size=simulation.survey.nD)
     # print problem.PropMap.PropModel.nP
-    w = np.random.rand(
-        len(m),
-    )
+    w = rng.uniform(size=len(m))
+
     # print(problem.Jvec(m, w, u))
     vJw = v.ravel().dot(simulation.Jvec(m, w, u))
     wJtv = w.ravel().dot(simulation.Jtvec(m, v, u))

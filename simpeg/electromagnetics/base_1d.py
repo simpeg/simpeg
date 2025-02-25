@@ -1,8 +1,9 @@
+from collections import namedtuple
+
 from scipy.constants import mu_0
 import numpy as np
 from scipy import sparse as sp
 from scipy.special import roots_legendre
-from empymod.transform import get_dlf_points
 
 from ..simulation import BaseSimulation
 
@@ -17,9 +18,15 @@ from ..utils import (
     validate_integer,
 )
 from .. import props
-from empymod.utils import check_hankel
+import libdlf
 
 __all__ = ["BaseEM1DSimulation"]
+
+HANKEL_FILTERS = {}
+for filter_name in libdlf.hankel.__all__:
+    hankel_filter = getattr(libdlf.hankel, filter_name)
+    if "j0" in hankel_filter.values and "j1" in hankel_filter.values:
+        HANKEL_FILTERS[filter_name] = hankel_filter
 
 ###############################################################################
 #                                                                             #
@@ -95,7 +102,7 @@ class BaseEM1DSimulation(BaseSimulation):
         n_points_per_path=3,
         **kwargs,
     ):
-        super().__init__(mesh=None, **kwargs)
+        super().__init__(**kwargs)
         self.sigma = sigma
         self.rho = rho
         self.sigmaMap = sigmaMap
@@ -137,30 +144,33 @@ class BaseEM1DSimulation(BaseSimulation):
 
         self.hankel_filter = hankel_filter
         self.fix_Jmatrix = fix_Jmatrix
-        # Check input arguments. If self.hankel_filter is not a valid filter,
-        # it will set it to the default (key_201_2009).
-        ht, htarg = check_hankel(
-            "dlf", {"dlf": self.hankel_filter, "pts_per_dec": 0}, 1
-        )
-
-        self._fhtfilt = htarg["dlf"]  # Store filter
-        # self.hankel_pts_per_dec = htarg["pts_per_dec"]  # Store pts_per_dec
         if self.verbose:
             print(">> Use " + self.hankel_filter + " filter for Hankel Transform")
 
     @property
     def hankel_filter(self):
-        """The hankely filter to use.
+        """The hankel filter used.
 
         Returns
         -------
         str
+
+        See Also
+        --------
+        libdlf.hankel
+            The package housing the filter values.
         """
         return self._hankel_filter
 
     @hankel_filter.setter
     def hankel_filter(self, value):
-        self._hankel_filter = validate_string("hankel_filter", value)
+        self._hankel_filter = validate_string(
+            "hankel_filter", value, list(HANKEL_FILTERS.keys())
+        )
+        base, j0, j1 = HANKEL_FILTERS[self._hankel_filter]()
+        hank = namedtuple("HankelFilter", "base j0 j1")
+        self._fhtfilt = hank(base, j0, j1)
+        self._coefficients_set = False
 
     _hankel_pts_per_dec = 0  # Default: Standard DLF
 
@@ -430,9 +440,8 @@ class BaseEM1DSimulation(BaseSimulation):
                     offsets = src.radius * np.ones(rx.locations.shape[0])
 
                 # computations for hankel transform...
-                lambd, _ = get_dlf_points(
-                    self._fhtfilt, offsets, self._hankel_pts_per_dec
-                )
+                lambd = self._fhtfilt.base / offsets[:, None]
+
                 # calculate the source-rx coefficients for the hankel transform
                 C0 = 0.0
                 C1 = 0.0
@@ -567,8 +576,8 @@ class BaseEM1DSimulation(BaseSimulation):
         self._W = self._W.tocsr()
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        toDelete = super().deleteTheseOnModelUpdate
+    def _delete_on_model_update(self):
+        toDelete = super()._delete_on_model_update
         if self.fix_Jmatrix is False:
             toDelete += ["_J", "_jtjdiag"]
         return toDelete

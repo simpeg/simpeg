@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from simpeg import (
     maps,
@@ -12,13 +13,14 @@ from simpeg import (
 
 def spectral_ip_mappings(
     mesh,
-    indActive=None,
+    active_cells=None,
     inactive_eta=1e-4,
     inactive_tau=1e-4,
     inactive_c=1e-4,
     is_log_eta=True,
     is_log_tau=True,
     is_log_c=True,
+    indActive=None,
 ):
     """
     Generates Mappings for Spectral Induced Polarization Simulation.
@@ -36,20 +38,39 @@ def spectral_ip_mappings(
 
     TODO: Illustrate input and output variables
     """
+    # Deprecate indActive argument
+    if indActive is not None:
+        if active_cells is not None:
+            raise TypeError(
+                "Cannot pass both 'active_cells' and 'indActive'."
+                "'indActive' has been deprecated and will be removed in "
+                " SimPEG v0.24.0, please use 'active_cells' instead.",
+            )
+        warnings.warn(
+            "'indActive' has been deprecated and will be removed in "
+            " SimPEG v0.24.0, please use 'active_cells' instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        active_cells = indActive
 
-    if indActive is None:
-        indActive = np.ones(mesh.nC, dtype=bool)
+    if active_cells is None:
+        active_cells = np.ones(mesh.nC, dtype=bool)
 
     actmap_eta = maps.InjectActiveCells(
-        mesh, indActive=indActive, valInactive=inactive_eta
+        mesh, active_cells=active_cells, value_inactive=inactive_eta
     )
     actmap_tau = maps.InjectActiveCells(
-        mesh, indActive=indActive, valInactive=inactive_tau
+        mesh, active_cells=active_cells, value_inactive=inactive_tau
     )
-    actmap_c = maps.InjectActiveCells(mesh, indActive=indActive, valInactive=inactive_c)
+    actmap_c = maps.InjectActiveCells(
+        mesh, active_cells=active_cells, value_inactive=inactive_c
+    )
 
     wires = maps.Wires(
-        ("eta", indActive.sum()), ("tau", indActive.sum()), ("c", indActive.sum())
+        ("eta", active_cells.sum()),
+        ("tau", active_cells.sum()),
+        ("c", active_cells.sum()),
     )
 
     if is_log_eta:

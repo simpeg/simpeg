@@ -15,18 +15,18 @@ authors = [
 ]
 
 keywords = ["geophysics", "inverse problem"]
-
 dependencies = [
+    "numpy>=1.22",
+    "scipy>=1.8",
+    "pymatsolver>=0.3",
     "discretize>=0.11.0",
     "empymod>=2.0.0",
     "geoana>=0.5.0",
     "geoh5py>=0.11.0a1, <0.12.dev",
     "matplotlib",
-    "numpy>=1.20",
-    "pandas",
-    "pymatsolver>=0.3, <0.4.dev",
-    "scikit-learn>=1.2",
-    "scipy>=1.8.0",
+    "discretize>=0.11",
+    "geoana>=0.7",
+    "libdlf",
 ]
 
 classifiers = [
@@ -51,23 +51,20 @@ dynamic = ["version"]
 file = 'LICENSE'
 
 [project.urls]
-Homepage = "http://simpeg.xyz/"
-Documentation = "https://docs.simpeg.xyz/"
+Homepage = 'https://simpeg.xyz'
+Documentation = 'https://docs.simpeg.xyz'
 Repository = "http://github.com/MiraGeoscience/simpeg"
 
 [project.optional-dependencies]
-dask = [
-    "dask[distributed]",
-    "distributed",
-    "fsspec>=0.3.3",
-    "zarr",
-]
-
-choclo = ["choclo"]
+dask = ["dask", "zarr", "fsspec>=0.3.3"]
+choclo = ["choclo>=0.3.0"]
 reporting = ["scooby"]
 plotting = ["plotly"]
+sklearn = ["scikit-learn>=1.2"]
+pandas = ["pandas"]
 all = [
-    "simpeg[dask,choclo,plotting,reporting]"
+    "simpeg[dask,choclo,plotting,reporting,sklearn,pandas]"
+
 ] # all optional *runtime* dependencies (not related to development)
 style = [
     "black==24.3.0",
@@ -85,6 +82,7 @@ docs = [
     "sphinxcontrib-apidoc",
     "pydata-sphinx-theme",
     "nbsphinx",
+    "empymod>=2.0.0",
     "numpydoc",
     "pillow",
     "sympy",
@@ -131,7 +129,8 @@ exclude_also = [
     # Don't complain if non-runnable code isn't run:
     "if 0:",
     "if __name__ == .__main__.:",
-
+    # Don't complain about default solver choices:
+    'if AvailableSolvers["Pardiso"]:',
     # Don't complain about abstract methods, they aren't run:
     "@(abc\\.)?abstractmethod",
 ]
@@ -259,3 +258,9 @@ rst-roles = [
     'meth',
     'ref',
 ]
+# pyproject.toml
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::simpeg.utils.solver_utils.DefaultSolverWarning",
+]
+

@@ -1,3 +1,4 @@
+import warnings
 from ....survey import BaseTimeSurvey
 from . import sources
 from . import receivers
@@ -14,25 +15,27 @@ class Survey(BaseTimeSurvey):
         List of SimPEG spectral IP sources
     survey_geometry : {"surface", "borehole", "general"}
         Survey geometry.
-    survey_type : {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
-        Survey type.
     """
 
     _n_pulse = 2
     _T = 8.0
 
-    def __init__(
-        self,
-        source_list=None,
-        survey_geometry="surface",
-        survey_type="dipole-dipole",
-        **kwargs,
-    ):
+    def __init__(self, source_list=None, survey_geometry="surface", **kwargs):
+        if (key := "survey_type") in kwargs:
+            warnings.warn(
+                f"Argument '{key}' is ignored and will be removed in future "
+                "versions of SimPEG. Types of sources and their corresponding "
+                "receivers are obtained from their respective classes, without "
+                "the need to specify the survey type.",
+                FutureWarning,
+                stacklevel=1,
+            )
+            kwargs.pop(key)
+
         if source_list is None:
             raise AttributeError("Survey cannot be instantiated without sources")
         super(Survey, self).__init__(source_list, **kwargs)
         self.survey_geometry = survey_geometry
-        self.survey_type = survey_type
 
     @property
     def n_pulse(self):
@@ -75,21 +78,38 @@ class Survey(BaseTimeSurvey):
 
     @property
     def survey_type(self):
-        """Survey type; one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
+        """
+        ``survey_type`` has been removed.
+
+        Survey type; one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
+
+        .. important:
+
+            The `survey_type` property has been removed. Types of sources and
+            their corresponding receivers are obtained from their respective
+            classes, without the need to specify the survey type.
 
         Returns
         -------
         str
             Survey type; one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
         """
-        return self._survey_type
+        warnings.warn(
+            "Property 'survey_type' has been removed."
+            "Types of sources and their corresponding receivers are obtained from "
+            "their respective classes, without the need to specify the survey type.",
+            FutureWarning,
+            stacklevel=1,
+        )
 
     @survey_type.setter
     def survey_type(self, var):
-        self._survey_type = validate_string(
-            "survey_type",
-            var,
-            ("dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"),
+        warnings.warn(
+            "Property 'survey_type' has been removed."
+            "Types of sources and their corresponding receivers are obtained from "
+            "their respective classes, without the need to specify the survey type.",
+            FutureWarning,
+            stacklevel=1,
         )
 
     @property

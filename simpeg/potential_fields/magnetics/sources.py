@@ -1,4 +1,3 @@
-from __future__ import annotations
 from ...survey import BaseSrc
 from ...utils.mat_utils import dip_azimuth2cartesian
 from ...utils.code_utils import deprecate_class, validate_float, validate_list_of_types
@@ -44,7 +43,7 @@ class UniformBackgroundField(BaseSrc):
 
         Returns
         -------
-        list of SimPEG.potential_fields.magnetics.Point
+        list of simpeg.potential_fields.magnetics.Point
             List of magnetic receivers associated with the survey
         """
         return self._receiver_list

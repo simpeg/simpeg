@@ -3,35 +3,45 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from scipy import linalg
 from scipy.special import logsumexp
-from sklearn.mixture import GaussianMixture
-from sklearn.cluster import KMeans
-from sklearn.utils import check_array
-from sklearn.utils.validation import check_is_fitted
-from sklearn.mixture._gaussian_mixture import (
-    _compute_precision_cholesky,
-    _compute_log_det_cholesky,
-    _estimate_gaussian_covariances_full,
-    _estimate_gaussian_covariances_diag,
-    _estimate_gaussian_covariances_spherical,
-    _check_means,
-    _check_precisions,
-    _check_shape,
-)
-from sklearn.mixture._base import check_random_state, ConvergenceWarning
 import warnings
 from simpeg.maps import IdentityMap
+
+from discretize.utils.code_utils import requires
+
+# sklearn is a soft dependency
+try:
+    import sklearn
+    from sklearn.mixture import GaussianMixture
+    from sklearn.cluster import KMeans
+    from sklearn.utils import check_array
+    from sklearn.utils.validation import check_is_fitted
+    from sklearn.mixture._gaussian_mixture import (
+        _compute_precision_cholesky,
+        _compute_log_det_cholesky,
+        _estimate_gaussian_covariances_full,
+        _estimate_gaussian_covariances_diag,
+        _estimate_gaussian_covariances_spherical,
+        _check_means,
+        _check_precisions,
+        _check_shape,
+    )
+    from sklearn.mixture._base import check_random_state, ConvergenceWarning
+
+except ImportError:
+    GaussianMixture = None
+    sklearn = False
 
 
 ###############################################################################
 # Disclaimer: the following classes built upon the GaussianMixture class      #
-# from Scikit-Learn. New functionalitie are added, as well as modifications to#
-# existing functions, to serve the purposes pursued within SimPEG.            #
+# from Scikit-Learn. New functionalities are added, as well as modifications  #
+# to existing functions, to serve the purposes pursued within SimPEG.         #
 # This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)    #
-# and we are grateful for their contributions to the open-source community.   #                                                   #
+# and we are grateful for their contributions to the open-source community.   #
 ###############################################################################
 
 
-class WeightedGaussianMixture(GaussianMixture):
+class WeightedGaussianMixture(GaussianMixture if sklearn else object):
     """
     Weighted Gaussian mixture class
 
@@ -65,6 +75,7 @@ class WeightedGaussianMixture(GaussianMixture):
         Active indexes
     """
 
+    @requires({"sklearn": sklearn})
     def __init__(
         self,
         n_components,
@@ -201,12 +212,14 @@ class WeightedGaussianMixture(GaussianMixture):
             The proportions of components of each mixture.
         n_components : int
             Number of components.
+        n_samples : int or None
+            Number of samples.
 
         Returns
         -------
-        weights : array, shape (n_components,)
+        weights : (n_components,) or (n_samples, n_components) numpy.ndarray
         """
-
+        weights = np.asarray(weights)
         if len(weights.shape) == 2:
             weights = check_array(
                 weights, dtype=[np.float64, np.float32], ensure_2d=True
@@ -219,7 +232,7 @@ class WeightedGaussianMixture(GaussianMixture):
             _check_shape(weights, (n_components,), "weights")
 
         # check range
-        if any(np.less(weights, 0.0)) or any(np.greater(weights, 1.0)):
+        if (weights < 0.0).any() or (weights > 1.0).any():
             raise ValueError(
                 "The parameter 'weights' should be in the range "
                 "[0, 1], but got max value %.5f, min value %.5f"
@@ -841,6 +854,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         Shape is (index of the fixed cell, lithology index) fixed_membership:
     """
 
+    @requires({"sklearn": sklearn})
     def __init__(
         self,
         gmmref,
@@ -1236,6 +1250,7 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
         List of mapping describing a nonlinear relationships between physical properties; one per cluster/unit.
     """
 
+    @requires({"sklearn": sklearn})
     def __init__(
         self,
         mesh,
@@ -1546,6 +1561,7 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
 
     """
 
+    @requires({"sklearn": sklearn})
     def __init__(
         self,
         gmmref,

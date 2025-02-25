@@ -4,7 +4,7 @@ from dask import array
 import numpy as np
 from multiprocessing import cpu_count
 
-Sim.clean_on_model_update = ["_Jmatrix", "_jtjdiag", "_stashed_fields"]
+Sim._delete_on_model_update = ["_Jmatrix", "_jtjdiag", "_stashed_fields"]
 Sim.sensitivity_path = "./sensitivity/"
 Sim._max_ram = 16
 Sim._max_chunk_size = 128
@@ -61,6 +61,30 @@ def getJtJdiag(self, m, W=None, f=None):
 
 
 Sim.getJtJdiag = getJtJdiag
+
+
+def __init__(
+    self,
+    survey=None,
+    sensitivity_path="./sensitivity/",
+    counter=None,
+    verbose=False,
+    chunk_format="row",
+    max_ram=16,
+    max_chunk_size=128,
+    **kwargs,
+):
+    _old_init(
+        self,
+        survey=survey,
+        sensitivity_path=sensitivity_path,
+        counter=counter,
+        verbose=verbose,
+        **kwargs,
+    )
+    self.chunk_format = chunk_format
+    self.max_ram = max_ram
+    self.max_chunk_size = max_chunk_size
 
 
 def Jvec(self, m, v, **_):
