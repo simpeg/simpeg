@@ -46,6 +46,7 @@ body:
     description: >
       Please include the output from `simpeg.Report()` to describe your system for us.
       Paste the output from `from simpeg import Report; print(Report())` below.
+    render: shell
   validations:
     required: true
 
