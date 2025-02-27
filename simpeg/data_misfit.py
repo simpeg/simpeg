@@ -225,15 +225,6 @@ class BaseDataMisfit(L2ObjectiveFunction):
         (n_data, ) numpy.ndarray
             The data residual vector.
         """
-        if self.data is None:
-            msg = (
-                f"Invalid `{type(self).__name__}.data` as None. "
-                "The `data` attribute should be set to a `simpeg.Data` "
-                "before a residual can be calculated"
-            )
-            raise ValueError(msg)
-
-        # Compute and validate dpred
         dpred = self.simulation.dpred(m, f=f)
         if np.isnan(dpred).any():
             msg = (
@@ -241,7 +232,6 @@ class BaseDataMisfit(L2ObjectiveFunction):
                 "returned an array that contain nan's."
             )
             raise ValueError(msg)
-
         return dpred - self.data.dobs
 
 
