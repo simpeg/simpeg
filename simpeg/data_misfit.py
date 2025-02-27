@@ -229,7 +229,7 @@ class BaseDataMisfit(L2ObjectiveFunction):
         if np.isnan(dpred).any():
             msg = (
                 f"The `{type(self.simulation).__name__}.dpred()` method "
-                "returned an array that contain nan's."
+                "returned an array that contains nan's."
             )
             raise ValueError(msg)
         return dpred - self.data.dobs

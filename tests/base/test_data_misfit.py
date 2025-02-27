@@ -101,7 +101,7 @@ class TestNaninResidual:
         data = Data(sample_survey)
         dmisfit = data_misfit.BaseDataMisfit(data, mock_simulation)
         msg = re.escape(
-            "The `MockSimulation.dpred()` method returned an array that contain nan's."
+            "The `MockSimulation.dpred()` method returned an array that contains nan's."
         )
         with pytest.raises(ValueError, match=msg):
             dmisfit.residual(m=None)
