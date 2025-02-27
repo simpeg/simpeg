@@ -226,8 +226,23 @@ class BaseDataMisfit(L2ObjectiveFunction):
             The data residual vector.
         """
         if self.data is None:
-            raise Exception("data must be set before a residual can be calculated.")
-        return self.simulation.residual(m, self.data.dobs, f=f)
+            msg = (
+                f"Invalid `{type(self).__name__}.data` as None. "
+                "The `data` attribute should be set to a `simpeg.Data` "
+                "before a residual can be calculated"
+            )
+            raise ValueError(msg)
+
+        # Compute and validate dpred
+        dpred = self.simulation.dpred(m, f=f)
+        if np.isnan(dpred).any():
+            msg = (
+                f"The `{type(self.simulation).__name__}.dpred()` method "
+                "returned an array that contain nan's."
+            )
+            raise ValueError(msg)
+
+        return dpred - self.data.dobs
 
 
 class L2DataMisfit(BaseDataMisfit):
