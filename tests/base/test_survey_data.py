@@ -1,6 +1,9 @@
+import pytest
 import unittest
 import numpy as np
 from simpeg import survey, utils, data
+
+from simpeg.survey import BaseRx, BaseSrc, BaseSurvey
 
 np.random.seed(100)
 
@@ -71,6 +74,71 @@ class TestData(unittest.TestCase):
             KeyError, mysurvey.get_source_indices, [srcs[1], srcs[2], SrcNotThere]
         )
 
+
+class TestSurveySlice:
+    """
+    Test BaseSurvey's slices for flat arrays.
+    """
+
+    def build_receiver(self, n_locs: int):
+        locs = np.ones(n_locs)[:, np.newaxis]
+        return BaseRx(locs)
+
+    def test_single_source(self):
+        """
+        Test slicing a survey with a single source.
+        """
+        n_locs = (4, 7)
+        receivers = [self.build_receiver(n_locs=i) for i in n_locs]
+        source = BaseSrc(receivers)
+        test_survey = BaseSurvey([source])
+        assert test_survey.get_slice(source, receivers[0]) == slice(0, 4)
+        assert test_survey.get_slice(source, receivers[1]) == slice(4, 4 + 7)
+
+    def test_multiple_sources_shared_receivers(self):
+        """
+        Test slicing a survey with multiple sources and shared receivers.
+        """
+        n_locs = (4, 7)
+        receivers = [self.build_receiver(n_locs=i) for i in n_locs]
+        sources = [BaseSrc(receivers), BaseSrc(receivers)]
+        test_survey = BaseSurvey(sources)
+        assert test_survey.get_slice(sources[0], receivers[0]) == slice(0, 4)
+        assert test_survey.get_slice(sources[0], receivers[1]) == slice(4, 4 + 7)
+        assert test_survey.get_slice(sources[1], receivers[0]) == slice(11, 11 +4)
+        assert test_survey.get_slice(sources[1], receivers[1]) == slice(15, 15 + 7)
+
+    def test_multiple_sources(self):
+        """
+        Test slicing a survey with multiple sources.
+        """
+        receivers_a = [self.build_receiver(n_locs=i) for i in (4, 7)]
+        receivers_b = [self.build_receiver(n_locs=i) for i in (8, 3)]
+        sources = [BaseSrc(receivers_a), BaseSrc(receivers_b)]
+        test_survey = BaseSurvey(sources)
+        assert test_survey.get_slice(sources[0], receivers_a[0]) == slice(0, 4)
+        assert test_survey.get_slice(sources[0], receivers_a[1]) == slice(4, 4 + 7)
+        assert test_survey.get_slice(sources[1], receivers_b[0]) == slice(11, 11 + 8)
+        assert test_survey.get_slice(sources[1], receivers_b[1]) == slice(19, 19 + 3)
+
+    @pytest.mark.parametrize("missing", ["source", "receiver", "both"])
+    def test_missing_source_receiver(self, missing):
+        """
+        Test error on missing source-receiver pair.
+        """
+        # Generate a survey
+        receivers_a = [self.build_receiver(n_locs=i) for i in (4, 7)]
+        receivers_b = [self.build_receiver(n_locs=i) for i in (8, 3)]
+        sources = [BaseSrc(receivers_a), BaseSrc(receivers_b)]
+        test_survey = BaseSurvey(sources)
+        # Try to slice with missing source-receiver pair
+        src, rx = sources[0], receivers_a[1]
+        if missing in ("source", "both"):
+            src = BaseSrc()  # new src not in the survey
+        if missing in ("receiver", "both"):
+            rx = self.build_receiver(1)  # new rx not in the survey
+        with pytest.raises(KeyError):
+            test_survey.get_slice(src, rx)
 
 if __name__ == "__main__":
     unittest.main()

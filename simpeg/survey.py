@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 import scipy.sparse as sp
 
 import warnings
@@ -553,6 +554,56 @@ class BaseSurvey:
     def _n_fields(self):
         """number of fields required for solution"""
         return sum(src._fields_per_source for src in self.source_list)
+
+    def get_slice(self, source, receiver):
+        """
+        Get slice to index a flat array for a given source-receiver pair.
+
+        Use this method to index a data or uncertainty array for
+        a source-receiver pair of this survey.
+
+        Parameters
+        ----------
+        source : .BaseSrc
+            Source object.
+        receiver : .BaseRx
+            Source object.
+
+        Returns
+        -------
+        slice
+        """
+        if (key:= (source, receiver)) not in self._array_slices:
+            msg = (
+                f"Source '{source}' and receiver '{receiver}' pair "
+                "is not part of the survey."
+            )
+            raise KeyError(msg)
+        return self._array_slices[key]
+
+    @property
+    def _array_slices(self):
+        """
+        Slices to index flat arrays for each source-receiver pair.
+
+        Returns
+        -------
+        dict
+            Dictionary for indexing any array by source and receiver.
+            Each key of the dictionary is a tuple of source and receiver.
+            Each value is a ``slice`` object that can be use to index flat
+            arrays, like data or uncertainty arrays.
+        """
+        if not hasattr(self, "_slices"):
+            slices = {}
+            end_offset = 0
+            for src in self.source_list:
+                for rx in src.receiver_list:
+                    start_offset = end_offset
+                    end_offset += rx.nD
+                    slices[(src, rx)] = slice(start_offset, end_offset)
+            self._slices = slices
+        return self._slices
 
 
 class BaseTimeSurvey(BaseSurvey):
