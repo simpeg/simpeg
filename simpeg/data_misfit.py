@@ -225,9 +225,14 @@ class BaseDataMisfit(L2ObjectiveFunction):
         (n_data, ) numpy.ndarray
             The data residual vector.
         """
-        if self.data is None:
-            raise Exception("data must be set before a residual can be calculated.")
-        return self.simulation.residual(m, self.data.dobs, f=f)
+        dpred = self.simulation.dpred(m, f=f)
+        if np.isnan(dpred).any() or np.isinf(dpred).any():
+            msg = (
+                f"The `{type(self.simulation).__name__}.dpred()` method "
+                "returned an array that contains `nan`s and/or `inf`s."
+            )
+            raise ValueError(msg)
+        return dpred - self.data.dobs
 
 
 class L2DataMisfit(BaseDataMisfit):
