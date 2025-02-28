@@ -458,7 +458,7 @@ texinfo_documents = [
         "SimPEG Documentation",
         "SimPEG Team",
         "SimPEG",
-        "Simulation and parameter estimation in geophyiscs.",
+        "Simulation and parameter estimation in geophysics.",
         "Miscellaneous",
     ),
 ]
