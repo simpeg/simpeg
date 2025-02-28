@@ -1,24 +1,32 @@
 .. _user_guide:
 
-==========
-User Guide
-==========
+SimPEG User Guide
+=================
 
-We've included some tutorials and gallery examples that will walk you through using
-discretize to solve your PDE. For more details on any of the functions, check out the
-API documentation.
+This guide is aimed to help users to get started with SimPEG and to learn how
+to simulate physics and run inversions for different types of geophysical data.
 
-Tutorials
----------
+For details on the available classes and functions in SimPEG, please visit the
+:ref:`api`.
+
 .. toctree::
   :glob:
   :maxdepth: 2
+  :caption: Getting Started
+
+  getting_started/big_picture
+  getting_started/installing
+  getting_started/contributing/index.rst
+
+.. toctree::
+  :glob:
+  :maxdepth: 2
+  :caption: Tutorials
 
   tutorials/**/index
 
-Examples
---------
 .. toctree::
   :maxdepth: 1
+  :caption: Examples
 
   examples/index

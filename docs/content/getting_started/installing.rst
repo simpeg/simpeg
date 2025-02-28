@@ -1,7 +1,8 @@
-.. _api_installing:
+.. _installing:
 
-Getting Started with SimPEG
-***************************
+==========
+Installing
+==========
 
 
 .. _installing_python:
