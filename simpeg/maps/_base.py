@@ -1140,20 +1140,24 @@ class Wires(object):
                 and isinstance(arg[0], str)
                 and
                 # TODO: this should be extended to a slice.
-                isinstance(arg[1], (int, np.integer))
+                isinstance(arg[1], (int, np.integer, Projection))
             ), (
-                "Each wire needs to be a tuple: (name, length). "
+                "Each wire needs to be a tuple: (name, length) or (name, Projection). "
                 "You provided: {}".format(arg)
             )
 
-        self._nP = int(np.sum([w[1] for w in args]))
         start = 0
         maps = []
         for arg in args:
-            wire = Projection(self.nP, slice(start, start + arg[1]))
+
+            if isinstance(arg[1], (int, np.integer)):
+                wire = Projection(self.nP, slice(start, start + arg[1]))
+                start += arg[1]
+            else:
+                wire = arg[1]
+
             setattr(self, arg[0], wire)
             maps += [(arg[0], wire)]
-            start += arg[1]
         self.maps = maps
 
         self._tuple = namedtuple("Model", [w[0] for w in args])
