@@ -572,15 +572,15 @@ class BaseSurvey:
         -------
         slice
         """
-        # Define generator for source and receiver pairs
-        source_receivers = (
+        # Create generator for source and receiver pairs
+        source_receiver_pairs = (
             (src, rx) for src in self.source_list for rx in src.receiver_list
         )
         # Get the start and end offsets for the given source and receiver, and
         # build the slice
         src_rx_slice = None
         end_offset = 0
-        for src, rx in source_receivers:
+        for src, rx in source_receiver_pairs:
             start_offset = end_offset
             end_offset += rx.nD
             if src is source and rx is receiver:
