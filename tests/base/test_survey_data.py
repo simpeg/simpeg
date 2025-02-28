@@ -1,3 +1,4 @@
+import re
 import pytest
 import unittest
 import numpy as np
@@ -137,7 +138,10 @@ class TestSurveySlice:
             src = BaseSrc()  # new src not in the survey
         if missing in ("receiver", "both"):
             rx = self.build_receiver(1)  # new rx not in the survey
-        with pytest.raises(KeyError):
+        msg = re.escape(
+            f"Source '{src}' and receiver '{rx}' pair " "is not part of the survey."
+        )
+        with pytest.raises(KeyError, match=msg):
             test_survey.get_slice(src, rx)
 
 
