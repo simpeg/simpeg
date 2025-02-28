@@ -90,6 +90,13 @@ Base Classes
   simulation.BaseFDEMSimulation
   fields.FieldsFDEM
 
+DOI subroutines
+===============
+.. autosummary::
+  :toctree: generated/
+
+  doi.doi_fdem_1d_layer_CA2012
+
 """
 
 from .survey import Survey
@@ -111,3 +118,7 @@ from .fields import (
 
 from . import sources as Src
 from . import receivers as Rx
+
+from .doi import (
+    doi_fdem_1d_layer_CA2012,
+)
