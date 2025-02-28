@@ -464,7 +464,9 @@ texinfo_documents = [
 ]
 
 tutorial_dirs = glob.glob("../tutorials/[!_]*")
-tut_gallery_dirs = ["content/tutorials/" + os.path.basename(f) for f in tutorial_dirs]
+tut_gallery_dirs = [
+    "content/user-guide/tutorials/" + os.path.basename(f) for f in tutorial_dirs
+]
 
 # Scaping images to generate on website
 from plotly.io._sg_scraper import plotly_sg_scraper
@@ -475,7 +477,7 @@ image_scrapers = ("matplotlib", plotly_sg_scraper)
 sphinx_gallery_conf = {
     # path to your examples scripts
     "examples_dirs": ["../examples"] + tutorial_dirs,
-    "gallery_dirs": ["content/examples"] + tut_gallery_dirs,
+    "gallery_dirs": ["content/user-guide/examples"] + tut_gallery_dirs,
     "within_subsection_order": FileNameSortKey,
     "filename_pattern": "\.py",
     "backreferences_dir": "content/api/generated/backreferences",

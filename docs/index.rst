@@ -5,7 +5,7 @@
     :hidden:
     :titlesonly:
 
-    User Guide <content/user_guide>
+    User Guide <content/user-guide/index>
     API Reference <content/api/index>
     Release Notes <content/release/index>
 
