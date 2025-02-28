@@ -1159,8 +1159,9 @@ class Wires(object):
             setattr(self, arg[0], wire)
             maps += [(arg[0], wire)]
         self.maps = maps
-
-        self._tuple = namedtuple("Model", [w[0] for w in args])
+        self._nP = maps[0][1].nP
+        self._tuple = namedtuple("Model", [name for name, _ in args])
+        self._projection = sp.vstack([wire.P for _, wire in self.maps])
 
     def __mul__(self, val):
         assert isinstance(val, np.ndarray)
@@ -1179,6 +1180,22 @@ class Wires(object):
             Number of parameters that the mapping acts on.
         """
         return self._nP
+
+    def deriv(self, m):
+        """
+        Derivative of the mapping with respect to the input parameters
+
+        Parameters
+        ----------
+        m : (n_param, ) numpy.ndarray
+            The model for which the gradient is evaluated.
+
+        Returns
+        -------
+        (n_param, ) numpy.ndarray
+            The Gradient of the mapping function evaluated for the model provided.
+        """
+        return self._projection
 
 
 class TileMap(IdentityMap):
