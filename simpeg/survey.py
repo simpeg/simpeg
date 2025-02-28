@@ -572,37 +572,28 @@ class BaseSurvey:
         -------
         slice
         """
-        if (key := (source, receiver)) not in self._array_slices:
+        # Define generator for source and receiver pairs
+        source_receivers = (
+            (src, rx) for src in self.source_list for rx in src.receiver_list
+        )
+        # Get the start and end offsets for the given source and receiver, and
+        # build the slice
+        src_rx_slice = None
+        end_offset = 0
+        for src, rx in source_receivers:
+            start_offset = end_offset
+            end_offset += rx.nD
+            if src is source and rx is receiver:
+                src_rx_slice = slice(start_offset, end_offset)
+                break
+        # Raise error if the source-receiver pair is not in the survey
+        if src_rx_slice is None:
             msg = (
                 f"Source '{source}' and receiver '{receiver}' pair "
                 "is not part of the survey."
             )
             raise KeyError(msg)
-        return self._array_slices[key]
-
-    @property
-    def _array_slices(self):
-        """
-        Slices to index flat arrays for each source-receiver pair.
-
-        Returns
-        -------
-        dict
-            Dictionary for indexing any array by source and receiver.
-            Each key of the dictionary is a tuple of source and receiver.
-            Each value is a ``slice`` object that can be use to index flat
-            arrays, like data or uncertainty arrays.
-        """
-        if not hasattr(self, "_slices"):
-            slices = {}
-            end_offset = 0
-            for src in self.source_list:
-                for rx in src.receiver_list:
-                    start_offset = end_offset
-                    end_offset += rx.nD
-                    slices[(src, rx)] = slice(start_offset, end_offset)
-            self._slices = slices
-        return self._slices
+        return src_rx_slice
 
 
 class BaseTimeSurvey(BaseSurvey):
