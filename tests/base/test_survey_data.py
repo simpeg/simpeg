@@ -105,7 +105,7 @@ class TestSurveySlice:
         test_survey = BaseSurvey(sources)
         assert test_survey.get_slice(sources[0], receivers[0]) == slice(0, 4)
         assert test_survey.get_slice(sources[0], receivers[1]) == slice(4, 4 + 7)
-        assert test_survey.get_slice(sources[1], receivers[0]) == slice(11, 11 +4)
+        assert test_survey.get_slice(sources[1], receivers[0]) == slice(11, 11 + 4)
         assert test_survey.get_slice(sources[1], receivers[1]) == slice(15, 15 + 7)
 
     def test_multiple_sources(self):
@@ -139,6 +139,7 @@ class TestSurveySlice:
             rx = self.build_receiver(1)  # new rx not in the survey
         with pytest.raises(KeyError):
             test_survey.get_slice(src, rx)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.typing import ArrayLike
 import scipy.sparse as sp
 
 import warnings
@@ -573,7 +572,7 @@ class BaseSurvey:
         -------
         slice
         """
-        if (key:= (source, receiver)) not in self._array_slices:
+        if (key := (source, receiver)) not in self._array_slices:
             msg = (
                 f"Source '{source}' and receiver '{receiver}' pair "
                 "is not part of the survey."
