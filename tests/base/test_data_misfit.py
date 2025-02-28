@@ -77,9 +77,13 @@ class MockSimulation(simulation.BaseSimulation):
     Mock simulation class that returns nan's in the dpred array.
     """
 
+    def __init__(self, invalid_value=np.nan):
+        self.invalid_value = invalid_value
+        super().__init__()
+
     def dpred(self, m=None, f=None):
         a = np.arange(4, dtype=np.float64)
-        a[1] = np.nan
+        a[1] = self.invalid_value
         return a
 
 
@@ -96,12 +100,14 @@ class TestNaninResidual:
         source = survey.BaseSrc([receivers])
         return survey.BaseSurvey([source])
 
-    def test_error(self, sample_survey):
-        mock_simulation = MockSimulation()
+    @pytest.mark.parametrize("invalid_value", [np.nan, np.inf])
+    def test_error(self, sample_survey, invalid_value):
+        mock_simulation = MockSimulation(invalid_value)
         data = Data(sample_survey)
         dmisfit = data_misfit.BaseDataMisfit(data, mock_simulation)
         msg = re.escape(
-            "The `MockSimulation.dpred()` method returned an array that contains nan's."
+            "The `MockSimulation.dpred()` method returned an array that contains "
+            "`nan`s and/or `inf`s."
         )
         with pytest.raises(ValueError, match=msg):
             dmisfit.residual(m=None)

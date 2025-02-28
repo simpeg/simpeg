@@ -226,10 +226,10 @@ class BaseDataMisfit(L2ObjectiveFunction):
             The data residual vector.
         """
         dpred = self.simulation.dpred(m, f=f)
-        if np.isnan(dpred).any():
+        if np.isnan(dpred).any() or np.isinf(dpred).any():
             msg = (
                 f"The `{type(self.simulation).__name__}.dpred()` method "
-                "returned an array that contains nan's."
+                "returned an array that contains `nan`s and/or `inf`s."
             )
             raise ValueError(msg)
         return dpred - self.data.dobs
