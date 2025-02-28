@@ -87,8 +87,8 @@ class MockSimulation(simulation.BaseSimulation):
         return a
 
 
-class TestNaninResidual:
-    """Test errors if the simulation return dpred with nans."""
+class TestNanOrInfInResidual:
+    """Test errors if the simulation return dpred with nans or infs."""
 
     @pytest.fixture
     def n_data(self):
