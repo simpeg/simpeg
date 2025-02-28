@@ -70,7 +70,7 @@ navigate between the pages for each different version.
 Several improvements have been made to the documentation pages.
 
 In the `Getting Started
-<https://docs.simpeg.xyz/latest/content/getting_started/index.html>`__ guide we
+<https://docs.simpeg.xyz/latest/content/user-guide/getting_started/index.html>`__ guide we
 stopped recommending ``mamba`` as the best package manager for installing
 SimPEG after ``conda`` started using ``libmamba`` under the hood, achieving the
 same performance as ``mamba``. We also included instructions so our

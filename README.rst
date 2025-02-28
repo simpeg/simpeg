@@ -161,5 +161,6 @@ Contributing
 We always welcome contributions towards SimPEG whether they are adding
 new code, suggesting improvements to existing codes, identifying bugs,
 providing examples, or anything that will improve SimPEG.
-Please checkout the `contributing guide <https://docs.simpeg.xyz/content/getting_started/contributing/index.html>`_
+Please checkout the
+`contributing guide <https://docs.simpeg.xyz/latest/content/user-guide/getting_started/contributing/index.html>`_
 for more information on how to contribute.
