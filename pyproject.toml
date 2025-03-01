@@ -16,16 +16,14 @@ authors = [
 
 keywords = ["geophysics", "inverse problem"]
 dependencies = [
-    "numpy>=1.22",
-    "scipy>=1.8",
-    "pymatsolver>=0.3",
-    "discretize>=0.11.0",
-    "empymod>=2.0.0",
+    "discretize>=0.11",
     "geoana>=0.7.0",
     "geoh5py>=0.11.0a1, <0.12.dev",
-    "matplotlib",
-    "discretize>=0.11",
     "libdlf",
+    "matplotlib",
+    "numpy>=1.22",
+    "pymatsolver>=0.3",
+    "scipy>=1.8",
 ]
 
 classifiers = [
