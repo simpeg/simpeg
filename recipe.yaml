@@ -26,20 +26,20 @@ requirements:
     - pip
   run:
     - python >=${{ python_min }}
-    - discretize >=0.11.0
-    - empymod >=2.0.0
+    - discretize >=0.11
     - geoana >=0.7.0
     - geoh5py >=0.11.0a1, <0.12.dev
+    - libdlf *
     - matplotlib-base
     - numpy >=1.22
-    - pandas
-    - pymatsolver >=0.3.0, <0.4.dev
-    - scikit-learn >=1.2
-    - scipy >=1.8.0
+    - pymatsolver >=0.3
+    - scipy >=1.8
   run_constraints:
+    - choclo >=0.3.0
     - dask-core *
     - distributed *
     - fsspec >=0.3.3
+    - scikit-learn >=1.2
     - zarr *
 
 tests:
