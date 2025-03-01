@@ -26,12 +26,12 @@ requirements:
     - pip
   run:
     - python >=${{ python_min }}
-    - discretize >=0.10.0
+    - discretize >=0.11.0
     - empymod >=2.0.0
-    - geoana >=0.5.0
-    - geoh5py >=0.10.0, <0.11.dev
+    - geoana >=0.7.0
+    - geoh5py >=0.11.0a1, <0.12.dev
     - matplotlib-base
-    - numpy >=1.20
+    - numpy >=1.22
     - pandas
     - pymatsolver >=0.3.0, <0.4.dev
     - scikit-learn >=1.2
