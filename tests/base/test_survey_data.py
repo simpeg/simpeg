@@ -85,7 +85,10 @@ class TestSurveySlice:
         locs = np.ones(n_locs)[:, np.newaxis]
         return BaseRx(locs)
 
-    def test_single_source(self):
+    @pytest.mark.parametrize(
+        "all_slices", [True, False], ids=["all_slices", "single_slice"]
+    )
+    def test_single_source(self, all_slices):
         """
         Test slicing a survey with a single source.
         """
@@ -93,10 +96,21 @@ class TestSurveySlice:
         receivers = [self.build_receiver(n_locs=i) for i in n_locs]
         source = BaseSrc(receivers)
         test_survey = BaseSurvey([source])
-        assert test_survey.get_slice(source, receivers[0]) == slice(0, 4)
-        assert test_survey.get_slice(source, receivers[1]) == slice(4, 4 + 7)
+        if all_slices:
+            expected = {
+                (source, receivers[0]): slice(0, 4),
+                (source, receivers[1]): slice(4, 4 + 7),
+            }
+            slices = test_survey.get_all_slices()
+            assert slices == expected
+        else:
+            assert test_survey.get_slice(source, receivers[0]) == slice(0, 4)
+            assert test_survey.get_slice(source, receivers[1]) == slice(4, 4 + 7)
 
-    def test_multiple_sources_shared_receivers(self):
+    @pytest.mark.parametrize(
+        "all_slices", [True, False], ids=["all_slices", "single_slices"]
+    )
+    def test_multiple_sources_shared_receivers(self, all_slices):
         """
         Test slicing a survey with multiple sources and shared receivers.
         """
@@ -104,23 +118,46 @@ class TestSurveySlice:
         receivers = [self.build_receiver(n_locs=i) for i in n_locs]
         sources = [BaseSrc(receivers), BaseSrc(receivers)]
         test_survey = BaseSurvey(sources)
-        assert test_survey.get_slice(sources[0], receivers[0]) == slice(0, 4)
-        assert test_survey.get_slice(sources[0], receivers[1]) == slice(4, 4 + 7)
-        assert test_survey.get_slice(sources[1], receivers[0]) == slice(11, 11 + 4)
-        assert test_survey.get_slice(sources[1], receivers[1]) == slice(15, 15 + 7)
+        if all_slices:
+            expected = {
+                (sources[0], receivers[0]): slice(0, 4),
+                (sources[0], receivers[1]): slice(4, 4 + 7),
+                (sources[1], receivers[0]): slice(11, 11 + 4),
+                (sources[1], receivers[1]): slice(15, 15 + 7),
+            }
+            slices = test_survey.get_all_slices()
+            assert slices == expected
+        else:
+            assert test_survey.get_slice(sources[0], receivers[0]) == slice(0, 4)
+            assert test_survey.get_slice(sources[0], receivers[1]) == slice(4, 4 + 7)
+            assert test_survey.get_slice(sources[1], receivers[0]) == slice(11, 11 + 4)
+            assert test_survey.get_slice(sources[1], receivers[1]) == slice(15, 15 + 7)
 
-    def test_multiple_sources(self):
+    @pytest.mark.parametrize(
+        "all_slices", [True, False], ids=["all_slices", "single_slices"]
+    )
+    def test_multiple_sources(self, all_slices):
         """
         Test slicing a survey with multiple sources.
         """
         receivers_a = [self.build_receiver(n_locs=i) for i in (4, 7)]
         receivers_b = [self.build_receiver(n_locs=i) for i in (8, 3)]
-        sources = [BaseSrc(receivers_a), BaseSrc(receivers_b)]
-        test_survey = BaseSurvey(sources)
-        assert test_survey.get_slice(sources[0], receivers_a[0]) == slice(0, 4)
-        assert test_survey.get_slice(sources[0], receivers_a[1]) == slice(4, 4 + 7)
-        assert test_survey.get_slice(sources[1], receivers_b[0]) == slice(11, 11 + 8)
-        assert test_survey.get_slice(sources[1], receivers_b[1]) == slice(19, 19 + 3)
+        srcs = [BaseSrc(receivers_a), BaseSrc(receivers_b)]
+        test_survey = BaseSurvey(srcs)
+        if all_slices:
+            expected = {
+                (srcs[0], receivers_a[0]): slice(0, 4),
+                (srcs[0], receivers_a[1]): slice(4, 4 + 7),
+                (srcs[1], receivers_b[0]): slice(11, 11 + 8),
+                (srcs[1], receivers_b[1]): slice(19, 19 + 3),
+            }
+            slices = test_survey.get_all_slices()
+            assert slices == expected
+        else:
+            assert test_survey.get_slice(srcs[0], receivers_a[0]) == slice(0, 4)
+            assert test_survey.get_slice(srcs[0], receivers_a[1]) == slice(4, 4 + 7)
+            assert test_survey.get_slice(srcs[1], receivers_b[0]) == slice(11, 11 + 8)
+            assert test_survey.get_slice(srcs[1], receivers_b[1]) == slice(19, 19 + 3)
 
     @pytest.mark.parametrize("missing", ["source", "receiver", "both"])
     def test_missing_source_receiver(self, missing):

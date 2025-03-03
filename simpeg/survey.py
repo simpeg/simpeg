@@ -571,6 +571,10 @@ class BaseSurvey:
         Returns
         -------
         slice
+
+        See also
+        --------
+        .get_all_slices
         """
         # Create generator for source and receiver pairs
         source_receiver_pairs = (
@@ -594,6 +598,42 @@ class BaseSurvey:
             )
             raise KeyError(msg)
         return src_rx_slice
+
+    def get_all_slices(self):
+        """
+        Get slices to index a flat array for all source-receiver pairs.
+
+        .. warning::
+
+            Survey objects are mutable objects. If the sources or receivers in
+            it get modified, slices generated with this method will not match
+            the arrays linked to the modified survey.
+
+        Returns
+        -------
+        dict[tuple[.BaseSrc, .BaseRx], slice]
+            Dictionary with flat array slices for every pair of source and
+            receiver in the survey. The keys are tuples of a single source and
+            a single receiver, and the values are the corresponding slice for
+            each one of them.
+
+        See also
+        --------
+        .get_slice
+        """
+        # Create generator for source and receiver pairs
+        source_receiver_pairs = (
+            (src, rx) for src in self.source_list for rx in src.receiver_list
+        )
+        # Get the start and end offsets for all source-receiver pairs, and
+        # build the slices.
+        slices = {}
+        end_offset = 0
+        for src, rx in source_receiver_pairs:
+            start_offset = end_offset
+            end_offset += rx.nD
+            slices[(src, rx)] = slice(start_offset, end_offset)
+        return slices
 
 
 class BaseTimeSurvey(BaseSurvey):
