@@ -290,9 +290,8 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         self.model = m
 
-        # Ensure v is a data object.
-        if not isinstance(v, Data):
-            v = Data(self.survey, v)
+        # Get dict of flat array slices for each source-receiver pair in the survey
+        survey_slices = self.survey.get_all_slices()
 
         Jtv = np.zeros(m.size)
 
@@ -302,8 +301,9 @@ class BaseFDEMSimulation(BaseEMSimulation):
                 df_duT_sum = 0
                 df_dmT_sum = 0
                 for rx in src.receiver_list:
+                    src_rx_slice = survey_slices[src, rx]
                     df_duT, df_dmT = rx.evalDeriv(
-                        src, self.mesh, f, v=v[src, rx], adjoint=True
+                        src, self.mesh, f, v=v[src_rx_slice], adjoint=True
                     )
                     if not isinstance(df_duT, Zero):
                         df_duT_sum += df_duT
