@@ -98,8 +98,8 @@ exclude_patterns = ["_build"]
 
 linkcheck_ignore = [
     r"https://github.com/simpeg/simpeg*",
-    "/content/examples/*",
-    "/content/tutorials/*",
+    "/examples/*",
+    "/tutorials/*",
     r"https://www.pardiso-project.org",
     r"https://docs.github.com/*",
     # GJI refuses the connexion during the check
@@ -465,7 +465,7 @@ texinfo_documents = [
 
 tutorial_dirs = glob.glob("../tutorials/[!_]*")
 tut_gallery_dirs = [
-    "content/user-guide/tutorials/" + os.path.basename(f) for f in tutorial_dirs
+    "user-guide/tutorials/" + os.path.basename(f) for f in tutorial_dirs
 ]
 
 # Scaping images to generate on website
@@ -477,10 +477,10 @@ image_scrapers = ("matplotlib", plotly_sg_scraper)
 sphinx_gallery_conf = {
     # path to your examples scripts
     "examples_dirs": ["../examples"] + tutorial_dirs,
-    "gallery_dirs": ["content/user-guide/examples"] + tut_gallery_dirs,
+    "gallery_dirs": ["user-guide/examples"] + tut_gallery_dirs,
     "within_subsection_order": FileNameSortKey,
     "filename_pattern": "\.py",
-    "backreferences_dir": "content/api/generated/backreferences",
+    "backreferences_dir": "api/generated/backreferences",
     "doc_module": "simpeg",
     "show_memory": True,
     "image_scrapers": image_scrapers,

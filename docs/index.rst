@@ -5,9 +5,9 @@
     :hidden:
     :titlesonly:
 
-    User Guide <content/user-guide/index>
-    API Reference <content/api/index>
-    Release Notes <content/release/index>
+    User Guide <user-guide/index>
+    API Reference <api/index>
+    Release Notes <release/index>
 
 .. Project Index & Search
 .. ======================
