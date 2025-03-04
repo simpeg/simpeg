@@ -45,10 +45,10 @@ nosetests.xml
 *.code-workspace
 docs/_build/
 docs/warnings.txt
-docs/content/api/generated/*
+docs/api/generated/*
 .DS_Store
-docs/content/user-guide/examples/*
-docs/content/user-guide/tutorials/*
+docs/user-guide/examples/*
+docs/user-guide/tutorials/*
 docs/modules/*
 docs/sg_execution_times.rst
 .vscode/*
