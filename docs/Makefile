@@ -42,9 +42,9 @@ help:
 
 clean:
 	rm -rf $(BUILDDIR)/*
-	rm -rf content/api/generated/
-	rm -rf content/user-guide/examples/
-	rm -rf content/user-guide/tutorials/
+	rm -rf api/generated/
+	rm -rf user-guide/examples/
+	rm -rf user-guide/tutorials/
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html -j auto
