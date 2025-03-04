@@ -32,6 +32,7 @@ dependencies:
   - sphinx
   - sphinx-gallery>=0.1.13
   - sphinxcontrib-apidoc
+  - sphinx-reredirects
   - pydata-sphinx-theme
   - empymod>=2.0.0
   - nbsphinx
