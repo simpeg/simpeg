@@ -544,7 +544,7 @@ MAPS = {
     "content/release": "/release",
     "content/tutorials": "/user-guide/tutorials",
     "content/examples": "/user-guide/examples",
-    "content/getting_started": "/user-guide/getting_started",
+    "content/getting_started": "/user-guide/getting-started",
 }
 IGNORE = ["content/getting_started/index.html", "content/user_guide.html"]
 
