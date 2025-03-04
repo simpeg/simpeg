@@ -99,8 +99,8 @@ exclude_patterns = ["_build"]
 
 linkcheck_ignore = [
     r"https://github.com/simpeg/simpeg*",
-    "/examples/*",
-    "/tutorials/*",
+    "/user-guide/examples/*",
+    "/user-guide/tutorials/*",
     r"https://www.pardiso-project.org",
     r"https://docs.github.com/*",
     # GJI refuses the connexion during the check
@@ -540,11 +540,11 @@ nitpick_ignore = [
 # Redirect some pages to support old links
 OLD_FILES_FNAME = Path(__file__).parent.resolve() / "old_content_files.txt"
 MAPS = {
-    "content/api": "/api",
-    "content/release": "/release",
-    "content/tutorials": "/user-guide/tutorials",
-    "content/examples": "/user-guide/examples",
-    "content/getting_started": "/user-guide/getting-started",
+    "content/api": "api",
+    "content/release": "release",
+    "content/tutorials": "user-guide/tutorials",
+    "content/examples": "user-guide/examples",
+    "content/getting_started": "user-guide/getting-started",
 }
 IGNORE = ["content/getting_started/index.html", "content/user_guide.html"]
 
@@ -553,7 +553,8 @@ def _get_source_target(old_fname: str) -> tuple[str, str]:
     for old_dir, new_dir in MAPS.items():
         if old_fname.startswith(old_dir):
             source = old_fname.removesuffix(".html")
-            target = old_fname.replace(old_dir, new_dir, 1)
+            n_parents = len(Path(old_fname).parents)
+            target = "../" * n_parents + old_fname.replace(old_dir, new_dir, 1)
             return source, target
     raise ValueError()
 
@@ -578,7 +579,7 @@ def build_redirects():
 redirects = build_redirects()
 redirects.update(
     {
-        "content/getting_started/index": "/user-guide/index.html",
-        "content/user_guide.html": "/user-guide/index.html",
+        "content/getting_started/index": "../../user-guide/index.html",
+        "content/user_guide": "../../user-guide/index.html",
     }
 )
