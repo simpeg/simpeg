@@ -24,6 +24,7 @@ dependencies:
   - sphinx
   - sphinx-gallery>=0.1.13
   - sphinxcontrib-apidoc
+  - sphinx-redirects
   - pydata-sphinx-theme
   - nbsphinx
   - numpydoc
