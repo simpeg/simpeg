@@ -3,7 +3,7 @@
 Working with Git and GitHub
 ---------------------------
 
-.. image:: https://github.githubassets.com/images/modules/logos_page/Octocat.png
+.. image:: https://octodex.github.com/images/original.png
     :align: right
     :width: 100
     :target: https://github.com
