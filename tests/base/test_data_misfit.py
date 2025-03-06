@@ -74,7 +74,7 @@ class DataMisfitTest(unittest.TestCase):
 
 class MockSimulation(simulation.BaseSimulation):
     """
-    Mock simulation class that returns nan's in the dpred array.
+    Mock simulation class that returns nans or infs in the dpred array.
     """
 
     def __init__(self, invalid_value=np.nan):
