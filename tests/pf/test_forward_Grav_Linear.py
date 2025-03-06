@@ -5,6 +5,7 @@ import discretize
 import simpeg
 from simpeg import maps
 from simpeg.potential_fields import gravity
+from simpeg.utils import model_builder
 from geoana.gravity import Prism
 import numpy as np
 
@@ -415,6 +416,72 @@ class TestsGravitySimulation:
         msg = "The choclo package couldn't be found."
         with pytest.raises(ImportError, match=msg):
             gravity.Simulation3DIntegral(simple_mesh, engine="choclo")
+
+
+class TestJacobianGravity:
+    """
+    Test methods related to Jacobian matrix in gravity simulation.
+    """
+
+    @pytest.fixture
+    def survey(self):
+        # Observation points
+        x = np.linspace(-20.0, 20.0, 4)
+        x, y = np.meshgrid(x, x)
+        z = 5.0 * np.ones_like(x)
+        coordinates = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
+        receivers = gravity.receivers.Point(coordinates, components="gz")
+        source_field = gravity.sources.SourceField(receiver_list=[receivers])
+        survey = gravity.survey.Survey(source_field)
+        return survey
+
+    @pytest.fixture
+    def mesh(self):
+        # Mesh
+        dh = 5.0
+        hx = [(dh, 4)]
+        mesh = discretize.TensorMesh([hx, hx, hx], "CCN")
+        return mesh
+
+    @pytest.fixture
+    def densities(self, mesh):
+        # Define densities
+        densities = 1e-10 * np.ones(mesh.n_cells)
+        ind_sphere = model_builder.get_indices_sphere(
+            np.r_[0.0, 0.0, -20.0], 10.0, mesh.cell_centers
+        )
+        densities[ind_sphere] = 0.2
+        return densities
+
+    @pytest.mark.parametrize(
+        "identity_map", [True, False], ids=["identity-map", "exp-map"]
+    )
+    def test_getJ(self, survey, mesh, densities, identity_map):
+        """
+        Test the getJ method.
+        """
+        mapping = (
+            maps.IdentityMap(nP=mesh.n_cells)
+            if identity_map
+            else maps.ExpMap(nP=mesh.n_cells)
+        )
+        simulation = gravity.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            rhoMap=mapping,
+            store_sensitivities="ram",
+            engine="choclo",
+        )
+        model = mapping * densities
+        jac = simulation.getJ(model)
+        if identity_map:
+            # With an identity mapping, the jacobian should be the same as G.
+            expected_jac = simulation.G
+        else:
+            # With an exp mapping, the jacobian should be G @ the mapping
+            # derivative.
+            expected_jac = simulation.G @ mapping.deriv(model)
+        np.testing.assert_allclose(jac, expected_jac)
 
 
 class TestConversionFactor:

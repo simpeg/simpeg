@@ -260,7 +260,10 @@ class Simulation3DIntegral(BasePFSimulation):
         """
         Sensitivity matrix
         """
-        return self.G.dot(self.rhoDeriv)
+        # Need to assign the model, so the rhoDeriv can be computed (if the
+        # model is None, the rhoDeriv is going to be Zero).
+        self.model = m
+        return self.G @ self.rhoDeriv
 
     def Jvec(self, m, v, f=None):
         """
