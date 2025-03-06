@@ -72,7 +72,7 @@ docs = [
     "sphinx",
     "sphinx-gallery>=0.1.13",
     "sphinxcontrib-apidoc",
-    "sphinx-redirects",
+    "sphinx-reredirects",
     "pydata-sphinx-theme",
     "nbsphinx",
     "empymod>=2.0.0",

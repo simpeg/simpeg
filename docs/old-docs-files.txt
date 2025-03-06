@@ -1,5 +1,5 @@
 # This file contains a list of old html files that got generated when building
-# the docs (simpeg v0.23.0). The list is used to create sphinx-redirects, so
+# the docs (simpeg v0.23.0). The list is used to create sphinx-reredirects, so
 # the old links to these files can be redirected to the new locations.
 # See docs/conf.py for more details.
 content/examples/01-maps/index.html

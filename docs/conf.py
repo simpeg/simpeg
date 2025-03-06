@@ -560,7 +560,7 @@ def _get_source_target(old_fname: str) -> tuple[str, str]:
 
 def build_redirects():
     """
-    Build redirects dictionary for sphinx-redirects.
+    Build redirects dictionary for sphinx-reredirects.
     """
     redirects = {}
     with OLD_FILES_FNAME.open(mode="r") as f:
