@@ -5,6 +5,7 @@ import discretize
 import simpeg
 from simpeg import maps
 from simpeg.potential_fields import gravity
+from simpeg.utils import model_builder
 from geoana.gravity import Prism
 import numpy as np
 
@@ -415,6 +416,151 @@ class TestsGravitySimulation:
         msg = "The choclo package couldn't be found."
         with pytest.raises(ImportError, match=msg):
             gravity.Simulation3DIntegral(simple_mesh, engine="choclo")
+
+
+class TestJacobianGravity:
+    """
+    Test methods related to Jacobian matrix in gravity simulation.
+    """
+
+    atol_ratio = 1e-7
+
+    @pytest.fixture
+    def survey(self):
+        # Observation points
+        x = np.linspace(-20.0, 20.0, 4)
+        x, y = np.meshgrid(x, x)
+        z = 5.0 * np.ones_like(x)
+        coordinates = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
+        receivers = gravity.receivers.Point(coordinates, components="gz")
+        source_field = gravity.sources.SourceField(receiver_list=[receivers])
+        survey = gravity.survey.Survey(source_field)
+        return survey
+
+    @pytest.fixture
+    def mesh(self):
+        # Mesh
+        dh = 5.0
+        hx = [(dh, 4)]
+        mesh = discretize.TensorMesh([hx, hx, hx], "CCN")
+        return mesh
+
+    @pytest.fixture
+    def densities(self, mesh):
+        # Define densities
+        densities = 1e-10 * np.ones(mesh.n_cells)
+        ind_sphere = model_builder.get_indices_sphere(
+            np.r_[0.0, 0.0, -20.0], 10.0, mesh.cell_centers
+        )
+        densities[ind_sphere] = 0.2
+        return densities
+
+    @pytest.fixture(params=["identity_map", "exp_map"])
+    def mapping(self, mesh, request):
+        mapping = (
+            maps.IdentityMap(nP=mesh.n_cells)
+            if request.param == "identity_map"
+            else maps.ExpMap(nP=mesh.n_cells)
+        )
+        return mapping
+
+    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
+    def test_getJ(self, survey, mesh, densities, mapping, engine):
+        """
+        Test the getJ method.
+        """
+        simulation = gravity.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            rhoMap=mapping,
+            store_sensitivities="ram",
+            engine=engine,
+        )
+        model = mapping * densities
+        jac = simulation.getJ(model)
+        # With an identity mapping, the jacobian should be the same as G.
+        # With an exp mapping, the jacobian should be G @ the mapping derivative.
+        identity_map = type(mapping) is maps.IdentityMap
+        expected_jac = (
+            simulation.G if identity_map else simulation.G @ mapping.deriv(model)
+        )
+        np.testing.assert_allclose(jac, expected_jac)
+
+    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
+    def test_Jvec(self, survey, mesh, densities, mapping, engine):
+        """
+        Test the Jvec method.
+        """
+        simulation = gravity.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            rhoMap=mapping,
+            store_sensitivities="ram",
+            engine=engine,
+        )
+        model = mapping * densities
+
+        vector = np.random.default_rng(seed=42).uniform(size=densities.size)
+        dpred = simulation.Jvec(model, vector)
+
+        identity_map = type(mapping) is maps.IdentityMap
+        expected_jac = (
+            simulation.G if identity_map else simulation.G @ mapping.deriv(model)
+        )
+        expected_dpred = expected_jac @ vector
+
+        atol = np.max(np.abs(expected_dpred)) * self.atol_ratio
+        np.testing.assert_allclose(dpred, expected_dpred, atol=atol)
+
+    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
+    def test_Jtvec(self, survey, mesh, densities, mapping, engine):
+        """
+        Test the Jtvec method.
+        """
+        simulation = gravity.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            rhoMap=mapping,
+            store_sensitivities="ram",
+            engine=engine,
+        )
+        model = mapping * densities
+
+        vector = np.random.default_rng(seed=42).uniform(size=survey.nD)
+        result = simulation.Jtvec(model, vector)
+
+        identity_map = type(mapping) is maps.IdentityMap
+        expected_jac = (
+            simulation.G if identity_map else simulation.G @ mapping.deriv(model)
+        )
+        expected = expected_jac.T @ vector
+
+        atol = np.max(np.abs(result)) * self.atol_ratio
+        np.testing.assert_allclose(result, expected, atol=atol)
+
+    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
+    def test_getJtJdiag(self, survey, mesh, densities, mapping, engine):
+        """
+        Test the getJtJdiag method.
+        """
+        simulation = gravity.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            rhoMap=mapping,
+            store_sensitivities="ram",
+            engine=engine,
+        )
+        model = mapping * densities
+        jtj_diag = simulation.getJtJdiag(model)
+
+        identity_map = type(mapping) is maps.IdentityMap
+        expected_jac = (
+            simulation.G if identity_map else simulation.G @ mapping.deriv(model)
+        )
+        expected = np.diag(expected_jac.T @ expected_jac)
+
+        atol = np.max(np.abs(jtj_diag)) * self.atol_ratio
+        np.testing.assert_allclose(jtj_diag, expected, atol=atol)
 
 
 class TestConversionFactor:
