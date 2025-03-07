@@ -455,58 +455,55 @@ class TestJacobianGravity:
         densities[ind_sphere] = 0.2
         return densities
 
-    @pytest.mark.parametrize(
-        "identity_map", [True, False], ids=["identity-map", "exp-map"]
-    )
-    def test_getJ(self, survey, mesh, densities, identity_map):
+    @pytest.fixture(params=["identity-map", "exp-map"])
+    def mapping(self, mesh, request):
+        mapping = (
+            maps.IdentityMap(nP=mesh.n_cells)
+            if request.param == "identity-map"
+            else maps.ExpMap(nP=mesh.n_cells)
+        )
+        return mapping
+
+    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
+    def test_getJ(self, survey, mesh, densities, mapping, engine):
         """
         Test the getJ method.
         """
-        mapping = (
-            maps.IdentityMap(nP=mesh.n_cells)
-            if identity_map
-            else maps.ExpMap(nP=mesh.n_cells)
-        )
         simulation = gravity.simulation.Simulation3DIntegral(
             survey=survey,
             mesh=mesh,
             rhoMap=mapping,
             store_sensitivities="ram",
-            engine="choclo",
+            engine=engine,
         )
         model = mapping * densities
         jac = simulation.getJ(model)
         # With an identity mapping, the jacobian should be the same as G.
         # With an exp mapping, the jacobian should be G @ the mapping derivative.
+        identity_map = type(mapping) is maps.IdentityMap
         expected_jac = (
             simulation.G if identity_map else simulation.G @ mapping.deriv(model)
         )
         np.testing.assert_allclose(jac, expected_jac)
 
-    @pytest.mark.parametrize(
-        "identity_map", [True, False], ids=["identity-map", "exp-map"]
-    )
-    def test_Jvec(self, survey, mesh, densities, identity_map):
+    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
+    def test_Jvec(self, survey, mesh, densities, mapping, engine):
         """
         Test the Jvec method.
         """
-        mapping = (
-            maps.IdentityMap(nP=mesh.n_cells)
-            if identity_map
-            else maps.ExpMap(nP=mesh.n_cells)
-        )
         simulation = gravity.simulation.Simulation3DIntegral(
             survey=survey,
             mesh=mesh,
             rhoMap=mapping,
             store_sensitivities="ram",
-            engine="choclo",
+            engine=engine,
         )
         model = mapping * densities
 
         vector = np.random.default_rng(seed=42).uniform(size=densities.size)
         dpred = simulation.Jvec(model, vector)
 
+        identity_map = type(mapping) is maps.IdentityMap
         expected_jac = (
             simulation.G if identity_map else simulation.G @ mapping.deriv(model)
         )
@@ -515,30 +512,24 @@ class TestJacobianGravity:
         atol = np.max(np.abs(expected_dpred)) * self.atol_ratio
         np.testing.assert_allclose(dpred, expected_dpred, atol=atol)
 
-    @pytest.mark.parametrize(
-        "identity_map", [True, False], ids=["identity-map", "exp-map"]
-    )
-    def test_Jtvec(self, survey, mesh, densities, identity_map):
+    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
+    def test_Jtvec(self, survey, mesh, densities, mapping, engine):
         """
         Test the Jtvec method.
         """
-        mapping = (
-            maps.IdentityMap(nP=mesh.n_cells)
-            if identity_map
-            else maps.ExpMap(nP=mesh.n_cells)
-        )
         simulation = gravity.simulation.Simulation3DIntegral(
             survey=survey,
             mesh=mesh,
             rhoMap=mapping,
             store_sensitivities="ram",
-            engine="choclo",
+            engine=engine,
         )
         model = mapping * densities
 
         vector = np.random.default_rng(seed=42).uniform(size=survey.nD)
         result = simulation.Jtvec(model, vector)
 
+        identity_map = type(mapping) is maps.IdentityMap
         expected_jac = (
             simulation.G if identity_map else simulation.G @ mapping.deriv(model)
         )
@@ -547,28 +538,22 @@ class TestJacobianGravity:
         atol = np.max(np.abs(result)) * self.atol_ratio
         np.testing.assert_allclose(result, expected, atol=atol)
 
-    @pytest.mark.parametrize(
-        "identity_map", [True, False], ids=["identity-map", "exp-map"]
-    )
-    def test_getJtJdiag(self, survey, mesh, densities, identity_map):
+    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
+    def test_getJtJdiag(self, survey, mesh, densities, mapping, engine):
         """
         Test the getJtJdiag method.
         """
-        mapping = (
-            maps.IdentityMap(nP=mesh.n_cells)
-            if identity_map
-            else maps.ExpMap(nP=mesh.n_cells)
-        )
         simulation = gravity.simulation.Simulation3DIntegral(
             survey=survey,
             mesh=mesh,
             rhoMap=mapping,
             store_sensitivities="ram",
-            engine="choclo",
+            engine=engine,
         )
         model = mapping * densities
         jtj_diag = simulation.getJtJdiag(model)
 
+        identity_map = type(mapping) is maps.IdentityMap
         expected_jac = (
             simulation.G if identity_map else simulation.G @ mapping.deriv(model)
         )
