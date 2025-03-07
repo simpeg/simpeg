@@ -241,6 +241,8 @@ class Simulation3DIntegral(BasePFSimulation):
         """
         Return the diagonal of JtJ
         """
+        # Need to assign the model, so the rhoDeriv can be computed (if the
+        # model is None, the rhoDeriv is going to be Zero).
         self.model = m
 
         if W is None:
@@ -269,6 +271,9 @@ class Simulation3DIntegral(BasePFSimulation):
         """
         Sensitivity times a vector
         """
+        # Need to assign the model, so the rhoDeriv can be computed (if the
+        # model is None, the rhoDeriv is going to be Zero).
+        self.model = m
         dmu_dm_v = self.rhoDeriv @ v
         return self.G @ dmu_dm_v.astype(self.sensitivity_dtype, copy=False)
 
@@ -276,6 +281,9 @@ class Simulation3DIntegral(BasePFSimulation):
         """
         Sensitivity transposed times a vector
         """
+        # Need to assign the model, so the rhoDeriv can be computed (if the
+        # model is None, the rhoDeriv is going to be Zero).
+        self.model = m
         Jtvec = self.G.T @ v.astype(self.sensitivity_dtype, copy=False)
         return np.asarray(self.rhoDeriv.T @ Jtvec)
 

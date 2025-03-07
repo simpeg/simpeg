@@ -423,6 +423,8 @@ class TestJacobianGravity:
     Test methods related to Jacobian matrix in gravity simulation.
     """
 
+    atol_ratio = 1e-7
+
     @pytest.fixture
     def survey(self):
         # Observation points
@@ -474,14 +476,106 @@ class TestJacobianGravity:
         )
         model = mapping * densities
         jac = simulation.getJ(model)
-        if identity_map:
-            # With an identity mapping, the jacobian should be the same as G.
-            expected_jac = simulation.G
-        else:
-            # With an exp mapping, the jacobian should be G @ the mapping
-            # derivative.
-            expected_jac = simulation.G @ mapping.deriv(model)
+        # With an identity mapping, the jacobian should be the same as G.
+        # With an exp mapping, the jacobian should be G @ the mapping derivative.
+        expected_jac = (
+            simulation.G if identity_map else simulation.G @ mapping.deriv(model)
+        )
         np.testing.assert_allclose(jac, expected_jac)
+
+    @pytest.mark.parametrize(
+        "identity_map", [True, False], ids=["identity-map", "exp-map"]
+    )
+    def test_Jvec(self, survey, mesh, densities, identity_map):
+        """
+        Test the Jvec method.
+        """
+        mapping = (
+            maps.IdentityMap(nP=mesh.n_cells)
+            if identity_map
+            else maps.ExpMap(nP=mesh.n_cells)
+        )
+        simulation = gravity.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            rhoMap=mapping,
+            store_sensitivities="ram",
+            engine="choclo",
+        )
+        model = mapping * densities
+
+        vector = np.random.default_rng(seed=42).uniform(size=densities.size)
+        dpred = simulation.Jvec(model, vector)
+
+        expected_jac = (
+            simulation.G if identity_map else simulation.G @ mapping.deriv(model)
+        )
+        expected_dpred = expected_jac @ vector
+
+        atol = np.max(np.abs(expected_dpred)) * self.atol_ratio
+        np.testing.assert_allclose(dpred, expected_dpred, atol=atol)
+
+    @pytest.mark.parametrize(
+        "identity_map", [True, False], ids=["identity-map", "exp-map"]
+    )
+    def test_Jtvec(self, survey, mesh, densities, identity_map):
+        """
+        Test the Jtvec method.
+        """
+        mapping = (
+            maps.IdentityMap(nP=mesh.n_cells)
+            if identity_map
+            else maps.ExpMap(nP=mesh.n_cells)
+        )
+        simulation = gravity.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            rhoMap=mapping,
+            store_sensitivities="ram",
+            engine="choclo",
+        )
+        model = mapping * densities
+
+        vector = np.random.default_rng(seed=42).uniform(size=survey.nD)
+        result = simulation.Jtvec(model, vector)
+
+        expected_jac = (
+            simulation.G if identity_map else simulation.G @ mapping.deriv(model)
+        )
+        expected = expected_jac.T @ vector
+
+        atol = np.max(np.abs(result)) * self.atol_ratio
+        np.testing.assert_allclose(result, expected, atol=atol)
+
+    @pytest.mark.parametrize(
+        "identity_map", [True, False], ids=["identity-map", "exp-map"]
+    )
+    def test_getJtJdiag(self, survey, mesh, densities, identity_map):
+        """
+        Test the getJtJdiag method.
+        """
+        mapping = (
+            maps.IdentityMap(nP=mesh.n_cells)
+            if identity_map
+            else maps.ExpMap(nP=mesh.n_cells)
+        )
+        simulation = gravity.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            rhoMap=mapping,
+            store_sensitivities="ram",
+            engine="choclo",
+        )
+        model = mapping * densities
+        jtj_diag = simulation.getJtJdiag(model)
+
+        expected_jac = (
+            simulation.G if identity_map else simulation.G @ mapping.deriv(model)
+        )
+        expected = np.diag(expected_jac.T @ expected_jac)
+
+        atol = np.max(np.abs(jtj_diag)) * self.atol_ratio
+        np.testing.assert_allclose(jtj_diag, expected, atol=atol)
 
 
 class TestConversionFactor:
