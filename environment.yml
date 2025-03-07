@@ -57,11 +57,8 @@ dependencies:
   - flake8-mutable==1.2.0
   - flake8-rst-docstrings==0.3.0
   - flake8-docstrings==1.7.0
+  - zizmor # lint GitHub Actions workflows
 
 # recommended
   - jupyter
   - pyvista
-
-  - pip
-  - pip:
-    - zizmor # lint GitHub Actions workflows

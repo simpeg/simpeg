@@ -135,7 +135,7 @@ directory = "coverage_html_report"
 
 [tool.black]
 required-version = '24.3.0'
-target-version = ['py38', 'py39', 'py310', 'py311']
+target-version = ['py310', 'py311', 'py312']
 
 [tool.flake8]
 extend-ignore = [
