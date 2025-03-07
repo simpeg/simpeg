@@ -455,11 +455,11 @@ class TestJacobianGravity:
         densities[ind_sphere] = 0.2
         return densities
 
-    @pytest.fixture(params=["identity-map", "exp-map"])
+    @pytest.fixture(params=["identity_map", "exp_map"])
     def mapping(self, mesh, request):
         mapping = (
             maps.IdentityMap(nP=mesh.n_cells)
-            if request.param == "identity-map"
+            if request.param == "identity_map"
             else maps.ExpMap(nP=mesh.n_cells)
         )
         return mapping
