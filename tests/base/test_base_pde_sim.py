@@ -1,11 +1,14 @@
 import re
 
-from simpeg.base import with_property_mass_matrices, BasePDESimulation
-from simpeg import props, maps
+from simpeg.base import (
+    BasePDESimulation,
+    BaseElectricalPDESimulation,
+    BaseMagneticPDESimulation,
+)
+from simpeg import maps
 import unittest
 import discretize
 import numpy as np
-from scipy.constants import mu_0
 from discretize.tests import check_derivative
 from discretize.utils import Zero
 import scipy.sparse as sp
@@ -15,31 +18,8 @@ from simpeg.utils.solver_utils import get_default_solver
 
 
 # define a very simple class...
-@with_property_mass_matrices("sigma")
-@with_property_mass_matrices("mu")
-class SimpleSim(BasePDESimulation):
-    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
-
-    mu, muMap, muDeriv = props.Invertible("Magnetic Permeability")
-
-    def __init__(
-        self, mesh, survey=None, sigma=None, sigmaMap=None, mu=mu_0, muMap=None
-    ):
-        super().__init__(mesh=mesh, survey=survey)
-        self.sigma = sigma
-        self.mu = mu
-        self.sigmaMap = sigmaMap
-        self.muMap = muMap
-
-    @property
-    def _delete_on_model_update(self):
-        """
-        matrices to be deleted if the model for conductivity/resistivity is updated
-        """
-        toDelete = super()._delete_on_model_update
-        if self.sigmaMap is not None or self.rhoMap is not None:
-            toDelete = toDelete + self._clear_on_sigma_update
-        return toDelete
+class SimpleSim(BaseElectricalPDESimulation, BaseMagneticPDESimulation):
+    pass
 
 
 class TestSim(unittest.TestCase):
