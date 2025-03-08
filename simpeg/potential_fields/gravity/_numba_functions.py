@@ -13,7 +13,7 @@ except ImportError:
 
     choclo = None
 else:
-    from numba import jit, prange
+    from numba import jit, prange, get_num_threads
 
 from .._numba_utils import kernels_in_nodes_to_cell
 
@@ -161,6 +161,170 @@ def _sensitivity_gravity(
                 kernels,
                 cell_nodes[k, :],
             )
+
+
+@jit(nopython=True, parallel=False)
+def _sensitivity_gravity_t_dot_v_serial(
+    receivers,
+    nodes,
+    cell_nodes,
+    kernel_func,
+    constant_factor,
+    vector,
+    result,
+):
+    """
+    Compute ``G.T @ v`` in serial, without building G.
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    nodes : (n_active_nodes, 3) numpy.ndarray
+        Array with the location of the mesh nodes.
+    cell_nodes : (n_active_cells, 8) numpy.ndarray
+        Array of integers, where each row contains the indices of the nodes for
+        each active cell in the mesh.
+    kernel_func : callable
+        Kernel function that will be evaluated on each node of the mesh. Choose
+        one of the kernel functions in ``choclo.prism``.
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+    vector : (n_receivers) numpy.ndarray
+        Array that represents the vector used in the dot product.
+    result : (n_active_cells) numpy.ndarray
+        Running result array where the output of the dot product will be added to.
+
+    Notes
+    -----
+    This function is meant to be run in serial. Writing to the ``result`` array
+    inside a parallel loop over the receivers generates a race condition that
+    leads to corrupted outputs.
+
+    One way to overcome this is to write the ``result`` array as a whole
+    (instead of writing to slices or indices), because Numba can generate
+    copies of it before writing to avoid race conditions.
+
+    Nonetheless, a per-thread implementation (see
+    ``_sensitivity_gravity_t_dot_v_parallel`` is more efficient).
+    """
+    n_receivers = receivers.shape[0]
+    n_nodes = nodes.shape[0]
+    n_cells = cell_nodes.shape[0]
+    # Evaluate kernel function on each node, for each receiver location
+    for i in range(n_receivers):
+        # Allocate vector for kernels evaluated on mesh nodes
+        kernels = np.empty(n_nodes)
+        for j in range(n_nodes):
+            kernels[j] = _evaluate_kernel(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                nodes[j, 0],
+                nodes[j, 1],
+                nodes[j, 2],
+                kernel_func,
+            )
+        # Compute the i-th row of the sensitivity matrix and multiply it by the
+        # i-th element of the vector.
+        for k in range(n_cells):
+            result[k] += (
+                constant_factor
+                * vector[i]
+                * kernels_in_nodes_to_cell(
+                    kernels,
+                    cell_nodes[k, :],
+                )
+            )
+
+
+@jit(nopython=True, parallel=True)
+def _sensitivity_gravity_t_dot_v_parallel(
+    receivers,
+    nodes,
+    cell_nodes,
+    kernel_func,
+    constant_factor,
+    vector,
+    result,
+):
+    """
+    Compute ``G.T @ v`` in parallel without building G.
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    nodes : (n_active_nodes, 3) numpy.ndarray
+        Array with the location of the mesh nodes.
+    cell_nodes : (n_active_cells, 8) numpy.ndarray
+        Array of integers, where each row contains the indices of the nodes for
+        each active cell in the mesh.
+    kernel_func : callable
+        Kernel function that will be evaluated on each node of the mesh. Choose
+        one of the kernel functions in ``choclo.prism``.
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+    vector : (n_receivers) numpy.ndarray
+        Array that represents the vector used in the dot product.
+    result : (n_active_cells) numpy.ndarray
+        Running result array where the output of the dot product will be added to.
+
+    Notes
+    -----
+    This function is meant to be run in parallel. This implementation splits
+    the task between threads on an outer loop. Each thread writes to their own
+    slice of a running result array to avoid race conditions. By the end, the
+    results obtained by each thread are added to obtain the final result.
+
+    """
+    n_receivers = receivers.shape[0]
+    n_nodes = nodes.shape[0]
+    n_cells = cell_nodes.shape[0]
+    n_threads = get_num_threads()
+    # Estimate number of receivers that will be assigned to each thread
+    chunk_size = n_receivers // n_threads
+    # Allocate result arrays, one per thread
+    result_per_thread = np.zeros((n_threads, n_cells), dtype=result.dtype)
+    # Split the job per thread
+    for thread_index in prange(n_threads):
+        # Allocate vector for kernels evaluated on mesh nodes.
+        kernels = np.empty(n_nodes)
+        # Evaluate kernel function on each node, for each receiver location in
+        # the assigned chunk to this thread.
+        start = thread_index * chunk_size
+        end = (
+            (thread_index + 1) * chunk_size
+            if thread_index < n_threads - 1
+            else n_receivers
+        )
+        for i in range(start, end):
+            for j in range(n_nodes):
+                kernels[j] = _evaluate_kernel(
+                    receivers[i, 0],
+                    receivers[i, 1],
+                    receivers[i, 2],
+                    nodes[j, 0],
+                    nodes[j, 1],
+                    nodes[j, 2],
+                    kernel_func,
+                )
+            # Compute sensitivity matrix elements for the i-th row, multiply them
+            # by the i-th element of the vector and add them to the running result
+            # array.
+            for k in range(n_cells):
+                result_per_thread[thread_index, k] += (
+                    constant_factor
+                    * vector[i]
+                    * kernels_in_nodes_to_cell(
+                        kernels,
+                        cell_nodes[k, :],
+                    )
+                )
+    # Reduce the operation and write into the result array
+    result[:] += np.sum(result_per_thread, axis=0)
 
 
 @jit(nopython=True)

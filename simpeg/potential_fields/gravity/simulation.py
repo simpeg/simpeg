@@ -17,6 +17,8 @@ from ._numba_functions import (
     _sensitivity_gravity_parallel,
     _forward_gravity_serial,
     _forward_gravity_parallel,
+    _sensitivity_gravity_t_dot_v_serial,
+    _sensitivity_gravity_t_dot_v_parallel,
     _forward_gravity_2d_mesh_serial,
     _forward_gravity_2d_mesh_parallel,
     _sensitivity_gravity_2d_mesh_serial,
@@ -207,9 +209,11 @@ class Simulation3DIntegral(BasePFSimulation):
             if self.numba_parallel:
                 self._sensitivity_gravity = _sensitivity_gravity_parallel
                 self._forward_gravity = _forward_gravity_parallel
+                self._sensitivity_t_dot_v = _sensitivity_gravity_t_dot_v_parallel
             else:
                 self._sensitivity_gravity = _sensitivity_gravity_serial
                 self._forward_gravity = _forward_gravity_serial
+                self._sensitivity_t_dot_v = _sensitivity_gravity_t_dot_v_serial
 
     def fields(self, m):
         """
@@ -282,10 +286,15 @@ class Simulation3DIntegral(BasePFSimulation):
         Gravity forward operator
         """
         if getattr(self, "_G", None) is None:
-            if self.engine == "choclo":
-                self._G = self._sensitivity_matrix()
-            else:
-                self._G = self.linear_operator()
+            match self.engine, self.store_sensitivities:
+                case ("choclo", "forward_only"):
+                    self._G = self._sensitivity_matrix_as_operator()
+                case ("choclo", _):
+                    self._G = self._sensitivity_matrix()
+                case ("geoana", "forward_only"):
+                    raise NotImplementedError()
+                case ("geoana", _):
+                    self._G = self.linear_operator()
         return self._G
 
     @property
@@ -479,6 +488,66 @@ class Simulation3DIntegral(BasePFSimulation):
                 )
             index_offset += n_rows
         return sensitivity_matrix
+
+    def _sensitivity_matrix_transpose_dot_vec(self, vector):
+        """
+        Compute ``G.T @ v`` without building G.
+
+        Parameters
+        ----------
+        vector : (nD) numpy.ndarray
+            Array that represents the vector ``v`` used in the dot product with
+            ``G.T``.
+
+        Returns
+        -------
+        (n_active_cells) numpy.ndarray
+        """
+        # Gather active nodes and the indices of the nodes for each active cell
+        active_nodes, active_cell_nodes = self._get_active_nodes()
+        # Allocate resulting array
+        result = np.zeros(self.nC)
+        # Start filling the result array
+        index_offset = 0
+        for components, receivers in self._get_components_and_receivers():
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                kernel_func = CHOCLO_KERNELS[component]
+                conversion_factor = _get_conversion_factor(component)
+                vector_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
+                )
+                self._sensitivity_t_dot_v(
+                    receivers,
+                    active_nodes,
+                    active_cell_nodes,
+                    kernel_func,
+                    constants.G * conversion_factor,
+                    vector[vector_slice],
+                    result,
+                )
+            index_offset += n_rows
+        return result
+
+    def _sensitivity_matrix_as_operator(self):
+        """
+        Create a LinearOperator for the sensitivity matrix G.
+
+        Returns
+        -------
+        scipy.sparse.linalg.LinearOperator
+        """
+        from scipy.sparse.linalg import LinearOperator
+
+        shape = (self.survey.nD, self.nC)
+        linear_op = LinearOperator(
+            shape=shape,
+            matvec=self._forward,
+            rmatvec=self._sensitivity_matrix_transpose_dot_vec,
+            dtype=np.float64,
+        )
+        return linear_op
 
 
 class SimulationEquivalentSourceLayer(
