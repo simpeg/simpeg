@@ -40,6 +40,8 @@ requirements:
     - choclo >=0.3.0
     - fsspec >=0.3.3
     - scikit-learn >=1.2
+  run_exports:
+    - libblas * *mkl
 
 tests:
   - python:
