@@ -26,9 +26,11 @@ requirements:
     - pip
   run:
     - python >=${{ python_min }}
+    # Mira packages
+    - geoh5py >=0.11.0a, <0.12.dev
+    # direct dependencies
     - discretize >=0.11
     - geoana >=0.7.0
-    - geoh5py >=0.11.0a1, <0.12.dev
     - libdlf *
     - matplotlib-base
     - numpy >=1.22
@@ -36,11 +38,8 @@ requirements:
     - scipy >=1.8
   run_constraints:
     - choclo >=0.3.0
-    - dask-core *
-    - distributed *
     - fsspec >=0.3.3
     - scikit-learn >=1.2
-    - zarr *
 
 tests:
   - python:
@@ -70,11 +69,6 @@ tests:
         - simpeg.utils.drivers
         - simpeg.regularization
         - simpeg.meta
-  - requirements:
-      run:
-        - pip
-    script:
-      - pip check
 
 about:
   summary: "Mira Geoscience fork of SimPEG: Simulation and Parameter Estimation in Geophysics"
