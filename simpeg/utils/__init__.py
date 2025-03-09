@@ -131,6 +131,7 @@ Many of the functions here are used internally to SimPEG and have minimal docume
   print_stoppers
   print_titles
   requires
+  raise_if_nans
   set_kwargs
   validate_float
   validate_integer
@@ -175,6 +176,7 @@ from .code_utils import (
     as_array_n_by_dim,
     requires,
     Report,
+    raise_if_nans,
     validate_float,
     validate_integer,
     validate_list_of_types,
