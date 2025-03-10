@@ -304,7 +304,14 @@ class Simulation3DIntegral(BasePFSimulation):
                 case ("choclo", _):
                     self._G = self._sensitivity_matrix()
                 case ("geoana", "forward_only"):
-                    raise NotImplementedError()
+                    msg = (
+                        "Accessing matrix G with "
+                        'store_sensitivities="forward_only" and engine="geoana" '
+                        "hasn't been implemented yet."
+                        'Choose store_sensitivities="ram" or "disk", '
+                        'or another engine, like "choclo".'
+                    )
+                    raise NotImplementedError(msg)
                 case ("geoana", _):
                     self._G = self.linear_operator()
         return self._G
