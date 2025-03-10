@@ -1,9 +1,11 @@
 from __future__ import annotations
 import warnings
 import numpy as np
+from numpy.typing import NDArray
 import scipy.constants as constants
 from geoana.kernels import prism_fz, prism_fzx, prism_fzy, prism_fzz
 from scipy.constants import G as NewtG
+from scipy.sparse.linalg import LinearOperator, aslinearoperator
 
 from simpeg import props
 from simpeg.utils import mkvc, sdiag
@@ -263,14 +265,19 @@ class Simulation3DIntegral(BasePFSimulation):
             diag = self._gtg_diagonal
         return mkvc((sdiag(np.sqrt(diag)) @ self.rhoDeriv).power(2).sum(axis=0))
 
-    def getJ(self, m, f=None):
+    def getJ(self, m, f=None) -> NDArray[np.float64 | np.float32] | LinearOperator:
         """
         Sensitivity matrix
         """
         # Need to assign the model, so the rhoDeriv can be computed (if the
         # model is None, the rhoDeriv is going to be Zero).
         self.model = m
-        return self.G @ self.rhoDeriv
+        rhoDeriv = (
+            self.rhoDeriv
+            if not isinstance(self.G, LinearOperator)
+            else aslinearoperator(self.rhoDeriv)
+        )
+        return self.G @ rhoDeriv
 
     def Jvec(self, m, v, f=None):
         """
@@ -557,8 +564,6 @@ class Simulation3DIntegral(BasePFSimulation):
         -------
         scipy.sparse.linalg.LinearOperator
         """
-        from scipy.sparse.linalg import LinearOperator
-
         shape = (self.survey.nD, self.nC)
         linear_op = LinearOperator(
             shape=shape,
