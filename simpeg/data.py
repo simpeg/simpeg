@@ -163,11 +163,10 @@ class Data:
     @relative_error.setter
     def relative_error(self, value):
         if value is not None:
-            try:
+            if not isinstance(value, np.ndarray):
                 value = validate_float("relative_error", value)
                 value = np.full(self.survey.nD, value)
-            except TypeError:
-                pass
+
             value = validate_ndarray_with_shape(
                 "relative_error", value, shape=(self.survey.nD,)
             )
@@ -206,11 +205,11 @@ class Data:
     @noise_floor.setter
     def noise_floor(self, value):
         if value is not None:
-            try:
+
+            if not isinstance(value, np.ndarray):
                 value = validate_float("noise_floor", value)
                 value = np.full(self.survey.nD, value)
-            except TypeError:
-                pass
+
             value = validate_ndarray_with_shape(
                 "noise_floor", value, shape=(self.survey.nD,)
             )

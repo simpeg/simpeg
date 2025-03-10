@@ -614,7 +614,7 @@ class BetaEstimateDerivative(BaseBetaEstimator):
         super().__init__(beta0_ratio=beta0_ratio, seed=seed, **kwargs)
 
     def initialize(self):
-        rng = np.random.default_rng(seed=self.seed)
+        rng = np.random.default_rng(seed=self.random_seed)
 
         if self.verbose:
             print("Calculating the beta0 parameter.")
