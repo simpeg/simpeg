@@ -328,12 +328,12 @@ class Data:
     ##########################
 
     def __setitem__(self, key, value):
-        index = self.index_dictionary[key[0]][key[1]]
-        self.dobs[index] = mkvc(value)
+        slice_obj = self.survey.get_slice(*key)
+        self.dobs[slice_obj] = mkvc(value)
 
     def __getitem__(self, key):
-        index = self.index_dictionary[key[0]][key[1]]
-        return self.dobs[index]
+        slice_obj = self.survey.get_slice(*key)
+        return self.dobs[slice_obj]
 
     def tovec(self):
         """Convert observed data to a vector
