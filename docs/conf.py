@@ -552,7 +552,7 @@ def _get_source_target(old_fname: str) -> tuple[str, str]:
     for old_dir, new_dir in MAPS.items():
         if old_fname.startswith(old_dir):
             source = old_fname.removesuffix(".html")
-            n_parents = len(Path(old_fname).parents)
+            n_parents = len([p for p in Path(old_fname).parents if p != Path(".")])
             target = "../" * n_parents + old_fname.replace(old_dir, new_dir, 1)
             return source, target
     raise ValueError()
