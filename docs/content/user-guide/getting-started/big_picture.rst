@@ -67,7 +67,7 @@ implementation is a model, which, prior to interpretation, must be evaluated.
 This requires considering, and often re-assessing, the choices and assumptions
 made in both the input and implementation stages.
 
-.. image:: ../../images/InversionWorkflow-PreSimPEG.png
+.. image:: ../../../images/InversionWorkflow-PreSimPEG.png
    :width: 400 px
    :alt: Components
    :align: center
@@ -86,7 +86,7 @@ of inversions into various units. We present it in this specific modular
 style, as each unit contains a targeted subset of choices crucial to the
 inversion process.
 
-.. image:: ../../images/InversionWorkflow.png
+.. image:: ../../../images/InversionWorkflow.png
    :width: 400 px
    :alt: Framework
    :align: center
