@@ -1,6 +1,7 @@
 import re
 
 import pytest
+from scipy.sparse.linalg import LinearOperator
 import discretize
 import simpeg
 from simpeg import maps
@@ -418,12 +419,10 @@ class TestsGravitySimulation:
             gravity.Simulation3DIntegral(simple_mesh, engine="choclo")
 
 
-class TestJacobianGravity:
+class BaseFixtures:
     """
-    Test methods related to Jacobian matrix in gravity simulation.
+    Base test class with some fixtures.
     """
-
-    atol_ratio = 1e-7
 
     @pytest.fixture
     def survey(self):
@@ -455,6 +454,14 @@ class TestJacobianGravity:
         densities[ind_sphere] = 0.2
         return densities
 
+
+class TestJacobianGravity(BaseFixtures):
+    """
+    Test methods related to Jacobian matrix in gravity simulation.
+    """
+
+    atol_ratio = 1e-7
+
     @pytest.fixture(params=["identity_map", "exp_map"])
     def mapping(self, mesh, request):
         mapping = (
@@ -464,8 +471,20 @@ class TestJacobianGravity:
         )
         return mapping
 
-    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
-    def test_getJ(self, survey, mesh, densities, mapping, engine):
+    @pytest.mark.parametrize(
+        ("engine", "store_sensitivities"),
+        [
+            ("choclo", "ram"),
+            ("choclo", "forward_only"),
+            ("geoana", "ram"),
+            pytest.param(
+                "geoana",
+                "forward_only",
+                marks=pytest.mark.xfail(reason="not implemented"),
+            ),
+        ],
+    )
+    def test_getJ(self, survey, mesh, densities, mapping, engine, store_sensitivities):
         """
         Test the getJ method.
         """
@@ -473,7 +492,7 @@ class TestJacobianGravity:
             survey=survey,
             mesh=mesh,
             rhoMap=mapping,
-            store_sensitivities="ram",
+            store_sensitivities=store_sensitivities,
             engine=engine,
         )
         model = mapping * densities
@@ -486,8 +505,20 @@ class TestJacobianGravity:
         )
         np.testing.assert_allclose(jac, expected_jac)
 
-    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
-    def test_Jvec(self, survey, mesh, densities, mapping, engine):
+    @pytest.mark.parametrize(
+        ("engine", "store_sensitivities"),
+        [
+            ("choclo", "ram"),
+            ("choclo", "forward_only"),
+            ("geoana", "ram"),
+            pytest.param(
+                "geoana",
+                "forward_only",
+                marks=pytest.mark.xfail(reason="not implemented"),
+            ),
+        ],
+    )
+    def test_Jvec(self, survey, mesh, densities, mapping, engine, store_sensitivities):
         """
         Test the Jvec method.
         """
@@ -495,7 +526,7 @@ class TestJacobianGravity:
             survey=survey,
             mesh=mesh,
             rhoMap=mapping,
-            store_sensitivities="ram",
+            store_sensitivities=store_sensitivities,
             engine=engine,
         )
         model = mapping * densities
@@ -512,8 +543,20 @@ class TestJacobianGravity:
         atol = np.max(np.abs(expected_dpred)) * self.atol_ratio
         np.testing.assert_allclose(dpred, expected_dpred, atol=atol)
 
-    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
-    def test_Jtvec(self, survey, mesh, densities, mapping, engine):
+    @pytest.mark.parametrize(
+        ("engine", "store_sensitivities"),
+        [
+            ("choclo", "ram"),
+            ("choclo", "forward_only"),
+            ("geoana", "ram"),
+            pytest.param(
+                "geoana",
+                "forward_only",
+                marks=pytest.mark.xfail(reason="not implemented"),
+            ),
+        ],
+    )
+    def test_Jtvec(self, survey, mesh, densities, mapping, engine, store_sensitivities):
         """
         Test the Jtvec method.
         """
@@ -521,7 +564,7 @@ class TestJacobianGravity:
             survey=survey,
             mesh=mesh,
             rhoMap=mapping,
-            store_sensitivities="ram",
+            store_sensitivities=store_sensitivities,
             engine=engine,
         )
         model = mapping * densities
@@ -538,8 +581,22 @@ class TestJacobianGravity:
         atol = np.max(np.abs(result)) * self.atol_ratio
         np.testing.assert_allclose(result, expected, atol=atol)
 
-    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
-    def test_getJtJdiag(self, survey, mesh, densities, mapping, engine):
+    @pytest.mark.parametrize(
+        ("engine", "store_sensitivities"),
+        [
+            ("choclo", "ram"),
+            ("choclo", "forward_only"),
+            ("geoana", "ram"),
+            pytest.param(
+                "geoana",
+                "forward_only",
+                marks=pytest.mark.xfail(reason="not implemented"),
+            ),
+        ],
+    )
+    def test_getJtJdiag(
+        self, survey, mesh, densities, mapping, engine, store_sensitivities
+    ):
         """
         Test the getJtJdiag method.
         """
@@ -547,7 +604,7 @@ class TestJacobianGravity:
             survey=survey,
             mesh=mesh,
             rhoMap=mapping,
-            store_sensitivities="ram",
+            store_sensitivities=store_sensitivities,
             engine=engine,
         )
         model = mapping * densities
@@ -561,6 +618,74 @@ class TestJacobianGravity:
 
         atol = np.max(np.abs(jtj_diag)) * self.atol_ratio
         np.testing.assert_allclose(jtj_diag, expected, atol=atol)
+
+
+class TestGLinearOperator(BaseFixtures):
+    """
+    Test G as a linear operator.
+    """
+
+    @pytest.fixture
+    def mapping(self, mesh):
+        return maps.IdentityMap(nP=mesh.n_cells)
+
+    def test_not_implemented(self, survey, mesh, mapping):
+        """
+        Test NotImplementedError when using geoana as engine.
+        """
+        simulation = gravity.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            rhoMap=mapping,
+            store_sensitivities="forward_only",
+            engine="geoana",
+        )
+        msg = re.escape(
+            "Accessing matrix G with "
+            'store_sensitivities="forward_only" and engine="geoana" '
+            "hasn't been implemented yet."
+        )
+        with pytest.raises(NotImplementedError, match=msg):
+            simulation.G
+
+    @pytest.mark.parametrize("parallel", [True, False])
+    def test_G_dot_m(self, survey, mesh, mapping, densities, parallel):
+        """Test G @ m."""
+        simulation, simulation_ram = (
+            gravity.simulation.Simulation3DIntegral(
+                survey=survey,
+                mesh=mesh,
+                rhoMap=mapping,
+                store_sensitivities=store,
+                engine="choclo",
+                numba_parallel=parallel,
+            )
+            for store in ("forward_only", "ram")
+        )
+        assert isinstance(simulation.G, LinearOperator)
+        assert isinstance(simulation_ram.G, np.ndarray)
+        np.testing.assert_allclose(
+            simulation.G @ densities, simulation_ram.G @ densities
+        )
+
+    @pytest.mark.parametrize("parallel", [True, False])
+    def test_G_t_dot_v(self, survey, mesh, mapping, parallel):
+        """Test G.T @ v."""
+        simulation, simulation_ram = (
+            gravity.simulation.Simulation3DIntegral(
+                survey=survey,
+                mesh=mesh,
+                rhoMap=mapping,
+                store_sensitivities=store,
+                engine="choclo",
+                numba_parallel=parallel,
+            )
+            for store in ("forward_only", "ram")
+        )
+        assert isinstance(simulation.G, LinearOperator)
+        assert isinstance(simulation_ram.G, np.ndarray)
+        vector = np.random.default_rng(seed=42).uniform(size=survey.nD)
+        np.testing.assert_allclose(simulation.G.T @ vector, simulation_ram.G.T @ vector)
 
 
 class TestConversionFactor:
