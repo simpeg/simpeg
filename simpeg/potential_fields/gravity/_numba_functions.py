@@ -13,7 +13,7 @@ except ImportError:
 
     choclo = None
 else:
-    from numba import jit, prange, get_num_threads
+    from numba import jit, prange
 
 from .._numba_utils import kernels_in_nodes_to_cell
 
@@ -202,12 +202,8 @@ def _sensitivity_gravity_t_dot_v_serial(
     inside a parallel loop over the receivers generates a race condition that
     leads to corrupted outputs.
 
-    One way to overcome this is to write the ``result`` array as a whole
-    (instead of writing to slices or indices), because Numba can generate
-    copies of it before writing to avoid race conditions.
-
-    Nonetheless, a per-thread implementation (see
-    ``_sensitivity_gravity_t_dot_v_parallel`` is more efficient).
+    A parallel implementation of this function is available in
+    ``_sensitivity_gravity_t_dot_v_parallel``.
     """
     n_receivers = receivers.shape[0]
     n_nodes = nodes.shape[0]
@@ -274,11 +270,11 @@ def _sensitivity_gravity_t_dot_v_parallel(
 
     Notes
     -----
-    This function is meant to be run in parallel. This implementation splits
-    the task between threads on an outer loop. Each thread writes to their own
-    slice of a running result array to avoid race conditions. By the end, the
-    results obtained by each thread are added to obtain the final result.
-
+    This function is meant to be run in parallel.
+    This implementation instructs each thread to allocate their own array for
+    the current row of the sensitivity matrix. After computing the elements of
+    that row, it gets added to the running ``result`` array through a reduction
+    operation handled by Numba.
     """
     n_receivers = receivers.shape[0]
     n_nodes = nodes.shape[0]
@@ -288,6 +284,7 @@ def _sensitivity_gravity_t_dot_v_parallel(
     for i in prange(n_receivers):
         # Allocate vector for kernels evaluated on mesh nodes
         kernels = np.empty(n_nodes)
+        # Allocate array for the current row of the sensitivity matrix
         local_row = np.empty(n_cells)
         for j in range(n_nodes):
             kernels[j] = _evaluate_kernel(
@@ -309,6 +306,10 @@ def _sensitivity_gravity_t_dot_v_parallel(
                     cell_nodes[k, :],
                 )
             )
+        # Apply reduction operation to add the values of the row to the running
+        # result. Avoid slicing the `result` array when updating it to avoid
+        # racing conditions, just add the `local_row` to the `results`
+        # variable.
         result += local_row
 
 
