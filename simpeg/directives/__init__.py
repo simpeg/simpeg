@@ -119,14 +119,17 @@ from .directives import (
     JointScalingSchedule,
     UpdateSensitivityWeights,
     VectorInversion,
+    Update_IRLS,
+    ProjectSphericalBounds,
+    ScaleMisfitMultipliers,
+)
+
+from ._save_geoh5 import (
     SaveDataGeoH5,
     SaveLogFilesGeoH5,
     SaveModelGeoH5,
     SavePropertyGroup,
     SaveSensitivityGeoH5,
-    Update_IRLS,
-    ProjectSphericalBounds,
-    ScaleMisfitMultipliers,
 )
 
 from .pgi_directives import (
