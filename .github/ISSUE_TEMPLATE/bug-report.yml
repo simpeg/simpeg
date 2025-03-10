@@ -1,7 +1,7 @@
 name: Bug report
 description: Report a bug in SimPEG.
 title: "BUG: <Please write a comprehensive title after the 'BUG: ' prefix>"
-labels: [Bug]
+labels: ["bug"]
 
 body:
 - type: markdown
