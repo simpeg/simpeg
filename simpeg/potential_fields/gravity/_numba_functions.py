@@ -279,7 +279,6 @@ def _sensitivity_gravity_t_dot_v_parallel(
     n_receivers = receivers.shape[0]
     n_nodes = nodes.shape[0]
     n_cells = cell_nodes.shape[0]
-    result[:] = 0
     # Evaluate kernel function on each node, for each receiver location
     for i in prange(n_receivers):
         # Allocate vector for kernels evaluated on mesh nodes
