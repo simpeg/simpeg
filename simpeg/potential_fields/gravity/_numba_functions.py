@@ -283,48 +283,33 @@ def _sensitivity_gravity_t_dot_v_parallel(
     n_receivers = receivers.shape[0]
     n_nodes = nodes.shape[0]
     n_cells = cell_nodes.shape[0]
-    n_threads = get_num_threads()
-    # Estimate number of receivers that will be assigned to each thread
-    chunk_size = n_receivers // n_threads
-    # Allocate result arrays, one per thread
-    result_per_thread = np.zeros((n_threads, n_cells), dtype=result.dtype)
-    # Split the job per thread
-    for thread_index in prange(n_threads):
-        # Allocate vector for kernels evaluated on mesh nodes.
+    result[:] = 0
+    # Evaluate kernel function on each node, for each receiver location
+    for i in prange(n_receivers):
+        # Allocate vector for kernels evaluated on mesh nodes
         kernels = np.empty(n_nodes)
-        # Evaluate kernel function on each node, for each receiver location in
-        # the assigned chunk to this thread.
-        start = thread_index * chunk_size
-        end = (
-            (thread_index + 1) * chunk_size
-            if thread_index < n_threads - 1
-            else n_receivers
-        )
-        for i in range(start, end):
-            for j in range(n_nodes):
-                kernels[j] = _evaluate_kernel(
-                    receivers[i, 0],
-                    receivers[i, 1],
-                    receivers[i, 2],
-                    nodes[j, 0],
-                    nodes[j, 1],
-                    nodes[j, 2],
-                    kernel_func,
+        local_row = np.empty(n_cells)
+        for j in range(n_nodes):
+            kernels[j] = _evaluate_kernel(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                nodes[j, 0],
+                nodes[j, 1],
+                nodes[j, 2],
+                kernel_func,
+            )
+        # Compute fields from the kernel values
+        for k in range(n_cells):
+            local_row[k] = (
+                constant_factor
+                * vector[i]
+                * kernels_in_nodes_to_cell(
+                    kernels,
+                    cell_nodes[k, :],
                 )
-            # Compute sensitivity matrix elements for the i-th row, multiply them
-            # by the i-th element of the vector and add them to the running result
-            # array.
-            for k in range(n_cells):
-                result_per_thread[thread_index, k] += (
-                    constant_factor
-                    * vector[i]
-                    * kernels_in_nodes_to_cell(
-                        kernels,
-                        cell_nodes[k, :],
-                    )
-                )
-    # Reduce the operation and write into the result array
-    result[:] += np.sum(result_per_thread, axis=0)
+            )
+        result += local_row
 
 
 @jit(nopython=True)
