@@ -26,3 +26,13 @@ repos:
     hooks:
       - id: prepare-commit-msg
       - id: check-commit-msg
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-json
+        exclude_types: [jupyter]
+      - id: check-toml
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: detect-private-key
