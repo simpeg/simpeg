@@ -1,7 +1,7 @@
 import re
 
 import pytest
-from scipy.sparse.linalg import LinearOperator
+from scipy.sparse.linalg import LinearOperator, aslinearoperator
 import discretize
 import simpeg
 from simpeg import maps
@@ -471,32 +471,21 @@ class TestJacobianGravity(BaseFixtures):
         )
         return mapping
 
-    @pytest.mark.parametrize(
-        ("engine", "store_sensitivities"),
-        [
-            ("choclo", "ram"),
-            ("choclo", "forward_only"),
-            ("geoana", "ram"),
-            pytest.param(
-                "geoana",
-                "forward_only",
-                marks=pytest.mark.xfail(reason="not implemented"),
-            ),
-        ],
-    )
-    def test_getJ(self, survey, mesh, densities, mapping, engine, store_sensitivities):
+    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
+    def test_getJ_as_array(self, survey, mesh, densities, mapping, engine):
         """
-        Test the getJ method.
+        Test the getJ method when J is an array in memory.
         """
         simulation = gravity.simulation.Simulation3DIntegral(
             survey=survey,
             mesh=mesh,
             rhoMap=mapping,
-            store_sensitivities=store_sensitivities,
+            store_sensitivities="ram",
             engine=engine,
         )
         model = mapping * densities
         jac = simulation.getJ(model)
+        assert isinstance(jac, np.ndarray)
         # With an identity mapping, the jacobian should be the same as G.
         # With an exp mapping, the jacobian should be G @ the mapping derivative.
         identity_map = type(mapping) is maps.IdentityMap
@@ -504,6 +493,46 @@ class TestJacobianGravity(BaseFixtures):
             simulation.G if identity_map else simulation.G @ mapping.deriv(model)
         )
         np.testing.assert_allclose(jac, expected_jac)
+
+    def test_getJ_as_linear_operator(self, survey, mesh, densities, mapping):
+        """
+        Test the getJ method when J is a linear operator.
+        """
+        simulation = gravity.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            rhoMap=mapping,
+            store_sensitivities="forward_only",
+            engine="choclo",
+        )
+        model = mapping * densities
+        jac = simulation.getJ(model)
+        assert isinstance(jac, LinearOperator)
+        result = jac @ model
+        expected_result = simulation.G @ (mapping.deriv(model).diagonal() * model)
+        np.testing.assert_allclose(result, expected_result)
+
+    def test_getJ_as_linear_operator_not_implemented(
+        self, survey, mesh, densities, mapping
+    ):
+        """
+        Test getJ raises NotImplementedError when forward only with geoana.
+        """
+        simulation = gravity.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            rhoMap=mapping,
+            store_sensitivities="forward_only",
+            engine="geoana",
+        )
+        model = mapping * densities
+        msg = re.escape(
+            "Accessing matrix G with "
+            'store_sensitivities="forward_only" and engine="geoana" '
+            "hasn't been implemented yet."
+        )
+        with pytest.raises(NotImplementedError, match=msg):
+            simulation.getJ(model)
 
     @pytest.mark.parametrize(
         ("engine", "store_sensitivities"),
@@ -536,7 +565,9 @@ class TestJacobianGravity(BaseFixtures):
 
         identity_map = type(mapping) is maps.IdentityMap
         expected_jac = (
-            simulation.G if identity_map else simulation.G @ mapping.deriv(model)
+            simulation.G
+            if identity_map
+            else simulation.G @ aslinearoperator(mapping.deriv(model))
         )
         expected_dpred = expected_jac @ vector
 
@@ -574,7 +605,9 @@ class TestJacobianGravity(BaseFixtures):
 
         identity_map = type(mapping) is maps.IdentityMap
         expected_jac = (
-            simulation.G if identity_map else simulation.G @ mapping.deriv(model)
+            simulation.G
+            if identity_map
+            else simulation.G @ aslinearoperator(mapping.deriv(model))
         )
         expected = expected_jac.T @ vector
 
