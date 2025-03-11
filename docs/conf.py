@@ -579,6 +579,6 @@ redirects = build_redirects()
 redirects.update(
     {
         "content/getting_started/index": "../../content/user-guide/index.html",
-        "content/user_guide": "../../content/user-guide/index.html",
+        "content/user_guide": "../content/user-guide/index.html",
     }
 )
