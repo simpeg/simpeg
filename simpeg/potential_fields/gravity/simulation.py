@@ -8,7 +8,7 @@ from scipy.constants import G as NewtG
 from scipy.sparse.linalg import LinearOperator, aslinearoperator
 
 from simpeg import props
-from simpeg.utils import mkvc, sdiag
+from simpeg.utils import mkvc
 
 from ...base import BasePDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
@@ -25,6 +25,8 @@ from ._numba_functions import (
     _forward_gravity_2d_mesh_parallel,
     _sensitivity_gravity_2d_mesh_serial,
     _sensitivity_gravity_2d_mesh_parallel,
+    _diagonal_G_T_dot_G_serial,
+    _diagonal_G_T_dot_G_parallel,
 )
 
 if choclo is not None:
@@ -212,10 +214,12 @@ class Simulation3DIntegral(BasePFSimulation):
                 self._sensitivity_gravity = _sensitivity_gravity_parallel
                 self._forward_gravity = _forward_gravity_parallel
                 self._sensitivity_t_dot_v = _sensitivity_gravity_t_dot_v_parallel
+                self._diagonal_G_T_dot_G = _diagonal_G_T_dot_G_parallel
             else:
                 self._sensitivity_gravity = _sensitivity_gravity_serial
                 self._forward_gravity = _forward_gravity_serial
                 self._sensitivity_t_dot_v = _sensitivity_gravity_t_dot_v_serial
+                self._diagonal_G_T_dot_G = _diagonal_G_T_dot_G_serial
 
     def fields(self, m):
         """
@@ -246,24 +250,39 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def getJtJdiag(self, m, W=None, f=None):
         """
-        Return the diagonal of JtJ
+        Compute diagonal of ``J.T @ J``.
+
+        Parameters
+        ----------
+        TODO
+
+        Returns
+        -------
+        TODO
         """
         # Need to assign the model, so the rhoDeriv can be computed (if the
         # model is None, the rhoDeriv is going to be Zero).
         self.model = m
 
-        if W is None:
-            W = np.ones(self.survey.nD)
+        # We should probably check that W is diagonal. Let's assume it for now.
+        weights = (
+            W.diagonal() ** 2
+            if W is not None
+            else np.ones(self.survey.nD, dtype=np.float64)
+        )
+
+        # Compute diagonal of G.T @ G
+        if self.store_sensitivities == "forward_only":
+            diagonal = self._gtg_diagonal_without_building_g(weights)
         else:
-            W = W.diagonal() ** 2
-        if getattr(self, "_gtg_diagonal", None) is None:
-            diag = np.zeros(self.G.shape[1])
-            for i in range(len(W)):
-                diag += W[i] * (self.G[i] * self.G[i])
-            self._gtg_diagonal = diag
-        else:
-            diag = self._gtg_diagonal
-        return mkvc((sdiag(np.sqrt(diag)) @ self.rhoDeriv).power(2).sum(axis=0))
+            diagonal = np.zeros(self.nC)
+            for i in range(self.survey.nD):
+                g_row_sq = self.G[i, :] ** 2
+                diagonal += weights[i] * g_row_sq
+
+        # Multiply the diagonal by the derivative of the mapping
+        diagonal *= self.rhoDeriv.diagonal() ** 2
+        return diagonal
 
     def getJ(self, m, f=None) -> NDArray[np.float64 | np.float32] | LinearOperator:
         """
@@ -572,6 +591,36 @@ class Simulation3DIntegral(BasePFSimulation):
             dtype=np.float64,
         )
         return linear_op
+
+    def _gtg_diagonal_without_building_g(self, weights):
+        """
+        Compute ``G.T @ G`` without building the ``G`` matrix.
+
+        Parameters
+        -----------
+        weights : (n_receivers,) array
+            Array with data weights. It should be the diagonal of the W matrix,
+            squared.
+        """
+        # Gather active nodes and the indices of the nodes for each active cell
+        active_nodes, active_cell_nodes = self._get_active_nodes()
+        # Allocate array for the diagonal of G.T @ G
+        diagonal = np.zeros(self.nC, dtype=np.float64)
+        # Start filling the diagonal array
+        for components, receivers in self._get_components_and_receivers():
+            for component in components:
+                kernel_func = CHOCLO_KERNELS[component]
+                conversion_factor = _get_conversion_factor(component)
+                self._diagonal_G_T_dot_G(
+                    receivers,
+                    active_nodes,
+                    active_cell_nodes,
+                    kernel_func,
+                    constants.G * conversion_factor,
+                    weights,
+                    diagonal,
+                )
+        return diagonal
 
 
 class SimulationEquivalentSourceLayer(
