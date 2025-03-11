@@ -615,6 +615,55 @@ class TestJacobianGravity(BaseFixtures):
         np.testing.assert_allclose(result, expected, atol=atol)
 
     @pytest.mark.parametrize(
+        "engine",
+        [
+            "choclo",
+            pytest.param(
+                "geoana",
+                marks=pytest.mark.xfail(reason="not implemented"),
+            ),
+        ],
+    )
+    @pytest.mark.parametrize("method", ["Jvec", "Jtvec"])
+    def test_array_vs_linear_operator(
+        self, survey, mesh, densities, mapping, engine, method
+    ):
+        """
+        Test methods when using "ram" and "forward_only".
+
+        They should give the same results.
+        """
+        simulation_lo, simulation_ram = (
+            gravity.simulation.Simulation3DIntegral(
+                survey=survey,
+                mesh=mesh,
+                rhoMap=mapping,
+                store_sensitivities=store,
+                engine=engine,
+            )
+            for store in ("forward_only", "ram")
+        )
+        match method:
+            case "Jvec":
+                vector_size = densities.size
+            case "Jtvec":
+                vector_size = survey.nD
+            case _:
+                raise ValueError(f"Invalid method '{method}'")
+        vector = np.random.default_rng(seed=42).uniform(size=vector_size)
+        model = mapping * densities
+        result_lo = getattr(simulation_lo, method)(model, vector)
+        result_ram = getattr(simulation_ram, method)(model, vector)
+        atol = (
+            max(
+                np.max(np.abs(result_lo)),
+                np.max(np.abs(result_ram)),
+            )
+            * self.atol_ratio
+        )
+        np.testing.assert_allclose(result_lo, result_ram, atol=atol)
+
+    @pytest.mark.parametrize(
         ("engine", "store_sensitivities"),
         [
             ("choclo", "ram"),
