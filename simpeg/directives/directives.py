@@ -342,6 +342,9 @@ class DirectiveList(object):
         [directive.validate(self) for directive in self.dList]
         return True
 
+    def __iter__(self):
+        return iter(self.dList)
+
 
 class BaseBetaEstimator(InversionDirective):
     """Base class for estimating initial trade-off parameter (beta).
@@ -695,7 +698,11 @@ class BetaSchedule(InversionDirective):
         self._coolingRate = validate_integer("coolingRate", value, min_val=1)
 
     def endIter(self):
-        if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
+        if (
+            self.opt.iter > 0
+            and self.opt.iter < self.opt.maxIter
+            and self.opt.iter % self.coolingRate == 0
+        ):
             if self.verbose:
                 print(
                     "BetaSchedule is cooling Beta. Iteration: {0:d}".format(

@@ -1,8 +1,9 @@
 import numpy as np
 import scipy
 import scipy.sparse as sp
+from discretize.utils import Identity
 
-from pymatsolver import Solver, Diagonal, SolverCG
+from pymatsolver import Solver, SolverCG
 from .utils import (
     call_hooks,
     check_stoppers,
@@ -140,112 +141,139 @@ class StoppingCriteria(object):
 class IterationPrinters(object):
     """docstring for IterationPrinters"""
 
-    iteration = {"title": "#", "value": lambda M: M.iter, "width": 5, "format": "%3d"}
-    f = {"title": "f", "value": lambda M: M.f, "width": 10, "format": "%1.2e"}
+    iteration = {
+        "title": "#",
+        "value": lambda M: M.iter,
+        "width": 5,
+        "format": lambda v: f"{v:3d}",
+    }
+    f = {
+        "title": "f",
+        "value": lambda M: M.f,
+        "width": 10,
+        "format": lambda v: f"{v:1.2e}",
+    }
     norm_g = {
         "title": "|proj(x-g)-x|",
-        "value": lambda M: norm(M.projection(M.xc - M.g) - M.xc),
+        "value": lambda M: (
+            None if M.iter == 0 else norm(M.projection(M.xc - M.g) - M.xc)
+        ),
         "width": 15,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
-    totalLS = {"title": "LS", "value": lambda M: M.iterLS, "width": 5, "format": "%d"}
+    totalLS = {
+        "title": "LS",
+        "value": lambda M: None if M.iter == 0 else M.iterLS,
+        "width": 5,
+        "format": lambda v: f"{v:d}",
+    }
 
     iterationLS = {
         "title": "#",
         "value": lambda M: (M.iter, M.iterLS),
         "width": 5,
-        "format": "%3d.%d",
+        "format": lambda v: f"{v[0]:3d}.{v[1]:d}",
     }
-    LS_ft = {"title": "ft", "value": lambda M: M._LS_ft, "width": 10, "format": "%1.2e"}
-    LS_t = {"title": "t", "value": lambda M: M._LS_t, "width": 10, "format": "%0.5f"}
+    LS_ft = {
+        "title": "ft",
+        "value": lambda M: M._LS_ft,
+        "width": 10,
+        "format": lambda v: f"{v:1.2e}",
+    }
+    LS_t = {
+        "title": "t",
+        "value": lambda M: M._LS_t,
+        "width": 10,
+        "format": lambda v: f"{v:0.5f}",
+    }
     LS_armijoGoldstein = {
         "title": "f + alp*g.T*p",
         "value": lambda M: M.f + M.LSreduction * M._LS_descent,
         "width": 16,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
     LS_WolfeCurvature = {
         "title": "alp*g.T*p",
         "str": "%d :    ft     = %1.4e >= alp*descent     = %1.4e",
         "value": lambda M: M.LScurvature * M._LS_descent,
         "width": 16,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
 
     itType = {
         "title": "itType",
         "value": lambda M: M._itType,
         "width": 8,
-        "format": "%s",
+        "format": lambda v: f"{v:s}",
     }
     aSet = {
         "title": "aSet",
         "value": lambda M: np.sum(M.activeSet(M.xc)),
         "width": 8,
-        "format": "%d",
+        "format": lambda v: f"{v:d}",
     }
     bSet = {
         "title": "bSet",
         "value": lambda M: np.sum(M.bindingSet(M.xc)),
         "width": 8,
-        "format": "%d",
+        "format": lambda v: f"{v:d}",
     }
     comment = {
         "title": "Comment",
         "value": lambda M: M.comment,
         "width": 12,
-        "format": "%s",
+        "format": lambda v: f"{v:s}",
     }
 
     beta = {
         "title": "beta",
         "value": lambda M: M.parent.beta,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
     phi_d = {
         "title": "phi_d",
         "value": lambda M: M.parent.phi_d,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
     phi_m = {
         "title": "phi_m",
         "value": lambda M: M.parent.phi_m,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
 
     phi_s = {
         "title": "phi_s",
         "value": lambda M: M.parent.phi_s,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
     phi_x = {
         "title": "phi_x",
         "value": lambda M: M.parent.phi_x,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
     phi_y = {
         "title": "phi_y",
         "value": lambda M: M.parent.phi_y,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
     phi_z = {
         "title": "phi_z",
         "value": lambda M: M.parent.phi_z,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
 
     iterationCG = {
-        "title": "iterCG",
+        "title": "iter_CG",
         "value": lambda M: M.cg_count,
         "width": 10,
-        "format": "%3d",
+        "format": lambda v: f"{v:d}",
     }
 
 
@@ -389,12 +417,15 @@ class Minimize(object):
         self.startup(x0)
         self.printInit()
 
-        if self.print_type != "ubc":
-            print("x0 has any nan: {:b}".format(np.any(np.isnan(x0))))
+        if np.any(np.isnan(x0)):
+            raise ValueError("x0 has a nan.")
+        self.f = evalFunction(
+            self.xc, return_g=False, return_H=False
+        )  # will stash the fields objects
+        self.printIter()
         while True:
             self.doStartIteration()
             self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
-            self.printIter()
             if self.stoppingCriteria():
                 break
             self.searchDirection = self.findSearchDirection()
@@ -697,8 +728,11 @@ class Minimize(object):
         """
         # store old values
         self.f_last = self.f
+        if hasattr(self, "_LS_ft"):
+            self.f = self._LS_ft
         self.x_last, self.xc = self.xc, xt
         self.iter += 1
+        self.printIter()  # before callbacks (from directives...)
         if self.debug:
             self.printDone()
 
@@ -965,12 +999,12 @@ class BFGS(Minimize, Remember):
         Must be a simpeg.Solver
         """
         if getattr(self, "_bfgsH0", None) is None:
-            print(
-                """
-                Default solver: Diagonal is being used in bfgsH0
-                """
-            )
-            self._bfgsH0 = Diagonal(sp.identity(self.xc.size))
+            # print(
+            #     """
+            #     Default solver: Diagonal is being used in bfgsH0
+            #     """
+            # )
+            self._bfgsH0 = Identity()
         return self._bfgsH0
 
     @bfgsH0.setter

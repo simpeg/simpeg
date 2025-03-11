@@ -256,9 +256,16 @@ def print_line(obj, printers, pad=""):
     """
     values = ""
     for printer in printers:
-        values += ("{{:^{0:d}}}".format(printer["width"])).format(
-            printer["format"] % printer["value"](obj)
-        )
+        value = printer["value"](obj)
+        format_string = f"^{printer['width']}s"
+        if value is not None:
+            formatted_val = printer["format"](value)
+        else:
+            formatted_val = ""
+        values += f"{formatted_val:{format_string}}"
+        # values += ("{{:^{0:d}}}".format()).format(
+        #     printer["format"] % printer["value"](obj)
+        # )
     print(pad + values)
 
 
