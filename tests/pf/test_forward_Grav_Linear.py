@@ -1,6 +1,7 @@
 import re
 
 import pytest
+from scipy.sparse import diags
 from scipy.sparse.linalg import LinearOperator, aslinearoperator
 import discretize
 import simpeg
@@ -618,10 +619,7 @@ class TestJacobianGravity(BaseFixtures):
         "engine",
         [
             "choclo",
-            pytest.param(
-                "geoana",
-                marks=pytest.mark.xfail(reason="not implemented"),
-            ),
+            pytest.param("geoana", marks=pytest.mark.xfail(reason="not implemented")),
         ],
     )
     @pytest.mark.parametrize("method", ["Jvec", "Jtvec"])
@@ -654,52 +652,75 @@ class TestJacobianGravity(BaseFixtures):
         model = mapping * densities
         result_lo = getattr(simulation_lo, method)(model, vector)
         result_ram = getattr(simulation_ram, method)(model, vector)
-        atol = (
-            max(
-                np.max(np.abs(result_lo)),
-                np.max(np.abs(result_ram)),
-            )
-            * self.atol_ratio
-        )
+        atol = np.max(np.abs(result_ram)) * self.atol_ratio
         np.testing.assert_allclose(result_lo, result_ram, atol=atol)
 
-    @pytest.mark.parametrize(
-        ("engine", "store_sensitivities"),
-        [
-            ("choclo", "ram"),
-            ("choclo", "forward_only"),
-            ("geoana", "ram"),
-            pytest.param(
-                "geoana",
-                "forward_only",
-                marks=pytest.mark.xfail(reason="not implemented"),
-            ),
-        ],
-    )
-    def test_getJtJdiag(
-        self, survey, mesh, densities, mapping, engine, store_sensitivities
-    ):
+    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
+    @pytest.mark.parametrize("weights", [True, False])
+    def test_getJtJdiag(self, survey, mesh, densities, mapping, engine, weights):
         """
-        Test the getJtJdiag method.
+        Test the ``getJtJdiag`` method with G as an array in memory.
         """
         simulation = gravity.simulation.Simulation3DIntegral(
             survey=survey,
             mesh=mesh,
             rhoMap=mapping,
-            store_sensitivities=store_sensitivities,
+            store_sensitivities="ram",
             engine=engine,
         )
         model = mapping * densities
-        jtj_diag = simulation.getJtJdiag(model)
+        if weights:
+            weights = np.random.default_rng(seed=42).uniform(size=survey.nD)
+            kwargs = {"W": diags(np.sqrt(weights))}
+        jtj_diag = simulation.getJtJdiag(model, **kwargs)
 
         identity_map = type(mapping) is maps.IdentityMap
         expected_jac = (
             simulation.G if identity_map else simulation.G @ mapping.deriv(model)
         )
-        expected = np.diag(expected_jac.T @ expected_jac)
+        if weights:
+            w_matrix = diags(np.sqrt(weights))
+            expected = np.diag(expected_jac.T @ w_matrix.T @ w_matrix @ expected_jac)
+        else:
+            expected = np.diag(expected_jac.T @ expected_jac)
 
         atol = np.max(np.abs(jtj_diag)) * self.atol_ratio
         np.testing.assert_allclose(jtj_diag, expected, atol=atol)
+
+    @pytest.mark.parametrize(
+        "engine",
+        [
+            "choclo",
+            pytest.param("geoana", marks=pytest.mark.xfail(reason="not implemented")),
+        ],
+    )
+    @pytest.mark.parametrize("weights", [True, False])
+    def test_getJtJdiag_forward_only(
+        self, survey, mesh, densities, mapping, engine, weights
+    ):
+        """
+        Test the ``getJtJdiag`` method without building G.
+        """
+        simulation, simulation_ram = (
+            gravity.simulation.Simulation3DIntegral(
+                survey=survey,
+                mesh=mesh,
+                rhoMap=mapping,
+                store_sensitivities=store,
+                engine=engine,
+            )
+            for store in ("forward_only", "ram")
+        )
+        model = mapping * densities
+        kwargs = {}
+        if weights:
+            weights = np.random.default_rng(seed=42).uniform(size=survey.nD)
+            kwargs = {"W": diags(np.sqrt(weights))}
+        jtj_diag = simulation.getJtJdiag(model, **kwargs)
+        jtj_diag_ram = simulation_ram.getJtJdiag(model, **kwargs)
+
+        atol = np.max(np.abs(jtj_diag)) * self.atol_ratio
+        np.testing.assert_allclose(jtj_diag, jtj_diag_ram, atol=atol)
 
 
 class TestGLinearOperator(BaseFixtures):
