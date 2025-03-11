@@ -208,13 +208,13 @@ class IterationPrinters(object):
     }
     aSet = {
         "title": "aSet",
-        "value": lambda M: np.sum(M.activeSet(M.xc)),
+        "value": lambda M: None if M.iter == 0 else np.sum(M.activeSet(M.xc)),
         "width": 8,
         "format": lambda v: f"{v:d}",
     }
     bSet = {
         "title": "bSet",
-        "value": lambda M: np.sum(M.bindingSet(M.xc)),
+        "value": lambda M: None if M.iter == 0 else np.sum(M.bindingSet(M.xc)),
         "width": 8,
         "format": lambda v: f"{v:d}",
     }
