@@ -1,3 +1,4 @@
+import re
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
@@ -12,6 +13,7 @@ from geoh5py.groups import PropertyGroup, UIJsonGroup
 from geoh5py.objects import ObjectBase
 from geoh5py.ui_json.utils import fetch_active_workspace
 
+
 def compute_JtJdiags(data_misfit, m):
     if hasattr(data_misfit, "getJtJdiag"):
         return data_misfit.getJtJdiag(m)
@@ -25,6 +27,7 @@ def compute_JtJdiags(data_misfit, m):
             jtj_diag += multiplier * diag
 
     return np.asarray(jtj_diag)
+
 
 class BaseSaveGeoH5(InversionDirective, ABC):
     """
@@ -364,13 +367,21 @@ class SaveLogFilesGeoH5(BaseSaveGeoH5):
         if iteration == 0:
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write("iteration beta phi_d phi_m time\n")
+        log = []
+        with open(dirpath / "SimPEG.log", "r", encoding="utf-8") as file:
+            iter = 0
+            for line in file:
+                val = re.findall(
+                    "[+\-]?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+\-]?\d+)", line
+                )
+                if len(val) == 5:
+                    log.append(val[:-2])
+                    iter += 1
 
-        with open(filepath, "a", encoding="utf-8") as f:
-            date_time = datetime.now().strftime("%b-%d-%Y:%H:%M:%S")
-            f.write(
-                f"{iteration} {self.invProb.beta:.3e} {self.invProb.phi_d:.3e} "
-                f"{self.invProb.phi_m:.3e} {date_time}\n"
-            )
+        if len(log) > 0:
+            with open(filepath, "a", encoding="utf-8") as file:
+                date_time = datetime.now().strftime("%b-%d-%Y:%H:%M:%S")
+                file.write(f"{iter-1} " + " ".join(log[-1]) + f" {date_time}\n")
 
         self.save_log()
 
