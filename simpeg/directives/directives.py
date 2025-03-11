@@ -1232,6 +1232,9 @@ class TargetMisfit(InversionDirective):
         self._phi_d_star = value
         self._target = None
 
+    def initialize(self):
+        print(f"Target data misfit is: {self.target}")
+
     def endIter(self):
         if self.invProb.phi_d < self.target:
             self.opt.stopNextIteration = True
