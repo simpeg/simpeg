@@ -4,6 +4,7 @@ from . import (
     BaseSaveGeoH5,
     InversionDirective,
     SaveModelGeoH5,
+    SphericalUnitsWeights,
     Update_IRLS,
     UpdateIRLS,
     UpdateSensitivityWeights,
@@ -215,8 +216,13 @@ class VectorInversion(InversionDirective):
                 elif isinstance(directive, UpdateSensitivityWeights):
                     directive.every_iteration = True
 
+            spherical_units = SphericalUnitsWeights(
+                amplitude=self.regularizations.objfcts[0].mapping,
+                angles=self.regularizations.objfcts[1:],
+            )
             directiveList = [
-                ProjectSphericalBounds()
+                ProjectSphericalBounds(),
+                spherical_units,
             ] + self.inversion.directiveList.dList
             self.inversion.directiveList = directiveList
 
