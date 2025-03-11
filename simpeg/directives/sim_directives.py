@@ -15,7 +15,7 @@ class SimilarityMeasureInversionPrinters:
         "title": "betas",
         "value": lambda M: ["{:.2e}".format(elem) for elem in M.parent.betas],
         "width": 26,
-        "format": lambda v: f"{v:s}",
+        "format": lambda v: f"{v!s}",
     }
     lambd = {
         "title": "lambda",
@@ -27,13 +27,13 @@ class SimilarityMeasureInversionPrinters:
         "title": "phi_d",
         "value": lambda M: ["{:.2e}".format(elem) for elem in M.parent.phi_d_list],
         "width": 26,
-        "format": lambda v: f"{v:s}",
+        "format": lambda v: f"{v!s}",
     }
     phi_m_list = {
         "title": "phi_m",
         "value": lambda M: ["{:.2e}".format(elem) for elem in M.parent.phi_m_list],
         "width": 26,
-        "format": lambda v: f"{v:s}",
+        "format": lambda v: f"{v!s}",
     }
     phi_sim = {
         "title": "phi_sim",
