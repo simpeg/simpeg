@@ -9,7 +9,7 @@ from . import (
     UpdateIRLS,
     UpdateSensitivityWeights,
 )
-from ..maps import SphericalSystem
+from ..maps import SphericalSystem, Wires
 from ..meta.simulation import MetaSimulation
 from ..objective_function import ComboObjectiveFunction
 from ..regularization import CrossGradient
@@ -25,51 +25,50 @@ class ProjectSphericalBounds(InversionDirective):
     spherical->cartesian->spherical
     """
 
-    def initialize(self):
-        x = self.invProb.model
-        # Convert to cartesian than back to avoid over rotation
-        nC = int(len(x) / 3)
-        xyz = spherical2cartesian(x.reshape((nC, 3), order="F"))
-        m = cartesian2spherical(xyz.reshape((nC, 3), order="F"))
-        self.invProb.model = m
-        self.opt.xc = m
+    def __init__(self, mapping: Wires, **kwargs):
+        if not isinstance(mapping, Wires):
+            raise TypeError("mapping must be a Wires object")
 
-        for misfit in self.dmisfit:
-            if getattr(misfit, "model_map", None) is not None:
-                misfit.simulation.model = misfit.model_map @ m
-            else:
-                misfit.simulation.model = m
+        if len(mapping.maps) != 3:
+            raise ValueError("mapping must have 3 maps, one per vector component.")
+
+        self.indices = mapping.deriv(None).indices
+        super().__init__(**kwargs)
+
+    def initialize(self):
+        self.update()
 
     def endIter(self):
-        for misfit in self.dmisfit.objfcts:
-            if (
-                hasattr(misfit.simulation, "model_type")
-                and misfit.simulation.model_type == "vector"
-            ):
-                mapping = misfit.model_map.deriv(np.zeros(misfit.model_map.shape[1]))
-                indices = (
-                    mapping.indices
-                )  # np.array(np.sum(mapping, axis=0)).flatten() > 0
-                nC = int(len(indices) / 3)
-                vec = self.invProb.model[indices]
-                # Convert to cartesian than back to avoid over rotation
-                xyz = spherical2cartesian(vec.reshape((nC, 3), order="F"))
-                vec = cartesian2spherical(xyz.reshape((nC, 3), order="F"))
-                self.invProb.model[indices] = vec
+        self.update()
 
+    def update(self):
+        """
+        Update the model and the simulation
+        """
+        x = self.invProb.model
+        m = self._reproject(x)
         phi_m_last = []
         for reg in self.reg.objfcts:
             reg.model = self.invProb.model
             phi_m_last += [reg(self.invProb.model)]
 
         self.invProb.phi_m_last = phi_m_last
+        self.invProb.model = m
         self.opt.xc = self.invProb.model
 
         for misfit in self.dmisfit.objfcts:
-            if getattr(misfit, "model_map", None) is not None:
-                misfit.simulation.model = misfit.model_map @ self.invProb.model
-            else:
-                misfit.simulation.model = self.invProb.model
+            misfit.simulation.model = m
+
+    def _reproject(self, m):
+        """
+        Round trip conversion to reproject the model.
+        """
+        vec = m[self.indices]
+        xyz = spherical2cartesian(vec.reshape((-1, 3), order="F"))
+        vec = cartesian2spherical(xyz.reshape((-1, 3), order="F"))
+
+        m[self.indices] = vec
+        return m
 
 
 class VectorInversion(InversionDirective):
@@ -128,11 +127,13 @@ class VectorInversion(InversionDirective):
             print("Switching MVI to spherical coordinates")
             self.mode = "spherical"
             self.cartesian_model = self.invProb.model
-            model = self.invProb.model
+            model = self.invProb.model.copy()
             vec_model = []
             vec_ref = []
             indices = []
+            mappings = []
             for reg in self.regularizations.objfcts:
+                mappings.append(reg.mapping)
                 vec_model.append(reg.mapping * model)
                 vec_ref.append(reg.mapping * reg.reference_model)
                 mapping = reg.mapping.deriv(np.zeros(reg.mapping.shape[1]))
@@ -220,8 +221,9 @@ class VectorInversion(InversionDirective):
                 amplitude=self.regularizations.objfcts[0].mapping,
                 angles=self.regularizations.objfcts[1:],
             )
+            projections = [(comp, mapping) for comp, mapping in zip("xyz", mappings)]
             directiveList = [
-                ProjectSphericalBounds(),
+                ProjectSphericalBounds(Wires(*projections)),
                 spherical_units,
             ] + self.inversion.directiveList.dList
             self.inversion.directiveList = directiveList
