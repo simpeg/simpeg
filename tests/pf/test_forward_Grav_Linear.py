@@ -669,9 +669,10 @@ class TestJacobianGravity(BaseFixtures):
             engine=engine,
         )
         model = mapping * densities
+        kwargs = {}
         if weights:
-            weights = np.random.default_rng(seed=42).uniform(size=survey.nD)
-            kwargs = {"W": diags(np.sqrt(weights))}
+            w_matrix = diags(np.random.default_rng(seed=42).uniform(size=survey.nD))
+            kwargs = {"W": w_matrix}
         jtj_diag = simulation.getJtJdiag(model, **kwargs)
 
         identity_map = type(mapping) is maps.IdentityMap
@@ -679,7 +680,6 @@ class TestJacobianGravity(BaseFixtures):
             simulation.G if identity_map else simulation.G @ mapping.deriv(model)
         )
         if weights:
-            w_matrix = diags(np.sqrt(weights))
             expected = np.diag(expected_jac.T @ w_matrix.T @ w_matrix @ expected_jac)
         else:
             expected = np.diag(expected_jac.T @ expected_jac)
