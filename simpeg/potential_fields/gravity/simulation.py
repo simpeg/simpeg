@@ -594,13 +594,17 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def _gtg_diagonal_without_building_g(self, weights):
         """
-        Compute ``G.T @ G`` without building the ``G`` matrix.
+        Compute the diagonal of ``G.T @ G`` without building the ``G`` matrix.
 
         Parameters
         -----------
         weights : (n_receivers,) array
             Array with data weights. It should be the diagonal of the W matrix,
             squared.
+
+        Returns
+        -------
+        (n_active_cells) numpy.ndarray
         """
         # Gather active nodes and the indices of the nodes for each active cell
         active_nodes, active_cell_nodes = self._get_active_nodes()
