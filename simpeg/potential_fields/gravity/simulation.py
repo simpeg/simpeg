@@ -161,7 +161,9 @@ class Simulation3DIntegral(BasePFSimulation):
         - 'ram': sensitivities are stored in the computer's RAM
         - 'disk': sensitivities are written to a directory
         - 'forward_only': you intend only do perform a forward simulation and
-          sensitivities do not need to be stored
+          sensitivities do not need to be stored. The sensitivity matrix ``G``
+          is never created, but it'll be defined as
+          a :class:`~scipy.sparse.linalg.LinearOperator`.
 
     sensitivity_path : str, optional
         Path to store the sensitivity matrix if ``store_sensitivities`` is set
@@ -227,8 +229,8 @@ class Simulation3DIntegral(BasePFSimulation):
 
         Parameters
         ----------
-        m : (n_active_cells,) numpy.ndarray
-            Array with values for the model.
+        m : (n_param,) numpy.ndarray
+            The model parameters.
 
         Returns
         -------
@@ -249,16 +251,25 @@ class Simulation3DIntegral(BasePFSimulation):
         return np.asarray(fields)
 
     def getJtJdiag(self, m, W=None, f=None):
-        """
-        Compute diagonal of ``J.T @ J``.
+        r"""
+        Compute diagonal of :math:`\mathbf{J}^T \mathbf{J}``.
 
         Parameters
         ----------
-        TODO
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        W : (nD, nD) np.ndarray or scipy.sparse.sparray, optional
+            Diagonal matrix with the square root of the weights. If not None,
+            the function returns the diagonal of
+            :math:`\mathbf{J}^T \mathbf{W}^T \mathbf{W} \mathbf{J}``.
+        f : Ignored
+            Not used, present here for API consistency by convention.
 
         Returns
         -------
-        TODO
+        (n_active_cells) np.ndarray
+            Array with the diagonal of ``J.T @ J``.
+
         """
         # Need to assign the model, so the rhoDeriv can be computed (if the
         # model is None, the rhoDeriv is going to be Zero).
@@ -285,8 +296,33 @@ class Simulation3DIntegral(BasePFSimulation):
         return diagonal
 
     def getJ(self, m, f=None) -> NDArray[np.float64 | np.float32] | LinearOperator:
-        """
-        Sensitivity matrix
+        r"""
+        Sensitivity matrix :math:`\mathbf{J}`.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        (nD, n_active_cells) np.ndarray or scipy.sparse.linalg.LinearOperator.
+            Array or :class:`~scipy.sparse.linalg.LinearOperator` for the
+            :math:`\mathbf{J}` matrix.
+            A :class:`~scipy.sparse.linalg.LinearOperator` will be returned if
+            ``store_sensitivities`` is ``"forward_only"``, otherwise a dense
+            array will be returned.
+
+        Notes
+        -----
+            If ``store_sensitivities`` is ``"ram"`` or ``"disk"``, a dense
+            array for the ``J`` matrix is returned.
+            A :class:`~scipy.sparse.linalg.LinearOperator` is returned if
+            ``store_sensitivities`` is ``"forward_only"``. This object can
+            perform operations like ``J @ m`` or ``J.T @ v`` without allocating
+            the full ``J`` matrix in memory.
         """
         # Need to assign the model, so the rhoDeriv can be computed (if the
         # model is None, the rhoDeriv is going to be Zero).
@@ -300,7 +336,29 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def Jvec(self, m, v, f=None):
         """
-        Sensitivity times a vector
+        Dot product between sensitivity matrix and a vector.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters. This array is used to compute the ``J``
+            matrix.
+        v : (n_param,) numpy.ndarray
+            Vector used in the matrix-vector multiplication.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        (nD,) numpy.ndarray
+
+        Notes
+        -----
+        If ``store_sensitivities`` is set to ``"forward_only"``, then the
+        matrix `G` is never fully constructed, and the dot product is computed
+        by accumulation, computing the matrix elements on the fly. Otherwise,
+        the full matrix ``G`` is constructed and stored either in memory or
+        disk.
         """
         # Need to assign the model, so the rhoDeriv can be computed (if the
         # model is None, the rhoDeriv is going to be Zero).
@@ -310,7 +368,29 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def Jtvec(self, m, v, f=None):
         """
-        Sensitivity transposed times a vector
+        Dot product between transposed sensitivity matrix and a vector.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters. This array is used to compute the ``J``
+            matrix.
+        v : (nD,) numpy.ndarray
+            Vector used in the matrix-vector multiplication.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        (nD,) numpy.ndarray
+
+        Notes
+        -----
+        If ``store_sensitivities`` is set to ``"forward_only"``, then the
+        matrix `G` is never fully constructed, and the dot product is computed
+        by accumulation, computing the matrix elements on the fly. Otherwise,
+        the full matrix ``G`` is constructed and stored either in memory or
+        disk.
         """
         # Need to assign the model, so the rhoDeriv can be computed (if the
         # model is None, the rhoDeriv is going to be Zero).
@@ -319,9 +399,9 @@ class Simulation3DIntegral(BasePFSimulation):
         return np.asarray(self.rhoDeriv.T @ Jtvec)
 
     @property
-    def G(self):
+    def G(self) -> NDArray | np.memmap | LinearOperator:
         """
-        Gravity forward operator
+        Gravity forward operator.
         """
         if getattr(self, "_G", None) is None:
             match self.engine, self.store_sensitivities:
@@ -492,7 +572,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def _sensitivity_matrix(self):
         """
-        Compute the sensitivity matrix G
+        Compute the sensitivity matrix ``G``.
 
         Returns
         -------
@@ -536,13 +616,12 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def _sensitivity_matrix_transpose_dot_vec(self, vector):
         """
-        Compute ``G.T @ v`` without building G.
+        Compute ``G.T @ v`` without building ``G``.
 
         Parameters
         ----------
         vector : (nD) numpy.ndarray
-            Array that represents the vector ``v`` used in the dot product with
-            ``G.T``.
+            Vector used in the dot product.
 
         Returns
         -------
@@ -598,9 +677,9 @@ class Simulation3DIntegral(BasePFSimulation):
 
         Parameters
         -----------
-        weights : (n_receivers,) array
-            Array with data weights. It should be the diagonal of the W matrix,
-            squared.
+        weights : (nD,) array
+            Array with data weights. It should be the diagonal of the ``W``
+            matrix, squared.
 
         Returns
         -------
