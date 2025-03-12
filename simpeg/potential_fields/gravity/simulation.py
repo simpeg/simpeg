@@ -8,7 +8,7 @@ from scipy.constants import G as NewtG
 from scipy.sparse.linalg import LinearOperator, aslinearoperator
 
 from simpeg import props
-from simpeg.utils import mkvc
+from simpeg.utils import mkvc, sdiag
 
 from ...base import BasePDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
@@ -281,7 +281,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 diagonal += weights[i] * g_row_sq
 
         # Multiply the diagonal by the derivative of the mapping
-        diagonal *= self.rhoDeriv.diagonal() ** 2
+        diagonal = mkvc((sdiag(np.sqrt(diagonal)) @ self.rhoDeriv).power(2).sum(axis=0))
         return diagonal
 
     def getJ(self, m, f=None) -> NDArray[np.float64 | np.float32] | LinearOperator:
