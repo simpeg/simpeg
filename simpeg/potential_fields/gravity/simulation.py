@@ -270,6 +270,17 @@ class Simulation3DIntegral(BasePFSimulation):
         (n_active_cells) np.ndarray
             Array with the diagonal of ``J.T @ J``.
 
+        Notes
+        -----
+        If ``store_sensitivities`` is ``"forward_only"``, the ``G`` matrix is
+        never allocated in memory, and the diagonal is obtained by
+        accumulation, computing each element of the ``G`` matrix on the fly.
+
+        This method caches the diagonal ``G.T @ W.T @ W @ G`` and the sha256
+        hash of the diagonal of the ``W`` matrix. This way, if same weights are
+        passed to it, it reuses the cached ``G.T @ W.T @ W @ G`` so it doesn't
+        need to be recomputed. If new weights are passed, the cache is updated
+        with the latest diagonal of ``G.T @ W.T @ W @ G``.
         """
         # Need to assign the model, so the rhoDeriv can be computed (if the
         # model is None, the rhoDeriv is going to be Zero).
