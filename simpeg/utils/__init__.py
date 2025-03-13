@@ -152,6 +152,17 @@ used by SimPEG simulations.
 
   solver_utils.get_default_solver
   solver_utils.set_default_solver
+
+DOI utilities
+-------------
+This module contains utilities to compute DOI for
+different SimPEG simulations.
+
+.. autosummary::
+  :toctree: generated/
+
+  doi.doi_1d_layer_CA2012
+  refine_1d_layer
 """
 
 from discretize.utils.interpolation_utils import interpolation_matrix
@@ -288,4 +299,8 @@ from .curv_utils import (
 from .coord_utils import (
     rotatePointsFromNormals,
     rotationMatrixFromNormals,
+)
+from .doi import (
+  refine_1d_layer,
+  doi_1d_layer_CA2012,
 )
