@@ -829,6 +829,29 @@ class TestGLinearOperator(BaseFixtures):
         np.testing.assert_allclose(simulation.G.T @ vector, simulation_ram.G.T @ vector)
 
 
+class TestDeprecationWarning(BaseFixtures):
+    """
+    Test warnings after deprecated properties or methods of the simulation class.
+    """
+
+    def test_gtg_diagonal(self, survey, mesh):
+        """Test deprecation warning on gtg_diagonal property."""
+        mapping = maps.IdentityMap(nP=mesh.n_cells)
+        simulation = gravity.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            rhoMap=mapping,
+            store_sensitivities="ram",
+            engine="choclo",
+        )
+        msg = re.escape(
+            "The `gtg_diagonal` property has been deprecated in will be removed "
+            "in SimPEG v0.25.0.",
+        )
+        with pytest.warns(FutureWarning, match=msg):
+            simulation.gtg_diagonal
+
+
 class TestConversionFactor:
     """Test _get_conversion_factor function."""
 

@@ -466,10 +466,13 @@ class Simulation3DIntegral(BasePFSimulation):
         """
         Diagonal of GtG
         """
-        if getattr(self, "_gtg_diagonal", None) is None:
-            return None
-
-        return self._gtg_diagonal
+        warnings.warn(
+            "The `gtg_diagonal` property has been deprecated in will be removed "
+            "in SimPEG v0.25.0.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return getattr(self, "_gtg_diagonal", None)
 
     def evaluate_integral(self, receiver_location, components):
         """
