@@ -197,7 +197,6 @@ class Simulation3DIntegral(BasePFSimulation):
         super().__init__(mesh, engine=engine, numba_parallel=numba_parallel, **kwargs)
         self.rho = rho
         self.rhoMap = rhoMap
-        self._G = None
         self.modelMap = self.rhoMap
 
         # Warn if n_processes has been passed
@@ -442,7 +441,7 @@ class Simulation3DIntegral(BasePFSimulation):
         """
         Gravity forward operator.
         """
-        if getattr(self, "_G", None) is None:
+        if not hasattr(self, "_G"):
             match self.engine, self.store_sensitivities:
                 case ("choclo", "forward_only"):
                     self._G = self._sensitivity_matrix_as_operator()
