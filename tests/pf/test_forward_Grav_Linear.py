@@ -722,6 +722,44 @@ class TestJacobianGravity(BaseFixtures):
         atol = np.max(np.abs(jtj_diag)) * self.atol_ratio
         np.testing.assert_allclose(jtj_diag, jtj_diag_ram, atol=atol)
 
+    @pytest.mark.parametrize("engine", ("choclo", "geoana"))
+    def test_getJtJdiag_caching(self, survey, mesh, densities, mapping, engine):
+        """
+        Test the caching behaviour of the ``getJtJdiag`` method.
+        """
+        simulation = gravity.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            rhoMap=mapping,
+            store_sensitivities="ram",
+            engine=engine,
+        )
+        # Get diagonal of J.T @ J without any weight
+        model = mapping * densities
+        jtj_diagonal_1 = simulation.getJtJdiag(model)
+        assert hasattr(simulation, "_gtg_diagonal")
+        assert hasattr(simulation, "_weights_sha256")
+        gtg_diagonal_1 = simulation._gtg_diagonal
+        weights_sha256_1 = simulation._weights_sha256
+
+        # Compute it again and make sure we get the same result
+        np.testing.assert_allclose(jtj_diagonal_1, simulation.getJtJdiag(model))
+
+        # Get a new diagonal with weights
+        weights_matrix = diags(
+            np.random.default_rng(seed=42).uniform(size=simulation.survey.nD)
+        )
+        jtj_diagonal_2 = simulation.getJtJdiag(model, W=weights_matrix)
+        assert hasattr(simulation, "_gtg_diagonal")
+        assert hasattr(simulation, "_weights_sha256")
+        gtg_diagonal_2 = simulation._gtg_diagonal
+        weights_sha256_2 = simulation._weights_sha256
+
+        # The two results should be different
+        assert not np.array_equal(jtj_diagonal_1, jtj_diagonal_2)
+        assert not np.array_equal(gtg_diagonal_1, gtg_diagonal_2)
+        assert weights_sha256_1.digest() != weights_sha256_2.digest()
+
 
 class TestGLinearOperator(BaseFixtures):
     """

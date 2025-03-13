@@ -1,4 +1,5 @@
 from __future__ import annotations
+import hashlib
 import warnings
 import numpy as np
 from numpy.typing import NDArray
@@ -197,7 +198,6 @@ class Simulation3DIntegral(BasePFSimulation):
         self.rho = rho
         self.rhoMap = rhoMap
         self._G = None
-        self._gtg_diagonal = None
         self.modelMap = self.rhoMap
 
         # Warn if n_processes has been passed
@@ -282,18 +282,45 @@ class Simulation3DIntegral(BasePFSimulation):
             else np.ones(self.survey.nD, dtype=np.float64)
         )
 
-        # Compute diagonal of G.T @ G
+        # Compute gtg (G.T @ W.T @ W @ G) if it's not cached, or if the
+        # weights are not the same.
+        weights_sha256 = hashlib.sha256(weights)
+        use_cached_gtg = (
+            hasattr(self, "_gtg_diagonal")
+            and hasattr(self, "_weights_sha256")
+            and self._weights_sha256.digest() == weights_sha256.digest()
+        )
+        if not use_cached_gtg:
+            self._gtg_diagonal = self._get_gtg_diagonal(weights)
+            self._weights_sha256 = weights_sha256
+
+        # Multiply the gtg_diagonal by the derivative of the mapping
+        diagonal = mkvc(
+            (sdiag(np.sqrt(self._gtg_diagonal)) @ self.rhoDeriv).power(2).sum(axis=0)
+        )
+        return diagonal
+
+    def _get_gtg_diagonal(self, weights: NDArray) -> NDArray:
+        """
+        Compute the diagonal of ``G.T @ W.T @ W @ G``.
+
+        Parameters
+        ----------
+        weights : np.ndarray
+            Weights array: diagonal of ``W.T @ W``.
+
+        Returns
+        -------
+        np.ndarray
+        """
         if self.store_sensitivities == "forward_only":
-            diagonal = self._gtg_diagonal_without_building_g(weights)
+            gtg_diagonal = self._gtg_diagonal_without_building_g(weights)
         else:
-            diagonal = np.zeros(self.nC)
+            gtg_diagonal = np.zeros(self.nC)
             for i in range(self.survey.nD):
                 g_row_sq = self.G[i, :] ** 2
-                diagonal += weights[i] * g_row_sq
-
-        # Multiply the diagonal by the derivative of the mapping
-        diagonal = mkvc((sdiag(np.sqrt(diagonal)) @ self.rhoDeriv).power(2).sum(axis=0))
-        return diagonal
+                gtg_diagonal += weights[i] * g_row_sq
+        return gtg_diagonal
 
     def getJ(self, m, f=None) -> NDArray[np.float64 | np.float32] | LinearOperator:
         r"""
