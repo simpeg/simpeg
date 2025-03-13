@@ -5,10 +5,9 @@
     :hidden:
     :titlesonly:
 
-    content/getting_started/index
-    content/user_guide
-    content/api/index
-    content/release/index
+    User Guide <content/user-guide/index>
+    API Reference <content/api/index>
+    Release Notes <content/release/index>
 
 .. Project Index & Search
 .. ======================
