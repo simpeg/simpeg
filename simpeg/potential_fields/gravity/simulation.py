@@ -324,13 +324,14 @@ class Simulation3DIntegral(BasePFSimulation):
         -------
         np.ndarray
         """
-        if self.store_sensitivities == "forward_only":
-            gtg_diagonal = self._gtg_diagonal_without_building_g(weights)
-        else:
-            gtg_diagonal = np.zeros(self.nC)
-            for i in range(self.survey.nD):
-                g_row_sq = self.G[i, :] ** 2
-                gtg_diagonal += weights[i] * g_row_sq
+        gtg_diagonal = (
+            self._gtg_diagonal_without_building_g(weights)
+            if self.store_sensitivities == "forward_only"
+            else
+            # In Einstein notation, the j-th element of the diagonal is:
+            #   d_j = w_i * G_{ij} G_{ij}
+            np.asarray(np.einsum("i,ij,ij->j", weights, self.G, self.G))
+        )
         return gtg_diagonal
 
     def getJ(self, m, f=None) -> NDArray[np.float64 | np.float32] | LinearOperator:
