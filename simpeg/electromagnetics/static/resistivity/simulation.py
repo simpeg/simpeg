@@ -215,7 +215,6 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
             if isinstance(v, Data):
                 v = v.dobs
             v = self._mini_survey_dataT(v)
-            v = Data(survey, v)
             Jtv = np.zeros(m.size)
         else:
             # This is for forming full sensitivity matrix
@@ -223,13 +222,17 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
             istrt = int(0)
             iend = int(0)
 
+        # Get dict of flat array slices for each source-receiver pair in the survey
+        survey_slices = self.survey.get_all_slices()
+
         for source in survey.source_list:
             u_source = f[source, self._solutionType].copy()
             for rx in source.receiver_list:
                 # wrt f, need possibility wrt m
                 if v is not None:
+                    src_rx_slice = survey_slices[source, rx]
                     PTv = rx.evalDeriv(
-                        source, self.mesh, f, v[source, rx], adjoint=True
+                        source, self.mesh, f, v[src_rx_slice], adjoint=True
                     )
                 else:
                     PTv = rx.evalDeriv(source, self.mesh, f).toarray().T
