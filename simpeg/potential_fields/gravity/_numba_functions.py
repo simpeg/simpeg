@@ -174,7 +174,7 @@ def _diagonal_G_T_dot_G_serial(
     diagonal,
 ):
     """
-    Diagonal of ``G.T @ W.T @ W @ G`` without storing ``G``.
+    Diagonal of ``G.T @ W.T @ W @ G`` without storing ``G``, in serial.
 
     Parameters
     ----------
