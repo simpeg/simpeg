@@ -429,6 +429,9 @@ def _sensitivity_gravity_t_dot_v_parallel(
     the current row of the sensitivity matrix. After computing the elements of
     that row, it gets added to the running ``result`` array through a reduction
     operation handled by Numba.
+    
+    A serialized implementation of this function is available in
+    ``_sensitivity_gravity_t_dot_v_serial``.
     """
     n_receivers = receivers.shape[0]
     n_nodes = nodes.shape[0]
