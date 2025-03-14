@@ -2,7 +2,13 @@ import numpy as np
 import warnings
 
 from .survey import BaseSurvey
-from .utils import mkvc, validate_ndarray_with_shape, validate_float, validate_type
+from .utils import (
+    mkvc,
+    validate_ndarray_with_shape,
+    validate_float,
+    validate_type,
+    raise_if_nans,
+)
 
 __all__ = ["Data", "SyntheticData"]
 
@@ -128,9 +134,11 @@ class Data:
 
     @dobs.setter
     def dobs(self, value):
-        self._dobs = validate_ndarray_with_shape(
+        dobs = validate_ndarray_with_shape(
             "dobs", value, shape=(self.survey.nD,), dtype=(float, complex)
         )
+        raise_if_nans(dobs, "dobs")
+        self._dobs = dobs
 
     @property
     def relative_error(self):
@@ -173,6 +181,7 @@ class Data:
             )
             if np.any(value < 0.0):
                 raise ValueError("relative_error must be positive.")
+            raise_if_nans(value, "relative_error")
         self._relative_error = value
 
     @property
@@ -216,6 +225,7 @@ class Data:
             )
             if np.any(value < 0.0):
                 raise ValueError("noise_floor must be positive.")
+            raise_if_nans(value, "noise_floor")
         self._noise_floor = value
 
     @property
@@ -258,6 +268,7 @@ class Data:
 
     @standard_deviation.setter
     def standard_deviation(self, value):
+        raise_if_nans(value, "standard_deviation")
         self.relative_error = np.zeros(self.nD)
         self.noise_floor = value
 
