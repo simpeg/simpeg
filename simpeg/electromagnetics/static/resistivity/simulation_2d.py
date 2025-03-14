@@ -368,7 +368,7 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
             Jtv = np.zeros(m.size, dtype=float)
 
             # Get dict of flat array slices for each source-receiver pair in the survey
-            survey_slices = self.survey.get_all_slices()
+            survey_slices = survey.get_all_slices()
 
             for iky, ky in enumerate(kys):
                 u_ky = f[:, self._solutionType, iky]

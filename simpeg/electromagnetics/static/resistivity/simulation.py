@@ -223,7 +223,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
             iend = int(0)
 
         # Get dict of flat array slices for each source-receiver pair in the survey
-        survey_slices = self.survey.get_all_slices()
+        survey_slices = survey.get_all_slices()
 
         for source in survey.source_list:
             u_source = f[source, self._solutionType].copy()
