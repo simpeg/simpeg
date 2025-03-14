@@ -369,19 +369,19 @@ class SaveLogFilesGeoH5(BaseSaveGeoH5):
                 f.write("iteration beta phi_d phi_m time\n")
         log = []
         with open(dirpath / "SimPEG.log", "r", encoding="utf-8") as file:
-            iter = 0
+            iteration = 0
             for line in file:
                 val = re.findall(
-                    "[+\-]?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+\-]?\d+)", line
+                    "[+\-]?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+\-]?\d+)", line  # noqa
                 )
                 if len(val) == 5:
                     log.append(val[:-2])
-                    iter += 1
+                    iteration += 1
 
         if len(log) > 0:
             with open(filepath, "a", encoding="utf-8") as file:
                 date_time = datetime.now().strftime("%b-%d-%Y:%H:%M:%S")
-                file.write(f"{iter-1} " + " ".join(log[-1]) + f" {date_time}\n")
+                file.write(f"{iteration-1} " + " ".join(log[-1]) + f" {date_time}\n")
 
         self.save_log()
 
