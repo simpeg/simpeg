@@ -106,6 +106,9 @@ class TestDataIndexing(BaseFixtures):
         dobs_new = np.hstack(dobs_new)
         np.testing.assert_allclose(dobs_new, sample_data.dobs)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The `index_dictionary` property has been deprecated."
+    )
     def test_index_dictionary(self, sample_data):
         """Test the ``index_dictionary`` property."""
         # Assign dobs to the data object
@@ -118,6 +121,16 @@ class TestDataIndexing(BaseFixtures):
             expected_slice_ = survey_slices[src, rx]
             indices = sample_data.index_dictionary[src][rx]
             np.testing.assert_allclose(dobs[indices], dobs[expected_slice_])
+
+    def test_deprecated_index_dictionary(self, sample_data):
+        """Test deprecation warning in ``index_dictionary``."""
+        source = sample_data.survey.source_list[0]
+        receiver = source.receiver_list[0]
+        with pytest.warns(
+            FutureWarning,
+            match=re.escape("The `index_dictionary` property has been deprecated."),
+        ):
+            sample_data.index_dictionary[source][receiver]
 
 
 class TestSurveySlice:

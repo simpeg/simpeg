@@ -3,6 +3,7 @@ import warnings
 
 from .survey import BaseSurvey
 from .utils import mkvc, validate_ndarray_with_shape, validate_float, validate_type
+from .utils.code_utils import deprecated
 
 __all__ = ["Data", "SyntheticData"]
 
@@ -284,6 +285,13 @@ class Data:
         return self.dobs.shape
 
     @property
+    @deprecated(
+        "The `index_dictionary` property has been deprecated. "
+        "Use the `get_slice()` or `get_all_slices()` methods provided "
+        "by the Survey object instead."
+        "This property will be removed in SimPEG v0.25.0.",
+        category=FutureWarning,
+    )
     def index_dictionary(self):
         """Dictionary for indexing data by sources and receiver.
 
