@@ -367,16 +367,18 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
             v = self._mini_survey_dataT(v)
             Jtv = np.zeros(m.size, dtype=float)
 
+            # Get dict of flat array slices for each source-receiver pair in the survey
+            survey_slices = survey.get_all_slices()
+
             for iky, ky in enumerate(kys):
                 u_ky = f[:, self._solutionType, iky]
-                count = 0
                 for i_src, src in enumerate(survey.source_list):
                     u_src = u_ky[:, i_src]
                     df_duT_sum = 0
                     df_dmT_sum = 0
                     for rx in src.receiver_list:
-                        my_v = v[count : count + rx.nD]
-                        count += rx.nD
+                        src_rx_slice = survey_slices[src, rx]
+                        my_v = v[src_rx_slice]
                         # wrt f, need possibility wrt m
                         PTv = rx.evalDeriv(src, self.mesh, f, my_v, adjoint=True)
                         df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)

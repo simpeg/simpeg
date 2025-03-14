@@ -1,3 +1,4 @@
+import sys
 import types
 import numpy as np
 from functools import wraps
@@ -780,6 +781,76 @@ def deprecate_function(
     """
     dep_function.__doc__ = doc
     return dep_function
+
+
+def _deprecated(msg: str, *, category=DeprecationWarning, stacklevel=1):
+    """
+    Decorator to deprecate a function or method.
+
+    Use this to decorate a function or method so it raises a warning before
+    being called.
+
+    .. important::
+
+        This decorator is marked as private. Don't use it directly to decorate
+        your code, use the public ``deprecated`` one that is defined below in
+        this same module.
+
+    Parameters
+    ----------
+    msg : str
+        Message used in the warning.
+    category : warnings.Warning, optional
+        Warning category to use.
+    stacklevel : int
+        Stacklevel to use in the warning.
+
+    Returns
+    -------
+    callable
+        Decorated version of the function or method.
+
+    Examples
+    --------
+    >>> @deprecated("Use my_new_function", category=FutureWarning)
+    >>> def my_old_function(*args, **kwargs):
+    ...     ...
+    >>>
+    >>> my_old_function()
+    FutureWarning: Use my_new_function
+      my_old_function()
+
+    Notes
+    -----
+    This decorator is inspired in the :func:`warnings.deprecated` decorator
+    that was added in Python 3.13, after `PEP702
+    <https://peps.python.org/pep-0702>`_. SimPEG developers can use this method
+    while we maintain support of Python versions < 3.13.
+    """
+    import functools
+
+    def decorator(func):
+        if isinstance(func, type):
+            err_msg = "Use this decorator only on functions and methods."
+            raise TypeError(err_msg)
+        if not callable(func):
+            err_msg = "The decorated object must be a function or method."
+            raise TypeError(err_msg)
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            warnings.warn(msg, category=category, stacklevel=stacklevel + 1)
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+# Choose which `deprecated` decorator to use based on Python version.
+#   For Python < 3.13, use the `_deprecated` one defined above.
+#   For Python >= 3.13, use the warnings.deprecated one.
+deprecated = _deprecated if sys.version_info < (3, 13) else warnings.deprecated
 
 
 ###############################################################
