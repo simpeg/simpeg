@@ -30,35 +30,6 @@ class TestData(unittest.TestCase):
         mysurvey = survey.BaseSurvey(source_list=source_list)
         self.D = data.Data(mysurvey)
 
-    def test_data(self):
-        V = []
-        for src in self.D.survey.source_list:
-            for rx in src.receiver_list:
-                v = np.random.rand(rx.nD)
-                V += [v]
-                index = self.D.index_dictionary[src][rx]
-                self.D.dobs[index] = v
-        V = np.concatenate(V)
-        self.assertTrue(np.all(V == self.D.dobs))
-
-        D2 = data.Data(self.D.survey, V)
-        self.assertTrue(np.all(D2.dobs == self.D.dobs))
-
-    def test_standard_dev(self):
-        V = []
-        for src in self.D.survey.source_list:
-            for rx in src.receiver_list:
-                v = np.random.rand(rx.nD)
-                V += [v]
-                index = self.D.index_dictionary[src][rx]
-                self.D.relative_error[index] = v
-                self.assertTrue(np.all(v == self.D.relative_error[index]))
-        V = np.concatenate(V)
-        self.assertTrue(np.all(V == self.D.relative_error))
-
-        D2 = data.Data(self.D.survey, relative_error=V)
-        self.assertTrue(np.all(D2.relative_error == self.D.relative_error))
-
     def test_uniqueSrcs(self):
         srcs = self.D.survey.source_list
         srcs += [srcs[0]]
@@ -74,6 +45,79 @@ class TestData(unittest.TestCase):
         self.assertRaises(
             KeyError, mysurvey.get_source_indices, [srcs[1], srcs[2], SrcNotThere]
         )
+
+
+class BaseFixtures:
+    @pytest.fixture
+    def sample_survey(self):
+        """Create sample Survey object."""
+        x = np.linspace(5, 10, 3)
+        coordinates = utils.ndgrid(x, x, np.r_[0.0])
+        source_location = np.r_[0, 0, 0.0]
+        receivers = [survey.BaseRx(coordinates) for i in range(4)]
+        sources = [survey.BaseSrc([rx], location=source_location) for rx in receivers]
+        sources.append(survey.BaseSrc(receivers, location=source_location))
+        return survey.BaseSurvey(source_list=sources)
+
+    @pytest.fixture
+    def sample_data(self, sample_survey):
+        """Create sample Data object."""
+        return data.Data(sample_survey)
+
+
+class TestDataIndexing(BaseFixtures):
+    """Test indexing of Data object."""
+
+    def get_source_receiver_pairs(self, survey):
+        """Return generator for each source-receiver pair in the survey."""
+        source_receiver_pairs = (
+            (src, rx) for src in survey.source_list for rx in src.receiver_list
+        )
+        return source_receiver_pairs
+
+    def test_getitem(self, sample_data):
+        """Test the ``Data.__getitem__`` method."""
+        # Assign dobs to the data object
+        dobs = np.random.default_rng(seed=42).uniform(size=sample_data.survey.nD)
+        sample_data.dobs = dobs
+
+        # Iterate over source-receiver pairs
+        survey_slices = sample_data.survey.get_all_slices()
+        for src, rx in self.get_source_receiver_pairs(sample_data.survey):
+            # Check if the __getitem__ returns the correct slice of the dobs
+            expected = dobs[survey_slices[src, rx]]
+            np.testing.assert_allclose(sample_data[src, rx], expected)
+
+    def test_setitem(self, sample_data):
+        """Test the ``Data.__setitem__`` method."""
+        # Assign dobs to the data object
+        rng = np.random.default_rng(seed=42)
+        dobs = rng.uniform(size=sample_data.survey.nD)
+        sample_data.dobs = dobs
+
+        # Override the dobs array for each source-receiver pair
+        dobs_new = []
+        for src, rx in self.get_source_receiver_pairs(sample_data.survey):
+            _dobs_new_piece = dobs = rng.uniform(size=rx.nD)
+            sample_data[src, rx] = _dobs_new_piece
+            dobs_new.append(_dobs_new_piece)
+
+        # Check that the dobs in the data matches the new one
+        dobs_new = np.hstack(dobs_new)
+        np.testing.assert_allclose(dobs_new, sample_data.dobs)
+
+    def test_index_dictionary(self, sample_data):
+        """Test the ``index_dictionary`` property."""
+        # Assign dobs to the data object
+        dobs = np.random.default_rng(seed=42).uniform(size=sample_data.survey.nD)
+        sample_data.dobs = dobs
+
+        # Check indices in index_dictionary for each source-receiver pair
+        survey_slices = sample_data.survey.get_all_slices()
+        for src, rx in self.get_source_receiver_pairs(sample_data.survey):
+            expected_slice_ = survey_slices[src, rx]
+            indices = sample_data.index_dictionary[src][rx]
+            np.testing.assert_allclose(dobs[indices], dobs[expected_slice_])
 
 
 class TestSurveySlice:
