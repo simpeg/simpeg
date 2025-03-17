@@ -1,9 +1,17 @@
+import sys
 import numpy as np
 import warnings
 
 from .survey import BaseSurvey
 from .utils import mkvc, validate_ndarray_with_shape, validate_float, validate_type
-from .utils.code_utils import deprecated
+
+if sys.version_info >= (3, 13):
+    # warnings.deprecated available in Python >=3.13
+    from warnings import deprecated
+else:
+    # import it from typing_extension for Python <3.13
+    from typing_extensions import deprecated
+
 
 __all__ = ["Data", "SyntheticData"]
 

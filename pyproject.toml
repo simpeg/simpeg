@@ -22,6 +22,7 @@ dependencies = [
     "discretize>=0.11",
     "geoana>=0.7",
     "libdlf",
+    "typing_extensions",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
