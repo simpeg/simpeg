@@ -811,13 +811,12 @@ def raise_if_nans_or_infs(
     """
     is_nan, is_inf = np.isnan(value).any(), np.isinf(value).any()
     if is_nan or is_inf:
-        match (is_nan, is_inf):
-            case (True, True):
-                offending_types = "nan and inf"
-            case (True, False):
-                offending_types = "nan"
-            case (False, True):
-                offending_types = "inf"
+        if is_nan and is_inf:
+            offending_types = "nan and inf"
+        elif is_nan:
+            offending_types = "nan"
+        else:
+            offending_types = "inf"
         text = (
             f"equal to {'nan' if is_nan else 'inf'}"
             if isinstance(value, Number)

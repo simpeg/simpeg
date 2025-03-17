@@ -70,10 +70,14 @@ class DataTest(unittest.TestCase):
         np.testing.assert_equal(data.standard_deviation, standard_deviation)
 
 
-class TestNansInData:
+class BaseTestInvalidValuesInData:
     """
-    Test if errors are raised after passing arrays with nans to the ``Data`` object.
+    Base class to test errors after passing arrays with invalid values to ``Data``.
     """
+
+    # Set these two attributes in child class
+    invalid_value = ...
+    invalid_value_str = ...
 
     @pytest.fixture
     def n_data(self):
@@ -90,24 +94,26 @@ class TestNansInData:
         return np.ones(n_data, dtype=np.float64)
 
     @pytest.fixture
-    def array_with_nan(self, array):
+    def array_with_invalid_values(self, array):
         array = array.copy()
-        array[1] = np.nan
+        array[1] = self.invalid_value
         return array
 
     @pytest.mark.parametrize("method", ["init", "setter"])
-    def test_dobs(self, array, array_with_nan, sample_survey, method):
+    def test_dobs(self, array, array_with_invalid_values, sample_survey, method):
         """
         Test errors when passing arrays to the constructor.
         """
-        expected_msg = re.escape("Invalid 'dobs' with nan values.")
+        expected_msg = re.escape(
+            f"Invalid 'dobs' with {self.invalid_value_str} values."
+        )
         if method == "init":
             with pytest.raises(ValueError, match=expected_msg):
-                Data(sample_survey, dobs=array_with_nan)
+                Data(sample_survey, dobs=array_with_invalid_values)
         else:
             data = Data(sample_survey, dobs=array)
             with pytest.raises(ValueError, match=expected_msg):
-                data.dobs = array_with_nan
+                data.dobs = array_with_invalid_values
 
     @pytest.mark.parametrize("method", ["init", "setter"])
     @pytest.mark.parametrize(
@@ -119,17 +125,52 @@ class TestNansInData:
         ],
     )
     def test_uncertanties(
-        self, array, array_with_nan, sample_survey, method, nan_property
+        self, array, array_with_invalid_values, sample_survey, method, nan_property
     ):
         """
         Test errors when passing arrays to the constructor.
         """
-        expected_msg = re.escape(f"Invalid '{nan_property}' with nan values.")
+        expected_msg = re.escape(
+            f"Invalid '{nan_property}' with {self.invalid_value_str} values."
+        )
         if method == "init":
-            kwargs = {nan_property: array_with_nan}
+            kwargs = {nan_property: array_with_invalid_values}
             with pytest.raises(ValueError, match=expected_msg):
                 Data(sample_survey, dobs=array, **kwargs)
         else:
             data = Data(sample_survey, dobs=array)
             with pytest.raises(ValueError, match=expected_msg):
-                setattr(data, nan_property, array_with_nan)
+                setattr(data, nan_property, array_with_invalid_values)
+
+
+class TestNanInData(BaseTestInvalidValuesInData):
+    """
+    Test if errors are raised after passing arrays with nan to ``Data``.
+    """
+
+    invalid_value = np.nan
+    invalid_value_str = "nan"
+
+
+class TestInfInData(BaseTestInvalidValuesInData):
+    """
+    Test if errors are raised after passing arrays with inf to ``Data``.
+    """
+
+    invalid_value = np.inf
+    invalid_value_str = "inf"
+
+
+class TestNanAndInfInData(BaseTestInvalidValuesInData):
+    """
+    Test if errors are raised after passing arrays with nan and inf to ``Data``.
+    """
+
+    invalid_value_str = "nan and inf"
+
+    @pytest.fixture
+    def array_with_invalid_values(self, array):
+        array = array.copy()
+        array[1] = np.nan
+        array[2] = np.inf
+        return array
