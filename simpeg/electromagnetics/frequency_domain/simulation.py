@@ -355,7 +355,8 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
             Jmatrix = np.zeros((self.survey.nD, m_size))
 
-            data = Data(self.survey)
+            # Get dict of flat array slices for each source-receiver pair in the survey
+            survey_slices = self.survey.get_all_slices()
 
             for A_i, freq in zip(Ainv, self.survey.frequencies):
                 for src in self.survey.get_sources_by_frequency(freq):
@@ -382,8 +383,9 @@ class BaseFDEMSimulation(BaseEMSimulation):
                             du_dmT += np.hstack(df_dmT)
 
                         block = np.array(du_dmT, dtype=complex).real.T
-                        data_inds = data.index_dictionary[src][rx]
-                        Jmatrix[data_inds] = block
+
+                        src_rx_slice = survey_slices[src, rx]
+                        Jmatrix[src_rx_slice] = block
 
             self._Jmatrix = Jmatrix
 
