@@ -251,8 +251,8 @@ class BaseFDEMSimulation(BaseEMSimulation):
                 du_dm_v = self.Ainv[nf] * (-dA_dm_v + dRHS_dm_v)
                 for rx in src.receiver_list:
                     src_rx_slice = survey_slices[src, rx]
-                    Jv[src_rx_slice] = rx.evalDeriv(
-                        src, self.mesh, f, du_dm_v=du_dm_v, v=v
+                    Jv[src_rx_slice] = mkvc(
+                        rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v)
                     )
 
         return Jv.dobs

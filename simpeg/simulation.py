@@ -192,7 +192,7 @@ class BaseSimulation(props.HasModel):
         for src in self.survey.source_list:
             for rx in src.receiver_list:
                 src_rx_slice = survey_slices[src, rx]
-                dpred[src_rx_slice] = rx.eval(src, self.mesh, f)
+                dpred[src_rx_slice] = mkvc(rx.eval(src, self.mesh, f))
         return mkvc(dpred)
 
     @timeIt
@@ -603,7 +603,7 @@ class BaseTimeSimulation(BaseSimulation):
         for src in self.survey.source_list:
             for rx in src.receiver_list:
                 src_rx_slice = survey_slices[src, rx]
-                dpred[src_rx_slice] = rx.eval(src, self.mesh, self.time_mesh, f)
+                dpred[src_rx_slice] = mkvc(rx.eval(src, self.mesh, self.time_mesh, f))
         return dpred
 
 
