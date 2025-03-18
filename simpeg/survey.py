@@ -572,6 +572,11 @@ class BaseSurvey:
         -------
         slice
 
+        Raises
+        ------
+        KeyError
+            If the given ``source`` or ``receiver`` do not belong to this survey.
+
         See also
         --------
         .get_all_slices
