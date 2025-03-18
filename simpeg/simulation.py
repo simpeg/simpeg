@@ -188,7 +188,7 @@ class BaseSimulation(props.HasModel):
             f = self.fields(m)
 
         survey_slices = self.survey.get_all_slices()
-        dpred = np.full(self.survey.nC, np.nan)
+        dpred = np.full(self.survey.nD, np.nan)
         for src in self.survey.source_list:
             for rx in src.receiver_list:
                 src_rx_slice = survey_slices[src, rx]
@@ -599,7 +599,7 @@ class BaseTimeSimulation(BaseSimulation):
             f = self.fields(m)
 
         survey_slices = self.survey.get_all_slices()
-        dpred = np.full(self.survey.nC, np.nan)
+        dpred = np.full(self.survey.nD, np.nan)
         for src in self.survey.source_list:
             for rx in src.receiver_list:
                 src_rx_slice = survey_slices[src, rx]
