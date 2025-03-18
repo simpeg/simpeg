@@ -5,6 +5,7 @@ import scipy.sparse as sp
 
 from .... import maps, props
 from ....base import BasePDESimulation
+from ....utils import mkvc
 from ..resistivity import Simulation2DCellCentered as DC_2D_CC
 from ..resistivity import Simulation2DNodal as DC_2D_N
 from ..resistivity import Simulation3DCellCentered as DC_3D_CC
@@ -56,7 +57,7 @@ class BaseIPSimulation(BasePDESimulation):
             for rx in src.receiver_list:
                 if rx.data_type == "apparent_chargeability":
                     src_rx_slice = survey_slices[src, rx]
-                    scale[src_rx_slice] = 1.0 / rx.eval(src, self.mesh, f)
+                    scale[src_rx_slice] = mkvc(1.0 / rx.eval(src, self.mesh, f))
         return scale
 
     eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability (V/V)")
