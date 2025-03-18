@@ -566,7 +566,7 @@ class BaseSurvey:
         source : .BaseSrc
             Source object.
         receiver : .BaseRx
-            Source object.
+            Receiver object.
 
         Returns
         -------
