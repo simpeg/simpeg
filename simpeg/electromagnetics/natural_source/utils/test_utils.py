@@ -1,7 +1,7 @@
 import numpy as np
 
 import discretize
-from simpeg import maps, mkvc, utils, Data
+from simpeg import maps, mkvc, utils
 from ....utils import unpack_widths
 from ..receivers import (
     PointNaturalSource,
@@ -18,9 +18,9 @@ TOLp = 5e-2
 
 
 def getAppResPhs(NSEMdata, survey):
-    NSEMdata = Data(dobs=NSEMdata, survey=survey)
     # Make impedance
     zList = []
+    survey_slices = survey.get_all_slices()
     for src in survey.source_list:
         zc = [src.frequency]
         for rx in src.receiver_list:
@@ -28,7 +28,8 @@ def getAppResPhs(NSEMdata, survey):
                 m = 1j
             else:
                 m = 1
-            zc.append(m * NSEMdata[src, rx])
+            src_rx_slice = survey_slices[src, rx]
+            zc.append(m * NSEMdata[src_rx_slice])
         zList.append(zc)
     return [
         appResPhs(zList[i][0], np.sum(zList[i][1:3])) for i in np.arange(len(zList))

@@ -3,7 +3,6 @@ import scipy.sparse as sp
 from discretize.utils import Zero
 
 from ... import props
-from ...data import Data
 from ...utils import mkvc, validate_type
 from ..base import BaseEMSimulation
 from ..utils import omega
@@ -241,7 +240,8 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         self.model = m
 
-        Jv = Data(self.survey)
+        survey_slices = self.survey.get_all_slices()
+        Jv = np.full(self.survey.nD, fill_value=np.nan)
 
         for nf, freq in enumerate(self.survey.frequencies):
             for src in self.survey.get_sources_by_frequency(freq):
@@ -250,7 +250,10 @@ class BaseFDEMSimulation(BaseEMSimulation):
                 dRHS_dm_v = self.getRHSDeriv(freq, src, v)
                 du_dm_v = self.Ainv[nf] * (-dA_dm_v + dRHS_dm_v)
                 for rx in src.receiver_list:
-                    Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v)
+                    src_rx_slice = survey_slices[src, rx]
+                    Jv[src_rx_slice] = rx.evalDeriv(
+                        src, self.mesh, f, du_dm_v=du_dm_v, v=v
+                    )
 
         return Jv.dobs
 

@@ -11,7 +11,7 @@ from discretize.utils import unpack_widths, sdiag, mkvc
 
 from . import props
 from .typing import RandomSeed
-from .data import SyntheticData, Data
+from .data import SyntheticData
 from .survey import BaseSurvey
 from .utils import (
     Counter,
@@ -187,11 +187,13 @@ class BaseSimulation(props.HasModel):
 
             f = self.fields(m)
 
-        data = Data(self.survey)
+        survey_slices = self.survey.get_all_slices()
+        dpred = np.full(self.survey.nC, np.nan)
         for src in self.survey.source_list:
             for rx in src.receiver_list:
-                data[src, rx] = rx.eval(src, self.mesh, f)
-        return mkvc(data)
+                src_rx_slice = survey_slices[src, rx]
+                dpred[src_rx_slice] = rx.eval(src, self.mesh, f)
+        return mkvc(dpred)
 
     @timeIt
     def Jvec(self, m, v, f=None):
@@ -596,11 +598,13 @@ class BaseTimeSimulation(BaseSimulation):
         if f is None:
             f = self.fields(m)
 
-        data = Data(self.survey)
+        survey_slices = self.survey.get_all_slices()
+        dpred = np.full(self.survey.nC, np.nan)
         for src in self.survey.source_list:
             for rx in src.receiver_list:
-                data[src, rx] = rx.eval(src, self.mesh, self.time_mesh, f)
-        return data.dobs
+                src_rx_slice = survey_slices[src, rx]
+                dpred[src_rx_slice] = rx.eval(src, self.mesh, self.time_mesh, f)
+        return dpred
 
 
 ##############################################################################

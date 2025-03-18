@@ -61,9 +61,12 @@ def extract_data_info(NSEMdata):
     """
     dL, freqL, rxTL = [], [], []
 
+    survey_slices = NSEMdata.survey.get_all_slices()
+
     for src in NSEMdata.survey.source_list:
         for rx in src.receiver_list:
-            dL.append(NSEMdata[src, rx])
+            src_rx_slice = survey_slices[src, rx]
+            dL.append(NSEMdata.dobs[src_rx_slice])
             freqL.append(np.ones(rx.nD) * src.frequency)
             if isinstance(rx, PointNaturalSource):
                 rxTL.extend((("z" + rx.orientation + " ") * rx.nD).split())
