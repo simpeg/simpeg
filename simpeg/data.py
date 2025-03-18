@@ -69,7 +69,7 @@ class Data:
     def __init__(
         self,
         survey,
-        dobs=None,
+        dobs,
         relative_error=None,
         noise_floor=None,
         standard_deviation=None,
@@ -78,13 +78,8 @@ class Data:
         super().__init__(**kwargs)
         self.survey = survey
 
-        # Observed data
-        if dobs is None:
-            dobs = np.full(survey.nD, np.nan)  # initialize data as nans
         self.dobs = dobs
-
         self.relative_error = relative_error
-
         self.noise_floor = noise_floor
 
         if standard_deviation is not None:
