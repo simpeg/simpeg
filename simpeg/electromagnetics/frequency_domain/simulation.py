@@ -255,7 +255,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
                         rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v)
                     )
 
-        return Jv.dobs
+        return Jv
 
     def Jtvec(self, m, v, f=None):
         r"""Compute the adjoint sensitivity matrix times a vector.
