@@ -260,4 +260,5 @@ rst-roles = [
 filterwarnings = [
     "ignore::simpeg.utils.solver_utils.DefaultSolverWarning",
     "error:The `index_dictionary` property has been deprecated:FutureWarning",
+    "error:Data.__setitem__:UserWarning",
 ]
