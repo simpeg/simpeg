@@ -129,7 +129,7 @@ class Data:
         This array can also be modified by directly indexing the data object
         using the a tuple of the survey's sources and receivers.
 
-        >>> data = Data(survey)
+        >>> data = Data(survey, dobs)
         >>> for src in survey.source_list:
         ...     for rx in src.receiver_list:
         ...         data[src, rx] = datum
