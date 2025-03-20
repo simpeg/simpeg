@@ -355,12 +355,12 @@ class Simulation3DIntegral(BasePFSimulation):
 
         Notes
         -----
-            If ``store_sensitivities`` is ``"ram"`` or ``"disk"``, a dense
-            array for the ``J`` matrix is returned.
-            A :class:`~scipy.sparse.linalg.LinearOperator` is returned if
-            ``store_sensitivities`` is ``"forward_only"``. This object can
-            perform operations like ``J @ m`` or ``J.T @ v`` without allocating
-            the full ``J`` matrix in memory.
+        If ``store_sensitivities`` is ``"ram"`` or ``"disk"``, a dense array
+        for the ``J`` matrix is returned.
+        A :class:`~scipy.sparse.linalg.LinearOperator` is returned if
+        ``store_sensitivities`` is ``"forward_only"``. This object can perform
+        operations like ``J @ m`` or ``J.T @ v`` without allocating the full
+        ``J`` matrix in memory.
         """
         # Need to assign the model, so the rhoDeriv can be computed (if the
         # model is None, the rhoDeriv is going to be Zero).
