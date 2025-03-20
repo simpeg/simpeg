@@ -103,7 +103,7 @@ class TestNanOrInfInResidual:
     @pytest.mark.parametrize("invalid_value", [np.nan, np.inf])
     def test_error(self, sample_survey, invalid_value):
         mock_simulation = MockSimulation(invalid_value)
-        data = Data(sample_survey)
+        data = Data(sample_survey, dobs=np.ones(sample_survey.nD))
         dmisfit = data_misfit.BaseDataMisfit(data, mock_simulation)
         msg = re.escape(
             "The `MockSimulation.dpred()` method returned an array that contains "

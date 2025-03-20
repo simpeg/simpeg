@@ -28,7 +28,7 @@ class TestData(unittest.TestCase):
         )
         source_list = [Src0, Src1, Src2, Src3, Src4]
         mysurvey = survey.BaseSurvey(source_list=source_list)
-        self.D = data.Data(mysurvey)
+        self.D = data.Data(mysurvey, dobs=np.ones(mysurvey.nD))
 
     def test_uniqueSrcs(self):
         srcs = self.D.survey.source_list
@@ -62,7 +62,8 @@ class BaseFixtures:
     @pytest.fixture
     def sample_data(self, sample_survey):
         """Create sample Data object."""
-        return data.Data(sample_survey)
+        dobs = np.random.default_rng(seed=42).uniform(size=sample_survey.nD)
+        return data.Data(sample_survey, dobs=dobs)
 
 
 class TestDataIndexing(BaseFixtures):
@@ -77,9 +78,7 @@ class TestDataIndexing(BaseFixtures):
 
     def test_getitem(self, sample_data):
         """Test the ``Data.__getitem__`` method."""
-        # Assign dobs to the data object
-        dobs = np.random.default_rng(seed=42).uniform(size=sample_data.survey.nD)
-        sample_data.dobs = dobs
+        dobs = sample_data.dobs.copy()
 
         # Iterate over source-receiver pairs
         survey_slices = sample_data.survey.get_all_slices()
@@ -90,15 +89,11 @@ class TestDataIndexing(BaseFixtures):
 
     def test_setitem(self, sample_data):
         """Test the ``Data.__setitem__`` method."""
-        # Assign dobs to the data object
-        rng = np.random.default_rng(seed=42)
-        dobs = rng.uniform(size=sample_data.survey.nD)
-        sample_data.dobs = dobs
-
         # Override the dobs array for each source-receiver pair
         dobs_new = []
+        rng = np.random.default_rng(seed=42)
         for src, rx in self.get_source_receiver_pairs(sample_data.survey):
-            _dobs_new_piece = dobs = rng.uniform(size=rx.nD)
+            _dobs_new_piece = rng.uniform(size=rx.nD)
             sample_data[src, rx] = _dobs_new_piece
             dobs_new.append(_dobs_new_piece)
 
@@ -111,9 +106,7 @@ class TestDataIndexing(BaseFixtures):
     )
     def test_index_dictionary(self, sample_data):
         """Test the ``index_dictionary`` property."""
-        # Assign dobs to the data object
-        dobs = np.random.default_rng(seed=42).uniform(size=sample_data.survey.nD)
-        sample_data.dobs = dobs
+        dobs = sample_data.dobs.copy()
 
         # Check indices in index_dictionary for each source-receiver pair
         survey_slices = sample_data.survey.get_all_slices()
