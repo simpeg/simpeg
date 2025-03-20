@@ -8,7 +8,6 @@ from ..utils import drapeTopotoLoc
 from . import receivers as Rx
 from . import sources as Src
 from ..utils import static_utils
-from simpeg import data
 
 
 class Survey(BaseSurvey):
@@ -224,13 +223,15 @@ class Survey(BaseSurvey):
 
         geometric_factor = static_utils.geometric_factor(self, space_type=space_type)
 
-        geometric_factor = data.Data(self, geometric_factor)
+        # geometric_factor = data.Data(self, geometric_factor)
+        survey_slices = self.get_all_slices()
         for source in self.source_list:
             for rx in source.receiver_list:
                 if data_type is not None:
                     rx.data_type = data_type
                 if rx.data_type == "apparent_resistivity":
-                    rx._geometric_factor[source] = geometric_factor[source, rx]
+                    src_rx_slice = survey_slices[source, rx]
+                    rx._geometric_factor[source] = geometric_factor[src_rx_slice]
         return geometric_factor
 
     def _set_abmn_locations(self):
