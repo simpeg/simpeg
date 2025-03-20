@@ -62,13 +62,13 @@ def read_dcip_xyz(
 
     Returns
     -------
-    simpeg.data.Data
-        DC or IP data. The survey attribute associated with the data object will be an
-        instance of :class:`simpeg.electromagnetics.static.resistivity.survey.Survey`
-        or :class:`simpeg.electromagnetics.static.induced_polarization.survey.Survey`
+    simpeg.survey.BaseSurvey
+        A survey object with the sources and receivers configuration provided
+        by the data file. The survey will be an instance of instance of
+        :class:`~simpeg.electromagnetics.static.resistivity.survey.Survey` or
+        :class:`~simpeg.electromagnetics.static.induced_polarization.survey.Survey`.
     dict
-        If additional columns are loaded and output to a dictionary using the keyward argument
-        `dict_headers`, the output of this function has the form `(out_data, out_dict)`.
+        Dictionary with values in the other columns in the data file.
     """
     data_type = validate_string(
         "data_type",
@@ -82,12 +82,10 @@ def read_dcip_xyz(
 
     # Prevent circular import
     from ...electromagnetics.static.utils import generate_survey_from_abmn_locations
-    from ...data import Data
 
     # Load file headers
-    FID = open(file_name, "r")
-    file_headers = FID.readline()
-    FID.close()
+    with open(file_name, "r") as f:
+        file_headers = f.readline()
     file_headers = file_headers.split()
 
     # Find indices of columns being loaded
@@ -166,27 +164,20 @@ def read_dcip_xyz(
         output_sorting=True,
     )
 
-    data_object = Data(survey)
+    dictionary = {}
 
     # Sort and organize all data columns
     if has_data:
-        data_object.dobs = data_array[out_indices, file_headers.index(data_header)]
-
-    # Sort and organize all data columns
+        dictionary["dobs"] = data_array[out_indices, file_headers.index(data_header)]
     if has_uncert:
-        data_object.standard_deviation = data_array[
+        dictionary["standard_deviation"] = data_array[
             out_indices, file_headers.index(uncertainties_header)
         ]
-
-    # Sort and organize all data columns
     if has_dict:
-        out_dict = {}
         for h in dict_headers:
-            out_dict[h] = data_array[out_indices, file_headers.index(h)]
-        return data_object, out_dict
+            dictionary[h] = data_array[out_indices, file_headers.index(h)]
 
-    else:
-        return data_object
+    return survey, dictionary
 
 
 def read_dcip2d_ubc(file_name, data_type, format_type):
