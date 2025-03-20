@@ -285,9 +285,10 @@ class Simulation3DIntegral(BasePFSimulation):
 
         This method caches the diagonal ``G.T @ W.T @ W @ G`` and the sha256
         hash of the diagonal of the ``W`` matrix. This way, if same weights are
-        passed to it, it reuses the cached ``G.T @ W.T @ W @ G`` so it doesn't
-        need to be recomputed. If new weights are passed, the cache is updated
-        with the latest diagonal of ``G.T @ W.T @ W @ G``.
+        passed to it, it reuses the cached diagonal so it doesn't need to be
+        recomputed.
+        If new weights are passed, the cache is updated with the latest
+        diagonal of ``G.T @ W.T @ W @ G``.
         """
         # Need to assign the model, so the rhoDeriv can be computed (if the
         # model is None, the rhoDeriv is going to be Zero).
@@ -336,7 +337,7 @@ class Simulation3DIntegral(BasePFSimulation):
             if self.store_sensitivities == "forward_only"
             else
             # In Einstein notation, the j-th element of the diagonal is:
-            #   d_j = w_i * G_{ij} G_{ij}
+            #   d_j = w_i * G_{ij} * G_{ij}
             np.asarray(np.einsum("i,ij,ij->j", weights, self.G, self.G))
         )
         return gtg_diagonal
