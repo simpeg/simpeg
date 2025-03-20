@@ -98,7 +98,7 @@ class TestDataIndexing(BaseFixtures):
         # Override the dobs array for each source-receiver pair
         dobs_new = []
         for src, rx in self.get_source_receiver_pairs(sample_data.survey):
-            _dobs_new_piece = dobs = rng.uniform(size=rx.nD)
+            _dobs_new_piece = rng.uniform(size=rx.nD)
             sample_data[src, rx] = _dobs_new_piece
             dobs_new.append(_dobs_new_piece)
 
