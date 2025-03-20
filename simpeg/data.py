@@ -345,7 +345,6 @@ class Data:
 
     def __setitem__(self, key, value):
         slice_obj = self.survey.get_slice(*key)
-        warnings.warn("Data.__setitem__", UserWarning, stacklevel=2)
         self.dobs[slice_obj] = mkvc(value)
 
     def __getitem__(self, key):
