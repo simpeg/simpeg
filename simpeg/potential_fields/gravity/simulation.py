@@ -30,6 +30,14 @@ from ._numba_functions import (
     _diagonal_G_T_dot_G_parallel,
 )
 
+try:
+    from warnings import deprecated
+except ImportError:
+    # Use the deprecated decorator provided by typing_extensions (which
+    # supports older versions of Python) if it cannot be imported from
+    # warnings.
+    from typing_extensions import deprecated
+
 if choclo is not None:
     from numba import jit
 
@@ -461,16 +469,15 @@ class Simulation3DIntegral(BasePFSimulation):
         return self._G
 
     @property
+    @deprecated(
+        "The `gtg_diagonal` property has been deprecated. "
+        "It will be removed in SimPEG v0.25.0.",
+        category=FutureWarning,
+    )
     def gtg_diagonal(self):
         """
         Diagonal of GtG
         """
-        warnings.warn(
-            "The `gtg_diagonal` property has been deprecated in will be removed "
-            "in SimPEG v0.25.0.",
-            FutureWarning,
-            stacklevel=2,
-        )
         return getattr(self, "_gtg_diagonal", None)
 
     def evaluate_integral(self, receiver_location, components):
