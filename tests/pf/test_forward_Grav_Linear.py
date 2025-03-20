@@ -845,8 +845,8 @@ class TestDeprecationWarning(BaseFixtures):
             engine="choclo",
         )
         msg = re.escape(
-            "The `gtg_diagonal` property has been deprecated in will be removed "
-            "in SimPEG v0.25.0.",
+            "The `gtg_diagonal` property has been deprecated. "
+            "It will be removed in SimPEG v0.25.0.",
         )
         with pytest.warns(FutureWarning, match=msg):
             simulation.gtg_diagonal
