@@ -1524,8 +1524,16 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
             \text{TMI} = \vec{B}_s \cdot \hat{B}_0
 
         """
-        # TODO: There can be some different tyes of data like |B| or B
-        components = self.survey.components
+        # Get components for all receivers, assuming they all have the same components
+        try:
+            components = self._get_components()
+        except NotImplementedError as e:
+            e.args = (
+                "Found receivers with different set of components in the survey. "
+                "Calling `projectFields` with such type of survey is not currently "
+                "supported.",
+            )
+            raise e
 
         fields = {}
         if "bx" in components or "tmi" in components:
@@ -1561,7 +1569,16 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         Especially, this function is for TMI data type
         """
 
-        components = self.survey.components
+        # Get components for all receivers, assuming they all have the same components
+        try:
+            components = self._get_components()
+        except NotImplementedError as e:
+            e.args = (
+                "Found receivers with different set of components in the survey. "
+                "Calling `projectFieldsDeriv` with such type of survey is not "
+                "currently supported.",
+            )
+            raise e
 
         fields = {}
         if "bx" in components or "tmi" in components:
@@ -1584,6 +1601,39 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
             fields["tmi"] = bx * box + by * boy + bz * boz
 
         return sp.vstack([fields[comp] for comp in components])
+
+    def _get_components(self):
+        """
+        Get components of all receivers in the survey.
+
+        This function assumes that all receivers in the survey have the same
+        components in the same order.
+
+        Returns
+        -------
+        components : list of str
+            List of components shared by all receivers in the survey.
+
+        Raises
+        ------
+        ValueError
+            If the survey doesn't have any receiver.
+        NotImplementedError
+            If any receiver has a different set of components than the rest.
+        """
+        receivers = (
+            rx for source in self.survey.source_list for rx in source.receiver_list
+        )
+        rx = next(receivers, None)
+        if rx is None:
+            msg = "Found invalid survey without receivers."
+            raise ValueError(msg)
+        components = rx.components
+        if not all(components == rx.components for rx in receivers):
+            raise NotImplementedError()
+        if isinstance(components, str):
+            components = list(components)
+        return components
 
     def projectFieldsAsVector(self, B):
         bfx = self.Qfx * B
