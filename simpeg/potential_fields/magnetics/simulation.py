@@ -1621,16 +1621,16 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         NotImplementedError
             If any receiver has a different set of components than the rest.
         """
-        receivers = (
-            rx for source in self.survey.source_list for rx in source.receiver_list
-        )
-        rx = next(receivers, None)
-        if rx is None:
+        receivers = self.survey.source_field.receiver_list
+        if not receivers:
             msg = "Found invalid survey without receivers."
             raise ValueError(msg)
-        components = rx.components
+
+        components = receivers[0].components
         if not all(components == rx.components for rx in receivers):
             raise NotImplementedError()
+
+        # Cast to list so it always return a list of strings
         if isinstance(components, str):
             components = list(components)
         return components
