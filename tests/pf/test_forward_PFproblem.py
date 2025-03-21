@@ -33,11 +33,11 @@ class MagFwdProblemTests(unittest.TestCase):
         yr = np.linspace(-300, 300, 41)
         X, Y = np.meshgrid(xr, yr)
         Z = np.ones((xr.size, yr.size)) * 150
-        components = ["bx", "by", "bz"]
+        self.components = ["bx", "by", "bz"]
         self.xr = xr
         self.yr = yr
         self.rxLoc = np.c_[utils.mkvc(X), utils.mkvc(Y), utils.mkvc(Z)]
-        receivers = mag.Point(self.rxLoc, components=components)
+        receivers = mag.Point(self.rxLoc, components=self.components)
         srcField = mag.UniformBackgroundField(
             receiver_list=[receivers],
             amplitude=Btot,
@@ -70,7 +70,7 @@ class MagFwdProblemTests(unittest.TestCase):
             "secondary",
         )
 
-        n_obs, n_comp = self.rxLoc.shape[0], len(self.survey.components)
+        n_obs, n_comp = self.rxLoc.shape[0], len(self.components)
         dx, dy, dz = dpred.reshape(n_comp, n_obs)
 
         err_x = np.linalg.norm(dx - bxa) / np.linalg.norm(bxa)
