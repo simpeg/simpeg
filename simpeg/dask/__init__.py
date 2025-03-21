@@ -6,6 +6,7 @@ try:
     import simpeg.dask.electromagnetics.static.induced_polarization.simulation
     import simpeg.dask.electromagnetics.static.induced_polarization.simulation_2d
     import simpeg.dask.electromagnetics.time_domain.simulation
+    import simpeg.dask.electromagnetics.time_domain.simulation_1d
     import simpeg.dask.potential_fields.base
     import simpeg.dask.potential_fields.gravity.simulation
     import simpeg.dask.potential_fields.magnetics.simulation
