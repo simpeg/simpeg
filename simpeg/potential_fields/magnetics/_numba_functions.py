@@ -47,9 +47,13 @@ def _sensitivity_mag(
         Array with the locations of the receivers
     nodes : (n_active_nodes, 3) array
         Array with the location of the mesh nodes.
-    sensitivity_matrix : (n_receivers, n_active_nodes) array
+    sensitivity_matrix : array
         Empty 2d array where the sensitivity matrix elements will be filled.
         This could be a preallocated empty array or a slice of it.
+        The array should have a shape of ``(n_receivers, n_active_cells)``
+        if ``scalar_model`` is True.
+        The array should have a shape of ``(n_receivers, 3 * n_active_cells)``
+        if ``scalar_model`` is False.
     cell_nodes : (n_active_cells, 8) array
         Array of integers, where each row contains the indices of the nodes for
         each active cell in the mesh.
@@ -230,9 +234,9 @@ def _sensitivity_tmi(
     sensitivity_matrix : array
         Empty 2d array where the sensitivity matrix elements will be filled.
         This could be a preallocated empty array or a slice of it.
-        The array should have a shape of ``(n_receivers, n_active_nodes)``
+        The array should have a shape of ``(n_receivers, n_active_cells)``
         if ``scalar_model`` is True.
-        The array should have a shape of ``(n_receivers, 3 * n_active_nodes)``
+        The array should have a shape of ``(n_receivers, 3 * n_active_cells)``
         if ``scalar_model`` is False.
     cell_nodes : (n_active_cells, 8) array
         Array of integers, where each row contains the indices of the nodes for
@@ -403,9 +407,9 @@ def _sensitivity_tmi_derivative(
     sensitivity_matrix : array
         Empty 2d array where the sensitivity matrix elements will be filled.
         This could be a preallocated empty array or a slice of it.
-        The array should have a shape of ``(n_receivers, n_active_nodes)``
+        The array should have a shape of ``(n_receivers, n_active_cells)``
         if ``scalar_model`` is True.
-        The array should have a shape of ``(n_receivers, 3 * n_active_nodes)``
+        The array should have a shape of ``(n_receivers, 3 * n_active_cells)``
         if ``scalar_model`` is False.
     cell_nodes : (n_active_cells, 8) array
         Array of integers, where each row contains the indices of the nodes for
@@ -1463,9 +1467,13 @@ def _sensitivity_mag_2d_mesh(
         Array with the top boundaries of each active cell in the 2D mesh.
     bottom : (n_active_cells) np.ndarray
         Array with the bottom boundaries of each active cell in the 2D mesh.
-    sensitivity_matrix : (n_receivers, n_active_nodes) array
+    sensitivity_matrix : array
         Empty 2d array where the sensitivity matrix elements will be filled.
         This could be a preallocated empty array or a slice of it.
+        The array should have a shape of ``(n_receivers, n_active_cells)``
+        if ``scalar_model`` is True.
+        The array should have a shape of ``(n_receivers, 3 * n_active_cells)``
+        if ``scalar_model`` is False.
     regional_field : (3,) array
         Array containing the x, y and z components of the regional magnetic
         field (uniform background field).
@@ -1651,9 +1659,9 @@ def _sensitivity_tmi_2d_mesh(
     sensitivity_matrix : array
         Empty 2d array where the sensitivity matrix elements will be filled.
         This could be a preallocated empty array or a slice of it.
-        The array should have a shape of ``(n_receivers, n_active_nodes)``
+        The array should have a shape of ``(n_receivers, n_active_cells)``
         if ``scalar_model`` is True.
-        The array should have a shape of ``(n_receivers, 3 * n_active_nodes)``
+        The array should have a shape of ``(n_receivers, 3 * n_active_cells)``
         if ``scalar_model`` is False.
     regional_field : (3,) array
         Array containing the x, y and z components of the regional magnetic
@@ -1833,9 +1841,9 @@ def _sensitivity_tmi_derivative_2d_mesh(
     sensitivity_matrix : array
         Empty 2d array where the sensitivity matrix elements will be filled.
         This could be a preallocated empty array or a slice of it.
-        The array should have a shape of ``(n_receivers, n_active_nodes)``
+        The array should have a shape of ``(n_receivers, n_active_cells)``
         if ``scalar_model`` is True.
-        The array should have a shape of ``(n_receivers, 3 * n_active_nodes)``
+        The array should have a shape of ``(n_receivers, 3 * n_active_cells)``
         if ``scalar_model`` is False.
     regional_field : (3,) array
         Array containing the x, y and z components of the regional magnetic
