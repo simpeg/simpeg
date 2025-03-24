@@ -1629,10 +1629,6 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         components = receivers[0].components
         if not all(components == rx.components for rx in receivers):
             raise NotImplementedError()
-
-        # Cast to list so it always return a list of strings
-        if isinstance(components, str):
-            components = list(components)
         return components
 
     def projectFieldsAsVector(self, B):
