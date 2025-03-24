@@ -51,6 +51,7 @@ from ._numba_functions import (
     _sensitivity_tmi_derivative_2d_mesh_serial,
     _sensitivity_tmi_derivative_2d_mesh_parallel,
     _mag_sensitivity_t_dot_v_serial,
+    _mag_sensitivity_t_dot_v_parallel,
 )
 
 if choclo is not None:
@@ -231,6 +232,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 self._forward_mag = _forward_mag_parallel
                 self._forward_tmi_derivative = _forward_tmi_derivative_parallel
                 self._sensitivity_tmi_derivative = _sensitivity_tmi_derivative_parallel
+                self._mag_sensitivity_t_dot_v = _mag_sensitivity_t_dot_v_parallel
             else:
                 self._sensitivity_tmi = _sensitivity_tmi_serial
                 self._sensitivity_mag = _sensitivity_mag_serial
