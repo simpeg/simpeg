@@ -557,6 +557,114 @@ def _sensitivity_tmi_derivative(
                 )
 
 
+@jit(nopython=True, parallel=False)
+def _mag_sensitivity_t_dot_v_serial(
+    receivers,
+    nodes,
+    cell_nodes,
+    regional_field,
+    kernel_x,
+    kernel_y,
+    kernel_z,
+    constant_factor,
+    scalar_model,
+    vector,
+    result,
+):
+    r"""
+    Compute ``G.T @ v`` in serial, without building G, for a single magnetic component.
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) array
+        Array with the locations of the receivers
+    nodes : (n_active_nodes, 3) array
+        Array with the location of the mesh nodes.
+    cell_nodes : (n_active_cells, 8) array
+        Array of integers, where each row contains the indices of the nodes for
+        each active cell in the mesh.
+    regional_field : (3,) array
+        Array containing the x, y and z components of the regional magnetic
+        field (uniform background field).
+    kernel_x, kernel_y, kernel_z : callable
+        Kernels used to compute the desired magnetic component. For example,
+        for computing bx we need to use ``kernel_x=kernel_ee``,
+        ``kernel_y=kernel_en``, ``kernel_z=kernel_eu``.
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+    scalar_model : bool
+        If True, the sensitivity matrix is built to work with scalar models
+        (susceptibilities).
+        If False, the sensitivity matrix is built to work with vector models
+        (effective susceptibilities).
+    vector : (n_receivers) numpy.ndarray
+        Array that represents the vector used in the dot product.
+    result : (n_active_cells) or (3 * n_active_cells) numpy.ndarray
+        Running result array where the output of the dot product will be added to.
+        The array should have ``n_active_cells`` elements if ``scalar_model``
+        is True, or ``3 * n_active_cells`` otherwise.
+
+    Notes
+    -----
+    This function is meant to be run in serial. Writing to the ``result`` array
+    inside a parallel loop over the receivers generates a race condition that
+    leads to corrupted outputs.
+
+    A parallel implementation of this function is available in
+    ``_mag_sensitivity_gravity_t_dot_v_parallel``.
+
+    See also
+    --------
+    _sensitivity_mag
+        Compute the sensitivity matrix for a single magnetic component by
+        allocating it in memory.
+    """
+    n_receivers = receivers.shape[0]
+    n_nodes = nodes.shape[0]
+    n_cells = cell_nodes.shape[0]
+    fx, fy, fz = regional_field
+    regional_field_amplitude = np.sqrt(fx**2 + fy**2 + fz**2)
+    fx /= regional_field_amplitude
+    fy /= regional_field_amplitude
+    fz /= regional_field_amplitude
+    # Evaluate kernel function on each node, for each receiver location
+    for i in prange(n_receivers):
+        # Allocate vectors for kernels evaluated on mesh nodes
+        kx, ky, kz = np.empty(n_nodes), np.empty(n_nodes), np.empty(n_nodes)
+        # Allocate small vector for the nodes indices for a given cell
+        nodes_indices = np.empty(8, dtype=cell_nodes.dtype)
+        for j in range(n_nodes):
+            dx = nodes[j, 0] - receivers[i, 0]
+            dy = nodes[j, 1] - receivers[i, 1]
+            dz = nodes[j, 2] - receivers[i, 2]
+            distance = np.sqrt(dx**2 + dy**2 + dz**2)
+            kx[j] = kernel_x(dx, dy, dz, distance)
+            ky[j] = kernel_y(dx, dy, dz, distance)
+            kz[j] = kernel_z(dx, dy, dz, distance)
+        # Compute sensitivity matrix elements from the kernel values
+        for k in range(n_cells):
+            nodes_indices = cell_nodes[k, :]
+            ux = kernels_in_nodes_to_cell(kx, nodes_indices)
+            uy = kernels_in_nodes_to_cell(ky, nodes_indices)
+            uz = kernels_in_nodes_to_cell(kz, nodes_indices)
+            if scalar_model:
+                result[k] += (
+                    constant_factor
+                    * vector[i]
+                    * regional_field_amplitude
+                    * (ux * fx + uy * fy + uz * fz)
+                )
+            else:
+                result[k] += constant_factor * vector[i] * regional_field_amplitude * ux
+                result[k + n_cells] += (
+                    constant_factor * vector[i] * regional_field_amplitude * uy
+                )
+                result[k + 2 * n_cells] += (
+                    constant_factor * vector[i] * regional_field_amplitude * uz
+                )
+
+
 def _forward_mag(
     receivers,
     nodes,

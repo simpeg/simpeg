@@ -7,9 +7,11 @@ import numpy as np
 import pytest
 from geoana.em.static import MagneticPrism
 from scipy.constants import mu_0
+from scipy.sparse.linalg import LinearOperator
 
 import simpeg
 from simpeg import maps, utils
+from simpeg.utils import model_builder
 from simpeg.potential_fields import magnetics as mag
 
 
@@ -907,3 +909,128 @@ def test_removed_modeltype():
     message = "modelType has been removed, please use model_type."
     with pytest.raises(NotImplementedError, match=message):
         sim.modelType
+
+
+class BaseFixtures:
+    """
+    Base test class with some fixtures.
+    """
+
+    @pytest.fixture(
+        params=[
+            "tmi",
+            ["bx", "by", "bz"],
+            ["tmi", "bx"],
+            ["tmi_x", "tmi_y", "tmi_z"],
+        ],
+        ids=["tmi", "mag_components", "tmi_and_mag", "tmi_derivs"],
+    )
+    def survey(self, request):
+        # Observation points
+        x = np.linspace(-20.0, 20.0, 4)
+        x, y = np.meshgrid(x, x)
+        z = 5.0 * np.ones_like(x)
+        coordinates = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
+        receivers = mag.receivers.Point(coordinates, components=request.param)
+        source_field = mag.UniformBackgroundField(
+            receiver_list=[receivers],
+            amplitude=55_000,
+            inclination=12,
+            declination=-35,
+        )
+        survey = mag.survey.Survey(source_field)
+        return survey
+
+    @pytest.fixture
+    def mesh(self):
+        # Mesh
+        dh = 5.0
+        hx = [(dh, 4)]
+        mesh = discretize.TensorMesh([hx, hx, hx], "CCN")
+        return mesh
+
+
+class TestGLinearOperator(BaseFixtures):
+    """
+    Test G as a linear operator.
+
+    To test:
+        * test ``G @ m`` and ``G.T @ v``
+        * test not implemented (forward only + geoana)
+        * test magnetic components individually
+        * test tmi
+        * test tmi derivatives
+        * test multiple components (tmi + magnetic components)
+        * test scalar model vs vector model
+        * parallel vs serial
+    """
+
+    @pytest.fixture
+    def mapping(self, mesh):
+        return maps.IdentityMap(nP=mesh.n_cells)
+
+    def build_susceptibilities(self, mesh, scalar_model: bool):
+        """Create sample susceptibilities."""
+        susceptibilities = 1e-10 * np.ones(
+            mesh.n_cells if scalar_model else 3 * mesh.n_cells
+        )
+        ind_sphere = model_builder.get_indices_sphere(
+            np.r_[0.0, 0.0, -20.0], 10.0, mesh.cell_centers
+        )
+        if scalar_model:
+            susceptibilities[ind_sphere] = 0.2
+        else:
+            susceptibilities[: mesh.n_cells][ind_sphere] = 0.2
+            susceptibilities[mesh.n_cells : 2 * mesh.n_cells][ind_sphere] = 0.3
+            susceptibilities[2 * mesh.n_cells : 3 * mesh.n_cells][ind_sphere] = 0.5
+        return susceptibilities
+
+    @pytest.mark.parametrize("model_type", ["scalar", "vector"])
+    @pytest.mark.parametrize("parallel", [True, False], ids=["parallel", "serial"])
+    def test_G_dot_m(self, survey, mesh, mapping, model_type, parallel):
+        """Test G @ m."""
+        simulation, simulation_ram = (
+            mag.simulation.Simulation3DIntegral(
+                survey=survey,
+                mesh=mesh,
+                chiMap=mapping,
+                store_sensitivities=store,
+                engine="choclo",
+                numba_parallel=parallel,
+                model_type=model_type,
+            )
+            for store in ("forward_only", "ram")
+        )
+        assert isinstance(simulation.G, LinearOperator)
+        assert isinstance(simulation_ram.G, np.ndarray)
+
+        susceptibilities = self.build_susceptibilities(mesh, model_type == "scalar")
+        expected = simulation_ram.G @ susceptibilities
+
+        atol = np.max(np.abs(expected)) * 1e-8
+        np.testing.assert_allclose(simulation.G @ susceptibilities, expected, atol=atol)
+
+    @pytest.mark.parametrize("model_type", ["scalar", "vector"])
+    @pytest.mark.parametrize("parallel", [True, False], ids=["parallel", "serial"])
+    def test_G_t_dot_v(self, survey, mesh, mapping, model_type, parallel):
+        """Test G.T @ v."""
+        simulation, simulation_ram = (
+            mag.simulation.Simulation3DIntegral(
+                survey=survey,
+                mesh=mesh,
+                chiMap=mapping,
+                store_sensitivities=store,
+                engine="choclo",
+                numba_parallel=parallel,
+                model_type=model_type,
+            )
+            for store in ("forward_only", "ram")
+        )
+        assert isinstance(simulation.G, LinearOperator)
+        assert isinstance(simulation_ram.G, np.ndarray)
+
+        vector = np.random.default_rng(seed=42).uniform(size=survey.nD)
+        expected = simulation_ram.G.T @ vector
+
+        atol = np.max(np.abs(expected)) * 1e-7
+        np.testing.assert_allclose(simulation.G.T @ vector, expected, atol=atol)

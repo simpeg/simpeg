@@ -1,5 +1,6 @@
 import warnings
 import numpy as np
+from numpy.typing import NDArray
 import scipy.sparse as sp
 from geoana.kernels import (
     prism_fxxy,
@@ -11,6 +12,7 @@ from geoana.kernels import (
     prism_fzzz,
 )
 from scipy.constants import mu_0
+from scipy.sparse.linalg import LinearOperator
 
 from simpeg import props, utils
 from simpeg.utils import mat_utils, mkvc, sdiag
@@ -48,6 +50,7 @@ from ._numba_functions import (
     _sensitivity_tmi_derivative_serial,
     _sensitivity_tmi_derivative_2d_mesh_serial,
     _sensitivity_tmi_derivative_2d_mesh_parallel,
+    _mag_sensitivity_t_dot_v_serial,
 )
 
 if choclo is not None:
@@ -205,7 +208,6 @@ class Simulation3DIntegral(BasePFSimulation):
         self.chi = chi
         self.chiMap = chiMap
 
-        self._G = None
         self._M = None
         self._gtg_diagonal = None
         self.is_amplitude_data = is_amplitude_data
@@ -236,6 +238,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 self._forward_mag = _forward_mag_serial
                 self._forward_tmi_derivative = _forward_tmi_derivative_serial
                 self._sensitivity_tmi_derivative = _sensitivity_tmi_derivative_serial
+                self._mag_sensitivity_t_dot_v = _mag_sensitivity_t_dot_v_serial
 
     @property
     def model_type(self):
@@ -306,13 +309,24 @@ class Simulation3DIntegral(BasePFSimulation):
         return fields
 
     @property
-    def G(self):
-        if getattr(self, "_G", None) is None:
-            if self.engine == "choclo":
-                self._G = self._sensitivity_matrix()
-            else:
-                self._G = self.linear_operator()
-
+    def G(self) -> NDArray | np.memmap | LinearOperator:
+        if not hasattr(self, "_G"):
+            match self.engine, self.store_sensitivities:
+                case ("choclo", "forward_only"):
+                    self._G = self._sensitivity_matrix_as_operator()
+                case ("choclo", _):
+                    self._G = self._sensitivity_matrix()
+                case ("geoana", "forward_only"):
+                    msg = (
+                        "Accessing matrix G with "
+                        'store_sensitivities="forward_only" and engine="geoana" '
+                        "hasn't been implemented yet."
+                        'Choose store_sensitivities="ram" or "disk", '
+                        'or another engine, like "choclo".'
+                    )
+                    raise NotImplementedError(msg)
+                case ("geoana", _):
+                    self._G = self.linear_operator()
         return self._G
 
     modelType = deprecate_property(
@@ -868,6 +882,88 @@ class Simulation3DIntegral(BasePFSimulation):
                     )
             index_offset += n_rows
         return sensitivity_matrix
+
+    def _sensitivity_matrix_as_operator(self):
+        """
+        Create a LinearOperator for the sensitivity matrix G.
+
+        Returns
+        -------
+        scipy.sparse.linalg.LinearOperator
+        """
+        n_columns = self.nC if self.model_type == "scalar" else self.nC * 3
+        shape = (self.survey.nD, n_columns)
+        linear_op = LinearOperator(
+            shape=shape,
+            matvec=self._forward,
+            rmatvec=self._sensitivity_matrix_transpose_dot_vec,
+            dtype=np.float64,
+        )
+        return linear_op
+
+    def _sensitivity_matrix_transpose_dot_vec(self, vector):
+        """
+        Compute ``G.T @ v`` without building ``G``.
+
+        Parameters
+        ----------
+        vector : (nD) numpy.ndarray
+            Vector used in the dot product.
+
+        Returns
+        -------
+        (n_active_cells) or (3 * n_active_cells) numpy.ndarray
+        """
+        # Gather active nodes and the indices of the nodes for each active cell
+        active_nodes, active_cell_nodes = self._get_active_nodes()
+        # Get regional field
+        regional_field = self.survey.source_field.b0
+
+        # Allocate resulting array.
+        scalar_model = self.model_type == "scalar"
+        result = np.zeros(self.nC if scalar_model else 3 * self.nC)
+
+        # Define the constant factor
+        constant_factor = 1 / 4 / np.pi
+
+        # Fill the result array
+        index_offset = 0
+        for components, receivers in self._get_components_and_receivers():
+            if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
+                raise NotImplementedError(
+                    f"Other components besides {CHOCLO_SUPPORTED_COMPONENTS} "
+                    "aren't implemented yet."
+                )
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                vector_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
+                )
+                if component == "tmi":
+                    raise NotImplementedError()
+                elif component in ("tmi_x", "tmi_y", "tmi_z"):
+                    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
+                        CHOCLO_KERNELS[component]
+                    )
+                    raise NotImplementedError()
+                else:
+                    kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
+                    self._mag_sensitivity_t_dot_v(
+                        receivers,
+                        active_nodes,
+                        active_cell_nodes,
+                        regional_field,
+                        kernel_x,
+                        kernel_y,
+                        kernel_z,
+                        constant_factor,
+                        scalar_model,
+                        vector[vector_slice],
+                        result,
+                    )
+            index_offset += n_rows
+        return result
 
 
 class SimulationEquivalentSourceLayer(
