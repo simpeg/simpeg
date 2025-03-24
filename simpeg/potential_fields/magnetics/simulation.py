@@ -794,10 +794,8 @@ class Simulation3DIntegral(BasePFSimulation):
         # Get regional field
         regional_field = self.survey.source_field.b0
         # Allocate sensitivity matrix
-        if self.model_type == "scalar":
-            n_columns = self.nC
-        else:
-            n_columns = 3 * self.nC
+        scalar_model = self.model_type == "scalar"
+        n_columns = self.nC if scalar_model else 3 * self.nC
         shape = (self.survey.nD, n_columns)
         if self.store_sensitivities == "disk":
             sensitivity_matrix = np.memmap(
@@ -813,7 +811,6 @@ class Simulation3DIntegral(BasePFSimulation):
         constant_factor = 1 / 4 / np.pi
         # Start filling the sensitivity matrix
         index_offset = 0
-        scalar_model = self.model_type == "scalar"
         for components, receivers in self._get_components_and_receivers():
             if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
                 raise NotImplementedError(
@@ -1038,10 +1035,8 @@ class SimulationEquivalentSourceLayer(
         # Get regional field
         regional_field = self.survey.source_field.b0
         # Allocate sensitivity matrix
-        if self.model_type == "scalar":
-            n_columns = self.nC
-        else:
-            n_columns = 3 * self.nC
+        scalar_model = self.model_type == "scalar"
+        n_columns = self.nC if scalar_model else 3 * self.nC
         shape = (self.survey.nD, n_columns)
         if self.store_sensitivities == "disk":
             sensitivity_matrix = np.memmap(
@@ -1055,7 +1050,6 @@ class SimulationEquivalentSourceLayer(
             sensitivity_matrix = np.empty(shape, dtype=self.sensitivity_dtype)
         # Start filling the sensitivity matrix
         index_offset = 0
-        scalar_model = self.model_type == "scalar"
         for components, receivers in self._get_components_and_receivers():
             if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
                 raise NotImplementedError(
