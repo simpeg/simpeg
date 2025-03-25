@@ -761,20 +761,20 @@ def _mag_sensitivity_t_dot_v_parallel(
             uy = kernels_in_nodes_to_cell(ky, nodes_indices)
             uz = kernels_in_nodes_to_cell(kz, nodes_indices)
             if scalar_model:
-                local_row[k] += (
+                local_row[k] = (
                     constant_factor
                     * vector[i]
                     * regional_field_amplitude
                     * (ux * fx + uy * fy + uz * fz)
                 )
             else:
-                local_row[k] += (
+                local_row[k] = (
                     constant_factor * vector[i] * regional_field_amplitude * ux
                 )
-                local_row[k + n_cells] += (
+                local_row[k + n_cells] = (
                     constant_factor * vector[i] * regional_field_amplitude * uy
                 )
-                local_row[k + 2 * n_cells] += (
+                local_row[k + 2 * n_cells] = (
                     constant_factor * vector[i] * regional_field_amplitude * uz
                 )
         # Apply reduction operation to add the values of the row to the running
