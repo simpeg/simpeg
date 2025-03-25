@@ -785,6 +785,242 @@ def _mag_sensitivity_t_dot_v_parallel(
         result += local_row
 
 
+@jit(nopython=True, parallel=False)
+def _tmi_sensitivity_t_dot_v_serial(
+    receivers,
+    nodes,
+    cell_nodes,
+    regional_field,
+    constant_factor,
+    scalar_model,
+    vector,
+    result,
+):
+    r"""
+    Compute ``G.T @ v`` in serial, without building G, for TMI.
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) array
+        Array with the locations of the receivers
+    nodes : (n_active_nodes, 3) array
+        Array with the location of the mesh nodes.
+    cell_nodes : (n_active_cells, 8) array
+        Array of integers, where each row contains the indices of the nodes for
+        each active cell in the mesh.
+    regional_field : (3,) array
+        Array containing the x, y and z components of the regional magnetic
+        field (uniform background field).
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+    scalar_model : bool
+        If True, the sensitivity matrix is build to work with scalar models
+        (susceptibilities).
+        If False, the sensitivity matrix is build to work with vector models
+        (effective susceptibilities).
+    vector : (n_receivers) numpy.ndarray
+        Array that represents the vector used in the dot product.
+    result : (n_active_cells) or (3 * n_active_cells) numpy.ndarray
+        Running result array where the output of the dot product will be added to.
+        The array should have ``n_active_cells`` elements if ``scalar_model``
+        is True, or ``3 * n_active_cells`` otherwise.
+
+    Notes
+    -----
+    This function is meant to be run in serial. Writing to the ``result`` array
+    inside a parallel loop over the receivers generates a race condition that
+    leads to corrupted outputs.
+
+    A parallel implementation of this function is available in
+    ``_tmi_sensitivity_t_dot_v_parallel``.
+
+    See also
+    --------
+    _sensitivity_tmi
+        Compute the sensitivity matrix for TMI by allocating it in memory.
+    """
+    n_receivers = receivers.shape[0]
+    n_nodes = nodes.shape[0]
+    n_cells = cell_nodes.shape[0]
+    fx, fy, fz = regional_field
+    regional_field_amplitude = np.sqrt(fx**2 + fy**2 + fz**2)
+    fx /= regional_field_amplitude
+    fy /= regional_field_amplitude
+    fz /= regional_field_amplitude
+    # Evaluate kernel function on each node, for each receiver location
+    for i in prange(n_receivers):
+        # Allocate vectors for kernels evaluated on mesh nodes
+        kxx, kyy, kzz = np.empty(n_nodes), np.empty(n_nodes), np.empty(n_nodes)
+        kxy, kxz, kyz = np.empty(n_nodes), np.empty(n_nodes), np.empty(n_nodes)
+        # Allocate small vector for the nodes indices for a given cell
+        nodes_indices = np.empty(8, dtype=cell_nodes.dtype)
+        for j in range(n_nodes):
+            dx = nodes[j, 0] - receivers[i, 0]
+            dy = nodes[j, 1] - receivers[i, 1]
+            dz = nodes[j, 2] - receivers[i, 2]
+            distance = np.sqrt(dx**2 + dy**2 + dz**2)
+            kxx[j] = choclo.prism.kernel_ee(dx, dy, dz, distance)
+            kyy[j] = choclo.prism.kernel_nn(dx, dy, dz, distance)
+            kzz[j] = choclo.prism.kernel_uu(dx, dy, dz, distance)
+            kxy[j] = choclo.prism.kernel_en(dx, dy, dz, distance)
+            kxz[j] = choclo.prism.kernel_eu(dx, dy, dz, distance)
+            kyz[j] = choclo.prism.kernel_nu(dx, dy, dz, distance)
+        # Compute sensitivity matrix elements from the kernel values
+        for k in range(n_cells):
+            nodes_indices = cell_nodes[k, :]
+            uxx = kernels_in_nodes_to_cell(kxx, nodes_indices)
+            uyy = kernels_in_nodes_to_cell(kyy, nodes_indices)
+            uzz = kernels_in_nodes_to_cell(kzz, nodes_indices)
+            uxy = kernels_in_nodes_to_cell(kxy, nodes_indices)
+            uxz = kernels_in_nodes_to_cell(kxz, nodes_indices)
+            uyz = kernels_in_nodes_to_cell(kyz, nodes_indices)
+            bx = uxx * fx + uxy * fy + uxz * fz
+            by = uxy * fx + uyy * fy + uyz * fz
+            bz = uxz * fx + uyz * fy + uzz * fz
+            # Fill the sensitivity matrix element(s) that correspond to the
+            # current active cell
+            if scalar_model:
+                result[k] += (
+                    constant_factor
+                    * vector[i]
+                    * regional_field_amplitude
+                    * (bx * fx + by * fy + bz * fz)
+                )
+            else:
+                result[k] += constant_factor * vector[i] * regional_field_amplitude * bx
+                result[k + n_cells] += (
+                    constant_factor * vector[i] * regional_field_amplitude * by
+                )
+                result[k + 2 * n_cells] += (
+                    constant_factor * vector[i] * regional_field_amplitude * bz
+                )
+
+
+@jit(nopython=True, parallel=True)
+def _tmi_sensitivity_t_dot_v_parallel(
+    receivers,
+    nodes,
+    cell_nodes,
+    regional_field,
+    constant_factor,
+    scalar_model,
+    vector,
+    result,
+):
+    r"""
+    Compute ``G.T @ v`` in parallel, without building G, for TMI.
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) array
+        Array with the locations of the receivers
+    nodes : (n_active_nodes, 3) array
+        Array with the location of the mesh nodes.
+    cell_nodes : (n_active_cells, 8) array
+        Array of integers, where each row contains the indices of the nodes for
+        each active cell in the mesh.
+    regional_field : (3,) array
+        Array containing the x, y and z components of the regional magnetic
+        field (uniform background field).
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+    scalar_model : bool
+        If True, the sensitivity matrix is build to work with scalar models
+        (susceptibilities).
+        If False, the sensitivity matrix is build to work with vector models
+        (effective susceptibilities).
+    vector : (n_receivers) numpy.ndarray
+        Array that represents the vector used in the dot product.
+    result : (n_active_cells) or (3 * n_active_cells) numpy.ndarray
+        Running result array where the output of the dot product will be added to.
+        The array should have ``n_active_cells`` elements if ``scalar_model``
+        is True, or ``3 * n_active_cells`` otherwise.
+
+    Notes
+    -----
+    This function is meant to be run in parallel.
+    This implementation instructs each thread to allocate their own array for
+    the current row of the sensitivity matrix. After computing the elements of
+    that row, it gets added to the running ``result`` array through a reduction
+    operation handled by Numba.
+
+    A serialized implementation of this function is available in
+    ``_tmi_sensitivity_t_dot_v_serial``.
+
+    See also
+    --------
+    _sensitivity_tmi
+        Compute the sensitivity matrix for TMI by allocating it in memory.
+    """
+    n_receivers = receivers.shape[0]
+    n_nodes = nodes.shape[0]
+    n_cells = cell_nodes.shape[0]
+    fx, fy, fz = regional_field
+    regional_field_amplitude = np.sqrt(fx**2 + fy**2 + fz**2)
+    fx /= regional_field_amplitude
+    fy /= regional_field_amplitude
+    fz /= regional_field_amplitude
+    result_size = result.size
+    # Evaluate kernel function on each node, for each receiver location
+    for i in prange(n_receivers):
+        # Allocate vectors for kernels evaluated on mesh nodes
+        kxx, kyy, kzz = np.empty(n_nodes), np.empty(n_nodes), np.empty(n_nodes)
+        kxy, kxz, kyz = np.empty(n_nodes), np.empty(n_nodes), np.empty(n_nodes)
+        # Allocate array for the current row of the sensitivity matrix
+        local_row = np.empty(result_size)
+        # Allocate small vector for the nodes indices for a given cell
+        nodes_indices = np.empty(8, dtype=cell_nodes.dtype)
+        for j in range(n_nodes):
+            dx = nodes[j, 0] - receivers[i, 0]
+            dy = nodes[j, 1] - receivers[i, 1]
+            dz = nodes[j, 2] - receivers[i, 2]
+            distance = np.sqrt(dx**2 + dy**2 + dz**2)
+            kxx[j] = choclo.prism.kernel_ee(dx, dy, dz, distance)
+            kyy[j] = choclo.prism.kernel_nn(dx, dy, dz, distance)
+            kzz[j] = choclo.prism.kernel_uu(dx, dy, dz, distance)
+            kxy[j] = choclo.prism.kernel_en(dx, dy, dz, distance)
+            kxz[j] = choclo.prism.kernel_eu(dx, dy, dz, distance)
+            kyz[j] = choclo.prism.kernel_nu(dx, dy, dz, distance)
+        # Compute sensitivity matrix elements from the kernel values
+        for k in range(n_cells):
+            nodes_indices = cell_nodes[k, :]
+            uxx = kernels_in_nodes_to_cell(kxx, nodes_indices)
+            uyy = kernels_in_nodes_to_cell(kyy, nodes_indices)
+            uzz = kernels_in_nodes_to_cell(kzz, nodes_indices)
+            uxy = kernels_in_nodes_to_cell(kxy, nodes_indices)
+            uxz = kernels_in_nodes_to_cell(kxz, nodes_indices)
+            uyz = kernels_in_nodes_to_cell(kyz, nodes_indices)
+            bx = uxx * fx + uxy * fy + uxz * fz
+            by = uxy * fx + uyy * fy + uyz * fz
+            bz = uxz * fx + uyz * fy + uzz * fz
+            # Fill the sensitivity matrix element(s) that correspond to the
+            # current active cell
+            if scalar_model:
+                local_row[k] = (
+                    constant_factor
+                    * vector[i]
+                    * regional_field_amplitude
+                    * (bx * fx + by * fy + bz * fz)
+                )
+            else:
+                local_row[k] = (
+                    constant_factor * vector[i] * regional_field_amplitude * bx
+                )
+                local_row[k + n_cells] = (
+                    constant_factor * vector[i] * regional_field_amplitude * by
+                )
+                local_row[k + 2 * n_cells] = (
+                    constant_factor * vector[i] * regional_field_amplitude * bz
+                )
+        # Apply reduction operation to add the values of the row to the running
+        # result. Avoid slicing the `result` array when updating it to avoid
+        # racing conditions, just add the `local_row` to the `results`
+        # variable.
+        result += local_row
+
+
 def _forward_mag(
     receivers,
     nodes,

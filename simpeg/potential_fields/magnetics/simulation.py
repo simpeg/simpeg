@@ -52,6 +52,8 @@ from ._numba_functions import (
     _sensitivity_tmi_derivative_2d_mesh_parallel,
     _mag_sensitivity_t_dot_v_serial,
     _mag_sensitivity_t_dot_v_parallel,
+    _tmi_sensitivity_t_dot_v_serial,
+    _tmi_sensitivity_t_dot_v_parallel,
 )
 
 if choclo is not None:
@@ -233,6 +235,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 self._forward_tmi_derivative = _forward_tmi_derivative_parallel
                 self._sensitivity_tmi_derivative = _sensitivity_tmi_derivative_parallel
                 self._mag_sensitivity_t_dot_v = _mag_sensitivity_t_dot_v_parallel
+                self._tmi_sensitivity_t_dot_v = _tmi_sensitivity_t_dot_v_parallel
             else:
                 self._sensitivity_tmi = _sensitivity_tmi_serial
                 self._sensitivity_mag = _sensitivity_mag_serial
@@ -241,6 +244,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 self._forward_tmi_derivative = _forward_tmi_derivative_serial
                 self._sensitivity_tmi_derivative = _sensitivity_tmi_derivative_serial
                 self._mag_sensitivity_t_dot_v = _mag_sensitivity_t_dot_v_serial
+                self._tmi_sensitivity_t_dot_v = _tmi_sensitivity_t_dot_v_serial
 
     @property
     def model_type(self):
@@ -943,7 +947,16 @@ class Simulation3DIntegral(BasePFSimulation):
                     index_offset + i, index_offset + n_rows, n_components
                 )
                 if component == "tmi":
-                    raise NotImplementedError()
+                    self._tmi_sensitivity_t_dot_v(
+                        receivers,
+                        active_nodes,
+                        active_cell_nodes,
+                        regional_field,
+                        constant_factor,
+                        scalar_model,
+                        vector[vector_slice],
+                        result,
+                    )
                 elif component in ("tmi_x", "tmi_y", "tmi_z"):
                     kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
                         CHOCLO_KERNELS[component]
