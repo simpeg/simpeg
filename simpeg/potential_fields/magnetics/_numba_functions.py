@@ -738,12 +738,13 @@ def _mag_sensitivity_t_dot_v_parallel(
     fx /= regional_field_amplitude
     fy /= regional_field_amplitude
     fz /= regional_field_amplitude
+    result_size = result.size
     # Evaluate kernel function on each node, for each receiver location
     for i in prange(n_receivers):
         # Allocate vectors for kernels evaluated on mesh nodes
         kx, ky, kz = np.empty(n_nodes), np.empty(n_nodes), np.empty(n_nodes)
         # Allocate array for the current row of the sensitivity matrix
-        local_row = np.empty_like(result)
+        local_row = np.empty(result_size)
         # Allocate small vector for the nodes indices for a given cell
         nodes_indices = np.empty(8, dtype=cell_nodes.dtype)
         for j in range(n_nodes):
