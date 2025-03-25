@@ -1,5 +1,5 @@
 from ...survey import BaseSurvey
-from ...utils.code_utils import validate_type
+from ...utils.code_utils import validate_list_of_types
 from .sources import SourceField
 
 
@@ -13,10 +13,30 @@ class Survey(BaseSurvey):
     """
 
     def __init__(self, source_field, **kwargs):
-        self.source_field = validate_type(
-            "source_field", source_field, SourceField, cast=False
+        if kwargs.pop("source_list", None):
+            raise TypeError("source_list is not a valid argument to gravity.Survey.")
+        super().__init__(source_list=source_field, **kwargs)
+
+    @BaseSurvey.source_list.setter
+    def source_list(self, new_list):
+        new_list = validate_list_of_types(
+            "source_list", new_list, SourceField, ensure_unique=True, min_n=1, max_n=1
         )
-        super().__init__(source_list=None, **kwargs)
+        self._source_list = new_list
+
+    @property
+    def source_field(self):
+        """A source object that contains the gravity receivers for gravity.
+
+        Returns
+        -------
+        simpeg.potential_fields.gravity.sources.SourceField
+        """
+        return self.source_list[0]
+
+    @source_field.setter
+    def source_field(self, new_src):
+        self.source_list = new_src
 
     def eval(self, fields):  # noqa: A003
         """Evaluate the field

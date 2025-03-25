@@ -1,6 +1,6 @@
 import numpy as np
 from ...survey import BaseSurvey
-from ...utils.code_utils import validate_type
+from ...utils.code_utils import validate_list_of_types
 from .sources import UniformBackgroundField
 
 
@@ -14,10 +14,35 @@ class Survey(BaseSurvey):
     """
 
     def __init__(self, source_field, **kwargs):
-        self.source_field = validate_type(
-            "source_field", source_field, UniformBackgroundField, cast=False
+        if kwargs.pop("source_list", None):
+            raise TypeError("source_list is not a valid argument to magnetics.Survey.")
+        super().__init__(source_list=source_field, **kwargs)
+
+    @BaseSurvey.source_list.setter
+    def source_list(self, new_list):
+        # mag simulations only support 1 source... for now...
+        self._source_list = validate_list_of_types(
+            "source_list",
+            new_list,
+            UniformBackgroundField,
+            ensure_unique=True,
+            min_n=1,
+            max_n=1,
         )
-        super().__init__(source_list=None, **kwargs)
+
+    @property
+    def source_field(self):
+        """A source defining the Earth's inducing field, and containing the magnetic receivers
+
+        Returns
+        -------
+        simpeg.potential_fields.magnetics.sources.UniformBackgroundField
+        """
+        return self.source_list[0]
+
+    @source_field.setter
+    def source_field(self, new_src):
+        self.source_list = new_src
 
     def eval(self, fields):  # noqa: A003
         """Compute the fields
