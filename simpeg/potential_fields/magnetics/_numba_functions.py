@@ -612,7 +612,7 @@ def _mag_sensitivity_t_dot_v_serial(
     leads to corrupted outputs.
 
     A parallel implementation of this function is available in
-    ``_mag_sensitivity_gravity_t_dot_v_parallel``.
+    ``_mag_sensitivity_t_dot_v_parallel``.
 
     See also
     --------
@@ -722,7 +722,7 @@ def _mag_sensitivity_t_dot_v_parallel(
     operation handled by Numba.
 
     A serialized implementation of this function is available in
-    ``_mag_sensitivity_gravity_t_dot_v_serial``.
+    ``_mag_sensitivity_t_dot_v_serial``.
 
     See also
     --------
