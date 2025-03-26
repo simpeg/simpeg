@@ -1,4 +1,5 @@
 import types
+
 import numpy as np
 from functools import wraps
 import warnings
@@ -963,21 +964,19 @@ def validate_list_of_types(
     else:
         raise TypeError(f"{property_name!r} must be a list of {class_type}")
 
+    if max_n is not None:
+        if min_n == max_n and len(var) != max_n:
+            raise ValueError(
+                f"{property_name!r} must have exactly {min_n} item{'s' if min_n != 1 else ''}."
+            )
+        elif len(var) > max_n:
+            raise ValueError(
+                f"{property_name!r} must have at most {max_n} item{'s' if max_n != 1 else ''}."
+            )
     if len(var) < min_n:
-        if max_n is not None and max_n == min_n:
-            raise TypeError(
-                f"{property_name!r} must have exactly least {min_n} item{'s' if min_n != 1 else ''}."
-            )
-        else:
-            raise TypeError(
-                f"{property_name!r} must have at least {min_n} item{'s' if min_n != 1 else ''}."
-            )
-
-    if max_n is not None and len(var) > max_n:
-        raise TypeError(
-            f"{property_name!r} must have at most {max_n} item{'s' if max_n != 1 else ''}."
+        raise ValueError(
+            f"{property_name!r} must have at least {min_n} item{'s' if min_n != 1 else ''}."
         )
-
     if all(isinstance(x, class_type) for x in var):
         if ensure_unique and len(set(var)) != len(var):
             raise ValueError(
