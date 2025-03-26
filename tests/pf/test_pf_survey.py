@@ -58,8 +58,8 @@ def test_survey_indexing(survey):
 @pytest.mark.parametrize("survey_cls", [grav.Survey, mag.Survey])
 def test_source_list_kwarg(survey_cls):
     # cannot pass anything to source list for these classes.
-    with pytest.raises(TypeError):
-        survey_cls(source_list=None)
+    with pytest.raises(TypeError, match=r"source_list is not a valid argument to .*"):
+        survey_cls("placeholder", source_list=None)
 
 
 @pytest.mark.parametrize(
