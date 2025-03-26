@@ -13,7 +13,7 @@ class Survey(BaseSurvey):
     """
 
     def __init__(self, source_field, **kwargs):
-        if kwargs.pop("source_list", None):
+        if "source_list" in kwargs:
             raise TypeError("source_list is not a valid argument to gravity.Survey.")
         super().__init__(source_list=source_field, **kwargs)
 

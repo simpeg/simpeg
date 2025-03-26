@@ -53,3 +53,39 @@ def test_survey_indexing(survey):
 
     np.testing.assert_equal(data[src, rx1], d1)
     np.testing.assert_equal(data[src, rx2], d2)
+
+
+@pytest.mark.parametrize("survey_cls", [grav.Survey, mag.Survey])
+def test_source_list_kwarg(survey_cls):
+    # cannot pass anything to source list for these classes.
+    with pytest.raises(TypeError):
+        survey_cls(source_list=None)
+
+
+@pytest.mark.parametrize(
+    "survey_cls, source_cls",
+    [
+        (grav.Survey, grav.SourceField),
+        (
+            mag.Survey,
+            functools.partial(
+                mag.UniformBackgroundField,
+                amplitude=50_000,
+                inclination=90,
+                declination=0,
+            ),
+        ),
+    ],
+)
+def test_setting_sourcefield(survey_cls, source_cls):
+    src1 = source_cls(receiver_list=[])
+    survey = survey_cls(source_field=src1)
+    assert survey.source_field is src1
+    assert survey.source_list[0] is src1
+
+    src2 = source_cls(receiver_list=[])
+    survey.source_field = src2
+    assert survey.source_field is not src1
+    assert survey.source_field is src2
+    assert survey.source_list[0] is not src1
+    assert survey.source_list[0] is src2
