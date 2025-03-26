@@ -1,7 +1,7 @@
 import unittest
 
 import discretize
-from simpeg import survey, simulation, utils, fields, data
+from simpeg import survey, simulation, utils, fields
 
 import numpy as np
 
@@ -39,7 +39,6 @@ class FieldsTest(unittest.TestCase):
         # insert a mesh into the simulation (required for the Fields objects)
         # This should likely be moved to a BasePDESimulation test.
         sim.mesh = mesh
-        self.D = data.Data(mysurvey)
         self.F = fields.Fields(
             sim,
             knownFields={"phi": "CC", "e": "E", "b": "F"},

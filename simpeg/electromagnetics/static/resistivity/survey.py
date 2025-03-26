@@ -223,7 +223,6 @@ class Survey(BaseSurvey):
 
         geometric_factor = static_utils.geometric_factor(self, space_type=space_type)
 
-        # geometric_factor = data.Data(self, geometric_factor)
         survey_slices = self.get_all_slices()
         for source in self.source_list:
             for rx in source.receiver_list:
