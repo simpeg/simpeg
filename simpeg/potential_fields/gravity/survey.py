@@ -26,7 +26,7 @@ class Survey(BaseSurvey):
 
     @property
     def source_field(self):
-        """A source object that contains the gravity receivers for gravity.
+        """A source object that contains the gravity receivers.
 
         Returns
         -------

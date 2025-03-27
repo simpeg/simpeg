@@ -32,7 +32,7 @@ class Survey(BaseSurvey):
 
     @property
     def source_field(self):
-        """A source defining the Earth's inducing field, and containing the magnetic receivers
+        """A source defining the Earth's inducing field and containing the magnetic receivers.
 
         Returns
         -------
