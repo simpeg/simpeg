@@ -953,16 +953,6 @@ class BaseFixtures:
 class TestGLinearOperator(BaseFixtures):
     """
     Test G as a linear operator.
-
-    To test:
-        * test ``G @ m`` and ``G.T @ v``
-        * test not implemented (forward only + geoana)
-        * test magnetic components individually
-        * test tmi
-        * test tmi derivatives
-        * test multiple components (tmi + magnetic components)
-        * test scalar model vs vector model
-        * parallel vs serial
     """
 
     @pytest.fixture
