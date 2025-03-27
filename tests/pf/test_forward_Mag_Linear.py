@@ -5,6 +5,7 @@ import re
 import discretize
 import numpy as np
 import pytest
+from scipy.sparse import diags
 from geoana.em.static import MagneticPrism
 from scipy.constants import mu_0
 from scipy.sparse.linalg import LinearOperator, aslinearoperator
@@ -1217,3 +1218,102 @@ class TestJacobian(BaseFixtures):
         result_ram = getattr(simulation_ram, method)(model, vector)
         atol = np.max(np.abs(result_ram)) * self.atol_ratio
         np.testing.assert_allclose(result_lo, result_ram, atol=atol)
+
+    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
+    @pytest.mark.parametrize("weights", [True, False])
+    def test_getJtJdiag(
+        self, survey, mesh, mapping, susceptibilities, scalar_model, engine, weights
+    ):
+        """
+        Test the ``getJtJdiag`` method with G as an array in memory.
+        """
+        model_type = "scalar" if scalar_model else "vector"
+        simulation = mag.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            chiMap=mapping,
+            store_sensitivities="ram",
+            engine=engine,
+            model_type=model_type,
+        )
+        model = mapping * susceptibilities
+        kwargs = {}
+        if weights:
+            w_matrix = diags(np.random.default_rng(seed=42).uniform(size=survey.nD))
+            kwargs = {"W": w_matrix}
+        jtj_diag = simulation.getJtJdiag(model, **kwargs)
+
+        identity_map = type(mapping) is maps.IdentityMap
+        expected_jac = (
+            simulation.G if identity_map else simulation.G @ mapping.deriv(model)
+        )
+        if weights:
+            expected = np.diag(expected_jac.T @ w_matrix.T @ w_matrix @ expected_jac)
+        else:
+            expected = np.diag(expected_jac.T @ expected_jac)
+
+        atol = np.max(np.abs(jtj_diag)) * self.atol_ratio
+        np.testing.assert_allclose(jtj_diag, expected, atol=atol)
+
+    @pytest.mark.xfail(raises=NotImplementedError, reason="not implemented yet")
+    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
+    def test_getJtJdiag_forward_only(
+        self, survey, mesh, mapping, susceptibilities, scalar_model, engine
+    ):
+        """
+        Test NotImplementedError on ``getJtJdiag`` when ``"forward_only"``.
+        """
+        model_type = "scalar" if scalar_model else "vector"
+        simulation = mag.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            chiMap=mapping,
+            store_sensitivities="forward_only",
+            engine=engine,
+            model_type=model_type,
+        )
+        model = mapping * susceptibilities
+        simulation.getJtJdiag(model)
+
+    @pytest.mark.parametrize("engine", ("choclo", "geoana"))
+    def test_getJtJdiag_caching(
+        self, survey, mesh, mapping, susceptibilities, scalar_model, engine
+    ):
+        """
+        Test the caching behaviour of the ``getJtJdiag`` method.
+        """
+        model_type = "scalar" if scalar_model else "vector"
+        simulation = mag.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            chiMap=mapping,
+            store_sensitivities="ram",
+            engine=engine,
+            model_type=model_type,
+        )
+
+        # Get diagonal of J.T @ J without any weight
+        model = mapping * susceptibilities
+        jtj_diagonal_1 = simulation.getJtJdiag(model)
+        assert hasattr(simulation, "_gtg_diagonal")
+        assert hasattr(simulation, "_weights_sha256")
+        gtg_diagonal_1 = simulation._gtg_diagonal
+        weights_sha256_1 = simulation._weights_sha256
+
+        # Compute it again and make sure we get the same result
+        np.testing.assert_allclose(jtj_diagonal_1, simulation.getJtJdiag(model))
+
+        # Get a new diagonal with weights
+        weights_matrix = diags(
+            np.random.default_rng(seed=42).uniform(size=simulation.survey.nD)
+        )
+        jtj_diagonal_2 = simulation.getJtJdiag(model, W=weights_matrix)
+        assert hasattr(simulation, "_gtg_diagonal")
+        assert hasattr(simulation, "_weights_sha256")
+        gtg_diagonal_2 = simulation._gtg_diagonal
+        weights_sha256_2 = simulation._weights_sha256
+
+        # The two results should be different
+        assert not np.array_equal(jtj_diagonal_1, jtj_diagonal_2)
+        assert not np.array_equal(gtg_diagonal_1, gtg_diagonal_2)
+        assert weights_sha256_1.digest() != weights_sha256_2.digest()
