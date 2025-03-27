@@ -1034,3 +1034,23 @@ class TestGLinearOperator(BaseFixtures):
 
         atol = np.max(np.abs(expected)) * 1e-7
         np.testing.assert_allclose(simulation.G.T @ vector, expected, atol=atol)
+
+    def test_not_implemented(self, survey, mesh, mapping):
+        """
+        Test NotImplementedError when forward_only and geoana as engine.
+        """
+        engine, store = "geoana", "forward_only"
+        simulation = mag.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            chiMap=mapping,
+            store_sensitivities=store,
+            engine=engine,
+        )
+        msg = re.escape(
+            "Accessing matrix G with "
+            'store_sensitivities="forward_only" and engine="geoana" '
+            "hasn't been implemented yet."
+        )
+        with pytest.raises(NotImplementedError, match=msg):
+            simulation.G
