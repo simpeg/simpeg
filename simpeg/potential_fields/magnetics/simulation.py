@@ -400,9 +400,35 @@ class Simulation3DIntegral(BasePFSimulation):
         return mkvc((sdiag(np.sqrt(diag)) @ self.chiDeriv).power(2).sum(axis=0))
 
     def Jvec(self, m, v, f=None):
+        """
+        Dot product between sensitivity matrix and a vector.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters. This array is used to compute the ``J``
+            matrix.
+        v : (n_param,) numpy.ndarray
+            Vector used in the matrix-vector multiplication.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        (nD,) numpy.ndarray
+
+        Notes
+        -----
+        If ``store_sensitivities`` is set to ``"forward_only"``, then the
+        matrix `G` is never fully constructed, and the dot product is computed
+        by accumulation, computing the matrix elements on the fly. Otherwise,
+        the full matrix ``G`` is constructed and stored either in memory or
+        disk.
+        """
+        # Need to assign the model, so the chiDeriv can be computed (if the
+        # model is None, the chiDeriv is going to be Zero).
         self.model = m
         dmu_dm_v = self.chiDeriv @ v
-
         Jvec = self.G @ dmu_dm_v.astype(self.sensitivity_dtype, copy=False)
 
         if self.is_amplitude_data:
@@ -410,10 +436,37 @@ class Simulation3DIntegral(BasePFSimulation):
             Jvec = Jvec.reshape((-1, 3)).T  # reshape((3, -1), order="F")
             ampDeriv_Jvec = self.ampDeriv * Jvec
             return ampDeriv_Jvec[0] + ampDeriv_Jvec[1] + ampDeriv_Jvec[2]
-        else:
-            return Jvec
+
+        return Jvec
 
     def Jtvec(self, m, v, f=None):
+        """
+        Dot product between transposed sensitivity matrix and a vector.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters. This array is used to compute the ``J``
+            matrix.
+        v : (nD,) numpy.ndarray
+            Vector used in the matrix-vector multiplication.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        (nD,) numpy.ndarray
+
+        Notes
+        -----
+        If ``store_sensitivities`` is set to ``"forward_only"``, then the
+        matrix `G` is never fully constructed, and the dot product is computed
+        by accumulation, computing the matrix elements on the fly. Otherwise,
+        the full matrix ``G`` is constructed and stored either in memory or
+        disk.
+        """
+        # Need to assign the model, so the chiDeriv can be computed (if the
+        # model is None, the chiDeriv is going to be Zero).
         self.model = m
 
         if self.is_amplitude_data:
