@@ -215,7 +215,6 @@ class Simulation3DIntegral(BasePFSimulation):
         self.chiMap = chiMap
 
         self._M = None
-        self._gtg_diagonal = None
         self.is_amplitude_data = is_amplitude_data
         self.modelMap = self.chiMap
 
