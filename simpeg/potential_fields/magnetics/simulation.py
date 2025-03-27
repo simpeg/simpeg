@@ -1,3 +1,4 @@
+import hashlib
 import warnings
 import numpy as np
 from numpy.typing import NDArray
@@ -368,36 +369,111 @@ class Simulation3DIntegral(BasePFSimulation):
         return self._tmi_projection
 
     def getJtJdiag(self, m, W=None, f=None):
+        r"""
+        Compute diagonal of :math:`\mathbf{J}^T \mathbf{J}``.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        W : (nD, nD) np.ndarray or scipy.sparse.sparray, optional
+            Diagonal matrix with the square root of the weights. If not None,
+            the function returns the diagonal of
+            :math:`\mathbf{J}^T \mathbf{W}^T \mathbf{W} \mathbf{J}``.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        (nparam) np.ndarray
+            Array with the diagonal of ``J.T @ J``.
+
+        Notes
+        -----
+        If ``store_sensitivities`` is ``"forward_only"``, the ``G`` matrix is
+        never allocated in memory, and the diagonal is obtained by
+        accumulation, computing each element of the ``G`` matrix on the fly.
+
+        This method caches the diagonal ``G.T @ W.T @ W @ G`` and the sha256
+        hash of the diagonal of the ``W`` matrix. This way, if same weights are
+        passed to it, it reuses the cached diagonal so it doesn't need to be
+        recomputed.
+        If new weights are passed, the cache is updated with the latest
+        diagonal of ``G.T @ W.T @ W @ G``.
         """
-        Return the diagonal of JtJ
-        """
+        # Need to assign the model, so the chiDeriv can be computed (if the
+        # model is None, the chiDeriv is going to be Zero).
         self.model = m
 
-        if W is None:
-            W = np.ones(self.survey.nD)
-        else:
-            W = W.diagonal() ** 2
-        if getattr(self, "_gtg_diagonal", None) is None:
-            diag = np.zeros(self.G.shape[1])
-            if not self.is_amplitude_data:
-                for i in range(len(W)):
-                    diag += W[i] * (self.G[i] * self.G[i])
-            else:
+        # We should probably check that W is diagonal. Let's assume it for now.
+        weights = (
+            W.diagonal() ** 2
+            if W is not None
+            else np.ones(self.survey.nD, dtype=np.float64)
+        )
+
+        # Compute gtg (G.T @ W.T @ W @ G) if it's not cached, or if the
+        # weights are not the same.
+        weights_sha256 = hashlib.sha256(weights)
+        use_cached_gtg = (
+            hasattr(self, "_gtg_diagonal")
+            and hasattr(self, "_weights_sha256")
+            and self._weights_sha256.digest() == weights_sha256.digest()
+        )
+        if not use_cached_gtg:
+            self._gtg_diagonal = self._get_gtg_diagonal(weights)
+            self._weights_sha256 = weights_sha256
+
+        # Multiply the gtg_diagonal by the derivative of the mapping
+        diagonal = mkvc(
+            (sdiag(np.sqrt(self._gtg_diagonal)) @ self.chiDeriv).power(2).sum(axis=0)
+        )
+        return diagonal
+
+    def _get_gtg_diagonal(self, weights: NDArray) -> NDArray:
+        """
+        Compute the diagonal of ``G.T @ W.T @ W @ G``.
+
+        Parameters
+        ----------
+        weights : np.ndarray
+            Weights array: diagonal of ``W.T @ W``.
+
+        Returns
+        -------
+        np.ndarray
+        """
+        match (self.store_sensitivities, self.is_amplitude_data):
+            case ("forward_only", _):
+                # TODO: Need to implement gtg diagonal when forward_only
+                # without storing G in memory. Need also to support it when
+                # is_amplitude_data is True.
+                msg = (
+                    "Computing the diagonal of `G.T @ G` using "
+                    "`'forward_only'` in the magnetic simulation hasn't been "
+                    "implemented yet."
+                )
+                raise NotImplementedError(msg)
+            case (_, False):
+                # In Einstein notation, the j-th element of the diagonal is:
+                #   d_j = w_i * G_{ij} * G_{ij}
+                gtg_diagonal = np.asarray(
+                    np.einsum("i,ij,ij->j", weights, self.G, self.G)
+                )
+            case (_, True):
                 ampDeriv = self.ampDeriv
                 Gx = self.G[::3]
                 Gy = self.G[1::3]
                 Gz = self.G[2::3]
-                for i in range(len(W)):
+                gtg_diagonal = np.zeros(self.G.shape[1])
+                for i in range(weights.size):
                     row = (
                         ampDeriv[0, i] * Gx[i]
                         + ampDeriv[1, i] * Gy[i]
                         + ampDeriv[2, i] * Gz[i]
                     )
-                    diag += W[i] * (row * row)
-            self._gtg_diagonal = diag
-        else:
-            diag = self._gtg_diagonal
-        return mkvc((sdiag(np.sqrt(diag)) @ self.chiDeriv).power(2).sum(axis=0))
+                    gtg_diagonal += weights[i] * (row * row)
+        return gtg_diagonal
 
     def Jvec(self, m, v, f=None):
         """
