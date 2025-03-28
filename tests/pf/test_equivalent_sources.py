@@ -827,7 +827,9 @@ class TestMagneticEquivalentSources(BaseFittingEquivalentSources):
         model = get_block_model(tree_mesh, 1e-3)
         synthetic_data = self.build_synthetic_data(simulation, model)
         # Build inversion
-        inversion = self.build_inversion(tree_mesh, simulation, synthetic_data)
+        inversion = self.build_inversion(
+            tree_mesh, simulation, synthetic_data, max_iterations=40
+        )
         # Run inversion
         starting_model = np.zeros(tree_mesh.n_cells)
         recovered_model = inversion.run(starting_model)
