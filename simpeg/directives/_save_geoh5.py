@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 
 import numpy as np
-
+from scipy.sparse import csc_matrix, csr_matrix
 from .directives import InversionDirective
 from simpeg.maps import IdentityMap
 
@@ -188,7 +188,12 @@ class SaveArrayGeoH5(BaseSaveGeoH5, ABC):
 
         for fun in funcs:
             if not any(
-                [isinstance(fun, (IdentityMap, np.ndarray, float)), callable(fun)]
+                [
+                    isinstance(
+                        fun, (IdentityMap, np.ndarray, csr_matrix, csc_matrix, float)
+                    ),
+                    callable(fun),
+                ]
             ):
                 raise TypeError(
                     "Input transformation must be of type"
@@ -212,7 +217,9 @@ class SaveArrayGeoH5(BaseSaveGeoH5, ABC):
         """
         prop = prop.flatten()
         for fun in self.transforms:
-            if isinstance(fun, (IdentityMap, np.ndarray, float)):
+            if isinstance(
+                fun, (IdentityMap, np.ndarray, csr_matrix, csc_matrix, float)
+            ):
                 prop = fun * prop
             else:
                 prop = fun(prop)
