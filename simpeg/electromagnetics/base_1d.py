@@ -558,8 +558,9 @@ class BaseEM1DSimulation(BaseSimulation):
                 C1s.append(np.exp(-lambd * (z + h)[:, None]) * C1 / offsets[:, None])
                 lambs.append(lambd)
                 n_w_past += n_w
-                Is.append(np.ones(n_w, dtype=int) * i_count)
-                i_count += 1
+                for _ in range(rx.locations.shape[0]):
+                    Is.append(np.ones(n_w, dtype=int) * i_count)
+                    i_count += 1
 
         # Store these on the simulation for faster future executions
         self._lambs = np.vstack(lambs)
