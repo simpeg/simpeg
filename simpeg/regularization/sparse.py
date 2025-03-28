@@ -119,10 +119,10 @@ class BaseSparse(BaseRegularization):
         if value is None:
             value = np.ones(self._weights_shapes[0]) * 2.0
         expected_shapes = self._weights_shapes
-        if isinstance(expected_shapes, list):
-            expected_shapes = expected_shapes[0]
+        if not isinstance(expected_shapes, list):
+            expected_shapes = [expected_shapes]
         value = validate_ndarray_with_shape(
-            "norm", value, shape=[expected_shapes, (1,)], dtype=float
+            "norm", value, shape=expected_shapes + [(1,)], dtype=float
         )
         if value.shape == (1,):
             value = np.full(expected_shapes[0], value)
