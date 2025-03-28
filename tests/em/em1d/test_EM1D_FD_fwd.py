@@ -549,30 +549,27 @@ class EM1D_FD_LineCurrentTest(unittest.TestCase):
         self.assertLess(err, 1e-4)
 
 
-RX_1D_CLASSES = [
-    fdem.receivers.PointMagneticField,
-    fdem.receivers.PointMagneticFieldSecondary,
-]
-
-
+@pytest.mark.parametrize(
+    "rx_class",
+    [fdem.receivers.PointMagneticField, fdem.receivers.PointMagneticFieldSecondary],
+)
 @pytest.mark.parametrize("n_locs1", [1, 4])
 @pytest.mark.parametrize("n_locs2", [1, 4])
 @pytest.mark.parametrize("orientation", ["x", "y", "z"])
-@pytest.mark.parametrize("component", ["real", "imag", "both", "complex"])
-def test_rx_loc_shapes(n_locs1, n_locs2, orientation, component):
-    offsets = np.arange(n_locs1) + 100.0
+@pytest.mark.parametrize("component", ["real", "imag", "both"])
+def test_rx_loc_shapes(rx_class, n_locs1, n_locs2, orientation, component):
+    offsets = np.full(n_locs1, 100.0)
     rx1_locs = np.pad(offsets[:, None], ((0, 0), (0, 2)), constant_values=0)
-    offsets = np.arange(n_locs1) + 50.0
+    offsets = np.full(n_locs2, 100.0)
     rx2_locs = np.pad(offsets[:, None], ((0, 0), (0, 2)), constant_values=0)
 
     rx_list = [
-        fdem.receivers.PointMagneticField(
-            rx1_locs, orientation=orientation, component=component
-        ),
-        fdem.receivers.PointMagneticFieldSecondary(
-            rx2_locs, orientation=orientation, component=component
-        ),
+        rx_class(rx1_locs, orientation=orientation, component=component),
+        rx_class(rx2_locs, orientation=orientation, component=component),
     ]
+    n_d = n_locs1 + n_locs2
+    if component == "both":
+        n_d *= 2
 
     src = fdem.sources.MagDipole(rx_list, frequency=0.1)
     srv = fdem.Survey(src)
@@ -580,7 +577,33 @@ def test_rx_loc_shapes(n_locs1, n_locs2, orientation, component):
     sim = fdem.Simulation1DLayered(survey=srv, sigma=[1])
     d = sim.dpred(None)
 
-    assert d.shape == (n_locs1 + n_locs2,)
+    # assert the shape is correct
+    assert d.shape == (n_d,)
+
+    # every value should be the same...
+    d1 = d[srv.get_slice(src, rx_list[0])]
+    d2 = d[srv.get_slice(src, rx_list[1])]
+
+    if component == "both":
+        d1 = d1[::2] + 1j * d1[1::2]
+        d2 = d2[::2] + 1j * d2[1::2]
+    d = np.r_[d1, d2]
+    np.testing.assert_allclose(d, d[0], rtol=1e-12)
+
+    sim.sigmaMap = maps.IdentityMap(nP=1)
+    # make sure forming J works
+    J = sim.getJ(np.ones(1))["ds"]
+    assert J.shape == (n_d, 1)
+
+    # and all of its values are the same too:
+    j1 = J[srv.get_slice(src, rx_list[0]), 0]
+    j2 = J[srv.get_slice(src, rx_list[1]), 0]
+
+    if component == "both":
+        j1 = j1[::2] + 1j * j1[1::2]
+        j2 = j2[::2] + 1j * j2[1::2]
+    J = np.r_[j1, j2]
+    np.testing.assert_allclose(J, J[0], rtol=1e-12)
 
 
 if __name__ == "__main__":
