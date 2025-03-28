@@ -690,7 +690,7 @@ class BaseFittingEquivalentSources:
         )
         return data
 
-    def build_inversion(self, mesh, simulation, synthetic_data):
+    def build_inversion(self, mesh, simulation, synthetic_data, max_iterations=20):
         """Build inversion problem."""
         # Build data misfit and regularization terms
         data_misfit = simpeg.data_misfit.L2DataMisfit(
@@ -699,6 +699,7 @@ class BaseFittingEquivalentSources:
         regularization = simpeg.regularization.WeightedLeastSquares(mesh=mesh)
         # Choose optimization
         optimization = ProjectedGNCG(
+            maxIter=max_iterations,
             maxIterLS=5,
             maxIterCG=20,
             tolCG=1e-4,
@@ -826,7 +827,9 @@ class TestMagneticEquivalentSources(BaseFittingEquivalentSources):
         model = get_block_model(tree_mesh, 1e-3)
         synthetic_data = self.build_synthetic_data(simulation, model)
         # Build inversion
-        inversion = self.build_inversion(tree_mesh, simulation, synthetic_data)
+        inversion = self.build_inversion(
+            tree_mesh, simulation, synthetic_data, max_iterations=40
+        )
         # Run inversion
         starting_model = np.zeros(tree_mesh.n_cells)
         recovered_model = inversion.run(starting_model)
