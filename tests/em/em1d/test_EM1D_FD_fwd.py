@@ -9,6 +9,7 @@ from geoana.em.fdem import (
     vertical_magnetic_field_horizontal_loop as mag_field,
 )
 import empymod
+import pytest
 
 
 class EM1D_FD_test_failures(unittest.TestCase):
@@ -546,6 +547,40 @@ class EM1D_FD_LineCurrentTest(unittest.TestCase):
 
         err = np.linalg.norm(H - H_analytic) / np.linalg.norm(H_analytic)
         self.assertLess(err, 1e-4)
+
+
+RX_1D_CLASSES = [
+    fdem.receivers.PointMagneticField,
+    fdem.receivers.PointMagneticFieldSecondary,
+]
+
+
+@pytest.mark.parametrize("n_locs1", [1, 4])
+@pytest.mark.parametrize("n_locs2", [1, 4])
+@pytest.mark.parametrize("orientation", ["x", "y", "z"])
+@pytest.mark.parametrize("component", ["real", "imag", "both", "complex"])
+def test_rx_loc_shapes(n_locs1, n_locs2, orientation, component):
+    offsets = np.arange(n_locs1) + 100.0
+    rx1_locs = np.pad(offsets[:, None], ((0, 0), (0, 2)), constant_values=0)
+    offsets = np.arange(n_locs1) + 50.0
+    rx2_locs = np.pad(offsets[:, None], ((0, 0), (0, 2)), constant_values=0)
+
+    rx_list = [
+        fdem.receivers.PointMagneticField(
+            rx1_locs, orientation=orientation, component=component
+        ),
+        fdem.receivers.PointMagneticFieldSecondary(
+            rx2_locs, orientation=orientation, component=component
+        ),
+    ]
+
+    src = fdem.sources.MagDipole(rx_list, frequency=0.1)
+    srv = fdem.Survey(src)
+
+    sim = fdem.Simulation1DLayered(survey=srv, sigma=[1])
+    d = sim.dpred(None)
+
+    assert d.shape == (n_locs1 + n_locs2,)
 
 
 if __name__ == "__main__":
