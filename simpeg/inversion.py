@@ -1,7 +1,5 @@
-import numpy as np
-
 from .optimization import IterationPrinters, StoppingCriteria
-from .directives import DirectiveList
+from .directives import DirectiveList, UpdatePreconditioner
 from .utils import timeIt, Counter, validate_type, validate_string
 
 
@@ -107,9 +105,15 @@ class BaseInversion(object):
         Runs the inversion!
 
         """
-        self.invProb.startup(m0)
+        self.invProb.startup(
+            m0,
+            init_bfgsH0=not any(
+                isinstance(direct, UpdatePreconditioner)
+                for direct in self.directiveList
+            ),
+        )
         self.directiveList.call("initialize")
-        print("model has any nan: {:b}".format(np.any(np.isnan(self.invProb.model))))
+        # print("model has any nan: {:b}".format(np.any(np.isnan(self.invProb.model)))) minimize will do this check...
         self.m = self.opt.minimize(self.invProb.evalFunction, self.invProb.model)
         self.directiveList.call("finish")
 
