@@ -5,11 +5,14 @@ import re
 import discretize
 import numpy as np
 import pytest
+from scipy.sparse import diags
 from geoana.em.static import MagneticPrism
 from scipy.constants import mu_0
+from scipy.sparse.linalg import LinearOperator, aslinearoperator
 
 import simpeg
 from simpeg import maps, utils
+from simpeg.utils import model_builder
 from simpeg.potential_fields import magnetics as mag
 
 
@@ -907,3 +910,410 @@ def test_removed_modeltype():
     message = "modelType has been removed, please use model_type."
     with pytest.raises(NotImplementedError, match=message):
         sim.modelType
+
+
+class BaseFixtures:
+    """
+    Base test class with some fixtures.
+    """
+
+    @pytest.fixture(
+        params=[
+            "tmi",
+            ["bx", "by", "bz"],
+            ["tmi", "bx"],
+            ["tmi_x", "tmi_y", "tmi_z"],
+        ],
+        ids=["tmi", "mag_components", "tmi_and_mag", "tmi_derivs"],
+    )
+    def survey(self, request):
+        # Observation points
+        x = np.linspace(-20.0, 20.0, 4)
+        x, y = np.meshgrid(x, x)
+        z = 5.0 * np.ones_like(x)
+        coordinates = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
+        receivers = mag.receivers.Point(coordinates, components=request.param)
+        source_field = mag.UniformBackgroundField(
+            receiver_list=[receivers],
+            amplitude=55_000,
+            inclination=12,
+            declination=-35,
+        )
+        survey = mag.survey.Survey(source_field)
+        return survey
+
+    @pytest.fixture
+    def mesh(self):
+        # Mesh
+        dh = 5.0
+        hx = [(dh, 4)]
+        mesh = discretize.TensorMesh([hx, hx, hx], "CCN")
+        return mesh
+
+    @pytest.fixture
+    def susceptibilities(self, mesh, scalar_model: bool):
+        """Create sample susceptibilities."""
+        susceptibilities = 1e-10 * np.ones(
+            mesh.n_cells if scalar_model else 3 * mesh.n_cells
+        )
+        ind_sphere = model_builder.get_indices_sphere(
+            np.r_[0.0, 0.0, -20.0], 10.0, mesh.cell_centers
+        )
+        if scalar_model:
+            susceptibilities[ind_sphere] = 0.2
+        else:
+            susceptibilities[: mesh.n_cells][ind_sphere] = 0.2
+            susceptibilities[mesh.n_cells : 2 * mesh.n_cells][ind_sphere] = 0.3
+            susceptibilities[2 * mesh.n_cells : 3 * mesh.n_cells][ind_sphere] = 0.5
+        return susceptibilities
+
+
+@pytest.mark.parametrize(
+    "scalar_model", [True, False], ids=["scalar_model", "vector_model"]
+)
+class TestGLinearOperator(BaseFixtures):
+    """
+    Test G as a linear operator.
+    """
+
+    @pytest.fixture
+    def mapping(self, mesh, scalar_model):
+        nparams = mesh.n_cells if scalar_model else 3 * mesh.n_cells
+        return maps.IdentityMap(nP=nparams)
+
+    @pytest.mark.parametrize("parallel", [True, False], ids=["parallel", "serial"])
+    def test_G_dot_m(
+        self, survey, mesh, mapping, susceptibilities, scalar_model, parallel
+    ):
+        """Test G @ m."""
+        model_type = "scalar" if scalar_model else "vector"
+        simulation, simulation_ram = (
+            mag.simulation.Simulation3DIntegral(
+                survey=survey,
+                mesh=mesh,
+                chiMap=mapping,
+                store_sensitivities=store,
+                engine="choclo",
+                numba_parallel=parallel,
+                model_type=model_type,
+            )
+            for store in ("forward_only", "ram")
+        )
+        assert isinstance(simulation.G, LinearOperator)
+        assert isinstance(simulation_ram.G, np.ndarray)
+
+        expected = simulation_ram.G @ susceptibilities
+
+        atol = np.max(np.abs(expected)) * 1e-8
+        np.testing.assert_allclose(simulation.G @ susceptibilities, expected, atol=atol)
+
+    @pytest.mark.parametrize("parallel", [True, False], ids=["parallel", "serial"])
+    def test_G_t_dot_v(self, survey, mesh, mapping, scalar_model, parallel):
+        """Test G.T @ v."""
+        model_type = "scalar" if scalar_model else "vector"
+        simulation, simulation_ram = (
+            mag.simulation.Simulation3DIntegral(
+                survey=survey,
+                mesh=mesh,
+                chiMap=mapping,
+                store_sensitivities=store,
+                engine="choclo",
+                numba_parallel=parallel,
+                model_type=model_type,
+            )
+            for store in ("forward_only", "ram")
+        )
+        assert isinstance(simulation.G, LinearOperator)
+        assert isinstance(simulation_ram.G, np.ndarray)
+
+        vector = np.random.default_rng(seed=42).uniform(size=survey.nD)
+        expected = simulation_ram.G.T @ vector
+
+        atol = np.max(np.abs(expected)) * 1e-7
+        np.testing.assert_allclose(simulation.G.T @ vector, expected, atol=atol)
+
+    def test_not_implemented(self, survey, mesh, mapping, scalar_model):
+        """
+        Test NotImplementedError when forward_only and geoana as engine.
+        """
+        engine, store = "geoana", "forward_only"
+        model_type = "scalar" if scalar_model else "vector"
+        simulation = mag.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            chiMap=mapping,
+            store_sensitivities=store,
+            engine=engine,
+            model_type=model_type,
+        )
+        msg = re.escape(
+            "Accessing matrix G with "
+            'store_sensitivities="forward_only" and engine="geoana" '
+            "hasn't been implemented yet."
+        )
+        with pytest.raises(NotImplementedError, match=msg):
+            simulation.G
+
+
+@pytest.mark.parametrize(
+    "scalar_model", [True, False], ids=["scalar_model", "vector_model"]
+)
+class TestJacobian(BaseFixtures):
+    """
+    Test methods related to Jacobian matrix in magnetic simulation.
+    """
+
+    atol_ratio = 1e-6
+
+    @pytest.fixture(params=["identity_map", "exp_map"])
+    def mapping(self, mesh, scalar_model: bool, request):
+        nparams = mesh.n_cells if scalar_model else 3 * mesh.n_cells
+        mapping = (
+            maps.IdentityMap(nP=nparams)
+            if request.param == "identity_map"
+            else maps.ExpMap(nP=nparams)
+        )
+        return mapping
+
+    @pytest.mark.parametrize(
+        ("engine", "store_sensitivities"),
+        [
+            ("choclo", "ram"),
+            ("choclo", "forward_only"),
+            ("geoana", "ram"),
+            pytest.param(
+                "geoana",
+                "forward_only",
+                marks=pytest.mark.xfail(reason="not implemented"),
+            ),
+        ],
+    )
+    def test_Jvec(
+        self,
+        survey,
+        mesh,
+        mapping,
+        susceptibilities,
+        scalar_model,
+        engine,
+        store_sensitivities,
+    ):
+        """
+        Test the Jvec method.
+        """
+        model_type = "scalar" if scalar_model else "vector"
+        simulation = mag.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            chiMap=mapping,
+            store_sensitivities=store_sensitivities,
+            engine=engine,
+            model_type=model_type,
+        )
+        model = mapping * susceptibilities
+
+        vector = np.random.default_rng(seed=42).uniform(size=susceptibilities.size)
+        dpred = simulation.Jvec(model, vector)
+
+        identity_map = type(mapping) is maps.IdentityMap
+        expected_jac = (
+            simulation.G
+            if identity_map
+            else simulation.G @ aslinearoperator(mapping.deriv(model))
+        )
+        expected_dpred = expected_jac @ vector
+
+        atol = np.max(np.abs(expected_dpred)) * self.atol_ratio
+        np.testing.assert_allclose(dpred, expected_dpred, atol=atol)
+
+    @pytest.mark.parametrize(
+        ("engine", "store_sensitivities"),
+        [
+            ("choclo", "ram"),
+            ("choclo", "forward_only"),
+            ("geoana", "ram"),
+            pytest.param(
+                "geoana",
+                "forward_only",
+                marks=pytest.mark.xfail(reason="not implemented"),
+            ),
+        ],
+    )
+    def test_Jtvec(
+        self,
+        survey,
+        mesh,
+        mapping,
+        susceptibilities,
+        scalar_model,
+        engine,
+        store_sensitivities,
+    ):
+        """
+        Test the Jtvec method.
+        """
+        model_type = "scalar" if scalar_model else "vector"
+        simulation = mag.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            chiMap=mapping,
+            store_sensitivities=store_sensitivities,
+            engine=engine,
+            model_type=model_type,
+        )
+        model = mapping * susceptibilities
+
+        vector = np.random.default_rng(seed=42).uniform(size=survey.nD)
+        result = simulation.Jtvec(model, vector)
+
+        identity_map = type(mapping) is maps.IdentityMap
+        expected_jac = (
+            simulation.G
+            if identity_map
+            else simulation.G @ aslinearoperator(mapping.deriv(model))
+        )
+        expected = expected_jac.T @ vector
+
+        atol = np.max(np.abs(result)) * self.atol_ratio
+        np.testing.assert_allclose(result, expected, atol=atol)
+
+    @pytest.mark.parametrize(
+        "engine",
+        [
+            "choclo",
+            pytest.param("geoana", marks=pytest.mark.xfail(reason="not implemented")),
+        ],
+    )
+    @pytest.mark.parametrize("method", ["Jvec", "Jtvec"])
+    def test_array_vs_linear_operator(
+        self, survey, mesh, mapping, susceptibilities, scalar_model, engine, method
+    ):
+        """
+        Test methods when using "ram" and "forward_only".
+
+        They should give the same results.
+        """
+        model_type = "scalar" if scalar_model else "vector"
+        simulation_lo, simulation_ram = (
+            mag.simulation.Simulation3DIntegral(
+                survey=survey,
+                mesh=mesh,
+                chiMap=mapping,
+                store_sensitivities=store,
+                engine=engine,
+                model_type=model_type,
+            )
+            for store in ("forward_only", "ram")
+        )
+        match method:
+            case "Jvec":
+                vector_size = susceptibilities.size
+            case "Jtvec":
+                vector_size = survey.nD
+            case _:
+                raise ValueError(f"Invalid method '{method}'")
+        vector = np.random.default_rng(seed=42).uniform(size=vector_size)
+        model = mapping * susceptibilities
+        result_lo = getattr(simulation_lo, method)(model, vector)
+        result_ram = getattr(simulation_ram, method)(model, vector)
+        atol = np.max(np.abs(result_ram)) * self.atol_ratio
+        np.testing.assert_allclose(result_lo, result_ram, atol=atol)
+
+    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
+    @pytest.mark.parametrize("weights", [True, False])
+    def test_getJtJdiag(
+        self, survey, mesh, mapping, susceptibilities, scalar_model, engine, weights
+    ):
+        """
+        Test the ``getJtJdiag`` method with G as an array in memory.
+        """
+        model_type = "scalar" if scalar_model else "vector"
+        simulation = mag.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            chiMap=mapping,
+            store_sensitivities="ram",
+            engine=engine,
+            model_type=model_type,
+        )
+        model = mapping * susceptibilities
+        kwargs = {}
+        if weights:
+            w_matrix = diags(np.random.default_rng(seed=42).uniform(size=survey.nD))
+            kwargs = {"W": w_matrix}
+        jtj_diag = simulation.getJtJdiag(model, **kwargs)
+
+        identity_map = type(mapping) is maps.IdentityMap
+        expected_jac = (
+            simulation.G if identity_map else simulation.G @ mapping.deriv(model)
+        )
+        if weights:
+            expected = np.diag(expected_jac.T @ w_matrix.T @ w_matrix @ expected_jac)
+        else:
+            expected = np.diag(expected_jac.T @ expected_jac)
+
+        atol = np.max(np.abs(jtj_diag)) * self.atol_ratio
+        np.testing.assert_allclose(jtj_diag, expected, atol=atol)
+
+    @pytest.mark.xfail(raises=NotImplementedError, reason="not implemented yet")
+    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
+    def test_getJtJdiag_forward_only(
+        self, survey, mesh, mapping, susceptibilities, scalar_model, engine
+    ):
+        """
+        Test NotImplementedError on ``getJtJdiag`` when ``"forward_only"``.
+        """
+        model_type = "scalar" if scalar_model else "vector"
+        simulation = mag.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            chiMap=mapping,
+            store_sensitivities="forward_only",
+            engine=engine,
+            model_type=model_type,
+        )
+        model = mapping * susceptibilities
+        simulation.getJtJdiag(model)
+
+    @pytest.mark.parametrize("engine", ("choclo", "geoana"))
+    def test_getJtJdiag_caching(
+        self, survey, mesh, mapping, susceptibilities, scalar_model, engine
+    ):
+        """
+        Test the caching behaviour of the ``getJtJdiag`` method.
+        """
+        model_type = "scalar" if scalar_model else "vector"
+        simulation = mag.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            chiMap=mapping,
+            store_sensitivities="ram",
+            engine=engine,
+            model_type=model_type,
+        )
+
+        # Get diagonal of J.T @ J without any weight
+        model = mapping * susceptibilities
+        jtj_diagonal_1 = simulation.getJtJdiag(model)
+        assert hasattr(simulation, "_gtg_diagonal")
+        assert hasattr(simulation, "_weights_sha256")
+        gtg_diagonal_1 = simulation._gtg_diagonal
+        weights_sha256_1 = simulation._weights_sha256
+
+        # Compute it again and make sure we get the same result
+        np.testing.assert_allclose(jtj_diagonal_1, simulation.getJtJdiag(model))
+
+        # Get a new diagonal with weights
+        weights_matrix = diags(
+            np.random.default_rng(seed=42).uniform(size=simulation.survey.nD)
+        )
+        jtj_diagonal_2 = simulation.getJtJdiag(model, W=weights_matrix)
+        assert hasattr(simulation, "_gtg_diagonal")
+        assert hasattr(simulation, "_weights_sha256")
+        gtg_diagonal_2 = simulation._gtg_diagonal
+        weights_sha256_2 = simulation._weights_sha256
+
+        # The two results should be different
+        assert not np.array_equal(jtj_diagonal_1, jtj_diagonal_2)
+        assert not np.array_equal(gtg_diagonal_1, gtg_diagonal_2)
+        assert weights_sha256_1.digest() != weights_sha256_2.digest()
