@@ -690,7 +690,7 @@ class BaseFittingEquivalentSources:
         )
         return data
 
-    def build_inversion(self, mesh, simulation, synthetic_data):
+    def build_inversion(self, mesh, simulation, synthetic_data, max_iterations=20):
         """Build inversion problem."""
         # Build data misfit and regularization terms
         data_misfit = simpeg.data_misfit.L2DataMisfit(
@@ -699,6 +699,7 @@ class BaseFittingEquivalentSources:
         regularization = simpeg.regularization.WeightedLeastSquares(mesh=mesh)
         # Choose optimization
         optimization = ProjectedGNCG(
+            maxIter=max_iterations,
             maxIterLS=5,
             maxIterCG=20,
             tolCG=1e-4,
