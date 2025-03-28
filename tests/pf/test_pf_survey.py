@@ -14,7 +14,7 @@ def survey(request):
         rx2_components = "gzz"
         mod = grav
         Source = functools.partial(grav.SourceField)
-    elif request.param == "magnetics":
+    else:  # request.param == "magnetics":
         rx1_components = ["bx", "by"]
         rx2_components = "tmi"
 
