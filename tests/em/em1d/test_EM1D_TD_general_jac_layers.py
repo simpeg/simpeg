@@ -3,6 +3,7 @@ from simpeg import maps
 from discretize import tests
 import numpy as np
 import simpeg.electromagnetics.time_domain as tdem
+import pytest
 
 
 class EM1D_TD_general_Jac_layers_ProblemTests(unittest.TestCase):
@@ -303,6 +304,60 @@ class EM1D_TD_LineCurrent_Jac_layers_ProblemTests(unittest.TestCase):
             derChk, m_ini, num=4, plotIt=False, eps=1e-26, random_seed=42
         )
         self.assertTrue(passed)
+
+
+@pytest.mark.parametrize(
+    "rx_class",
+    [
+        tdem.receivers.PointMagneticField,
+        tdem.receivers.PointMagneticFluxDensity,
+        tdem.receivers.PointMagneticFluxTimeDerivative,
+    ],
+)
+@pytest.mark.parametrize("n_locs1", [1, 4])
+@pytest.mark.parametrize("n_locs2", [1, 4])
+@pytest.mark.parametrize("orientation", ["x", "y", "z"])
+@pytest.mark.parametrize(
+    "waveform", [tdem.sources.StepOffWaveform(), tdem.sources.RampOffWaveform(1e-6)]
+)
+@pytest.mark.parametrize("comparison", ["dpred", "J"])
+def test_rx_loc_shapes(rx_class, n_locs1, n_locs2, orientation, waveform, comparison):
+    offsets = np.full(n_locs1, 100.0)
+    rx1_locs = np.pad(offsets[:, None], ((0, 0), (0, 2)), constant_values=0)
+    offsets = np.full(n_locs2, 100.0)
+    rx2_locs = np.pad(offsets[:, None], ((0, 0), (0, 2)), constant_values=0)
+
+    times = [1e-5, 1e-4]
+    rx_list = [
+        rx_class(rx1_locs, times=times, orientation=orientation),
+        rx_class(rx2_locs, times=times, orientation=orientation),
+    ]
+    n_d = (n_locs1 + n_locs2) * len(times)
+
+    src = tdem.sources.MagDipole(rx_list, waveform=waveform)
+    srv = tdem.Survey(src)
+
+    sim = tdem.Simulation1DLayered(survey=srv, sigma=[1])
+    if comparison == "dpred":
+        d = sim.dpred(None)
+    else:
+        sim.sigmaMap = maps.IdentityMap(nP=1)
+        d = sim.getJ(np.ones(1))["ds"][:, 0]
+
+    # assert the shape is correct
+    assert d.shape == (n_d,)
+
+    # every pair of values should be the same...
+    d1 = d[srv.get_slice(src, rx_list[0])]
+    d2 = d[srv.get_slice(src, rx_list[1])]
+
+    # get the data into an n_loc * n_times shape
+    d = np.r_[
+        d1.reshape(2, -1).T,
+        d2.reshape(2, -1).T,
+    ]
+    d_compare = d[0] * np.ones_like(d)
+    np.testing.assert_equal(d, d_compare)
 
 
 if __name__ == "__main__":
