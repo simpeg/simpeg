@@ -353,7 +353,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
         mapsDeriv_list = []
         if self.hMap is not None:
             J_list.append(Js["dh"])
-            mapsDeriv_list.append(self.hDeriv)            
+            mapsDeriv_list.append(self.hDeriv)
         if self.sigmaMap is not None:
             J_list.append(Js["ds"])
             mapsDeriv_list.append(self.sigmaDeriv)
@@ -363,10 +363,10 @@ class Simulation1DLayered(BaseEM1DSimulation):
         if self.thicknessesMap is not None:
             J_list.append(Js["dthick"])
             mapsDeriv_list.append(self.thicknessesDeriv)
-            
+
         J = np.concatenate(J_list, axis=1)
         mapsDeriv = vstack(mapsDeriv_list)
-        
+
         return J @ mapsDeriv
 
     def _project_to_data(self, v):
