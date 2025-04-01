@@ -13,6 +13,7 @@ from .survey import Survey
 from scipy.constants import mu_0
 from scipy.interpolate import InterpolatedUnivariateSpline as iuSpline
 from scipy.special import roots_legendre
+from scipy.sparse import vstack
 
 import libdlf
 
@@ -249,7 +250,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
         return self._project_to_data(v.T)
 
-    def getJ(self, m, f=None):
+    def _getJ(self, m, f=None):
         self.model = m
         if getattr(self, "_J", None) is None:
             self._J = {}
@@ -345,6 +346,28 @@ class Simulation1DLayered(BaseEM1DSimulation):
                     ).T
                     self._J["dthick"] = self._project_to_data(v_dthick)
         return self._J
+
+    def getJ(self, m, f=None):
+        Js = self._getJ(m, f=f)
+        J_list = []
+        mapsDeriv_list = []
+        if self.hMap is not None:
+            J_list.append(Js["dh"])
+            mapsDeriv_list.append(self.hDeriv)            
+        if self.sigmaMap is not None:
+            J_list.append(Js["ds"])
+            mapsDeriv_list.append(self.sigmaDeriv)
+        if self.muMap is not None:
+            J_list.append(Js["dmu"])
+            mapsDeriv_list.append(self.muDeriv)
+        if self.thicknessesMap is not None:
+            J_list.append(Js["dthick"])
+            mapsDeriv_list.append(self.thicknessesDeriv)
+            
+        J = np.concatenate(J_list, axis=1)
+        mapsDeriv = vstack(mapsDeriv_list)
+        
+        return J @ mapsDeriv
 
     def _project_to_data(self, v):
         As = self._As

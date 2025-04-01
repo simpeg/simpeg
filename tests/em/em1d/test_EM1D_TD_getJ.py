@@ -28,8 +28,8 @@ def create_simulation_and_conductivities(identity_mapping: bool):
         )
     )
 
-    # Define the source waveform. Here we define a unit step-off. The definition of
-    # other waveform types is covered in a separate tutorial.
+    # Define the source waveform. Here we define a unit step-off. The definition
+    # of other waveform types is covered in a separate tutorial.
     waveform = tdem.sources.StepOffWaveform()
 
     # Define source list. In our case, we have only a single source.
@@ -77,30 +77,27 @@ def create_simulation_and_conductivities(identity_mapping: bool):
     return simulation, conductivities
 
 
-class TestSimulation1DLayeredGetJ(unittest.TestCase):
-    def test_getJ(self):
-        # Compute dpred using two simulations: one that uses an identity map and
-        # another one that uses an exponential map.
-        # The model used for the former one will be the conductivities.
-        # The model used for the latter one will be the log of the conductivities.
-        dpreds = []
-        jacobians = []
-        models = []
+def test_getJ():
+    # Compute dpred using two simulations: one that uses an identity map and
+    # another one that uses an exponential map.
+    # The model used for the former one will be the conductivities.
+    # The model used for the latter one will be the log of the conductivities.
+    dpreds = []
+    jacobians = []
+    models = []
 
-        for identity_mapping in (True, False):
-            simulation, conductivities = create_simulation_and_conductivities(
-                identity_mapping
-            )
-            model = conductivities if identity_mapping else np.log(conductivities)
-            models.append(model)
-            dpreds.append(simulation.dpred(model))
-            jac = simulation.getJ(model)[
-                "ds"
-            ]  # extract the jacobian for the conductivity
-            jacobians.append(jac)
+    for identity_mapping in (True, False):
+        simulation, conductivities = create_simulation_and_conductivities(
+            identity_mapping
+        )
+        model = conductivities if identity_mapping else np.log(conductivities)
+        models.append(model)
+        dpreds.append(simulation.dpred(model))
+        jac = simulation.getJ(model)
+        jacobians.append(jac)
 
-        # The two dpreds should be equal
-        assert np.allclose(*dpreds)
+    # The two dpreds should be equal
+    assert np.allclose(*dpreds)
 
-        # The two J matrices should not be equal
-        assert not np.allclose(*jacobians)
+    # The two J matrices should not be equal
+    assert not np.allclose(*jacobians, atol=0.)

@@ -335,29 +335,11 @@ class BaseEM1DSimulation(BaseSimulation):
 
     def Jvec(self, m, v, f=None):
         Js = self.getJ(m, f=f)
-        out = 0.0
-        if self.hMap is not None:
-            out = out + Js["dh"] @ (self.hDeriv @ v)
-        if self.sigmaMap is not None:
-            out = out + Js["ds"] @ (self.sigmaDeriv @ v)
-        if self.muMap is not None:
-            out = out + Js["dmu"] @ (self.muDeriv @ v)
-        if self.thicknessesMap is not None:
-            out = out + Js["dthick"] @ (self.thicknessesDeriv @ v)
-        return out
+        return Js @ v
 
     def Jtvec(self, m, v, f=None):
         Js = self.getJ(m, f=f)
-        out = 0.0
-        if self.hMap is not None:
-            out = out + self.hDeriv.T @ (Js["dh"].T @ v)
-        if self.sigmaMap is not None:
-            out = out + self.sigmaDeriv.T @ (Js["ds"].T @ v)
-        if self.muMap is not None:
-            out = out + self.muDeriv.T @ (Js["dmu"].T @ v)
-        if self.thicknessesMap is not None:
-            out = out + self.thicknessesDeriv.T @ (Js["dthick"].T @ v)
-        return out
+        return Js.T @ v
 
     def _compute_hankel_coefficients(self):
         survey = self.survey
