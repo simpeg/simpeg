@@ -121,13 +121,40 @@ class VectorInversion(InversionDirective):
                 dmisfit.simulation.coordinate_system = self.mode
 
     def endIter(self):
+
+        model = self.invProb.model.copy()
+
+        # Project bounds
+        if self.mode == "cartesian" and np.any(~np.isinf(self.opt.upper)):
+            vec_model = []
+            indices = []
+            upper_bound = []
+            for reg in self.regularizations.objfcts:
+                vec_model.append(reg.mapping * model)
+                upper_bound.append(reg.mapping * self.opt.upper)
+                mapping = reg.mapping.deriv(np.zeros(reg.mapping.shape[1]))
+                indices.append(mapping.indices)
+
+            amplitude = np.linalg.norm(np.vstack(vec_model), axis=0)
+            upper_bound = np.hstack(upper_bound)
+            upper_bound = np.max(upper_bound[~np.isinf(upper_bound)])
+            out_bound = amplitude > upper_bound
+
+            if np.any(out_bound):
+                scale = upper_bound / amplitude
+                for ind in indices:
+                    model[ind] *= scale
+
+                self.invProb.model = model
+                self.opt.xc = model
+
         if (
             self.invProb.phi_d < self.target
         ) and self.mode == "cartesian":  # and self.inversion_type == 'mvis':
             print("Switching MVI to spherical coordinates")
             self.mode = "spherical"
-            self.cartesian_model = self.invProb.model
-            model = self.invProb.model.copy()
+            self.cartesian_model = model
+
             vec_model = []
             vec_ref = []
             indices = []
