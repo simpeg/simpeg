@@ -11,10 +11,12 @@ on:
       publish-conda:
         description: 'Publish Conda package'
         required: false
+        type: boolean
         default: true
       publish-pypi:
         description: 'Publish PyPI package'
         required: false
+        type: boolean
         default: true
 
 concurrency:
