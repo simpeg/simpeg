@@ -1211,7 +1211,7 @@ class TestJacobian(BaseFixtures):
             case "Jtvec":
                 vector_size = survey.nD
             case _:
-                raise ValueError(f"Invalid method '{method}'")
+                raise ValueError(f"Invalid method '{method}'")  # pragma: no cover
         vector = np.random.default_rng(seed=42).uniform(size=vector_size)
         model = mapping * susceptibilities
         result_lo = getattr(simulation_lo, method)(model, vector)
