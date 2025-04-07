@@ -2,13 +2,6 @@
 Test how potential field surveys and simulations access receiver components.
 """
 
-# Things to test:
-#   - receivers with different components in the same survey
-#       - projectFields
-#       - projectFieldsDeriv
-#       - _get_components
-#   - deprecation error
-
 import re
 import pytest
 import numpy as np
@@ -63,12 +56,24 @@ class TestComponentsMagneticSurvey:
             survey.components
 
 
-class TestComponentsMagneticSimulation:
+class TestMagneticSimulationDifferential:
 
-    def build_simluation_differential(self, mesh, receivers: list | None):
+    def build_survey(self, receivers: list | None):
         """
-        Build a sample simulation object.
+        Build a sample survey.
         """
+        source_field = magnetics.sources.UniformBackgroundField(
+            receiver_list=receivers, amplitude=55_000, inclination=12, declination=35
+        )
+        survey = magnetics.survey.Survey(source_field)
+        return survey
+
+    @pytest.fixture
+    def sample_simulation(self, mesh, receiver_locations):
+        """
+        Build a sample simulation with single receiver with "tmi".
+        """
+        receivers = [magnetics.receivers.Point(receiver_locations, components="tmi")]
         source_field = magnetics.sources.UniformBackgroundField(
             receiver_list=receivers, amplitude=55_000, inclination=12, declination=35
         )
@@ -78,51 +83,108 @@ class TestComponentsMagneticSimulation:
         )
         return simulation
 
+    def test_survey_setter(self, receiver_locations, sample_simulation):
+        """
+        Test ``survey`` setter with valid receivers.
+        """
+        receivers = [magnetics.receivers.Point(receiver_locations, components="tmi")]
+        survey = self.build_survey(receivers)
+        # Try to override the survey, should pass wo errors
+        sample_simulation.survey = survey
+
+    @pytest.mark.parametrize("invalid_rx", ["no-rx", "different-components"])
+    def test_survey_setter_invalid(
+        self, receiver_locations, sample_simulation, invalid_rx
+    ):
+        """
+        Test ``survey`` setter with invalid receivers.
+        """
+        if invalid_rx == "no-rx":
+            receivers = []
+            msg = re.escape("Found invalid survey without receivers.")
+        else:
+            receivers = [
+                magnetics.receivers.Point(receiver_locations, components=c)
+                for c in ("tmi", ["bx", "by"])
+            ]
+            msg = re.escape(
+                "Found invalid survey with receivers that have mixed components."
+            )
+        # Try to override the survey
+        survey = self.build_survey(receivers)
+        with pytest.raises(ValueError, match=msg):
+            sample_simulation.survey = survey
+
     @pytest.mark.parametrize("components", ["tmi", ["bx", "by", "bz"]])
     def test_get_components(self, mesh, receiver_locations, components):
+        """
+        Test the ``_get_components`` method with valid receivers.
+        """
         receivers = [
             magnetics.receivers.Point(receiver_locations, components=components),
             magnetics.receivers.Point(receiver_locations, components=components),
         ]
-        simulation = self.build_simluation_differential(mesh, receivers)
+        survey = self.build_survey(receivers)
+        simulation = magnetics.Simulation3DDifferential(
+            mesh, survey=survey, muMap=maps.IdentityMap(mesh=mesh)
+        )
 
         expected = components if isinstance(components, list) else [components]
         assert expected == simulation._get_components()
 
-    def test_get_components_no_receivers(self, mesh):
-        simulation = self.build_simluation_differential(mesh, receivers=None)
-        msg = re.escape("Found invalid survey without receivers.")
-        with pytest.raises(ValueError, match=msg):
-            simulation._get_components()
+    @pytest.mark.parametrize("invalid_rx", ["no-rx", "different-components"])
+    def test_get_components_invalid(
+        self, sample_simulation, receiver_locations, invalid_rx
+    ):
+        """
+        Test the ``_get_components`` with invalid receivers.
+        """
+        # Override receivers in simulation's survey
+        if invalid_rx == "no-rx":
+            receivers = []
+            msg = re.escape("Found invalid survey without receivers.")
+        else:
+            receivers = [
+                magnetics.receivers.Point(receiver_locations, components=c)
+                for c in ("tmi", ["bx", "by"])
+            ]
+            msg = re.escape(
+                "Found invalid survey with receivers that have mixed components."
+            )
+        sample_simulation.survey.source_field.receiver_list = receivers
 
-    @pytest.mark.parametrize(
-        "method", ["_get_components", "projectFields", "projectFieldsDeriv"]
-    )
-    def test_different_components(self, mesh, receiver_locations, method):
+        # Try to get components
+        with pytest.raises(ValueError, match=msg):
+            sample_simulation._get_components()
+
+    @pytest.mark.parametrize("invalid_rx", ["no-rx", "different-components"])
+    @pytest.mark.parametrize("method", ["projectFields", "projectFieldsDeriv"])
+    def test_project_fields_invalid(
+        self, sample_simulation, receiver_locations, invalid_rx, method
+    ):
         """
-        Test NotImplementedError when receivers have different components.
+        Test ``projectFields`` and ``projectFieldsDeriv`` on invalid surveys.
         """
-        # Define receivers with different components
-        receivers = [
-            magnetics.receivers.Point(receiver_locations, components="tmi"),
-            magnetics.receivers.Point(
-                receiver_locations, components=["bx", "by", "bz"]
-            ),
-        ]
-        simulation = self.build_simluation_differential(mesh, receivers)
+        # Override receivers in simulation's survey
+        if invalid_rx is None:
+            receivers = None
+            msg = re.escape("Found invalid survey without receivers.")
+        else:
+            receivers = [
+                magnetics.receivers.Point(receiver_locations, components=c)
+                for c in ("tmi", ["bx", "by", "bz"])
+            ]
+            msg = re.escape(
+                "Found invalid survey with receivers that have mixed components."
+            )
+        sample_simulation.survey.source_field.receiver_list = receivers
 
         # Compute fields from a random model
-        model = np.random.default_rng(seed=42).uniform(size=mesh.n_cells)
-        fields = simulation.fields(model)
+        n_cells = sample_simulation.mesh.n_cells
+        model = np.random.default_rng(seed=42).uniform(size=n_cells)
+        fields = sample_simulation.fields(model)
 
-        # Test NotImplementedErrors
-        if method == "_get_components":
-            with pytest.raises(NotImplementedError, match=""):
-                simulation._get_components()
-        else:
-            msg = re.escape(
-                "Found receivers with different set of components in the survey."
-            )
-            method = getattr(simulation, method)
-            with pytest.raises(NotImplementedError, match=msg):
-                method(fields)
+        # Test errors
+        method = getattr(sample_simulation, method)
+        with pytest.raises(ValueError, match=msg):
+            method(fields)
