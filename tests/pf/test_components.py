@@ -166,7 +166,7 @@ class TestMagneticSimulationDifferential:
         Test ``projectFields`` and ``projectFieldsDeriv`` on invalid surveys.
         """
         # Override receivers in simulation's survey
-        if invalid_rx is None:
+        if invalid_rx == "no-rx":
             receivers = None
             msg = re.escape("Found invalid survey without receivers.")
         else:
