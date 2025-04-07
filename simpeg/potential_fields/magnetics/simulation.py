@@ -1147,6 +1147,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
     def survey(self, obj):
         if obj is not None:
             obj = validate_type("survey", obj, Survey, cast=False)
+            self._validate_survey(obj)
         self._survey = obj
 
     @property
@@ -1525,15 +1526,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         """
         # Get components for all receivers, assuming they all have the same components
-        try:
-            components = self._get_components()
-        except NotImplementedError as e:
-            e.args = (
-                "Found receivers with different set of components in the survey. "
-                "Calling `projectFields` with such type of survey is not currently "
-                "supported.",
-            )
-            raise e
+        components = self._get_components()
 
         fields = {}
         if "bx" in components or "tmi" in components:
@@ -1568,17 +1561,8 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         Especially, this function is for TMI data type
         """
-
         # Get components for all receivers, assuming they all have the same components
-        try:
-            components = self._get_components()
-        except NotImplementedError as e:
-            e.args = (
-                "Found receivers with different set of components in the survey. "
-                "Calling `projectFieldsDeriv` with such type of survey is not "
-                "currently supported.",
-            )
-            raise e
+        components = self._get_components()
 
         fields = {}
         if "bx" in components or "tmi" in components:
@@ -1617,19 +1601,42 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         Raises
         ------
         ValueError
-            If the survey doesn't have any receiver.
-        NotImplementedError
-            If any receiver has a different set of components than the rest.
+            If the survey doesn't have any receiver, or if any receiver has
+            a different set of components than the rest.
         """
-        receivers = self.survey.source_field.receiver_list
+        # Validate survey first to ensure that the receivers have all the same
+        # components.
+        self._validate_survey(self.survey)
+        components = self.survey.source_field.receiver_list[0].components
+        return components
+
+    def _validate_survey(self, survey):
+        """
+        Validate a survey for the magnetic differential 3D simulation.
+
+        Parameters
+        ----------
+        survey : Survey
+            Survey object that will get validated.
+
+        Raises
+        ------
+        ValueError
+            If the survey doesn't have any receiver, or if any receiver has
+            a different set of components than the rest.
+        """
+        receivers = survey.source_field.receiver_list
         if not receivers:
             msg = "Found invalid survey without receivers."
             raise ValueError(msg)
-
         components = receivers[0].components
         if not all(components == rx.components for rx in receivers):
-            raise NotImplementedError()
-        return components
+            msg = (
+                "Found invalid survey with receivers that have mixed components. "
+                f"Surveys for the {type(self).__name__} class must contain receivers "
+                "with the same components."
+            )
+            raise ValueError(msg)
 
     def projectFieldsAsVector(self, B):
         bfx = self.Qfx * B
