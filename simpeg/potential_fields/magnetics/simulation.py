@@ -446,8 +446,15 @@ class Simulation3DIntegral(BasePFSimulation):
         -------
         np.ndarray
         """
-        match (self.store_sensitivities, self.is_amplitude_data):
-            case ("forward_only", True):
+        match (self.engine, self.store_sensitivities, self.is_amplitude_data):
+            case ("geoana", "forward_only", _):
+                msg = (
+                    "Computing the diagonal of `G.T @ G` using "
+                    "`'forward_only'` and `'geoana'` as engine hasn't been "
+                    "implemented yet."
+                )
+                raise NotImplementedError(msg)
+            case ("choclo", "forward_only", True):
                 # TODO: Need to implement gtg diagonal when forward_only
                 # without storing G in memory. Need also to support it when
                 # is_amplitude_data is True.
@@ -457,15 +464,15 @@ class Simulation3DIntegral(BasePFSimulation):
                     "implemented yet."
                 )
                 raise NotImplementedError(msg)
-            case ("forward_only", False):
+            case ("choclo", "forward_only", False):
                 gtg_diagonal = self._gtg_diagonal_without_building_g(weights)
-            case (_, False):
+            case (_, _, False):
                 # In Einstein notation, the j-th element of the diagonal is:
                 #   d_j = w_i * G_{ij} * G_{ij}
                 gtg_diagonal = np.asarray(
                     np.einsum("i,ij,ij->j", weights, self.G, self.G)
                 )
-            case (_, True):
+            case (_, _, True):
                 ampDeriv = self.ampDeriv
                 Gx = self.G[::3]
                 Gy = self.G[1::3]
