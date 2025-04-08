@@ -915,6 +915,9 @@ def test_removed_modeltype():
 class BaseFixtures:
     """
     Base test class with some fixtures.
+
+    Requires that any child class implements a ``scalar_model`` boolean fixture.
+    It can be a standalone fixture, or it can be a class parametrization.
     """
 
     @pytest.fixture(
@@ -1074,6 +1077,85 @@ class TestJacobian(BaseFixtures):
             else maps.ExpMap(nP=nparams)
         )
         return mapping
+
+    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
+    def test_getJ_as_array(
+        self, survey, mesh, mapping, susceptibilities, scalar_model, engine
+    ):
+        """
+        Test the getJ method when J is an array in memory.
+        """
+        model_type = "scalar" if scalar_model else "vector"
+        simulation = mag.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            chiMap=mapping,
+            store_sensitivities="ram",
+            engine=engine,
+            model_type=model_type,
+        )
+        model = mapping * susceptibilities
+        jac = simulation.getJ(model)
+        assert isinstance(jac, np.ndarray)
+        # With an identity mapping, the jacobian should be the same as G.
+        # With an exp mapping, the jacobian should be G @ the mapping derivative.
+        identity_map = type(mapping) is maps.IdentityMap
+        expected_jac = (
+            simulation.G if identity_map else simulation.G @ mapping.deriv(model)
+        )
+        np.testing.assert_allclose(jac, expected_jac)
+
+    @pytest.mark.parametrize(
+        "engine",
+        [
+            "choclo",
+            pytest.param(
+                "geoana",
+                marks=pytest.mark.xfail(
+                    reason="not implemented", raises=NotImplementedError
+                ),
+            ),
+        ],
+    )
+    def test_getJ_as_linear_operator(
+        self, survey, mesh, mapping, susceptibilities, scalar_model, engine
+    ):
+        """
+        Test the getJ method when J is a linear operator.
+        """
+        model_type = "scalar" if scalar_model else "vector"
+        simulation = mag.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            chiMap=mapping,
+            store_sensitivities="forward_only",
+            engine=engine,
+            model_type=model_type,
+        )
+        model = mapping * susceptibilities
+        jac = simulation.getJ(model)
+        assert isinstance(jac, LinearOperator)
+        result = jac @ model
+        expected_result = simulation.G @ (mapping.deriv(model).diagonal() * model)
+        np.testing.assert_allclose(result, expected_result)
+
+    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
+    def test_getJ_not_implemented(
+        self, survey, mesh, mapping, susceptibilities, scalar_model, engine
+    ):
+        model_type = "scalar" if scalar_model else "vector"
+        simulation = mag.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            chiMap=mapping,
+            store_sensitivities="ram",
+            engine=engine,
+            model_type=model_type,
+            is_amplitude_data=True,
+        )
+        model = mapping * susceptibilities
+        with pytest.raises(NotImplementedError):
+            simulation.getJ(model)
 
     @pytest.mark.parametrize(
         ("engine", "store_sensitivities"),

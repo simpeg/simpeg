@@ -13,7 +13,7 @@ from geoana.kernels import (
     prism_fzzz,
 )
 from scipy.constants import mu_0
-from scipy.sparse.linalg import LinearOperator
+from scipy.sparse.linalg import LinearOperator, aslinearoperator
 
 from simpeg import props, utils
 from simpeg.utils import mat_utils, mkvc, sdiag
@@ -382,6 +382,52 @@ class Simulation3DIntegral(BasePFSimulation):
             ).squeeze()
 
         return self._tmi_projection
+
+    def getJ(self, m, f=None) -> NDArray[np.float64 | np.float32] | LinearOperator:
+        r"""
+        Sensitivity matrix :math:`\mathbf{J}`.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        (nD, n_params) np.ndarray or scipy.sparse.linalg.LinearOperator.
+            Array or :class:`~scipy.sparse.linalg.LinearOperator` for the
+            :math:`\mathbf{J}` matrix.
+            A :class:`~scipy.sparse.linalg.LinearOperator` will be returned if
+            ``store_sensitivities`` is ``"forward_only"``, otherwise a dense
+            array will be returned.
+
+        Notes
+        -----
+        If ``store_sensitivities`` is ``"ram"`` or ``"disk"``, a dense array
+        for the ``J`` matrix is returned.
+        A :class:`~scipy.sparse.linalg.LinearOperator` is returned if
+        ``store_sensitivities`` is ``"forward_only"``. This object can perform
+        operations like ``J @ m`` or ``J.T @ v`` without allocating the full
+        ``J`` matrix in memory.
+        """
+        if self.is_amplitude_data:
+            msg = (
+                "The `getJ` method is not yet implemented to work with "
+                "`is_amplitude_data`."
+            )
+            raise NotImplementedError(msg)
+
+        # Need to assign the model, so the chiDeriv can be computed (if the
+        # model is None, the chiDeriv is going to be Zero).
+        self.model = m
+        chiDeriv = (
+            self.chiDeriv
+            if not isinstance(self.G, LinearOperator)
+            else aslinearoperator(self.chiDeriv)
+        )
+        return self.G @ chiDeriv
 
     def getJtJdiag(self, m, W=None, f=None):
         r"""
