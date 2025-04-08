@@ -61,6 +61,8 @@ from ._numba_functions import (
     _diagonal_G_T_dot_G_mag_parallel,
     _diagonal_G_T_dot_G_tmi_serial,
     _diagonal_G_T_dot_G_tmi_parallel,
+    _diagonal_G_T_dot_G_tmi_deriv_serial,
+    _diagonal_G_T_dot_G_tmi_deriv_parallel,
 )
 
 if choclo is not None:
@@ -247,6 +249,9 @@ class Simulation3DIntegral(BasePFSimulation):
                 )
                 self._diagonal_G_T_dot_G_mag = _diagonal_G_T_dot_G_mag_parallel
                 self._diagonal_G_T_dot_G_tmi = _diagonal_G_T_dot_G_tmi_parallel
+                self._diagonal_G_T_dot_G_tmi_deriv = (
+                    _diagonal_G_T_dot_G_tmi_deriv_parallel
+                )
             else:
                 self._sensitivity_tmi = _sensitivity_tmi_serial
                 self._sensitivity_mag = _sensitivity_mag_serial
@@ -261,6 +266,9 @@ class Simulation3DIntegral(BasePFSimulation):
                 )
                 self._diagonal_G_T_dot_G_mag = _diagonal_G_T_dot_G_mag_serial
                 self._diagonal_G_T_dot_G_tmi = _diagonal_G_T_dot_G_tmi_serial
+                self._diagonal_G_T_dot_G_tmi_deriv = (
+                    _diagonal_G_T_dot_G_tmi_deriv_serial
+                )
 
     @property
     def model_type(self):
@@ -1191,7 +1199,25 @@ class Simulation3DIntegral(BasePFSimulation):
                         diagonal,
                     )
                 elif component in ("tmi_x", "tmi_y", "tmi_z"):
-                    raise NotImplementedError()
+                    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
+                        CHOCLO_KERNELS[component]
+                    )
+                    self._diagonal_G_T_dot_G_tmi_deriv(
+                        receivers,
+                        active_nodes,
+                        active_cell_nodes,
+                        regional_field,
+                        kernel_xx,
+                        kernel_yy,
+                        kernel_zz,
+                        kernel_xy,
+                        kernel_xz,
+                        kernel_yz,
+                        constant_factor,
+                        scalar_model,
+                        weights,
+                        diagonal,
+                    )
                 else:
                     kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
                     self._diagonal_G_T_dot_G_mag(
