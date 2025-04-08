@@ -1272,11 +1272,23 @@ class TestJacobian(BaseFixtures):
         atol = np.max(np.abs(jtj_diag)) * self.atol_ratio
         np.testing.assert_allclose(jtj_diag, expected, atol=atol)
 
-    def test_getJtJdiag_forward_only_geoana(
-        self, survey, mesh, mapping, susceptibilities, scalar_model
+    @pytest.mark.parametrize(
+        ("engine", "is_amplitude_data"),
+        [("geoana", True), ("geoana", False), ("choclo", True)],
+        ids=("geoana-amplitude_data", "geoana-regular_data", "choclo-amplitude_data"),
+    )
+    def test_getJtJdiag_not_implemented(
+        self,
+        survey,
+        mesh,
+        mapping,
+        susceptibilities,
+        scalar_model,
+        engine,
+        is_amplitude_data,
     ):
         """
-        Test NotImplementedError on ``getJtJdiag`` when ``"forward_only"`` and geoana.
+        Test NotImplementedErrors on ``getJtJdiag``.
         """
         model_type = "scalar" if scalar_model else "vector"
         simulation = mag.simulation.Simulation3DIntegral(
@@ -1284,7 +1296,8 @@ class TestJacobian(BaseFixtures):
             mesh=mesh,
             chiMap=mapping,
             store_sensitivities="forward_only",
-            engine="geoana",
+            engine=engine,
+            is_amplitude_data=is_amplitude_data,
             model_type=model_type,
         )
         model = mapping * susceptibilities
