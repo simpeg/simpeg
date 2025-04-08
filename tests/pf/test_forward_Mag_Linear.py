@@ -1256,7 +1256,7 @@ class TestJacobian(BaseFixtures):
         np.testing.assert_allclose(jtj_diag, expected, atol=atol)
 
     def test_getJtJdiag_forward_only_geoana(
-        self, survey, mesh, mapping, susceptibilities, scalar_model, engine
+        self, survey, mesh, mapping, susceptibilities, scalar_model
     ):
         """
         Test NotImplementedError on ``getJtJdiag`` when ``"forward_only"`` and geoana.
