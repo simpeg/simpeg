@@ -59,6 +59,8 @@ from ._numba_functions import (
     _tmi_derivative_sensitivity_t_dot_v_parallel,
     _diagonal_G_T_dot_G_mag_serial,
     _diagonal_G_T_dot_G_mag_parallel,
+    _diagonal_G_T_dot_G_tmi_serial,
+    _diagonal_G_T_dot_G_tmi_parallel,
 )
 
 if choclo is not None:
@@ -244,6 +246,7 @@ class Simulation3DIntegral(BasePFSimulation):
                     _tmi_derivative_sensitivity_t_dot_v_parallel
                 )
                 self._diagonal_G_T_dot_G_mag = _diagonal_G_T_dot_G_mag_parallel
+                self._diagonal_G_T_dot_G_tmi = _diagonal_G_T_dot_G_tmi_parallel
             else:
                 self._sensitivity_tmi = _sensitivity_tmi_serial
                 self._sensitivity_mag = _sensitivity_mag_serial
@@ -257,6 +260,7 @@ class Simulation3DIntegral(BasePFSimulation):
                     _tmi_derivative_sensitivity_t_dot_v_serial
                 )
                 self._diagonal_G_T_dot_G_mag = _diagonal_G_T_dot_G_mag_serial
+                self._diagonal_G_T_dot_G_tmi = _diagonal_G_T_dot_G_tmi_serial
 
     @property
     def model_type(self):
@@ -1179,7 +1183,16 @@ class Simulation3DIntegral(BasePFSimulation):
                 )
             for component in components:
                 if component == "tmi":
-                    raise NotImplementedError()
+                    self._diagonal_G_T_dot_G_tmi(
+                        receivers,
+                        active_nodes,
+                        active_cell_nodes,
+                        regional_field,
+                        constant_factor,
+                        scalar_model,
+                        weights,
+                        diagonal,
+                    )
                 elif component in ("tmi_x", "tmi_y", "tmi_z"):
                     raise NotImplementedError()
                 else:
