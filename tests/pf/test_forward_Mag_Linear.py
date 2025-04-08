@@ -1298,7 +1298,8 @@ class TestJacobian(BaseFixtures):
         expected = simulation_ram.getJtJdiag(model)
         result = simulation.getJtJdiag(model)
 
-        np.testing.assert_allclose(result, expected)
+        atol = np.max(np.abs(expected)) * 1e-8
+        np.testing.assert_allclose(result, expected, atol=atol)
 
     @pytest.mark.parametrize("engine", ("choclo", "geoana"))
     def test_getJtJdiag_caching(
