@@ -343,8 +343,8 @@ def test_rx_loc_shapes(rx_class, n_locs1, n_locs2, orientation, waveform, compar
     else:
         sim.sigmaMap = maps.IdentityMap(nP=1)
         J = sim.getJ(np.ones(1))
-        d = J[:,0]
-    
+        d = J[:, 0]
+
     # assert the shape is correct
     assert d.shape == (n_d,)
 

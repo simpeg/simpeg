@@ -1,7 +1,6 @@
 import numpy as np
 import simpeg.electromagnetics.time_domain as tdem
 from simpeg import maps
-import unittest
 
 
 def create_simulation_and_conductivities(identity_mapping: bool):
@@ -100,4 +99,4 @@ def test_getJ():
     assert np.allclose(*dpreds)
 
     # The two J matrices should not be equal
-    assert not np.allclose(*jacobians, atol=0.)
+    assert not np.allclose(*jacobians, atol=0.0)
