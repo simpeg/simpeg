@@ -1210,7 +1210,7 @@ class TestJacobian(BaseFixtures):
                 vector_size = susceptibilities.size
             case "Jtvec":
                 vector_size = survey.nD
-            case _:
+            case _:  # pragma: no cover
                 raise ValueError(f"Invalid method '{method}'")  # pragma: no cover
         vector = np.random.default_rng(seed=42).uniform(size=vector_size)
         model = mapping * susceptibilities
@@ -1301,7 +1301,7 @@ class TestJacobian(BaseFixtures):
         atol = np.max(np.abs(expected)) * 1e-8
         np.testing.assert_allclose(result, expected, atol=atol)
 
-    @pytest.mark.parametrize("engine", ("choclo", "geoana"))
+    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
     def test_getJtJdiag_caching(
         self, survey, mesh, mapping, susceptibilities, scalar_model, engine
     ):
