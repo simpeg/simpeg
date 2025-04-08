@@ -459,9 +459,6 @@ class Simulation3DIntegral(BasePFSimulation):
                 )
                 raise NotImplementedError(msg)
             case ("choclo", "forward_only", True):
-                # TODO: Need to implement gtg diagonal when forward_only
-                # without storing G in memory. Need also to support it when
-                # is_amplitude_data is True.
                 msg = (
                     "Computing the diagonal of `G.T @ G` using "
                     "`'forward_only'` and `is_amplitude_data` hasn't been "
