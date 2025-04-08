@@ -1255,13 +1255,11 @@ class TestJacobian(BaseFixtures):
         atol = np.max(np.abs(jtj_diag)) * self.atol_ratio
         np.testing.assert_allclose(jtj_diag, expected, atol=atol)
 
-    @pytest.mark.xfail(raises=NotImplementedError, reason="not implemented yet")
-    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
-    def test_getJtJdiag_forward_only(
+    def test_getJtJdiag_forward_only_geoana(
         self, survey, mesh, mapping, susceptibilities, scalar_model, engine
     ):
         """
-        Test NotImplementedError on ``getJtJdiag`` when ``"forward_only"``.
+        Test NotImplementedError on ``getJtJdiag`` when ``"forward_only"`` and geoana.
         """
         model_type = "scalar" if scalar_model else "vector"
         simulation = mag.simulation.Simulation3DIntegral(
@@ -1269,11 +1267,38 @@ class TestJacobian(BaseFixtures):
             mesh=mesh,
             chiMap=mapping,
             store_sensitivities="forward_only",
-            engine=engine,
+            engine="geoana",
             model_type=model_type,
         )
         model = mapping * susceptibilities
-        simulation.getJtJdiag(model)
+        with pytest.raises(NotImplementedError):
+            simulation.getJtJdiag(model)
+
+    @pytest.mark.parametrize("parallel", [True, False], ids=("parallel", "serial"))
+    def test_getJtJdiag_forward_only(
+        self, survey, mesh, mapping, susceptibilities, scalar_model, parallel
+    ):
+        """
+        Test the ``getJtJdiag`` method with ``"forward_only"`` and choclo.
+        """
+        model_type = "scalar" if scalar_model else "vector"
+        simulation, simulation_ram = (
+            mag.simulation.Simulation3DIntegral(
+                survey=survey,
+                mesh=mesh,
+                chiMap=mapping,
+                store_sensitivities=store,
+                engine="choclo",
+                numba_parallel=parallel,
+                model_type=model_type,
+            )
+            for store in ("forward_only", "ram")
+        )
+        model = mapping * susceptibilities
+        expected = simulation_ram.getJtJdiag(model)
+        result = simulation.getJtJdiag(model)
+
+        np.testing.assert_allclose(result, expected)
 
     @pytest.mark.parametrize("engine", ("choclo", "geoana"))
     def test_getJtJdiag_caching(

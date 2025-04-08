@@ -57,6 +57,8 @@ from ._numba_functions import (
     _tmi_sensitivity_t_dot_v_parallel,
     _tmi_derivative_sensitivity_t_dot_v_serial,
     _tmi_derivative_sensitivity_t_dot_v_parallel,
+    _diagonal_G_T_dot_G_mag_serial,
+    _diagonal_G_T_dot_G_mag_parallel,
 )
 
 if choclo is not None:
@@ -241,6 +243,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 self._tmi_derivative_sensitivity_t_dot_v = (
                     _tmi_derivative_sensitivity_t_dot_v_parallel
                 )
+                self._diagonal_G_T_dot_G_mag = _diagonal_G_T_dot_G_mag_parallel
             else:
                 self._sensitivity_tmi = _sensitivity_tmi_serial
                 self._sensitivity_mag = _sensitivity_mag_serial
@@ -253,6 +256,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 self._tmi_derivative_sensitivity_t_dot_v = (
                     _tmi_derivative_sensitivity_t_dot_v_serial
                 )
+                self._diagonal_G_T_dot_G_mag = _diagonal_G_T_dot_G_mag_serial
 
     @property
     def model_type(self):
@@ -443,16 +447,18 @@ class Simulation3DIntegral(BasePFSimulation):
         np.ndarray
         """
         match (self.store_sensitivities, self.is_amplitude_data):
-            case ("forward_only", _):
+            case ("forward_only", True):
                 # TODO: Need to implement gtg diagonal when forward_only
                 # without storing G in memory. Need also to support it when
                 # is_amplitude_data is True.
                 msg = (
                     "Computing the diagonal of `G.T @ G` using "
-                    "`'forward_only'` in the magnetic simulation hasn't been "
+                    "`'forward_only'` and `is_amplitude_data` hasn't been "
                     "implemented yet."
                 )
                 raise NotImplementedError(msg)
+            case ("forward_only", False):
+                gtg_diagonal = self._gtg_diagonal_without_building_g(weights)
             case (_, False):
                 # In Einstein notation, the j-th element of the diagonal is:
                 #   d_j = w_i * G_{ij} * G_{ij}
@@ -1130,6 +1136,61 @@ class Simulation3DIntegral(BasePFSimulation):
                     )
             index_offset += n_rows
         return result
+
+    def _gtg_diagonal_without_building_g(self, weights):
+        """
+        Compute the diagonal of ``G.T @ G`` without building the ``G`` matrix.
+
+        Parameters
+        -----------
+        weights : (nD,) array
+            Array with data weights. It should be the diagonal of the ``W``
+            matrix, squared.
+
+        Returns
+        -------
+        (n_active_cells) numpy.ndarray
+        """
+        # Gather active nodes and the indices of the nodes for each active cell
+        active_nodes, active_cell_nodes = self._get_active_nodes()
+        # Get regional field
+        regional_field = self.survey.source_field.b0
+        # Define the constant factor
+        constant_factor = 1 / 4 / np.pi
+
+        # Allocate array for the diagonal
+        scalar_model = self.model_type == "scalar"
+        n_columns = self.nC if scalar_model else 3 * self.nC
+        diagonal = np.zeros(n_columns, dtype=np.float64)
+
+        # Start filling the diagonal array
+        for components, receivers in self._get_components_and_receivers():
+            if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
+                raise NotImplementedError(
+                    f"Other components besides {CHOCLO_SUPPORTED_COMPONENTS} "
+                    "aren't implemented yet."
+                )
+            for component in components:
+                if component == "tmi":
+                    raise NotImplementedError()
+                elif component in ("tmi_x", "tmi_y", "tmi_z"):
+                    raise NotImplementedError()
+                else:
+                    kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
+                    self._diagonal_G_T_dot_G_mag(
+                        receivers,
+                        active_nodes,
+                        active_cell_nodes,
+                        regional_field,
+                        kernel_x,
+                        kernel_y,
+                        kernel_z,
+                        constant_factor,
+                        scalar_model,
+                        weights,
+                        diagonal,
+                    )
+        return diagonal
 
 
 class SimulationEquivalentSourceLayer(
