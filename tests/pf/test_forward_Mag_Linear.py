@@ -981,19 +981,9 @@ class TestGLinearOperator(BaseFixtures):
         nparams = mesh.n_cells if scalar_model else 3 * mesh.n_cells
         return maps.IdentityMap(nP=nparams)
 
-    @pytest.mark.parametrize(
-        "is_amplitude_data", [False, True], ids=["regular_data", "amplitude_data"]
-    )
     @pytest.mark.parametrize("parallel", [True, False], ids=["parallel", "serial"])
     def test_G_dot_m(
-        self,
-        survey,
-        mesh,
-        mapping,
-        susceptibilities,
-        scalar_model,
-        is_amplitude_data,
-        parallel,
+        self, survey, mesh, mapping, susceptibilities, scalar_model, parallel
     ):
         """Test G @ m."""
         model_type = "scalar" if scalar_model else "vector"
@@ -1004,7 +994,6 @@ class TestGLinearOperator(BaseFixtures):
                 chiMap=mapping,
                 store_sensitivities=store,
                 engine="choclo",
-                is_amplitude_data=is_amplitude_data,
                 numba_parallel=parallel,
                 model_type=model_type,
             )
@@ -1018,13 +1007,8 @@ class TestGLinearOperator(BaseFixtures):
         atol = np.max(np.abs(expected)) * 1e-8
         np.testing.assert_allclose(simulation.G @ susceptibilities, expected, atol=atol)
 
-    @pytest.mark.parametrize(
-        "is_amplitude_data", [False, True], ids=["regular_data", "amplitude_data"]
-    )
     @pytest.mark.parametrize("parallel", [True, False], ids=["parallel", "serial"])
-    def test_G_t_dot_v(
-        self, survey, mesh, mapping, scalar_model, is_amplitude_data, parallel
-    ):
+    def test_G_t_dot_v(self, survey, mesh, mapping, scalar_model, parallel):
         """Test G.T @ v."""
         model_type = "scalar" if scalar_model else "vector"
         simulation, simulation_ram = (
@@ -1033,7 +1017,6 @@ class TestGLinearOperator(BaseFixtures):
                 mesh=mesh,
                 chiMap=mapping,
                 store_sensitivities=store,
-                is_amplitude_data=is_amplitude_data,
                 engine="choclo",
                 numba_parallel=parallel,
                 model_type=model_type,
