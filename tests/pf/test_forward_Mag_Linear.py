@@ -1539,7 +1539,8 @@ class TestJacobianAmplitudeData(BaseFixtures):
             sensitivity_dtype=np.float64,
         )
         model = mapping * susceptibilities
-        result = simulation.Jvec(model, model)
+        vector = np.random.default_rng(seed=42).uniform(size=susceptibilities.size)
+        result = simulation.Jvec(model, vector)
 
         identity_map = type(mapping) is maps.IdentityMap
         G_dot_chideriv = (
@@ -1547,8 +1548,10 @@ class TestJacobianAmplitudeData(BaseFixtures):
             if identity_map
             else simulation.G @ aslinearoperator(mapping.deriv(model))
         )
-        magnetic_field = G_dot_chideriv @ model
-        bx, by, bz = (magnetic_field[i::3] for i in (0, 1, 2))
+        # If mapping is not linear, this is just a first order approximation of the
+        # magnetic field.
+        magnetic_field_approx = G_dot_chideriv @ vector
+        bx, by, bz = (magnetic_field_approx[i::3] for i in (0, 1, 2))
         expected = np.sqrt(bx**2 + by**2 + bz**2)
 
         atol = np.max(np.abs(expected)) * 1e-7
