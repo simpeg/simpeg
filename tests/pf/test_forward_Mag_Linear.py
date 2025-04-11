@@ -1195,7 +1195,7 @@ class TestJacobian(BaseFixtures):
         model = mapping * susceptibilities
 
         vector = np.random.default_rng(seed=42).uniform(size=susceptibilities.size)
-        dpred = simulation.Jvec(model, vector)
+        result = simulation.Jvec(model, vector)
 
         identity_map = type(mapping) is maps.IdentityMap
         expected_jac = (
@@ -1203,10 +1203,10 @@ class TestJacobian(BaseFixtures):
             if identity_map
             else simulation.G @ aslinearoperator(mapping.deriv(model))
         )
-        expected_dpred = expected_jac @ vector
+        expected = expected_jac @ vector
 
-        atol = np.max(np.abs(expected_dpred)) * self.atol_ratio
-        np.testing.assert_allclose(dpred, expected_dpred, atol=atol)
+        atol = np.max(np.abs(expected)) * self.atol_ratio
+        np.testing.assert_allclose(result, expected, atol=atol)
 
     @pytest.mark.parametrize(
         ("engine", "store_sensitivities"),
@@ -1539,7 +1539,7 @@ class TestJacobianAmplitudeData(BaseFixtures):
             sensitivity_dtype=np.float64,
         )
         model = mapping * susceptibilities
-        dpred = simulation.Jvec(model, model)
+        result = simulation.Jvec(model, model)
 
         identity_map = type(mapping) is maps.IdentityMap
         G_dot_chideriv = (
@@ -1549,7 +1549,7 @@ class TestJacobianAmplitudeData(BaseFixtures):
         )
         magnetic_field = G_dot_chideriv @ model
         bx, by, bz = (magnetic_field[i::3] for i in (0, 1, 2))
-        expected_dpred = np.sqrt(bx**2 + by**2 + bz**2)
+        expected = np.sqrt(bx**2 + by**2 + bz**2)
 
-        atol = np.max(np.abs(expected_dpred)) * 1e-7
-        np.testing.assert_allclose(dpred, expected_dpred, atol=atol)
+        atol = np.max(np.abs(expected)) * 1e-7
+        np.testing.assert_allclose(result, expected, atol=atol)
