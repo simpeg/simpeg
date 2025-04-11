@@ -491,9 +491,8 @@ class TestJacobianGravity(BaseFixtures):
         assert isinstance(jac, np.ndarray)
         # With an identity mapping, the jacobian should be the same as G.
         # With an exp mapping, the jacobian should be G @ the mapping derivative.
-        identity_map = type(mapping) is maps.IdentityMap
         expected_jac = (
-            simulation.G if identity_map else simulation.G @ mapping.deriv(model)
+            simulation.G if is_identity_map else simulation.G @ mapping.deriv(model)
         )
         np.testing.assert_allclose(jac, expected_jac)
 
@@ -571,10 +570,9 @@ class TestJacobianGravity(BaseFixtures):
         vector = np.random.default_rng(seed=42).uniform(size=densities.size)
         dpred = simulation.Jvec(model, vector)
 
-        identity_map = type(mapping) is maps.IdentityMap
         expected_jac = (
             simulation.G
-            if identity_map
+            if is_identity_map
             else simulation.G @ aslinearoperator(mapping.deriv(model))
         )
         expected_dpred = expected_jac @ vector
@@ -612,10 +610,9 @@ class TestJacobianGravity(BaseFixtures):
         vector = np.random.default_rng(seed=42).uniform(size=survey.nD)
         result = simulation.Jtvec(model, vector)
 
-        identity_map = type(mapping) is maps.IdentityMap
         expected_jac = (
             simulation.G
-            if identity_map
+            if is_identity_map
             else simulation.G @ aslinearoperator(mapping.deriv(model))
         )
         expected = expected_jac.T @ vector
@@ -688,9 +685,8 @@ class TestJacobianGravity(BaseFixtures):
             kwargs = {"W": w_matrix}
         jtj_diag = simulation.getJtJdiag(model, **kwargs)
 
-        identity_map = type(mapping) is maps.IdentityMap
         expected_jac = (
-            simulation.G if identity_map else simulation.G @ mapping.deriv(model)
+            simulation.G if is_identity_map else simulation.G @ mapping.deriv(model)
         )
         if weights:
             expected = np.diag(expected_jac.T @ w_matrix.T @ w_matrix @ expected_jac)
