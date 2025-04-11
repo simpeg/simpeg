@@ -1438,3 +1438,118 @@ class TestJacobian(BaseFixtures):
         assert not np.array_equal(jtj_diagonal_1, jtj_diagonal_2)
         assert not np.array_equal(gtg_diagonal_1, gtg_diagonal_2)
         assert weights_sha256_1.digest() != weights_sha256_2.digest()
+
+
+@pytest.mark.parametrize(
+    "scalar_model", [True, False], ids=["scalar_model", "vector_model"]
+)
+class TestJacobianAmplitudeData(BaseFixtures):
+    """
+    Test Jacobian related methods with ``is_amplitude_data``.
+    """
+
+    @pytest.fixture
+    def survey(self):
+        """
+        Sample survey with fixed components bx, by, bz.
+
+        These components are assumed when working with ``is_amplitude_data=True``.
+        """
+        # Observation points
+        x = np.linspace(-20.0, 20.0, 4)
+        x, y = np.meshgrid(x, x)
+        z = 5.0 * np.ones_like(x)
+        coordinates = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
+        receivers = mag.receivers.Point(coordinates, components=["bx", "by", "bz"])
+        source_field = mag.UniformBackgroundField(
+            receiver_list=[receivers],
+            amplitude=55_000,
+            inclination=12,
+            declination=-35,
+        )
+        survey = mag.survey.Survey(source_field)
+        return survey
+
+    @pytest.fixture(params=["identity_map", "exp_map"])
+    def mapping(self, mesh, scalar_model: bool, request):
+        nparams = mesh.n_cells if scalar_model else 3 * mesh.n_cells
+        mapping = (
+            maps.IdentityMap(nP=nparams)
+            if request.param == "identity_map"
+            else maps.ExpMap(nP=nparams)
+        )
+        return mapping
+
+    @pytest.mark.parametrize("engine", ["choclo", "geoana"])
+    def test_getJ_not_implemented(
+        self, survey, mesh, mapping, susceptibilities, scalar_model, engine
+    ):
+        """
+        Test the getJ method when J is an array in memory.
+        """
+        model_type = "scalar" if scalar_model else "vector"
+        simulation = mag.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            chiMap=mapping,
+            store_sensitivities="ram",
+            engine=engine,
+            model_type=model_type,
+            is_amplitude_data=True,
+        )
+        model = mapping * susceptibilities
+        with pytest.raises(NotImplementedError):
+            simulation.getJ(model)
+
+    @pytest.mark.parametrize(
+        ("engine", "store_sensitivities"),
+        [
+            ("choclo", "ram"),
+            ("choclo", "forward_only"),
+            ("geoana", "ram"),
+            pytest.param(
+                "geoana",
+                "forward_only",
+                marks=pytest.mark.xfail(reason="not implemented"),
+            ),
+        ],
+    )
+    def test_Jvec(
+        self,
+        survey,
+        mesh,
+        mapping,
+        susceptibilities,
+        scalar_model,
+        engine,
+        store_sensitivities,
+    ):
+        """
+        Test the Jvec method.
+        """
+        model_type = "scalar" if scalar_model else "vector"
+        simulation = mag.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            chiMap=mapping,
+            store_sensitivities=store_sensitivities,
+            engine=engine,
+            model_type=model_type,
+            is_amplitude_data=True,
+            sensitivity_dtype=np.float64,
+        )
+        model = mapping * susceptibilities
+        dpred = simulation.Jvec(model, model)
+
+        identity_map = type(mapping) is maps.IdentityMap
+        G_dot_chideriv = (
+            simulation.G
+            if identity_map
+            else simulation.G @ aslinearoperator(mapping.deriv(model))
+        )
+        magnetic_field = G_dot_chideriv @ model
+        bx, by, bz = (magnetic_field[i::3] for i in (0, 1, 2))
+        expected_dpred = np.sqrt(bx**2 + by**2 + bz**2)
+
+        atol = np.max(np.abs(expected_dpred)) * 1e-7
+        np.testing.assert_allclose(dpred, expected_dpred, atol=atol)
