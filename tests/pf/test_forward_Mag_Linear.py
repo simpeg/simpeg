@@ -1094,7 +1094,9 @@ class TestJacobian(BaseFixtures):
             engine=engine,
             model_type=model_type,
         )
-        model = mapping * susceptibilities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = susceptibilities if is_identity_map else np.log(susceptibilities)
+
         jac = simulation.getJ(model)
         assert isinstance(jac, np.ndarray)
         # With an identity mapping, the jacobian should be the same as G.
@@ -1132,7 +1134,9 @@ class TestJacobian(BaseFixtures):
             engine=engine,
             model_type=model_type,
         )
-        model = mapping * susceptibilities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = susceptibilities if is_identity_map else np.log(susceptibilities)
+
         jac = simulation.getJ(model)
         assert isinstance(jac, LinearOperator)
         result = jac @ model
@@ -1153,7 +1157,8 @@ class TestJacobian(BaseFixtures):
             model_type=model_type,
             is_amplitude_data=True,
         )
-        model = mapping * susceptibilities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = susceptibilities if is_identity_map else np.log(susceptibilities)
         with pytest.raises(NotImplementedError):
             simulation.getJ(model)
 
@@ -1192,7 +1197,8 @@ class TestJacobian(BaseFixtures):
             engine=engine,
             model_type=model_type,
         )
-        model = mapping * susceptibilities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = susceptibilities if is_identity_map else np.log(susceptibilities)
 
         vector = np.random.default_rng(seed=42).uniform(size=susceptibilities.size)
         result = simulation.Jvec(model, vector)
@@ -1243,7 +1249,8 @@ class TestJacobian(BaseFixtures):
             engine=engine,
             model_type=model_type,
         )
-        model = mapping * susceptibilities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = susceptibilities if is_identity_map else np.log(susceptibilities)
 
         vector = np.random.default_rng(seed=42).uniform(size=survey.nD)
         result = simulation.Jtvec(model, vector)
@@ -1294,8 +1301,10 @@ class TestJacobian(BaseFixtures):
                 vector_size = survey.nD
             case _:  # pragma: no cover
                 raise ValueError(f"Invalid method '{method}'")  # pragma: no cover
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = susceptibilities if is_identity_map else np.log(susceptibilities)
+
         vector = np.random.default_rng(seed=42).uniform(size=vector_size)
-        model = mapping * susceptibilities
         result_lo = getattr(simulation_lo, method)(model, vector)
         result_ram = getattr(simulation_ram, method)(model, vector)
         atol = np.max(np.abs(result_ram)) * self.atol_ratio
@@ -1318,7 +1327,9 @@ class TestJacobian(BaseFixtures):
             engine=engine,
             model_type=model_type,
         )
-        model = mapping * susceptibilities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = susceptibilities if is_identity_map else np.log(susceptibilities)
+
         kwargs = {}
         if weights:
             w_matrix = diags(np.random.default_rng(seed=42).uniform(size=survey.nD))
@@ -1365,7 +1376,8 @@ class TestJacobian(BaseFixtures):
             is_amplitude_data=is_amplitude_data,
             model_type=model_type,
         )
-        model = mapping * susceptibilities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = susceptibilities if is_identity_map else np.log(susceptibilities)
         with pytest.raises(NotImplementedError):
             simulation.getJtJdiag(model)
 
@@ -1389,7 +1401,9 @@ class TestJacobian(BaseFixtures):
             )
             for store in ("forward_only", "ram")
         )
-        model = mapping * susceptibilities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = susceptibilities if is_identity_map else np.log(susceptibilities)
+
         expected = simulation_ram.getJtJdiag(model)
         result = simulation.getJtJdiag(model)
 
@@ -1414,7 +1428,8 @@ class TestJacobian(BaseFixtures):
         )
 
         # Get diagonal of J.T @ J without any weight
-        model = mapping * susceptibilities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = susceptibilities if is_identity_map else np.log(susceptibilities)
         jtj_diagonal_1 = simulation.getJtJdiag(model)
         assert hasattr(simulation, "_gtg_diagonal")
         assert hasattr(simulation, "_weights_sha256")
@@ -1497,7 +1512,8 @@ class TestJacobianAmplitudeData(BaseFixtures):
             model_type=model_type,
             is_amplitude_data=True,
         )
-        model = mapping * susceptibilities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = susceptibilities if is_identity_map else np.log(susceptibilities)
         with pytest.raises(NotImplementedError):
             simulation.getJ(model)
 
@@ -1538,7 +1554,8 @@ class TestJacobianAmplitudeData(BaseFixtures):
             is_amplitude_data=True,
             sensitivity_dtype=np.float64,
         )
-        model = mapping * susceptibilities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = susceptibilities if is_identity_map else np.log(susceptibilities)
         vector = np.random.default_rng(seed=42).uniform(size=susceptibilities.size)
         result = simulation.Jvec(model, vector)
 
