@@ -484,7 +484,9 @@ class TestJacobianGravity(BaseFixtures):
             store_sensitivities="ram",
             engine=engine,
         )
-        model = mapping * densities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = densities if is_identity_map else np.log(densities)
+
         jac = simulation.getJ(model)
         assert isinstance(jac, np.ndarray)
         # With an identity mapping, the jacobian should be the same as G.
@@ -506,7 +508,9 @@ class TestJacobianGravity(BaseFixtures):
             store_sensitivities="forward_only",
             engine="choclo",
         )
-        model = mapping * densities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = densities if is_identity_map else np.log(densities)
+
         jac = simulation.getJ(model)
         assert isinstance(jac, LinearOperator)
         result = jac @ model
@@ -526,7 +530,9 @@ class TestJacobianGravity(BaseFixtures):
             store_sensitivities="forward_only",
             engine="geoana",
         )
-        model = mapping * densities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = densities if is_identity_map else np.log(densities)
+
         msg = re.escape(
             "Accessing matrix G with "
             'store_sensitivities="forward_only" and engine="geoana" '
@@ -559,7 +565,8 @@ class TestJacobianGravity(BaseFixtures):
             store_sensitivities=store_sensitivities,
             engine=engine,
         )
-        model = mapping * densities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = densities if is_identity_map else np.log(densities)
 
         vector = np.random.default_rng(seed=42).uniform(size=densities.size)
         dpred = simulation.Jvec(model, vector)
@@ -599,7 +606,8 @@ class TestJacobianGravity(BaseFixtures):
             store_sensitivities=store_sensitivities,
             engine=engine,
         )
-        model = mapping * densities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = densities if is_identity_map else np.log(densities)
 
         vector = np.random.default_rng(seed=42).uniform(size=survey.nD)
         result = simulation.Jtvec(model, vector)
@@ -648,8 +656,11 @@ class TestJacobianGravity(BaseFixtures):
                 vector_size = survey.nD
             case _:
                 raise ValueError(f"Invalid method '{method}'")
+
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = densities if is_identity_map else np.log(densities)
+
         vector = np.random.default_rng(seed=42).uniform(size=vector_size)
-        model = mapping * densities
         result_lo = getattr(simulation_lo, method)(model, vector)
         result_ram = getattr(simulation_ram, method)(model, vector)
         atol = np.max(np.abs(result_ram)) * self.atol_ratio
@@ -668,7 +679,9 @@ class TestJacobianGravity(BaseFixtures):
             store_sensitivities="ram",
             engine=engine,
         )
-        model = mapping * densities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = densities if is_identity_map else np.log(densities)
+
         kwargs = {}
         if weights:
             w_matrix = diags(np.random.default_rng(seed=42).uniform(size=survey.nD))
@@ -711,7 +724,9 @@ class TestJacobianGravity(BaseFixtures):
             )
             for store in ("forward_only", "ram")
         )
-        model = mapping * densities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = densities if is_identity_map else np.log(densities)
+
         kwargs = {}
         if weights:
             weights = np.random.default_rng(seed=42).uniform(size=survey.nD)
@@ -735,7 +750,9 @@ class TestJacobianGravity(BaseFixtures):
             engine=engine,
         )
         # Get diagonal of J.T @ J without any weight
-        model = mapping * densities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = densities if is_identity_map else np.log(densities)
+
         jtj_diagonal_1 = simulation.getJtJdiag(model)
         assert hasattr(simulation, "_gtg_diagonal")
         assert hasattr(simulation, "_weights_sha256")
