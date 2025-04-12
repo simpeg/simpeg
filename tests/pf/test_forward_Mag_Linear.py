@@ -1536,8 +1536,37 @@ class TestJacobianAmplitudeData(BaseFixtures):
         engine,
         store_sensitivities,
     ):
-        """
+        r"""
         Test the Jvec method.
+
+        Test the Jvec method through an alternative implementation.
+        Define a :math:`f(\chi)` forward model function that returns the norm of the
+        magnetic field given the susceptibility values of :math:`\chi`:
+
+        .. math::
+
+            f(\chi)
+                = \lvert \mathbf{B} \rvert
+                = \sqrt{B_x^2(\chi) + B_y^2(\chi) + B_z^2(\chi)}
+
+        The gradient of :math:`f(\chi)` (jacobian matrix :math:`\mathbf{J}`) can be
+        written as:
+
+        .. math::
+
+            \mathbf{J} = \mathbf{J}_x + \mathbf{J}_y + \mathbf{J}_z
+
+        where:
+
+        .. math::
+
+            \mathbf{J}_x =
+                \frac{1}{\lvert \mathbf{B} \rvert}
+                B_x(\chi)
+                \frac{\partial B_x}{\partial \chi}
+                \frac{\partial \chi}{\partial \mathbf{m}}
+
+        and :math:`\mathbf{m}` is the model.
         """
         model_type = "scalar" if scalar_model else "vector"
         simulation = mag.simulation.Simulation3DIntegral(
@@ -1548,23 +1577,83 @@ class TestJacobianAmplitudeData(BaseFixtures):
             engine=engine,
             model_type=model_type,
             is_amplitude_data=True,
-            sensitivity_dtype=np.float64,
         )
         is_identity_map = type(mapping) is maps.IdentityMap
         model = susceptibilities if is_identity_map else np.log(susceptibilities)
         vector = np.random.default_rng(seed=42).uniform(size=susceptibilities.size)
         result = simulation.Jvec(model, vector)
 
-        G_dot_chideriv = (
-            simulation.G
-            if is_identity_map
-            else simulation.G @ aslinearoperator(mapping.deriv(model))
+        magnetic_field = simulation.G @ susceptibilities
+        bx, by, bz = (magnetic_field[i::3] for i in (0, 1, 2))
+        inv_amplitude = 1 / np.sqrt(bx**2 + by**2 + bz**2)
+
+        g_dot_chideriv_v = (
+            simulation.G @ aslinearoperator(mapping.deriv(model)) @ vector
         )
-        # If mapping is not linear, this is just a first order approximation of the
-        # magnetic field.
-        magnetic_field_approx = G_dot_chideriv @ vector
-        bx, by, bz = (magnetic_field_approx[i::3] for i in (0, 1, 2))
-        expected = np.sqrt(bx**2 + by**2 + bz**2)
+        jac_x_dot_v = diags(inv_amplitude) @ diags(bx) @ g_dot_chideriv_v[0::3]
+        jac_y_dot_v = diags(inv_amplitude) @ diags(by) @ g_dot_chideriv_v[1::3]
+        jac_z_dot_v = diags(inv_amplitude) @ diags(bz) @ g_dot_chideriv_v[2::3]
+        expected = jac_x_dot_v + jac_y_dot_v + jac_z_dot_v
 
         atol = np.max(np.abs(expected)) * 1e-7
+        np.testing.assert_allclose(result, expected, atol=atol)
+
+    @pytest.mark.parametrize(
+        ("engine", "store_sensitivities"),
+        [
+            ("choclo", "ram"),
+            ("choclo", "forward_only"),
+            ("geoana", "ram"),
+            pytest.param(
+                "geoana",
+                "forward_only",
+                marks=pytest.mark.xfail(reason="not implemented"),
+            ),
+        ],
+    )
+    def test_Jtvec(
+        self,
+        survey,
+        mesh,
+        mapping,
+        susceptibilities,
+        scalar_model,
+        engine,
+        store_sensitivities,
+    ):
+        """
+        Test the Jtvec method.
+
+        Test it similarly to Jvec, but computing the transpose of the matrices.
+        """
+        model_type = "scalar" if scalar_model else "vector"
+        simulation = mag.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            chiMap=mapping,
+            store_sensitivities=store_sensitivities,
+            engine=engine,
+            model_type=model_type,
+            is_amplitude_data=True,
+        )
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = susceptibilities if is_identity_map else np.log(susceptibilities)
+
+        # Need to set size as survey.nD / 3 because there's a bug in simulation.nD.
+        vector = np.random.default_rng(seed=42).uniform(size=survey.nD // 3)
+        result = simulation.Jtvec(model, vector)
+
+        magnetic_field = simulation.G @ susceptibilities
+        bx, by, bz = (magnetic_field[i::3] for i in (0, 1, 2))
+        inv_amplitude = 1 / np.sqrt(bx**2 + by**2 + bz**2)
+        v = np.array(
+            (
+                bx * inv_amplitude * vector,
+                by * inv_amplitude * vector,
+                bz * inv_amplitude * vector,
+            )
+        ).T.ravel()  # interleave the values for bx, by, bz
+        expected = simulation.chiDeriv.T @ (simulation.G.T @ v)
+
+        atol = np.max(np.abs(result)) * 1e-7
         np.testing.assert_allclose(result, expected, atol=atol)
