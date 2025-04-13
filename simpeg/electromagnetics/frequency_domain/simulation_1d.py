@@ -247,26 +247,16 @@ class Simulation1DLayered(BaseEM1DSimulation):
     def getJ(self, m, f=None):
         Js = self._getJ(m, f=f)
 
-        J = None
-        if self.hMap is not None:
-            J = Js["dh"] @ self.hDeriv
+        # Map parameters with their corresponding derivatives
+        param_and_derivs = {
+            "dh": self.hDeriv,
+            "ds": self.sigmaDeriv,
+            "dmu": self.muDeriv,
+            "dthick": self.thicknessesDeriv,
+        }
 
-        if self.sigmaMap is not None:
-            J = (
-                Js["ds"] @ self.sigmaDeriv
-                if J is None
-                else J + Js["ds"] @ self.sigmaDeriv
-            )
-
-        if self.muMap is not None:
-            J = Js["dmu"] @ self.muDeriv if J is None else J + Js["dmu"] @ self.muDeriv
-
-        if self.thicknessesMap is not None:
-            J = (
-                Js["dthick"] @ self.thicknessesDeriv
-                if J is None
-                else J + Js["dthick"] @ self.thicknessesDeriv
-            )
+        # Compute J matrix
+        J = sum(Js[param] @ param_and_derivs[param] for param in Js)
 
         return J
 
