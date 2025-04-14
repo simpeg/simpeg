@@ -151,7 +151,8 @@ class TestMagneticSimulationDifferential:
             msg = re.escape(
                 "Found invalid survey with receivers that have mixed components."
             )
-        sample_simulation.survey.source_field.receiver_list = receivers
+        # Override private attribute `_receiver_list` to bypass the setter
+        sample_simulation.survey.source_field._receiver_list = receivers
 
         # Try to get components
         with pytest.raises(ValueError, match=msg):
@@ -177,7 +178,8 @@ class TestMagneticSimulationDifferential:
             msg = re.escape(
                 "Found invalid survey with receivers that have mixed components."
             )
-        sample_simulation.survey.source_field.receiver_list = receivers
+        # Override private attribute `_receiver_list` to bypass the setter
+        sample_simulation.survey.source_field._receiver_list = receivers
 
         # Compute fields from a random model
         n_cells = sample_simulation.mesh.n_cells
