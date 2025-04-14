@@ -6,7 +6,6 @@ from scipy.constants import mu_0
 
 
 class TestEM1D_FD_Jacobian_MagDipole:
-
     # Tests 2nd order convergence of Jvec and Jtvec for magnetic dipole sources.
     # - All src and rx orientations
     # - All rx components
@@ -62,13 +61,11 @@ class TestEM1D_FD_Jacobian_MagDipole:
         self.nlayers = len(thicknesses) + 1
 
         wire_map = maps.Wires(
-            ("mu", self.nlayers),
             ("sigma", self.nlayers),
             ("h", 1),
             ("thicknesses", self.nlayers - 1),
         )
         self.sigma_map = maps.ExpMap(nP=self.nlayers) * wire_map.sigma
-        self.mu_map = maps.ExpMap(nP=self.nlayers) * wire_map.mu
         self.thicknesses_map = maps.ExpMap(nP=self.nlayers - 1) * wire_map.thicknesses
         nP = len(source_list)
         surject_mesh = TensorMesh([np.ones(nP)])
@@ -77,7 +74,6 @@ class TestEM1D_FD_Jacobian_MagDipole:
         sim = fdem.Simulation1DLayered(
             survey=self.survey,
             sigmaMap=self.sigma_map,
-            muMap=self.mu_map,
             thicknessesMap=self.thicknesses_map,
             hMap=self.h_map,
             topo=self.topo,
@@ -92,16 +88,8 @@ class TestEM1D_FD_Jacobian_MagDipole:
         sig = np.ones(self.nlayers) * sigma_half
         sig[3] = sigma_blk
 
-        # Permeability
-        mu_half = mu_0
-        mu_blk = 2 * mu_0
-        mu = np.ones(self.nlayers) * mu_half
-        mu[3] = mu_blk
-
         # General model
-        m_1D = np.r_[
-            np.log(mu), np.log(sig), np.log(self.height), np.log(self.thicknesses)
-        ]
+        m_1D = np.r_[np.log(sig), np.log(self.height), np.log(self.thicknesses)]
 
         def fwdfun(m):
             resp = self.sim.dpred(m)
@@ -129,21 +117,12 @@ class TestEM1D_FD_Jacobian_MagDipole:
         sig = np.ones(self.nlayers) * sigma_half
         sig[3] = sigma_blk
 
-        # Permeability
-        mu_half = mu_0
-        mu_blk = 2 * mu_0
-        mu = np.ones(self.nlayers) * mu_half
-        mu[3] = mu_blk
-
         # General model
-        m_true = np.r_[
-            np.log(mu), np.log(sig), np.log(self.height), np.log(self.thicknesses)
-        ]
+        m_true = np.r_[np.log(sig), np.log(self.height), np.log(self.thicknesses)]
 
         dobs = self.sim.dpred(m_true)
 
         m_ini = np.r_[
-            np.log(np.ones(self.nlayers) * 1.5 * mu_half),
             np.log(np.ones(self.nlayers) * sigma_half),
             np.log(0.5 * self.height),
             np.log(self.thicknesses) * 0.9,
