@@ -484,14 +484,15 @@ class TestJacobianGravity(BaseFixtures):
             store_sensitivities="ram",
             engine=engine,
         )
-        model = mapping * densities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = densities if is_identity_map else np.log(densities)
+
         jac = simulation.getJ(model)
         assert isinstance(jac, np.ndarray)
         # With an identity mapping, the jacobian should be the same as G.
         # With an exp mapping, the jacobian should be G @ the mapping derivative.
-        identity_map = type(mapping) is maps.IdentityMap
         expected_jac = (
-            simulation.G if identity_map else simulation.G @ mapping.deriv(model)
+            simulation.G if is_identity_map else simulation.G @ mapping.deriv(model)
         )
         np.testing.assert_allclose(jac, expected_jac)
 
@@ -506,7 +507,9 @@ class TestJacobianGravity(BaseFixtures):
             store_sensitivities="forward_only",
             engine="choclo",
         )
-        model = mapping * densities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = densities if is_identity_map else np.log(densities)
+
         jac = simulation.getJ(model)
         assert isinstance(jac, LinearOperator)
         result = jac @ model
@@ -526,7 +529,9 @@ class TestJacobianGravity(BaseFixtures):
             store_sensitivities="forward_only",
             engine="geoana",
         )
-        model = mapping * densities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = densities if is_identity_map else np.log(densities)
+
         msg = re.escape(
             "Accessing matrix G with "
             'store_sensitivities="forward_only" and engine="geoana" '
@@ -559,15 +564,15 @@ class TestJacobianGravity(BaseFixtures):
             store_sensitivities=store_sensitivities,
             engine=engine,
         )
-        model = mapping * densities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = densities if is_identity_map else np.log(densities)
 
         vector = np.random.default_rng(seed=42).uniform(size=densities.size)
         dpred = simulation.Jvec(model, vector)
 
-        identity_map = type(mapping) is maps.IdentityMap
         expected_jac = (
             simulation.G
-            if identity_map
+            if is_identity_map
             else simulation.G @ aslinearoperator(mapping.deriv(model))
         )
         expected_dpred = expected_jac @ vector
@@ -599,15 +604,15 @@ class TestJacobianGravity(BaseFixtures):
             store_sensitivities=store_sensitivities,
             engine=engine,
         )
-        model = mapping * densities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = densities if is_identity_map else np.log(densities)
 
         vector = np.random.default_rng(seed=42).uniform(size=survey.nD)
         result = simulation.Jtvec(model, vector)
 
-        identity_map = type(mapping) is maps.IdentityMap
         expected_jac = (
             simulation.G
-            if identity_map
+            if is_identity_map
             else simulation.G @ aslinearoperator(mapping.deriv(model))
         )
         expected = expected_jac.T @ vector
@@ -648,8 +653,11 @@ class TestJacobianGravity(BaseFixtures):
                 vector_size = survey.nD
             case _:
                 raise ValueError(f"Invalid method '{method}'")
+
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = densities if is_identity_map else np.log(densities)
+
         vector = np.random.default_rng(seed=42).uniform(size=vector_size)
-        model = mapping * densities
         result_lo = getattr(simulation_lo, method)(model, vector)
         result_ram = getattr(simulation_ram, method)(model, vector)
         atol = np.max(np.abs(result_ram)) * self.atol_ratio
@@ -668,16 +676,17 @@ class TestJacobianGravity(BaseFixtures):
             store_sensitivities="ram",
             engine=engine,
         )
-        model = mapping * densities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = densities if is_identity_map else np.log(densities)
+
         kwargs = {}
         if weights:
             w_matrix = diags(np.random.default_rng(seed=42).uniform(size=survey.nD))
             kwargs = {"W": w_matrix}
         jtj_diag = simulation.getJtJdiag(model, **kwargs)
 
-        identity_map = type(mapping) is maps.IdentityMap
         expected_jac = (
-            simulation.G if identity_map else simulation.G @ mapping.deriv(model)
+            simulation.G if is_identity_map else simulation.G @ mapping.deriv(model)
         )
         if weights:
             expected = np.diag(expected_jac.T @ w_matrix.T @ w_matrix @ expected_jac)
@@ -711,7 +720,9 @@ class TestJacobianGravity(BaseFixtures):
             )
             for store in ("forward_only", "ram")
         )
-        model = mapping * densities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = densities if is_identity_map else np.log(densities)
+
         kwargs = {}
         if weights:
             weights = np.random.default_rng(seed=42).uniform(size=survey.nD)
@@ -735,7 +746,9 @@ class TestJacobianGravity(BaseFixtures):
             engine=engine,
         )
         # Get diagonal of J.T @ J without any weight
-        model = mapping * densities
+        is_identity_map = type(mapping) is maps.IdentityMap
+        model = densities if is_identity_map else np.log(densities)
+
         jtj_diagonal_1 = simulation.getJtJdiag(model)
         assert hasattr(simulation, "_gtg_diagonal")
         assert hasattr(simulation, "_weights_sha256")
