@@ -382,7 +382,7 @@ def dip_azimuth2cartesian(dip, azm):
         a vector pointing downwards (negative z component).
     azm : float or 1D numpy.ndarray
         Azimuthal angle (strike) in degrees. Defined clockwise from Northing.
-        Values is range [0, 360].
+        Values is range [0, 360] or [-180, 180].
 
     Returns
     -------
