@@ -568,17 +568,17 @@ class TestJacobianGravity(BaseFixtures):
         model = densities if is_identity_map else np.log(densities)
 
         vector = np.random.default_rng(seed=42).uniform(size=densities.size)
-        dpred = simulation.Jvec(model, vector)
+        result = simulation.Jvec(model, vector)
 
         expected_jac = (
             simulation.G
             if is_identity_map
             else simulation.G @ aslinearoperator(mapping.deriv(model))
         )
-        expected_dpred = expected_jac @ vector
+        expected = expected_jac @ vector
 
-        atol = np.max(np.abs(expected_dpred)) * self.atol_ratio
-        np.testing.assert_allclose(dpred, expected_dpred, atol=atol)
+        atol = np.max(np.abs(expected)) * self.atol_ratio
+        np.testing.assert_allclose(result, expected, atol=atol)
 
     @pytest.mark.parametrize(
         ("engine", "store_sensitivities"),
