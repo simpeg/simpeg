@@ -1066,7 +1066,7 @@ class TestJacobian(BaseFixtures):
     Test methods related to Jacobian matrix in magnetic simulation.
     """
 
-    atol_ratio = 1e-6
+    atol_ratio = 1e-7
 
     @pytest.fixture(params=["identity_map", "exp_map"])
     def mapping(self, mesh, scalar_model: bool, request):
@@ -1195,6 +1195,7 @@ class TestJacobian(BaseFixtures):
             store_sensitivities=store_sensitivities,
             engine=engine,
             model_type=model_type,
+            sensitivity_dtype=np.float64,
         )
         is_identity_map = type(mapping) is maps.IdentityMap
         model = susceptibilities if is_identity_map else np.log(susceptibilities)
@@ -1246,6 +1247,7 @@ class TestJacobian(BaseFixtures):
             store_sensitivities=store_sensitivities,
             engine=engine,
             model_type=model_type,
+            sensitivity_dtype=np.float64,
         )
         is_identity_map = type(mapping) is maps.IdentityMap
         model = susceptibilities if is_identity_map else np.log(susceptibilities)
@@ -1288,6 +1290,7 @@ class TestJacobian(BaseFixtures):
                 store_sensitivities=store,
                 engine=engine,
                 model_type=model_type,
+                sensitivity_dtype=np.float64,
             )
             for store in ("forward_only", "ram")
         )
@@ -1323,6 +1326,7 @@ class TestJacobian(BaseFixtures):
             store_sensitivities="ram",
             engine=engine,
             model_type=model_type,
+            sensitivity_dtype=np.float64,
         )
         is_identity_map = type(mapping) is maps.IdentityMap
         model = susceptibilities if is_identity_map else np.log(susceptibilities)
@@ -1459,6 +1463,8 @@ class TestJacobianAmplitudeData(BaseFixtures):
     Test Jacobian related methods with ``is_amplitude_data``.
     """
 
+    atol_ratio = 1e-7
+
     @pytest.fixture
     def survey(self):
         """
@@ -1507,6 +1513,7 @@ class TestJacobianAmplitudeData(BaseFixtures):
             engine=engine,
             model_type=model_type,
             is_amplitude_data=True,
+            sensitivity_dtype=np.float64,
         )
         is_identity_map = type(mapping) is maps.IdentityMap
         model = susceptibilities if is_identity_map else np.log(susceptibilities)
@@ -1577,6 +1584,7 @@ class TestJacobianAmplitudeData(BaseFixtures):
             engine=engine,
             model_type=model_type,
             is_amplitude_data=True,
+            sensitivity_dtype=np.float64,
         )
         is_identity_map = type(mapping) is maps.IdentityMap
         model = susceptibilities if is_identity_map else np.log(susceptibilities)
@@ -1595,7 +1603,7 @@ class TestJacobianAmplitudeData(BaseFixtures):
         jac_z_dot_v = diags(inv_amplitude) @ diags(bz) @ g_dot_chideriv_v[2::3]
         expected = jac_x_dot_v + jac_y_dot_v + jac_z_dot_v
 
-        atol = np.max(np.abs(expected)) * 1e-7
+        atol = np.max(np.abs(expected)) * self.atol_ratio
         np.testing.assert_allclose(result, expected, atol=atol)
 
     @pytest.mark.parametrize(
@@ -1635,6 +1643,7 @@ class TestJacobianAmplitudeData(BaseFixtures):
             engine=engine,
             model_type=model_type,
             is_amplitude_data=True,
+            sensitivity_dtype=np.float64,
         )
         is_identity_map = type(mapping) is maps.IdentityMap
         model = susceptibilities if is_identity_map else np.log(susceptibilities)
@@ -1655,5 +1664,5 @@ class TestJacobianAmplitudeData(BaseFixtures):
         ).T.ravel()  # interleave the values for bx, by, bz
         expected = simulation.chiDeriv.T @ (simulation.G.T @ v)
 
-        atol = np.max(np.abs(result)) * 1e-7
+        atol = np.max(np.abs(result)) * self.atol_ratio
         np.testing.assert_allclose(result, expected, atol=atol)
