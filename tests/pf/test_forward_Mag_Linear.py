@@ -10,6 +10,7 @@ from scipy.constants import mu_0
 
 import simpeg
 from simpeg import maps, utils
+from simpeg.utils import model_builder
 from simpeg.potential_fields import magnetics as mag
 
 
@@ -907,3 +908,129 @@ def test_removed_modeltype():
     message = "modelType has been removed, please use model_type."
     with pytest.raises(NotImplementedError, match=message):
         sim.modelType
+
+
+class BaseFixtures:
+    """
+    Base test class with some fixtures.
+
+    Requires that any child class implements a ``scalar_model`` boolean fixture.
+    It can be a standalone fixture, or it can be a class parametrization.
+    """
+
+    def build_survey(self, *, components):
+        # Observation points
+        x = np.linspace(-20.0, 20.0, 4)
+        x, y = np.meshgrid(x, x)
+        z = 5.0 * np.ones_like(x)
+        coordinates = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
+        receivers = mag.receivers.Point(coordinates, components=components)
+        source_field = mag.UniformBackgroundField(
+            receiver_list=[receivers],
+            amplitude=55_000,
+            inclination=12,
+            declination=-35,
+        )
+        survey = mag.survey.Survey(source_field)
+        return survey
+
+    @pytest.fixture(
+        params=[
+            "tmi",
+            ["bx", "by", "bz"],
+            ["tmi", "bx"],
+            ["tmi_x", "tmi_y", "tmi_z"],
+        ],
+        ids=["tmi", "mag_components", "tmi_and_mag", "tmi_derivs"],
+    )
+    def survey(self, request):
+        """
+        Return sample magnetic survey.
+        """
+        return self.build_survey(components=request.param)
+
+    @pytest.fixture
+    def mesh(self):
+        # Mesh
+        dh = 5.0
+        hx = [(dh, 4)]
+        mesh = discretize.TensorMesh([hx, hx, hx], "CCN")
+        return mesh
+
+    @pytest.fixture
+    def susceptibilities(self, mesh, scalar_model: bool):
+        """Create sample susceptibilities."""
+        susceptibilities = 1e-10 * np.ones(
+            mesh.n_cells if scalar_model else 3 * mesh.n_cells
+        )
+        ind_sphere = model_builder.get_indices_sphere(
+            np.r_[0.0, 0.0, -20.0], 10.0, mesh.cell_centers
+        )
+        if scalar_model:
+            susceptibilities[ind_sphere] = 0.2
+        else:
+            susceptibilities[: mesh.n_cells][ind_sphere] = 0.2
+            susceptibilities[mesh.n_cells : 2 * mesh.n_cells][ind_sphere] = 0.3
+            susceptibilities[2 * mesh.n_cells : 3 * mesh.n_cells][ind_sphere] = 0.5
+        return susceptibilities
+
+
+@pytest.mark.parametrize(
+    "scalar_model", [True, False], ids=["scalar_model", "vector_model"]
+)
+class TestnD(BaseFixtures):
+    """
+    Test the ``nD`` property.
+    """
+
+    @pytest.fixture
+    def survey_b_norm(self):
+        return self.build_survey(components=["bx", "by", "bz"])
+
+    @pytest.fixture
+    def mapping(self, mesh, scalar_model):
+        nparams = mesh.n_cells if scalar_model else 3 * mesh.n_cells
+        return maps.IdentityMap(nP=nparams)
+
+    def test_nD(self, mesh, survey, mapping, susceptibilities, scalar_model):
+        """
+        Test nD on tmi data.
+        """
+        model_type = "scalar" if scalar_model else "vector"
+        simulation = mag.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            chiMap=mapping,
+            store_sensitivities="ram",
+            engine="choclo",
+            model_type=model_type,
+        )
+        receivers = survey.source_field.receiver_list
+        n_data = sum(rx.locations.shape[0] * len(rx.components) for rx in receivers)
+        assert simulation.nD == n_data
+        dpred = simulation.dpred(susceptibilities)
+        assert dpred.size == simulation.nD
+
+    def test_nD_amplitude_data(
+        self, mesh, survey_b_norm, mapping, susceptibilities, scalar_model
+    ):
+        """
+        Test nD on amplitude data.
+        """
+        model_type = "scalar" if scalar_model else "vector"
+        simulation = mag.simulation.Simulation3DIntegral(
+            survey=survey_b_norm,
+            mesh=mesh,
+            chiMap=mapping,
+            store_sensitivities="ram",
+            engine="choclo",
+            model_type=model_type,
+            is_amplitude_data=True,
+        )
+        receivers = survey_b_norm.source_field.receiver_list
+        n_data = (
+            sum(rx.locations.shape[0] * len(rx.components) for rx in receivers) // 3
+        )
+        assert simulation.nD == n_data
+        dpred = simulation.dpred(susceptibilities)
+        assert dpred.size == simulation.nD

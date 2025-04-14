@@ -324,8 +324,7 @@ class Simulation3DIntegral(BasePFSimulation):
         """
         Number of data
         """
-        self._nD = self.survey.receiver_locations.shape[0]
-
+        self._nD = self.survey.nD if not self.is_amplitude_data else self.survey.nD // 3
         return self._nD
 
     @property
