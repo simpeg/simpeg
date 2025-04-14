@@ -1668,7 +1668,7 @@ class TestJacobianAmplitudeData(BaseFixtures):
                 bz * inv_amplitude * vector,
             )
         ).T.ravel()  # interleave the values for bx, by, bz
-        expected = simulation.chiDeriv.T @ (simulation.G.T @ v)
+        expected = mapping.deriv(model).T @ (simulation.G.T @ v)
 
         atol = np.max(np.abs(result)) * self.atol_ratio
         np.testing.assert_allclose(result, expected, atol=atol)
