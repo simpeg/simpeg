@@ -1118,8 +1118,9 @@ class TestJacobian(BaseFixtures):
             ),
         ],
     )
+    @pytest.mark.parametrize("transpose", [False, True], ids=["J @ m", "J.T @ v"])
     def test_getJ_as_linear_operator(
-        self, survey, mesh, mapping, susceptibilities, scalar_model, engine
+        self, survey, mesh, mapping, susceptibilities, scalar_model, engine, transpose
     ):
         """
         Test the getJ method when J is a linear operator.
@@ -1138,8 +1139,13 @@ class TestJacobian(BaseFixtures):
 
         jac = simulation.getJ(model)
         assert isinstance(jac, LinearOperator)
-        result = jac @ model
-        expected_result = simulation.G @ (mapping.deriv(model).diagonal() * model)
+        if transpose:
+            vector = np.random.default_rng(seed=42).uniform(size=survey.nD)
+            result = jac.T @ vector
+            expected_result = mapping.deriv(model).T @ (simulation.G.T @ vector)
+        else:
+            result = jac @ model
+            expected_result = simulation.G @ (mapping.deriv(model).diagonal() * model)
         np.testing.assert_allclose(result, expected_result)
 
     @pytest.mark.parametrize("engine", ["choclo", "geoana"])
