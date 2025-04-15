@@ -105,23 +105,10 @@ def _read_dcip_xyz_new(
         msg = f"Couldn't read header from file '{file_name}'."
         raise ValueError(msg)
 
-    # Get survey dimensions (3d, 2d, or 3d with no elevation)
-    survey_dims = _get_survey_dimensions(
+    # Select column names for electrode locations present in the file header
+    a_cols, b_cols, m_cols, n_cols = _get_electrode_headers(
         header, a_headers, b_headers, m_headers, n_headers
     )
-    match survey_dims:
-        case "3D":
-            indices = (0, 1, 2)
-        case "2D":
-            indices = (0, 2)
-        case "3D-no-elevation":
-            indices = (0, 1)
-        case _:
-            raise ValueError(f"Invalid {survey_dims=}")
-    a_cols = tuple(a_headers[i] for i in indices)
-    b_cols = tuple(b_headers[i] for i in indices)
-    m_cols = tuple(m_headers[i] for i in indices)
-    n_cols = tuple(n_headers[i] for i in indices)
 
     # Read file content
     content = np.loadtxt(file_name, skiprows=1)
@@ -131,13 +118,13 @@ def _read_dcip_xyz_new(
             f"number of fields in the header ({len(header)})."
         )
         raise ValueError(msg)
-    data = {name: content[:, i] for i, name in enumerate(header)}
+    data_dict = {name: content[:, i] for i, name in enumerate(header)}
 
-    a_locs = np.vstack([data.pop(name) for name in a_cols]).T
-    b_locs = np.vstack([data.pop(name) for name in b_cols]).T
-    m_locs = np.vstack([data.pop(name) for name in m_cols]).T
-    n_locs = np.vstack([data.pop(name) for name in n_cols]).T
-
+    # Generate DCIP survey from electrode locations
+    a_locs = np.vstack([data_dict.pop(name) for name in a_cols]).T
+    b_locs = np.vstack([data_dict.pop(name) for name in b_cols]).T
+    m_locs = np.vstack([data_dict.pop(name) for name in m_cols]).T
+    n_locs = np.vstack([data_dict.pop(name) for name in n_cols]).T
     survey, indices_sorted = generate_survey_from_abmn_locations(
         locations_a=a_locs,
         locations_b=b_locs,
@@ -146,11 +133,53 @@ def _read_dcip_xyz_new(
         data_type=data_type,
         output_sorting=True,
     )
+    # Resort arrays in the data dictionary
+    for name in data_dict:
+        data_dict[name] = data_dict[name][indices_sorted]
+    return survey, data_dict
 
-    for name in data:
-        data[name] = data[name][indices_sorted]
 
-    return survey, data
+def _get_electrode_headers(header, a_headers, b_headers, m_headers, n_headers):
+    """
+    Return the headers for the electrodes A, B, M, N in the file.
+
+    Parameters
+    ----------
+    header : list[str]
+        File header.
+    a_headers b_headers, m_headers, n_headers : tuple[str]
+        Header names for each one of the electrodes.
+
+    Returns
+    -------
+    a_headers, b_headers, m_headers, n_headers
+        Tuples of strings with the header names for each electrodes in the file.
+    """
+    header_set = set(header)
+    xs = {element[0] for element in (a_headers, b_headers, m_headers, n_headers)}
+    ys = {element[1] for element in (a_headers, b_headers, m_headers, n_headers)}
+    zs = {element[2] for element in (a_headers, b_headers, m_headers, n_headers)}
+
+    if header_set.issuperset(xs | ys | zs):
+        indices = (0, 1, 2)  # 3D
+    elif header_set.issuperset(xs | ys) and not (header_set & zs):
+        indices = (0, 1)  # 3D-no-elevation
+    elif header_set.issuperset(xs | zs) and not (header_set & ys):
+        indices = (0, 2)  # 2D
+    else:
+        msg = (
+            f"Invalid file header: '{header}'. "
+            "Cannot determine columns associated with receiver locations. "
+            "Please, check your file header and the values passed to the "
+            "'a_headers', 'b_headers', 'm_headers', 'n_headers' arguments."
+        )
+        raise ValueError(msg)
+    # Select only the electrode headers that are present in the file header
+    headers_in_file = tuple(
+        tuple(c[i] for i in indices)
+        for c in (a_headers, b_headers, m_headers, n_headers)
+    )
+    return headers_in_file
 
 
 def _get_survey_dimensions(header, a_headers, b_headers, m_headers, n_headers):
