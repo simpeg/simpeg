@@ -1,3 +1,4 @@
+import pathlib
 import numpy as np
 from discretize.utils import mkvc
 import warnings
@@ -10,6 +11,174 @@ from ..code_utils import validate_string, validate_type
 
 
 def read_dcip_xyz(
+    file_name,
+    data_type,
+    *,
+    a_headers=("XA", "YA", "ZA"),
+    b_headers=("XB", "YB", "ZB"),
+    m_headers=("XM", "YM", "ZM"),
+    n_headers=("XN", "YN", "ZN"),
+    data_header=None,
+    uncertainties_header=None,
+    dict_headers=None,
+    is_surface_data=None,
+    return_data_object=True,
+):
+    """
+    TODO
+    """
+    old_args = {
+        "data_header": data_header,
+        "uncertainties_header": uncertainties_header,
+        "dict_headers": dict_headers,
+        "is_surface_data": is_surface_data,
+    }
+    if return_data_object:
+        msg = (
+            "Change of behaviour. "
+            "'return_data_object' will be set to False in SimPEG v0.XX. "
+            "Which arguments will be deprecated, etc."
+        )
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+
+        # Set old default value for is_surface_data
+        is_surface_data = is_surface_data if is_surface_data is not None else False
+
+        # Return old function
+        return _read_dcip_xyz_deprecated(
+            file_name,
+            data_type,
+            a_headers=("XA", "YA", "ZA"),
+            b_headers=("XB", "YB", "ZB"),
+            m_headers=("XM", "YM", "ZM"),
+            n_headers=("XN", "YN", "ZN"),
+            data_header=data_header,
+            uncertainties_header=uncertainties_header,
+            dict_headers=dict_headers,
+            is_surface_data=is_surface_data,
+        )
+
+    if any(value is not None for value in old_args.values()):
+        names = (name for name, value in old_args.items() if value is not None)
+        names = "', '".join(names)
+        msg = (
+            f"Incompatible argument(s) '{names}' when `return_data_object` is False. "
+            "Default behaviour, blah, will be removed in SimPEG v0.XX."
+        )
+        raise TypeError(msg)
+
+    return _read_dcip_xyz_new(
+        file_name,
+        data_type,
+        a_headers=a_headers,
+        b_headers=b_headers,
+        m_headers=m_headers,
+        n_headers=n_headers,
+    )
+
+
+def _read_dcip_xyz_new(
+    file_name,
+    data_type,
+    *,
+    a_headers=("XA", "YA", "ZA"),
+    b_headers=("XB", "YB", "ZB"),
+    m_headers=("XM", "YM", "ZM"),
+    n_headers=("XN", "YN", "ZN"),
+):
+    """
+    TODO
+    """
+    # Prevent circular import
+    from ...electromagnetics.static.utils import generate_survey_from_abmn_locations
+
+    # Validate input
+    valid_values = ["volt", "apparent_resistivity", "apparent_chargeability"]
+    data_type = validate_string("data_type", data_type, valid_values)
+
+    # Load file header
+    file_name = pathlib.Path(file_name)
+    with file_name.open(mode="r") as f:
+        header = f.readline()
+    header = header.split()
+    if not header:
+        msg = f"Couldn't read header from file '{file_name}'."
+        raise ValueError(msg)
+
+    # Get survey dimensions (3d, 2d, or 3d with no elevation)
+    survey_dims = _get_survey_dimensions(
+        header, a_headers, b_headers, m_headers, n_headers
+    )
+    match survey_dims:
+        case "3D":
+            indices = (0, 1, 2)
+        case "2D":
+            indices = (0, 2)
+        case "3D-no-elevation":
+            indices = (0, 1)
+        case _:
+            raise ValueError(f"Invalid {survey_dims=}")
+    a_cols = tuple(a_headers[i] for i in indices)
+    b_cols = tuple(b_headers[i] for i in indices)
+    m_cols = tuple(m_headers[i] for i in indices)
+    n_cols = tuple(n_headers[i] for i in indices)
+
+    # Read file content
+    content = np.loadtxt(file_name, skiprows=1)
+    if len(header) != content.shape[1]:
+        msg = (
+            f"Number of columns ({content.shape[1]}) doesn't match the "
+            f"number of fields in the header ({len(header)})."
+        )
+        raise ValueError(msg)
+    data = {name: content[:, i] for i, name in enumerate(header)}
+
+    a_locs = np.vstack([data.pop(name) for name in a_cols]).T
+    b_locs = np.vstack([data.pop(name) for name in b_cols]).T
+    m_locs = np.vstack([data.pop(name) for name in m_cols]).T
+    n_locs = np.vstack([data.pop(name) for name in n_cols]).T
+
+    survey, indices_sorted = generate_survey_from_abmn_locations(
+        locations_a=a_locs,
+        locations_b=b_locs,
+        locations_m=m_locs,
+        locations_n=n_locs,
+        data_type=data_type,
+        output_sorting=True,
+    )
+
+    for name in data:
+        data[name] = data[name][indices_sorted]
+
+    return survey, data
+
+
+def _get_survey_dimensions(header, a_headers, b_headers, m_headers, n_headers):
+    """
+    Figure out type of data from XYZ file header (3d, 2d, or 3d without elevation).
+    """
+    header_set = set(header)
+    xs = {element[0] for element in (a_headers, b_headers, m_headers, n_headers)}
+    ys = {element[1] for element in (a_headers, b_headers, m_headers, n_headers)}
+    zs = {element[2] for element in (a_headers, b_headers, m_headers, n_headers)}
+
+    if header_set.issuperset(xs | ys | zs):
+        return "3D"
+    if header_set.issuperset(xs | ys) and not (header_set & zs):
+        return "3D-no-elevation"
+    if header_set.issuperset(xs | zs) and not (header_set & ys):
+        return "2D"
+
+    msg = (
+        f"Invalid file header: '{header}'. "
+        "Cannot determine columns associated with receiver locations. "
+        "Please, check your file header and the values passed to the "
+        "'a_headers', 'b_headers', 'm_headers', 'n_headers' arguments."
+    )
+    raise ValueError(msg)
+
+
+def _read_dcip_xyz_deprecated(
     file_name,
     data_type,
     a_headers=("XA", "YA", "ZA"),
