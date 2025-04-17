@@ -126,6 +126,7 @@ from ._save_geoh5 import (
     BaseSaveGeoH5,
     SaveDataGeoH5,
     SaveLogFilesGeoH5,
+    SaveLPModelGroup,
     SaveModelGeoH5,
     SavePropertyGroup,
     SaveSensitivityGeoH5,

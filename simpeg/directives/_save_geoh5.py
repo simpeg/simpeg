@@ -8,8 +8,9 @@ from scipy.sparse import csc_matrix, csr_matrix
 from .directives import InversionDirective
 from simpeg.maps import IdentityMap
 
+from geoh5py.data import NumericData
 from geoh5py.groups.property_group import GroupTypeEnum
-from geoh5py.groups import PropertyGroup, UIJsonGroup
+from geoh5py.groups import UIJsonGroup
 from geoh5py.objects import ObjectBase
 from geoh5py.ui_json.utils import fetch_active_workspace
 
@@ -419,7 +420,7 @@ class SaveLogFilesGeoH5(BaseSaveGeoH5):
 
 class SavePropertyGroup(BaseSaveGeoH5):
     """
-    Save the model as a property group in the geoh5 file
+    Assign the data to a property group in the geoh5 file
     """
 
     def __init__(
@@ -446,21 +447,61 @@ class SavePropertyGroup(BaseSaveGeoH5):
                     channel_name, base_name = self.get_names(
                         component, channel, iteration
                     )
-                    child = [
+                    children = [
                         child
                         for child in h5_object.children
-                        if channel_name in child.name
-                    ][0]
+                        if (
+                            channel_name in child.name
+                            and isinstance(child, NumericData)
+                        )
+                    ]
 
-                    if child is not None:
-                        properties.append(child)
+                    if children[0] is not None:
+                        properties += children
 
                 if len(properties) == 0:
                     return
 
-                PropertyGroup(
-                    parent=h5_object,
-                    name=base_name,
-                    properties=properties,
-                    property_group_type=self.group_type,
-                )
+                prop_group = h5_object.get_property_group(base_name)[0]
+
+                if prop_group is None:
+                    prop_group = h5_object.create_property_group(
+                        name=base_name,
+                        properties=properties,
+                        property_group_type=self.group_type,
+                    )
+                else:
+                    prop_group.add_properties(properties)
+
+
+class SaveLPModelGroup(SavePropertyGroup):
+    """
+    Save the model as a property group in the geoh5 file
+    """
+
+    def __init__(
+        self,
+        h5_object,
+        irls_directive,
+        group_type: GroupTypeEnum = GroupTypeEnum.MULTI,
+        **kwargs,
+    ):
+        self.group_type = group_type
+        self.irls_directive = irls_directive
+
+        super().__init__(h5_object, **kwargs)
+
+    def get_names(
+        self, component: str, channel: str, iteration: int
+    ) -> tuple[str, str]:
+        """
+        Format the data and property_group name.
+        """
+        channel_name, base_name = super().get_names(component, channel, iteration)
+
+        if self.irls_directive.metrics.irls_iteration_count == 0:
+            base_name = "L2 models"
+        else:
+            base_name = "LP models"
+
+        return channel_name, base_name
