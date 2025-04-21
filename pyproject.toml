@@ -22,6 +22,7 @@ dependencies = [
     "discretize>=0.11",
     "geoana>=0.7",
     "libdlf",
+    "typing_extensions; python_version<'3.13'",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -258,4 +259,5 @@ rst-roles = [
 [tool.pytest.ini_options]
 filterwarnings = [
     "ignore::simpeg.utils.solver_utils.DefaultSolverWarning",
+    "error:The `index_dictionary` property has been deprecated:FutureWarning",
 ]
