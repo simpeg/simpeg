@@ -217,10 +217,16 @@ class VectorInversion(InversionDirective):
             updates = {}
             for simulation in self.simulations:
                 if isinstance(simulation, MetaSimulation):
-                    updates[simulation] = (
-                        "chiMap",
-                        SphericalSystem() * simulation.simulations[0].chiMap,
-                    )
+
+                    if hasattr(self.dmisfit, "client"):
+                        updates[simulation] = (
+                            "chiMap",
+                            SphericalSystem() * simulation.simulations[0].chiMap,
+                        )
+                    else:
+                        simulation.simulations[0].chiMap = (
+                            SphericalSystem() * simulation.simulations[0].chiMap
+                        )
                 else:
                     simulation.chiMap = SphericalSystem() * simulation.chiMap
 
