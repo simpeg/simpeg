@@ -29,7 +29,7 @@ jobs:
     if: ${{ github.event_name == 'release' || github.event.inputs.publish-conda == 'true' }}
     uses: MiraGeoscience/CI-tools/.github/workflows/reusable-python-release_conda_assets.yml@main
     with:
-      virtual-repo-names: '["public-conda-prod"]'
+      virtual-repo-names: '["public-noremote-conda-prod"]'
       release-tag: ${{ github.event.release.tag_name || github.event.inputs.release-tag }}
     secrets:
       JFROG_ARTIFACTORY_URL: ${{ secrets.JFROG_ARTIFACTORY_URL }}
