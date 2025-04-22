@@ -14,7 +14,7 @@ class Survey(BaseSurvey):
 
     def __init__(self, source_field, **kwargs):
         if "source_list" in kwargs:
-            raise TypeError("source_list is not a valid argument to gravity.Survey.")
+            raise TypeError("source_list is not a valid argument to gravity.Survey. Use source_field instead.")
         super().__init__(source_list=source_field, **kwargs)
 
     @BaseSurvey.source_list.setter
