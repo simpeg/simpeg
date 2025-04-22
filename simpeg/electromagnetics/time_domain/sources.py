@@ -1,7 +1,11 @@
 import warnings
 
 import numpy as np
-from geoana.em.static import CircularLoopWholeSpace, MagneticDipoleWholeSpace
+from geoana.em.static import (
+    CircularLoopWholeSpace,
+    MagneticDipoleWholeSpace,
+    LineCurrentWholeSpace,
+)
 from scipy.constants import mu_0
 
 from ...utils import Zero, sdiag
@@ -1908,26 +1912,53 @@ class LineCurrent(BaseTDEMSrc):
         )
 
     def _getAmmr(self, simulation):
-        if simulation._formulation != "HJ":
+        if simulation._formulation == "EB":
             raise NotImplementedError
-
-        vol = simulation.mesh.cell_volumes
-        Div = sdiag(vol) * simulation.mesh.face_divergence
-        return (
-            simulation.mesh.edge_curl
-            * simulation.MeMuI
-            * simulation.mesh.edge_curl.T.tocsr()
-            - Div.T.tocsr()
-            * sdiag(1.0 / vol * simulation.mui)
-            * Div  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
-        )
+        elif simulation._formulation == "HJ":
+            vol = simulation.mesh.cell_volumes
+            Div = sdiag(vol) * simulation.mesh.face_divergence
+            return (
+                simulation.mesh.edge_curl
+                * simulation.MeMuI
+                * simulation.mesh.edge_curl.T.tocsr()
+                - Div.T.tocsr()
+                * sdiag(1.0 / vol * simulation.mui)
+                * Div  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
+            )
 
     def _aInitial(self, simulation):
-        A = self._getAmmr(simulation)
-        Ainv = simulation.solver(A)  # todo: store this
-        s_e = self.s_e(simulation, 0)
-        rhs = s_e + self.jInitial(simulation)
-        return Ainv * rhs
+        if self.srcType == "inductive":
+            if simulation._formulation == "EB":
+                vector_potential = np.zeros(simulation.mesh.n_edges)
+
+                for i in range(self.location.shape[0] - 1):
+                    line_current = LineCurrentWholeSpace(self.location[i : i + 2, :])
+
+                    ax = line_current.vector_potential(simulation.mesh.edges_x)[:, 0]
+                    ay = line_current.vector_potential(simulation.mesh.edges_y)[:, 1]
+                    az = line_current.vector_potential(simulation.mesh.edges_z)[:, 2]
+
+                    vector_potential += np.r_[ax, ay, az]
+
+            elif simulation._formulation == "HJ":
+                vector_potential = np.zeros(simulation.mesh.n_faces)
+
+                for i in range(self.location.shape[0] - 1):
+                    line_current = LineCurrentWholeSpace(self.location[i : i + 2, :])
+
+                    ax = line_current.vector_potential(simulation.mesh.faces_x)[:, 0]
+                    ay = line_current.vector_potential(simulation.mesh.faces_y)[:, 1]
+                    az = line_current.vector_potential(simulation.mesh.faces_z)[:, 2]
+
+                    vector_potential += np.r_[ax, ay, az]
+            return vector_potential
+        else:
+            # if a grounded source, solve the MMR problem
+            A = self._getAmmr(simulation)
+            Ainv = simulation.solver(A)  # todo: store this
+            s_e = self.s_e(simulation, 0)
+            rhs = s_e + self.jInitial(simulation)
+            return Ainv * rhs
 
     def _aInitialDeriv(self, simulation, v, adjoint=False):
         A = self._getAmmr(simulation)
@@ -2006,11 +2037,12 @@ class LineCurrent(BaseTDEMSrc):
 
         if self.waveform.has_initial_fields is False:
             return Zero()
-        elif simulation._formulation != "HJ":
-            raise NotImplementedError
 
         a = self._aInitial(simulation)
-        return simulation.mesh.edge_curl.T * a
+        if simulation._formulation == "EB":
+            return simulation.mesh.edge_curl * a
+        elif simulation._formulation == "HJ":
+            return simulation.mesh.edge_curl.T * a
 
     def bInitialDeriv(self, simulation, v, adjoint=False, f=None):
         """Compute derivative of intitial magnetic flux density times a vector
