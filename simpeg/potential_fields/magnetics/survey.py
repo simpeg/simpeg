@@ -3,6 +3,14 @@ from ...survey import BaseSurvey
 from ...utils.code_utils import validate_type
 from .sources import UniformBackgroundField
 
+try:
+    from warnings import deprecated
+except ImportError:
+    # Use the deprecated decorator provided by typing_extensions (which
+    # supports older versions of Python) if it cannot be imported from
+    # warnings.
+    from typing_extensions import deprecated
+
 
 class Survey(BaseSurvey):
     """Base Magnetics Survey
@@ -69,8 +77,23 @@ class Survey(BaseSurvey):
         return sum(rx.nD for rx in self.source_field.receiver_list)
 
     @property
+    @deprecated(
+        "The `components` property is deprecated, "
+        "and will be removed in SimPEG v0.25.0. "
+        "Within a magnetic survey, receivers can contain different components. "
+        "Iterate over the sources and receivers in the survey to get "
+        "information about their components.",
+        category=FutureWarning,
+    )
     def components(self):
         """Field components
+
+        .. deprecated:: 0.24.0
+
+            The `components` property is deprecated, and will be removed in
+            SimPEG v0.25.0. Within a magnetic survey, receivers can contain
+            different components. Iterate over the sources and receivers in the
+            survey to get information about their components.
 
         Returns
         -------
