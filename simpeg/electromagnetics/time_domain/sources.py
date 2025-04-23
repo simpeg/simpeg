@@ -1928,6 +1928,7 @@ class LineCurrent(BaseTDEMSrc):
 
     def _aInitial(self, simulation):
         if self.srcType == "inductive":
+            # for an inductive source, use the Biot Savart law (from geoana) to compute the vector potential
             if simulation._formulation == "EB":
                 vector_potential = np.zeros(simulation.mesh.n_edges)
 
@@ -1961,15 +1962,20 @@ class LineCurrent(BaseTDEMSrc):
             return Ainv * rhs
 
     def _aInitialDeriv(self, simulation, v, adjoint=False):
-        A = self._getAmmr(simulation)
-        Ainv = simulation.solver(A)  # todo: store this - move it to the simulation
+        if self.srcType == "inductive":
+            # the vector potential doesn't depend on the model for an inductive source
+            return Zero()
+        else:
+            # for a grounded source, the derivatives are obtained from the MMR problem
+            A = self._getAmmr(simulation)
+            Ainv = simulation.solver(A)  # todo: store this - move it to the simulation
 
-        if adjoint is True:
-            return self.jInitialDeriv(
-                simulation, Ainv * v, adjoint=True
-            )  # A is symmetric
+            if adjoint is True:
+                return self.jInitialDeriv(
+                    simulation, Ainv * v, adjoint=True
+                )  # A is symmetric
 
-        return Ainv * self.jInitialDeriv(simulation, v)
+            return Ainv * self.jInitialDeriv(simulation, v)
 
     def hInitial(self, simulation):
         """Compute initial magnetic field.
