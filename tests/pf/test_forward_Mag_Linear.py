@@ -920,6 +920,22 @@ class BaseFixtures:
     It can be a standalone fixture, or it can be a class parametrization.
     """
 
+    def build_survey(self, *, components):
+        # Observation points
+        x = np.linspace(-20.0, 20.0, 4)
+        x, y = np.meshgrid(x, x)
+        z = 5.0 * np.ones_like(x)
+        coordinates = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
+        receivers = mag.receivers.Point(coordinates, components=components)
+        source_field = mag.UniformBackgroundField(
+            receiver_list=[receivers],
+            amplitude=55_000,
+            inclination=12,
+            declination=-35,
+        )
+        survey = mag.survey.Survey(source_field)
+        return survey
+
     @pytest.fixture(
         params=[
             "tmi",
@@ -930,20 +946,10 @@ class BaseFixtures:
         ids=["tmi", "mag_components", "tmi_and_mag", "tmi_derivs"],
     )
     def survey(self, request):
-        # Observation points
-        x = np.linspace(-20.0, 20.0, 4)
-        x, y = np.meshgrid(x, x)
-        z = 5.0 * np.ones_like(x)
-        coordinates = np.vstack((x.ravel(), y.ravel(), z.ravel())).T
-        receivers = mag.receivers.Point(coordinates, components=request.param)
-        source_field = mag.UniformBackgroundField(
-            receiver_list=[receivers],
-            amplitude=55_000,
-            inclination=12,
-            declination=-35,
-        )
-        survey = mag.survey.Survey(source_field)
-        return survey
+        """
+        Return sample magnetic survey.
+        """
+        return self.build_survey(components=request.param)
 
     @pytest.fixture
     def mesh(self):
@@ -969,6 +975,67 @@ class BaseFixtures:
             susceptibilities[mesh.n_cells : 2 * mesh.n_cells][ind_sphere] = 0.3
             susceptibilities[2 * mesh.n_cells : 3 * mesh.n_cells][ind_sphere] = 0.5
         return susceptibilities
+
+
+@pytest.mark.parametrize(
+    "scalar_model", [True, False], ids=["scalar_model", "vector_model"]
+)
+class TestnD(BaseFixtures):
+    """
+    Test the ``nD`` property.
+    """
+
+    @pytest.fixture
+    def survey_b_norm(self):
+        return self.build_survey(components=["bx", "by", "bz"])
+
+    @pytest.fixture
+    def mapping(self, mesh, scalar_model):
+        nparams = mesh.n_cells if scalar_model else 3 * mesh.n_cells
+        return maps.IdentityMap(nP=nparams)
+
+    def test_nD(self, mesh, survey, mapping, susceptibilities, scalar_model):
+        """
+        Test nD on tmi data.
+        """
+        model_type = "scalar" if scalar_model else "vector"
+        simulation = mag.simulation.Simulation3DIntegral(
+            survey=survey,
+            mesh=mesh,
+            chiMap=mapping,
+            store_sensitivities="ram",
+            engine="choclo",
+            model_type=model_type,
+        )
+        receivers = survey.source_field.receiver_list
+        n_data = sum(rx.locations.shape[0] * len(rx.components) for rx in receivers)
+        assert simulation.nD == n_data
+        dpred = simulation.dpred(susceptibilities)
+        assert dpred.size == simulation.nD
+
+    def test_nD_amplitude_data(
+        self, mesh, survey_b_norm, mapping, susceptibilities, scalar_model
+    ):
+        """
+        Test nD on amplitude data.
+        """
+        model_type = "scalar" if scalar_model else "vector"
+        simulation = mag.simulation.Simulation3DIntegral(
+            survey=survey_b_norm,
+            mesh=mesh,
+            chiMap=mapping,
+            store_sensitivities="ram",
+            engine="choclo",
+            model_type=model_type,
+            is_amplitude_data=True,
+        )
+        receivers = survey_b_norm.source_field.receiver_list
+        n_data = (
+            sum(rx.locations.shape[0] * len(rx.components) for rx in receivers) // 3
+        )
+        assert simulation.nD == n_data
+        dpred = simulation.dpred(susceptibilities)
+        assert dpred.size == simulation.nD
 
 
 @pytest.mark.parametrize(
