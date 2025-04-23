@@ -43,8 +43,8 @@ class TestDepthWeighting:
 
         np.testing.assert_allclose(wz, wz2)
 
-        with self.assertRaises(ValueError):
-            wz2 = utils.depth_weighting(mesh, rng.random(size=(10, 3, 3)))
+        with pytest.raises(ValueError):
+            utils.depth_weighting(mesh, rng.random(size=(10, 3, 3)))
 
     def test_depth_weighting_2D(self):
         # Mesh
