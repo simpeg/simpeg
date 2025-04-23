@@ -1,5 +1,7 @@
 import types
+from numbers import Number
 import numpy as np
+from numpy.typing import NDArray
 from functools import wraps
 import warnings
 
@@ -785,6 +787,43 @@ def deprecate_function(
 ###############################################################
 #                    PROPERTY VALIDATORS
 ###############################################################
+
+
+def raise_if_nans_or_infs(
+    value: float | NDArray[np.float64],
+    property_name: str,
+):
+    """
+    Raise ValueError if the value is or contains any ``nan`` or ``inf``.
+
+    Parameters
+    ----------
+    value : float or array
+        Value to check for ``nan`` or ``inf``.
+    property_name : str
+        The name of the property being checked. The name is only used to
+        generate the error message.
+
+    Raises
+    ------
+    ValueError
+        If ``value`` contains ``np.nan`` or ``np.inf`` values.
+    """
+    is_nan, is_inf = np.isnan(value).any(), np.isinf(value).any()
+    if is_nan or is_inf:
+        if is_nan and is_inf:
+            offending_types = "nan and inf"
+        elif is_nan:
+            offending_types = "nan"
+        else:
+            offending_types = "inf"
+        text = (
+            f"equal to {'nan' if is_nan else 'inf'}"
+            if isinstance(value, Number)
+            else f"with {offending_types} values"
+        )
+        msg = f"Invalid '{property_name}' {text}."
+        raise ValueError(msg)
 
 
 def validate_string(property_name, var, string_list=None, case_sensitive=False):

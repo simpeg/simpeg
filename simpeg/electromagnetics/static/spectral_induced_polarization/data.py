@@ -16,7 +16,7 @@ class Data(BaseData):
         survey parameters:
 
         .. code::
-            data = Data(survey)
+            data = Data(survey, dobs)
             for src in survey.source_list:
                 for rx in src.receiver_list:
                     for t in rx.times:
