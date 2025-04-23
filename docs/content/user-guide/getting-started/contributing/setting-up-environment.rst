@@ -7,8 +7,8 @@ Install Python
 --------------
 
 First you will need to install Python. You can find instructions in
-:ref:`installing_python`. We highly encourage to install Anaconda_ or
-Miniforge_.
+:ref:`installing_python`. We highly encourage to install Miniforge_ (or
+Anaconda_).
 
 Create environment
 ------------------

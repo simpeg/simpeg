@@ -11,6 +11,7 @@ dependencies:
   - discretize>=0.11
   - geoana>=0.7
   - libdlf
+  - typing_extensions
 
 # solver
 # uncomment the next line if you are on an intel platform
@@ -32,6 +33,7 @@ dependencies:
   - sphinx
   - sphinx-gallery>=0.1.13
   - sphinxcontrib-apidoc
+  - sphinx-reredirects
   - pydata-sphinx-theme
   - empymod>=2.0.0
   - nbsphinx
@@ -56,6 +58,7 @@ dependencies:
   - flake8-mutable==1.2.0
   - flake8-rst-docstrings==0.3.0
   - flake8-docstrings==1.7.0
+  - zizmor # lint GitHub Actions workflows
 
 # recommended
   - jupyter

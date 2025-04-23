@@ -9,6 +9,7 @@ dependencies:
   - discretize>=0.11
   - geoana>=0.7
   - libdlf
+  - typing_extensions
 
 # optional dependencies
   - dask
@@ -24,6 +25,7 @@ dependencies:
   - sphinx
   - sphinx-gallery>=0.1.13
   - sphinxcontrib-apidoc
+  - sphinx-reredirects
   - pydata-sphinx-theme
   - nbsphinx
   - numpydoc

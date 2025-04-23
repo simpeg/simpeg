@@ -288,6 +288,10 @@ class Simulation1DLayered(BaseEM1DSimulation):
                     out[i_dat:i_dat_p1] = v_slice.real
                 elif rx.component == "imag":
                     out[i_dat:i_dat_p1] = v_slice.imag
+                else:
+                    raise NotImplementedError(
+                        f"receiver component {rx.component} not implemented."
+                    )
                 i_dat = i_dat_p1
                 i_v = i_v_p1
         return out
