@@ -128,6 +128,26 @@ class Simulation1DLayered(BaseEM1DSimulation):
         return self._project_to_data(v)
 
     def _getJ(self, m, f=None):
+        """Build Jacobian matrix by blocks.
+
+        This method builds the Jacobian matrix by blocks, each block for a particular
+        invertible property (receiver height, conductivity, permeability, layer
+        thickness). Each block of the Jacobian matrix is stored within a dictionary.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        dict
+            Dictionary containing the blocks of the Jacobian matrix for the invertible
+            properties. The keys of the dictionary can be `"dh"`, `"ds"`, `"dmu"`, and
+            `"dthick"`.
+        """
         self.model = m
         if getattr(self, "_J", None) is None:
             self._J = {}
@@ -245,8 +265,30 @@ class Simulation1DLayered(BaseEM1DSimulation):
         return self._J
 
     def getJ(self, m, f=None):
-        Js = self._getJ(m, f=f)
+        r"""Get the Jacobian matrix.
 
+        This method generates and stores the full Jacobian matrix for the
+        model provided. I.e.:
+
+        .. math::
+            \mathbf{J} = \dfrac{\partial f(\mu(\mathbf{m}))}{\partial \mathbf{m}}
+
+        where :math:`f()` is the forward modelling function, :math:`\mu()` is the
+        mapping, and :math:`\mathbf{m}` is the model vector.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        (n_data, n_param) numpy.ndarray
+            The full Jacobian matrix.
+        """
+        Js = self._getJ(m, f=f)
         # Map parameters with their corresponding derivatives
         param_and_derivs = {
             "dh": self.hDeriv,
