@@ -19,8 +19,8 @@ Speed up of dot products involved in PGI
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This release includes optimizations of some dot products carried out in the
-:class:`~simpeg.regularization.pgi.PGISmallness`. They significantly reduce the
-computation time of Petrophysically Guided Inversions (PGI).
+:class:`~simpeg.regularization.pgi.PGIsmallness`. They significantly reduce the
+computation time of Petrophysically and Geologically Guided Inversions (PGI).
 
 Specifically, these changes optimize the dot products involved when evaluating
 the regularization function itself and its derivatives. The optimization takes
@@ -30,8 +30,8 @@ See https://github.com/simpeg/simpeg/pull/1587 and
 https://github.com/simpeg/simpeg/pull/1588 for more information.
 
 
-Potential field sensitivity matrices as ``LinearOperator``s
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Potential field sensitivity matrices as Linear Operators
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The gravity and magnetic field simulations are now capable of building the
 sensitivity matrix ``G`` as a SciPy
@@ -44,22 +44,30 @@ arrays, although the dense matrix is never fully built nor allocated in memory.
 Instead, the forward computation is carried out whenever a dot product is
 requested.
 
-This change allows to use the simulation to compute its derivatives without
-requiring large amount of memory to store large sensitivity matrices.
-Enabling users to run inversions of large models where the sensitivity matrix
-is larger than the available memory.
+This change allows to compute the simulation derivatives without requiring
+large amount of memory to store large sensitivity matrices, enabling users to
+run inversions of large models where the sensitivity matrix is larger than the
+available memory.
 
-Using methods like ``Jvec``, ``Jtvec`` and ``getJtJdiag`` make use of ``G`` as
-a linear operator when ``store_sensitivities="forward_only"``. Meanwhile, the
-``getJ`` method returns a composite
+Using methods like
+:meth:`~simpeg.potential_fields.gravity.Simulation3DIntegral.Jvec`,
+:meth:`~simpeg.potential_fields.gravity.Simulation3DIntegral.Jtvec`,
+and
+:meth:`~simpeg.potential_fields.gravity.Simulation3DIntegral.getJtJdiag`, make
+use of
+:attr:`~simpeg.potential_fields.gravity.Simulation3DIntegral.G`
+a linear operator when ``store_sensitivities="forward_only"``.
+Meanwhile, the
+:meth:`~simpeg.potential_fields.gravity.Simulation3DIntegral.getJ`
+method returns a composite
 :class:`~scipy.sparse.linalg.LinearOperator` object that can also be used to
 compute dot products with any vector.
 
 See https://github.com/simpeg/simpeg/pull/1622 and
 https://github.com/simpeg/simpeg/pull/1634 for more information.
 
-Move indexing of arrays from :class:`simpeg.data.Data` to ``Survey``s
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Move indexing of arrays from :class:`simpeg.data.Data` to Surveys
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 We moved the indexing capabilities of the :class:`~simpeg.data.Data` objects to
 the different ``Survey`` objects. This is useful in case we have some data as
@@ -67,12 +75,12 @@ a flat array that is related to a particular survey (or combination of sources
 and receivers), and we want to obtain the data values associated to
 a particular pair of source and receiver.
 
-With this change, we don't need to define a new ``Data`` object to slice an
-array, we can use the ``Survey`` itself.
+With this change, we don't need to define a new :class:`~simpeg.data.Data`
+object to slice an array, we can use the ``Survey`` itself.
 For example, let's say we have a survey with two sources, and three receivers
 each:
 
-.. code::python
+.. code:: python
 
    receivers_a = [Recevier([[-2, 0]]), Recevier([[0, 0]]), Recevier([[2, 0]])]
    source_a = Source(receiver_list=receivers_a)
@@ -80,15 +88,15 @@ each:
    source_b = Source(receiver_list=receivers_b)
    survey = Survey(source_list=[source_a, source_b])
 
-And we have a ``data`` array that corresponds to this survey. We can obtain the
-values of the ``data`` array associated with the second receiver and the first
+And we have a ``dobs`` array that corresponds to this survey. We can obtain the
+values of the ``dobs`` array associated with the second receiver and the first
 source by using the ``get_slice`` method to obtain a ``slice`` object, and then
-use it to index the ``data`` array:
+use it to index the ``dobs`` array:
 
-.. code::python
+.. code:: python
 
    slice_obj = survey.get_slice(source_a, receivers_a[1])
-   data_slice = data[slice_obj]
+   dobs_slice = dobs[slice_obj]
 
 See https://github.com/simpeg/simpeg/pull/1616 and
 https://github.com/simpeg/simpeg/pull/1632 for more information.
@@ -96,10 +104,10 @@ https://github.com/simpeg/simpeg/pull/1632 for more information.
 Documentation
 -------------
 
-The documentation pages have been reorganized, merging the Getting Started
-section into the :ref:`user-guide`.
+The documentation pages have been reorganized, merging the _Getting Started_
+section into the :ref:`User Guide <user_guide>`.
 This change makes it easier to navigate through the different documentation
-pages, with the assistance of a comprehensive table of contents on the side.
+pages, with the assistance of a table of contents on the side.
 
 We updated the :ref:`installation instructions <installing>`, with `Miniforge
 <https://github.com/conda-forge/miniforge>`_ as the recommended Python
@@ -114,7 +122,7 @@ Bugfixes
 This release includes a list of bug fixes. We solved issues related to the
 ``getJ`` method of the DC, SIP, TDEM, and FDEM simulations. The EM1D
 simulations can now work with receivers objects with multiple locations.
-The ``BaseDataMisfit`` class and its children raise errors in case the
+The :class:`~simpeg.data_misfit.BaseDataMisfit` class and its children raise errors in case the
 simulation is retuning non-numeric values as output.
 
 We have also improved some of the error messages that users get when things
@@ -222,6 +230,3 @@ Pull Requests
   `@lheagy <https://github.com/lheagy>`__ in https://github.com/simpeg/simpeg/pull/1361
 - Fix ``getJ`` method in TDEM and FDEM 1D simulations by `@ghwilliams <https://github.com/ghwilliams>`__ in
   https://github.com/simpeg/simpeg/pull/1638
-
-**Full Changelog**:
-https://github.com/simpeg/simpeg/compare/v0.23.0…v0.24.0
