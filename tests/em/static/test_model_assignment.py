@@ -4,15 +4,16 @@ Test model assignment to simulation classes
 Test if the `getJ` method of a few static EM simulations updates the `model`.
 These tests have been added as part of the bugfix in #1361.
 """
+
 import pytest
 import numpy as np
 
 from discretize import TensorMesh
-from SimPEG import utils
-from SimPEG.maps import IdentityMap, Wires
-from SimPEG.electromagnetics import resistivity as dc
-from SimPEG.electromagnetics import spectral_induced_polarization as sip
-from SimPEG.electromagnetics.static.utils import generate_dcip_sources_line
+from simpeg import utils
+from simpeg.maps import IdentityMap, Wires
+from simpeg.electromagnetics import resistivity as dc
+from simpeg.electromagnetics import spectral_induced_polarization as sip
+from simpeg.electromagnetics.static.utils import generate_dcip_sources_line
 
 
 class TestDCSimulations:
