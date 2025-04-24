@@ -2,7 +2,7 @@
 3D Forward Simulation for Transient Response on a Cylindrical Mesh
 ==================================================================
 
-Here we use the module *SimPEG.electromagnetics.time_domain* to simulate the
+Here we use the module *simpeg.electromagnetics.time_domain* to simulate the
 transient response for borehole survey using a cylindrical mesh and a
 radially symmetric conductivity. For this tutorial, we focus on the following:
 
@@ -29,17 +29,12 @@ simulate the fields at each time channel with sufficient accuracy.
 from discretize import CylindricalMesh
 from discretize.utils import mkvc
 
-from SimPEG import maps
-import SimPEG.electromagnetics.time_domain as tdem
+from simpeg import maps
+import simpeg.electromagnetics.time_domain as tdem
 
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
 
 write_file = False
 
@@ -50,7 +45,7 @@ write_file = False
 # Defining the Waveform
 # ---------------------
 #
-# Under *SimPEG.electromagnetic.time_domain.sources*
+# Under *simpeg.electromagnetic.time_domain.sources*
 # there are a multitude of waveforms that can be defined (VTEM, Ramp-off etc...).
 # Here we simulate the response due to a step off waveform where the off-time
 # begins at t=0. Other waveforms are discuss in the OcTree simulation example.
@@ -204,7 +199,7 @@ time_steps = [(5e-06, 20), (0.0001, 20), (0.001, 21)]
 #
 
 simulation = tdem.simulation.Simulation3DMagneticFluxDensity(
-    mesh, survey=survey, sigmaMap=model_map, solver=Solver
+    mesh, survey=survey, sigmaMap=model_map
 )
 
 # Set the time-stepping for the simulation

@@ -4,7 +4,7 @@ import numpy as np
 import scipy.sparse as sp
 import os
 import shutil
-from SimPEG.utils import (
+from simpeg.utils import (
     sdiag,
     sub2ind,
     ndgrid,
@@ -17,12 +17,11 @@ from SimPEG.utils import (
     ind2sub,
     as_array_n_by_dim,
     TensorType,
-    diagEst,
+    estimate_diagonal,
     count,
     timeIt,
     Counter,
     download,
-    surface2ind_topo,
     coterminal,
 )
 import discretize
@@ -276,38 +275,15 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertTrue(np.all(true == listArray))
         self.assertTrue(true.shape == listArray.shape)
 
-    def test_surface2ind_topo(self):
-        file_url = (
-            "https://storage.googleapis.com/simpeg/tests/utils/vancouver_topo.xyz"
-        )
-        file2load = download(file_url)
-        vancouver_topo = np.loadtxt(file2load)
-        mesh_topo = discretize.TensorMesh(
-            [[(500.0, 24)], [(500.0, 20)], [(10.0, 30)]], x0="CCC"
-        )
 
-        # To keep consistent with result from deprecated function
-        vancouver_topo[:, 2] = vancouver_topo[:, 2] + 1e-8
-
-        indtopoCC = surface2ind_topo(
-            mesh_topo, vancouver_topo, gridLoc="CC", method="nearest"
-        )
-        indtopoN = surface2ind_topo(
-            mesh_topo, vancouver_topo, gridLoc="N", method="nearest"
-        )
-
-        assert len(np.where(indtopoCC)[0]) == 8728
-        assert len(np.where(indtopoN)[0]) == 8211
-
-
-class TestDiagEst(unittest.TestCase):
+class TestEstimateDiagonal(unittest.TestCase):
     def setUp(self):
         self.n = 1000
         self.A = np.random.rand(self.n, self.n)
         self.Adiag = np.diagonal(self.A)
 
     def getTest(self, testType):
-        Adiagtest = diagEst(self.A, self.n, self.n, testType)
+        Adiagtest = estimate_diagonal(self.A, self.n, self.n, testType)
         r = np.abs(Adiagtest - self.Adiag)
         err = r.dot(r)
         return err

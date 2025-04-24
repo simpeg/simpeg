@@ -1,8 +1,7 @@
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static.utils.static_utils import generate_dcip_sources_line
-from SimPEG import maps
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg.electromagnetics.static.utils.static_utils import generate_dcip_sources_line
+from simpeg import maps
 import numpy as np
-from pymatsolver import Pardiso
 import discretize
 import os
 
@@ -173,7 +172,6 @@ class DC2DMiniaturizeTest(unittest.TestCase):
         self.sim1 = dc.Simulation2DNodal(
             survey=survey,
             mesh=mesh,
-            solver=Pardiso,
             storeJ=False,
             sigmaMap=maps.IdentityMap(mesh),
             miniaturize=False,
@@ -182,7 +180,6 @@ class DC2DMiniaturizeTest(unittest.TestCase):
         self.sim2 = dc.Simulation2DNodal(
             survey=survey,
             mesh=mesh,
-            solver=Pardiso,
             storeJ=False,
             sigmaMap=maps.IdentityMap(mesh),
             miniaturize=True,
@@ -198,13 +195,15 @@ class DC2DMiniaturizeTest(unittest.TestCase):
         self.assertTrue(np.allclose(d1, d2))
 
     def test_Jvec(self):
-        u = np.random.rand(*self.model.shape)
+        rng = np.random.default_rng(seed=42)
+        u = rng.uniform(size=self.model.shape)
         J1u = self.sim1.Jvec(self.model, u, f=self.f1)
         J2u = self.sim2.Jvec(self.model, u, f=self.f2)
         self.assertTrue(np.allclose(J1u, J2u))
 
     def test_Jtvec(self):
-        v = np.random.rand(self.survey.nD)
+        rng = np.random.default_rng(seed=42)
+        v = rng.uniform(size=self.survey.nD)
         J1tv = self.sim1.Jtvec(self.model, v, f=self.f1)
         J2tv = self.sim2.Jtvec(self.model, v, f=self.f2)
         self.assertTrue(np.allclose(J1tv, J2tv))
@@ -269,7 +268,6 @@ class DC3DMiniaturizeTest(unittest.TestCase):
         self.sim1 = dc.Simulation3DNodal(
             survey=survey,
             mesh=mesh,
-            solver=Pardiso,
             storeJ=False,
             sigmaMap=maps.IdentityMap(mesh),
             miniaturize=False,
@@ -278,7 +276,6 @@ class DC3DMiniaturizeTest(unittest.TestCase):
         self.sim2 = dc.Simulation3DNodal(
             survey=survey,
             mesh=mesh,
-            solver=Pardiso,
             storeJ=False,
             sigmaMap=maps.IdentityMap(mesh),
             miniaturize=True,
@@ -295,13 +292,15 @@ class DC3DMiniaturizeTest(unittest.TestCase):
         self.assertTrue(np.allclose(d1, d2))
 
     def test_Jvec(self):
-        u = np.random.rand(*self.model.shape)
+        rng = np.random.default_rng(seed=42)
+        u = rng.uniform(size=self.model.shape)
         J1u = self.sim1.Jvec(self.model, u, f=self.f1)
         J2u = self.sim2.Jvec(self.model, u, f=self.f2)
         self.assertTrue(np.allclose(J1u, J2u))
 
     def test_Jtvec(self):
-        v = np.random.rand(self.survey.nD)
+        rng = np.random.default_rng(seed=42)
+        v = rng.uniform(size=self.survey.nD)
         J1tv = self.sim1.Jtvec(self.model, v, f=self.f1)
         J2tv = self.sim2.Jtvec(self.model, v, f=self.f2)
         self.assertTrue(np.allclose(J1tv, J2tv))

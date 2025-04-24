@@ -1,9 +1,9 @@
 import unittest
 import numpy as np
 
-# from SimPEG import Mesh, PF
-from SimPEG.utils.drivers import MagneticsDriver_Inv
-from SimPEG.utils import io_utils
+# from simpeg import Mesh, PF
+from simpeg.utils.drivers import MagneticsDriver_Inv
+from simpeg.utils import io_utils
 
 # from scipy.constants import mu_0
 import shutil

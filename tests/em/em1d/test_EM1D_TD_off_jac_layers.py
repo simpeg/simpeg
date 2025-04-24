@@ -1,7 +1,7 @@
 import unittest
-from SimPEG import maps
+from simpeg import maps
 from discretize import tests, TensorMesh
-import SimPEG.electromagnetics.time_domain as tdem
+import simpeg.electromagnetics.time_domain as tdem
 import numpy as np
 from scipy.constants import mu_0
 
@@ -116,7 +116,7 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
             return [fwdfun(m), lambda mx: jacfun(m, mx)]
 
         passed = tests.check_derivative(
-            derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
+            derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15, random_seed=51234
         )
         self.assertTrue(passed)
         if passed:
@@ -160,7 +160,9 @@ class EM1D_TD_Jacobian_Test_MagDipole(unittest.TestCase):
         def derChk(m):
             return misfit(m, dobs)
 
-        passed = tests.check_derivative(derChk, m_ini, num=4, plotIt=False, eps=1e-27)
+        passed = tests.check_derivative(
+            derChk, m_ini, num=4, plotIt=False, eps=1e-27, random_seed=52
+        )
         self.assertTrue(passed)
         if passed:
             print("EM1DTM MagDipole Jtvec test works")
@@ -276,7 +278,7 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
             return [fwdfun(m), lambda mx: jacfun(m, mx)]
 
         passed = tests.check_derivative(
-            derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
+            derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15, random_seed=523
         )
         self.assertTrue(passed)
         if passed:
@@ -320,7 +322,9 @@ class EM1D_TD_Jacobian_Test_CircularLoop(unittest.TestCase):
         def derChk(m):
             return misfit(m, dobs)
 
-        passed = tests.check_derivative(derChk, m_ini, num=4, plotIt=False, eps=1e-27)
+        passed = tests.check_derivative(
+            derChk, m_ini, num=4, plotIt=False, eps=1e-27, random_seed=98234
+        )
         self.assertTrue(passed)
         if passed:
             print("EM1DTM Circular Loop Jtvec test works")

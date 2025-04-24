@@ -1,6 +1,6 @@
 import scooby
 import unittest
-from SimPEG import Report
+from simpeg import Report
 
 
 class TestReport(unittest.TestCase):
@@ -10,16 +10,14 @@ class TestReport(unittest.TestCase):
         out1 = Report()
         out2 = scooby.Report(
             core=[
-                "SimPEG",
+                "simpeg",
                 "discretize",
                 "pymatsolver",
                 "numpy",
                 "scipy",
-                "sklearn",
                 "matplotlib",
-                "empymod",
                 "geoana",
-                "pandas",
+                "libdlf",
             ],
             # Optional packages.
             optional=[
@@ -27,6 +25,8 @@ class TestReport(unittest.TestCase):
                 "pydiso",
                 "numba",
                 "dask",
+                "sklearn",
+                "pandas",
                 "sympy",
                 "IPython",
                 "ipywidgets",

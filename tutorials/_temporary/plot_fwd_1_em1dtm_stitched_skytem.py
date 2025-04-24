@@ -18,15 +18,14 @@ import os
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 from discretize import TensorMesh
-from pymatsolver import PardisoSolver
 
-from SimPEG import maps
-from SimPEG.utils import mkvc
-import SimPEG.electromagnetics.time_domain_1d as em1d
-from SimPEG.electromagnetics.utils.em1d_utils import (
+from simpeg import maps
+from simpeg.utils import mkvc
+import simpeg.electromagnetics.time_domain_1d as em1d
+from simpeg.electromagnetics.utils.em1d_utils import (
     get_vertical_discretization_time,
 )
-from SimPEG.electromagnetics.time_domain_1d.known_waveforms import (
+from simpeg.electromagnetics.time_domain_1d.known_waveforms import (
     skytem_HM_2015,
     skytem_LM_2015,
 )
@@ -265,7 +264,6 @@ simulation = em1d.simulation.StitchedEM1DTMSimulation(
     parallel=False,
     n_cpu=2,
     verbose=True,
-    Solver=PardisoSolver,
 )
 
 # simulation.model = sounding_models

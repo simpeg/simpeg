@@ -1,6 +1,6 @@
-from SimPEG import tests, utils
+from simpeg import tests, utils
 import numpy as np
-import SimPEG.electromagnetics.analytics.FDEMcasing as Casing
+import simpeg.electromagnetics.analytics.FDEMcasing as Casing
 import unittest
 from scipy.constants import mu_0
 
@@ -12,9 +12,10 @@ b = a + 1e-2
 sigma = np.r_[10.0, 5.5e6, 1e-1]
 mu = mu_0 * np.r_[1.0, 100.0, 1.0]
 srcloc = np.r_[0.0, 0.0, 0.0]
-xobs = np.random.rand(n) + 10.0
+rng = np.random.default_rng(seed=42)
+xobs = rng.uniform(size=n) + 10.0
 yobs = np.zeros(n)
-zobs = np.random.randn(n)
+zobs = rng.normal(size=n)
 
 
 def CasingMagDipoleDeriv_r(x):
@@ -63,15 +64,29 @@ def CasingMagDipole2Deriv_z_z(z):
 
 class Casing_DerivTest(unittest.TestCase):
     def test_derivs(self):
+        rng = np.random.default_rng(seed=42)
+
         tests.check_derivative(
-            CasingMagDipoleDeriv_r, np.ones(n) * 10 + np.random.randn(n), plotIt=False
+            CasingMagDipoleDeriv_r,
+            np.ones(n) * 10 + rng.normal(size=n),
+            plotIt=False,
+            random_seed=rng,
         )
-        tests.check_derivative(CasingMagDipoleDeriv_z, np.random.randn(n), plotIt=False)
+
+        tests.check_derivative(
+            CasingMagDipoleDeriv_z, rng.normal(size=n), plotIt=False, random_seed=rng
+        )
+
         tests.check_derivative(
             CasingMagDipole2Deriv_z_r,
-            np.ones(n) * 10 + np.random.randn(n),
+            np.ones(n) * 10 + rng.normal(size=n),
             plotIt=False,
+            random_seed=rng,
         )
+
         tests.check_derivative(
-            CasingMagDipole2Deriv_z_z, np.random.randn(n), plotIt=False
+            CasingMagDipole2Deriv_z_z,
+            rng.normal(size=n),
+            plotIt=False,
+            random_seed=rng,
         )

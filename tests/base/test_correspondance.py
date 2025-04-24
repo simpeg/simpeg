@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from discretize import TensorMesh
-from SimPEG import (
+from simpeg import (
     maps,
     regularization,
 )
@@ -30,7 +30,7 @@ class LinearCorrespondenceTest(unittest.TestCase):
         corr = regularization.LinearCorrespondence(
             mesh,
             wire_map=wires,
-            indActive=actv,
+            active_cells=actv,
         )
 
         self.mesh = mesh
@@ -43,8 +43,8 @@ class LinearCorrespondenceTest(unittest.TestCase):
 
         """
         corr = self.corr
-        self.assertTrue(corr._test_deriv())
-        self.assertTrue(corr._test_deriv2(expectedOrder=2))
+        self.assertTrue(corr._test_deriv(random_seed=10))
+        self.assertTrue(corr._test_deriv2(random_seed=10, expectedOrder=2))
 
     def test_deriv2_no_arg(self):
         m = np.random.randn(2 * len(self.mesh))

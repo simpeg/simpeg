@@ -1,7 +1,9 @@
 import unittest
 import discretize
 from discretize.utils import active_from_xyz
-from SimPEG import (
+import pytest
+import matplotlib.pyplot as plt
+from simpeg import (
     utils,
     maps,
     regularization,
@@ -13,17 +15,15 @@ from SimPEG import (
 )
 import numpy as np
 
-# import SimPEG.PF as PF
-from SimPEG.potential_fields import magnetics as mag
+# import simpeg.PF as PF
+from simpeg.potential_fields import magnetics as mag
 import shutil
 
 
 class MagInvLinProblemTest(unittest.TestCase):
     def setUp(self):
-        np.random.seed(0)
-
         # Define the inducing field parameter
-        H0 = (50000, 90, 0)
+        h0_amplitude, h0_inclination, h0_declination = (50000, 90, 0)
 
         # Create a mesh
         dx = 5.0
@@ -59,7 +59,12 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Create a MAGsurvey
         rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
         rxLoc = mag.Point(rxLoc)
-        srcField = mag.SourceField([rxLoc], parameters=H0)
+        srcField = mag.UniformBackgroundField(
+            receiver_list=[rxLoc],
+            amplitude=h0_amplitude,
+            inclination=h0_inclination,
+            declination=h0_declination,
+        )
         survey = mag.Survey(srcField)
 
         # We can now create a susceptibility model and generate data
@@ -80,7 +85,7 @@ class MagInvLinProblemTest(unittest.TestCase):
             self.mesh,
             survey=survey,
             chiMap=idenMap,
-            ind_active=actv,
+            active_cells=actv,
             store_sensitivities="disk",
             n_processes=None,
         )
@@ -90,15 +95,15 @@ class MagInvLinProblemTest(unittest.TestCase):
         data = sim.make_synthetic_data(
             self.model,
             relative_error=0.0,
-            noise_floor=1.0,
+            noise_floor=2.0,
             add_noise=True,
             random_seed=2,
         )
 
         # Create a regularization
-        reg = regularization.Sparse(self.mesh, indActive=actv, mapping=idenMap)
+        reg = regularization.Sparse(self.mesh, active_cells=actv, mapping=idenMap)
         reg.norms = [0, 0, 0, 0]
-        reg.gradientType = "components"
+        reg.gradient_type = "components"
 
         # Data misfit function
         dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
@@ -112,11 +117,17 @@ class MagInvLinProblemTest(unittest.TestCase):
         betaest = directives.BetaEstimate_ByEig()
 
         # Here is where the norms are applied
-        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=1)
+        IRLS = directives.UpdateIRLS(f_min_change=1e-4)
         update_Jacobi = directives.UpdatePreconditioner()
-        sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+        sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
         self.inv = inversion.BaseInversion(
-            invProb, directiveList=[IRLS, sensitivity_weights, betaest, update_Jacobi]
+            invProb,
+            directiveList=[
+                IRLS,
+                sensitivity_weights,
+                betaest,
+                update_Jacobi,
+            ],
         )
 
     def test_mag_inverse(self):
@@ -124,19 +135,30 @@ class MagInvLinProblemTest(unittest.TestCase):
         mrec = self.inv.run(self.model)
         residual = np.linalg.norm(mrec - self.model) / np.linalg.norm(self.model)
 
-        # plt.figure()
-        # ax = plt.subplot(1, 2, 1)
-        # midx = int(self.mesh.shape_cells[0]/2)
-        # self.mesh.plot_slice(self.actvMap*mrec, ax=ax, normal='Y', ind=midx,
-        #                grid=True, clim=(0, 0.02))
-
-        # ax = plt.subplot(1, 2, 2)
-        # midx = int(self.mesh.shape_cells[0]/2)
-        # self.mesh.plot_slice(self.actvMap*self.model, ax=ax, normal='Y', ind=midx,
-        #                grid=True, clim=(0, 0.02))
-        # plt.show()
-
         self.assertTrue(residual < 0.05)
+
+    @pytest.mark.skip(reason="For validation only.")
+    def test_plot_results(self):
+        self.sim.store_sensitivities = "ram"
+        mrec = self.inv.run(self.model)
+        plt.figure()
+        ax = plt.subplot(1, 2, 1)
+        midx = int(self.mesh.shape_cells[0] / 2)
+        self.mesh.plot_slice(
+            self.actvMap * mrec, ax=ax, normal="Y", ind=midx, grid=True, clim=(0, 0.02)
+        )
+
+        ax = plt.subplot(1, 2, 2)
+        midx = int(self.mesh.shape_cells[0] / 2)
+        self.mesh.plot_slice(
+            self.actvMap * self.model,
+            ax=ax,
+            normal="Y",
+            ind=midx,
+            grid=True,
+            clim=(0, 0.02),
+        )
+        plt.show()
 
     def tearDown(self):
         # Clean up the working directory

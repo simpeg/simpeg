@@ -1,5 +1,7 @@
 import numpy as np
-from SimPEG import (
+import pytest
+import matplotlib.pyplot as plt
+from simpeg import (
     data,
     data_misfit,
     directives,
@@ -10,9 +12,9 @@ from SimPEG import (
     regularization,
 )
 
-from SimPEG.potential_fields import magnetics
-from SimPEG import utils
-from SimPEG.utils import mkvc
+from simpeg.potential_fields import magnetics
+from simpeg import utils
+from simpeg.utils import mkvc
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 import unittest
 import shutil
@@ -21,7 +23,7 @@ import shutil
 class AmpProblemTest(unittest.TestCase):
     def setUp(self):
         # We will assume a vertical inducing field
-        H0 = (50000.0, 90.0, 0.0)
+        h0_amplitude, h0_inclination, h0_declination = (50000.0, 90.0, 0.0)
 
         # The magnetization is set along a different direction (induced + remanence)
         M = np.array([45.0, 90.0])
@@ -46,8 +48,11 @@ class AmpProblemTest(unittest.TestCase):
         # Create a MAGsurvey
         rxLoc = np.c_[mkvc(X.T), mkvc(Y.T), mkvc(Z.T)]
         receiver_list = magnetics.receivers.Point(rxLoc)
-        srcField = magnetics.sources.SourceField(
-            receiver_list=[receiver_list], parameters=H0
+        srcField = magnetics.sources.UniformBackgroundField(
+            receiver_list=[receiver_list],
+            amplitude=h0_amplitude,
+            inclination=h0_inclination,
+            declination=h0_declination,
         )
         survey = magnetics.survey.Survey(srcField)
 
@@ -82,7 +87,7 @@ class AmpProblemTest(unittest.TestCase):
         )[0]
 
         # Assign magnetization value, inducing field strength will
-        # be applied in by the :class:`SimPEG.PF.Magnetics` problem
+        # be applied in by the :class:`simpeg.PF.Magnetics` problem
         model = np.zeros(mesh.nC)
         model[ind] = chi_e
 
@@ -97,7 +102,7 @@ class AmpProblemTest(unittest.TestCase):
             survey=survey,
             mesh=mesh,
             chiMap=idenMap,
-            ind_active=actv,
+            active_cells=actv,
             store_sensitivities="forward_only",
         )
         simulation.M = M_xyz
@@ -131,16 +136,16 @@ class AmpProblemTest(unittest.TestCase):
             mesh=mesh,
             survey=survey,
             chiMap=idenMap,
-            ind_active=surf,
+            active_cells=surf,
             store_sensitivities="ram",
         )
         simulation.model = mstart
 
         # Create a regularization function, in this case l2l2
         reg = regularization.Sparse(
-            mesh, indActive=surf, mapping=maps.IdentityMap(nP=nC), alpha_z=0
+            mesh, active_cells=surf, mapping=maps.IdentityMap(nP=nC), alpha_z=0
         )
-        reg.mref = np.zeros(nC)
+        reg.reference_model = np.zeros(nC)
 
         # Specify how the optimization will proceed, set susceptibility bounds to inf
         opt = optimization.ProjectedGNCG(
@@ -163,9 +168,10 @@ class AmpProblemTest(unittest.TestCase):
 
         # Target misfit to stop the inversion,
         # try to fit as much as possible of the signal, we don't want to lose anything
-        IRLS = directives.Update_IRLS(
-            f_min_change=1e-3, minGNiter=1, beta_tol=1e-1, max_irls_iterations=5
+        IRLS = directives.UpdateIRLS(
+            f_min_change=1e-3, misfit_tolerance=1e-1, max_irls_iterations=5
         )
+
         update_Jacobi = directives.UpdatePreconditioner()
         # Put all the parts together
         inv = inversion.BaseInversion(
@@ -185,8 +191,11 @@ class AmpProblemTest(unittest.TestCase):
         #
 
         receiver_list = magnetics.receivers.Point(rxLoc, components=["bx", "by", "bz"])
-        srcField = magnetics.sources.SourceField(
-            receiver_list=[receiver_list], parameters=H0
+        srcField = magnetics.sources.UniformBackgroundField(
+            receiver_list=[receiver_list],
+            amplitude=h0_amplitude,
+            inclination=h0_inclination,
+            declination=h0_declination,
         )
         surveyAmp = magnetics.survey.Survey(srcField)
 
@@ -194,7 +203,7 @@ class AmpProblemTest(unittest.TestCase):
             mesh=mesh,
             survey=surveyAmp,
             chiMap=idenMap,
-            ind_active=surf,
+            active_cells=surf,
             is_amplitude_data=True,
             store_sensitivities="forward_only",
         )
@@ -221,16 +230,16 @@ class AmpProblemTest(unittest.TestCase):
             survey=surveyAmp,
             mesh=mesh,
             chiMap=idenMap,
-            ind_active=actv,
+            active_cells=actv,
             is_amplitude_data=True,
         )
 
         data_obj = data.Data(survey, dobs=bAmp, noise_floor=wd)
 
         # Create a sparse regularization
-        reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
+        reg = regularization.Sparse(mesh, active_cells=actv, mapping=idenMap)
         reg.norms = [1, 0, 0, 0]
-        reg.mref = np.zeros(nC)
+        reg.reference_model = np.zeros(nC)
 
         # Data misfit function
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_obj)
@@ -246,14 +255,10 @@ class AmpProblemTest(unittest.TestCase):
         betaest = directives.BetaEstimate_ByEig(beta0_ratio=1)
 
         # Specify the sparse norms
-        IRLS = directives.Update_IRLS(
+        IRLS = directives.UpdateIRLS(
             max_irls_iterations=5,
             f_min_change=1e-3,
-            minGNiter=1,
-            coolingRate=1,
-            beta_search=False,
         )
-
         # Special directive specific to the mag amplitude problem. The sensitivity
         # weights are update between each iteration.
         update_SensWeight = directives.UpdateSensitivityWeights()
@@ -261,7 +266,13 @@ class AmpProblemTest(unittest.TestCase):
 
         # Put all together
         self.inv = inversion.BaseInversion(
-            invProb, directiveList=[update_SensWeight, betaest, IRLS, update_Jacobi]
+            invProb,
+            directiveList=[
+                update_SensWeight,
+                betaest,
+                IRLS,
+                update_Jacobi,
+            ],
         )
 
         self.mstart = mstart
@@ -273,36 +284,46 @@ class AmpProblemTest(unittest.TestCase):
         mrec_Amp = self.inv.run(self.mstart)
 
         residual = np.linalg.norm(mrec_Amp - self.model) / np.linalg.norm(self.model)
-        # print(residual)
-        # import matplotlib.pyplot as plt
-
-        # # Plot the amplitude model
-        # plt.figure()
-        # ax = plt.subplot(2, 1, 1)
-        # im = self.mesh.plot_slice(self.actvPlot*self.model,
-        #  ax=ax, normal='Y', ind=66,
-        #     pcolor_opts={"vmin":0., "vmax":0.01}
-        # )
-        # plt.colorbar(im[0])
-        # ax.set_xlim([-200, 200])
-        # ax.set_ylim([-100, 75])
-        # ax.set_xlabel('x')
-        # ax.set_ylabel('y')
-        # plt.gca().set_aspect('equal', adjustable='box')
-
-        # ax = plt.subplot(2, 1, 2)
-        # im = self.mesh.plot_slice(self.actvPlot*mrec_Amp, ax=ax, normal='Y', ind=66,
-        #     pcolor_opts={"vmin":0., "vmax":0.01}
-        # )
-        # plt.colorbar(im[0])
-        # ax.set_xlim([-200, 200])
-        # ax.set_ylim([-100, 75])
-        # ax.set_xlabel('x')
-        # ax.set_ylabel('y')
-        # plt.gca().set_aspect('equal', adjustable='box')
-
-        # plt.show()
         self.assertTrue(residual < 1.0)
+
+    @pytest.mark.skip(reason="For validation only.")
+    def test_plot_results(self):
+        self.sim.store_sensitivities = "ram"
+        mrec = self.inv.run(self.model)
+
+        # Plot the amplitude model
+        plt.figure()
+        ax = plt.subplot(2, 1, 1)
+        im = self.mesh.plot_slice(
+            self.actvPlot * self.model,
+            ax=ax,
+            normal="Y",
+            ind=66,
+            pcolor_opts={"vmin": 0.0, "vmax": 0.01},
+        )
+        plt.colorbar(im[0])
+        ax.set_xlim([-200, 200])
+        ax.set_ylim([-100, 75])
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        plt.gca().set_aspect("equal", adjustable="box")
+
+        ax = plt.subplot(2, 1, 2)
+        im = self.mesh.plot_slice(
+            self.actvPlot * mrec,
+            ax=ax,
+            normal="Y",
+            ind=66,
+            pcolor_opts={"vmin": 0.0, "vmax": 0.01},
+        )
+        plt.colorbar(im[0])
+        ax.set_xlim([-200, 200])
+        ax.set_ylim([-100, 75])
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        plt.gca().set_aspect("equal", adjustable="box")
+
+        plt.show()
 
     def tearDown(self):
         # Clean up the working directory

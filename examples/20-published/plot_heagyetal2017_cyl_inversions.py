@@ -18,8 +18,9 @@ https://doi.org/10.6084/m9.figshare.5035175
 
 This example was updated for SimPEG 0.14.0 on January 31st, 2020 by Joseph Capriotti
 """
+
 import discretize
-from SimPEG import (
+from simpeg import (
     maps,
     utils,
     data_misfit,
@@ -30,14 +31,9 @@ from SimPEG import (
     directives,
 )
 import numpy as np
-from SimPEG.electromagnetics import frequency_domain as FDEM, time_domain as TDEM, mu_0
+from simpeg.electromagnetics import frequency_domain as FDEM, time_domain as TDEM, mu_0
 import matplotlib.pyplot as plt
 import matplotlib
-
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
 
 
 def run(plotIt=True, saveFig=False):
@@ -92,7 +88,7 @@ def run(plotIt=True, saveFig=False):
 
     surveyFD = FDEM.Survey(source_list)
     prbFD = FDEM.Simulation3DMagneticFluxDensity(
-        mesh, survey=surveyFD, sigmaMap=mapping, solver=Solver
+        mesh, survey=surveyFD, sigmaMap=mapping
     )
     rel_err = 0.03
     dataFD = prbFD.make_synthetic_data(mtrue, relative_error=rel_err, add_noise=True)
@@ -101,14 +97,14 @@ def run(plotIt=True, saveFig=False):
     # FDEM inversion
     np.random.seed(1)
     dmisfit = data_misfit.L2DataMisfit(simulation=prbFD, data=dataFD)
-    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
+    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].active_cells]])
     reg = regularization.WeightedLeastSquares(regMesh)
     opt = optimization.InexactGaussNewton(maxIterCG=10)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
     # Inversion Directives
     beta = directives.BetaSchedule(coolingFactor=4, coolingRate=3)
-    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1.0, seed=518936)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1.0, random_seed=518936)
     target = directives.TargetMisfit()
     directiveList = [beta, betaest, target]
 
@@ -137,7 +133,7 @@ def run(plotIt=True, saveFig=False):
 
     surveyTD = TDEM.Survey([src])
     prbTD = TDEM.Simulation3DMagneticFluxDensity(
-        mesh, survey=surveyTD, sigmaMap=mapping, solver=Solver
+        mesh, survey=surveyTD, sigmaMap=mapping
     )
     prbTD.time_steps = [(5e-5, 10), (1e-4, 10), (5e-4, 10)]
 
@@ -147,14 +143,14 @@ def run(plotIt=True, saveFig=False):
 
     # TDEM inversion
     dmisfit = data_misfit.L2DataMisfit(simulation=prbTD, data=dataTD)
-    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
+    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].active_cells]])
     reg = regularization.WeightedLeastSquares(regMesh)
     opt = optimization.InexactGaussNewton(maxIterCG=10)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
     # directives
     beta = directives.BetaSchedule(coolingFactor=4, coolingRate=3)
-    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1.0, seed=518936)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=1.0, random_seed=518936)
     target = directives.TargetMisfit()
     directiveList = [beta, betaest, target]
 

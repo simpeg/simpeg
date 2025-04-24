@@ -16,13 +16,12 @@ least-squares approach. For this tutorial, we focus on the following:
 
 """
 
-
 import numpy as np
 import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
-from SimPEG import (
+from simpeg import (
     simulation,
     maps,
     data_misfit,
@@ -172,10 +171,10 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 #
 
 # Add sensitivity weights but don't update at each beta
-sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
 
 # Reach target misfit for L2 solution, then use IRLS until model stops changing.
-IRLS = directives.Update_IRLS(max_irls_iterations=40, minGNiter=1, f_min_change=1e-4)
+IRLS = directives.UpdateIRLS(max_irls_iterations=40, f_min_change=1e-4)
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
@@ -188,7 +187,13 @@ update_Jacobi = directives.UpdatePreconditioner()
 saveDict = directives.SaveOutputEveryIteration(save_txt=False)
 
 # Define the directives as a list
-directives_list = [sensitivity_weights, IRLS, starting_beta, update_Jacobi, saveDict]
+directives_list = [
+    sensitivity_weights,
+    IRLS,
+    starting_beta,
+    update_Jacobi,
+    saveDict,
+]
 
 
 #####################################################################
@@ -234,9 +239,13 @@ ax.plot(saveDict.phi_d, "k", lw=2)
 
 twin = ax.twinx()
 twin.plot(saveDict.phi_m, "k--", lw=2)
-ax.plot(np.r_[IRLS.iterStart, IRLS.iterStart], np.r_[0, np.max(saveDict.phi_d)], "k:")
+ax.plot(
+    np.r_[IRLS.metrics.start_irls_iter, IRLS.metrics.start_irls_iter],
+    np.r_[0, np.max(saveDict.phi_d)],
+    "k:",
+)
 ax.text(
-    IRLS.iterStart,
+    IRLS.metrics.start_irls_iter,
     0.0,
     "IRLS Start",
     va="bottom",

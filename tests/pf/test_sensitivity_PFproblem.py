@@ -4,11 +4,10 @@
 # #from simpegPF import BaseMag
 # #import matplotlib.pyplot as plt
 # import discretize
-# from pymatsolver import Pardiso
 # #import simpeg.PF as PF
-# from SimPEG import maps, utils
-# from SimPEG.potential_fields import magnetics as mag
-# from SimPEG.utils.model_builder import get_indices_sphere
+# from simpeg import maps, utils
+# from simpeg.potential_fields import magnetics as mag
+# from simpeg.utils.model_builder import get_indices_sphere
 # from scipy.constants import mu_0
 #
 #
@@ -41,7 +40,7 @@
 #
 #         components = ['bx', 'by', 'bz']
 #         receivers = mag.Point(rxLoc, components=components)
-#         srcField = mag.SourceField([receivers], parameters=H0)
+#         srcField = mag.UniformBackgroundField([receivers], parameters=H0)
 #
 #         self.survey = mag.Survey(srcField)
 #
@@ -49,7 +48,6 @@
 #             M,
 #             survey=self.survey,
 #             muMap=maps.ChiMap(M),
-#             solver=Pardiso,
 #         )
 #         dpre = self.sim.dpred(chi)
 #
@@ -79,7 +77,7 @@
 #
 #         d_mu = mu*0.8
 #         derChk = lambda m: [MfmuI(m), lambda mx: dMfmuI(self.chi, mx)]
-#         passed = Tests.check_derivative(derChk, mu, num=4, dx = d_mu, plotIt=False)
+#         passed = Tests.check_derivative(derChk, mu, num=4, dx = d_mu, plotIt=False, random_seed=0)
 #
 #         self.assertTrue(passed)
 #
@@ -121,7 +119,7 @@
 #
 #         d_chi = self.chi*0.8
 #         derChk = lambda m: [Cm_A(m), lambda mx: dCdm_A(self.chi, mx)]
-#         passed = Tests.check_derivative(derChk, self.chi, num=4, dx = d_chi, plotIt=False)
+#         passed = Tests.check_derivative(derChk, self.chi, num=4, dx = d_chi, plotIt=False, random_seed=0)
 #         self.assertTrue(passed)
 #
 #
@@ -169,7 +167,7 @@
 #
 #         d_chi = self.chi*0.8
 #         derChk = lambda m: [Cm_RHS(m), lambda mx: dCdm_RHS(self.chi, mx)]
-#         passed = Tests.check_derivative(derChk, self.chi, num=4, dx = d_chi, plotIt=False)
+#         passed = Tests.check_derivative(derChk, self.chi, num=4, dx = d_chi, plotIt=False, random_seed=0)
 #         self.assertTrue(passed)
 #
 #
@@ -218,7 +216,7 @@
 #
 #     #     derChk = lambda m: [ufun(m), lambda mx: dudm(self.chi, mx)]
 #     #     # TODO: I am not sure why the order get worse as step decreases .. --;
-#     #     passed = Tests.check_derivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False)
+#     #     passed = Tests.check_derivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False, random_seed=0)
 #     #     self.assertTrue(passed)
 #
 #
@@ -270,7 +268,7 @@
 #
 #     #     derChk = lambda m: [Bfun(m), lambda mx: dBdm(self.chi, mx)]
 #     #     # TODO: I am not sure why the order get worse as step decreases .. --;
-#     #     passed = Tests.check_derivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False)
+#     #     passed = Tests.check_derivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False, random_seed=0)
 #     #     self.assertTrue(passed)
 #
 #
@@ -284,7 +282,7 @@
 #
 #         derChk = lambda m: (self.survey.dpred(m), lambda v: self.prob.Jvec(m, v))
 #         # TODO: I am not sure why the order get worse as step decreases .. --;
-#         passed = Tests.check_derivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False)
+#         passed = Tests.check_derivative(derChk, self.chi, num=2, dx = d_chi, plotIt=False, random_seed=0)
 #         self.assertTrue(passed)
 #
 #     def test_Jtvec(self):
@@ -300,7 +298,7 @@
 #             return misfit, dmisfit
 #
 #         # TODO: I am not sure why the order get worse as step decreases .. --;
-#         passed = Tests.check_derivative(misfit, self.chi, num=4, plotIt=False)
+#         passed = Tests.check_derivative(misfit, self.chi, num=4, plotIt=False, random_seed=0)
 #         self.assertTrue(passed)
 #
 # if __name__ == '__main__':

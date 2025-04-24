@@ -1,10 +1,10 @@
 import unittest
 import numpy as np
 
-from SimPEG.data import Data
-from SimPEG.potential_fields import gravity, magnetics
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.utils.io_utils import (
+from simpeg.data import Data
+from simpeg.potential_fields import gravity, magnetics
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg.utils.io_utils import (
     write_grav3d_ubc,
     read_grav3d_ubc,
     write_gg3d_ubc,
@@ -242,9 +242,12 @@ class TestIO_MAG3D(unittest.TestCase):
         xyz = np.c_[x, y, z]
         rx = magnetics.receivers.Point(xyz, components="tmi")
 
-        inducing_field = (50000.0, 60.0, 15.0)
-        source_field = magnetics.sources.SourceField(
-            receiver_list=rx, parameters=inducing_field
+        h0_amplitude, h0_inclination, h0_declination = (50000.0, 60.0, 15.0)
+        source_field = magnetics.sources.UniformBackgroundField(
+            receiver_list=rx,
+            amplitude=h0_amplitude,
+            inclination=h0_inclination,
+            declination=h0_declination,
         )
         survey = magnetics.survey.Survey(source_field)
 
@@ -253,7 +256,9 @@ class TestIO_MAG3D(unittest.TestCase):
         self.std = std
 
         rx2 = magnetics.receivers.Point(xyz, components="tmi")
-        src_bad = magnetics.sources.SourceField([rx, rx2])
+        src_bad = magnetics.sources.UniformBackgroundField(
+            receiver_list=[rx, rx2], amplitude=50_000, inclination=90, declination=0
+        )
         survey_bad = magnetics.survey.Survey(src_bad)
         self.survey_bad = survey_bad
 
@@ -395,8 +400,8 @@ class TestIO_DCIP3D(unittest.TestCase):
             pp_sources.append(dc.sources.Pole(pp_receivers, a_loc))
             dpdp_sources.append(dc.sources.Dipole(dpdp_receivers, a_loc, b_loc))
 
-        self.pp_survey = dc.survey.Survey(pp_sources, survey_type="pole-pole")
-        self.dpdp_survey = dc.survey.Survey(dpdp_sources, survey_type="dipole-dipole")
+        self.pp_survey = dc.survey.Survey(pp_sources)
+        self.dpdp_survey = dc.survey.Survey(dpdp_sources)
 
         # Define data and uncertainties. In this case nD = 6
         n_data = len(xa) * len(xm)

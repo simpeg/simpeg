@@ -3,7 +3,7 @@
 DC Resistivity Forward Simulation in 2.5D
 =========================================
 
-Here we use the module *SimPEG.electromagnetics.static.resistivity* to predict
+Here we use the module *simpeg.electromagnetics.static.resistivity* to predict
 DC resistivity data and plot using a pseudosection. In this tutorial, we focus
 on the following:
 
@@ -22,13 +22,13 @@ on the following:
 #
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
+from discretize.utils import mkvc, active_from_xyz
 
-from SimPEG.utils import model_builder
-from SimPEG.utils.io_utils.io_utils_electromagnetics import write_dcip2d_ubc
-from SimPEG import maps, data
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static.utils.static_utils import (
+from simpeg.utils import model_builder
+from simpeg.utils.io_utils.io_utils_electromagnetics import write_dcip2d_ubc
+from simpeg import maps, data
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg.electromagnetics.static.utils.static_utils import (
     generate_dcip_sources_line,
     apparent_resistivity_from_voltage,
     plot_pseudosection,
@@ -40,10 +40,6 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
 
 write_output = False
 mpl.rcParams.update({"font.size": 16})
@@ -102,7 +98,7 @@ source_list = generate_dcip_sources_line(
 )
 
 # Define survey
-survey = dc.survey.Survey(source_list, survey_type=survey_type)
+survey = dc.survey.Survey(source_list)
 
 ###############################################################
 # Create Tree Mesh
@@ -123,11 +119,9 @@ hz = [(dh, nbcz)]
 mesh = TreeMesh([hx, hz], x0="CN")
 
 # Mesh refinement based on topography
-mesh = refine_tree_xyz(
-    mesh,
+mesh.refine_surface(
     topo_xyz[:, [0, 2]],
-    octree_levels=[0, 0, 4, 4],
-    method="surface",
+    padding_cells_by_level=[0, 0, 4, 4],
     finalize=False,
 )
 
@@ -144,16 +138,12 @@ unique_locations = np.unique(
     np.reshape(electrode_locations, (4 * survey.nD, 2)), axis=0
 )
 
-mesh = refine_tree_xyz(
-    mesh, unique_locations, octree_levels=[4, 4], method="radial", finalize=False
-)
+mesh.refine_points(unique_locations, padding_cells_by_level=[4, 4], finalize=False)
 
 # Refine core mesh region
 xp, zp = np.meshgrid([-600.0, 600.0], [-400.0, 0.0])
 xyz = np.c_[mkvc(xp), mkvc(zp)]
-mesh = refine_tree_xyz(
-    mesh, xyz, octree_levels=[0, 0, 2, 8], method="box", finalize=False
-)
+mesh.refine_bounding_box(xyz, padding_cells_by_level=[0, 0, 2, 8], finalize=False)
 
 mesh.finalize()
 
@@ -239,7 +229,7 @@ survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 #
 
 simulation = dc.simulation_2d.Simulation2DNodal(
-    mesh, survey=survey, sigmaMap=conductivity_map, solver=Solver
+    mesh, survey=survey, sigmaMap=conductivity_map
 )
 
 # Predict the data by running the simulation. The data are the raw voltage in

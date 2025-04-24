@@ -3,7 +3,7 @@ import pytest
 import discretize
 from discretize.utils import example_simplex_mesh
 
-import SimPEG.electromagnetics.static.resistivity as dc
+import simpeg.electromagnetics.static.resistivity as dc
 
 
 tens_2d = discretize.TensorMesh([8, 9])

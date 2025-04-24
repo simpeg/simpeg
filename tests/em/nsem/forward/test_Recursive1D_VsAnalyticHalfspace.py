@@ -1,8 +1,14 @@
 import unittest
-from SimPEG.electromagnetics import natural_source as nsem
-from SimPEG import maps
+import warnings
+
+from simpeg.electromagnetics import natural_source as nsem
+from simpeg import maps
 import numpy as np
 from scipy.constants import mu_0
+
+ns_rx = nsem.receivers
+
+import pytest
 
 
 def create_survey(freq):
@@ -59,6 +65,34 @@ class TestRecursiveForward(unittest.TestCase):
 
     def test_4(self):
         np.testing.assert_allclose(*compute_simulation(100.0, 1.0))
+
+
+@pytest.mark.parametrize(
+    "rx_class",
+    [
+        ns_rx.Impedance,
+        ns_rx.PointNaturalSource,
+        ns_rx.Admittance,
+        ns_rx.Tipper,
+        ns_rx.Point3DTipper,
+        ns_rx.ApparentConductivity,
+    ],
+)
+def test_incorrect_rx_types(rx_class):
+    loc = np.zeros((1, 3))
+    rx = rx_class(loc)
+    source = nsem.sources.Planewave(rx, frequency=10)
+    survey = nsem.Survey(source)
+    # make sure that only these exact classes do not issue warnings.
+    if rx_class in [ns_rx.Impedance, ns_rx.PointNaturalSource]:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            nsem.Simulation1DRecursive(survey=survey)
+    else:
+        with pytest.raises(
+            NotImplementedError, match="Simulation1DRecursive does not support .*"
+        ):
+            nsem.Simulation1DRecursive(survey=survey)
 
 
 if __name__ == "__main__":

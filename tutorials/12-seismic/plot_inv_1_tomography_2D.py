@@ -29,7 +29,7 @@ import tarfile
 
 from discretize import TensorMesh
 
-from SimPEG import (
+from simpeg import (
     data,
     maps,
     regularization,
@@ -41,7 +41,7 @@ from SimPEG import (
     utils,
 )
 
-from SimPEG.seismic import straight_ray_tomography as tomo
+from simpeg.seismic import straight_ray_tomography as tomo
 
 # sphinx_gallery_thumbnail_number = 3
 
@@ -240,11 +240,11 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 #
 
 # Reach target misfit for L2 solution, then use IRLS until model stops changing.
-update_IRLS = directives.Update_IRLS(
+update_IRLS = directives.UpdateIRLS(
     f_min_change=1e-4,
     max_irls_iterations=30,
-    coolEpsFact=1.5,
-    beta_tol=1e-2,
+    irls_cooling_factor=1.5,
+    misfit_tolerance=1e-2,
 )
 
 # Defining a starting value for the trade-off parameter (beta) between the data

@@ -5,12 +5,13 @@ PF: Gravity: Tiled Inversion Linear
 Invert data in tiles.
 
 """
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from SimPEG.potential_fields import gravity
-from SimPEG import (
+from simpeg.potential_fields import gravity
+from simpeg import (
     maps,
     data,
     data_misfit,
@@ -22,7 +23,7 @@ from SimPEG import (
 )
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 
-from SimPEG import utils
+from simpeg import utils
 
 ###############################################################################
 # Setup
@@ -137,7 +138,7 @@ survey = gravity.survey.Survey(srcField)
 
 # Create the forward simulation for the global dataset
 simulation = gravity.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, rhoMap=idenMap, ind_active=activeCells
+    survey=survey, mesh=mesh, rhoMap=idenMap, active_cells=activeCells
 )
 
 # Compute linear forward operator and compute some data
@@ -165,7 +166,7 @@ for ii, local_survey in enumerate(local_surveys):
         survey=local_survey,
         mesh=local_meshes[ii],
         rhoMap=tile_map,
-        ind_active=local_actives,
+        active_cells=local_actives,
         sensitivity_path=os.path.join("Inversion", f"Tile{ii}.zarr"),
     )
 
@@ -235,15 +236,15 @@ betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
 # Here is where the norms are applied
 # Use a threshold parameter empirically based on the distribution of
 # model parameters
-update_IRLS = directives.Update_IRLS(
+update_IRLS = directives.UpdateIRLS(
     f_min_change=1e-4,
     max_irls_iterations=0,
-    coolEpsFact=1.5,
-    beta_tol=1e-2,
+    irls_cooling_factor=1.5,
+    misfit_tolerance=1e-2,
 )
 saveDict = directives.SaveOutputEveryIteration(save_txt=False)
 update_Jacobi = directives.UpdatePreconditioner()
-sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
 inv = inversion.BaseInversion(
     invProb,
     directiveList=[update_IRLS, sensitivity_weights, betaest, update_Jacobi, saveDict],

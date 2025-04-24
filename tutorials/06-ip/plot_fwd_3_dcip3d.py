@@ -3,9 +3,9 @@
 DC/IP Forward Simulation in 3D
 ==============================
 
-Here we use the module *SimPEG.electromagnetics.static.resistivity* to predict
+Here we use the module *simpeg.electromagnetics.static.resistivity* to predict
 DC resistivity data on an OcTree mesh. Then we use the module
-*SimPEG.electromagnetics.static.induced_polarization* to predict IP data.
+*simpeg.electromagnetics.static.induced_polarization* to predict IP data.
 In this tutorial, we focus on the following:
 
     - How to define the survey
@@ -37,12 +37,12 @@ import matplotlib.pyplot as plt
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
 
-from SimPEG import maps, data
-from SimPEG.utils import model_builder
-from SimPEG.utils.io_utils.io_utils_electromagnetics import write_dcip_xyz
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static import induced_polarization as ip
-from SimPEG.electromagnetics.static.utils.static_utils import (
+from simpeg import maps, data
+from simpeg.utils import model_builder
+from simpeg.utils.io_utils.io_utils_electromagnetics import write_dcip_xyz
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg.electromagnetics.static import induced_polarization as ip
+from simpeg.electromagnetics.static.utils.static_utils import (
     generate_dcip_sources_line,
     apparent_resistivity_from_voltage,
 )
@@ -50,17 +50,13 @@ from SimPEG.electromagnetics.static.utils.static_utils import (
 # To plot DC/IP data in 3D, the user must have the plotly package
 try:
     import plotly
-    from SimPEG.electromagnetics.static.utils.static_utils import plot_3d_pseudosection
+    from simpeg.electromagnetics.static.utils.static_utils import plot_3d_pseudosection
 
     has_plotly = True
 except ImportError:
     has_plotly = False
     pass
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
 
 mpl.rcParams.update({"font.size": 16})
 write_output = False
@@ -262,9 +258,7 @@ dc_survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
 #
 
 # Define the DC simulation
-dc_simulation = dc.Simulation3DNodal(
-    mesh, survey=dc_survey, sigmaMap=conductivity_map, solver=Solver
-)
+dc_simulation = dc.Simulation3DNodal(mesh, survey=dc_survey, sigmaMap=conductivity_map)
 
 # Predict the data by running the simulation. The data are the measured voltage
 # normalized by the source current in units of V/A.
@@ -360,7 +354,7 @@ for ii in range(0, len(end_locations_list)):
     )
 
 # Define survey
-ip_survey = ip.survey.Survey(source_list, survey_type=survey_type)
+ip_survey = ip.survey.Survey(source_list)
 
 # Drape to discretized topography as before
 ip_survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
@@ -439,7 +433,6 @@ ip_simulation = ip.Simulation3DNodal(
     survey=ip_survey,
     etaMap=chargeability_map,
     sigma=conductivity_map * conductivity_model,
-    solver=Solver,
 )
 
 # Run forward simulation and predicted IP data. The data are the voltage (V)
