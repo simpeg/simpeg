@@ -1,5 +1,7 @@
+import hashlib
 import warnings
 import numpy as np
+from numpy.typing import NDArray
 import scipy.sparse as sp
 from geoana.kernels import (
     prism_fxxy,
@@ -11,6 +13,7 @@ from geoana.kernels import (
     prism_fzzz,
 )
 from scipy.constants import mu_0
+from scipy.sparse.linalg import LinearOperator, aslinearoperator
 
 from simpeg import props, utils
 from simpeg.utils import mat_utils, mkvc, sdiag
@@ -48,6 +51,18 @@ from ._numba_functions import (
     _sensitivity_tmi_derivative_serial,
     _sensitivity_tmi_derivative_2d_mesh_serial,
     _sensitivity_tmi_derivative_2d_mesh_parallel,
+    _mag_sensitivity_t_dot_v_serial,
+    _mag_sensitivity_t_dot_v_parallel,
+    _tmi_sensitivity_t_dot_v_serial,
+    _tmi_sensitivity_t_dot_v_parallel,
+    _tmi_derivative_sensitivity_t_dot_v_serial,
+    _tmi_derivative_sensitivity_t_dot_v_parallel,
+    _diagonal_G_T_dot_G_mag_serial,
+    _diagonal_G_T_dot_G_mag_parallel,
+    _diagonal_G_T_dot_G_tmi_serial,
+    _diagonal_G_T_dot_G_tmi_parallel,
+    _diagonal_G_T_dot_G_tmi_deriv_serial,
+    _diagonal_G_T_dot_G_tmi_deriv_parallel,
 )
 
 if choclo is not None:
@@ -205,9 +220,7 @@ class Simulation3DIntegral(BasePFSimulation):
         self.chi = chi
         self.chiMap = chiMap
 
-        self._G = None
         self._M = None
-        self._gtg_diagonal = None
         self.is_amplitude_data = is_amplitude_data
         self.modelMap = self.chiMap
 
@@ -229,6 +242,16 @@ class Simulation3DIntegral(BasePFSimulation):
                 self._forward_mag = _forward_mag_parallel
                 self._forward_tmi_derivative = _forward_tmi_derivative_parallel
                 self._sensitivity_tmi_derivative = _sensitivity_tmi_derivative_parallel
+                self._mag_sensitivity_t_dot_v = _mag_sensitivity_t_dot_v_parallel
+                self._tmi_sensitivity_t_dot_v = _tmi_sensitivity_t_dot_v_parallel
+                self._tmi_derivative_sensitivity_t_dot_v = (
+                    _tmi_derivative_sensitivity_t_dot_v_parallel
+                )
+                self._diagonal_G_T_dot_G_mag = _diagonal_G_T_dot_G_mag_parallel
+                self._diagonal_G_T_dot_G_tmi = _diagonal_G_T_dot_G_tmi_parallel
+                self._diagonal_G_T_dot_G_tmi_deriv = (
+                    _diagonal_G_T_dot_G_tmi_deriv_parallel
+                )
             else:
                 self._sensitivity_tmi = _sensitivity_tmi_serial
                 self._sensitivity_mag = _sensitivity_mag_serial
@@ -236,6 +259,16 @@ class Simulation3DIntegral(BasePFSimulation):
                 self._forward_mag = _forward_mag_serial
                 self._forward_tmi_derivative = _forward_tmi_derivative_serial
                 self._sensitivity_tmi_derivative = _sensitivity_tmi_derivative_serial
+                self._mag_sensitivity_t_dot_v = _mag_sensitivity_t_dot_v_serial
+                self._tmi_sensitivity_t_dot_v = _tmi_sensitivity_t_dot_v_serial
+                self._tmi_derivative_sensitivity_t_dot_v = (
+                    _tmi_derivative_sensitivity_t_dot_v_serial
+                )
+                self._diagonal_G_T_dot_G_mag = _diagonal_G_T_dot_G_mag_serial
+                self._diagonal_G_T_dot_G_tmi = _diagonal_G_T_dot_G_tmi_serial
+                self._diagonal_G_T_dot_G_tmi_deriv = (
+                    _diagonal_G_T_dot_G_tmi_deriv_serial
+                )
 
     @property
     def model_type(self):
@@ -306,13 +339,24 @@ class Simulation3DIntegral(BasePFSimulation):
         return fields
 
     @property
-    def G(self):
-        if getattr(self, "_G", None) is None:
-            if self.engine == "choclo":
-                self._G = self._sensitivity_matrix()
-            else:
-                self._G = self.linear_operator()
-
+    def G(self) -> NDArray | np.memmap | LinearOperator:
+        if not hasattr(self, "_G"):
+            match self.engine, self.store_sensitivities:
+                case ("choclo", "forward_only"):
+                    self._G = self._sensitivity_matrix_as_operator()
+                case ("choclo", _):
+                    self._G = self._sensitivity_matrix()
+                case ("geoana", "forward_only"):
+                    msg = (
+                        "Accessing matrix G with "
+                        'store_sensitivities="forward_only" and engine="geoana" '
+                        "hasn't been implemented yet."
+                        'Choose store_sensitivities="ram" or "disk", '
+                        'or another engine, like "choclo".'
+                    )
+                    raise NotImplementedError(msg)
+                case ("geoana", _):
+                    self._G = self.linear_operator()
         return self._G
 
     modelType = deprecate_property(
@@ -324,8 +368,7 @@ class Simulation3DIntegral(BasePFSimulation):
         """
         Number of data
         """
-        self._nD = self.survey.receiver_locations.shape[0]
-
+        self._nD = self.survey.nD if not self.is_amplitude_data else self.survey.nD // 3
         return self._nD
 
     @property
@@ -339,42 +382,195 @@ class Simulation3DIntegral(BasePFSimulation):
 
         return self._tmi_projection
 
+    def getJ(self, m, f=None) -> NDArray[np.float64 | np.float32] | LinearOperator:
+        r"""
+        Sensitivity matrix :math:`\mathbf{J}`.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        (nD, n_params) np.ndarray or scipy.sparse.linalg.LinearOperator.
+            Array or :class:`~scipy.sparse.linalg.LinearOperator` for the
+            :math:`\mathbf{J}` matrix.
+            A :class:`~scipy.sparse.linalg.LinearOperator` will be returned if
+            ``store_sensitivities`` is ``"forward_only"``, otherwise a dense
+            array will be returned.
+
+        Notes
+        -----
+        If ``store_sensitivities`` is ``"ram"`` or ``"disk"``, a dense array
+        for the ``J`` matrix is returned.
+        A :class:`~scipy.sparse.linalg.LinearOperator` is returned if
+        ``store_sensitivities`` is ``"forward_only"``. This object can perform
+        operations like ``J @ m`` or ``J.T @ v`` without allocating the full
+        ``J`` matrix in memory.
+        """
+        if self.is_amplitude_data:
+            msg = (
+                "The `getJ` method is not yet implemented to work with "
+                "`is_amplitude_data`."
+            )
+            raise NotImplementedError(msg)
+
+        # Need to assign the model, so the chiDeriv can be computed (if the
+        # model is None, the chiDeriv is going to be Zero).
+        self.model = m
+        chiDeriv = (
+            self.chiDeriv
+            if not isinstance(self.G, LinearOperator)
+            else aslinearoperator(self.chiDeriv)
+        )
+        return self.G @ chiDeriv
+
     def getJtJdiag(self, m, W=None, f=None):
+        r"""
+        Compute diagonal of :math:`\mathbf{J}^T \mathbf{J}``.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        W : (nD, nD) np.ndarray or scipy.sparse.sparray, optional
+            Diagonal matrix with the square root of the weights. If not None,
+            the function returns the diagonal of
+            :math:`\mathbf{J}^T \mathbf{W}^T \mathbf{W} \mathbf{J}``.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        (nparam) np.ndarray
+            Array with the diagonal of ``J.T @ J``.
+
+        Notes
+        -----
+        If ``store_sensitivities`` is ``"forward_only"``, the ``G`` matrix is
+        never allocated in memory, and the diagonal is obtained by
+        accumulation, computing each element of the ``G`` matrix on the fly.
+
+        This method caches the diagonal ``G.T @ W.T @ W @ G`` and the sha256
+        hash of the diagonal of the ``W`` matrix. This way, if same weights are
+        passed to it, it reuses the cached diagonal so it doesn't need to be
+        recomputed.
+        If new weights are passed, the cache is updated with the latest
+        diagonal of ``G.T @ W.T @ W @ G``.
         """
-        Return the diagonal of JtJ
-        """
+        # Need to assign the model, so the chiDeriv can be computed (if the
+        # model is None, the chiDeriv is going to be Zero).
         self.model = m
 
-        if W is None:
-            W = np.ones(self.survey.nD)
-        else:
-            W = W.diagonal() ** 2
-        if getattr(self, "_gtg_diagonal", None) is None:
-            diag = np.zeros(self.G.shape[1])
-            if not self.is_amplitude_data:
-                for i in range(len(W)):
-                    diag += W[i] * (self.G[i] * self.G[i])
-            else:
+        # We should probably check that W is diagonal. Let's assume it for now.
+        weights = (
+            W.diagonal() ** 2
+            if W is not None
+            else np.ones(self.survey.nD, dtype=np.float64)
+        )
+
+        # Compute gtg (G.T @ W.T @ W @ G) if it's not cached, or if the
+        # weights are not the same.
+        weights_sha256 = hashlib.sha256(weights)
+        use_cached_gtg = (
+            hasattr(self, "_gtg_diagonal")
+            and hasattr(self, "_weights_sha256")
+            and self._weights_sha256.digest() == weights_sha256.digest()
+        )
+        if not use_cached_gtg:
+            self._gtg_diagonal = self._get_gtg_diagonal(weights)
+            self._weights_sha256 = weights_sha256
+
+        # Multiply the gtg_diagonal by the derivative of the mapping
+        diagonal = mkvc(
+            (sdiag(np.sqrt(self._gtg_diagonal)) @ self.chiDeriv).power(2).sum(axis=0)
+        )
+        return diagonal
+
+    def _get_gtg_diagonal(self, weights: NDArray) -> NDArray:
+        """
+        Compute the diagonal of ``G.T @ W.T @ W @ G``.
+
+        Parameters
+        ----------
+        weights : np.ndarray
+            Weights array: diagonal of ``W.T @ W``.
+
+        Returns
+        -------
+        np.ndarray
+        """
+        match (self.engine, self.store_sensitivities, self.is_amplitude_data):
+            case ("geoana", "forward_only", _):
+                msg = (
+                    "Computing the diagonal of `G.T @ G` using "
+                    "`'forward_only'` and `'geoana'` as engine hasn't been "
+                    "implemented yet."
+                )
+                raise NotImplementedError(msg)
+            case ("choclo", "forward_only", True):
+                msg = (
+                    "Computing the diagonal of `G.T @ G` using "
+                    "`'forward_only'` and `is_amplitude_data` hasn't been "
+                    "implemented yet."
+                )
+                raise NotImplementedError(msg)
+            case ("choclo", "forward_only", False):
+                gtg_diagonal = self._gtg_diagonal_without_building_g(weights)
+            case (_, _, False):
+                # In Einstein notation, the j-th element of the diagonal is:
+                #   d_j = w_i * G_{ij} * G_{ij}
+                gtg_diagonal = np.asarray(
+                    np.einsum("i,ij,ij->j", weights, self.G, self.G)
+                )
+            case (_, _, True):
                 ampDeriv = self.ampDeriv
                 Gx = self.G[::3]
                 Gy = self.G[1::3]
                 Gz = self.G[2::3]
-                for i in range(len(W)):
+                gtg_diagonal = np.zeros(self.G.shape[1])
+                for i in range(weights.size):
                     row = (
                         ampDeriv[0, i] * Gx[i]
                         + ampDeriv[1, i] * Gy[i]
                         + ampDeriv[2, i] * Gz[i]
                     )
-                    diag += W[i] * (row * row)
-            self._gtg_diagonal = diag
-        else:
-            diag = self._gtg_diagonal
-        return mkvc((sdiag(np.sqrt(diag)) @ self.chiDeriv).power(2).sum(axis=0))
+                    gtg_diagonal += weights[i] * (row * row)
+        return gtg_diagonal
 
     def Jvec(self, m, v, f=None):
+        """
+        Dot product between sensitivity matrix and a vector.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters. This array is used to compute the ``J``
+            matrix.
+        v : (n_param,) numpy.ndarray
+            Vector used in the matrix-vector multiplication.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        (nD,) numpy.ndarray
+
+        Notes
+        -----
+        If ``store_sensitivities`` is set to ``"forward_only"``, then the
+        matrix `G` is never fully constructed, and the dot product is computed
+        by accumulation, computing the matrix elements on the fly. Otherwise,
+        the full matrix ``G`` is constructed and stored either in memory or
+        disk.
+        """
+        # Need to assign the model, so the chiDeriv can be computed (if the
+        # model is None, the chiDeriv is going to be Zero).
         self.model = m
         dmu_dm_v = self.chiDeriv @ v
-
         Jvec = self.G @ dmu_dm_v.astype(self.sensitivity_dtype, copy=False)
 
         if self.is_amplitude_data:
@@ -382,10 +578,37 @@ class Simulation3DIntegral(BasePFSimulation):
             Jvec = Jvec.reshape((-1, 3)).T  # reshape((3, -1), order="F")
             ampDeriv_Jvec = self.ampDeriv * Jvec
             return ampDeriv_Jvec[0] + ampDeriv_Jvec[1] + ampDeriv_Jvec[2]
-        else:
-            return Jvec
+
+        return Jvec
 
     def Jtvec(self, m, v, f=None):
+        """
+        Dot product between transposed sensitivity matrix and a vector.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters. This array is used to compute the ``J``
+            matrix.
+        v : (nD,) numpy.ndarray
+            Vector used in the matrix-vector multiplication.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        (nD,) numpy.ndarray
+
+        Notes
+        -----
+        If ``store_sensitivities`` is set to ``"forward_only"``, then the
+        matrix `G` is never fully constructed, and the dot product is computed
+        by accumulation, computing the matrix elements on the fly. Otherwise,
+        the full matrix ``G`` is constructed and stored either in memory or
+        disk.
+        """
+        # Need to assign the model, so the chiDeriv can be computed (if the
+        # model is None, the chiDeriv is going to be Zero).
         self.model = m
 
         if self.is_amplitude_data:
@@ -794,10 +1017,8 @@ class Simulation3DIntegral(BasePFSimulation):
         # Get regional field
         regional_field = self.survey.source_field.b0
         # Allocate sensitivity matrix
-        if self.model_type == "scalar":
-            n_columns = self.nC
-        else:
-            n_columns = 3 * self.nC
+        scalar_model = self.model_type == "scalar"
+        n_columns = self.nC if scalar_model else 3 * self.nC
         shape = (self.survey.nD, n_columns)
         if self.store_sensitivities == "disk":
             sensitivity_matrix = np.memmap(
@@ -813,7 +1034,6 @@ class Simulation3DIntegral(BasePFSimulation):
         constant_factor = 1 / 4 / np.pi
         # Start filling the sensitivity matrix
         index_offset = 0
-        scalar_model = self.model_type == "scalar"
         for components, receivers in self._get_components_and_receivers():
             if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
                 raise NotImplementedError(
@@ -871,6 +1091,194 @@ class Simulation3DIntegral(BasePFSimulation):
                     )
             index_offset += n_rows
         return sensitivity_matrix
+
+    def _sensitivity_matrix_as_operator(self):
+        """
+        Create a LinearOperator for the sensitivity matrix G.
+
+        Returns
+        -------
+        scipy.sparse.linalg.LinearOperator
+        """
+        n_columns = self.nC if self.model_type == "scalar" else self.nC * 3
+        shape = (self.survey.nD, n_columns)
+        linear_op = LinearOperator(
+            shape=shape,
+            matvec=self._forward,
+            rmatvec=self._sensitivity_matrix_transpose_dot_vec,
+            dtype=np.float64,
+        )
+        return linear_op
+
+    def _sensitivity_matrix_transpose_dot_vec(self, vector):
+        """
+        Compute ``G.T @ v`` without building ``G``.
+
+        Parameters
+        ----------
+        vector : (nD) numpy.ndarray
+            Vector used in the dot product.
+
+        Returns
+        -------
+        (n_active_cells) or (3 * n_active_cells) numpy.ndarray
+        """
+        # Gather active nodes and the indices of the nodes for each active cell
+        active_nodes, active_cell_nodes = self._get_active_nodes()
+        # Get regional field
+        regional_field = self.survey.source_field.b0
+
+        # Allocate resulting array.
+        scalar_model = self.model_type == "scalar"
+        result = np.zeros(self.nC if scalar_model else 3 * self.nC)
+
+        # Define the constant factor
+        constant_factor = 1 / 4 / np.pi
+
+        # Fill the result array
+        index_offset = 0
+        for components, receivers in self._get_components_and_receivers():
+            if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
+                raise NotImplementedError(
+                    f"Other components besides {CHOCLO_SUPPORTED_COMPONENTS} "
+                    "aren't implemented yet."
+                )
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                vector_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
+                )
+                if component == "tmi":
+                    self._tmi_sensitivity_t_dot_v(
+                        receivers,
+                        active_nodes,
+                        active_cell_nodes,
+                        regional_field,
+                        constant_factor,
+                        scalar_model,
+                        vector[vector_slice],
+                        result,
+                    )
+                elif component in ("tmi_x", "tmi_y", "tmi_z"):
+                    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
+                        CHOCLO_KERNELS[component]
+                    )
+                    self._tmi_derivative_sensitivity_t_dot_v(
+                        receivers,
+                        active_nodes,
+                        active_cell_nodes,
+                        regional_field,
+                        kernel_xx,
+                        kernel_yy,
+                        kernel_zz,
+                        kernel_xy,
+                        kernel_xz,
+                        kernel_yz,
+                        constant_factor,
+                        scalar_model,
+                        vector[vector_slice],
+                        result,
+                    )
+                else:
+                    kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
+                    self._mag_sensitivity_t_dot_v(
+                        receivers,
+                        active_nodes,
+                        active_cell_nodes,
+                        regional_field,
+                        kernel_x,
+                        kernel_y,
+                        kernel_z,
+                        constant_factor,
+                        scalar_model,
+                        vector[vector_slice],
+                        result,
+                    )
+            index_offset += n_rows
+        return result
+
+    def _gtg_diagonal_without_building_g(self, weights):
+        """
+        Compute the diagonal of ``G.T @ G`` without building the ``G`` matrix.
+
+        Parameters
+        -----------
+        weights : (nD,) array
+            Array with data weights. It should be the diagonal of the ``W``
+            matrix, squared.
+
+        Returns
+        -------
+        (n_active_cells) numpy.ndarray
+        """
+        # Gather active nodes and the indices of the nodes for each active cell
+        active_nodes, active_cell_nodes = self._get_active_nodes()
+        # Get regional field
+        regional_field = self.survey.source_field.b0
+        # Define the constant factor
+        constant_factor = 1 / 4 / np.pi
+
+        # Allocate array for the diagonal
+        scalar_model = self.model_type == "scalar"
+        n_columns = self.nC if scalar_model else 3 * self.nC
+        diagonal = np.zeros(n_columns, dtype=np.float64)
+
+        # Start filling the diagonal array
+        for components, receivers in self._get_components_and_receivers():
+            if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
+                raise NotImplementedError(
+                    f"Other components besides {CHOCLO_SUPPORTED_COMPONENTS} "
+                    "aren't implemented yet."
+                )
+            for component in components:
+                if component == "tmi":
+                    self._diagonal_G_T_dot_G_tmi(
+                        receivers,
+                        active_nodes,
+                        active_cell_nodes,
+                        regional_field,
+                        constant_factor,
+                        scalar_model,
+                        weights,
+                        diagonal,
+                    )
+                elif component in ("tmi_x", "tmi_y", "tmi_z"):
+                    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
+                        CHOCLO_KERNELS[component]
+                    )
+                    self._diagonal_G_T_dot_G_tmi_deriv(
+                        receivers,
+                        active_nodes,
+                        active_cell_nodes,
+                        regional_field,
+                        kernel_xx,
+                        kernel_yy,
+                        kernel_zz,
+                        kernel_xy,
+                        kernel_xz,
+                        kernel_yz,
+                        constant_factor,
+                        scalar_model,
+                        weights,
+                        diagonal,
+                    )
+                else:
+                    kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
+                    self._diagonal_G_T_dot_G_mag(
+                        receivers,
+                        active_nodes,
+                        active_cell_nodes,
+                        regional_field,
+                        kernel_x,
+                        kernel_y,
+                        kernel_z,
+                        constant_factor,
+                        scalar_model,
+                        weights,
+                        diagonal,
+                    )
+        return diagonal
 
 
 class SimulationEquivalentSourceLayer(
@@ -1038,10 +1446,8 @@ class SimulationEquivalentSourceLayer(
         # Get regional field
         regional_field = self.survey.source_field.b0
         # Allocate sensitivity matrix
-        if self.model_type == "scalar":
-            n_columns = self.nC
-        else:
-            n_columns = 3 * self.nC
+        scalar_model = self.model_type == "scalar"
+        n_columns = self.nC if scalar_model else 3 * self.nC
         shape = (self.survey.nD, n_columns)
         if self.store_sensitivities == "disk":
             sensitivity_matrix = np.memmap(
@@ -1055,7 +1461,6 @@ class SimulationEquivalentSourceLayer(
             sensitivity_matrix = np.empty(shape, dtype=self.sensitivity_dtype)
         # Start filling the sensitivity matrix
         index_offset = 0
-        scalar_model = self.model_type == "scalar"
         for components, receivers in self._get_components_and_receivers():
             if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
                 raise NotImplementedError(
@@ -1147,6 +1552,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
     def survey(self, obj):
         if obj is not None:
             obj = validate_type("survey", obj, Survey, cast=False)
+            self._validate_survey(obj)
         self._survey = obj
 
     @property
@@ -1524,8 +1930,8 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
             \text{TMI} = \vec{B}_s \cdot \hat{B}_0
 
         """
-        # TODO: There can be some different tyes of data like |B| or B
-        components = self.survey.components
+        # Get components for all receivers, assuming they all have the same components
+        components = self._get_components()
 
         fields = {}
         if "bx" in components or "tmi" in components:
@@ -1560,8 +1966,8 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         Especially, this function is for TMI data type
         """
-
-        components = self.survey.components
+        # Get components for all receivers, assuming they all have the same components
+        components = self._get_components()
 
         fields = {}
         if "bx" in components or "tmi" in components:
@@ -1584,6 +1990,58 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
             fields["tmi"] = bx * box + by * boy + bz * boz
 
         return sp.vstack([fields[comp] for comp in components])
+
+    def _get_components(self):
+        """
+        Get components of all receivers in the survey.
+
+        This function assumes that all receivers in the survey have the same
+        components in the same order.
+
+        Returns
+        -------
+        components : list of str
+            List of components shared by all receivers in the survey.
+
+        Raises
+        ------
+        ValueError
+            If the survey doesn't have any receiver, or if any receiver has
+            a different set of components than the rest.
+        """
+        # Validate survey first to ensure that the receivers have all the same
+        # components.
+        self._validate_survey(self.survey)
+        components = self.survey.source_field.receiver_list[0].components
+        return components
+
+    def _validate_survey(self, survey):
+        """
+        Validate a survey for the magnetic differential 3D simulation.
+
+        Parameters
+        ----------
+        survey : Survey
+            Survey object that will get validated.
+
+        Raises
+        ------
+        ValueError
+            If the survey doesn't have any receiver, or if any receiver has
+            a different set of components than the rest.
+        """
+        receivers = survey.source_field.receiver_list
+        if not receivers:
+            msg = "Found invalid survey without receivers."
+            raise ValueError(msg)
+        components = receivers[0].components
+        if not all(components == rx.components for rx in receivers):
+            msg = (
+                "Found invalid survey with receivers that have mixed components. "
+                f"Surveys for the {type(self).__name__} class must contain receivers "
+                "with the same components."
+            )
+            raise ValueError(msg)
 
     def projectFieldsAsVector(self, B):
         bfx = self.Qfx * B
