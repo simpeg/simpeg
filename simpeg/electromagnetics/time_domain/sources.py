@@ -1634,7 +1634,9 @@ class LineCurrent(BaseTDEMSrc):
         srcType=None,
         **kwargs,
     ):
-        super().__init__(receiver_list=receiver_list, location=location, **kwargs)
+        super().__init__(
+            receiver_list=receiver_list, location=location, srcType=srcType, **kwargs
+        )
         for rx in self.receiver_list:
             if getattr(rx, "use_source_receiver_offset", False):
                 raise ValueError(
@@ -2069,8 +2071,6 @@ class LineCurrent(BaseTDEMSrc):
         """
         if self.waveform.has_initial_fields is False:
             return Zero()
-        elif simulation._formulation != "HJ":
-            raise NotImplementedError
 
         if adjoint is True:
             return self._aInitialDeriv(
@@ -2107,11 +2107,12 @@ class LineCurrent(BaseTDEMSrc):
 # on faces
 class RawVec_Grounded(LineCurrent):
     def __init__(self, receiver_list=None, s_e=None, **kwargs):
+
+        srcType = kwargs.pop("srcType", None)
+        if srcType is not None and srcType != "galvanic":
+            raise Exception("expected srcType to be 'galvanic' for the RawVec_Grounded")
+        super().__init__(receiver_list, srcType="galvanic", **kwargs)
         self.integrate = False
-        kwargs.pop("srcType", None)
-        super(RawVec_Grounded, self).__init__(
-            receiver_list, srcType="galvanic", **kwargs
-        )
 
         if s_e is not None:
             self._Mfjs = self._s_e = s_e
