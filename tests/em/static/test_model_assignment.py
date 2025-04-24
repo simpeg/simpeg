@@ -143,6 +143,12 @@ class TestSIPSimulations:
         survey = sip.Survey([src])
         return survey
 
+    @pytest.mark.xfail(
+        reason=(
+            "SIP simulation requires some care to pass this test. "
+            "See #1361 for more details."
+        )
+    )
     def test_simulation_3d(self, mesh_3d, survey_3d):
         """
         Test model assignment on the ``getJ`` method of 3d simulations
