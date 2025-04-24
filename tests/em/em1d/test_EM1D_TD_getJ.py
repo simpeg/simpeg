@@ -1,3 +1,7 @@
+"""
+Test the getJ method of FDEM 1D simulation.
+"""
+
 import numpy as np
 import simpeg.electromagnetics.time_domain as tdem
 from simpeg import maps
@@ -77,20 +81,17 @@ def create_simulation_and_conductivities(identity_mapping: bool):
 
 
 def test_getJ():
-    # Compute dpred using two simulations: one that uses an identity map and
-    # another one that uses an exponential map.
-    # The model used for the former one will be the conductivities.
-    # The model used for the latter one will be the log of the conductivities.
-    dpreds = []
-    jacobians = []
-    models = []
+    """
+    Test if getJ returns different J matrices after passing different maps.
+    """
+    dpreds, jacobians = [], []
 
+    # Compute dpred and J using an identity map and an exp map
     for identity_mapping in (True, False):
         simulation, conductivities = create_simulation_and_conductivities(
             identity_mapping
         )
         model = conductivities if identity_mapping else np.log(conductivities)
-        models.append(model)
         dpreds.append(simulation.dpred(model))
         jac = simulation.getJ(model)
         jacobians.append(jac)
