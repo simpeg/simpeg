@@ -3,6 +3,7 @@ from discretize import tests, TensorMesh
 import simpeg.electromagnetics.frequency_domain as fdem
 import numpy as np
 from scipy.constants import mu_0
+from scipy.sparse import diags
 
 
 class TestEM1D_FD_Jacobian_MagDipole:
@@ -166,6 +167,32 @@ class TestEM1D_FD_Jacobian_MagDipole:
             derChk, m_ini, num=4, plotIt=False, eps=1e-27, random_seed=2345
         )
         assert passed
+
+    def test_jtjdiag(self):
+        # Conductivity
+        sigma_half = 0.01
+        sigma_blk = 0.1
+        sig = np.ones(self.nlayers) * sigma_half
+        sig[3] = sigma_blk
+
+        # Permeability
+        mu_half = mu_0
+        mu_blk = 2 * mu_0
+        mu = np.ones(self.nlayers) * mu_half
+        mu[3] = mu_blk
+
+        # General model
+        model = np.r_[
+            np.log(mu), np.log(sig), np.log(self.height), np.log(self.thicknesses)
+        ]
+
+        rng = np.random.default_rng(seed=42)
+        weights_matrix = diags(rng.random(size=self.sim.survey.nD))
+        jtj_diag = self.sim.getJtJdiag(model, W=weights_matrix)
+
+        J = self.sim.getJ(model)
+        expected = np.diag(J.T @ weights_matrix.T @ weights_matrix @ J)
+        np.testing.assert_allclose(expected, jtj_diag)
 
 
 class TestEM1D_FD_Jacobian_CircularLoop:
