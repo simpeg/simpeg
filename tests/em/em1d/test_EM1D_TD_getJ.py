@@ -2,9 +2,11 @@
 Test the getJ method of FDEM 1D simulation.
 """
 
+import pytest
 import numpy as np
 import simpeg.electromagnetics.time_domain as tdem
 from simpeg import maps
+from scipy.sparse import diags
 
 
 def create_simulation_and_conductivities(identity_mapping: bool):
@@ -101,3 +103,59 @@ def test_getJ():
 
     # The two J matrices should not be equal
     assert not np.allclose(*jacobians, atol=0.0)
+
+
+@pytest.mark.parametrize("mapping", ["identity", "expmap"])
+def test_JtJdiag(mapping):
+    """
+    Test the getJtJdiag method of the simulation.
+    """
+    identity_mapping = mapping == "identity"
+    simulation, conductivities = create_simulation_and_conductivities(identity_mapping)
+
+    model = conductivities if identity_mapping else np.log(conductivities)
+    rng = np.random.default_rng(seed=42)
+    weights_matrix = diags(rng.random(size=simulation.survey.nD))
+    jtj_diag = simulation.getJtJdiag(model, W=weights_matrix)
+
+    J = simulation.getJ(model)
+    expected = np.diag(J.T @ weights_matrix.T @ weights_matrix @ J)
+    np.testing.assert_allclose(expected, jtj_diag)
+
+
+@pytest.mark.parametrize("mapping", ["identity", "expmap"])
+def test_Jvec(mapping):
+    """
+    Test the Jvec method of the simulation.
+    """
+    identity_mapping = mapping == "identity"
+    simulation, conductivities = create_simulation_and_conductivities(identity_mapping)
+
+    model = conductivities if identity_mapping else np.log(conductivities)
+    rng = np.random.default_rng(seed=42)
+    vector = rng.random(size=model.size)
+    jvec = simulation.Jvec(model, vector)
+
+    J = simulation.getJ(model)
+    expected = J @ vector
+
+    np.testing.assert_allclose(expected, jvec)
+
+
+@pytest.mark.parametrize("mapping", ["identity", "expmap"])
+def test_Jtvec(mapping):
+    """
+    Test the Jtvec method of the simulation.
+    """
+    identity_mapping = mapping == "identity"
+    simulation, conductivities = create_simulation_and_conductivities(identity_mapping)
+
+    model = conductivities if identity_mapping else np.log(conductivities)
+    rng = np.random.default_rng(seed=42)
+    vector = rng.random(size=simulation.survey.nD)
+    jtvec = simulation.Jtvec(model, vector)
+
+    J = simulation.getJ(model)
+    expected = J.T @ vector
+
+    np.testing.assert_allclose(expected, jtvec)
