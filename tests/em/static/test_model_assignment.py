@@ -74,12 +74,15 @@ class TestDCSimulations:
         "simulation_class",
         (dc.simulation.Simulation3DNodal, dc.simulation.Simulation3DCellCentered),
     )
-    def test_simulation_3d(self, mesh_3d, survey_3d, simulation_class):
+    @pytest.mark.parametrize("storeJ", [True, False])
+    def test_simulation_3d(self, mesh_3d, survey_3d, simulation_class, storeJ):
         """
         Test model assignment on the ``getJ`` method of 3d simulations
         """
         mapping = IdentityMap(mesh_3d)
-        simulation = simulation_class(mesh=mesh_3d, survey=survey_3d, sigmaMap=mapping)
+        simulation = simulation_class(
+            mesh=mesh_3d, survey=survey_3d, sigmaMap=mapping, storeJ=storeJ
+        )
         model_1 = np.ones(mesh_3d.nC) * 1e-2
         model_2 = np.ones(mesh_3d.nC) * 1e-1
         # Call `getJ` passing a model and check if it was correctly assigned
@@ -95,12 +98,15 @@ class TestDCSimulations:
         "simulation_class",
         (dc.simulation_2d.Simulation2DNodal, dc.simulation_2d.Simulation2DCellCentered),
     )
-    def test_simulation_2d(self, mesh_2d, survey_2d, simulation_class):
+    @pytest.mark.parametrize("storeJ", [True, False])
+    def test_simulation_2d(self, mesh_2d, survey_2d, simulation_class, storeJ):
         """
         Test model assignment on the ``getJ`` method of 2d simulations
         """
         mapping = IdentityMap(mesh_2d)
-        simulation = simulation_class(mesh=mesh_2d, survey=survey_2d, sigmaMap=mapping)
+        simulation = simulation_class(
+            mesh=mesh_2d, survey=survey_2d, sigmaMap=mapping, storeJ=storeJ
+        )
         model_1 = np.ones(mesh_2d.nC) * 1e-2
         model_2 = np.ones(mesh_2d.nC) * 1e-1
         # Call `getJ` passing a model and check if it was correctly assigned
