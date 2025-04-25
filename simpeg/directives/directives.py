@@ -1839,7 +1839,7 @@ class SaveModelEveryIteration(SaveEveryIteration):
 
     @property
     def file_abs_path(self):
-        return self.directory / self._time_iter_file_name.with_suffix("npy")
+        return self.directory / self._time_iter_file_name.with_suffix(".npy")
 
     def endIter(self):
         self._mkdir_and_check_output_file(should_exist=False)
@@ -2101,7 +2101,7 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
     @property
     def file_abs_path(self):
         if self.on_disk:
-            return self.directory / self._time_iter_file_name.with_suffix("npz")
+            return self.directory / self._time_iter_file_name.with_suffix(".npz")
 
     def initialize(self):
         super(
