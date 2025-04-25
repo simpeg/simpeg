@@ -2104,9 +2104,7 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
             return self.directory / self._time_iter_file_name.with_suffix(".npz")
 
     def initialize(self):
-        super(
-            SaveModelEveryIteration
-        ).initialize()  # this skips SaveModelEveryIteration's initialize function.
+        super().initialize()
         self.outDict = {}
         if self.on_disk:
             print(
