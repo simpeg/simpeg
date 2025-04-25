@@ -1211,7 +1211,9 @@ class InexactGaussNewton(InexactCG, BFGS):
             M = sp.linalg.LinearOperator(
                 (self.xc.size, self.xc.size), self.bfgs, dtype=self.xc.dtype
             )
+            self._was_default_hinv = True
             return M
+        self._was_default_hinv = False
         return _approxHinv
 
     @approxHinv.setter
