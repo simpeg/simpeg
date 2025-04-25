@@ -1488,15 +1488,16 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
         if self.step_active_set and sum(Inactive) != self.xc.size:
             rhs_a = Active * -self.g
 
-            # reasonable guess at the step length for the gradient on the
-            # active cell boundaries. Basically scale it to have the same
-            # maximum as the cg step on the cells that are not on the
-            # boundary.
-            dm_i = max(abs(step))
-            dm_a = max(abs(rhs_a))
+            if np.any(rhs_a):
+                # reasonable guess at the step length for the gradient on the
+                # active cell boundaries. Basically scale it to have the same
+                # maximum as the cg step on the cells that are not on the
+                # boundary.
+                dm_i = max(abs(step))
+                dm_a = max(abs(rhs_a))
 
-            # add the active set's gradients.
-            step = step + self.active_set_grad_scale * (rhs_a * dm_i / dm_a)
+                # add the active set's gradients.
+                step += self.active_set_grad_scale * (rhs_a * dm_i / dm_a)
 
         # Only keep search directions going in the right direction
         step[self.bindingSet(self.xc)] = 0
