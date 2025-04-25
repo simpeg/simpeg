@@ -1364,6 +1364,11 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
             )
             cg_atol = 1e-3
             cg_rtol = 0.0
+        # defaults for if someone passes just cg_rtol or just cg_atol (to be removed on deprecation removal)
+        elif cg_atol is None:
+            cg_atol = 0.0
+        elif cg_rtol is None:
+            cg_rtol = 1e-3
         super().__init__(
             lower=lower,
             upper=upper,
