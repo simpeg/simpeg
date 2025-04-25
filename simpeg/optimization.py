@@ -1197,6 +1197,27 @@ class InexactGaussNewton(InexactCG, BFGS):
 
     name = "Inexact Gauss Newton"
 
+    @property
+    def approxHinv(self):
+        """
+        The approximate Hessian inverse is used to precondition CG.
+
+        Default uses BFGS, with an initial H0 of *bfgsH0*.
+
+        Must be a scipy.sparse.linalg.LinearOperator
+        """
+        _approxHinv = getattr(self, "_approxHinv", None)
+        if _approxHinv is None:
+            M = sp.linalg.LinearOperator(
+                (self.xc.size, self.xc.size), self.bfgs, dtype=self.xc.dtype
+            )
+            return M
+        return _approxHinv
+
+    @approxHinv.setter
+    def approxHinv(self, value):
+        self._approxHinv = value
+
     @timeIt
     def findSearchDirection(self):
         Hinv = SolverCG(
