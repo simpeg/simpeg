@@ -20,22 +20,20 @@ class Survey(BaseTimeSurvey):
     _n_pulse = 2
     _T = 8.0
 
-    def __init__(self, source_list=None, survey_geometry="surface", **kwargs):
-        if (key := "survey_type") in kwargs:
-            warnings.warn(
-                f"Argument '{key}' is ignored and will be removed in future "
-                "versions of SimPEG. Types of sources and their corresponding "
-                "receivers are obtained from their respective classes, without "
+    def __init__(self, source_list, **kwargs):
+        if kwargs.pop("survey_type", None) is not None:
+            raise TypeError(
+                "Argument 'survey_type' has been removed in SimPEG 0.24.0. Types of sources and"
+                "their corresponding receivers are obtained from their respective classes, without "
                 "the need to specify the survey type.",
-                FutureWarning,
-                stacklevel=1,
             )
-            kwargs.pop(key)
-
-        if source_list is None:
-            raise AttributeError("Survey cannot be instantiated without sources")
+        if kwargs.pop("survey_geometry", None) is not None:
+            warnings.warn(
+                "Argument 'survey_geometry' is deprecated and will be removed in SimPEG 0.25.0.",
+                FutureWarning,
+                stacklevel=2,
+            )
         super(Survey, self).__init__(source_list, **kwargs)
-        self.survey_geometry = survey_geometry
 
     @property
     def n_pulse(self):
@@ -61,56 +59,50 @@ class Survey(BaseTimeSurvey):
 
     @property
     def survey_geometry(self):
-        """Survey geometry; one of {"surface", "borehole", "general"}
+        """Survey geometry
+
+        This property is deprecated.
 
         Returns
         -------
         str
             Survey geometry; one of {"surface", "borehole", "general"}
         """
+        warnings.warn(
+            "Argument 'survey_geometry' is deprecated and will be removed in SimPEG 0.25.0.",
+            FutureWarning,
+            stacklevel=2,
+        )
         return self._survey_geometry
 
     @survey_geometry.setter
     def survey_geometry(self, var):
-        self._survey_geometry = validate_string(
+        warnings.warn(
+            "Argument 'survey_geometry' is deprecated and will be removed in SimPEG 0.25.0.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        var = validate_string(
             "survey_geometry", var, ("surface", "borehole", "general")
         )
+        self._survey_geometry = var
 
     @property
     def survey_type(self):
         """
         ``survey_type`` has been removed.
 
-        Survey type; one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
-
         .. important:
 
             The `survey_type` property has been removed. Types of sources and
             their corresponding receivers are obtained from their respective
             classes, without the need to specify the survey type.
-
-        Returns
-        -------
-        str
-            Survey type; one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
         """
-        warnings.warn(
-            "Property 'survey_type' has been removed."
-            "Types of sources and their corresponding receivers are obtained from "
-            "their respective classes, without the need to specify the survey type.",
-            FutureWarning,
-            stacklevel=1,
-        )
+        raise AttributeError("'survey_type' has been removed.")
 
     @survey_type.setter
     def survey_type(self, var):
-        warnings.warn(
-            "Property 'survey_type' has been removed."
-            "Types of sources and their corresponding receivers are obtained from "
-            "their respective classes, without the need to specify the survey type.",
-            FutureWarning,
-            stacklevel=1,
-        )
+        raise AttributeError("'survey_type' has been removed.")
 
     @property
     def n_locations(self):

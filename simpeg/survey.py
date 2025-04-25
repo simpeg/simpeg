@@ -290,7 +290,7 @@ class BaseSrc:
         Location of the source
     """
 
-    def __init__(self, receiver_list=None, location=None, **kwargs):
+    def __init__(self, receiver_list=None, location=None):
         if receiver_list is None:
             receiver_list = []
         self.receiver_list = receiver_list

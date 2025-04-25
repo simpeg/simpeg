@@ -6,7 +6,6 @@ from scipy.constants import mu_0
 
 from ...utils import Zero, sdiag
 from ...utils.code_utils import (
-    deprecate_property,
     validate_callable,
     validate_direction,
     validate_float,
@@ -528,18 +527,6 @@ class TriangularWaveform(TrapezoidWaveform):
     """
 
     def __init__(self, start_time, off_time, peak_time, **kwargs):
-        if kwargs.get("startTime", None):
-            AttributeError(
-                "startTime will be deprecated in 0.17.0. Please update your code to use start_time instead",
-            )
-        if kwargs.get("peak_time", None):
-            AttributeError(
-                "peak_time will be deprecated in 0.17.0. Please update your code to use peak_time instead",
-            )
-        if kwargs.get("offTime", None):
-            AttributeError(
-                "offTime will be deprecated in 0.17.0. Please update your code to use off_time instead",
-            )
 
         ramp_on = np.r_[start_time, peak_time]
         ramp_off = np.r_[peak_time, off_time]
@@ -1492,9 +1479,6 @@ class CircularLoop(MagDipole):
         if "moment" in kwargs:
             kwargs.pop("moment")
 
-        # Raise error on deprecated arguments
-        if (key := "N") in kwargs.keys():
-            raise TypeError(f"'{key}' property has been removed. Please use 'n_turns'.")
         self.n_turns = n_turns
 
         BaseTDEMSrc.__init__(
@@ -1594,10 +1578,6 @@ class CircularLoop(MagDipole):
         out = self._loop.vector_potential(obsLoc, coordinates)
         out[np.isnan(out)] = 0
         return self.n_turns * out
-
-    N = deprecate_property(
-        n_turns, "N", "n_turns", removal_version="0.19.0", error=True
-    )
 
 
 class LineCurrent(BaseTDEMSrc):
