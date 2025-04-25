@@ -1,8 +1,11 @@
+from abc import ABCMeta, abstractmethod
 from typing import TYPE_CHECKING
+
+from datetime import datetime
+import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
-import os
 import scipy.sparse as sp
 from ..typing import RandomSeed
 from ..data_misfit import BaseDataMisfit
@@ -1697,36 +1700,61 @@ class MultiTargetMisfits(InversionDirective):
                 print("All targets have been reached")
 
 
-class SaveEveryIteration(InversionDirective):
+class SaveEveryIteration(InversionDirective, metaclass=ABCMeta):
     """SaveEveryIteration
 
-    This directive saves an array at each iteration. The default
-    directory is the current directory and the models are saved as
-    ``InversionModel-YYYY-MM-DD-HH-MM-iter.npy``
+    This directive saves information at each iteration.
     """
 
-    def __init__(self, directory=".", name="InversionModel", **kwargs):
+    def __init__(self, directory=".", name="InversionModel", on_disk=True, **kwargs):
+        self._on_disk = validate_type("on_disk", on_disk, bool)
+
         super().__init__(**kwargs)
-        self.directory = directory
+        if self.on_disk:
+            self.directory = directory
+        else:
+            self.directory = None
         self.name = name
+        self._time_string_format = "%Y-%m-%d-%H-%M"
+        self._iter_format = "03d"
+        self._iter_string = "###"
+        self._start_time = self._time_string_format
+
+    def initialize(self):
+        self._start_time = datetime.now().strftime(self._time_string_format)
+        if opt := getattr(self, "opt", None):
+            max_digit = len(str(opt.maxIter))
+            self._iter_format = f"0{max_digit}d"
 
     @property
-    def directory(self):
+    def on_disk(self):
+        """Whether this object stores information to `file_abs_path`."""
+        return self._on_disk
+
+    @on_disk.setter
+    def on_disk(self, value):
+        self._on_disk = validate_type("on_disk", value, bool)
+
+    @property
+    def directory(self) -> pathlib.Path:
         """Directory to save results in.
 
         Returns
         -------
-        str
+        pathlib.Path
         """
+        if not self.on_disk:
+            raise AttributeError(
+                f"'{type(self).__qualname__}.directory' is only available if saving to disk."
+            )
         return self._directory
 
     @directory.setter
     def directory(self, value):
-        value = validate_string("directory", value)
-        fullpath = os.path.abspath(os.path.expanduser(value))
-
-        if not os.path.isdir(fullpath):
-            os.mkdir(fullpath)
+        if value is None and self.on_disk:
+            raise ValueError("Directory is not optional if 'on_disk==True'.")
+        if value is not None:
+            value = validate_type("directory", value, pathlib.Path).resolve()
         self._directory = value
 
     @property
@@ -1744,74 +1772,108 @@ class SaveEveryIteration(InversionDirective):
         self._name = validate_string("name", value)
 
     @property
-    def fileName(self):
-        if getattr(self, "_fileName", None) is None:
-            from datetime import datetime
+    def _time_iter_file_name(self) -> pathlib.Path:
+        time_string = self._start_time
+        if not getattr(self, "opt", None):
+            iter_string = "###"
+        else:
+            itr = getattr(self.opt, "iter", 0)
+            iter_string = f"{itr:{self._iter_format}}"
 
-            self._fileName = "{0!s}-{1!s}".format(
-                self.name, datetime.now().strftime("%Y-%m-%d-%H-%M")
+        return pathlib.Path(f"{self.name}_{time_string}_{iter_string}")
+
+    @property
+    def _time_file_name(self) -> pathlib.Path:
+        return pathlib.Path(f"{self.name}_{self._start_time}")
+
+    def _mkdir_and_check_output_file(self, should_exist=False):
+        self.directory.mkdir(exist_ok=True)
+        fp = self.file_abs_path
+        exists = fp.exists()
+        if exists and not should_exist:
+            warnings.warn(f"Overwriting file {fp}", UserWarning, stacklevel=2)
+        if not exists and should_exist:
+            warnings.warn(
+                f"File {fp} was not found, creating a new one.",
+                UserWarning,
+                stacklevel=2,
             )
-        return self._fileName
+
+    @property
+    def fileName(self):
+        warnings.warn(
+            "'fileName' as been deprecated and will be removed in SimPEG 0.26.0 use 'file_abs_path'",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.file_abs_path.stem
+
+    @property
+    @abstractmethod
+    def file_abs_path(self) -> pathlib.Path: ...
 
 
 class SaveModelEveryIteration(SaveEveryIteration):
     """SaveModelEveryIteration
 
     This directive saves the model as a numpy array at each iteration. The
-    default directory is the current directoy and the models are saved as
-    ``InversionModel-YYYY-MM-DD-HH-MM-iter.npy``
+    default directory is the current directory and the models are saved as
+    ``InversionModel_YYYY-MM-DD-HH-MM_iter.npy``
     """
 
+    def __init__(self, **kwargs):
+        kwargs.pop("on_disk", None)
+        super().__init__(on_disk=True, **kwargs)
+
     def initialize(self):
+        super().initialize()
         print(
-            "simpeg.SaveModelEveryIteration will save your models as: "
-            "'{0!s}###-{1!s}.npy'".format(self.directory + os.path.sep, self.fileName)
+            f"{type(self).__qualname__} will save your models as: "
+            f"'{self.file_abs_path}'"
         )
 
+    @property
+    def on_disk(self):
+        """This class always saves to disk."""
+        return True
+
+    @property
+    def file_abs_path(self):
+        return self.directory / self._time_iter_file_name.with_suffix("npy")
+
     def endIter(self):
-        np.save(
-            "{0!s}{1:03d}-{2!s}".format(
-                self.directory + os.path.sep, self.opt.iter, self.fileName
-            ),
-            self.opt.xc,
-        )
+        self._mkdir_and_check_output_file(should_exist=False)
+        np.save(self.file_abs_path, self.opt.xc)
 
 
 class SaveOutputEveryIteration(SaveEveryIteration):
     """SaveOutputEveryIteration"""
 
-    def __init__(self, save_txt=True, **kwargs):
-        super().__init__(**kwargs)
-
-        self.save_txt = save_txt
-
-    @property
-    def save_txt(self):
-        """Whether to save the output as a text file.
-
-        Returns
-        -------
-        bool
-        """
-        return self._save_txt
-
-    @save_txt.setter
-    def save_txt(self, value):
-        self._save_txt = validate_type("save_txt", value, bool)
+    def __init__(self, on_disk=True, **kwargs):
+        if (save_txt := kwargs.pop("save_txt", None)) is not None:
+            self.save_txt = save_txt
+            on_disk = self.save_txt
+        super().__init__(on_disk=on_disk, **kwargs)
 
     def initialize(self):
-        if self.save_txt is True:
+        super().initialize()
+        if self.on_disk:
+            fp = self.file_abs_path
             print(
-                "simpeg.SaveOutputEveryIteration will save your inversion "
-                "progress as: '###-{0!s}.txt'".format(self.fileName)
+                f"'{type(self).__qualname__}' will save your inversion "
+                f"progress to: '{fp}'"
             )
-            f = open(self.fileName + ".txt", "w")
-            header = "  #     beta     phi_d     phi_m   phi_m_small     phi_m_smoomth_x     phi_m_smoomth_y     phi_m_smoomth_z      phi\n"
-            f.write(header)
-            f.close()
+            self._mkdir_and_check_output_file(should_exist=False)
+            with open(fp, "w") as f:
+                f.write(f"{self._header}\n")
+        self._initialize_lists()
 
+    @property
+    def _header(self):
+        return "  #     beta     phi_d     phi_m   phi_m_small     phi_m_smoomth_x     phi_m_smoomth_y     phi_m_smoomth_z      phi"
+
+    def _initialize_lists(self):
         # Create a list of each
-
         self.beta = []
         self.phi_d = []
         self.phi_m = []
@@ -1820,6 +1882,18 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         self.phi_m_smooth_y = []
         self.phi_m_smooth_z = []
         self.phi = []
+
+    @property
+    def file_abs_path(self):
+        if self.save_txt:
+            return self.directory / self._time_file_name.with_suffix(".txt")
+
+    save_txt = deprecate_property(
+        SaveEveryIteration.on_disk,
+        "save_txt",
+        removal_version="0.26.0",
+        future_warn=True,
+    )
 
     def endIter(self):
         phi_s, phi_x, phi_y, phi_z = 0, 0, 0, 0
@@ -1848,26 +1922,35 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         self.phi_m_smooth_z.append(phi_z)
         self.phi.append(self.opt.f)
 
-        if self.save_txt:
-            f = open(self.fileName + ".txt", "a")
-            f.write(
-                " {0:3d} {1:1.4e} {2:1.4e} {3:1.4e} {4:1.4e} {5:1.4e} "
-                "{6:1.4e}  {7:1.4e}  {8:1.4e}\n".format(
-                    self.opt.iter,
-                    self.beta[self.opt.iter - 1],
-                    self.phi_d[self.opt.iter - 1],
-                    self.phi_m[self.opt.iter - 1],
-                    self.phi_m_small[self.opt.iter - 1],
-                    self.phi_m_smooth_x[self.opt.iter - 1],
-                    self.phi_m_smooth_y[self.opt.iter - 1],
-                    self.phi_m_smooth_z[self.opt.iter - 1],
-                    self.phi[self.opt.iter - 1],
+        if self.on_disk:
+            self._mkdir_and_check_output_file(should_exist=True)
+            with open(self.file_abs_path, "a") as f:
+                f.write(
+                    " {0:3d} {1:1.4e} {2:1.4e} {3:1.4e} {4:1.4e} {5:1.4e} "
+                    "{6:1.4e}  {7:1.4e}  {8:1.4e}\n".format(
+                        self.opt.iter,
+                        self.beta[-1],
+                        self.phi_d[-1],
+                        self.phi_m[-1],
+                        self.phi_m_small[-1],
+                        self.phi_m_smooth_x[-1],
+                        self.phi_m_smooth_y[-1],
+                        self.phi_m_smooth_z[-1],
+                        self.phi[-1],
+                    )
                 )
-            )
-            f.close()
 
-    def load_results(self):
-        results = np.loadtxt(self.fileName + str(".txt"), comments="#")
+    def load_results(self, file_name=None):
+        if file_name is None:
+            if not self.on_disk:
+                raise TypeError(
+                    f"'file_name' is a required argument if '{type(self).__qualname__}.on_disk' is `False`"
+                )
+            file_name = self.file_abs_path
+        results = np.loadtxt(file_name, comments="#")
+        if results.shape[1] != 9:
+            raise ValueError(f"{file_name} does not have valid results")
+
         self.beta = results[:, 1]
         self.phi_d = results[:, 2]
         self.phi_m = results[:, 3]
@@ -1875,12 +1958,11 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         self.phi_m_smooth_x = results[:, 5]
         self.phi_m_smooth_y = results[:, 6]
         self.phi_m_smooth_z = results[:, 7]
+        self.f = results[:, 8]
 
         self.phi_m_smooth = (
             self.phi_m_smooth_x + self.phi_m_smooth_y + self.phi_m_smooth_z
         )
-
-        self.f = results[:, 7]
 
         self.target_misfit = self.invProb.dmisfit.simulation.survey.nD
         self.i_target = None
@@ -2003,31 +2085,33 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
     """
 
     # Initialize the output dict
-    def __init__(self, saveOnDisk=False, **kwargs):
-        super().__init__(**kwargs)
-        self.saveOnDisk = saveOnDisk
+    def __init__(self, on_disk=False, **kwargs):
+        if (save_on_disk := kwargs.pop("saveOnDisk", None)) is not None:
+            self.saveOnDisk = save_on_disk
+            on_disk = self.saveOnDisk
+        super().__init__(on_disk=on_disk, **kwargs)
+
+    saveOnDisk = deprecate_property(
+        SaveEveryIteration.on_disk,
+        "saveOnDisk",
+        removal_version="0.26.0",
+        future_warn=True,
+    )
 
     @property
-    def saveOnDisk(self):
-        """Whether to save the output dict to disk.
-
-        Returns
-        -------
-        bool
-        """
-        return self._saveOnDisk
-
-    @saveOnDisk.setter
-    def saveOnDisk(self, value):
-        self._saveOnDisk = validate_type("saveOnDisk", value, bool)
+    def file_abs_path(self):
+        if self.on_disk:
+            return self.directory / self._time_iter_file_name.with_suffix("npz")
 
     def initialize(self):
+        super(
+            SaveModelEveryIteration
+        ).initialize()  # this skips SaveModelEveryIteration's initialize function.
         self.outDict = {}
-        if self.saveOnDisk:
+        if self.on_disk:
             print(
-                "simpeg.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '###-{0!s}.npz'".format(
-                    self.fileName
-                )
+                f"'{type(self).__qualname__}' will save your inversion progress as a dictionary to: "
+                f"'{self.file_abs_path}'"
             )
 
     def endIter(self):
@@ -2065,8 +2149,9 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
                     iterDict[reg_name + ".norm"] = norm
 
         # Save the file as a npz
-        if self.saveOnDisk:
-            np.savez("{:03d}-{:s}".format(self.opt.iter, self.fileName), iterDict)
+        if self.on_disk:
+            self._mkdir_and_check_output_file(should_exist=False)
+            np.savez(self.file_abs_path, iterDict)
 
         self.outDict[self.opt.iter] = iterDict
 
