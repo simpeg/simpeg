@@ -785,7 +785,7 @@ class Remember(object):
 
 class Bounded(object):
 
-    def __init__(self, lower=None, upper=None, **kwargs):
+    def __init__(self, *, lower=None, upper=None, **kwargs):
         self.lower = lower
         self.upper = upper
         super().__init__(**kwargs)
@@ -884,7 +884,7 @@ class Bounded(object):
 
 class InexactCG(object):
 
-    def __init__(self, cg_rtol=1e-1, cg_atol=0, cg_maxiter=5, **kwargs):
+    def __init__(self, *, cg_rtol=1e-1, cg_atol=0, cg_maxiter=5, **kwargs):
         super().__init__(**kwargs)
         self.cg_rtol = cg_rtol
         self.cg_atol = cg_atol
