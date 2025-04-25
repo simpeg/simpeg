@@ -163,6 +163,312 @@ def _sensitivity_gravity(
             )
 
 
+@jit(nopython=True, parallel=False)
+def _diagonal_G_T_dot_G_serial(
+    receivers,
+    nodes,
+    cell_nodes,
+    kernel_func,
+    constant_factor,
+    weights,
+    diagonal,
+):
+    """
+    Diagonal of ``G.T @ W.T @ W @ G`` without storing ``G``, in serial.
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    nodes : (n_active_nodes, 3) numpy.ndarray
+        Array with the location of the mesh nodes.
+    cell_nodes : (n_active_cells, 8) numpy.ndarray
+        Array of integers, where each row contains the indices of the nodes for
+        each active cell in the mesh.
+    kernel_func : callable
+        Kernel function that will be evaluated on each node of the mesh. Choose
+        one of the kernel functions in ``choclo.prism``.
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+    weights : (n_receivers,) numpy.ndarray
+        Array with data weights. It should be the diagonal of the ``W`` matrix,
+        squared.
+    diagonal : (n_active_cells,) numpy.ndarray
+        Array where the diagonal of ``G.T @ G`` will be added to.
+
+    Notes
+    -----
+    This function is meant to be run in serial. Use the
+    ``_diagonal_G_T_dot_G_parallel`` one for parallelized computations.
+    """
+    n_receivers = receivers.shape[0]
+    n_nodes = nodes.shape[0]
+    n_cells = cell_nodes.shape[0]
+    # Evaluate kernel function on each node, for each receiver location
+    for i in prange(n_receivers):
+        # Allocate vector for kernels evaluated on mesh nodes
+        kernels = np.empty(n_nodes)
+        for j in range(n_nodes):
+            kernels[j] = _evaluate_kernel(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                nodes[j, 0],
+                nodes[j, 1],
+                nodes[j, 2],
+                kernel_func,
+            )
+        # Add diagonal components in the running result.
+        for k in range(n_cells):
+            diagonal[k] += (
+                weights[i]
+                * (
+                    constant_factor
+                    * kernels_in_nodes_to_cell(
+                        kernels,
+                        cell_nodes[k, :],
+                    )
+                )
+                ** 2
+            )
+
+
+@jit(nopython=True, parallel=True)
+def _diagonal_G_T_dot_G_parallel(
+    receivers,
+    nodes,
+    cell_nodes,
+    kernel_func,
+    constant_factor,
+    weights,
+    diagonal,
+):
+    """
+    Diagonal of ``G.T @ W.T @ W @ G`` without storing ``G``, in parallel.
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    nodes : (n_active_nodes, 3) numpy.ndarray
+        Array with the location of the mesh nodes.
+    cell_nodes : (n_active_cells, 8) numpy.ndarray
+        Array of integers, where each row contains the indices of the nodes for
+        each active cell in the mesh.
+    kernel_func : callable
+        Kernel function that will be evaluated on each node of the mesh. Choose
+        one of the kernel functions in ``choclo.prism``.
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+    weights : (n_receivers,) numpy.ndarray
+        Array with data weights. It should be the diagonal of the ``W`` matrix,
+        squared.
+    diagonal : (n_active_cells,) numpy.ndarray
+        Array where the diagonal of ``G.T @ G`` will be added to.
+
+    Notes
+    -----
+    This function is meant to be run in parallel. Use the
+    ``_diagonal_G_T_dot_G_serial`` one for serialized computations.
+
+    This implementation instructs each thread to allocate their own array for
+    the current row of the sensitivity matrix. After computing the elements of
+    that row, it gets added to the running ``result`` array through a reduction
+    operation handled by Numba.
+    """
+    n_receivers = receivers.shape[0]
+    n_nodes = nodes.shape[0]
+    n_cells = cell_nodes.shape[0]
+    # Evaluate kernel function on each node, for each receiver location
+    for i in prange(n_receivers):
+        # Allocate vector for kernels evaluated on mesh nodes
+        kernels = np.empty(n_nodes)
+        for j in range(n_nodes):
+            kernels[j] = _evaluate_kernel(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                nodes[j, 0],
+                nodes[j, 1],
+                nodes[j, 2],
+                kernel_func,
+            )
+        # Allocate array for the diagonal elements for the current receiver.
+        local_diagonal = np.empty(n_cells)
+        for k in range(n_cells):
+            local_diagonal[k] = (
+                weights[i]
+                * (
+                    constant_factor
+                    * kernels_in_nodes_to_cell(
+                        kernels,
+                        cell_nodes[k, :],
+                    )
+                )
+                ** 2
+            )
+        # Add the result to the diagonal.
+        # Apply reduction operation to add the values of the local diagonal to
+        # the running diagonal array. Avoid slicing the `diagonal` array when
+        # updating it to avoid racing conditions, just add the `local_diagonal`
+        # to the `diagonal` variable.
+        diagonal += local_diagonal
+
+
+@jit(nopython=True, parallel=False)
+def _sensitivity_gravity_t_dot_v_serial(
+    receivers,
+    nodes,
+    cell_nodes,
+    kernel_func,
+    constant_factor,
+    vector,
+    result,
+):
+    """
+    Compute ``G.T @ v`` in serial, without building G.
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    nodes : (n_active_nodes, 3) numpy.ndarray
+        Array with the location of the mesh nodes.
+    cell_nodes : (n_active_cells, 8) numpy.ndarray
+        Array of integers, where each row contains the indices of the nodes for
+        each active cell in the mesh.
+    kernel_func : callable
+        Kernel function that will be evaluated on each node of the mesh. Choose
+        one of the kernel functions in ``choclo.prism``.
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+    vector : (n_receivers) numpy.ndarray
+        Array that represents the vector used in the dot product.
+    result : (n_active_cells) numpy.ndarray
+        Running result array where the output of the dot product will be added to.
+
+    Notes
+    -----
+    This function is meant to be run in serial. Writing to the ``result`` array
+    inside a parallel loop over the receivers generates a race condition that
+    leads to corrupted outputs.
+
+    A parallel implementation of this function is available in
+    ``_sensitivity_gravity_t_dot_v_parallel``.
+    """
+    n_receivers = receivers.shape[0]
+    n_nodes = nodes.shape[0]
+    n_cells = cell_nodes.shape[0]
+    # Evaluate kernel function on each node, for each receiver location
+    for i in range(n_receivers):
+        # Allocate vector for kernels evaluated on mesh nodes
+        kernels = np.empty(n_nodes)
+        for j in range(n_nodes):
+            kernels[j] = _evaluate_kernel(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                nodes[j, 0],
+                nodes[j, 1],
+                nodes[j, 2],
+                kernel_func,
+            )
+        # Compute the i-th row of the sensitivity matrix and multiply it by the
+        # i-th element of the vector.
+        for k in range(n_cells):
+            result[k] += (
+                constant_factor
+                * vector[i]
+                * kernels_in_nodes_to_cell(
+                    kernels,
+                    cell_nodes[k, :],
+                )
+            )
+
+
+@jit(nopython=True, parallel=True)
+def _sensitivity_gravity_t_dot_v_parallel(
+    receivers,
+    nodes,
+    cell_nodes,
+    kernel_func,
+    constant_factor,
+    vector,
+    result,
+):
+    """
+    Compute ``G.T @ v`` in parallel without building G.
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    nodes : (n_active_nodes, 3) numpy.ndarray
+        Array with the location of the mesh nodes.
+    cell_nodes : (n_active_cells, 8) numpy.ndarray
+        Array of integers, where each row contains the indices of the nodes for
+        each active cell in the mesh.
+    kernel_func : callable
+        Kernel function that will be evaluated on each node of the mesh. Choose
+        one of the kernel functions in ``choclo.prism``.
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+    vector : (n_receivers) numpy.ndarray
+        Array that represents the vector used in the dot product.
+    result : (n_active_cells) numpy.ndarray
+        Running result array where the output of the dot product will be added to.
+
+    Notes
+    -----
+    This function is meant to be run in parallel.
+    This implementation instructs each thread to allocate their own array for
+    the current row of the sensitivity matrix. After computing the elements of
+    that row, it gets added to the running ``result`` array through a reduction
+    operation handled by Numba.
+
+    A serialized implementation of this function is available in
+    ``_sensitivity_gravity_t_dot_v_serial``.
+    """
+    n_receivers = receivers.shape[0]
+    n_nodes = nodes.shape[0]
+    n_cells = cell_nodes.shape[0]
+    # Evaluate kernel function on each node, for each receiver location
+    for i in prange(n_receivers):
+        # Allocate vector for kernels evaluated on mesh nodes
+        kernels = np.empty(n_nodes)
+        # Allocate array for the current row of the sensitivity matrix
+        local_row = np.empty(n_cells)
+        for j in range(n_nodes):
+            kernels[j] = _evaluate_kernel(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                nodes[j, 0],
+                nodes[j, 1],
+                nodes[j, 2],
+                kernel_func,
+            )
+        # Compute fields from the kernel values
+        for k in range(n_cells):
+            local_row[k] = (
+                constant_factor
+                * vector[i]
+                * kernels_in_nodes_to_cell(
+                    kernels,
+                    cell_nodes[k, :],
+                )
+            )
+        # Apply reduction operation to add the values of the row to the running
+        # result. Avoid slicing the `result` array when updating it to avoid
+        # racing conditions, just add the `local_row` to the `results`
+        # variable.
+        result += local_row
+
+
 @jit(nopython=True)
 def _evaluate_kernel(
     receiver_x, receiver_y, receiver_z, node_x, node_y, node_z, kernel_func

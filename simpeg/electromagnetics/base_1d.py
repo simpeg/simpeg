@@ -334,7 +334,7 @@ class BaseEM1DSimulation(BaseSimulation):
             return mu_complex
 
     def Jvec(self, m, v, f=None):
-        Js = self.getJ(m, f=f)
+        Js = self._getJ(m, f=f)
         out = 0.0
         if self.hMap is not None:
             out = out + Js["dh"] @ (self.hDeriv @ v)
@@ -347,7 +347,7 @@ class BaseEM1DSimulation(BaseSimulation):
         return out
 
     def Jtvec(self, m, v, f=None):
-        Js = self.getJ(m, f=f)
+        Js = self._getJ(m, f=f)
         out = 0.0
         if self.hMap is not None:
             out = out + self.hDeriv.T @ (Js["dh"].T @ v)
@@ -558,8 +558,9 @@ class BaseEM1DSimulation(BaseSimulation):
                 C1s.append(np.exp(-lambd * (z + h)[:, None]) * C1 / offsets[:, None])
                 lambs.append(lambd)
                 n_w_past += n_w
-                Is.append(np.ones(n_w, dtype=int) * i_count)
-                i_count += 1
+                for _ in range(rx.locations.shape[0]):
+                    Is.append(np.ones(n_w, dtype=int) * i_count)
+                    i_count += 1
 
         # Store these on the simulation for faster future executions
         self._lambs = np.vstack(lambs)
@@ -600,7 +601,7 @@ class BaseEM1DSimulation(BaseSimulation):
 
     def getJtJdiag(self, m, W=None, f=None):
         if getattr(self, "_gtgdiag", None) is None:
-            Js = self.getJ(m, f=f)
+            Js = self._getJ(m, f=f)
             if W is None:
                 W = np.ones(self.survey.nD)
             else:
