@@ -1,13 +1,9 @@
 import os
-import warnings
 from multiprocessing.pool import Pool
 
 import discretize
 import numpy as np
 from discretize import TensorMesh, TreeMesh
-from scipy.sparse import csr_matrix as csr
-
-from simpeg.utils import mkvc
 
 from ..simulation import LinearSimulation
 from ..utils import validate_active_indices, validate_integer, validate_string
@@ -63,12 +59,6 @@ class BasePFSimulation(LinearSimulation):
         If True, the simulation will run in parallel. If False, it will
         run in serial. If ``engine`` is not ``"choclo"`` this argument will be
         ignored.
-    ind_active : np.ndarray of int or bool
-
-        .. deprecated:: 0.23.0
-
-           Argument ``ind_active`` is deprecated in favor of
-           ``active_cells`` and will be removed in SimPEG v0.24.0.
 
     Notes
     -----
@@ -96,28 +86,13 @@ class BasePFSimulation(LinearSimulation):
         sensitivity_dtype=np.float32,
         engine="geoana",
         numba_parallel=True,
-        ind_active=None,
         **kwargs,
     ):
-        # Deprecate ind_active argument
-        if ind_active is not None:
-            if active_cells is not None:
-                raise TypeError(
-                    "Cannot pass both 'active_cells' and 'ind_active'."
-                    "'ind_active' has been deprecated and will be removed in "
-                    " SimPEG v0.24.0, please use 'active_cells' instead.",
-                )
-            warnings.warn(
-                "'ind_active' has been deprecated and will be removed in "
+        # removed ind_active argument
+        if kwargs.pop("ind_active", None) is not None:
+            raise TypeError(
+                "'ind_active' has been removed in "
                 " SimPEG v0.24.0, please use 'active_cells' instead.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            active_cells = ind_active
-
-        if "forwardOnly" in kwargs:
-            raise AttributeError(
-                "forwardOnly was removed in SimPEG 0.17.0, please set store_sensitivities='forward_only'"
             )
 
         self.mesh = mesh
@@ -318,8 +293,7 @@ class BasePFSimulation(LinearSimulation):
         "ind_active",
         "active_cells",
         removal_version="0.24.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     def linear_operator(self):
@@ -530,110 +504,7 @@ def progress(iteration, prog, final):
     return prog
 
 
-def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
-    """Compute distance weights for potential field simulations.
-
-    Parameters
-    ----------
-    mesh : discretize.BaseMesh
-        A discretize mesh
-    receiver_locations : (n, 3) numpy.ndarray
-        Observation locations [x, y, z]
-    actv : (n_cell) numpy.ndarray of bool
-        Active cells vector [0:air , 1: ground]
-    R : float
-        Decay factor (mag=3, grav =2)
-    R0 : float
-        Stabilization factor. Usually a fraction of the minimum cell size
-
-    Returns
-    -------
-    wr : (n_cell) numpy.ndarray
-        Distance weighting model; 0 for all inactive cells
-    """
-    warnings.warn(
-        "The get_dist_wgt function has been deprecated, please import "
-        "simpeg.utils.distance_weighting. This will be removed in SimPEG 0.24.0",
-        FutureWarning,
-        stacklevel=2,
+def get_dist_wgt(*args, **kwargs):
+    raise NotImplementedError(
+        "The get_dist_wgt function has been removed in SimPEG 0.24.0, please import simpeg.utils.distance_weighting."
     )
-    # Find non-zero cells
-    if actv.dtype == "bool":
-        inds = (
-            np.asarray([inds for inds, elem in enumerate(actv, 1) if elem], dtype=int)
-            - 1
-        )
-    else:
-        inds = actv
-
-    nC = len(inds)
-
-    # Create active cell projector
-    P = csr((np.ones(nC), (inds, range(nC))), shape=(mesh.nC, nC))
-
-    # Geometrical constant
-    p = 1 / np.sqrt(3)
-
-    # Create cell center location
-    Ym, Xm, Zm = np.meshgrid(
-        mesh.cell_centers_y, mesh.cell_centers_x, mesh.cell_centers_z
-    )
-    hY, hX, hZ = np.meshgrid(mesh.h[1], mesh.h[0], mesh.h[2])
-
-    # Remove air cells
-    Xm = P.T * mkvc(Xm)
-    Ym = P.T * mkvc(Ym)
-    Zm = P.T * mkvc(Zm)
-
-    hX = P.T * mkvc(hX)
-    hY = P.T * mkvc(hY)
-    hZ = P.T * mkvc(hZ)
-
-    V = P.T * mkvc(mesh.cell_volumes)
-    wr = np.zeros(nC)
-
-    ndata = receiver_locations.shape[0]
-    count = -1
-    print("Begin calculation of distance weighting for R= " + str(R))
-
-    for dd in range(ndata):
-        nx1 = (Xm - hX * p - receiver_locations[dd, 0]) ** 2
-        nx2 = (Xm + hX * p - receiver_locations[dd, 0]) ** 2
-
-        ny1 = (Ym - hY * p - receiver_locations[dd, 1]) ** 2
-        ny2 = (Ym + hY * p - receiver_locations[dd, 1]) ** 2
-
-        nz1 = (Zm - hZ * p - receiver_locations[dd, 2]) ** 2
-        nz2 = (Zm + hZ * p - receiver_locations[dd, 2]) ** 2
-
-        R1 = np.sqrt(nx1 + ny1 + nz1)
-        R2 = np.sqrt(nx1 + ny1 + nz2)
-        R3 = np.sqrt(nx2 + ny1 + nz1)
-        R4 = np.sqrt(nx2 + ny1 + nz2)
-        R5 = np.sqrt(nx1 + ny2 + nz1)
-        R6 = np.sqrt(nx1 + ny2 + nz2)
-        R7 = np.sqrt(nx2 + ny2 + nz1)
-        R8 = np.sqrt(nx2 + ny2 + nz2)
-
-        temp = (
-            (R1 + R0) ** -R
-            + (R2 + R0) ** -R
-            + (R3 + R0) ** -R
-            + (R4 + R0) ** -R
-            + (R5 + R0) ** -R
-            + (R6 + R0) ** -R
-            + (R7 + R0) ** -R
-            + (R8 + R0) ** -R
-        )
-
-        wr = wr + (V * temp / 8.0) ** 2.0
-
-        count = progress(dd, count, ndata)
-
-    wr = np.sqrt(wr) / V
-    wr = mkvc(wr)
-    wr = np.sqrt(wr / (np.max(wr)))
-
-    print("Done 100% ...distance weighting completed!!\n")
-
-    return wr

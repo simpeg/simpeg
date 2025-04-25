@@ -183,12 +183,6 @@ class Simulation3DIntegral(BasePFSimulation):
         If True, the simulation will run in parallel. If False, it will
         run in serial. If ``engine`` is not ``"choclo"`` this argument will be
         ignored.
-    ind_active : np.ndarray of int or bool
-
-        .. deprecated:: 0.23.0
-
-           Argument ``ind_active`` is deprecated in favor of
-           ``active_cells`` and will be removed in SimPEG v0.24.0.
     """
 
     rho, rhoMap, rhoDeriv = props.Invertible("Density")
