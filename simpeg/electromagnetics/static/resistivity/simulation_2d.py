@@ -278,10 +278,10 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         """
         Generate Full sensitivity matrix
         """
+        self.model = m
         if getattr(self, "_Jmatrix", None) is None:
             if self.verbose:
                 print("Calculating J and storing")
-            self.model = m
             if f is None:
                 f = self.fields(m)
             self._Jmatrix = (self._Jtvec(m, v=None, f=f)).T
