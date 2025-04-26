@@ -117,7 +117,6 @@ from .directives import (
     ScalingMultipleDataMisfits_ByEig,
     JointScalingSchedule,
     UpdateSensitivityWeights,
-    Update_IRLS,
     ProjectSphericalBounds,
 )
 
@@ -136,3 +135,6 @@ from .sim_directives import (
     PairedBetaSchedule,
     MovingAndMultiTargetStopping,
 )
+
+### Deprecated class
+from ._regularization import Update_IRLS
