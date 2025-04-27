@@ -271,7 +271,10 @@ class L2DataMisfit(BaseDataMisfit):
         """Evaluate the residual for a given model."""
 
         R = self.W * self.residual(m, f=f)
-        return np.vdot(R, R)
+        # Imaginary part is always zero, even for complex data, as it takes the
+        # complex-conjugate dot-product. Ensure it returns a float
+        # (``np.vdot(R, R).real`` is the same as ``np.linalg.norm(R)**2``).
+        return np.vdot(R, R).real
 
     @timeIt
     def deriv(self, m, f=None):
