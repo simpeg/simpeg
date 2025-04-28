@@ -13,7 +13,7 @@ from ..regularization import (
     SmoothnessFirstOrder,
     WeightedLeastSquares,
 )
-from ..utils import validate_integer, validate_float
+from ..utils import validate_integer, validate_float, deprecate_class
 
 
 @dataclass
@@ -492,3 +492,8 @@ class SphericalUnitsWeights(InversionDirective):
                     continue
 
                 obj.set_weights(angle_scale=np.ones_like(amplitude) * max_p / np.pi)
+
+
+@deprecate_class(removal_version="0.24.0", error=True)
+class Update_IRLS(UpdateIRLS):
+    pass
