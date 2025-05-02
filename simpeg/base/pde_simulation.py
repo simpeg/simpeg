@@ -2,12 +2,8 @@ import inspect
 import numpy as np
 import pymatsolver
 import scipy.sparse as sp
-<<<<<<< HEAD
 from discretize.utils import Zero, TensorType, sdinv
-=======
-from discretize.utils import Zero, TensorType
 import discretize.base
->>>>>>> main
 from ..simulation import BaseSimulation
 from .. import props
 from scipy.constants import mu_0
