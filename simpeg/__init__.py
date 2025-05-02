@@ -76,8 +76,6 @@ Mappings
   maps.LinearMap
   maps.IdentityMap
   maps.InjectActiveCells
-  maps.InjectActiveFaces
-  maps.InjectActiveEdges
   maps.MuRelative
   maps.LogMap
   maps.LogisticSigmoidMap
@@ -157,7 +155,6 @@ from . import utils
 from .utils import mkvc
 from .utils import Report
 from .utils.solver_utils import (
-    _checkAccuracy,
     SolverWrapD,
     SolverWrapI,
     Solver,

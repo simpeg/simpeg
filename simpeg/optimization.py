@@ -2,7 +2,7 @@ import numpy as np
 import scipy
 import scipy.sparse as sp
 
-from .utils.solver_utils import SolverWrapI, Solver, SolverDiag
+from pymatsolver import Solver, Diagonal, SolverCG
 from .utils import (
     call_hooks,
     check_stoppers,
@@ -47,8 +47,6 @@ __all__ = [
     "StoppingCriteria",
     "IterationPrinters",
 ]
-
-SolverICG = SolverWrapI(sp.linalg.cg, checkAccuracy=False)
 
 
 class StoppingCriteria(object):
@@ -969,10 +967,10 @@ class BFGS(Minimize, Remember):
         if getattr(self, "_bfgsH0", None) is None:
             print(
                 """
-                Default solver: SolverDiag is being used in bfgsH0
+                Default solver: Diagonal is being used in bfgsH0
                 """
             )
-            self._bfgsH0 = SolverDiag(sp.identity(self.xc.size))
+            self._bfgsH0 = Diagonal(sp.identity(self.xc.size))
         return self._bfgsH0
 
     @bfgsH0.setter
@@ -1091,7 +1089,7 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
         # Choose `rtol` or `tol` argument based on installed scipy version
         tol_key = "rtol" if SCIPY_1_12 else "tol"
         inp = {tol_key: self.tolCG, "maxiter": self.maxIterCG}
-        Hinv = SolverICG(self.H, M=self.approxHinv, **inp)
+        Hinv = SolverCG(self.H, M=self.approxHinv, **inp)
         p = Hinv * (-self.g)
         return p
 
