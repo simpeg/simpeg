@@ -1,5 +1,6 @@
 import unittest
 import numpy as np
+import pytest
 
 from discretize.tests import check_derivative
 import discretize
@@ -68,6 +69,7 @@ class BaseRichardsTest(unittest.TestCase):
             self.h0,
             expectedOrder=2 if newton else 1,
             plotIt=False,
+            random_seed=142,
         )
         self.assertTrue(passed, True)
 
@@ -94,6 +96,7 @@ class BaseRichardsTest(unittest.TestCase):
             self.mtrue,
             num=3,
             plotIt=False,
+            random_seed=6184726,
         )
         self.assertTrue(passed, True)
 
@@ -101,7 +104,11 @@ class BaseRichardsTest(unittest.TestCase):
         print("Testing Richards Derivative FULL dim={}".format(self.mesh.dim))
         J = self.prob.Jfull(self.mtrue)
         passed = check_derivative(
-            lambda m: [self.prob.dpred(m), J], self.mtrue, num=3, plotIt=False
+            lambda m: [self.prob.dpred(m), J],
+            self.mtrue,
+            num=3,
+            plotIt=False,
+            random_seed=97861534,
         )
         self.assertTrue(passed, True)
 
@@ -277,6 +284,22 @@ class RichardsTests3D(BaseRichardsTest):
 
     def test_sensitivity_full(self):
         self._dotest_sensitivity_full()
+
+
+def test_bad_mesh_type():
+    mesh = discretize.CylindricalMesh([3, 3, 3])
+    params = richards.empirical.HaverkampParams().celia1990
+    k_fun, theta_fun = richards.empirical.haverkamp(mesh, **params)
+
+    msg = "mesh must be an instance of TensorMesh or TreeMesh, not CylindricalMesh"
+    with pytest.raises(TypeError, match=msg):
+        richards.SimulationNDCellCentered(
+            mesh,
+            hydraulic_conductivity=k_fun,
+            water_retention=theta_fun,
+            boundary_conditions=np.array([1.0]),
+            initial_conditions=np.array([1.0]),
+        )
 
 
 if __name__ == "__main__":

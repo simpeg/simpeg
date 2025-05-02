@@ -1,9 +1,7 @@
-from simpeg.base import (
-    with_property_mass_matrices,
-    with_surface_property_mass_matrices,
-    with_line_property_mass_matrices,
-    BasePDESimulation,
-)
+import re
+
+from simpeg.base import with_property_mass_matrices, BasePDESimulation
+# >>>>>>> main:tests/base/test_base_pde_sim.py
 from simpeg import props, maps
 import unittest
 import discretize
@@ -13,6 +11,8 @@ from discretize.tests import check_derivative
 from discretize.utils import Zero
 import scipy.sparse as sp
 import pytest
+
+from simpeg.utils.solver_utils import get_default_solver
 
 
 # define a very simple class...
@@ -54,11 +54,11 @@ class SimpleSim(BasePDESimulation):
         self.kappaMap = kappaMap
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_update(self):
         """
         matrices to be deleted if the model for conductivity/resistivity is updated
         """
-        toDelete = super().deleteTheseOnModelUpdate
+        toDelete = super()._delete_on_model_update
         if self.sigmaMap is not None or self.rhoMap is not None:
             toDelete = toDelete + self._clear_on_sigma_update
         if self.tauMap is not None:
@@ -523,7 +523,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=8672354)
 
     def test_Mn_deriv(self):
         u = np.random.randn(self.mesh.n_nodes)
@@ -540,7 +540,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=523876)
 
     def test_Me_deriv(self):
         u = np.random.randn(self.mesh.n_edges)
@@ -557,7 +557,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=9875163)
 
     def test_Me_diagonal_anisotropy_deriv(self):
         u = np.random.randn(self.mesh.n_edges)
@@ -574,7 +574,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=1658372)
 
     def test_Me_full_anisotropy_deriv(self):
         u = np.random.randn(self.mesh.n_edges)
@@ -591,7 +591,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=9867234)
 
     def test_Mf_deriv(self):
         u = np.random.randn(self.mesh.n_faces)
@@ -608,7 +608,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=10523687)
 
     def test_Mf_diagonal_anisotropy_deriv(self):
         u = np.random.randn(self.mesh.n_faces)
@@ -625,7 +625,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=19876354)
 
     def test_Mf_full_anisotropy_deriv(self):
         u = np.random.randn(self.mesh.n_faces)
@@ -642,7 +642,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=102309487)
 
     def test_MccI_deriv(self):
         u = np.random.randn(self.mesh.n_cells)
@@ -659,7 +659,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=89726354)
 
     def test_MnI_deriv(self):
         u = np.random.randn(self.mesh.n_nodes)
@@ -676,7 +676,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=12503698)
 
     def test_MeI_deriv(self):
         u = np.random.randn(self.mesh.n_edges)
@@ -693,7 +693,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=5674129834)
 
     def test_MfI_deriv(self):
         u = np.random.randn(self.mesh.n_faces)
@@ -710,7 +710,7 @@ class TestSim(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=532349)
 
     def test_Mcc_adjoint(self):
         n_items = self.mesh.n_cells
@@ -1431,3 +1431,34 @@ def test_bad_derivative_stash():
 
     with pytest.raises(TypeError):
         sim.MeSigmaDeriv(u, v)
+
+
+def test_solver_defaults():
+    mesh = discretize.TensorMesh([2, 2, 2])
+    sim = BasePDESimulation(mesh)
+    with pytest.warns(UserWarning, match="Using the default solver.*"):
+        solver_class = sim.solver
+
+    assert solver_class is get_default_solver()
+
+
+def test_bad_solver():
+    mesh = discretize.TensorMesh([2, 2, 2])
+    msg = re.escape("BasePDESimulation.solver must be a class")
+    with pytest.raises(TypeError, match=msg):
+        BasePDESimulation(mesh, solver="f")
+
+    msg = re.escape("str is not a subclass of pymatsolver.base.BaseSolver")
+    with pytest.raises(TypeError, match=msg):
+        BasePDESimulation(mesh, solver=str)
+
+
+def test_mesh_required():
+    with pytest.raises(TypeError):
+        BasePDESimulation()
+
+
+def test_bad_mesh():
+    with pytest.raises(TypeError):
+        # should error on anything besides a discretize.base.BaseMesh
+        BasePDESimulation(np.array([1, 2, 3]))

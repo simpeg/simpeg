@@ -1,7 +1,6 @@
 import numpy as np
 import scipy.sparse as sp
 
-from ...data import Data
 from ...simulation import BaseTimeSimulation
 from ...utils import mkvc, sdiag, speye, Zero, validate_type, validate_float
 from ...base import BaseHierarchicalElectricalSimulation
@@ -322,9 +321,8 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         self.model = m
         ftype = self._fieldType + "Solution"  # the thing we solved for
 
-        # Ensure v is a data object.
-        if not isinstance(v, Data):
-            v = Data(self.survey, v)
+        # Get dict of flat array slices for each source-receiver pair in the survey
+        survey_slices = self.survey.get_all_slices()
 
         df_duT_v = self.Fields_Derivs(self)
 
@@ -352,8 +350,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             )
 
             for rx in src.receiver_list:
+                src_rx_slice = survey_slices[src, rx]
                 PT_v[src, "{}Deriv".format(rx.projField), :] = rx.evalDeriv(
-                    src, self.mesh, self.time_mesh, f, mkvc(v[src, rx]), adjoint=True
+                    src, self.mesh, self.time_mesh, f, v[src_rx_slice], adjoint=True
                 )  # this is +=
 
                 # PT_v = np.reshape(curPT_v,(len(curPT_v)/self.time_mesh.nN,
@@ -612,7 +611,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         return self._Adcinv
 
     @property
-    def clean_on_model_update(self):
+    def _delete_on_model_update(self):
         """List of model-dependent attributes to clean upon model update.
 
         Some of the TDEM simulation's attributes are model-dependent. This property specifies
@@ -623,8 +622,11 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         list of str
             List of the model-dependent attributes to clean upon model update.
         """
-        items = super().clean_on_model_update
-        return items + ["_Adcinv"]  #: clear DC matrix factors on any model updates
+        items = super()._delete_on_model_update
+        if self.sigmaMap is not None:
+            items = items + ["_Adcinv"]  #: clear DC matrix factors on any model updates
+            # if there is a sigmaMap
+        return items
 
 
 ###############################################################################
@@ -1209,9 +1211,8 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         self.model = m
         ftype = self._fieldType + "Solution"  # the thing we solved for
 
-        # Ensure v is a data object.
-        if not isinstance(v, Data):
-            v = Data(self.survey, v)
+        # Get dict of flat array slices for each source-receiver pair in the survey
+        survey_slices = self.survey.get_all_slices()
 
         df_duT_v = self.Fields_Derivs(self)
 
@@ -1239,8 +1240,9 @@ class Simulation3DElectricField(BaseTDEMSimulation):
             )
 
             for rx in src.receiver_list:
+                src_rx_slice = survey_slices[src, rx]
                 PT_v[src, "{}Deriv".format(rx.projField), :] = rx.evalDeriv(
-                    src, self.mesh, self.time_mesh, f, mkvc(v[src, rx]), adjoint=True
+                    src, self.mesh, self.time_mesh, f, v[src_rx_slice], adjoint=True
                 )
                 # this is +=
 

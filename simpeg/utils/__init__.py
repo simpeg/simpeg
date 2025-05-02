@@ -76,6 +76,7 @@ Model Utility Functions
   :toctree: generated/
 
   depth_weighting
+  distance_weighting
   model_builder.add_block
   model_builder.create_2_layer_model
   model_builder.create_block_in_wholespace
@@ -225,7 +226,7 @@ from .coord_utils import (
     rotation_matrix_from_normals,
     rotate_points_from_normals,
 )
-from .model_utils import depth_weighting
+from .model_utils import depth_weighting, distance_weighting
 from .plot_utils import plot2Ddata, plotLayer, plot_1d_layer_model
 from .io_utils import download
 from .pgi_utils import (

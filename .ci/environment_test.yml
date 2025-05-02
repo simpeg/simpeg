@@ -2,13 +2,14 @@ name: simpeg-test
 channels:
   - conda-forge
 dependencies:
-  - numpy>=1.21
+  - numpy>=1.22
   - scipy>=1.8
   - pymatsolver>=0.3
   - matplotlib-base
-  - discretize>=0.10
-  - geoana>=0.5.0
-  - empymod>=2.0.0
+  - discretize>=0.11
+  - geoana>=0.7
+  - libdlf
+  - typing_extensions
 
 # optional dependencies
   - dask
@@ -24,10 +25,12 @@ dependencies:
   - sphinx
   - sphinx-gallery>=0.1.13
   - sphinxcontrib-apidoc
+  - sphinx-reredirects
   - pydata-sphinx-theme
   - nbsphinx
   - numpydoc
   - pillow
+  - empymod>=2.0.0
   - sympy
   - memory_profiler
   - python-kaleido

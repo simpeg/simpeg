@@ -1,6 +1,8 @@
+import discretize
 import numpy as np
 import unittest
 
+import pytest
 from discretize import TensorMesh
 
 from simpeg import utils
@@ -426,6 +428,13 @@ class DCSimulationAppResTests(unittest.TestCase):
         err = np.sqrt(np.linalg.norm((data - rhohalf) / rhohalf) ** 2 / data.size)
         print(f"DPDP N err: {err}")
         self.assertLess(err, tolerance)
+
+
+def test_bad_mesh_dim():
+    mesh = discretize.TensorMesh([3, 3, 3])
+    msg = "Simulation2DNodal mesh must be 2D, received a 3D mesh."
+    with pytest.raises(ValueError, match=msg):
+        dc.Simulation2DNodal(mesh)
 
 
 if __name__ == "__main__":

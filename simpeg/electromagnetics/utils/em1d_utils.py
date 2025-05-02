@@ -219,3 +219,39 @@ def LogUniform(f, chi_inf=0.05, del_chi=0.05, tau1=1e-5, tau2=1e-2):
     return chi_inf + del_chi * (
         1 - np.log((1 + 1j * w * tau2) / (1 + 1j * w * tau1)) / np.log(tau2 / tau1)
     )
+
+
+def get_splined_dlf_points(filt, v_min, v_max):
+    """
+
+    Parameters
+    ----------
+    filt : namedtuple of numpy.ndarray
+        The filter parameters loaded from libdlf, in a named tuple containing a `.base` property.
+    v_min, v_max : float
+        The minimum and maximum points needed
+
+    Returns
+    -------
+    lamb, spline_points : numpy.ndarray
+        The points to evaluate at in the filter space, and the
+        corresponding spline points in the transformed space.
+    """
+
+    # the below is adapted from empymod.transform.get_dlf_points
+    outmax = filt.base[-1] / v_min
+    outmin = filt.base[0] / v_max
+
+    factor = np.around([filt.base[1] / filt.base[0]], 15)
+
+    pts_per_dec = np.squeeze(1 / np.log(factor))
+
+    nout = int(np.ceil(np.log(outmax / outmin) * pts_per_dec) + 1)
+    if nout - filt.base.size < 3:
+        nout = filt.base.size + 3
+    out = np.exp(
+        np.arange(np.log(outmin), np.log(outmin) + nout / pts_per_dec, 1 / pts_per_dec)
+    )
+
+    spline_points = v_max * np.exp(-np.arange(nout - filt.base.size + 1) / pts_per_dec)
+    return out, spline_points

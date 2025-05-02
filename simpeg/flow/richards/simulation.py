@@ -1,8 +1,10 @@
+import discretize.base
 import numpy as np
 import scipy.sparse as sp
 import time
 
 from ... import utils
+from ...base import BasePDESimulation
 from ...simulation import BaseTimeSimulation
 from ... import optimization
 from ...utils import (
@@ -19,7 +21,7 @@ from .empirical import BaseHydraulicConductivity
 from .empirical import BaseWaterRetention
 
 
-class SimulationNDCellCentered(BaseTimeSimulation):
+class SimulationNDCellCentered(BaseTimeSimulation, BasePDESimulation):
     """Richards Simulation"""
 
     def __init__(
@@ -52,6 +54,22 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         BaseHydraulicConductivity, "hydraulic conductivity function"
     )
     water_retention = NestedModeler(BaseWaterRetention, "water retention curve")
+
+    @property
+    def mesh(self):
+        """Tensor style mesh for the Richards flow simulation.
+
+        Returns
+        -------
+        discretize.TensorMesh or discretize.TreeMesh
+        """
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, value):
+        self._mesh = validate_type(
+            "mesh", value, (discretize.TensorMesh, discretize.TreeMesh), cast=False
+        )
 
     # TODO: This can also be a function(time, u_ii)
     @property

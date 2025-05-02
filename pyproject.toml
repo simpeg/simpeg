@@ -15,13 +15,14 @@ keywords = [
     'geophysics', 'inverse problem'
 ]
 dependencies = [
-    "numpy>=1.21",
+    "numpy>=1.22",
     "scipy>=1.8",
     "pymatsolver>=0.3",
     "matplotlib",
-    "discretize>=0.10",
-    "geoana>=0.5.0",
-    "empymod>=2.0.0",
+    "discretize>=0.11",
+    "geoana>=0.7",
+    "libdlf",
+    "typing_extensions; python_version<'3.13'",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -72,8 +73,10 @@ docs = [
     "sphinx",
     "sphinx-gallery>=0.1.13",
     "sphinxcontrib-apidoc",
+    "sphinx-reredirects",
     "pydata-sphinx-theme",
     "nbsphinx",
+    "empymod>=2.0.0",
     "numpydoc",
     "pillow",
     "sympy",
@@ -133,7 +136,7 @@ directory = "coverage_html_report"
 
 [tool.black]
 required-version = '24.3.0'
-target-version = ['py38', 'py39', 'py310', 'py311']
+target-version = ['py310', 'py311', 'py312']
 
 [tool.flake8]
 extend-ignore = [
@@ -256,4 +259,7 @@ rst-roles = [
 [tool.pytest.ini_options]
 filterwarnings = [
     "ignore::simpeg.utils.solver_utils.DefaultSolverWarning",
+    "error:You are running a pytest without setting a random seed.*:UserWarning",
+    "error:The `index_dictionary` property has been deprecated:FutureWarning",
 ]
+xfail_strict = true

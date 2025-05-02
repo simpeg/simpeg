@@ -3,9 +3,13 @@ import scipy.sparse as sp
 from discretize.utils import Zero, mkvc
 
 from ... import props
+<<<<<<< HEAD
 from ...data import Data
 from ...utils import validate_type
 from ...base import BaseHierarchicalElectricalSimulation
+=======
+from ...utils import mkvc, validate_type
+>>>>>>> main
 from ..base import BaseEMSimulation
 from ..utils import omega
 from .survey import Survey
@@ -242,7 +246,8 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         self.model = m
 
-        Jv = Data(self.survey)
+        survey_slices = self.survey.get_all_slices()
+        Jv = np.full(self.survey.nD, fill_value=np.nan)
 
         for nf, freq in enumerate(self.survey.frequencies):
             for src in self.survey.get_sources_by_frequency(freq):
@@ -251,9 +256,12 @@ class BaseFDEMSimulation(BaseEMSimulation):
                 dRHS_dm_v = self.getRHSDeriv(freq, src, v)
                 du_dm_v = self.Ainv[nf] * (-dA_dm_v + dRHS_dm_v)
                 for rx in src.receiver_list:
-                    Jv[src, rx] = rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v)
+                    src_rx_slice = survey_slices[src, rx]
+                    Jv[src_rx_slice] = mkvc(
+                        rx.evalDeriv(src, self.mesh, f, du_dm_v=du_dm_v, v=v)
+                    )
 
-        return Jv.dobs
+        return Jv
 
     def Jtvec(self, m, v, f=None):
         r"""Compute the adjoint sensitivity matrix times a vector.
@@ -291,9 +299,8 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
         self.model = m
 
-        # Ensure v is a data object.
-        if not isinstance(v, Data):
-            v = Data(self.survey, v)
+        # Get dict of flat array slices for each source-receiver pair in the survey
+        survey_slices = self.survey.get_all_slices()
 
         Jtv = np.zeros(m.size)
 
@@ -303,8 +310,9 @@ class BaseFDEMSimulation(BaseEMSimulation):
                 df_duT_sum = 0
                 df_dmT_sum = 0
                 for rx in src.receiver_list:
+                    src_rx_slice = survey_slices[src, rx]
                     df_duT, df_dmT = rx.evalDeriv(
-                        src, self.mesh, f, v=v[src, rx], adjoint=True
+                        src, self.mesh, f, v=v[src_rx_slice], adjoint=True
                     )
                     if not isinstance(df_duT, Zero):
                         df_duT_sum += df_duT
@@ -356,7 +364,8 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
             Jmatrix = np.zeros((self.survey.nD, m_size))
 
-            data = Data(self.survey)
+            # Get dict of flat array slices for each source-receiver pair in the survey
+            survey_slices = self.survey.get_all_slices()
 
             for A_i, freq in zip(Ainv, self.survey.frequencies):
                 for src in self.survey.get_sources_by_frequency(freq):
@@ -383,8 +392,9 @@ class BaseFDEMSimulation(BaseEMSimulation):
                             du_dmT += np.hstack(df_dmT)
 
                         block = np.array(du_dmT, dtype=complex).real.T
-                        data_inds = data.index_dictionary[src][rx]
-                        Jmatrix[data_inds] = block
+
+                        src_rx_slice = survey_slices[src, rx]
+                        Jmatrix[src_rx_slice] = block
 
             self._Jmatrix = Jmatrix
 
@@ -487,7 +497,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         return s_m, s_e
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_update(self):
         """List of model-dependent attributes to clean upon model update.
 
         Some of the FDEM simulation's attributes are model-dependent. This property specifies
@@ -498,7 +508,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         list of str
             List of the model-dependent attributes to clean upon model update.
         """
-        toDelete = super().deleteTheseOnModelUpdate
+        toDelete = super()._delete_on_model_update
         return toDelete + ["_Jmatrix", "_gtgdiag"]
 
 

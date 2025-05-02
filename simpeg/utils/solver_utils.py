@@ -2,38 +2,50 @@ import numpy as np
 from scipy.sparse import linalg
 from .mat_utils import mkvc
 import warnings
-import inspect
+from typing import Type
+
+__all__ = [
+    "Solver",
+    "SolverLU",
+    "SolverCG",
+    "SolverBiCG",
+    "Diagonal",
+    "Pardiso",
+    "Mumps",
+    "wrap_direct",
+    "wrap_iterative",
+    "get_default_solver",
+    "set_default_solver",
+    "SolverWrapD",
+    "SolverWrapI",
+    "SolverDiag",
+]
+
+# The default direct solver priority is:
+# Pardiso (optional, but available on intel systems)
+# Mumps (optional, but available for all systems)
+# Scipy's SuperLU (available for all scipy systems)
+if AvailableSolvers["Pardiso"]:
+    _DEFAULT_SOLVER = Pardiso
+elif AvailableSolvers["Mumps"]:
+    _DEFAULT_SOLVER = Mumps
+else:
+    _DEFAULT_SOLVER = SolverLU
 
 
-def _checkAccuracy(A, b, X, accuracyTol):
-    nrm = np.linalg.norm(mkvc(A * X - b), np.inf)
-    nrm_b = np.linalg.norm(mkvc(b), np.inf)
-    if nrm_b > 0:
-        nrm /= nrm_b
-    if nrm > accuracyTol:
-        msg = "### SolverWarning ###: Accuracy on solve is above tolerance: {0:e} > {1:e}".format(
-            nrm, accuracyTol
-        )
-        print(msg)
-        warnings.warn(msg, RuntimeWarning, stacklevel=2)
+# Create a specific warning allowing users to silence this if they so choose.
+class DefaultSolverWarning(UserWarning):
+    pass
 
 
-def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=None):
-    """Wraps a direct Solver.)
+def get_default_solver(warn=False) -> Type[Base]:
+    """Return the default solver used by simpeg.
 
     Parameters
     ----------
-    fun : callable
-        A function handle that accepts a sparse matrix input.
-    factorize : bool, default: ``True``
-        If True, `fun` returns a solver object that has `solve` and
-        `factorize` methods.
-    checkAccuracy : bool, default: ``True``
-        If ``True``, verify the accuracy of the solve
-    accuracyTol : float, default: 1e-6
-        Minimum accuracy of the solve
-    name : str, optional
-        A name for the function
+    warn : bool, optional
+        If True, a warning will be raised to let users know that the default
+        solver is being chosen depending on their system.
 
     Returns
     -------
@@ -64,87 +76,17 @@ def SolverWrapD(fun, factorize=True, checkAccuracy=True, accuracyTol=1e-6, name=
     >>> A @ x_solve
     array([0., 1., 2., 3., 4., 5., 6., 7., 8., 9.])
     """
-
-    def __init__(self, A, **kwargs):
-        self.A = A.tocsc()
-
-        self.checkAccuracy = kwargs.pop("checkAccuracy", checkAccuracy)
-        self.accuracyTol = kwargs.pop("accuracyTol", accuracyTol)
-
-        func_params = inspect.signature(fun).parameters
-        # First test if function excepts **kwargs,
-        # in which case we do not need to cull the kwargs
-        do_cull = True
-        for param_name in func_params:
-            param = func_params[param_name]
-            if param.kind == inspect.Parameter.VAR_KEYWORD:
-                do_cull = False
-        if do_cull:
-            # build a dictionary of valid kwargs
-            culled_args = {}
-            for item in kwargs:
-                if item in func_params:
-                    culled_args[item] = kwargs[item]
-                else:
-                    warnings.warn(
-                        f"{item} is not a valid keyword for {fun.__name__} and will be ignored",
-                        stacklevel=2,
-                    )
-            kwargs = culled_args
-
-        self.kwargs = kwargs
-
-        if factorize:
-            self.solver = fun(self.A, **kwargs)
-
-    def __mul__(self, b):
-        if not isinstance(b, np.ndarray):
-            raise TypeError("Can only multiply by a numpy array.")
-
-        if len(b.shape) == 1 or b.shape[1] == 1:
-            b = b.flatten()
-            # Just one RHS
-
-            if b.dtype is np.dtype("O"):
-                b = b.astype(type(b[0]))
-
-            if factorize:
-                X = self.solver.solve(b, **self.kwargs)
-            else:
-                X = fun(self.A, b, **self.kwargs)
-        else:  # Multiple RHSs
-            if b.dtype is np.dtype("O"):
-                b = b.astype(type(b[0, 0]))
-
-            X = np.empty_like(b)
-
-            for i in range(b.shape[1]):
-                if factorize:
-                    X[:, i] = self.solver.solve(b[:, i])
-                else:
-                    X[:, i] = fun(self.A, b[:, i], **self.kwargs)
-
-        if self.checkAccuracy:
-            _checkAccuracy(self.A, b, X, self.accuracyTol)
-        return X
-
-    def __matmul__(self, other):
-        return self * other
-
-    def clean(self):
-        if factorize and hasattr(self.solver, "clean"):
-            return self.solver.clean()
-
-    return type(
-        name if name is not None else fun.__name__,
-        (object,),
-        {
-            "__init__": __init__,
-            "clean": clean,
-            "__mul__": __mul__,
-            "__matmul__": __matmul__,
-        },
-    )
+    if warn:
+        warnings.warn(
+            f"Using the default solver: {_DEFAULT_SOLVER.__name__}. \n\n"
+            f"If you would like to suppress this notification, add \n"
+            f"warnings.filterwarnings("
+            "'ignore', simpeg.utils.solver_utils.DefaultSolverWarning)\n"
+            f" to your script.",
+            DefaultSolverWarning,
+            stacklevel=2,
+        )
+    return _DEFAULT_SOLVER
 
 
 def SolverWrapI(fun, checkAccuracy=True, accuracyTol=1e-5, name=None):

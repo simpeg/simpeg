@@ -1,28 +1,22 @@
+from collections import namedtuple
+
+import libdlf
 import numpy as np
 
+from ...utils.em1d_utils import get_splined_dlf_points
 from ....simulation import BaseSimulation
 from .... import props
 
 from .survey import Survey
 
-from empymod.transform import get_dlf_points
-from empymod import filters
 from ....utils import validate_type, validate_string
 from scipy.interpolate import InterpolatedUnivariateSpline as iuSpline
 
-
-HANKEL_FILTERS = [
-    "kong_61_2007",
-    "kong_241_2007",
-    "key_101_2009",
-    "key_201_2009",
-    "key_401_2009",
-    "anderson_801_1982",
-    "key_51_2012",
-    "key_101_2012",
-    "key_201_2012",
-    "wer_201_2018",
-]
+HANKEL_FILTERS = {}
+for filter_name in libdlf.hankel.__all__:
+    hankel_filter = getattr(libdlf.hankel, filter_name)
+    if "j0" in hankel_filter.values:
+        HANKEL_FILTERS[filter_name] = hankel_filter
 
 
 def _phi_tilde(rho, thicknesses, lambdas):
@@ -200,11 +194,12 @@ class Simulation1DLayers(BaseSimulation):
     @hankel_filter.setter
     def hankel_filter(self, value):
         self._hankel_filter = validate_string(
-            "hankel_filter",
-            value,
-            HANKEL_FILTERS,
+            "hankel_filter", value, list(HANKEL_FILTERS.keys())
         )
-        self._fhtfilt = getattr(filters, self._hankel_filter)()
+        filt = HANKEL_FILTERS[self._hankel_filter]()
+        hank = namedtuple("HankelFilter", "base j0")
+        self._fhtfilt = hank(filt[0], filt[1])
+        self._coefficients_set = False
 
     @property
     def fix_Jmatrix(self):
@@ -241,9 +236,8 @@ class Simulation1DLayers(BaseSimulation):
                     r_max = max(off.max(), r_max)
         self.survey.set_geometric_factor()
 
-        lambdas, r_spline_points = get_dlf_points(
-            self._fhtfilt, np.r_[r_min, r_max], -1
-        )
+        lambdas, r_spline_points = get_splined_dlf_points(self._fhtfilt, r_min, r_max)
+
         lambdas = lambdas.reshape(-1)
         n_lambda = len(lambdas)
         n_r = len(r_spline_points)
@@ -346,8 +340,8 @@ class Simulation1DLayers(BaseSimulation):
         return self.getJ(m, f=f).T @ v
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        to_delete = super().deleteTheseOnModelUpdate
+    def _delete_on_model_update(self):
+        to_delete = super()._delete_on_model_update
         if not self.fix_Jmatrix:
             to_delete = to_delete + ["_Jmatrix"]
         return to_delete

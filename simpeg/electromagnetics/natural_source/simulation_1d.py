@@ -5,6 +5,7 @@ from ...simulation import BaseSimulation
 from ... import props
 from ...utils import validate_type
 from ..frequency_domain.survey import Survey
+from .receivers import Impedance
 
 
 class Simulation1DRecursive(BaseSimulation):
@@ -56,7 +57,7 @@ class Simulation1DRecursive(BaseSimulation):
         fix_Jmatrix=False,
         **kwargs,
     ):
-        super().__init__(mesh=None, survey=survey, **kwargs)
+        super().__init__(survey=survey, **kwargs)
         self.fix_Jmatrix = fix_Jmatrix
         self.sigma = sigma
         self.rho = rho
@@ -81,6 +82,12 @@ class Simulation1DRecursive(BaseSimulation):
     def survey(self, value):
         if value is not None:
             value = validate_type("survey", value, Survey, cast=False)
+            for src in value.source_list:
+                for rx in src.receiver_list:
+                    if not isinstance(rx, Impedance):
+                        raise NotImplementedError(
+                            f"{type(self).__name__} does not support {type(rx).__name__} receivers, only implemented for 'Impedance'."
+                        )
         self._survey = value
 
     @property
@@ -345,8 +352,8 @@ class Simulation1DRecursive(BaseSimulation):
         return JTvec
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        toDelete = super().deleteTheseOnModelUpdate
+    def _delete_on_model_update(self):
+        toDelete = super()._delete_on_model_update
         if self.fix_Jmatrix:
             return toDelete
         else:

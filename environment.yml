@@ -4,13 +4,14 @@ channels:
 dependencies:
 # dependencies
   - python=3.11
-  - numpy>=1.21
+  - numpy>=1.22
   - scipy>=1.8
   - pymatsolver>=0.3
   - matplotlib-base
-  - discretize>=0.10
-  - geoana>=0.5.0
-  - empymod>=2.0.0
+  - discretize>=0.11
+  - geoana>=0.7
+  - libdlf
+  - typing_extensions
 
 # solver
 # uncomment the next line if you are on an intel platform
@@ -32,7 +33,9 @@ dependencies:
   - sphinx
   - sphinx-gallery>=0.1.13
   - sphinxcontrib-apidoc
+  - sphinx-reredirects
   - pydata-sphinx-theme
+  - empymod>=2.0.0
   - nbsphinx
   - numpydoc
   - pillow
@@ -55,6 +58,7 @@ dependencies:
   - flake8-mutable==1.2.0
   - flake8-rst-docstrings==0.3.0
   - flake8-docstrings==1.7.0
+  - zizmor # lint GitHub Actions workflows
 
 # recommended
   - jupyter

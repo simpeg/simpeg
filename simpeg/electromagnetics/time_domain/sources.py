@@ -1240,7 +1240,9 @@ class MagDipole(BaseTDEMSrc):
                 location=self.location,
                 moment=self.moment,
             )
-        return self._dipole.vector_potential(obsLoc, coordinates=coordinates)
+        out = self._dipole.vector_potential(obsLoc, coordinates=coordinates)
+        out[np.isnan(out)] = 0
+        return out
 
     def _aSrc(self, simulation):
         coordinates = "cartesian"
@@ -1441,11 +1443,7 @@ class MagDipole(BaseTDEMSrc):
                 self.waveform.has_initial_fields is True
                 and time < simulation.time_steps[1]
             ):
-                if simulation._fieldType == "b":
-                    return Zero()
-                elif simulation._fieldType == "e":
-                    # Compute s_e from vector potential
-                    return C.T * (MfMui * b)
+                return C.T * (MfMui * b)
             else:
                 return C.T * (MfMui * b) * self.waveform.eval(time)
 
@@ -1456,11 +1454,7 @@ class MagDipole(BaseTDEMSrc):
                 self.waveform.has_initial_fields is True
                 and time < simulation.time_steps[1]
             ):
-                if simulation._fieldType == "h":
-                    return Zero()
-                elif simulation._fieldType == "j":
-                    # Compute s_e from vector potential
-                    return C * h
+                return C * h
             else:
                 return C * h * self.waveform.eval(time)
 
@@ -1612,7 +1606,9 @@ class CircularLoop(MagDipole):
                 radius=self.radius,
                 current=self.current,
             )
-        return self.n_turns * self._loop.vector_potential(obsLoc, coordinates)
+        out = self._loop.vector_potential(obsLoc, coordinates)
+        out[np.isnan(out)] = 0
+        return self.n_turns * out
 
     N = deprecate_property(
         n_turns, "N", "n_turns", removal_version="0.19.0", error=True
