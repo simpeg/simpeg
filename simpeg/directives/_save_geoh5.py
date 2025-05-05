@@ -379,9 +379,7 @@ class SaveLogFilesGeoH5(BaseSaveGeoH5):
         with open(dirpath / "SimPEG.log", "r", encoding="utf-8") as file:
             iteration = 0
             for line in file:
-                val = re.findall(
-                    "[+\-]?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+\-]?\d+)", line  # noqa
-                )
+                val = re.findall(r"[+-]?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+-]?\d+)", line)
                 if len(val) == 5:
                     log.append(val[:-2])
                     iteration += 1
