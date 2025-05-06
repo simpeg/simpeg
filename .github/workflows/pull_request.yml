@@ -68,7 +68,7 @@ jobs:
           persist-credentials: false
 
       - name: flake8 review
-        uses: reviewdog/action-flake8@v3
+        uses: reviewdog/action-flake8@b65981e158319f08cb7d0132f28bc0081e110adc # v3.15.2
         with:
           workdir: pr_source
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -104,7 +104,7 @@ jobs:
           path: 'pr_source'
           persist-credentials: false
 
-      - uses: reviewdog/action-black@v3
+      - uses: reviewdog/action-black@644053a260402bc4278a865906107bd8aef7fae8 # v3.22.4
         with:
           workdir: 'pr_source'
           github_token: ${{ secrets.GITHUB_TOKEN }}

@@ -1,10 +1,16 @@
 name: Add JIRA issue summary
 
 on:
-  pull_request_target:
+  pull_request_target:  # zizmor: ignore[dangerous-triggers]
     types: [opened]
+
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   call-workflow-add-jira-issue-summary:
     uses: MiraGeoscience/CI-tools/.github/workflows/reusable-jira-pr_add_jira_summary.yml@main
-    secrets: inherit
+    secrets:
+      JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+      JIRA_BASIC_AUTH: ${{ secrets.JIRA_BASIC_AUTH }}

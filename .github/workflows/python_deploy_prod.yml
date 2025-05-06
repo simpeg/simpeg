@@ -23,6 +23,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.release.tag_name || github.event.inputs.release-tag || github.run_id }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   call-workflow-conda-release:
     name: Publish production Conda package on JFrog Artifactory
