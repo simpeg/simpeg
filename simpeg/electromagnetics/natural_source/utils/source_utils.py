@@ -190,7 +190,7 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
 
 
 def primary_e_1d_solution(mesh, sigma_1d, freq, n_pad=2000):
-    """Compute 1D electric field solution. 
+    r"""Compute 1D electric field solution. 
 
     Parameters
     ----------
@@ -212,7 +212,125 @@ def primary_e_1d_solution(mesh, sigma_1d, freq, n_pad=2000):
 
     Notes
     -----
-    ADD DERIVATION HERE.
+    For the 1D electric field solution, Maxwell's equations take the form:
+
+    .. math::
+        \begin{align}
+        &\frac{\partial e_x}{\partial z} + i\omega b_y = 0 \\
+        &\frac{\partial h_y}{\partial z} + \sigma e_x = 0
+        \end{align}
+
+    **Boundary Conditions:**
+
+    At the top boundary, we set $h_y^{(top)} = 1$. Therefore from Faraday's law:
+
+    .. math::
+        \frac{\partial e_x^{(top)}}{\partial z} = - i\omega\mu_0
+
+    At the bottom boundary, there is only a downgoing wave of the form:
+
+    .. math::
+        e_x = E^- \exp (ikz)
+
+    where
+
+    .. math::
+        k = \sqrt{-i\omega\mu_0\sigma} = (1 - i)\sqrt{\frac{\omega \mu_0\sigma}{2}}
+
+    So if $\Delta z$ is negative, the downgoing wave decays. From Faraday's law:
+
+    .. math::
+        \begin{align}
+        & ik E^- \exp (ikz) + i\omega b = 0 \\
+        \implies & ik e_x + i \omega b = 0 \\
+        \implies & k e_x + \omega b = 0
+        \end{align}
+
+    **Discrete system:**
+
+    We take the inner product of Faraday's law with a test function $\mathbf{u}$, and the
+    inner product of Ampere's law with a test function $\mathbf{f}$.
+    .. math::
+        \begin{align}
+        &\langle u , \partial_z e_x \rangle + i\omega \langle u , b \rangle = 0 \\
+        &\langle f , \partial_z h_y \rangle + \langle f, \sigma e \rangle = 0
+        \end{align}
+
+    The inner-product with Ampere's law is Integrated by parts:
+    
+    .. math::
+        \begin{align}
+        &\langle u , \partial_z e_x \rangle + i\omega \langle u , b_y \rangle = 0 \\
+        &- \langle \partial_z f , h_y \rangle + f h_y \bigg |_{bot}^{top} + \langle f, \sigma e_x \rangle = 0
+        \end{align}
+
+    In discrete form, the above equations are approximated by:
+    .. math::
+        \begin{align}
+        &\mathbf{G_n e} = - i\omega \mathbf{b} \\
+        &-i \omega \mathbf{G_n^T M_{\mu} b} + i \omega\mathbf{M_\sigma e} + i\omega h_y \bigg |_{bot}^{top} = 0
+        \end{align}
+
+    Combining these equations, we obtain the following system:
+    
+    .. math::
+        \big [ \mathbf{G_n^T M_{\mu} G_n} + i \omega\mathbf{M_\sigma} \big ] \mathbf{e} + i\omega h_y \bigg |_{bot}^{top} = 0
+
+    When $\mu = \mu_0$, we can multiply through an obtain:
+
+    .. math::
+        \big [ \mathbf{G_n^T G_n} + i \omega \mu_0 \, diag (\sigma) \big ] \mathbf{e} + i\omega \mu_0 h_y \bigg |_{bot}^{top} = 0
+    
+    **Implementing Discrete Boundary Conditions:**
+
+    At the top node of the mesn, we know that:
+
+    .. math::
+    \frac{-e_{n-1} + 2 e_n - e_{n+1}}{h^2} + i \omega \mu_0 \sigma_n e_n
+    = \bigg ( \frac{-e_{n-1} + e_n}{h^2} \bigg ) + \bigg ( \frac{e_n - e_{n+1}}{h^2} \bigg ) + i \omega \mu_0 \sigma_n e_n = 0
+
+    Using Taylor expansion:
+
+    .. math::
+        e_{n+1} - e_n = \frac{\partial e_n}{\partial z} h = - i\omega\mu_0 h
+
+    Thus:
+
+    .. math::
+        \frac{-e_{n-1} + 2 e_n - e_{n+1}}{h^2} + i \omega \mu_0 \sigma_n e_n
+        = \bigg ( \frac{-e_{n-1} + e_n}{h^2} \bigg ) + \bigg ( \frac{i\omega \mu_0}{h} \bigg ) + i \omega \mu_0 \sigma_n e_n = 0
+
+    And we set
+    
+    .. math::
+        q_n = - \frac{i \omega \mu_0}{h}
+
+    At the bottom of the mesh, we know that:
+
+    .. math::
+    \frac{-e_{-1} + 2 e_0 - e_{1}}{h^2} + i \omega \mu_0 \sigma e_0
+    = \frac{-e_{-1} + e_0}{h^2} + \frac{e_0 - e_{1}}{h^2} + i \omega \mu_0 \sigma e_0 = 0
+
+    But we know at the bottom, from Taylor expansion:
+
+    .. math::
+    e_{-1} - e_0 = -\frac{\partial e_0}{\partial z} h = i\omega b_0 h
+
+    Thus:
+
+    .. math::
+        \frac{e_0 - e_{1}}{h^2} + i \omega \mu_0 \sigma e_0 - \frac{i \omega b_0}{h} = 0
+
+    But
+
+    .. math::
+        k e_0 + \omega b_0 = 0
+
+    So
+
+    .. math::
+        \frac{e_0 - e_{1}}{h^2} + i \omega \mu_0 \sigma e_0 + \frac{ik}{h} e_0 = 0
+
     """
 
     # Extract vertical discretization
@@ -253,6 +371,20 @@ def primary_e_1d_solution(mesh, sigma_1d, freq, n_pad=2000):
 
 
 def project_e_1d_to_e_primary(mesh, e_1d):
+    """Project 1D electric field solution on nodes to edges of a mesh. 
+
+    Parameters
+    ----------
+    mesh : discretize.base.BaseTensorMesh
+        A 1d, 2d or 3d tensor mesh or tree mesh.
+    e_1d : np.ndarray
+        1D electric field solution along the vertical discretization.
+
+    Returns
+    -------
+    numpy.ndarray (n_edges, n_polarization)
+        Electric fields on the edges of the mesh for each polarization.
+    """
 
     if mesh.dim == 1:
         return e_1d
@@ -260,25 +392,27 @@ def project_e_1d_to_e_primary(mesh, e_1d):
     hz = mesh.h[-1]
     mesh_1d = TensorMesh([hz], origin=[mesh.origin[-1]])
 
-    if mesh.dim == 2:
-        raise NotImplementedError("The 'project_e_1d_to_e_primary' function has not been implemented for 2D meshes.")
+    # Incident E-field polarized along x-direction
+    ep_x = (
+        mesh_1d.get_interpolation_matrix(
+            mesh.edges_x[:, -1], location_type="nodes"
+        ) @ e_1d
+    )
 
-    if mesh.dim == 3:
-        # Incident E-field polarized along x-direction
-        fields_x = (
-            mesh_1d.get_interpolation_matrix(
-                mesh.edges_x[:, 2], location_type="nodes"
-            ) @ e_1d
-        )
-        ep_x = np.r_[fields_x, np.zeros(mesh.n_edges_y + mesh.n_edges_z)]
+    if mesh.dim == 2:
+        return np.r_[ep_x, np.zeros(mesh.n_edges_y)]
+
+    elif mesh.dim == 3:
+        
+        ep_x = np.r_[ep_x, np.zeros(mesh.n_edges_y + mesh.n_edges_z)]
 
         # Incident E-field polarized along y-direction
-        fields_y = (
+        ep_y = (
             mesh_1d.get_interpolation_matrix(
                 mesh.edges_y[:, 2], location_type="nodes"
             ) @ e_1d
         )
-        ep_y = np.r_[np.zeros(mesh.n_edges_x), fields_y, np.zeros(mesh.n_edges_z)]
+        ep_y = np.r_[np.zeros(mesh.n_edges_x), ep_y, np.zeros(mesh.n_edges_z)]
 
         return np.c_[ep_x, ep_y]
 
