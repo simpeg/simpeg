@@ -1954,7 +1954,7 @@ class LineCurrent(BaseTDEMSrc):
                     az = line_current.vector_potential(simulation.mesh.faces_z)[:, 2]
 
                     vector_potential += np.r_[ax, ay, az]
-            return vector_potential
+            return self.current * vector_potential
         else:
             # if a grounded source, solve the MMR problem
             A = self._getAmmr(simulation)
