@@ -1,8 +1,11 @@
 import numpy as np
-import discretize
+from scipy.constants import mu_0
+from discretize import TensorMesh
+from discretize.utils import sdiag
 
 from ....utils import mkvc
 from .solutions_1d import get1DEfields
+from pymatsolver import Solver
 
 
 def homo1DModelSource(mesh, freq, sigma_1d):
@@ -21,7 +24,7 @@ def homo1DModelSource(mesh, freq, sigma_1d):
     if mesh.dim == 1:
         mesh1d = mesh
     else:
-        mesh1d = discretize.TensorMesh([mesh.h[-1]], [mesh.x0[-1]])
+        mesh1d = TensorMesh([mesh.h[-1]], [mesh.x0[-1]])
 
     # Note: Everything is using e^iwt
     e0_1d = get1DEfields(mesh1d, sigma_1d, freq)
@@ -86,9 +89,9 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
     if mesh.dim == 1:
         mesh1d = mesh
     elif mesh.dim == 2:
-        mesh1d = discretize.TensorMesh([mesh.h[1]], np.array([mesh.x0[1]]))
+        mesh1d = TensorMesh([mesh.h[1]], np.array([mesh.x0[1]]))
     elif mesh.dim == 3:
-        mesh1d = discretize.TensorMesh([mesh.h[2]], np.array([mesh.x0[2]]))
+        mesh1d = TensorMesh([mesh.h[2]], np.array([mesh.x0[2]]))
 
     # # Note: Everything is using e^iwt
     Eu, Ed, _, _ = getEHfields(mesh1d, sigma_1d, freq, mesh.nodes_z)
@@ -183,3 +186,112 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
 #     # Return the electric fields
 #     eBG_bp = np.hstack((eBG_px, eBG_py))
 #     return eBG_bp
+
+
+
+def primary_e_1d_solution(mesh, sigma_1d, freq, n_pad=2000):
+    """Compute 1D electric field solution. 
+
+    Parameters
+    ----------
+    mesh : discretize.base.BaseTensorMesh
+        A 1d, 2d or 3d tensor mesh or tree mesh.
+    sigma_1d :
+        1D conductivity model defined along the vertical discretization. Conductivities are
+        defined from the bottom cell upwards.
+    freq : float
+        Operating frequency in Hz.
+    n_pad : int
+        Number of padding cells added to top and bottom of discrete 1D solution
+        to ensure boundary conditions implemented accurately.
+
+    Returns
+    -------
+    numpy.ndarray (n_edges,)
+        Total electric field solution on the nodes of the 1D vertical discretization.
+
+    Notes
+    -----
+    ADD DERIVATION HERE.
+    """
+
+    # Extract vertical discretization
+    if mesh.dim == 1:
+        hz = mesh.h
+    else:
+        hz = mesh.h[-1]
+
+    if len(hz) != len(sigma_1d):
+        raise ValueError(
+            "Number of cells in vertical direction must match length of 'sigma_1d'. Here hz has length {} and sigma_1d has length {}".format(len(hz), len(sigma_1d)))
+
+    # Generate extended 1D mesh and model to solve 1D problem
+    hz_ext = np.r_[hz[0] * np.ones(n_pad), hz, hz[-1] * np.ones(n_pad)]
+    mesh_1d_ext = TensorMesh([hz_ext], origin=[mesh.origin[-1] - hz[0] * n_pad])
+    
+    sigma_1d_ext = np.r_[sigma_1d[0] * np.ones(n_pad), sigma_1d, sigma_1d[-1] * np.ones(n_pad)]
+    sigma_1d_ext = mesh_1d_ext.average_face_to_cell.T * sigma_1d_ext
+    sigma_1d_ext[0] = sigma_1d[1]
+    sigma_1d_ext[-1] = sigma_1d[-2]
+
+    # Solve the 1D problem for electric fields on nodes
+    w = 2*np.pi*freq
+    k = np.sqrt(-1.j * w * mu_0 * sigma_1d_ext[0])
+
+    A = mesh_1d_ext.nodal_gradient.T @ mesh_1d_ext.nodal_gradient + 1j*w*mu_0 * sdiag(sigma_1d_ext)
+    A[0, 0] = (1. + 1j*k*hz[0]) / hz[0]**2 + 1j*w*mu_0*sigma_1d[0]
+    A[0, 1] = -1 / hz[0]**2
+
+    q = np.zeros(mesh_1d_ext.n_faces, dtype=np.complex128)
+    q[-1] = -1j*w*mu_0 / hz[-1]
+
+    Ainv = Solver(A)
+    e_1d = Ainv * q
+
+    # Return solution along original vertical discretization
+    return e_1d[n_pad:-n_pad]
+
+
+def project_e_1d_to_e_primary(mesh, e_1d):
+
+    if mesh.dim == 1:
+        return e_1d
+    
+    hz = mesh.h[-1]
+    mesh_1d = TensorMesh([hz], origin=[mesh.origin[-1]])
+
+    if mesh.dim == 2:
+        raise NotImplementedError("The 'project_e_1d_to_e_primary' function has not been implemented for 2D meshes.")
+
+    if mesh.dim == 3:
+        # Incident E-field polarized along x-direction
+        fields_x = (
+            mesh_1d.get_interpolation_matrix(
+                mesh.edges_x[:, 2], location_type="nodes"
+            ) @ e_1d
+        )
+        ep_x = np.r_[fields_x, np.zeros(mesh.n_edges_y + mesh.n_edges_z)]
+
+        # Incident E-field polarized along y-direction
+        fields_y = (
+            mesh_1d.get_interpolation_matrix(
+                mesh.edges_y[:, 2], location_type="nodes"
+            ) @ e_1d
+        )
+        ep_y = np.r_[np.zeros(mesh.n_edges_x), fields_y, np.zeros(mesh.n_edges_z)]
+
+        return np.c_[ep_x, ep_y]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
