@@ -188,7 +188,6 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
 #     return eBG_bp
 
 
-
 def primary_e_1d_solution(mesh, sigma_1d, freq, n_pad=2000):
     r"""Compute 1D electric field solution. 
 
@@ -341,27 +340,35 @@ def primary_e_1d_solution(mesh, sigma_1d, freq, n_pad=2000):
 
     if len(hz) != len(sigma_1d):
         raise ValueError(
-            "Number of cells in vertical direction must match length of 'sigma_1d'. Here hz has length {} and sigma_1d has length {}".format(len(hz), len(sigma_1d)))
+            "Number of cells in vertical direction must match length of 'sigma_1d'. Here hz has length {} and sigma_1d has length {}".format(
+                len(hz), len(sigma_1d)
+            )
+        )
 
     # Generate extended 1D mesh and model to solve 1D problem
     hz_ext = np.r_[hz[0] * np.ones(n_pad), hz, hz[-1] * np.ones(n_pad)]
     mesh_1d_ext = TensorMesh([hz_ext], origin=[mesh.origin[-1] - hz[0] * n_pad])
-    
-    sigma_1d_ext = np.r_[sigma_1d[0] * np.ones(n_pad), sigma_1d, sigma_1d[-1] * np.ones(n_pad)]
+
+    sigma_1d_ext = np.r_[
+        sigma_1d[0] * np.ones(n_pad), sigma_1d, sigma_1d[-1] * np.ones(n_pad)
+    ]
     sigma_1d_ext = mesh_1d_ext.average_face_to_cell.T * sigma_1d_ext
     sigma_1d_ext[0] = sigma_1d[1]
     sigma_1d_ext[-1] = sigma_1d[-2]
 
     # Solve the 1D problem for electric fields on nodes
-    w = 2*np.pi*freq
-    k = np.sqrt(-1.j * w * mu_0 * sigma_1d_ext[0])
+    w = 2 * np.pi * freq
+    k = np.sqrt(-1.0j * w * mu_0 * sigma_1d_ext[0])
 
-    A = mesh_1d_ext.nodal_gradient.T @ mesh_1d_ext.nodal_gradient + 1j*w*mu_0 * sdiag(sigma_1d_ext)
-    A[0, 0] = (1. + 1j*k*hz[0]) / hz[0]**2 + 1j*w*mu_0*sigma_1d[0]
-    A[0, 1] = -1 / hz[0]**2
+    A = (
+        mesh_1d_ext.nodal_gradient.T @ mesh_1d_ext.nodal_gradient
+        + 1j * w * mu_0 * sdiag(sigma_1d_ext)
+    )
+    A[0, 0] = (1.0 + 1j * k * hz[0]) / hz[0] ** 2 + 1j * w * mu_0 * sigma_1d[0]
+    A[0, 1] = -1 / hz[0] ** 2
 
     q = np.zeros(mesh_1d_ext.n_faces, dtype=np.complex128)
-    q[-1] = -1j*w*mu_0 / hz[-1]
+    q[-1] = -1j * w * mu_0 / hz[-1]
 
     Ainv = Solver(A)
     e_1d = Ainv * q
@@ -371,7 +378,7 @@ def primary_e_1d_solution(mesh, sigma_1d, freq, n_pad=2000):
 
 
 def project_e_1d_to_e_primary(mesh, e_1d):
-    """Project 1D electric field solution on nodes to edges of a mesh. 
+    """Project 1D electric field solution on nodes to edges of a mesh.
 
     Parameters
     ----------
@@ -388,44 +395,28 @@ def project_e_1d_to_e_primary(mesh, e_1d):
 
     if mesh.dim == 1:
         return e_1d
-    
+
     hz = mesh.h[-1]
     mesh_1d = TensorMesh([hz], origin=[mesh.origin[-1]])
 
     # Incident E-field polarized along x-direction
     ep_x = (
-        mesh_1d.get_interpolation_matrix(
-            mesh.edges_x[:, -1], location_type="nodes"
-        ) @ e_1d
+        mesh_1d.get_interpolation_matrix(mesh.edges_x[:, -1], location_type="nodes")
+        @ e_1d
     )
 
     if mesh.dim == 2:
         return np.r_[ep_x, np.zeros(mesh.n_edges_y)]
 
     elif mesh.dim == 3:
-        
+
         ep_x = np.r_[ep_x, np.zeros(mesh.n_edges_y + mesh.n_edges_z)]
 
         # Incident E-field polarized along y-direction
         ep_y = (
-            mesh_1d.get_interpolation_matrix(
-                mesh.edges_y[:, 2], location_type="nodes"
-            ) @ e_1d
+            mesh_1d.get_interpolation_matrix(mesh.edges_y[:, 2], location_type="nodes")
+            @ e_1d
         )
         ep_y = np.r_[np.zeros(mesh.n_edges_x), ep_y, np.zeros(mesh.n_edges_z)]
 
         return np.c_[ep_x, ep_y]
-
-
-
-
-
-
-
-
-
-
-
-
-
-

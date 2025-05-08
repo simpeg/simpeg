@@ -3,7 +3,11 @@ import numpy as np
 from ... import maps
 from ..frequency_domain.sources import BaseFDEMSrc
 from ..utils import omega
-from .utils.source_utils import homo1DModelSource, primary_e_1d_solution, project_e_1d_to_e_primary
+from .utils.source_utils import (
+    homo1DModelSource,
+    primary_e_1d_solution,
+    project_e_1d_to_e_primary,
+)
 import discretize
 from discretize.utils import volume_average
 
@@ -109,9 +113,7 @@ class PlanewaveXYPrimary(Planewave):
             # self._ePrimary = homo1DModelSource(
             #     simulation.mesh, self.frequency, sigma_1d
             # )
-            e_1d = primary_e_1d_solution(
-                simulation.mesh, sigma_1d, self.frequency
-            )
+            e_1d = primary_e_1d_solution(simulation.mesh, sigma_1d, self.frequency)
             self._ePrimary = project_e_1d_to_e_primary(simulation.mesh, e_1d)
         return self._ePrimary
 
