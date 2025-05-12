@@ -305,14 +305,24 @@ class Simulation3DIntegral(BasePFSimulation):
         -------
         np.ndarray
         """
-        gtg_diagonal = (
-            self._gtg_diagonal_without_building_g(weights)
-            if self.store_sensitivities == "forward_only"
-            else
-            # In Einstein notation, the j-th element of the diagonal is:
-            #   d_j = w_i * G_{ij} * G_{ij}
-            np.asarray(np.einsum("i,ij,ij->j", weights, self.G, self.G))
-        )
+        match self.store_sensitivities, self.engine:
+            case ("forward_only", "geoana"):
+                msg = (
+                    "Computing the diagonal of G.T @ G with "
+                    'store_sensitivities="forward_only" and engine="geoana" '
+                    "hasn't been implemented yet."
+                    'Choose store_sensitivities="ram" or "disk", '
+                    'or another engine, like "choclo".'
+                )
+                raise NotImplementedError(msg)
+            case ("forward_only", "choclo"):
+                gtg_diagonal = self._gtg_diagonal_without_building_g(weights)
+            case (_, _):
+                # In Einstein notation, the j-th element of the diagonal is:
+                #   d_j = w_i * G_{ij} * G_{ij}
+                gtg_diagonal = np.asarray(
+                    np.einsum("i,ij,ij->j", weights, self.G, self.G)
+                )
         return gtg_diagonal
 
     def getJ(self, m, f=None) -> NDArray[np.float64 | np.float32] | LinearOperator:
