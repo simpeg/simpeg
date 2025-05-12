@@ -1,5 +1,8 @@
+import warnings
+
 import numpy as np
 
+from simpeg.utils import deprecate_property
 from .maps import IdentityMap, ReciprocalMap
 from .utils import Zero, validate_type, validate_ndarray_with_shape
 
@@ -358,7 +361,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
 
     # TODO: rename to _delete_on_model_update
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_update(self):
         """A list of properties stored on this object to delete when the model is updated
 
         Returns
@@ -367,6 +370,13 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
             For example `['_MeSigma', '_MeSigmaI']`.
         """
         return []
+
+    deleteTheseOnModelUpdate = deprecate_property(
+        _delete_on_model_update,
+        "deleteTheseOnModelUpdate",
+        removal_version="0.25.0",
+        future_warn=True,
+    )
 
     #: List of matrix names to have their factors cleared on a model update
     @property
@@ -377,6 +387,12 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         -------
         list of str
         """
+        warnings.warn(
+            "clean_on_model_update has been deprecated due to repeated functionality encompassed"
+            " by the _delete_on_model_update method",
+            FutureWarning,
+            stacklevel=2,
+        )
         return []
 
     @property
@@ -447,15 +463,10 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                 and np.allclose(previous_value, value)
             ):
                 # cached properties to delete
-                for prop in self.deleteTheseOnModelUpdate:
+                for prop in self._delete_on_model_update:
                     if hasattr(self, prop):
                         delattr(self, prop)
 
-                # matrix factors to clear
-                for mat in self.clean_on_model_update:
-                    if getattr(self, mat, None) is not None:
-                        getattr(self, mat).clean()  # clean factors
-                        setattr(self, mat, None)  # set to none
                 updated = True
 
         self._model = value
@@ -469,12 +480,6 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
     def model(self):
         self._model = (None,)
         # cached properties to delete
-        for prop in self.deleteTheseOnModelUpdate:
+        for prop in self._delete_on_model_update:
             if hasattr(self, prop):
                 delattr(self, prop)
-
-        # matrix factors to clear
-        for mat in self.clean_on_model_update:
-            if getattr(self, mat, None) is not None:
-                getattr(self, mat).clean()  # clean factors
-                setattr(self, mat, None)  # set to none

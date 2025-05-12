@@ -7,8 +7,8 @@ Install Python
 --------------
 
 First you will need to install Python. You can find instructions in
-:ref:`installing_python`. We highly encourage to install Anaconda_ or
-Miniforge_.
+:ref:`installing_python`. We highly encourage to install Miniforge_ (or
+Anaconda_).
 
 Create environment
 ------------------
@@ -71,7 +71,7 @@ This practice also allows you to uninstall SimPEG if so desired:
 
 .. code::
 
-    pip uninstall SimPEG
+    pip uninstall simpeg
 
 .. note::
 
@@ -84,7 +84,7 @@ This practice also allows you to uninstall SimPEG if so desired:
 Check your installation
 -----------------------
 
-You should be able to open a terminal within SimPEG/tutorials and run an
+You should be able to open a terminal within simpeg/tutorials and run an
 example, i.e.
 
 .. code::

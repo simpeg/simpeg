@@ -5,8 +5,6 @@ import discretize
 from simpeg import maps, tests
 from simpeg.electromagnetics import time_domain as tdem
 
-from pymatsolver import Pardiso as Solver
-
 plotIt = False
 
 testDeriv = True
@@ -46,7 +44,6 @@ def get_prob(mesh, mapping, formulation, **kwargs):
         mesh, sigmaMap=mapping, **kwargs
     )
     prb.time_steps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
-    prb.solver = Solver
     return prb
 
 
@@ -117,8 +114,9 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
                 prbtype=self.formulation, rxcomp=rxcomp
             )
         )
-        np.random.seed(10)  # use seed for check_derivative
-        tests.check_derivative(derChk, self.m, plotIt=False, num=2, eps=1e-20)
+        tests.check_derivative(
+            derChk, self.m, plotIt=False, num=2, eps=1e-20, random_seed=12
+        )
 
     def JvecVsJtvecTest(self, rxcomp):
         self.set_receiver_list(rxcomp)

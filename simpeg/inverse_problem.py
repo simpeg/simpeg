@@ -13,8 +13,8 @@ from .utils import (
     validate_type,
     validate_ndarray_with_shape,
 )
-from .simulation import DefaultSolver
 from .version import __version__ as simpeg_version
+from .utils.solver_utils import get_default_solver
 
 
 class BaseInvProblem:
@@ -144,7 +144,7 @@ class BaseInvProblem:
         self._opt = validate_type("opt", value, Minimize, cast=False)
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_update(self):
         """A list of properties stored on this object to delete when the model is updated
 
         Returns
@@ -170,7 +170,7 @@ class BaseInvProblem:
             value = validate_ndarray_with_shape(
                 "model", value, shape=[("*",), ("*", "*")], dtype=None
             )
-        for prop in self.deleteTheseOnModelUpdate:
+        for prop in self._delete_on_model_update:
             if hasattr(self, prop):
                 delattr(self, prop)
         self._model = value
@@ -202,7 +202,6 @@ class BaseInvProblem:
 
         self.model = m0
 
-        solver = DefaultSolver
         set_default = True
         for objfct in self.dmisfit.objfcts:
             if (
@@ -222,15 +221,15 @@ class BaseInvProblem:
                 set_default = False
                 break
         if set_default:
+            solver = get_default_solver()
             print(
                 """
                     simpeg.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
                     ***Done using the default solver {} and no solver_opts.***
                     """.format(
-                    DefaultSolver.__name__
+                    solver.__name__
                 )
             )
-            solver = DefaultSolver
             solver_opts = {}
 
         self.opt.bfgsH0 = solver(

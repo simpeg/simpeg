@@ -1,5 +1,5 @@
-from __future__ import annotations
 import types
+
 import numpy as np
 from functools import wraps
 import warnings
@@ -479,8 +479,8 @@ class Report(ScoobyReport):
             "numpy",
             "scipy",
             "matplotlib",
-            "empymod",
             "geoana",
+            "libdlf",
         ]
 
         # Optional packages.
@@ -517,7 +517,11 @@ class Report(ScoobyReport):
 
 
 def deprecate_class(
-    removal_version=None, new_location=None, future_warn=False, error=False
+    removal_version=None,
+    new_location=None,
+    future_warn=False,
+    error=False,
+    replace_docstring=True,
 ):
     """Utility function to deprecate a class
 
@@ -564,7 +568,8 @@ def deprecate_class(
         cls.__init__ = __init__
         if new_location is not None:
             parent_name = f"{new_location}.{parent_name}"
-        cls.__doc__ = f""" This class has been deprecated, see `{parent_name}` for documentation"""
+        if replace_docstring:
+            cls.__doc__ = f""" This class has been deprecated, see `{parent_name}` for documentation"""
         return cls
 
     return decorator
@@ -929,7 +934,9 @@ def validate_float(
         return var
 
 
-def validate_list_of_types(property_name, var, class_type, ensure_unique=False):
+def validate_list_of_types(
+    property_name, var, class_type, ensure_unique=False, min_n=0, max_n=None
+):
     """Validate list of instances of a certain class
 
     Parameters
@@ -942,6 +949,8 @@ def validate_list_of_types(property_name, var, class_type, ensure_unique=False):
         Class type(s) that are allowed in the list
     ensure_unique : bool, optional
         Checks if all items in the var are unique items.
+    min_n, max_n : int, optional
+        Minimum and maximum supported list length. Defaults accept any length list.
 
     Returns
     -------
@@ -955,8 +964,20 @@ def validate_list_of_types(property_name, var, class_type, ensure_unique=False):
     else:
         raise TypeError(f"{property_name!r} must be a list of {class_type}")
 
-    is_true = [isinstance(x, class_type) for x in var]
-    if np.all(is_true):
+    if max_n is not None:
+        if min_n == max_n and len(var) != max_n:
+            raise ValueError(
+                f"{property_name!r} must have exactly {min_n} item{'s' if min_n != 1 else ''}."
+            )
+        elif len(var) > max_n:
+            raise ValueError(
+                f"{property_name!r} must have at most {max_n} item{'s' if max_n != 1 else ''}."
+            )
+    if len(var) < min_n:
+        raise ValueError(
+            f"{property_name!r} must have at least {min_n} item{'s' if min_n != 1 else ''}."
+        )
+    if all(isinstance(x, class_type) for x in var):
         if ensure_unique and len(set(var)) != len(var):
             raise ValueError(
                 f"The {property_name!r} list must be unique. Cannot re-use items"
@@ -1112,21 +1133,42 @@ def validate_type(property_name, obj, obj_type, cast=True, strict=False):
     obj_type
         Returns the object in the specified type when validated
     """
+    if not isinstance(obj_type, tuple):
+        obj_type = (obj_type,)
+
+    if len(obj_type) > 1:
+        type_name = (
+            ", ".join(cls.__qualname__ for cls in obj_type[:-1])
+            + " or "
+            + obj_type[-1].__qualname__
+        )
+    else:
+        type_name = obj_type[0].__qualname__
+
     if cast:
-        try:
-            obj = obj_type(obj)
-        except Exception as err:
+        good_cast = False
+        err = None
+        for cls in obj_type:
+            try:
+                new_obj = cls(obj)
+                good_cast = True
+            except Exception as trial_error:
+                err = trial_error
+            if good_cast:
+                obj = new_obj
+                break
+        if not good_cast:
             raise TypeError(
-                f"{type(obj).__name__} cannot be converted to type {obj_type.__name__} "
+                f"{type(obj).__qualname__} cannot be converted to {type_name} "
                 f"required for {property_name}."
             ) from err
-    if strict and type(obj) is not obj_type:
+    if strict and type(obj) not in obj_type:
         raise TypeError(
-            f"Object must be exactly a {obj_type.__name__} for {property_name}"
+            f"{property_name} must be exactly a {type_name}, not {type(obj).__qualname__}"
         )
     if not isinstance(obj, obj_type):
         raise TypeError(
-            f"Object must be an instance of {obj_type.__name__} for {property_name}"
+            f"{property_name} must be an instance of {type_name}, not {type(obj).__qualname__}"
         )
     return obj
 
