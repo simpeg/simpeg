@@ -5,6 +5,8 @@ from pathlib import Path
 
 import numpy as np
 from scipy.sparse import csc_matrix, csr_matrix
+from simpeg.regularization import PGIsmallness
+
 from .directives import InversionDirective
 from simpeg.maps import IdentityMap
 
@@ -505,3 +507,52 @@ class SaveLPModelGroup(SavePropertyGroup):
             base_name = "LP models"
 
         return channel_name, base_name
+
+
+class SavePGIModel(SaveArrayGeoH5):
+    """
+    Save the model as a property group in the geoh5 file
+    """
+
+    def __init__(
+        self,
+        h5_object,
+        pgi_reg: PGIsmallness,
+        transforms: list | tuple = (),
+        value_map: dict[int, str] | None = None,
+        **kwargs,
+    ):
+        self.pgi_reg = pgi_reg
+        self.transforms = transforms
+        self.value_map = value_map
+        super().__init__(h5_object, **kwargs)
+
+    def get_values(self, values: list[np.ndarray] | None):
+
+        if values is None:
+            values = self.invProb.model
+
+        modellist = self.pgi_reg.wiresmap * values
+        model = np.c_[[a * b for a, b in zip(self.pgi_reg.maplist, modellist)]].T
+        membership = self.pgi_reg.gmm.predict(model)
+        return membership
+
+    def write(self, iteration: int, values: list[np.ndarray] = None):
+        """
+        Method to write the reference model with data map.
+        """
+        petro_model = self.get_values(values)
+        petro_model = self.apply_transformations(petro_model)
+        channel_name, base_name = self.get_names("petrophysics", "", iteration)
+        with fetch_active_workspace(self._geoh5, mode="r+") as w_s:
+            h5_object = w_s.get_entity(self.h5_object)[0]
+            data = h5_object.add_data(
+                {
+                    channel_name: {
+                        "association": self.association,
+                        "values": values,
+                        "type": "REFERENCED",
+                        "value_map": self.value_map,
+                    }
+                }
+            )
