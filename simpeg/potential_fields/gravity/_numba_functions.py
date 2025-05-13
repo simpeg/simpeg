@@ -646,15 +646,15 @@ NUMBA_FUNCTIONS = {
         for parallel in (True, False)
     },
     "forward": {
-        parallel: jit(nopython=True, parallel=True)(_forward_gravity)
+        parallel: jit(nopython=True, parallel=parallel)(_forward_gravity)
         for parallel in (True, False)
     },
     "sensitivity_2d_mesh": {
-        parallel: jit(nopython=True, parallel=True)(_sensitivity_gravity_2d_mesh)
+        parallel: jit(nopython=True, parallel=parallel)(_sensitivity_gravity_2d_mesh)
         for parallel in (True, False)
     },
     "forward_2d_mesh": {
-        parallel: jit(nopython=True, parallel=True)(_forward_gravity_2d_mesh)
+        parallel: jit(nopython=True, parallel=parallel)(_forward_gravity_2d_mesh)
         for parallel in (True, False)
     },
     "diagonal_gtg": {
