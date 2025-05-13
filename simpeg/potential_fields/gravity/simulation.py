@@ -815,7 +815,7 @@ class SimulationEquivalentSourceLayer(
             n_components = len(components)
             n_elements = n_components * receivers.shape[0]
             for i, component in enumerate(components):
-                forward_func = CHOCLO_FORWARD_FUNCS[component]
+                choclo_forward_func = CHOCLO_FORWARD_FUNCS[component]
                 conversion_factor = _get_conversion_factor(component)
                 vector_slice = slice(
                     index_offset + i, index_offset + n_elements, n_components
@@ -827,7 +827,7 @@ class SimulationEquivalentSourceLayer(
                     self.cell_z_bottom,
                     densities,
                     fields[vector_slice],
-                    forward_func,
+                    choclo_forward_func,
                     conversion_factor,
                 )
             index_offset += n_elements
@@ -863,7 +863,7 @@ class SimulationEquivalentSourceLayer(
             n_components = len(components)
             n_rows = n_components * receivers.shape[0]
             for i, component in enumerate(components):
-                forward_func = CHOCLO_FORWARD_FUNCS[component]
+                choclo_forward_func = CHOCLO_FORWARD_FUNCS[component]
                 conversion_factor = _get_conversion_factor(component)
                 matrix_slice = slice(
                     index_offset + i, index_offset + n_rows, n_components
@@ -874,7 +874,7 @@ class SimulationEquivalentSourceLayer(
                     self.cell_z_top,
                     self.cell_z_bottom,
                     sensitivity_matrix[matrix_slice, :],
-                    forward_func,
+                    choclo_forward_func,
                     conversion_factor,
                 )
             index_offset += n_rows
