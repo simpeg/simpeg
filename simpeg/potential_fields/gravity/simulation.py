@@ -133,7 +133,7 @@ class Simulation3DIntegral(BasePFSimulation):
 
     .. important::
 
-        Gradient components ("gxx", "gyy", "gzz", "gxy", "gxz", "gyz") are
+        Gradient components ("gxx", "gyy", "gzz", "gxy", "gxz", "gyz", "guv") are
         returned in Eotvos (:math:`10^{-9} s^{-2}`).
 
     Parameters
