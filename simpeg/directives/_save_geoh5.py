@@ -516,13 +516,15 @@ class SavePGIModel(SaveArrayGeoH5):
         self,
         h5_object,
         pgi_reg: PGIsmallness,
-        transforms: list | tuple = (),
+        unit_map: dict,
+        physical_properties: list[str],
         value_map: dict[int, str] | None = None,
         **kwargs,
     ):
         self.pgi_reg = pgi_reg
-        self.transforms = transforms
+        self.unit_map: dict = unit_map
         self.value_map = value_map
+        self.physical_properties = physical_properties
         super().__init__(h5_object, **kwargs)
 
     def get_values(self, values: list[np.ndarray] | None):
@@ -539,8 +541,8 @@ class SavePGIModel(SaveArrayGeoH5):
         """
         Method to write the reference model with data map.
         """
-        petro_model = self.get_values(values)
-        petro_model = self.apply_transformations(petro_model)
+        petro_model = self.get_values(values) + 1
+        petro_model = self.apply_transformations(petro_model).flatten()
         channel_name, base_name = self.get_names("petrophysics", "", iteration)
         with fetch_active_workspace(self._geoh5, mode="r+") as w_s:
             h5_object = w_s.get_entity(self.h5_object)[0]
@@ -548,9 +550,19 @@ class SavePGIModel(SaveArrayGeoH5):
                 {
                     channel_name: {
                         "association": self.association,
-                        "values": values,
+                        "values": petro_model,
                         "type": "REFERENCED",
                         "value_map": self.value_map,
                     }
                 }
             )
+
+            means = self.pgi_reg.gmm.means_
+            for ii, phys_prop in enumerate(self.physical_properties):
+                data.add_data_map(
+                    f"Mean {phys_prop}",
+                    {
+                        ind: f"{mean:.3e}"
+                        for ind, mean in zip(self.unit_map, means[:, ii])
+                    },
+                )
