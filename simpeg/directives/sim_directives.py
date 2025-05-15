@@ -2,7 +2,7 @@ import numpy as np
 from ..regularization import BaseSimilarityMeasure
 from ..utils import eigenvalue_by_power_iteration
 from ..optimization import IterationPrinters, StoppingCriteria
-from .directives import InversionDirective, SaveEveryIteration
+from .directives import InversionDirective, SaveOutputEveryIteration
 
 
 ###############################################################################
@@ -125,32 +125,18 @@ class SimilarityMeasureInversionDirective(InversionDirective):
         self.invProb.lambd = self.reg.multipliers[-1]
 
 
-class SimilarityMeasureSaveOutputEveryIteration(SaveEveryIteration):
+class SimilarityMeasureSaveOutputEveryIteration(SaveOutputEveryIteration):
     """
     SaveOutputEveryIteration for Joint Inversions.
     Saves information on the tradeoff parameters, data misfits, regularizations,
     coupling term, number of CG iterations, and value of cost function.
     """
 
-    header = None
-    save_txt = True
-    betas = None
-    phi_d = None
-    phi_m = None
-    phi_sim = None
-    phi = None
+    @property
+    def _header(self):
+        return "  #          betas            lambda         joint_phi_d                joint_phi_m            phi_sim       iterCG     phi    "
 
-    def initialize(self):
-        if self.save_txt is True:
-            print(
-                "CrossGradientSaveOutputEveryIteration will save your inversion "
-                "progress as: '###-{0!s}.txt'".format(self.fileName)
-            )
-            f = open(self.fileName + ".txt", "w")
-            self.header = "  #          betas            lambda         joint_phi_d                joint_phi_m            phi_sim       iterCG     phi    \n"
-            f.write(self.header)
-            f.close()
-
+    def _initialize_lists(self):
         # Create a list of each
         self.betas = []
         self.lambd = []
@@ -168,30 +154,39 @@ class SimilarityMeasureSaveOutputEveryIteration(SaveEveryIteration):
         self.phi.append(self.opt.f)
 
         if self.save_txt:
-            f = open(self.fileName + ".txt", "a")
-            i = self.opt.iter
-            f.write(
-                " {0:2d}  {1}  {2}  {3}  {4}  {5:1.4e}  {6:d}  {7:1.4e}\n".format(
-                    i,
-                    self.betas[i - 1],
-                    self.lambd[i - 1],
-                    self.phi_d[i - 1],
-                    self.phi_m[i - 1],
-                    self.phi_sim[i - 1],
-                    self.opt.cg_count,
-                    self.phi[i - 1],
+            self._mkdir_and_check_output_file(should_exist=True)
+            with open(self.file_abs_path, "a") as f:
+                f.write(
+                    " {0:2d}  {1}  {2}  {3}  {4}  {5:1.4e}  {6:d}  {7:1.4e}\n".format(
+                        self.opt.iter,
+                        self.betas[-1],
+                        self.lambd[-1],
+                        self.phi_d[-1],
+                        self.phi_m[-1],
+                        self.phi_sim[-1],
+                        self.opt.cg_count,
+                        self.phi[-1],
+                    )
                 )
-            )
-            f.close()
 
-    def load_results(self):
-        results = np.loadtxt(self.fileName + str(".txt"), comments="#")
+    def load_results(self, file_name=None):
+        if file_name is None:
+            if not self.on_disk:
+                raise TypeError(
+                    f"'file_name' is a required argument if '{type(self).__qualname__}.on_disk' is `False`"
+                )
+            file_name = self.file_abs_path
+        results = np.loadtxt(file_name, comments="#")
+
+        if results.shape[1] != 8:
+            raise ValueError(f"{file_name} does not have valid results")
+
         self.betas = results[:, 1]
         self.lambd = results[:, 2]
         self.phi_d = results[:, 3]
         self.phi_m = results[:, 4]
         self.phi_sim = results[:, 5]
-        self.f = results[:, 7]
+        self.phi = results[:, 7]
 
 
 class PairedBetaEstimate_ByEig(InversionDirective):
