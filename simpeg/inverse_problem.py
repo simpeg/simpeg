@@ -1,10 +1,13 @@
 import numpy as np
 import scipy.sparse as sp
 import gc
+
+from discretize.utils import Identity
+
 from .data_misfit import BaseDataMisfit
 from .regularization import BaseRegularization, WeightedLeastSquares, Sparse
 from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
-from .optimization import Minimize
+from .optimization import Minimize, BFGS
 from .utils import (
     call_hooks,
     timeIt,
@@ -176,7 +179,7 @@ class BaseInvProblem:
         self._model = value
 
     @call_hooks("startup")
-    def startup(self, m0):
+    def startup(self, m0, init_bfgsH0=True):
         """startup(m0)
 
         Called when inversion is first starting.
@@ -202,39 +205,25 @@ class BaseInvProblem:
 
         self.model = m0
 
-        set_default = True
-        for objfct in self.dmisfit.objfcts:
-            if (
-                isinstance(objfct, BaseDataMisfit)
-                and getattr(objfct.simulation, "solver", None) is not None
-            ):
-                solver = objfct.simulation.solver
-                solver_opts = objfct.simulation.solver_opts
-                print(
-                    """
-                        simpeg.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
-                        ***Done using same Solver, and solver_opts as the {} problem***
-                        """.format(
-                        objfct.simulation.__class__.__name__
-                    )
-                )
-                set_default = False
-                break
-        if set_default:
+        if (
+            isinstance(self.opt, BFGS)
+            and isinstance(self.opt.bfgsH0, Identity)
+            and init_bfgsH0
+        ):
             solver = get_default_solver()
             print(
                 """
-                    simpeg.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
-                    ***Done using the default solver {} and no solver_opts.***
+                    simpeg.InvProblem is setting bfgsH0 to the inverse of the reg.deriv2.
+                    ***Done using the default solver {} with the `is_symmetric=True` set.***
                     """.format(
                     solver.__name__
                 )
             )
-            solver_opts = {}
 
-        self.opt.bfgsH0 = solver(
-            sp.csr_matrix(self.reg.deriv2(self.model)), **solver_opts
-        )
+            self.opt.bfgsH0 = solver(
+                sp.csr_matrix(self.reg.deriv2(self.model)),
+                is_symmetric=True,
+            )
 
     @property
     def warmstart(self):
