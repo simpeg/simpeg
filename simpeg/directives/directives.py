@@ -283,6 +283,9 @@ class DirectiveList(object):
         self.inversion = inversion
         self.verbose = debug
 
+    def __iter__(self):
+        return self.dList.__iter__()
+
     @property
     def debug(self):
         """Whether or not to print debugging information
