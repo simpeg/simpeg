@@ -6,7 +6,7 @@ import numpy as np
 from dataclasses import dataclass
 
 from ..maps import Projection
-from .directives import InversionDirective, UpdatePreconditioner, BetaSchedule
+from ._directives import InversionDirective, UpdatePreconditioner, BetaSchedule
 from ..regularization import (
     Sparse,
     BaseSparse,
