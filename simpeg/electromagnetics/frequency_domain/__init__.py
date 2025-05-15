@@ -57,6 +57,7 @@ Sources
   sources.RawVec
   sources.MagDipole
   sources.MagDipole_Bfield
+  sources.ElectricDipole
   sources.CircularLoop
   sources.PrimSecSigma
   sources.PrimSecMappedSigma
