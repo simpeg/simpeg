@@ -14,21 +14,7 @@ from simpeg.utils import mkvc, sdiag
 from ...base import BasePDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
 
-from ._numba_functions import (
-    choclo,
-    _sensitivity_gravity_serial,
-    _sensitivity_gravity_parallel,
-    _forward_gravity_serial,
-    _forward_gravity_parallel,
-    _sensitivity_gravity_t_dot_v_serial,
-    _sensitivity_gravity_t_dot_v_parallel,
-    _forward_gravity_2d_mesh_serial,
-    _forward_gravity_2d_mesh_parallel,
-    _sensitivity_gravity_2d_mesh_serial,
-    _sensitivity_gravity_2d_mesh_parallel,
-    _diagonal_G_T_dot_G_serial,
-    _diagonal_G_T_dot_G_parallel,
-)
+from ._numba_functions import choclo, NUMBA_FUNCTIONS
 
 try:
     from warnings import deprecated
@@ -217,19 +203,6 @@ class Simulation3DIntegral(BasePFSimulation):
             )
             self.n_processes = None
 
-        # Define jit functions
-        if self.engine == "choclo":
-            if self.numba_parallel:
-                self._sensitivity_gravity = _sensitivity_gravity_parallel
-                self._forward_gravity = _forward_gravity_parallel
-                self._sensitivity_t_dot_v = _sensitivity_gravity_t_dot_v_parallel
-                self._diagonal_G_T_dot_G = _diagonal_G_T_dot_G_parallel
-            else:
-                self._sensitivity_gravity = _sensitivity_gravity_serial
-                self._forward_gravity = _forward_gravity_serial
-                self._sensitivity_t_dot_v = _sensitivity_gravity_t_dot_v_serial
-                self._diagonal_G_T_dot_G = _diagonal_G_T_dot_G_serial
-
     def fields(self, m):
         """
         Forward model the gravity field of the mesh on the receivers in the survey
@@ -332,14 +305,24 @@ class Simulation3DIntegral(BasePFSimulation):
         -------
         np.ndarray
         """
-        gtg_diagonal = (
-            self._gtg_diagonal_without_building_g(weights)
-            if self.store_sensitivities == "forward_only"
-            else
-            # In Einstein notation, the j-th element of the diagonal is:
-            #   d_j = w_i * G_{ij} * G_{ij}
-            np.asarray(np.einsum("i,ij,ij->j", weights, self.G, self.G))
-        )
+        match self.store_sensitivities, self.engine:
+            case ("forward_only", "geoana"):
+                msg = (
+                    "Computing the diagonal of G.T @ G with "
+                    'store_sensitivities="forward_only" and engine="geoana" '
+                    "hasn't been implemented yet."
+                    'Choose store_sensitivities="ram" or "disk", '
+                    'or another engine, like "choclo".'
+                )
+                raise NotImplementedError(msg)
+            case ("forward_only", "choclo"):
+                gtg_diagonal = self._gtg_diagonal_without_building_g(weights)
+            case (_, _):
+                # In Einstein notation, the j-th element of the diagonal is:
+                #   d_j = w_i * G_{ij} * G_{ij}
+                gtg_diagonal = np.asarray(
+                    np.einsum("i,ij,ij->j", weights, self.G, self.G)
+                )
         return gtg_diagonal
 
     def getJ(self, m, f=None) -> NDArray[np.float64 | np.float32] | LinearOperator:
@@ -592,6 +575,8 @@ class Simulation3DIntegral(BasePFSimulation):
         (nD,) numpy.ndarray
             Always return a ``np.float64`` array.
         """
+        # Get Numba function
+        forward_func = NUMBA_FUNCTIONS["forward"][self.numba_parallel]
         # Gather active nodes and the indices of the nodes for each active cell
         active_nodes, active_cell_nodes = self._get_active_nodes()
         # Allocate fields array
@@ -607,7 +592,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 vector_slice = slice(
                     index_offset + i, index_offset + n_elements, n_components
                 )
-                self._forward_gravity(
+                forward_func(
                     receivers,
                     active_nodes,
                     densities,
@@ -627,6 +612,8 @@ class Simulation3DIntegral(BasePFSimulation):
         -------
         (nD, n_active_cells) numpy.ndarray
         """
+        # Get Numba function
+        sensitivity_func = NUMBA_FUNCTIONS["sensitivity"][self.numba_parallel]
         # Gather active nodes and the indices of the nodes for each active cell
         active_nodes, active_cell_nodes = self._get_active_nodes()
         # Allocate sensitivity matrix
@@ -652,7 +639,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 matrix_slice = slice(
                     index_offset + i, index_offset + n_rows, n_components
                 )
-                self._sensitivity_gravity(
+                sensitivity_func(
                     receivers,
                     active_nodes,
                     sensitivity_matrix[matrix_slice, :],
@@ -676,6 +663,8 @@ class Simulation3DIntegral(BasePFSimulation):
         -------
         (n_active_cells) numpy.ndarray
         """
+        # Get Numba function
+        sensitivity_t_dot_v_func = NUMBA_FUNCTIONS["gt_dot_v"][self.numba_parallel]
         # Gather active nodes and the indices of the nodes for each active cell
         active_nodes, active_cell_nodes = self._get_active_nodes()
         # Allocate resulting array
@@ -691,7 +680,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 vector_slice = slice(
                     index_offset + i, index_offset + n_rows, n_components
                 )
-                self._sensitivity_t_dot_v(
+                sensitivity_t_dot_v_func(
                     receivers,
                     active_nodes,
                     active_cell_nodes,
@@ -734,6 +723,8 @@ class Simulation3DIntegral(BasePFSimulation):
         -------
         (n_active_cells) numpy.ndarray
         """
+        # Get Numba function
+        diagonal_gtg_func = NUMBA_FUNCTIONS["diagonal_gtg"][self.numba_parallel]
         # Gather active nodes and the indices of the nodes for each active cell
         active_nodes, active_cell_nodes = self._get_active_nodes()
         # Allocate array for the diagonal of G.T @ G
@@ -743,7 +734,7 @@ class Simulation3DIntegral(BasePFSimulation):
             for component in components:
                 kernel_func = CHOCLO_KERNELS[component]
                 conversion_factor = _get_conversion_factor(component)
-                self._diagonal_G_T_dot_G(
+                diagonal_gtg_func(
                     receivers,
                     active_nodes,
                     active_cell_nodes,
@@ -797,14 +788,6 @@ class SimulationEquivalentSourceLayer(
             **kwargs,
         )
 
-        if self.engine == "choclo":
-            if self.numba_parallel:
-                self._sensitivity_gravity = _sensitivity_gravity_2d_mesh_parallel
-                self._forward_gravity = _forward_gravity_2d_mesh_parallel
-            else:
-                self._sensitivity_gravity = _sensitivity_gravity_2d_mesh_serial
-                self._forward_gravity = _forward_gravity_2d_mesh_serial
-
     def _forward(self, densities):
         """
         Forward model the fields of active cells in the mesh on receivers.
@@ -820,6 +803,8 @@ class SimulationEquivalentSourceLayer(
         (nD,) numpy.ndarray
             Always return a ``np.float64`` array.
         """
+        # Get Numba function
+        forward_func = NUMBA_FUNCTIONS["forward_2d_mesh"][self.numba_parallel]
         # Get cells in the 2D mesh and keep only active cells
         cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
         # Allocate fields array
@@ -830,19 +815,19 @@ class SimulationEquivalentSourceLayer(
             n_components = len(components)
             n_elements = n_components * receivers.shape[0]
             for i, component in enumerate(components):
-                forward_func = CHOCLO_FORWARD_FUNCS[component]
+                choclo_forward_func = CHOCLO_FORWARD_FUNCS[component]
                 conversion_factor = _get_conversion_factor(component)
                 vector_slice = slice(
                     index_offset + i, index_offset + n_elements, n_components
                 )
-                self._forward_gravity(
+                forward_func(
                     receivers,
                     cells_bounds_active,
                     self.cell_z_top,
                     self.cell_z_bottom,
                     densities,
                     fields[vector_slice],
-                    forward_func,
+                    choclo_forward_func,
                     conversion_factor,
                 )
             index_offset += n_elements
@@ -856,6 +841,8 @@ class SimulationEquivalentSourceLayer(
         -------
         (nD, n_active_cells) numpy.ndarray
         """
+        # Get Numba function
+        sensitivity_func = NUMBA_FUNCTIONS["sensitivity_2d_mesh"][self.numba_parallel]
         # Get cells in the 2D mesh and keep only active cells
         cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
         # Allocate sensitivity matrix
@@ -876,18 +863,18 @@ class SimulationEquivalentSourceLayer(
             n_components = len(components)
             n_rows = n_components * receivers.shape[0]
             for i, component in enumerate(components):
-                forward_func = CHOCLO_FORWARD_FUNCS[component]
+                choclo_forward_func = CHOCLO_FORWARD_FUNCS[component]
                 conversion_factor = _get_conversion_factor(component)
                 matrix_slice = slice(
                     index_offset + i, index_offset + n_rows, n_components
                 )
-                self._sensitivity_gravity(
+                sensitivity_func(
                     receivers,
                     cells_bounds_active,
                     self.cell_z_top,
                     self.cell_z_bottom,
                     sensitivity_matrix[matrix_slice, :],
-                    forward_func,
+                    choclo_forward_func,
                     conversion_factor,
                 )
             index_offset += n_rows
