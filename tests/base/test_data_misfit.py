@@ -74,14 +74,16 @@ class DataMisfitTest(unittest.TestCase):
     def test_real_valued(self):
 
         data_imag = self.sim.make_synthetic_data(self.model, random_seed=17)
-        synthetic_data = Data(self.sim.survey, dobs=self.data.dobs+1j*data_imag.dobs)
+        synthetic_data = Data(
+            self.sim.survey, dobs=self.data.dobs + 1j * data_imag.dobs
+        )
 
         synthetic_data.relative_error = self.relative
         synthetic_data.noise_floor = self.noise_floor
 
         dmis = data_misfit.L2DataMisfit(simulation=self.sim, data=synthetic_data)
 
-        assert dmis(self.model/2).dtype == np.float64
+        assert dmis(self.model / 2).dtype == np.float64
 
 
 class MockSimulation(simulation.BaseSimulation):
