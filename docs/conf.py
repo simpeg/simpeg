@@ -296,6 +296,7 @@ html_theme_options = {
         "json_url": "https://docs.simpeg.xyz/latest/_static/versions.json",
     },
     "show_version_warning_banner": True,
+    "navigation_with_keys": True,
 }
 
 html_logo = "images/simpeg-logo.png"
