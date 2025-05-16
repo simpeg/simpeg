@@ -83,7 +83,7 @@ class DataMisfitTest(unittest.TestCase):
 
         dmis = data_misfit.L2DataMisfit(simulation=self.sim, data=synthetic_data)
 
-        assert dmis(self.model / 2).dtype == np.float64
+        assert dmis(self.model + 1).dtype == np.float64
 
 
 class MockSimulation(simulation.BaseSimulation):
