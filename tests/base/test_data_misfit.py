@@ -89,9 +89,7 @@ class DataMisfitTest(unittest.TestCase):
 
         # Test actually complex; misfit must be different
         data_imag = self.sim.make_synthetic_data(self.model, random_seed=17)
-        d_complex = Data(
-            self.sim.survey, dobs=self.data.dobs + 1j * data_imag.dobs
-        )
+        d_complex = Data(self.sim.survey, dobs=self.data.dobs + 1j * data_imag.dobs)
         d_complex.relative_error = self.relative
         d_complex.noise_floor = self.noise_floor
         dmis_complex = data_misfit.L2DataMisfit(simulation=self.sim, data=d_complex)
