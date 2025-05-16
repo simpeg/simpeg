@@ -84,7 +84,6 @@ class DataMisfitTest(unittest.TestCase):
         assert dmis(self.model/2).dtype == np.float64
 
 
-
 class MockSimulation(simulation.BaseSimulation):
     """
     Mock simulation class that returns nans or infs in the dpred array.
