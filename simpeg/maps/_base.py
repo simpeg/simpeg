@@ -2,8 +2,6 @@
 Base and general map classes.
 """
 
-from __future__ import annotations  # needed to use type operands in Python 3.8
-
 from collections import namedtuple
 import discretize
 import numpy as np
@@ -207,8 +205,8 @@ class IdentityMap:
             Returns ``True`` if the test passes
         """
         print("Testing {0!s}".format(str(self)))
+        rng = np.random.default_rng(seed=random_seed)
         if m is None:
-            rng = np.random.default_rng(seed=random_seed)
             m = rng.uniform(size=self.nP)
         if "plotIt" not in kwargs:
             kwargs["plotIt"] = False
@@ -217,7 +215,7 @@ class IdentityMap:
             self.nP, (int, np.integer)
         ), "nP must be an integer for {}".format(self.__class__.__name__)
         return check_derivative(
-            lambda m: [self * m, self.deriv(m)], m, num=num, **kwargs
+            lambda m: [self * m, self.deriv(m)], m, num=num, random_seed=rng, **kwargs
         )
 
     def _assertMatchesPair(self, pair):
@@ -1296,7 +1294,7 @@ class TileMap(IdentityMap):
         Set the projection matrix with partial volumes
         """
         if getattr(self, "_P", None) is None:
-            in_local = self.local_mesh._get_containing_cell_indexes(
+            in_local = self.local_mesh.get_containing_cells(
                 self.global_mesh.cell_centers
             )
 

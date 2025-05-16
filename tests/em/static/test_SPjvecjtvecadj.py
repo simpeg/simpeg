@@ -43,8 +43,8 @@ def test_forward():
         mesh=mesh, survey=dc_survey, sigma=conductivity
     )
 
-    dc_dpred = sim_dc.make_synthetic_data(None, add_noise=False)
-    sp_dpred = sim.make_synthetic_data(q, add_noise=False)
+    dc_dpred = sim_dc.make_synthetic_data(None, add_noise=False, random_seed=40)
+    sp_dpred = sim.make_synthetic_data(q, add_noise=False, random_seed=40)
 
     np.testing.assert_allclose(dc_dpred.dobs, sp_dpred.dobs)
 
@@ -73,8 +73,7 @@ def test_deriv(q_map):
 
     rng = np.random.default_rng(seed=42)
     m0 = rng.normal(size=q_map.shape[1])
-    np.random.seed(40)  # set a random seed for check_derivative
-    check_derivative(func, m0, plotIt=False)
+    check_derivative(func, m0, plotIt=False, random_seed=rng)
 
 
 @pytest.mark.parametrize(
@@ -99,7 +98,9 @@ def test_adjoint(q_map):
     def Jtvec(v):
         return sim.Jtvec(model, v, f=f)
 
-    assert_isadjoint(Jvec, Jtvec, shape_u=(q_map.shape[1],), shape_v=(survey.nD))
+    assert_isadjoint(
+        Jvec, Jtvec, shape_u=(q_map.shape[1],), shape_v=(survey.nD), random_seed=rng
+    )
 
 
 def test_errors():
@@ -113,13 +114,11 @@ def test_clears():
     # set qMap as a non-linear map to make sure it adds the correct
     # items to be cleared on model update
     sim.qMap = maps.IdentityMap()
-    assert sim.deleteTheseOnModelUpdate == []
-    assert sim.clean_on_model_update == []
+    assert sim._delete_on_model_update == []
 
     sim.storeJ = True
     sim.qMap = maps.ExpMap()
-    assert sim.deleteTheseOnModelUpdate == ["_Jmatrix", "_gtgdiag"]
-    assert sim.clean_on_model_update == []
+    assert sim._delete_on_model_update == ["_Jmatrix", "_gtgdiag"]
 
 
 def test_deprecations():

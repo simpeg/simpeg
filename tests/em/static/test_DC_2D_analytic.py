@@ -1,9 +1,11 @@
+import discretize
 import numpy as np
 import unittest
 
+import pytest
 from discretize import TensorMesh
 
-from simpeg import utils, SolverLU
+from simpeg import utils
 from simpeg.electromagnetics import resistivity as dc
 from simpeg.electromagnetics import analytics
 
@@ -43,19 +45,11 @@ class DCProblemAnalyticTests_DPDP(unittest.TestCase):
         self.data_ana = data_ana
         self.plotIt = False
 
-        try:
-            from pymatsolver import Pardiso
-
-            self.solver = Pardiso
-        except ImportError:
-            self.solver = SolverLU
-
     def test_Simulation2DNodal(self, tolerance=0.05):
         simulation = dc.simulation_2d.Simulation2DNodal(
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.solver,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -71,7 +65,6 @@ class DCProblemAnalyticTests_DPDP(unittest.TestCase):
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.solver,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -114,19 +107,11 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
         self.data_ana = data_ana
         self.plotIt = False
 
-        try:
-            from pymatsolver import Pardiso
-
-            self.solver = Pardiso
-        except ImportError:
-            self.solver = SolverLU
-
     def test_Simulation2DNodal(self, tolerance=0.05):
         simulation = dc.simulation_2d.Simulation2DNodal(
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.solver,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -142,7 +127,6 @@ class DCProblemAnalyticTests_PDP(unittest.TestCase):
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.solver,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -187,19 +171,11 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
         self.data_ana = data_ana
         self.plotIt = False
 
-        try:
-            from pymatsolver import PardisoSolver
-
-            self.solver = PardisoSolver
-        except ImportError:
-            self.solver = SolverLU
-
     def test_Simulation2DNodal(self, tolerance=0.05):
         simulation = dc.simulation_2d.Simulation2DNodal(
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.solver,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -215,7 +191,6 @@ class DCProblemAnalyticTests_DPP(unittest.TestCase):
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.solver,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -259,19 +234,11 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
         self.sigma = sigma
         self.data_ana = data_ana
 
-        try:
-            from pymatsolver import PardisoSolver
-
-            self.solver = PardisoSolver
-        except ImportError:
-            self.solver = SolverLU
-
     def test_Simulation2DCellCentered(self, tolerance=0.05):
         simulation = dc.simulation_2d.Simulation2DCellCentered(
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.solver,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -287,7 +254,6 @@ class DCProblemAnalyticTests_PP(unittest.TestCase):
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.solver,
             bc_type="Robin",
         )
         data = simulation.dpred()
@@ -345,19 +311,11 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
         self.plotIt = False
         self.ROI_inds = ROI_inds
 
-        try:
-            from pymatsolver import PardisoSolver
-
-            self.solver = PardisoSolver
-        except ImportError:
-            self.solver = SolverLU
-
     def test_Simulation2DCellCentered(self, tolerance=0.05):
         simulation = dc.simulation_2d.Simulation2DCellCentered(
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.solver,
         )
         field = simulation.fields()
 
@@ -374,7 +332,6 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.solver,
             bc_type="Dirichlet",
         )
         field = simulation.fields()
@@ -392,7 +349,6 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.solver,
         )
         field = simulation.fields()
         data = field[:, "phi"][:, 0]
@@ -437,19 +393,11 @@ class DCSimulationAppResTests(unittest.TestCase):
         self.sigma_half = sighalf
         self.plotIt = False
 
-        try:
-            from pymatsolver import Pardiso
-
-            self.solver = Pardiso
-        except ImportError:
-            self.solver = SolverLU
-
     def test_Simulation2DNodal(self, tolerance=0.05):
         simulation = dc.simulation_2d.Simulation2DNodal(
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.solver,
             bc_type="Robin",
         )
         with self.assertRaises(KeyError):
@@ -468,7 +416,6 @@ class DCSimulationAppResTests(unittest.TestCase):
             self.mesh,
             survey=self.survey,
             sigma=self.sigma,
-            solver=self.solver,
             bc_type="Robin",
         )
         with self.assertRaises(KeyError):
@@ -481,6 +428,13 @@ class DCSimulationAppResTests(unittest.TestCase):
         err = np.sqrt(np.linalg.norm((data - rhohalf) / rhohalf) ** 2 / data.size)
         print(f"DPDP N err: {err}")
         self.assertLess(err, tolerance)
+
+
+def test_bad_mesh_dim():
+    mesh = discretize.TensorMesh([3, 3, 3])
+    msg = "Simulation2DNodal mesh must be 2D, received a 3D mesh."
+    with pytest.raises(ValueError, match=msg):
+        dc.Simulation2DNodal(mesh)
 
 
 if __name__ == "__main__":

@@ -50,8 +50,9 @@ def DerivJvecTest_1D(halfspace_value, freq=False, expMap=True):
     def fun(x):
         return simulation.dpred(x), lambda x: simulation.Jvec(x0, x)
 
-    np.random.seed(1983)  # use seed for check_derivative
-    return tests.check_derivative(fun, x0, num=6, plotIt=False, eps=FLR)
+    return tests.check_derivative(
+        fun, x0, num=6, plotIt=False, eps=FLR, random_seed=298376
+    )
 
 
 def DerivJvecTest(halfspace_value, freq=False, expMap=True):
@@ -74,8 +75,9 @@ def DerivJvecTest(halfspace_value, freq=False, expMap=True):
     def fun(x):
         return simulation.dpred(x), lambda x: simulation.Jvec(x0, x)
 
-    np.random.seed(1983)  # set a random seed for check_derivative
-    return tests.check_derivative(fun, x0, num=4, plotIt=False, eps=FLR)
+    return tests.check_derivative(
+        fun, x0, num=4, plotIt=False, eps=FLR, random_seed=5553
+    )
 
 
 class NSEM_DerivTests(unittest.TestCase):

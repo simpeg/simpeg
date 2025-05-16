@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import numbers
 import numpy as np
 import scipy.sparse as sp
@@ -204,12 +202,17 @@ class BaseObjectiveFunction(BaseSimPEG):
         **kwargs,
     ):
         print("Testing {0!s} Deriv".format(self.__class__.__name__))
+        rng = np.random.default_rng(seed=random_seed)
         if x is None:
-            rng = np.random.default_rng(seed=random_seed)
             n_params = rng.integers(low=100, high=1_000) if self.nP == "*" else self.nP
             x = rng.standard_normal(size=n_params)
         return check_derivative(
-            lambda m: [self(m), self.deriv(m)], x, num=num, plotIt=plotIt, **kwargs
+            lambda m: [self(m), self.deriv(m)],
+            x,
+            num=num,
+            plotIt=plotIt,
+            random_seed=rng,
+            **kwargs,
         )
 
     def _test_deriv2(
@@ -234,6 +237,7 @@ class BaseObjectiveFunction(BaseSimPEG):
             num=num,
             expectedOrder=expectedOrder,
             plotIt=plotIt,
+            random_seed=rng,
             **kwargs,
         )
 

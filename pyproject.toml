@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 name = 'simpeg'
 description = "SimPEG: Simulation and Parameter Estimation in Geophysics"
 readme = 'README.rst'
-requires-python = '>=3.8'
+requires-python = '>=3.10'
 authors = [
   {name = 'SimPEG developers', email = 'rowanc1@gmail.com'},
 ]
@@ -15,13 +15,14 @@ keywords = [
     'geophysics', 'inverse problem'
 ]
 dependencies = [
-    "numpy>=1.20",
+    "numpy>=1.22",
     "scipy>=1.8",
-    "pymatsolver>=0.2",
+    "pymatsolver>=0.3",
     "matplotlib",
-    "discretize>=0.10",
-    "geoana>=0.5.0",
-    "empymod>=2.0.0",
+    "discretize>=0.11",
+    "geoana>=0.7",
+    "libdlf",
+    "typing_extensions; python_version<'3.13'",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -50,7 +51,7 @@ Repository = 'http://github.com/simpeg/simpeg.git'
 
 [project.optional-dependencies]
 dask = ["dask", "zarr", "fsspec>=0.3.3"]
-choclo = ["choclo"]
+choclo = ["choclo>=0.3.0"]
 reporting = ["scooby"]
 plotting = ["plotly"]
 sklearn = ["scikit-learn>=1.2"]
@@ -72,8 +73,10 @@ docs = [
     "sphinx",
     "sphinx-gallery>=0.1.13",
     "sphinxcontrib-apidoc",
+    "sphinx-reredirects",
     "pydata-sphinx-theme",
     "nbsphinx",
+    "empymod>=2.0.0",
     "numpydoc",
     "pillow",
     "sympy",
@@ -121,6 +124,9 @@ exclude_also = [
     "if 0:",
     "if __name__ == .__main__.:",
 
+    # Don't complain about default solver choices:
+    'if AvailableSolvers["Pardiso"]:',
+
     # Don't complain about abstract methods, they aren't run:
     "@(abc\\.)?abstractmethod",
 ]
@@ -130,7 +136,7 @@ directory = "coverage_html_report"
 
 [tool.black]
 required-version = '24.3.0'
-target-version = ['py38', 'py39', 'py310', 'py311']
+target-version = ['py310', 'py311', 'py312']
 
 [tool.flake8]
 extend-ignore = [
@@ -248,3 +254,13 @@ rst-roles = [
     'meth',
     'ref',
 ]
+
+# pyproject.toml
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::simpeg.utils.solver_utils.DefaultSolverWarning",
+    "error:You are running a pytest without setting a random seed.*:UserWarning",
+    "error:The `index_dictionary` property has been deprecated:FutureWarning",
+    'error:The `simpeg\.directives\.[a-z_]+` submodule has been deprecated',
+]
+xfail_strict = true
