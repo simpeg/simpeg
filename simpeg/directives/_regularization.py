@@ -229,20 +229,20 @@ class UpdateIRLS(InversionDirective):
         """
         Adjust the cooling schedule based on the misfit.
         """
-        if self.metrics.start_irls_iter is not None:
-            ratio = self.invProb.phi_d / self.misfit_from_chi_factor(
-                self.chifact_target
-            )
-            if np.abs(1.0 - ratio) > self.misfit_tolerance:
+        if self.metrics.start_irls_iter is None:
+            return
 
-                if ratio > 1:
-                    update_ratio = 1 / np.mean([0.75, 1 / ratio])
-                else:
-                    update_ratio = 1 / np.mean([2.0, 1 / ratio])
+        ratio = self.invProb.phi_d / self.misfit_from_chi_factor(self.chifact_target)
+        if np.abs(1.0 - ratio) > self.misfit_tolerance:
 
-                self.cooling_factor = update_ratio
+            if ratio > 1:
+                update_ratio = 1 / np.mean([0.75, 1 / ratio])
             else:
-                self.cooling_factor = 1.0
+                update_ratio = 1 / np.mean([2.0, 1 / ratio])
+
+            self.cooling_factor = update_ratio
+        else:
+            self.cooling_factor = 1.0
 
     def initialize(self):
         """
