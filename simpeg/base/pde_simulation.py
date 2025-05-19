@@ -10,6 +10,7 @@ from scipy.constants import mu_0
 
 from ..utils import validate_type
 from ..utils.solver_utils import get_default_solver
+from ..utils.logger import LOGGER
 
 
 def __inner_mat_mul_op(M, u, v=None, adjoint=False):
@@ -434,16 +435,29 @@ class BasePDESimulation(BaseSimulation):
         pairs of keyword arguments and parameter values for the solver. Please visit
         `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__ to learn more
         about solvers and their parameters.
+    verbose : bool, optional
+        Enable verbosity for when setting a default solver if no solver is provided.
+        If True, users get informed that a default solver is being automatically chosen.
+        If False, no information is provided.
 
     """
 
-    def __init__(self, mesh, solver=None, solver_opts=None, **kwargs):
+    def __init__(self, mesh, solver=None, solver_opts=None, verbose=True, **kwargs):
         self.mesh = mesh
         super().__init__(**kwargs)
+        if solver is None:
+            solver = get_default_solver()
+            if verbose:
+                LOGGER.info(
+                    f"Setting the default solver '{solver.__name__}' for the "
+                    f"{type(self).__name__}. "
+                    "Set `verbose=False` if you want to suppress this message."
+                )
         self.solver = solver
         if solver_opts is None:
             solver_opts = {}
         self.solver_opts = solver_opts
+        self.verbose = verbose
 
     @property
     def mesh(self):
@@ -484,10 +498,6 @@ class BasePDESimulation(BaseSimulation):
         type[pymatsolver.solvers.Base]
             Numerical solver used to solve the forward problem.
         """
-        if self._solver is None:
-            # do not cache this, in case the user wants to
-            # change it after the first time it is requested.
-            return get_default_solver(warn=True)
         return self._solver
 
     @solver.setter
