@@ -812,13 +812,17 @@ def test_bad_derivative_stash():
         sim.MeSigmaDeriv(u, v)
 
 
-def test_solver_defaults():
+@pytest.mark.parametrize("verbose", [True, False], ids=("verbose", "silent"))
+def test_solver_defaults(caplog, verbose):
     mesh = discretize.TensorMesh([2, 2, 2])
-    sim = BasePDESimulation(mesh)
-    with pytest.warns(UserWarning, match="Using the default solver.*"):
-        solver_class = sim.solver
+    sim = BasePDESimulation(mesh, verbose=verbose)
 
-    assert solver_class is get_default_solver()
+    # Check that logging.info was created if verbose
+    if verbose:
+        assert "Setting the default solver" in caplog.text
+
+    # Test if default solver was properly set
+    assert sim.solver is get_default_solver()
 
 
 def test_bad_solver():
