@@ -982,7 +982,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         """
 
         self.compute_clusters_precisions()
-        self.order_cluster()
+        # self.order_cluster()
 
         if debug:
             print("before update means: ", self.means_)
