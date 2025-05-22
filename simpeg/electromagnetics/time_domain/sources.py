@@ -1324,7 +1324,7 @@ class MagDipole(BaseTDEMSrc):
             C = simulation.mesh.edge_curl
 
         elif simulation._formulation == "HJ":
-            C = simulation.mesh.edge_curl.T
+            C = simulation.MeI * simulation.mesh.edge_curl.T * simulation.Mf
 
         return C * self._aSrc(simulation)
 
