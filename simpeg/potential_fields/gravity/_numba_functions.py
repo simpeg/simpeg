@@ -639,6 +639,141 @@ def _sensitivity_gravity_2d_mesh(
             )
 
 
+@jit(nopython=True, parallel=False)
+def _g_t_dot_v_2d_mesh_serial(
+    receivers,
+    cells_bounds,
+    top,
+    bottom,
+    forward_func,
+    constant_factor,
+    vector,
+    result,
+):
+    """
+    Compute ``G.T @ v`` in serial, without building G, for a 2D mesh.
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    cells_bounds : (n_active_cells, 4) numpy.ndarray
+        Array with the bounds of each active cell in the 2D mesh. For each row, the
+        bounds should be passed in the following order: ``x_min``, ``x_max``,
+        ``y_min``, ``y_max``.
+    top : (n_active_cells) np.ndarray
+        Array with the top boundaries of each active cell in the 2D mesh.
+    bottom : (n_active_cells) np.ndarray
+        Array with the bottom boundaries of each active cell in the 2D mesh.
+    forward_func : callable
+        Forward function that will be evaluated on each node of the mesh. Choose
+        one of the forward functions in ``choclo.prism``.
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+    vector : (n_receivers) numpy.ndarray
+        Array that represents the vector used in the dot product.
+    result : (n_active_cells) numpy.ndarray
+        Running result array where the output of the dot product will be added to.
+
+    Notes
+    -----
+    This function is meant to be run in serial. Writing to the ``result`` array
+    inside a parallel loop over the receivers generates a race condition that
+    leads to corrupted outputs.
+    """
+    n_receivers = receivers.shape[0]
+    n_cells = cells_bounds.shape[0]
+    for i in range(n_receivers):
+        for j in range(n_cells):
+            # Compute the i-th row of the sensitivity matrix and multiply it by the
+            # i-th element of the vector.
+            result[j] += constant_factor * forward_func(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                vector[i],
+            )
+
+
+@jit(nopython=True, parallel=True)
+def _g_t_dot_v_2d_mesh_parallel(
+    receivers,
+    cells_bounds,
+    top,
+    bottom,
+    forward_func,
+    constant_factor,
+    vector,
+    result,
+):
+    """
+    Compute ``G.T @ v`` in parallel, without building G, for a 2D mesh.
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    cells_bounds : (n_active_cells, 4) numpy.ndarray
+        Array with the bounds of each active cell in the 2D mesh. For each row, the
+        bounds should be passed in the following order: ``x_min``, ``x_max``,
+        ``y_min``, ``y_max``.
+    top : (n_active_cells) np.ndarray
+        Array with the top boundaries of each active cell in the 2D mesh.
+    bottom : (n_active_cells) np.ndarray
+        Array with the bottom boundaries of each active cell in the 2D mesh.
+    forward_func : callable
+        Forward function that will be evaluated on each node of the mesh. Choose
+        one of the forward functions in ``choclo.prism``.
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+    vector : (n_receivers) numpy.ndarray
+        Array that represents the vector used in the dot product.
+    result : (n_active_cells) numpy.ndarray
+        Running result array where the output of the dot product will be added to.
+
+    Notes
+    -----
+    This function is meant to be run in parallel.
+    This implementation instructs each thread to allocate their own array for
+    the current row of the sensitivity matrix. After computing the elements of
+    that row, it gets added to the running ``result`` array through a reduction
+    operation handled by Numba.
+    """
+    n_receivers = receivers.shape[0]
+    n_cells = cells_bounds.shape[0]
+    for i in range(n_receivers):
+        # Allocate array for the current row of the sensitivity matrix
+        local_row = np.empty(n_cells)
+        for j in range(n_cells):
+            # Compute the i-th row of the sensitivity matrix and multiply it by the
+            # i-th element of the vector.
+            local_row[j] = constant_factor * forward_func(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                vector[i],
+            )
+        # Apply reduction operation to add the values of the row to the running
+        # result. Avoid slicing the `result` array when updating it to avoid
+        # racing conditions, just add the `local_row` to the `results`
+        # variable.
+        result += local_row
+
+
 # Define a dictionary with decorated versions of the Numba functions.
 NUMBA_FUNCTIONS = {
     "sensitivity": {
@@ -664,5 +799,9 @@ NUMBA_FUNCTIONS = {
     "gt_dot_v": {
         False: _sensitivity_gravity_t_dot_v_serial,
         True: _sensitivity_gravity_t_dot_v_parallel,
+    },
+    "gt_dot_v_2d_mesh": {
+        False: _g_t_dot_v_2d_mesh_serial,
+        True: _g_t_dot_v_2d_mesh_parallel,
     },
 }

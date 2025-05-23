@@ -457,6 +457,163 @@ class TestGravityEquivalentSourcesForward:
         np.testing.assert_allclose(sim_parallel.dpred(model), sim_serial.dpred(model))
 
 
+@pytest.mark.parametrize("parallel", (True, False), ids=["parallel", "serial"])
+@pytest.mark.parametrize(
+    "engine",
+    [
+        "choclo",
+        pytest.param(
+            "geoana",
+            marks=pytest.mark.xfail(
+                reason="not implemented", raises=NotImplementedError
+            ),
+        ),
+    ],
+)
+class TestGravityEquivalentSourcesForwardOnly:
+    """
+    Test gravity equivalent sources methods without building the sensitivity matrix.
+    """
+
+    def test_Jvec(
+        self,
+        tensor_mesh,
+        mesh_bottom,
+        mesh_top,
+        gravity_survey,
+        engine,
+        parallel,
+    ):
+        """
+        Test Jvec with "forward_only" vs. J @ v with J stored in ram.
+        """
+        # Build simulations
+        mapping = get_mapping(tensor_mesh)
+        eqs_ram, eqs_forward_only = (
+            gravity.SimulationEquivalentSourceLayer(
+                mesh=tensor_mesh,
+                cell_z_top=mesh_top,
+                cell_z_bottom=mesh_bottom,
+                survey=gravity_survey,
+                rhoMap=mapping,
+                engine=engine,
+                store_sensitivities=store,
+                numba_parallel=parallel,
+            )
+            for store in ("ram", "forward_only")
+        )
+        # Compare predictions of both simulations
+        model = get_block_model(tensor_mesh, 2.67)
+        vector = np.random.default_rng(seed=42).uniform(size=model.size)
+        jacobian = eqs_ram.getJ(model)
+        np.testing.assert_allclose(
+            jacobian @ vector, eqs_forward_only.Jvec(model, vector)
+        )
+
+    def test_Jtvec(
+        self,
+        tensor_mesh,
+        mesh_bottom,
+        mesh_top,
+        gravity_survey,
+        engine,
+        parallel,
+    ):
+        """
+        Test Jtvec with "forward_only" vs. J.T @ v with J stored in ram.
+        """
+        # Build simulations
+        mapping = get_mapping(tensor_mesh)
+        eqs_ram, eqs_forward_only = (
+            gravity.SimulationEquivalentSourceLayer(
+                mesh=tensor_mesh,
+                cell_z_top=mesh_top,
+                cell_z_bottom=mesh_bottom,
+                survey=gravity_survey,
+                rhoMap=mapping,
+                engine=engine,
+                store_sensitivities=store,
+                numba_parallel=parallel,
+            )
+            for store in ("ram", "forward_only")
+        )
+        # Compare predictions of both simulations
+        model = get_block_model(tensor_mesh, 2.67)
+        vector = np.random.default_rng(seed=42).uniform(size=gravity_survey.nD)
+        jacobian = eqs_ram.getJ(model)
+        np.testing.assert_allclose(
+            jacobian.T @ vector, eqs_forward_only.Jtvec(model, vector)
+        )
+
+    def test_getJ_dot_v(
+        self,
+        tensor_mesh,
+        mesh_bottom,
+        mesh_top,
+        gravity_survey,
+        engine,
+        parallel,
+    ):
+        """
+        Test getJ() @ v with "forward_only" vs. when J is stored in memory.
+        """
+        # Build simulations
+        mapping = get_mapping(tensor_mesh)
+        eqs_ram, eqs_forward_only = (
+            gravity.SimulationEquivalentSourceLayer(
+                mesh=tensor_mesh,
+                cell_z_top=mesh_top,
+                cell_z_bottom=mesh_bottom,
+                survey=gravity_survey,
+                rhoMap=mapping,
+                engine=engine,
+                store_sensitivities=store,
+                numba_parallel=parallel,
+            )
+            for store in ("ram", "forward_only")
+        )
+        # Compare predictions of both simulations
+        model = get_block_model(tensor_mesh, 2.67)
+        vector = np.random.default_rng(seed=42).uniform(size=model.size)
+        jacobian = eqs_ram.getJ(model)
+        jac_linop = eqs_forward_only.getJ(model)
+        np.testing.assert_allclose(jacobian @ vector, jac_linop @ vector)
+
+    def test_getJ_t_dot_v(
+        self,
+        tensor_mesh,
+        mesh_bottom,
+        mesh_top,
+        gravity_survey,
+        engine,
+        parallel,
+    ):
+        """
+        Test getJ().T @ v with "forward_only" vs. when J is stored in memory.
+        """
+        # Build simulations
+        mapping = get_mapping(tensor_mesh)
+        eqs_ram, eqs_forward_only = (
+            gravity.SimulationEquivalentSourceLayer(
+                mesh=tensor_mesh,
+                cell_z_top=mesh_top,
+                cell_z_bottom=mesh_bottom,
+                survey=gravity_survey,
+                rhoMap=mapping,
+                engine=engine,
+                store_sensitivities=store,
+                numba_parallel=parallel,
+            )
+            for store in ("ram", "forward_only")
+        )
+        # Compare predictions of both simulations
+        model = get_block_model(tensor_mesh, 2.67)
+        vector = np.random.default_rng(seed=42).uniform(size=gravity_survey.nD)
+        jacobian = eqs_ram.getJ(model)
+        jac_linop = eqs_forward_only.getJ(model)
+        np.testing.assert_allclose(jacobian.T @ vector, jac_linop.T @ vector)
+
+
 class TestMagneticEquivalentSourcesForward:
     """
     Test the forward capabilities of the magnetic equivalent sources.
