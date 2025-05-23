@@ -310,7 +310,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 msg = (
                     "Computing the diagonal of G.T @ G with "
                     'store_sensitivities="forward_only" and engine="geoana" '
-                    "hasn't been implemented yet."
+                    "hasn't been implemented yet. "
                     'Choose store_sensitivities="ram" or "disk", '
                     'or another engine, like "choclo".'
                 )
@@ -443,7 +443,7 @@ class Simulation3DIntegral(BasePFSimulation):
                     msg = (
                         "Accessing matrix G with "
                         'store_sensitivities="forward_only" and engine="geoana" '
-                        "hasn't been implemented yet."
+                        "hasn't been implemented yet. "
                         'Choose store_sensitivities="ram" or "disk", '
                         'or another engine, like "choclo".'
                     )
