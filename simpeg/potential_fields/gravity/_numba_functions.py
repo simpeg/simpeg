@@ -749,7 +749,7 @@ def _g_t_dot_v_2d_mesh_parallel(
     """
     n_receivers = receivers.shape[0]
     n_cells = cells_bounds.shape[0]
-    for i in range(n_receivers):
+    for i in prange(n_receivers):
         # Allocate array for the current row of the sensitivity matrix
         local_row = np.empty(n_cells)
         for j in range(n_cells):
