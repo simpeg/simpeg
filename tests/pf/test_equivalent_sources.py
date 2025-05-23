@@ -613,6 +613,39 @@ class TestGravityEquivalentSourcesForwardOnly:
         jac_linop = eqs_forward_only.getJ(model)
         np.testing.assert_allclose(jacobian.T @ vector, jac_linop.T @ vector)
 
+    def test_getJtJdiag(
+        self,
+        tensor_mesh,
+        mesh_bottom,
+        mesh_top,
+        gravity_survey,
+        engine,
+        parallel,
+    ):
+        """
+        Test the ``getJtJdiag`` method, comparing forward_only with storing J in memory.
+        """
+        # Build simulations
+        mapping = get_mapping(tensor_mesh)
+        eqs_ram, eqs_forward_only = (
+            gravity.SimulationEquivalentSourceLayer(
+                mesh=tensor_mesh,
+                cell_z_top=mesh_top,
+                cell_z_bottom=mesh_bottom,
+                survey=gravity_survey,
+                rhoMap=mapping,
+                engine=engine,
+                store_sensitivities=store,
+                numba_parallel=parallel,
+            )
+            for store in ("ram", "forward_only")
+        )
+        # Compare predictions of both simulations
+        model = get_block_model(tensor_mesh, 2.67)
+        gtgdiag_ram = eqs_ram.getJtJdiag(model)
+        gtgdiag_linop = eqs_forward_only.getJtJdiag(model)
+        np.testing.assert_allclose(gtgdiag_ram, gtgdiag_linop)
+
 
 class TestMagneticEquivalentSourcesForward:
     """

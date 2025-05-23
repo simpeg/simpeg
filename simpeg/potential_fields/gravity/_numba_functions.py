@@ -774,6 +774,145 @@ def _g_t_dot_v_2d_mesh_parallel(
         result += local_row
 
 
+@jit(nopython=True, parallel=False)
+def _diagonal_G_T_dot_G_2d_mesh_serial(
+    receivers,
+    cells_bounds,
+    top,
+    bottom,
+    forward_func,
+    constant_factor,
+    weights,
+    diagonal,
+):
+    """
+    Diagonal of ``G.T @ W.T @ W @ G`` without storing ``G``, in serial.
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    cells_bounds : (n_active_cells, 4) numpy.ndarray
+        Array with the bounds of each active cell in the 2D mesh. For each row, the
+        bounds should be passed in the following order: ``x_min``, ``x_max``,
+        ``y_min``, ``y_max``.
+    top : (n_active_cells) np.ndarray
+        Array with the top boundaries of each active cell in the 2D mesh.
+    bottom : (n_active_cells) np.ndarray
+        Array with the bottom boundaries of each active cell in the 2D mesh.
+    forward_func : callable
+        Forward function that will be evaluated on each node of the mesh. Choose
+        one of the forward functions in ``choclo.prism``.
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+    weights : (n_receivers,) numpy.ndarray
+        Array with data weights. It should be the diagonal of the ``W`` matrix,
+        squared.
+    diagonal : (n_active_cells,) numpy.ndarray
+        Array where the diagonal of ``G.T @ G`` will be added to.
+
+    Notes
+    -----
+    This function is meant to be run in serial. Use the
+    ``_diagonal_G_T_dot_G_2d_mesh_parallel`` one for parallelized computations.
+    """
+    n_receivers = receivers.shape[0]
+    n_cells = cells_bounds.shape[0]
+    # Evaluate kernel function on each node, for each receiver location
+    for i in range(n_receivers):
+        for j in range(n_cells):
+            g_element = constant_factor * forward_func(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                1.0,  # use unitary density to get sensitivities
+            )
+            diagonal[j] += weights[i] * g_element**2
+
+
+@jit(nopython=True, parallel=True)
+def _diagonal_G_T_dot_G_2d_mesh_parallel(
+    receivers,
+    cells_bounds,
+    top,
+    bottom,
+    forward_func,
+    constant_factor,
+    weights,
+    diagonal,
+):
+    """
+    Diagonal of ``G.T @ W.T @ W @ G`` without storing ``G``, in parallel.
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    cells_bounds : (n_active_cells, 4) numpy.ndarray
+        Array with the bounds of each active cell in the 2D mesh. For each row, the
+        bounds should be passed in the following order: ``x_min``, ``x_max``,
+        ``y_min``, ``y_max``.
+    top : (n_active_cells) np.ndarray
+        Array with the top boundaries of each active cell in the 2D mesh.
+    bottom : (n_active_cells) np.ndarray
+        Array with the bottom boundaries of each active cell in the 2D mesh.
+    forward_func : callable
+        Forward function that will be evaluated on each node of the mesh. Choose
+        one of the forward functions in ``choclo.prism``.
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+    weights : (n_receivers,) numpy.ndarray
+        Array with data weights. It should be the diagonal of the ``W`` matrix,
+        squared.
+    diagonal : (n_active_cells,) numpy.ndarray
+        Array where the diagonal of ``G.T @ G`` will be added to.
+
+    Notes
+    -----
+    This function is meant to be run in parallel. Use the
+    ``_diagonal_G_T_dot_G_2d_mesh_serial`` one for serialized computations.
+
+    This implementation instructs each thread to allocate their own array for
+    the current row of the sensitivity matrix. After computing the elements of
+    that row, it gets added to the running ``result`` array through a reduction
+    operation handled by Numba.
+    """
+    n_receivers = receivers.shape[0]
+    n_cells = cells_bounds.shape[0]
+    # Evaluate kernel function on each node, for each receiver location
+    for i in prange(n_receivers):
+        # Allocate array for the diagonal elements for the current receiver.
+        local_diagonal = np.empty(n_cells)
+        for j in range(n_cells):
+            g_element = constant_factor * forward_func(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                1.0,  # use unitary density to get sensitivities
+            )
+            local_diagonal[j] = weights[i] * g_element**2
+        # Add the result to the diagonal.
+        # Apply reduction operation to add the values of the local diagonal to
+        # the running diagonal array. Avoid slicing the `diagonal` array when
+        # updating it to avoid racing conditions, just add the `local_diagonal`
+        # to the `diagonal` variable.
+        diagonal += local_diagonal
+
+
 # Define a dictionary with decorated versions of the Numba functions.
 NUMBA_FUNCTIONS = {
     "sensitivity": {
@@ -803,5 +942,9 @@ NUMBA_FUNCTIONS = {
     "gt_dot_v_2d_mesh": {
         False: _g_t_dot_v_2d_mesh_serial,
         True: _g_t_dot_v_2d_mesh_parallel,
+    },
+    "diagonal_gtg_2d_mesh": {
+        False: _diagonal_G_T_dot_G_2d_mesh_serial,
+        True: _diagonal_G_T_dot_G_2d_mesh_parallel,
     },
 }
