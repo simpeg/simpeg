@@ -14,7 +14,7 @@ try:
     from sklearn.mixture import GaussianMixture
     from sklearn.cluster import KMeans
     from sklearn.utils import check_array
-    from sklearn.utils.validation import check_is_fitted
+    from sklearn.utils.validation import check_is_fitted, validate_data
     from sklearn.mixture._gaussian_mixture import (
         _compute_precision_cholesky,
         _compute_log_det_cholesky,
@@ -541,7 +541,7 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
             Log probabilities of each data point in X.
         """
         check_is_fitted(self)
-        X = self._validate_data(X, reset=False)
+        X = validate_data(self, X, reset=False)
 
         return logsumexp(self._estimate_weighted_log_prob_with_sensW(X, sensW), axis=1)
 
@@ -1126,7 +1126,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         if self.verbose:
             print("modified from scikit-learn")
 
-        X = self._validate_data(X, dtype=[np.float64, np.float32], ensure_min_samples=2)
+        X = validate_data(self, X, dtype=[np.float64, np.float32], ensure_min_samples=2)
         if X.shape[0] < self.n_components:
             raise ValueError(
                 "Expected n_samples >= n_components "
