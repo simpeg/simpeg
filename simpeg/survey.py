@@ -431,7 +431,7 @@ class BaseSurvey:
         self.source_list = source_list
 
         if counter is not None:
-            self.counter = counter
+            self._counter = validate_type("counter", counter, Counter, cast=False)
 
         self._uid = uuid.uuid4()
         super().__init__(**kwargs)
@@ -480,21 +480,6 @@ class BaseSurvey:
             A universal unique identifier
         """
         return self._uid
-
-    @property
-    def counter(self):
-        """A SimPEG counter object for counting iterations and operations
-
-        Returns
-        -------
-        simpeg.utils.counter_utils.Counter
-            A SimPEG counter object
-        """
-        return self._counter
-
-    @counter.setter
-    def counter(self, new_obj):
-        self._counter = validate_type("counter", new_obj, Counter, cast=False)
 
     # TODO: this should be private
     def get_source_indices(self, sources):
