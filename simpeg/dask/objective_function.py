@@ -15,6 +15,10 @@ def _calc_dpred(objfct, _):
     return objfct.simulation.dpred(m=objfct.simulation.model)
 
 
+def _calc_objective(objfct, multiplier, model):
+    return multiplier * objfct(model)
+
+
 def _calc_residual(objfct, _):
     return objfct.W * (
         objfct.data.dobs - objfct.simulation.dpred(m=objfct.simulation.model)
@@ -31,6 +35,18 @@ def _deriv2(objfct, multiplier, _, v):
 
 def _store_model(objfct, model):
     objfct.simulation.model = model
+
+
+def _setter_broadcast(objfct, key, value):
+    """
+    Broadcast a value to all workers.
+    """
+    if hasattr(objfct, key):
+        setattr(objfct, key, value)
+
+    for sim in objfct.simulation.simulations:
+        if hasattr(sim, key):
+            setattr(sim, key, value)
 
 
 def _get_jtj_diag(objfct, _):
@@ -56,6 +72,7 @@ def _validate_type_or_future_of_type(
         property_name, objects, obj_type, ensure_unique=True
     )
     workload = [[]]
+    lookup = {}
     count = 0
     for obj in objects:
         if count == len(workers):
@@ -63,7 +80,7 @@ def _validate_type_or_future_of_type(
             workload.append([])
         obj.simulation.simulations[0].worker = workers[count]
         future = client.scatter([obj], workers=workers[count])[0]
-
+        lookup[obj] = (future, workers[count])
         if hasattr(obj, "name"):
             future.name = obj.name
 
@@ -84,7 +101,7 @@ def _validate_type_or_future_of_type(
         raise TypeError(f"{property_name} futures must be an instance of {obj_type}")
 
     if return_workers:
-        return workload, workers
+        return workload, workers, lookup
     else:
         return workload
 
@@ -374,7 +391,7 @@ class DaskComboMisfits(ComboObjectiveFunction):
     def objfcts(self, objfcts):
         client = self.client
 
-        futures, workers = _validate_type_or_future_of_type(
+        futures, workers, lookup = _validate_type_or_future_of_type(
             "objfcts",
             objfcts,
             L2DataMisfit,
@@ -386,6 +403,11 @@ class DaskComboMisfits(ComboObjectiveFunction):
         self._objfcts = objfcts
         self._futures = futures
         self._workers = workers
+
+        self._lookup = {
+            misfit.simulation: (future, worker)
+            for misfit, (future, worker) in lookup.items()
+        }
 
     def residuals(self, m, f=None):
         """
@@ -411,3 +433,26 @@ class DaskComboMisfits(ComboObjectiveFunction):
             residuals += client.gather(future_residuals)
 
         return residuals
+
+    def broadcast_updates(self, updates: dict):
+        """
+        Set the attributes of the objective functions and simulations
+        """
+        stores = []
+        client = self.client
+        for fun, (key, value) in updates.items():
+            if fun not in self._lookup:
+                continue
+
+            future, worker = self._lookup[fun]
+
+            stores.append(
+                client.submit(
+                    _setter_broadcast,
+                    future,
+                    key,
+                    value,
+                    workers=worker,
+                )
+            )
+        self.client.gather(stores)  # blocking call to ensure all models were stored
