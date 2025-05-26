@@ -542,7 +542,7 @@ class SavePGIModel(SaveArrayGeoH5):
         )
         return membership
 
-    def write(self, iteration: int, values: list[np.ndarray] = None):
+    def write(self, iteration: int, values: list[np.ndarray] | None = None):
         """
         Method to write the reference model with data map.
         """
@@ -556,7 +556,7 @@ class SavePGIModel(SaveArrayGeoH5):
                     channel_name: {
                         "association": self.association,
                         "values": petro_model,
-                        "type": "REFERENCED",
+                        "type": "referenced",
                     }
                 }
             )
