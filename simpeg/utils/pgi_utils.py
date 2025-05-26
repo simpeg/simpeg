@@ -30,6 +30,14 @@ try:
 except ImportError:
     GaussianMixture = None
     sklearn = False
+else:
+    # Try to import `validate_data` (added in sklearn 1.6).
+    # We should remove these bits when we set sklearn>=1.6 as the minimum version, and
+    # just import `validate_data`.
+    try:
+        from sklearn.utils.validation import validate_data
+    except ImportError:
+        validate_data = None
 
 
 ###############################################################################
@@ -541,7 +549,13 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
             Log probabilities of each data point in X.
         """
         check_is_fitted(self)
-        X = self._validate_data(X, reset=False)
+        # TODO: Ditch self._validate_data when setting sklearn>=1.6 as the minimum
+        # required version.
+        X = (
+            validate_data(self, X, reset=False)
+            if validate_data is not None
+            else self._validate_data(X, reset=False)
+        )
 
         return logsumexp(self._estimate_weighted_log_prob_with_sensW(X, sensW), axis=1)
 
@@ -1126,7 +1140,15 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
         if self.verbose:
             print("modified from scikit-learn")
 
-        X = self._validate_data(X, dtype=[np.float64, np.float32], ensure_min_samples=2)
+        # TODO: Ditch self._validate_data when setting sklearn>=1.6 as the minimum
+        # required version.
+        X = (
+            validate_data(self, X, dtype=[np.float64, np.float32], ensure_min_samples=2)
+            if validate_data is not None
+            else self._validate_data(
+                self, X, dtype=[np.float64, np.float32], ensure_min_samples=2
+            )
+        )
         if X.shape[0] < self.n_components:
             raise ValueError(
                 "Expected n_samples >= n_components "
