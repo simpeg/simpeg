@@ -515,14 +515,14 @@ class SavePGIModel(SaveArrayGeoH5):
 
     def __init__(
         self,
-        h5_object,
-        pgi_reg: PGIsmallness,
+        h5_object: ObjectBase,
+        pgi_regularization: PGIsmallness,
         unit_map: dict,
         physical_properties: list[str],
         reference_type: ReferencedValueMapType | None = None,
         **kwargs,
     ):
-        self.pgi_reg = pgi_reg
+        self.pgi_regularization = pgi_regularization
         self.unit_map: dict = unit_map
         self.reference_type = reference_type
         self.physical_properties = physical_properties
@@ -533,9 +533,13 @@ class SavePGIModel(SaveArrayGeoH5):
         if values is None:
             values = self.invProb.model
 
-        modellist = self.pgi_reg.wiresmap * values
-        model = np.c_[[a * b for a, b in zip(self.pgi_reg.maplist, modellist)]].T
-        membership = self.pgi_reg.gmm._estimate_log_prob(model).argmax(axis=1)
+        modellist = self.pgi_regularization.wiresmap * values
+        model = np.c_[
+            [a * b for a, b in zip(self.pgi_regularization.maplist, modellist)]
+        ].T
+        membership = self.pgi_regularization.gmm._estimate_log_prob(model).argmax(
+            axis=1
+        )
         return membership
 
     def write(self, iteration: int, values: list[np.ndarray] = None):
@@ -562,7 +566,7 @@ class SavePGIModel(SaveArrayGeoH5):
                 data.entity_type.color_map = self.reference_type.color_map
 
             # TODO: Add the means of the transformed models
-            # means = self.pgi_reg.gmm.means_
+            # means = self.pgi_regularization.gmm.means_
             # for ii, phys_prop in enumerate(self.physical_properties):
             #     data.add_data_map(
             #         f"Mean {phys_prop}",
