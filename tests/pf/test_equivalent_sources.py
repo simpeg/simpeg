@@ -840,3 +840,70 @@ class TestMagneticEquivalentSources(BaseFittingEquivalentSources):
         np.testing.assert_allclose(
             prediction, synthetic_data.dobs, atol=atol, rtol=rtol
         )
+
+
+@pytest.mark.parametrize("parallel", (True, False), ids=["parallel", "serial"])
+@pytest.mark.parametrize(
+    "engine",
+    [
+        "choclo",
+        pytest.param(
+            "geoana",
+            marks=pytest.mark.xfail(
+                reason="not implemented", raises=NotImplementedError
+            ),
+        ),
+    ],
+)
+class TestMagneticEquivalentSourcesForwardOnly:
+    """
+    Test magnetic equivalent sources methods without building the sensitivity matrix.
+    """
+
+    # TODO:
+    # * Test for components: tmi, b components, tmi derivatives
+    # * Test for vector and scalar model.
+    # * Test serial and parallel.
+    # * Test methods:
+    #   * Jvec
+    #   * Jtvec
+    #   * getJ
+    #       * getJ @ v
+    #       * getJ.T @ v
+    #   * getJtJdiag
+
+    def test_Jvec(
+        self,
+        tensor_mesh,
+        mesh_bottom,
+        mesh_top,
+        magnetic_survey,
+        engine,
+        parallel,
+    ):
+        """
+        Test Jvec with "forward_only" vs. J @ v with J stored in ram.
+        """
+        # Build simulations
+        mapping = get_mapping(tensor_mesh)
+        eqs_ram, eqs_forward_only = (
+            magnetics.SimulationEquivalentSourceLayer(
+                tensor_mesh,
+                mesh_top,
+                mesh_bottom,
+                survey=magnetic_survey,
+                chiMap=mapping,
+                engine=engine,
+                store_sensitivities=store,
+                numba_parallel=parallel,
+                model_type="scalar",  # TODO: parametrize this
+            )
+            for store in ("ram", "forward_only")
+        )
+        # Compare predictions of both simulations
+        model = get_block_model(tensor_mesh, 0.2e-3)
+        vector = np.random.default_rng(seed=42).uniform(size=model.size)
+        jacobian = eqs_ram.getJ(model)
+        np.testing.assert_allclose(
+            jacobian @ vector, eqs_forward_only.Jvec(model, vector)
+        )

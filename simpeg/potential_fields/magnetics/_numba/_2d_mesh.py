@@ -953,6 +953,118 @@ def _sensitivity_tmi_derivative(
                 )
 
 
+@jit(nopython=True, parallel=False)
+def _tmi_sensitivity_t_dot_v_serial(
+    receivers,
+    cells_bounds,
+    top,
+    bottom,
+    regional_field,
+    scalar_model,
+    vector,
+    result,
+):
+    r"""
+    Compute ``G.T @ v`` in serial, without building G, for TMI on 2d meshes.
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    cells_bounds : (n_active_cells, 4) numpy.ndarray
+        Array with the bounds of each active cell in the 2D mesh. For each row, the
+        bounds should be passed in the following order: ``x_min``, ``x_max``,
+        ``y_min``, ``y_max``.
+    top : (n_active_cells) np.ndarray
+        Array with the top boundaries of each active cell in the 2D mesh.
+    bottom : (n_active_cells) np.ndarray
+        Array with the bottom boundaries of each active cell in the 2D mesh.
+    regional_field : (3,) array
+        Array containing the x, y and z components of the regional magnetic
+        field (uniform background field).
+    scalar_model : bool
+        If True, the sensitivity matrix is build to work with scalar models
+        (susceptibilities).
+        If False, the sensitivity matrix is build to work with vector models
+        (effective susceptibilities).
+    vector : (n_receivers) numpy.ndarray
+        Array that represents the vector used in the dot product.
+    result : (n_active_cells) or (3 * n_active_cells) numpy.ndarray
+        Running result array where the output of the dot product will be added to.
+        The array should have ``n_active_cells`` elements if ``scalar_model``
+        is True, or ``3 * n_active_cells`` otherwise.
+
+    Notes
+    -----
+    This function is meant to be run in serial. Writing to the ``result`` array
+    inside a parallel loop over the receivers generates a race condition that
+    leads to corrupted outputs.
+
+    A parallel implementation of this function is available in
+    ``_tmi_sensitivity_t_dot_v_parallel``.
+    """
+    fx, fy, fz = regional_field
+    regional_field_amplitude = np.sqrt(fx**2 + fy**2 + fz**2)
+    fx /= regional_field_amplitude
+    fy /= regional_field_amplitude
+    fz /= regional_field_amplitude
+
+    constant_factor = 1 / 4 / np.pi
+
+    n_receivers = receivers.shape[0]
+    n_cells = cells_bounds.shape[0]
+    # Evaluate kernel function on each node, for each receiver location
+    for i in prange(n_receivers):
+        for j in range(n_cells):
+            # Evaluate kernels for the current cell and receiver
+            uxx, uyy, uzz = evaluate_kernels_on_cell(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                choclo.prism.kernel_ee,
+                choclo.prism.kernel_nn,
+                choclo.prism.kernel_uu,
+            )
+            uxy, uxz, uyz = evaluate_kernels_on_cell(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                choclo.prism.kernel_en,
+                choclo.prism.kernel_eu,
+                choclo.prism.kernel_nu,
+            )
+            bx = uxx * fx + uxy * fy + uxz * fz
+            by = uxy * fx + uyy * fy + uyz * fz
+            bz = uxz * fx + uyz * fy + uzz * fz
+            if scalar_model:
+                result[j] += (
+                    constant_factor
+                    * vector[i]
+                    * regional_field_amplitude
+                    * (bx * fx + by * fy + bz * fz)
+                )
+            else:
+                result[j] += constant_factor * vector[i] * regional_field_amplitude * bx
+                result[j + n_cells] += (
+                    constant_factor * vector[i] * regional_field_amplitude * by
+                )
+                result[j + 2 * n_cells] += (
+                    constant_factor * vector[i] * regional_field_amplitude * bz
+                )
+
+
 NUMBA_FUNCTIONS_2D = {
     "forward": {
         "tmi": {
@@ -984,7 +1096,7 @@ NUMBA_FUNCTIONS_2D = {
     },
     "gt_dot_v": {
         "tmi": {
-            False: None,
+            False: _tmi_sensitivity_t_dot_v_serial,
             True: None,
         },
         "magnetic_component": {

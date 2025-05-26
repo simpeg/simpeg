@@ -1479,6 +1479,100 @@ class SimulationEquivalentSourceLayer(
             index_offset += n_rows
         return sensitivity_matrix
 
+    def _sensitivity_matrix_transpose_dot_vec(self, vector):
+        """
+        Compute ``G.T @ v`` without building ``G``.
+
+        Parameters
+        ----------
+        vector : (nD) numpy.ndarray
+            Vector used in the dot product.
+
+        Returns
+        -------
+        (n_active_cells) or (3 * n_active_cells) numpy.ndarray
+        """
+        # Get regional field
+        regional_field = self.survey.source_field.b0
+        # Get cells in the 2D mesh and keep only active cells
+        cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
+        # Allocate resulting array
+        scalar_model = self.model_type == "scalar"
+        result = np.zeros(self.nC if scalar_model else 3 * self.nC)
+        # Start filling the result array
+        index_offset = 0
+        for components, receivers in self._get_components_and_receivers():
+            if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
+                raise NotImplementedError(
+                    f"Other components besides {CHOCLO_SUPPORTED_COMPONENTS} "
+                    "aren't implemented yet."
+                )
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                vector_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
+                )
+                if component == "tmi":
+                    gt_dot_v_func = NUMBA_FUNCTIONS_2D["gt_dot_v"]["tmi"][
+                        self.numba_parallel
+                    ]
+                    gt_dot_v_func(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        regional_field,
+                        scalar_model,
+                        vector[vector_slice],
+                        result,
+                    )
+                elif component in ("tmi_x", "tmi_y", "tmi_z"):
+                    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
+                        CHOCLO_KERNELS[component]
+                    )
+                    gt_dot_v_func = NUMBA_FUNCTIONS_2D["gt_dot_v"]["tmi_derivative"][
+                        self.numba_parallel
+                    ]
+                    raise NotImplementedError()
+                    # gt_dot_v_func(
+                    #     receivers,
+                    #     active_nodes,
+                    #     active_cell_nodes,
+                    #     regional_field,
+                    #     kernel_xx,
+                    #     kernel_yy,
+                    #     kernel_zz,
+                    #     kernel_xy,
+                    #     kernel_xz,
+                    #     kernel_yz,
+                    #     constant_factor,
+                    #     scalar_model,
+                    #     vector[vector_slice],
+                    #     result,
+                    # )
+                else:
+                    kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
+                    gt_dot_v_func = NUMBA_FUNCTIONS_2D["gt_dot_v"][
+                        "magnetic_component"
+                    ][self.numba_parallel]
+                    raise NotImplementedError()
+                    # gt_dot_v_func(
+                    #     receivers,
+                    #     active_nodes,
+                    #     active_cell_nodes,
+                    #     regional_field,
+                    #     kernel_x,
+                    #     kernel_y,
+                    #     kernel_z,
+                    #     constant_factor,
+                    #     scalar_model,
+                    #     vector[vector_slice],
+                    #     result,
+                    # )
+            index_offset += n_rows
+        return result
+
 
 class Simulation3DDifferential(BaseMagneticPDESimulation):
     """
