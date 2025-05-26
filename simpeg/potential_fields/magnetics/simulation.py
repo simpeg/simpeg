@@ -25,7 +25,7 @@ from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
 from .analytics import CongruousMagBC
 from .survey import Survey
 
-from ._numba_functions import choclo, NUMBA_FUNCTIONS
+from ._numba import choclo, NUMBA_FUNCTIONS_3D, NUMBA_FUNCTIONS_2D
 
 if choclo is not None:
     CHOCLO_SUPPORTED_COMPONENTS = {
@@ -882,7 +882,7 @@ class Simulation3DIntegral(BasePFSimulation):
                     index_offset + i, index_offset + n_rows, n_components
                 )
                 if component == "tmi":
-                    forward_func = NUMBA_FUNCTIONS["forward"]["tmi"][
+                    forward_func = NUMBA_FUNCTIONS_3D["forward"]["tmi"][
                         self.numba_parallel
                     ]
                     forward_func(
@@ -899,7 +899,7 @@ class Simulation3DIntegral(BasePFSimulation):
                     kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
                         CHOCLO_KERNELS[component]
                     )
-                    forward_func = NUMBA_FUNCTIONS["forward"]["tmi_derivative"][
+                    forward_func = NUMBA_FUNCTIONS_3D["forward"]["tmi_derivative"][
                         self.numba_parallel
                     ]
                     forward_func(
@@ -920,7 +920,7 @@ class Simulation3DIntegral(BasePFSimulation):
                     )
                 else:
                     kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
-                    forward_func = NUMBA_FUNCTIONS["forward"]["magnetic_component"][
+                    forward_func = NUMBA_FUNCTIONS_3D["forward"]["magnetic_component"][
                         self.numba_parallel
                     ]
                     forward_func(
@@ -982,7 +982,7 @@ class Simulation3DIntegral(BasePFSimulation):
                     index_offset + i, index_offset + n_rows, n_components
                 )
                 if component == "tmi":
-                    sensitivity_func = NUMBA_FUNCTIONS["sensitivity"]["tmi"][
+                    sensitivity_func = NUMBA_FUNCTIONS_3D["sensitivity"]["tmi"][
                         self.numba_parallel
                     ]
                     sensitivity_func(
@@ -995,9 +995,9 @@ class Simulation3DIntegral(BasePFSimulation):
                         scalar_model,
                     )
                 elif component in ("tmi_x", "tmi_y", "tmi_z"):
-                    sensitivity_func = NUMBA_FUNCTIONS["sensitivity"]["tmi_derivative"][
-                        self.numba_parallel
-                    ]
+                    sensitivity_func = NUMBA_FUNCTIONS_3D["sensitivity"][
+                        "tmi_derivative"
+                    ][self.numba_parallel]
                     kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
                         CHOCLO_KERNELS[component]
                     )
@@ -1017,7 +1017,7 @@ class Simulation3DIntegral(BasePFSimulation):
                         scalar_model,
                     )
                 else:
-                    sensitivity_func = NUMBA_FUNCTIONS["sensitivity"][
+                    sensitivity_func = NUMBA_FUNCTIONS_3D["sensitivity"][
                         "magnetic_component"
                     ][self.numba_parallel]
                     kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
@@ -1094,7 +1094,7 @@ class Simulation3DIntegral(BasePFSimulation):
                     index_offset + i, index_offset + n_rows, n_components
                 )
                 if component == "tmi":
-                    gt_dot_v_func = NUMBA_FUNCTIONS["gt_dot_v"]["tmi"][
+                    gt_dot_v_func = NUMBA_FUNCTIONS_3D["gt_dot_v"]["tmi"][
                         self.numba_parallel
                     ]
                     gt_dot_v_func(
@@ -1111,7 +1111,7 @@ class Simulation3DIntegral(BasePFSimulation):
                     kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
                         CHOCLO_KERNELS[component]
                     )
-                    gt_dot_v_func = NUMBA_FUNCTIONS["gt_dot_v"]["tmi_derivative"][
+                    gt_dot_v_func = NUMBA_FUNCTIONS_3D["gt_dot_v"]["tmi_derivative"][
                         self.numba_parallel
                     ]
                     gt_dot_v_func(
@@ -1132,9 +1132,9 @@ class Simulation3DIntegral(BasePFSimulation):
                     )
                 else:
                     kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
-                    gt_dot_v_func = NUMBA_FUNCTIONS["gt_dot_v"]["magnetic_component"][
-                        self.numba_parallel
-                    ]
+                    gt_dot_v_func = NUMBA_FUNCTIONS_3D["gt_dot_v"][
+                        "magnetic_component"
+                    ][self.numba_parallel]
                     gt_dot_v_func(
                         receivers,
                         active_nodes,
@@ -1186,7 +1186,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 )
             for component in components:
                 if component == "tmi":
-                    diagonal_gtg_func = NUMBA_FUNCTIONS["diagonal_gtg"]["tmi"][
+                    diagonal_gtg_func = NUMBA_FUNCTIONS_3D["diagonal_gtg"]["tmi"][
                         self.numba_parallel
                     ]
                     diagonal_gtg_func(
@@ -1203,7 +1203,7 @@ class Simulation3DIntegral(BasePFSimulation):
                     kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
                         CHOCLO_KERNELS[component]
                     )
-                    diagonal_gtg_func = NUMBA_FUNCTIONS["diagonal_gtg"][
+                    diagonal_gtg_func = NUMBA_FUNCTIONS_3D["diagonal_gtg"][
                         "tmi_derivative"
                     ][self.numba_parallel]
                     diagonal_gtg_func(
@@ -1224,7 +1224,7 @@ class Simulation3DIntegral(BasePFSimulation):
                     )
                 else:
                     kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
-                    diagonal_gtg_func = NUMBA_FUNCTIONS["diagonal_gtg"][
+                    diagonal_gtg_func = NUMBA_FUNCTIONS_3D["diagonal_gtg"][
                         "magnetic_component"
                     ][self.numba_parallel]
                     diagonal_gtg_func(
@@ -1329,7 +1329,7 @@ class SimulationEquivalentSourceLayer(
                     index_offset + i, index_offset + n_rows, n_components
                 )
                 if component == "tmi":
-                    forward_func = NUMBA_FUNCTIONS["forward_2d_mesh"]["tmi"][
+                    forward_func = NUMBA_FUNCTIONS_2D["forward"]["tmi"][
                         self.numba_parallel
                     ]
                     forward_func(
@@ -1346,7 +1346,7 @@ class SimulationEquivalentSourceLayer(
                     kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
                         CHOCLO_KERNELS[component]
                     )
-                    forward_func = NUMBA_FUNCTIONS["forward_2d_mesh"]["tmi_derivative"][
+                    forward_func = NUMBA_FUNCTIONS_2D["forward"]["tmi_derivative"][
                         self.numba_parallel
                     ]
                     forward_func(
@@ -1367,9 +1367,9 @@ class SimulationEquivalentSourceLayer(
                     )
                 else:
                     choclo_forward_func = CHOCLO_FORWARD_FUNCS[component]
-                    forward_func = NUMBA_FUNCTIONS["forward_2d_mesh"][
-                        "magnetic_component"
-                    ][self.numba_parallel]
+                    forward_func = NUMBA_FUNCTIONS_2D["forward"]["magnetic_component"][
+                        self.numba_parallel
+                    ]
                     forward_func(
                         receivers,
                         cells_bounds_active,
@@ -1425,7 +1425,7 @@ class SimulationEquivalentSourceLayer(
                     index_offset + i, index_offset + n_rows, n_components
                 )
                 if component == "tmi":
-                    sensitivity_func = NUMBA_FUNCTIONS["sensitivity_2d_mesh"]["tmi"][
+                    sensitivity_func = NUMBA_FUNCTIONS_2D["sensitivity"]["tmi"][
                         self.numba_parallel
                     ]
                     sensitivity_func(
@@ -1441,7 +1441,7 @@ class SimulationEquivalentSourceLayer(
                     kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
                         CHOCLO_KERNELS[component]
                     )
-                    sensitivity_func = NUMBA_FUNCTIONS["sensitivity_2d_mesh"][
+                    sensitivity_func = NUMBA_FUNCTIONS_2D["sensitivity"][
                         "tmi_derivative"
                     ][self.numba_parallel]
                     sensitivity_func(
@@ -1461,7 +1461,7 @@ class SimulationEquivalentSourceLayer(
                     )
                 else:
                     kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
-                    sensitivity_func = NUMBA_FUNCTIONS["sensitivity_2d_mesh"][
+                    sensitivity_func = NUMBA_FUNCTIONS_2D["sensitivity"][
                         "magnetic_component"
                     ][self.numba_parallel]
                     sensitivity_func(
