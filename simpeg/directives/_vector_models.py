@@ -214,12 +214,24 @@ class VectorInversion(InversionDirective):
             )
             self.opt.upper[indices[nC:]] = np.inf
 
+            updates = {}
             for simulation in self.simulations:
                 if isinstance(simulation, MetaSimulation):
-                    for sim in simulation.simulations:
-                        sim.chiMap = SphericalSystem() * sim.chiMap
+
+                    if hasattr(self.dmisfit, "client"):
+                        updates[simulation] = (
+                            "chiMap",
+                            SphericalSystem() * simulation.simulations[0].chiMap,
+                        )
+                    else:
+                        simulation.simulations[0].chiMap = (
+                            SphericalSystem() * simulation.simulations[0].chiMap
+                        )
                 else:
                     simulation.chiMap = SphericalSystem() * simulation.chiMap
+
+            if hasattr(self.dmisfit, "client"):
+                self.dmisfit.broadcast_updates(updates)
 
             # Add and update directives
             for directive in self.inversion.directiveList.dList:

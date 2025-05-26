@@ -925,11 +925,10 @@ class SphericalSystem(IdentityMap):
         self.model = None
 
     def sphericalDeriv(self, model):
-        if getattr(self, "model", None) is None:
-            self.model = model
-
-        if getattr(self, "_sphericalDeriv", None) is None or not all(
-            self.model == model
+        if (
+            getattr(self, "_sphericalDeriv", None) is None
+            or getattr(self, "model", None) is None
+            or not all(self.model == model)
         ):
             self.model = model
 
