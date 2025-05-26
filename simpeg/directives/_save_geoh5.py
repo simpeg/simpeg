@@ -11,6 +11,7 @@ from .directives import InversionDirective
 from simpeg.maps import IdentityMap
 
 from geoh5py.data import NumericData
+from geoh5py.data.data_type import ReferencedValueMapType
 from geoh5py.groups.property_group import GroupTypeEnum
 from geoh5py.groups import UIJsonGroup
 from geoh5py.objects import ObjectBase
@@ -518,12 +519,12 @@ class SavePGIModel(SaveArrayGeoH5):
         pgi_reg: PGIsmallness,
         unit_map: dict,
         physical_properties: list[str],
-        value_map: dict[int, str] | None = None,
+        reference_type: ReferencedValueMapType | None = None,
         **kwargs,
     ):
         self.pgi_reg = pgi_reg
         self.unit_map: dict = unit_map
-        self.value_map = value_map
+        self.reference_type = reference_type
         self.physical_properties = physical_properties
         super().__init__(h5_object, **kwargs)
 
@@ -534,14 +535,14 @@ class SavePGIModel(SaveArrayGeoH5):
 
         modellist = self.pgi_reg.wiresmap * values
         model = np.c_[[a * b for a, b in zip(self.pgi_reg.maplist, modellist)]].T
-        membership = self.pgi_reg.gmm.predict(model)
+        membership = self.pgi_reg.gmm._estimate_log_prob(model).argmax(axis=1)
         return membership
 
     def write(self, iteration: int, values: list[np.ndarray] = None):
         """
         Method to write the reference model with data map.
         """
-        petro_model = self.get_values(values) + 1
+        petro_model = self.get_values(values)
         petro_model = self.apply_transformations(petro_model).flatten()
         channel_name, base_name = self.get_names("petrophysics", "", iteration)
         with fetch_active_workspace(self._geoh5, mode="r+") as w_s:
@@ -552,17 +553,21 @@ class SavePGIModel(SaveArrayGeoH5):
                         "association": self.association,
                         "values": petro_model,
                         "type": "REFERENCED",
-                        "value_map": self.value_map,
                     }
                 }
             )
 
-            means = self.pgi_reg.gmm.means_
-            for ii, phys_prop in enumerate(self.physical_properties):
-                data.add_data_map(
-                    f"Mean {phys_prop}",
-                    {
-                        ind: f"{mean:.3e}"
-                        for ind, mean in zip(self.unit_map, means[:, ii])
-                    },
-                )
+            if self.reference_type is not None:
+                data.entity_type.value_map = self.reference_type.value_map
+                data.entity_type.color_map = self.reference_type.color_map
+
+            # TODO: Add the means of the transformed models
+            # means = self.pgi_reg.gmm.means_
+            # for ii, phys_prop in enumerate(self.physical_properties):
+            #     data.add_data_map(
+            #         f"Mean {phys_prop}",
+            #         {
+            #             ind: f"{mean:.3e}"
+            #             for ind, mean in zip(self.unit_map, means[:, ii])
+            #         },
+            #     )
