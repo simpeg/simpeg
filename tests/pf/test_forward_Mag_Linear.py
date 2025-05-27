@@ -1243,7 +1243,9 @@ class TestJacobian(BaseFixtures):
             pytest.param(
                 "geoana",
                 "forward_only",
-                marks=pytest.mark.xfail(reason="not implemented"),
+                marks=pytest.mark.xfail(
+                    reason="not implemented", raises=NotImplementedError
+                ),
             ),
         ],
     )
@@ -1295,7 +1297,9 @@ class TestJacobian(BaseFixtures):
             pytest.param(
                 "geoana",
                 "forward_only",
-                marks=pytest.mark.xfail(reason="not implemented"),
+                marks=pytest.mark.xfail(
+                    reason="not implemented", raises=NotImplementedError
+                ),
             ),
         ],
     )
@@ -1342,7 +1346,12 @@ class TestJacobian(BaseFixtures):
         "engine",
         [
             "choclo",
-            pytest.param("geoana", marks=pytest.mark.xfail(reason="not implemented")),
+            pytest.param(
+                "geoana",
+                marks=pytest.mark.xfail(
+                    reason="not implemented", raises=NotImplementedError
+                ),
+            ),
         ],
     )
     @pytest.mark.parametrize("method", ["Jvec", "Jtvec"])
@@ -1602,7 +1611,9 @@ class TestJacobianAmplitudeData(BaseFixtures):
             pytest.param(
                 "geoana",
                 "forward_only",
-                marks=pytest.mark.xfail(reason="not implemented"),
+                marks=pytest.mark.xfail(
+                    reason="not implemented", raises=NotImplementedError
+                ),
             ),
         ],
     )
@@ -1688,7 +1699,9 @@ class TestJacobianAmplitudeData(BaseFixtures):
             pytest.param(
                 "geoana",
                 "forward_only",
-                marks=pytest.mark.xfail(reason="not implemented"),
+                marks=pytest.mark.xfail(
+                    reason="not implemented", raises=NotImplementedError
+                ),
             ),
         ],
     )
