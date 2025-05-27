@@ -121,7 +121,8 @@ class PGI_UpdateParameters(InversionDirective):
             self.pgi_reg.gmm = clfupdate
             membership = self.pgi_reg.gmm.predict(model)
 
-            if self.fixed_membership is not None:
+            if clfupdate.fixed_membership is not None:
+                self.fixed_membership = clfupdate.fixed_membership
                 membership[self.fixed_membership[:, 0]] = self.fixed_membership[:, 1]
 
             mref = mkvc(self.pgi_reg.gmm.means_[membership])

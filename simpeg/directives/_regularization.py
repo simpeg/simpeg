@@ -289,7 +289,10 @@ class UpdateIRLS(InversionDirective):
                 if not isinstance(reg, Sparse):
                     continue
 
-                for obj in reg.objfcts:
+                for multi, obj in reg:
+                    if multi == 0:
+                        continue
+
                     obj.irls_threshold /= self.irls_cooling_factor
 
             self.metrics.irls_iteration_count += 1
@@ -327,10 +330,16 @@ class UpdateIRLS(InversionDirective):
             if not isinstance(reg, Sparse):
                 continue
 
-            for obj in reg.objfcts:
-                threshold = np.percentile(
-                    np.abs(obj.mapping * obj._delta_m(self.invProb.model)),
-                    self.percentile,
+            for multi, obj in reg:
+                if multi == 0:
+                    continue
+
+                threshold = (
+                    np.percentile(
+                        np.abs(obj.mapping * obj._delta_m(self.invProb.model)),
+                        self.percentile,
+                    )
+                    + 1e-16
                 )
                 if isinstance(obj, SmoothnessFirstOrder):
                     threshold /= reg.regularization_mesh.base_length
