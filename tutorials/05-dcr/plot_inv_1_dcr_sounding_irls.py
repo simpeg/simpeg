@@ -237,7 +237,10 @@ reg.norms = [p, q]
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.
-opt = optimization.ProjectedGNCG(maxIter=100, maxIterLS=20, maxIterCG=20, tolCG=1e-3)
+opt = optimization.ProjectedGNCG(
+    maxIter=100, maxIterLS=50, maxIterCG=20, tolCG=1e-3, upper=1e2, lower=1e-2
+)
+# limits here are used to guard against overflow and underflow in the ExpMap.
 
 # Define the inverse problem
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)

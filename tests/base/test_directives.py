@@ -1,4 +1,6 @@
 import unittest
+from statistics import harmonic_mean
+
 import pytest
 import numpy as np
 
@@ -342,16 +344,34 @@ class ValidationInInversion(unittest.TestCase):
         irls_directive.max_irls_iterations = 2
         assert irls_directive.stopping_criteria()
 
+        expected_target = self.dmis.nD
         # Test beta re-adjustment down
         invProb.phi_d = 4.0
         irls_directive.misfit_tolerance = 0.1
         irls_directive.adjust_cooling_schedule()
-        assert irls_directive.cooling_factor == 2.0
+
+        ratio = invProb.phi_d / expected_target
+        expected_factor = harmonic_mean([4 / 3, ratio])
+        np.testing.assert_allclose(irls_directive.cooling_factor, expected_factor)
 
         # Test beta re-adjustment up
-        invProb.phi_d = 0.5
+        invProb.phi_d = 1 / 2
+        ratio = invProb.phi_d / expected_target
+        expected_factor = harmonic_mean([1 / 2, ratio])
+
         irls_directive.adjust_cooling_schedule()
-        assert irls_directive.cooling_factor == 0.5
+        np.testing.assert_allclose(irls_directive.cooling_factor, expected_factor)
+
+        # Test beta no-adjustment
+        irls_directive.cooling_factor = (
+            2.0  # set this to something not 1 to make sure it changes to 1.
+        )
+
+        invProb.phi_d = expected_target * (
+            1 + irls_directive.misfit_tolerance * 0.5
+        )  # something within the relative tolerance
+        irls_directive.adjust_cooling_schedule()
+        assert irls_directive.cooling_factor == 1
 
     def test_spherical_weights(self):
         reg = regularization.Sparse(self.mesh)
