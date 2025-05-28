@@ -1014,7 +1014,7 @@ def _tmi_sensitivity_t_dot_v_serial(
     n_receivers = receivers.shape[0]
     n_cells = cells_bounds.shape[0]
     # Evaluate kernel function on each node, for each receiver location
-    for i in prange(n_receivers):
+    for i in range(n_receivers):
         for j in range(n_cells):
             # Evaluate kernels for the current cell and receiver
             uxx, uyy, uzz = evaluate_kernels_on_cell(
