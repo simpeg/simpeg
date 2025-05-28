@@ -871,16 +871,19 @@ class TestMagneticEquivalentSourcesForwardOnly:
 
     def test_Jvec(
         self,
+        coordinates,
         tensor_mesh,
         mesh_bottom,
         mesh_top,
-        magnetic_survey,
+        components,
         engine,
         parallel,
     ):
         """
         Test Jvec with "forward_only" vs. J @ v with J stored in ram.
         """
+        # Build survey
+        magnetic_survey = build_magnetic_survey(coordinates, components)
         # Build simulations
         mapping = get_mapping(tensor_mesh)
         eqs_ram, eqs_forward_only = (
@@ -907,16 +910,19 @@ class TestMagneticEquivalentSourcesForwardOnly:
 
     def test_Jtvec(
         self,
+        coordinates,
         tensor_mesh,
         mesh_bottom,
         mesh_top,
-        magnetic_survey,
+        components,
         engine,
         parallel,
     ):
         """
         Test Jtvec with "forward_only" vs. J.T @ v with J stored in ram.
         """
+        # Build survey
+        magnetic_survey = build_magnetic_survey(coordinates, components)
         # Build simulations
         mapping = get_mapping(tensor_mesh)
         eqs_ram, eqs_forward_only = (
