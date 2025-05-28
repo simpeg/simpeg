@@ -907,3 +907,40 @@ class TestMagneticEquivalentSourcesForwardOnly:
         np.testing.assert_allclose(
             jacobian @ vector, eqs_forward_only.Jvec(model, vector)
         )
+
+    def test_Jtvec(
+        self,
+        tensor_mesh,
+        mesh_bottom,
+        mesh_top,
+        magnetic_survey,
+        engine,
+        parallel,
+    ):
+        """
+        Test Jtvec with "forward_only" vs. J.T @ v with J stored in ram.
+        """
+        # Build simulations
+        mapping = get_mapping(tensor_mesh)
+        eqs_ram, eqs_forward_only = (
+            magnetics.SimulationEquivalentSourceLayer(
+                tensor_mesh,
+                mesh_top,
+                mesh_bottom,
+                survey=magnetic_survey,
+                chiMap=mapping,
+                engine=engine,
+                store_sensitivities=store,
+                numba_parallel=parallel,
+                model_type="scalar",  # TODO: parametrize this
+            )
+            for store in ("ram", "forward_only")
+        )
+        # Compare predictions of both simulations
+        model = get_block_model(tensor_mesh, 0.2e-3)
+        vector = np.random.default_rng(seed=42).uniform(size=magnetic_survey.nD)
+        expected = eqs_ram.getJ(model).T @ vector
+        atol = np.max(np.abs(expected)) * 1e-8
+        np.testing.assert_allclose(
+            expected, eqs_forward_only.Jtvec(model, vector), atol=atol
+        )
