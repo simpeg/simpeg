@@ -1340,9 +1340,11 @@ def _mag_sensitivity_t_dot_v_parallel(
 
     Notes
     -----
-    This function is meant to be run in serial. Writing to the ``result`` array
-    inside a parallel loop over the receivers generates a race condition that
-    leads to corrupted outputs.
+    This function is meant to be run in parallel.
+    This implementation instructs each thread to allocate their own array for
+    the current row of the sensitivity matrix. After computing the elements of
+    that row, it gets added to the running ``result`` array through a reduction
+    operation handled by Numba.
 
     A parallel implementation of this function is available in
     ``_mag_sensitivity_t_dot_v_parallel``.
@@ -1401,6 +1403,257 @@ def _mag_sensitivity_t_dot_v_parallel(
         result += local_row
 
 
+@jit(nopython=True, parallel=False)
+def _tmi_derivative_sensitivity_t_dot_v_serial(
+    receivers,
+    cells_bounds,
+    top,
+    bottom,
+    regional_field,
+    kernel_xx,
+    kernel_yy,
+    kernel_zz,
+    kernel_xy,
+    kernel_xz,
+    kernel_yz,
+    scalar_model,
+    vector,
+    result,
+):
+    r"""
+    Compute ``G.T @ v`` in serial, without building G, for TMI derivatives on 2d meshes.
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    cells_bounds : (n_active_cells, 4) numpy.ndarray
+        Array with the bounds of each active cell in the 2D mesh. For each row, the
+        bounds should be passed in the following order: ``x_min``, ``x_max``,
+        ``y_min``, ``y_max``.
+    top : (n_active_cells) np.ndarray
+        Array with the top boundaries of each active cell in the 2D mesh.
+    bottom : (n_active_cells) np.ndarray
+        Array with the bottom boundaries of each active cell in the 2D mesh.
+    regional_field : (3,) array
+        Array containing the x, y and z components of the regional magnetic
+        field (uniform background field).
+    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz : callables
+        Kernel functions used for computing the desired TMI derivative.
+    scalar_model : bool
+        If True, the sensitivity matrix is build to work with scalar models
+        (susceptibilities).
+        If False, the sensitivity matrix is build to work with vector models
+        (effective susceptibilities).
+    vector : (n_receivers) numpy.ndarray
+        Array that represents the vector used in the dot product.
+    result : (n_active_cells) or (3 * n_active_cells) numpy.ndarray
+        Running result array where the output of the dot product will be added to.
+        The array should have ``n_active_cells`` elements if ``scalar_model``
+        is True, or ``3 * n_active_cells`` otherwise.
+
+    Notes
+    -----
+    This function is meant to be run in serial. Writing to the ``result`` array
+    inside a parallel loop over the receivers generates a race condition that
+    leads to corrupted outputs.
+
+    A parallel implementation of this function is available in
+    ``_tmi_derivative_sensitivity_t_dot_v_parallel``.
+    """
+    fx, fy, fz = regional_field
+    regional_field_amplitude = np.sqrt(fx**2 + fy**2 + fz**2)
+    fx /= regional_field_amplitude
+    fy /= regional_field_amplitude
+    fz /= regional_field_amplitude
+
+    constant_factor = 1 / 4 / np.pi
+
+    n_receivers = receivers.shape[0]
+    n_cells = cells_bounds.shape[0]
+    # Evaluate kernel function on each node, for each receiver location
+    for i in range(n_receivers):
+        for j in range(n_cells):
+            # Evaluate kernels for the current cell and receiver
+            uxx, uyy, uzz = evaluate_kernels_on_cell(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                kernel_xx,
+                kernel_yy,
+                kernel_zz,
+            )
+            uxy, uxz, uyz = evaluate_kernels_on_cell(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                kernel_xy,
+                kernel_xz,
+                kernel_yz,
+            )
+            bx = uxx * fx + uxy * fy + uxz * fz
+            by = uxy * fx + uyy * fy + uyz * fz
+            bz = uxz * fx + uyz * fy + uzz * fz
+            if scalar_model:
+                result[j] += (
+                    constant_factor
+                    * vector[i]
+                    * regional_field_amplitude
+                    * (bx * fx + by * fy + bz * fz)
+                )
+            else:
+                result[j] += constant_factor * vector[i] * regional_field_amplitude * bx
+                result[j + n_cells] += (
+                    constant_factor * vector[i] * regional_field_amplitude * by
+                )
+                result[j + 2 * n_cells] += (
+                    constant_factor * vector[i] * regional_field_amplitude * bz
+                )
+
+
+@jit(nopython=True, parallel=True)
+def _tmi_derivative_sensitivity_t_dot_v_parallel(
+    receivers,
+    cells_bounds,
+    top,
+    bottom,
+    regional_field,
+    kernel_xx,
+    kernel_yy,
+    kernel_zz,
+    kernel_xy,
+    kernel_xz,
+    kernel_yz,
+    scalar_model,
+    vector,
+    result,
+):
+    r"""
+    Compute ``G.T @ v`` in serial, without building G, for TMI derivatives on 2d meshes.
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    cells_bounds : (n_active_cells, 4) numpy.ndarray
+        Array with the bounds of each active cell in the 2D mesh. For each row, the
+        bounds should be passed in the following order: ``x_min``, ``x_max``,
+        ``y_min``, ``y_max``.
+    top : (n_active_cells) np.ndarray
+        Array with the top boundaries of each active cell in the 2D mesh.
+    bottom : (n_active_cells) np.ndarray
+        Array with the bottom boundaries of each active cell in the 2D mesh.
+    regional_field : (3,) array
+        Array containing the x, y and z components of the regional magnetic
+        field (uniform background field).
+    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz : callables
+        Kernel functions used for computing the desired TMI derivative.
+    scalar_model : bool
+        If True, the sensitivity matrix is build to work with scalar models
+        (susceptibilities).
+        If False, the sensitivity matrix is build to work with vector models
+        (effective susceptibilities).
+    vector : (n_receivers) numpy.ndarray
+        Array that represents the vector used in the dot product.
+    result : (n_active_cells) or (3 * n_active_cells) numpy.ndarray
+        Running result array where the output of the dot product will be added to.
+        The array should have ``n_active_cells`` elements if ``scalar_model``
+        is True, or ``3 * n_active_cells`` otherwise.
+
+    Notes
+    -----
+    This function is meant to be run in parallel.
+    This implementation instructs each thread to allocate their own array for
+    the current row of the sensitivity matrix. After computing the elements of
+    that row, it gets added to the running ``result`` array through a reduction
+    operation handled by Numba.
+
+    A parallel implementation of this function is available in
+    ``_tmi_derivative_sensitivity_t_dot_v_parallel``.
+    """
+    fx, fy, fz = regional_field
+    regional_field_amplitude = np.sqrt(fx**2 + fy**2 + fz**2)
+    fx /= regional_field_amplitude
+    fy /= regional_field_amplitude
+    fz /= regional_field_amplitude
+
+    constant_factor = 1 / 4 / np.pi
+
+    n_receivers = receivers.shape[0]
+    n_cells = cells_bounds.shape[0]
+    # Evaluate kernel function on each node, for each receiver location
+    for i in prange(n_receivers):
+        # Allocate array for the current row of the sensitivity matrix
+        local_row = np.empty(n_cells)
+        for j in range(n_cells):
+            # Evaluate kernels for the current cell and receiver
+            uxx, uyy, uzz = evaluate_kernels_on_cell(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                kernel_xx,
+                kernel_yy,
+                kernel_zz,
+            )
+            uxy, uxz, uyz = evaluate_kernels_on_cell(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                kernel_xy,
+                kernel_xz,
+                kernel_yz,
+            )
+            bx = uxx * fx + uxy * fy + uxz * fz
+            by = uxy * fx + uyy * fy + uyz * fz
+            bz = uxz * fx + uyz * fy + uzz * fz
+            if scalar_model:
+                local_row[j] = (
+                    constant_factor
+                    * vector[i]
+                    * regional_field_amplitude
+                    * (bx * fx + by * fy + bz * fz)
+                )
+            else:
+                local_row[j] = (
+                    constant_factor * vector[i] * regional_field_amplitude * bx
+                )
+                local_row[j + n_cells] = (
+                    constant_factor * vector[i] * regional_field_amplitude * by
+                )
+                local_row[j + 2 * n_cells] = (
+                    constant_factor * vector[i] * regional_field_amplitude * bz
+                )
+        # Apply reduction operation to add the values of the row to the running
+        # result. Avoid slicing the `result` array when updating it to avoid
+        # racing conditions, just add the `local_row` to the `results`
+        # variable.
+        result += local_row
+
+
 NUMBA_FUNCTIONS_2D = {
     "forward": {
         "tmi": {
@@ -1440,8 +1693,8 @@ NUMBA_FUNCTIONS_2D = {
             True: _mag_sensitivity_t_dot_v_parallel,
         },
         "tmi_derivative": {
-            False: None,
-            True: None,
+            False: _tmi_derivative_sensitivity_t_dot_v_serial,
+            True: _tmi_derivative_sensitivity_t_dot_v_parallel,
         },
     },
     "diagonal_gtg": {
