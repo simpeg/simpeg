@@ -25,6 +25,13 @@ MAGNETIC_COMPONENTS = [
     "tmi_z",
 ]
 
+# Define a pytest.mark.xfail to use for engine parametrizations when the method that is
+# being tested is not implemented when using geoana as engine.
+XFAIL_GEOANA = pytest.param(
+    "geoana",
+    marks=pytest.mark.xfail(reason="not implemented", raises=NotImplementedError),
+)
+
 
 def create_grid(x_range, y_range, size):
     """Create a 2D horizontal coordinates grid."""
@@ -462,10 +469,10 @@ class TestMagneticEquivalentSourcesForward:
     Test the forward capabilities of the magnetic equivalent sources.
     """
 
-    @pytest.mark.parametrize("engine", ("geoana", "choclo"))
-    @pytest.mark.parametrize("store_sensitivities", ("ram", "forward_only"))
-    @pytest.mark.parametrize("model_type", ("scalar", "vector"))
-    @pytest.mark.parametrize("components", MAGNETIC_COMPONENTS + [["tmi", "bx"]])
+    @pytest.mark.parametrize("engine", ["geoana", "choclo"])
+    @pytest.mark.parametrize("store_sensitivities", ["ram", "forward_only"])
+    @pytest.mark.parametrize("model_type", ["scalar", "vector"])
+    @pytest.mark.parametrize("components", [*MAGNETIC_COMPONENTS, ["tmi", "bx"]])
     def test_forward_vs_simulation(
         self,
         coordinates,
@@ -842,19 +849,9 @@ class TestMagneticEquivalentSources(BaseFittingEquivalentSources):
         )
 
 
-@pytest.mark.parametrize("parallel", (True, False), ids=["parallel", "serial"])
-@pytest.mark.parametrize(
-    "engine",
-    [
-        "choclo",
-        pytest.param(
-            "geoana",
-            marks=pytest.mark.xfail(
-                reason="not implemented", raises=NotImplementedError
-            ),
-        ),
-    ],
-)
+@pytest.mark.parametrize("parallel", [True, False], ids=["parallel", "serial"])
+@pytest.mark.parametrize("components", [*MAGNETIC_COMPONENTS, ["tmi", "bx"]])
+@pytest.mark.parametrize("engine", ["choclo", XFAIL_GEOANA])
 class TestMagneticEquivalentSourcesForwardOnly:
     """
     Test magnetic equivalent sources methods without building the sensitivity matrix.
