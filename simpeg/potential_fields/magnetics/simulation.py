@@ -1556,20 +1556,19 @@ class SimulationEquivalentSourceLayer(
                     gt_dot_v_func = NUMBA_FUNCTIONS_2D["gt_dot_v"][
                         "magnetic_component"
                     ][self.numba_parallel]
-                    raise NotImplementedError()
-                    # gt_dot_v_func(
-                    #     receivers,
-                    #     active_nodes,
-                    #     active_cell_nodes,
-                    #     regional_field,
-                    #     kernel_x,
-                    #     kernel_y,
-                    #     kernel_z,
-                    #     constant_factor,
-                    #     scalar_model,
-                    #     vector[vector_slice],
-                    #     result,
-                    # )
+                    gt_dot_v_func(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        regional_field,
+                        kernel_x,
+                        kernel_y,
+                        kernel_z,
+                        scalar_model,
+                        vector[vector_slice],
+                        result,
+                    )
             index_offset += n_rows
         return result
 

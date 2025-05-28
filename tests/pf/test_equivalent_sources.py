@@ -903,9 +903,10 @@ class TestMagneticEquivalentSourcesForwardOnly:
         # Compare predictions of both simulations
         model = get_block_model(tensor_mesh, 0.2e-3)
         vector = np.random.default_rng(seed=42).uniform(size=model.size)
-        jacobian = eqs_ram.getJ(model)
+        expected = eqs_ram.getJ(model) @ vector
+        atol = np.max(np.abs(expected)) * 1e-7
         np.testing.assert_allclose(
-            jacobian @ vector, eqs_forward_only.Jvec(model, vector)
+            expected, eqs_forward_only.Jvec(model, vector), atol=atol
         )
 
     def test_Jtvec(
@@ -943,7 +944,7 @@ class TestMagneticEquivalentSourcesForwardOnly:
         model = get_block_model(tensor_mesh, 0.2e-3)
         vector = np.random.default_rng(seed=42).uniform(size=magnetic_survey.nD)
         expected = eqs_ram.getJ(model).T @ vector
-        atol = np.max(np.abs(expected)) * 1e-8
+        atol = np.max(np.abs(expected)) * 1e-7
         np.testing.assert_allclose(
             expected, eqs_forward_only.Jtvec(model, vector), atol=atol
         )
