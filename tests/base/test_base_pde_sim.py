@@ -1,7 +1,9 @@
 import re
 
+import pymatsolver
 from simpeg.base import with_property_mass_matrices, BasePDESimulation
 from simpeg import props, maps
+from simpeg.utils import PerformanceWarning
 import unittest
 import discretize
 import numpy as np
@@ -812,13 +814,25 @@ def test_bad_derivative_stash():
         sim.MeSigmaDeriv(u, v)
 
 
-def test_solver_defaults():
+def test_solver_defaults(caplog):
     mesh = discretize.TensorMesh([2, 2, 2])
     sim = BasePDESimulation(mesh)
-    with pytest.warns(UserWarning, match="Using the default solver.*"):
-        solver_class = sim.solver
+    # Check that logging.info was created
+    assert "Setting the default solver" in caplog.text
+    # Test if default solver was properly set
+    assert sim.solver is get_default_solver()
 
-    assert solver_class is get_default_solver()
+
+def test_solver_lu_warning():
+    """
+    Test warning when setting SolverLU as solver in the PDE simulation.
+    """
+    mesh = discretize.TensorMesh([2, 2, 2])
+    regex = re.escape(
+        "The 'pymatsolver.SolverLU' solver might lead to high computation times."
+    )
+    with pytest.warns(PerformanceWarning, match=regex):
+        BasePDESimulation(mesh, solver=pymatsolver.SolverLU)
 
 
 def test_bad_solver():
