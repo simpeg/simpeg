@@ -161,6 +161,14 @@ used by SimPEG simulations.
 
   solver_utils.get_default_solver
   solver_utils.set_default_solver
+
+Custom warnings
+---------------
+
+.. autosummary::
+  :toctree: generated/
+
+  PerformanceWarning
 """
 
 from discretize.utils.interpolation_utils import interpolation_matrix
@@ -299,3 +307,4 @@ from .coord_utils import (
     rotatePointsFromNormals,
     rotationMatrixFromNormals,
 )
+from .warnings import PerformanceWarning

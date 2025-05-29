@@ -1,4 +1,5 @@
 import inspect
+import warnings
 import numpy as np
 import pymatsolver
 import scipy.sparse as sp
@@ -8,7 +9,7 @@ from ..simulation import BaseSimulation
 from .. import props
 from scipy.constants import mu_0
 
-from ..utils import validate_type, get_logger
+from ..utils import validate_type, get_logger, PerformanceWarning
 from ..utils.solver_utils import get_default_solver
 
 
@@ -507,6 +508,15 @@ class BasePDESimulation(BaseSimulation):
                 raise TypeError(
                     f"{cls.__qualname__} is not a subclass of pymatsolver.base.BaseSolver"
                 )
+        if cls is pymatsolver.SolverLU:
+            warnings.warn(
+                "The 'pymatsolver.SolverLU' solver might lead to high computation "
+                "times. "
+                "We recommend using a faster alternative such as 'pymatsolver.Pardiso' "
+                "or 'pymatsolver.Mumps'.",
+                PerformanceWarning,
+                stacklevel=2,
+            )
         self._solver = cls
 
     @property

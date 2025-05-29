@@ -53,7 +53,8 @@ def get_default_solver(warn=False) -> Type[Base]:
 
         .. deprecated:: 0.25.0
 
-           Argument ``warn`` is deprecated and will be removed in SimPEG v0.26.0.
+           Argument ``warn`` is deprecated and will be removed in
+           SimPEG v0.26.0.
 
     Returns
     -------
