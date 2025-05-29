@@ -13,6 +13,8 @@ documentation for many details on items.
 
 Logger
 ======
+Function to fetch the SimPEG logger. It can be used to stream messages to the logger,
+and to temporarily adjust its configuration (e.g. change log level).
 
 .. autosummary::
   :toctree: generated/
