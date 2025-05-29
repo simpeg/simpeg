@@ -27,8 +27,8 @@ def get_logger():
     r"""
     Get the default event logger.
 
-    The logger records events and relevant information while setting up
-    simulations and inversions.
+    The logger records events and relevant information while setting up simulations and
+    inversions. By default the logger will stream to stderr and using the INFO level.
 
     Returns
     -------
