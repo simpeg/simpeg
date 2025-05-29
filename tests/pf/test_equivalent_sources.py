@@ -25,6 +25,13 @@ MAGNETIC_COMPONENTS = [
     "tmi_z",
 ]
 
+# Define a pytest.mark.xfail to use for engine parametrizations when the method that is
+# being tested is not implemented when using geoana as engine.
+XFAIL_GEOANA = pytest.param(
+    "geoana",
+    marks=pytest.mark.xfail(reason="not implemented", raises=NotImplementedError),
+)
+
 
 def create_grid(x_range, y_range, size):
     """Create a 2D horizontal coordinates grid."""
@@ -457,19 +464,9 @@ class TestGravityEquivalentSourcesForward:
         np.testing.assert_allclose(sim_parallel.dpred(model), sim_serial.dpred(model))
 
 
-@pytest.mark.parametrize("parallel", (True, False), ids=["parallel", "serial"])
-@pytest.mark.parametrize(
-    "engine",
-    [
-        "choclo",
-        pytest.param(
-            "geoana",
-            marks=pytest.mark.xfail(
-                reason="not implemented", raises=NotImplementedError
-            ),
-        ),
-    ],
-)
+@pytest.mark.parametrize("parallel", [True, False], ids=["parallel", "serial"])
+@pytest.mark.parametrize("components", [*GRAVITY_COMPONENTS, ["gz", "gzz"]])
+@pytest.mark.parametrize("engine", ["choclo", XFAIL_GEOANA])
 class TestGravityEquivalentSourcesForwardOnly:
     """
     Test gravity equivalent sources methods without building the sensitivity matrix.
@@ -477,16 +474,19 @@ class TestGravityEquivalentSourcesForwardOnly:
 
     def test_Jvec(
         self,
+        coordinates,
         tensor_mesh,
         mesh_bottom,
         mesh_top,
-        gravity_survey,
+        components,
         engine,
         parallel,
     ):
         """
         Test Jvec with "forward_only" vs. J @ v with J stored in ram.
         """
+        # Build survey
+        gravity_survey = build_gravity_survey(coordinates, components=components)
         # Build simulations
         mapping = get_mapping(tensor_mesh)
         eqs_ram, eqs_forward_only = (
@@ -505,23 +505,27 @@ class TestGravityEquivalentSourcesForwardOnly:
         # Compare predictions of both simulations
         model = get_block_model(tensor_mesh, 2.67)
         vector = np.random.default_rng(seed=42).uniform(size=model.size)
-        jacobian = eqs_ram.getJ(model)
+        expected = eqs_ram.getJ(model) @ vector
+        atol = np.max(np.abs(expected)) * 1e-7
         np.testing.assert_allclose(
-            jacobian @ vector, eqs_forward_only.Jvec(model, vector)
+            expected, eqs_forward_only.Jvec(model, vector), atol=atol
         )
 
     def test_Jtvec(
         self,
+        coordinates,
         tensor_mesh,
         mesh_bottom,
         mesh_top,
-        gravity_survey,
+        components,
         engine,
         parallel,
     ):
         """
         Test Jtvec with "forward_only" vs. J.T @ v with J stored in ram.
         """
+        # Build survey
+        gravity_survey = build_gravity_survey(coordinates, components=components)
         # Build simulations
         mapping = get_mapping(tensor_mesh)
         eqs_ram, eqs_forward_only = (
@@ -540,23 +544,27 @@ class TestGravityEquivalentSourcesForwardOnly:
         # Compare predictions of both simulations
         model = get_block_model(tensor_mesh, 2.67)
         vector = np.random.default_rng(seed=42).uniform(size=gravity_survey.nD)
-        jacobian = eqs_ram.getJ(model)
+        expected = eqs_ram.getJ(model).T @ vector
+        atol = np.max(np.abs(expected)) * 1e-7
         np.testing.assert_allclose(
-            jacobian.T @ vector, eqs_forward_only.Jtvec(model, vector)
+            expected, eqs_forward_only.Jtvec(model, vector), atol=atol
         )
 
     def test_getJ_dot_v(
         self,
+        coordinates,
         tensor_mesh,
         mesh_bottom,
         mesh_top,
-        gravity_survey,
+        components,
         engine,
         parallel,
     ):
         """
         Test getJ() @ v with "forward_only" vs. when J is stored in memory.
         """
+        # Build survey
+        gravity_survey = build_gravity_survey(coordinates, components=components)
         # Build simulations
         mapping = get_mapping(tensor_mesh)
         eqs_ram, eqs_forward_only = (
@@ -575,22 +583,26 @@ class TestGravityEquivalentSourcesForwardOnly:
         # Compare predictions of both simulations
         model = get_block_model(tensor_mesh, 2.67)
         vector = np.random.default_rng(seed=42).uniform(size=model.size)
-        jacobian = eqs_ram.getJ(model)
         jac_linop = eqs_forward_only.getJ(model)
-        np.testing.assert_allclose(jacobian @ vector, jac_linop @ vector)
+        expected = eqs_ram.getJ(model) @ vector
+        atol = np.max(np.abs(expected)) * 1e-7
+        np.testing.assert_allclose(expected, jac_linop @ vector, atol=atol)
 
     def test_getJ_t_dot_v(
         self,
+        coordinates,
         tensor_mesh,
         mesh_bottom,
         mesh_top,
-        gravity_survey,
+        components,
         engine,
         parallel,
     ):
         """
         Test getJ().T @ v with "forward_only" vs. when J is stored in memory.
         """
+        # Build survey
+        gravity_survey = build_gravity_survey(coordinates, components=components)
         # Build simulations
         mapping = get_mapping(tensor_mesh)
         eqs_ram, eqs_forward_only = (
@@ -609,22 +621,26 @@ class TestGravityEquivalentSourcesForwardOnly:
         # Compare predictions of both simulations
         model = get_block_model(tensor_mesh, 2.67)
         vector = np.random.default_rng(seed=42).uniform(size=gravity_survey.nD)
-        jacobian = eqs_ram.getJ(model)
         jac_linop = eqs_forward_only.getJ(model)
-        np.testing.assert_allclose(jacobian.T @ vector, jac_linop.T @ vector)
+        expected = eqs_ram.getJ(model).T @ vector
+        atol = np.max(np.abs(expected)) * 1e-7
+        np.testing.assert_allclose(expected, jac_linop.T @ vector, atol=atol)
 
     def test_getJtJdiag(
         self,
+        coordinates,
         tensor_mesh,
         mesh_bottom,
         mesh_top,
-        gravity_survey,
+        components,
         engine,
         parallel,
     ):
         """
         Test the ``getJtJdiag`` method, comparing forward_only with storing J in memory.
         """
+        # Build survey
+        gravity_survey = build_gravity_survey(coordinates, components=components)
         # Build simulations
         mapping = get_mapping(tensor_mesh)
         eqs_ram, eqs_forward_only = (
@@ -644,7 +660,8 @@ class TestGravityEquivalentSourcesForwardOnly:
         model = get_block_model(tensor_mesh, 2.67)
         gtgdiag_ram = eqs_ram.getJtJdiag(model)
         gtgdiag_linop = eqs_forward_only.getJtJdiag(model)
-        np.testing.assert_allclose(gtgdiag_ram, gtgdiag_linop)
+        atol = np.max(np.abs(gtgdiag_ram)) * 1e-7
+        np.testing.assert_allclose(gtgdiag_ram, gtgdiag_linop, atol=atol)
 
 
 class TestMagneticEquivalentSourcesForward:
