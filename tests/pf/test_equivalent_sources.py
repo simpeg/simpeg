@@ -905,9 +905,13 @@ class TestMagneticEquivalentSourcesForwardOnly:
         vector = np.random.default_rng(seed=42).uniform(size=model.size)
         expected = eqs_ram.getJ(model) @ vector
         atol = np.max(np.abs(expected)) * 1e-7
+        # Test Jvec
         np.testing.assert_allclose(
             expected, eqs_forward_only.Jvec(model, vector), atol=atol
         )
+        # Test getJ() @ v
+        jacobian = eqs_forward_only.getJ(model)
+        np.testing.assert_allclose(expected, jacobian @ vector, atol=atol)
 
     def test_Jtvec(
         self,
@@ -945,6 +949,10 @@ class TestMagneticEquivalentSourcesForwardOnly:
         vector = np.random.default_rng(seed=42).uniform(size=magnetic_survey.nD)
         expected = eqs_ram.getJ(model).T @ vector
         atol = np.max(np.abs(expected)) * 1e-7
+        # Test Jtvec
         np.testing.assert_allclose(
             expected, eqs_forward_only.Jtvec(model, vector), atol=atol
         )
+        # Test getJ().T @ v
+        jacobian = eqs_forward_only.getJ(model)
+        np.testing.assert_allclose(expected, jacobian.T @ vector, atol=atol)
