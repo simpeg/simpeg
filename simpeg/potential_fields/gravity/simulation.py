@@ -14,7 +14,7 @@ from simpeg.utils import mkvc, sdiag
 from ...base import BasePDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
 
-from ._numba_functions import choclo, NUMBA_FUNCTIONS
+from ._numba import choclo, NUMBA_FUNCTIONS_3D, NUMBA_FUNCTIONS_2D
 
 try:
     from warnings import deprecated
@@ -310,7 +310,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 msg = (
                     "Computing the diagonal of G.T @ G with "
                     'store_sensitivities="forward_only" and engine="geoana" '
-                    "hasn't been implemented yet."
+                    "hasn't been implemented yet. "
                     'Choose store_sensitivities="ram" or "disk", '
                     'or another engine, like "choclo".'
                 )
@@ -443,7 +443,7 @@ class Simulation3DIntegral(BasePFSimulation):
                     msg = (
                         "Accessing matrix G with "
                         'store_sensitivities="forward_only" and engine="geoana" '
-                        "hasn't been implemented yet."
+                        "hasn't been implemented yet. "
                         'Choose store_sensitivities="ram" or "disk", '
                         'or another engine, like "choclo".'
                     )
@@ -576,7 +576,7 @@ class Simulation3DIntegral(BasePFSimulation):
             Always return a ``np.float64`` array.
         """
         # Get Numba function
-        forward_func = NUMBA_FUNCTIONS["forward"][self.numba_parallel]
+        forward_func = NUMBA_FUNCTIONS_3D["forward"][self.numba_parallel]
         # Gather active nodes and the indices of the nodes for each active cell
         active_nodes, active_cell_nodes = self._get_active_nodes()
         # Allocate fields array
@@ -613,7 +613,7 @@ class Simulation3DIntegral(BasePFSimulation):
         (nD, n_active_cells) numpy.ndarray
         """
         # Get Numba function
-        sensitivity_func = NUMBA_FUNCTIONS["sensitivity"][self.numba_parallel]
+        sensitivity_func = NUMBA_FUNCTIONS_3D["sensitivity"][self.numba_parallel]
         # Gather active nodes and the indices of the nodes for each active cell
         active_nodes, active_cell_nodes = self._get_active_nodes()
         # Allocate sensitivity matrix
@@ -664,7 +664,7 @@ class Simulation3DIntegral(BasePFSimulation):
         (n_active_cells) numpy.ndarray
         """
         # Get Numba function
-        sensitivity_t_dot_v_func = NUMBA_FUNCTIONS["gt_dot_v"][self.numba_parallel]
+        sensitivity_t_dot_v_func = NUMBA_FUNCTIONS_3D["gt_dot_v"][self.numba_parallel]
         # Gather active nodes and the indices of the nodes for each active cell
         active_nodes, active_cell_nodes = self._get_active_nodes()
         # Allocate resulting array
@@ -724,7 +724,7 @@ class Simulation3DIntegral(BasePFSimulation):
         (n_active_cells) numpy.ndarray
         """
         # Get Numba function
-        diagonal_gtg_func = NUMBA_FUNCTIONS["diagonal_gtg"][self.numba_parallel]
+        diagonal_gtg_func = NUMBA_FUNCTIONS_3D["diagonal_gtg"][self.numba_parallel]
         # Gather active nodes and the indices of the nodes for each active cell
         active_nodes, active_cell_nodes = self._get_active_nodes()
         # Allocate array for the diagonal of G.T @ G
@@ -804,7 +804,7 @@ class SimulationEquivalentSourceLayer(
             Always return a ``np.float64`` array.
         """
         # Get Numba function
-        forward_func = NUMBA_FUNCTIONS["forward_2d_mesh"][self.numba_parallel]
+        forward_func = NUMBA_FUNCTIONS_2D["forward"][self.numba_parallel]
         # Get cells in the 2D mesh and keep only active cells
         cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
         # Allocate fields array
@@ -842,7 +842,7 @@ class SimulationEquivalentSourceLayer(
         (nD, n_active_cells) numpy.ndarray
         """
         # Get Numba function
-        sensitivity_func = NUMBA_FUNCTIONS["sensitivity_2d_mesh"][self.numba_parallel]
+        sensitivity_func = NUMBA_FUNCTIONS_2D["sensitivity"][self.numba_parallel]
         # Get cells in the 2D mesh and keep only active cells
         cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
         # Allocate sensitivity matrix
@@ -879,6 +879,86 @@ class SimulationEquivalentSourceLayer(
                 )
             index_offset += n_rows
         return sensitivity_matrix
+
+    def _sensitivity_matrix_transpose_dot_vec(self, vector):
+        """
+        Compute ``G.T @ v`` without building ``G``.
+
+        Parameters
+        ----------
+        vector : (nD) numpy.ndarray
+            Vector used in the dot product.
+
+        Returns
+        -------
+        (n_active_cells) numpy.ndarray
+        """
+        # Get Numba function
+        g_t_dot_v_func = NUMBA_FUNCTIONS_2D["gt_dot_v"][self.numba_parallel]
+        # Get cells in the 2D mesh and keep only active cells
+        cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
+        # Allocate resulting array
+        result = np.zeros(self.nC)
+        # Start filling the result array
+        index_offset = 0
+        for components, receivers in self._get_components_and_receivers():
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                choclo_forward_func = CHOCLO_FORWARD_FUNCS[component]
+                conversion_factor = _get_conversion_factor(component)
+                vector_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
+                )
+                g_t_dot_v_func(
+                    receivers,
+                    cells_bounds_active,
+                    self.cell_z_top,
+                    self.cell_z_bottom,
+                    choclo_forward_func,
+                    conversion_factor,
+                    vector[vector_slice],
+                    result,
+                )
+            index_offset += n_rows
+        return result
+
+    def _gtg_diagonal_without_building_g(self, weights):
+        """
+        Compute the diagonal of ``G.T @ G`` without building the ``G`` matrix.
+
+        Parameters
+        -----------
+        weights : (nD,) array
+            Array with data weights. It should be the diagonal of the ``W``
+            matrix, squared.
+
+        Returns
+        -------
+        (n_active_cells) numpy.ndarray
+        """
+        # Get Numba function
+        diagonal_gtg_func = NUMBA_FUNCTIONS_2D["diagonal_gtg"][self.numba_parallel]
+        # Get cells in the 2D mesh and keep only active cells
+        cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
+        # Allocate array for the diagonal of G.T @ G
+        diagonal = np.zeros(self.nC, dtype=np.float64)
+        # Start filling the diagonal array
+        for components, receivers in self._get_components_and_receivers():
+            for component in components:
+                choclo_forward_func = CHOCLO_FORWARD_FUNCS[component]
+                conversion_factor = _get_conversion_factor(component)
+                diagonal_gtg_func(
+                    receivers,
+                    cells_bounds_active,
+                    self.cell_z_top,
+                    self.cell_z_bottom,
+                    choclo_forward_func,
+                    conversion_factor,
+                    weights,
+                    diagonal,
+                )
+        return diagonal
 
 
 class Simulation3DDifferential(BasePDESimulation):
