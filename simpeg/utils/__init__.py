@@ -164,6 +164,7 @@ used by SimPEG simulations.
 
 Custom warnings
 ---------------
+List of custom warnings used in SimPEG.
 
 .. autosummary::
   :toctree: generated/
