@@ -8,9 +8,8 @@ from ..simulation import BaseSimulation
 from .. import props
 from scipy.constants import mu_0
 
-from ..utils import validate_type
+from ..utils import validate_type, get_logger
 from ..utils.solver_utils import get_default_solver
-from ..utils.logger import LOGGER
 
 
 def __inner_mat_mul_op(M, u, v=None, adjoint=False):
@@ -442,7 +441,7 @@ class BasePDESimulation(BaseSimulation):
         super().__init__(**kwargs)
         if solver is None:
             solver = get_default_solver()
-            LOGGER.info(
+            get_logger().info(
                 f"Setting the default solver '{solver.__name__}' for the "
                 f"'{type(self).__name__}'.\n"
                 "To avoid receiving this message, pass a solver to the simulation. "

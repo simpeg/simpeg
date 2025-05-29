@@ -11,6 +11,15 @@ Many of the utilities are imported from `discretize.utils`. See that package's
 documentation for many details on items.
 
 
+Logger
+======
+
+.. autosummary::
+  :toctree: generated/
+
+  get_logger
+
+
 Counter Utility Functions
 =========================
 
@@ -156,6 +165,7 @@ used by SimPEG simulations.
 
 from discretize.utils.interpolation_utils import interpolation_matrix
 
+from .logger import get_logger
 from .code_utils import (
     mem_profile_class,
     hook,

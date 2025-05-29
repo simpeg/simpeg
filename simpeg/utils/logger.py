@@ -1,10 +1,10 @@
 """
-Define global logger for SimPEG.
+Define logger for SimPEG.
 """
 
 import logging
 
-__all__ = ["LOGGER"]
+__all__ = ["get_logger"]
 
 
 def _create_logger():
@@ -21,3 +21,18 @@ def _create_logger():
 
 
 LOGGER = _create_logger()
+
+
+def get_logger():
+    r"""
+    Get the default event logger.
+
+    The logger records events and relevant information while setting up
+    simulations and inversions.
+
+    Returns
+    -------
+    logger : :class:`logging.Logger`
+        The logger object for SimPEG.
+    """
+    return LOGGER
