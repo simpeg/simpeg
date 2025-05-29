@@ -10,7 +10,7 @@ from simpeg.regularization import PGIsmallness
 from .directives import InversionDirective
 from simpeg.maps import IdentityMap
 
-from geoh5py.data import NumericData
+from geoh5py.data import FloatData
 from geoh5py.data.data_type import ReferencedValueMapType
 from geoh5py.groups.property_group import GroupTypeEnum
 from geoh5py.groups import UIJsonGroup
@@ -451,17 +451,14 @@ class SavePropertyGroup(BaseSaveGeoH5):
                     children = [
                         child
                         for child in h5_object.children
-                        if (
-                            channel_name in child.name
-                            and isinstance(child, NumericData)
-                        )
+                        if (channel_name in child.name and isinstance(child, FloatData))
                     ]
 
                     if children[0] is not None:
                         properties += children
 
                 if len(properties) == 0:
-                    return
+                    continue
 
                 prop_group = h5_object.get_property_group(base_name)[0]
 
