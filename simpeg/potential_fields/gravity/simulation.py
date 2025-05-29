@@ -14,7 +14,7 @@ from simpeg.utils import mkvc, sdiag
 from ...base import BasePDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
 
-from ._numba_functions import choclo, NUMBA_FUNCTIONS
+from ._numba import choclo, NUMBA_FUNCTIONS_3D, NUMBA_FUNCTIONS_2D
 
 try:
     from warnings import deprecated
@@ -576,7 +576,7 @@ class Simulation3DIntegral(BasePFSimulation):
             Always return a ``np.float64`` array.
         """
         # Get Numba function
-        forward_func = NUMBA_FUNCTIONS["forward"][self.numba_parallel]
+        forward_func = NUMBA_FUNCTIONS_3D["forward"][self.numba_parallel]
         # Gather active nodes and the indices of the nodes for each active cell
         active_nodes, active_cell_nodes = self._get_active_nodes()
         # Allocate fields array
@@ -613,7 +613,7 @@ class Simulation3DIntegral(BasePFSimulation):
         (nD, n_active_cells) numpy.ndarray
         """
         # Get Numba function
-        sensitivity_func = NUMBA_FUNCTIONS["sensitivity"][self.numba_parallel]
+        sensitivity_func = NUMBA_FUNCTIONS_3D["sensitivity"][self.numba_parallel]
         # Gather active nodes and the indices of the nodes for each active cell
         active_nodes, active_cell_nodes = self._get_active_nodes()
         # Allocate sensitivity matrix
@@ -664,7 +664,7 @@ class Simulation3DIntegral(BasePFSimulation):
         (n_active_cells) numpy.ndarray
         """
         # Get Numba function
-        sensitivity_t_dot_v_func = NUMBA_FUNCTIONS["gt_dot_v"][self.numba_parallel]
+        sensitivity_t_dot_v_func = NUMBA_FUNCTIONS_3D["gt_dot_v"][self.numba_parallel]
         # Gather active nodes and the indices of the nodes for each active cell
         active_nodes, active_cell_nodes = self._get_active_nodes()
         # Allocate resulting array
@@ -724,7 +724,7 @@ class Simulation3DIntegral(BasePFSimulation):
         (n_active_cells) numpy.ndarray
         """
         # Get Numba function
-        diagonal_gtg_func = NUMBA_FUNCTIONS["diagonal_gtg"][self.numba_parallel]
+        diagonal_gtg_func = NUMBA_FUNCTIONS_3D["diagonal_gtg"][self.numba_parallel]
         # Gather active nodes and the indices of the nodes for each active cell
         active_nodes, active_cell_nodes = self._get_active_nodes()
         # Allocate array for the diagonal of G.T @ G
@@ -804,7 +804,7 @@ class SimulationEquivalentSourceLayer(
             Always return a ``np.float64`` array.
         """
         # Get Numba function
-        forward_func = NUMBA_FUNCTIONS["forward_2d_mesh"][self.numba_parallel]
+        forward_func = NUMBA_FUNCTIONS_2D["forward"][self.numba_parallel]
         # Get cells in the 2D mesh and keep only active cells
         cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
         # Allocate fields array
@@ -842,7 +842,7 @@ class SimulationEquivalentSourceLayer(
         (nD, n_active_cells) numpy.ndarray
         """
         # Get Numba function
-        sensitivity_func = NUMBA_FUNCTIONS["sensitivity_2d_mesh"][self.numba_parallel]
+        sensitivity_func = NUMBA_FUNCTIONS_2D["sensitivity"][self.numba_parallel]
         # Get cells in the 2D mesh and keep only active cells
         cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
         # Allocate sensitivity matrix
@@ -894,7 +894,7 @@ class SimulationEquivalentSourceLayer(
         (n_active_cells) numpy.ndarray
         """
         # Get Numba function
-        g_t_dot_v_func = NUMBA_FUNCTIONS["gt_dot_v_2d_mesh"][self.numba_parallel]
+        g_t_dot_v_func = NUMBA_FUNCTIONS_2D["gt_dot_v"][self.numba_parallel]
         # Get cells in the 2D mesh and keep only active cells
         cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
         # Allocate resulting array
@@ -938,7 +938,7 @@ class SimulationEquivalentSourceLayer(
         (n_active_cells) numpy.ndarray
         """
         # Get Numba function
-        diagonal_gtg_func = NUMBA_FUNCTIONS["diagonal_gtg_2d_mesh"][self.numba_parallel]
+        diagonal_gtg_func = NUMBA_FUNCTIONS_2D["diagonal_gtg"][self.numba_parallel]
         # Get cells in the 2D mesh and keep only active cells
         cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
         # Allocate array for the diagonal of G.T @ G
