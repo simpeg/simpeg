@@ -11,7 +11,7 @@ def _create_logger():
     """
     Create logger for SimPEG.
     """
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger("SimPEG")
     logger.setLevel(logging.INFO)
     handler = logging.StreamHandler()
     formatter = logging.Formatter("{levelname}: {message}", style="{")
