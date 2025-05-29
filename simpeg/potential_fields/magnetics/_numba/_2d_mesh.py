@@ -1654,6 +1654,231 @@ def _tmi_derivative_sensitivity_t_dot_v_parallel(
         result += local_row
 
 
+@jit(nopython=True, parallel=False)
+def _diagonal_G_T_dot_G_tmi_serial(
+    receivers,
+    cells_bounds,
+    top,
+    bottom,
+    regional_field,
+    constant_factor,
+    scalar_model,
+    weights,
+    diagonal,
+):
+    """
+    Diagonal of ``G.T @ W.T @ W @ G`` for TMI without storing ``G``, in serial.
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    cells_bounds : (n_active_cells, 4) numpy.ndarray
+        Array with the bounds of each active cell in the 2D mesh. For each row, the
+        bounds should be passed in the following order: ``x_min``, ``x_max``,
+        ``y_min``, ``y_max``.
+    top : (n_active_cells) np.ndarray
+        Array with the top boundaries of each active cell in the 2D mesh.
+    bottom : (n_active_cells) np.ndarray
+        Array with the bottom boundaries of each active cell in the 2D mesh.
+    regional_field : (3,) array
+        Array containing the x, y and z components of the regional magnetic
+        field (uniform background field).
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+    scalar_model : bool
+        If True, the sensitivity matrix is build to work with scalar models
+        (susceptibilities).
+        If False, the sensitivity matrix is build to work with vector models
+        (effective susceptibilities).
+    weights : (n_receivers,) numpy.ndarray
+        Array with data weights. It should be the diagonal of the ``W`` matrix,
+        squared.
+    diagonal : (n_active_cells,) numpy.ndarray
+        Array where the diagonal of ``G.T @ G`` will be added to.
+
+    Notes
+    -----
+    This function is meant to be run in serial. Use the
+    ``_diagonal_G_T_dot_G_tmi_parallel`` one for parallelized computations.
+    """
+    fx, fy, fz = regional_field
+    regional_field_amplitude = np.sqrt(fx**2 + fy**2 + fz**2)
+    fx /= regional_field_amplitude
+    fy /= regional_field_amplitude
+    fz /= regional_field_amplitude
+
+    constant_factor = 1 / 4 / np.pi
+
+    n_receivers = receivers.shape[0]
+    n_cells = cells_bounds.shape[0]
+    # Evaluate kernel function on each node, for each receiver location
+    for i in range(n_receivers):
+        for j in range(n_cells):
+            # Evaluate kernels for the current cell and receiver
+            uxx, uyy, uzz = evaluate_kernels_on_cell(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                choclo.prism.kernel_ee,
+                choclo.prism.kernel_nn,
+                choclo.prism.kernel_uu,
+            )
+            uxy, uxz, uyz = evaluate_kernels_on_cell(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                choclo.prism.kernel_en,
+                choclo.prism.kernel_eu,
+                choclo.prism.kernel_nu,
+            )
+            bx = uxx * fx + uxy * fy + uxz * fz
+            by = uxy * fx + uyy * fy + uyz * fz
+            bz = uxz * fx + uyz * fy + uzz * fz
+
+            if scalar_model:
+                g_element = (
+                    constant_factor
+                    * regional_field_amplitude
+                    * (bx * fx + by * fy + bz * fz)
+                )
+                diagonal[j] += weights[i] * g_element**2
+            else:
+                const = constant_factor * regional_field_amplitude
+                diagonal[j] += weights[i] * (const * bx) ** 2
+                diagonal[j + n_cells] += weights[i] * (const * by) ** 2
+                diagonal[j + 2 * n_cells] += weights[i] * (const * bz) ** 2
+
+
+@jit(nopython=True, parallel=True)
+def _diagonal_G_T_dot_G_tmi_parallel(
+    receivers,
+    cells_bounds,
+    top,
+    bottom,
+    regional_field,
+    constant_factor,
+    scalar_model,
+    weights,
+    diagonal,
+):
+    """
+    Diagonal of ``G.T @ W.T @ W @ G`` for TMI without storing ``G``, in parallel.
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    cells_bounds : (n_active_cells, 4) numpy.ndarray
+        Array with the bounds of each active cell in the 2D mesh. For each row, the
+        bounds should be passed in the following order: ``x_min``, ``x_max``,
+        ``y_min``, ``y_max``.
+    top : (n_active_cells) np.ndarray
+        Array with the top boundaries of each active cell in the 2D mesh.
+    bottom : (n_active_cells) np.ndarray
+        Array with the bottom boundaries of each active cell in the 2D mesh.
+    regional_field : (3,) array
+        Array containing the x, y and z components of the regional magnetic
+        field (uniform background field).
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+    scalar_model : bool
+        If True, the sensitivity matrix is build to work with scalar models
+        (susceptibilities).
+        If False, the sensitivity matrix is build to work with vector models
+        (effective susceptibilities).
+    weights : (n_receivers,) numpy.ndarray
+        Array with data weights. It should be the diagonal of the ``W`` matrix,
+        squared.
+    diagonal : (n_active_cells,) numpy.ndarray
+        Array where the diagonal of ``G.T @ G`` will be added to.
+
+    Notes
+    -----
+    This function is meant to be run in serial. Use the
+    ``_diagonal_G_T_dot_G_tmi_parallel`` one for parallelized computations.
+    """
+    fx, fy, fz = regional_field
+    regional_field_amplitude = np.sqrt(fx**2 + fy**2 + fz**2)
+    fx /= regional_field_amplitude
+    fy /= regional_field_amplitude
+    fz /= regional_field_amplitude
+    diagonal_size = diagonal.size
+    constant_factor = 1 / 4 / np.pi
+    n_receivers = receivers.shape[0]
+    n_cells = cells_bounds.shape[0]
+    # Evaluate kernel function on each node, for each receiver location
+    for i in prange(n_receivers):
+        # Allocate array for the diagonal elements for the current receiver.
+        local_diagonal = np.empty(diagonal_size)
+        for j in range(n_cells):
+            # Evaluate kernels for the current cell and receiver
+            uxx, uyy, uzz = evaluate_kernels_on_cell(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                choclo.prism.kernel_ee,
+                choclo.prism.kernel_nn,
+                choclo.prism.kernel_uu,
+            )
+            uxy, uxz, uyz = evaluate_kernels_on_cell(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                choclo.prism.kernel_en,
+                choclo.prism.kernel_eu,
+                choclo.prism.kernel_nu,
+            )
+            bx = uxx * fx + uxy * fy + uxz * fz
+            by = uxy * fx + uyy * fy + uyz * fz
+            bz = uxz * fx + uyz * fy + uzz * fz
+
+            if scalar_model:
+                g_element = (
+                    constant_factor
+                    * regional_field_amplitude
+                    * (bx * fx + by * fy + bz * fz)
+                )
+                local_diagonal[j] = weights[i] * g_element**2
+            else:
+                const = constant_factor * regional_field_amplitude
+                local_diagonal[j] = weights[i] * (const * bx) ** 2
+                local_diagonal[j + n_cells] = weights[i] * (const * by) ** 2
+                local_diagonal[j + 2 * n_cells] = weights[i] * (const * bz) ** 2
+        # Add the result to the diagonal.
+        # Apply reduction operation to add the values of the local diagonal to
+        # the running diagonal array. Avoid slicing the `diagonal` array when
+        # updating it to avoid racing conditions, just add the `local_diagonal`
+        # to the `diagonal` variable.
+        diagonal += local_diagonal
+
+
 NUMBA_FUNCTIONS_2D = {
     "forward": {
         "tmi": {
@@ -1699,8 +1924,8 @@ NUMBA_FUNCTIONS_2D = {
     },
     "diagonal_gtg": {
         "tmi": {
-            False: None,
-            True: None,
+            False: _diagonal_G_T_dot_G_tmi_serial,
+            True: _diagonal_G_T_dot_G_tmi_parallel,
         },
         "magnetic_component": {
             False: None,

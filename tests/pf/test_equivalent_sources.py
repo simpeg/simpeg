@@ -956,3 +956,41 @@ class TestMagneticEquivalentSourcesForwardOnly:
         # Test getJ().T @ v
         jacobian = eqs_forward_only.getJ(model)
         np.testing.assert_allclose(expected, jacobian.T @ vector, atol=atol)
+
+    def test_getJtJdiag(
+        self,
+        coordinates,
+        tensor_mesh,
+        mesh_bottom,
+        mesh_top,
+        components,
+        engine,
+        parallel,
+    ):
+        """
+        Test the ``getJtJdiag`` method, comparing forward_only with storing J in memory.
+        """
+        # Build survey
+        magnetic_survey = build_magnetic_survey(coordinates, components)
+        # Build simulations
+        mapping = get_mapping(tensor_mesh)
+        eqs_ram, eqs_forward_only = (
+            magnetics.SimulationEquivalentSourceLayer(
+                tensor_mesh,
+                mesh_top,
+                mesh_bottom,
+                survey=magnetic_survey,
+                chiMap=mapping,
+                engine=engine,
+                store_sensitivities=store,
+                numba_parallel=parallel,
+                model_type="scalar",  # TODO: parametrize this
+            )
+            for store in ("ram", "forward_only")
+        )
+        # Expected
+        model = get_block_model(tensor_mesh, 0.2e-3)
+        gtgdiag_ram = eqs_ram.getJtJdiag(model)
+        gtgdiag_linop = eqs_forward_only.getJtJdiag(model)
+        atol = np.max(np.abs(gtgdiag_ram)) * 1e-7
+        np.testing.assert_allclose(gtgdiag_ram, gtgdiag_linop, atol=atol)

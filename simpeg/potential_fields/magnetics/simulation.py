@@ -1571,6 +1571,98 @@ class SimulationEquivalentSourceLayer(
             index_offset += n_rows
         return result
 
+    def _gtg_diagonal_without_building_g(self, weights):
+        """
+        Compute the diagonal of ``G.T @ G`` without building the ``G`` matrix.
+
+        Parameters
+        -----------
+        weights : (nD,) array
+            Array with data weights. It should be the diagonal of the ``W``
+            matrix, squared.
+
+        Returns
+        -------
+        (n_active_cells) numpy.ndarray
+        """
+        # Get regional field
+        regional_field = self.survey.source_field.b0
+        # Get cells in the 2D mesh and keep only active cells
+        cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
+        # Define the constant factor
+        constant_factor = 1 / 4 / np.pi
+        # Allocate array for the diagonal
+        scalar_model = self.model_type == "scalar"
+        n_columns = self.nC if scalar_model else 3 * self.nC
+        diagonal = np.zeros(n_columns, dtype=np.float64)
+        # Start filling the diagonal array
+        for components, receivers in self._get_components_and_receivers():
+            if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
+                raise NotImplementedError(
+                    f"Other components besides {CHOCLO_SUPPORTED_COMPONENTS} "
+                    "aren't implemented yet."
+                )
+            for component in components:
+                if component == "tmi":
+                    diagonal_gtg_func = NUMBA_FUNCTIONS_2D["diagonal_gtg"]["tmi"][
+                        self.numba_parallel
+                    ]
+                    diagonal_gtg_func(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        regional_field,
+                        constant_factor,
+                        scalar_model,
+                        weights,
+                        diagonal,
+                    )
+                elif component in ("tmi_x", "tmi_y", "tmi_z"):
+                    raise NotImplementedError()
+                    # kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
+                    #     CHOCLO_KERNELS[component]
+                    # )
+                    # diagonal_gtg_func = NUMBA_FUNCTIONS_2D["diagonal_gtg"][
+                    #     "tmi_derivative"
+                    # ][self.numba_parallel]
+                    # diagonal_gtg_func(
+                    #     receivers,
+                    #     active_nodes,
+                    #     active_cell_nodes,
+                    #     regional_field,
+                    #     kernel_xx,
+                    #     kernel_yy,
+                    #     kernel_zz,
+                    #     kernel_xy,
+                    #     kernel_xz,
+                    #     kernel_yz,
+                    #     constant_factor,
+                    #     scalar_model,
+                    #     weights,
+                    #     diagonal,
+                    # )
+                else:
+                    raise NotImplementedError()
+                    # kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
+                    # diagonal_gtg_func = NUMBA_FUNCTIONS_2D["diagonal_gtg"][
+                    #     "magnetic_component"
+                    # ][self.numba_parallel]
+                    # diagonal_gtg_func(
+                    #     receivers,
+                    #     active_nodes,
+                    #     active_cell_nodes,
+                    #     regional_field,
+                    #     kernel_x,
+                    #     kernel_y,
+                    #     kernel_z,
+                    #     constant_factor,
+                    #     scalar_model,
+                    #     weights,
+                    #     diagonal,
+                    # )
+        return diagonal
+
 
 class Simulation3DDifferential(BaseMagneticPDESimulation):
     """
