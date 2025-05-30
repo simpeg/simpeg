@@ -18,7 +18,7 @@ except ImportError:
 else:
     from numba import jit, prange
 
-from ..._numba_utils import evaluate_kernels_on_cell
+from ..._numba_utils import evaluate_kernels_on_cell, evaluate_six_kernels_on_cell
 
 
 def _forward_mag(
@@ -392,7 +392,7 @@ def _forward_tmi_derivative(
     # Forward model the magnetic component of each cell on each receiver location
     for i in prange(n_receivers):
         for j in range(n_cells):
-            uxx, uyy, uzz = evaluate_kernels_on_cell(
+            uxx, uyy, uzz, uxy, uxz, uyz = evaluate_six_kernels_on_cell(
                 receivers[i, 0],
                 receivers[i, 1],
                 receivers[i, 2],
@@ -405,17 +405,6 @@ def _forward_tmi_derivative(
                 kernel_xx,
                 kernel_yy,
                 kernel_zz,
-            )
-            uxy, uxz, uyz = evaluate_kernels_on_cell(
-                receivers[i, 0],
-                receivers[i, 1],
-                receivers[i, 2],
-                cells_bounds[j, 0],
-                cells_bounds[j, 1],
-                cells_bounds[j, 2],
-                cells_bounds[j, 3],
-                bottom[j],
-                top[j],
                 kernel_xy,
                 kernel_xz,
                 kernel_yz,
@@ -761,7 +750,7 @@ def _sensitivity_tmi(
     for i in prange(n_receivers):
         for j in range(n_cells):
             # Evaluate kernels for the current cell and receiver
-            uxx, uyy, uzz = evaluate_kernels_on_cell(
+            uxx, uyy, uzz, uxy, uxz, uyz = evaluate_six_kernels_on_cell(
                 receivers[i, 0],
                 receivers[i, 1],
                 receivers[i, 2],
@@ -774,17 +763,6 @@ def _sensitivity_tmi(
                 choclo.prism.kernel_ee,
                 choclo.prism.kernel_nn,
                 choclo.prism.kernel_uu,
-            )
-            uxy, uxz, uyz = evaluate_kernels_on_cell(
-                receivers[i, 0],
-                receivers[i, 1],
-                receivers[i, 2],
-                cells_bounds[j, 0],
-                cells_bounds[j, 1],
-                cells_bounds[j, 2],
-                cells_bounds[j, 3],
-                bottom[j],
-                top[j],
                 choclo.prism.kernel_en,
                 choclo.prism.kernel_eu,
                 choclo.prism.kernel_nu,
@@ -904,7 +882,7 @@ def _sensitivity_tmi_derivative(
     for i in prange(n_receivers):
         for j in range(n_cells):
             # Evaluate kernels for the current cell and receiver
-            uxx, uyy, uzz = evaluate_kernels_on_cell(
+            uxx, uyy, uzz, uxy, uxz, uyz = evaluate_six_kernels_on_cell(
                 receivers[i, 0],
                 receivers[i, 1],
                 receivers[i, 2],
@@ -917,17 +895,6 @@ def _sensitivity_tmi_derivative(
                 kernel_xx,
                 kernel_yy,
                 kernel_zz,
-            )
-            uxy, uxz, uyz = evaluate_kernels_on_cell(
-                receivers[i, 0],
-                receivers[i, 1],
-                receivers[i, 2],
-                cells_bounds[j, 0],
-                cells_bounds[j, 1],
-                cells_bounds[j, 2],
-                cells_bounds[j, 3],
-                bottom[j],
-                top[j],
                 kernel_xy,
                 kernel_xz,
                 kernel_yz,
@@ -1017,7 +984,7 @@ def _tmi_sensitivity_t_dot_v_serial(
     for i in range(n_receivers):
         for j in range(n_cells):
             # Evaluate kernels for the current cell and receiver
-            uxx, uyy, uzz = evaluate_kernels_on_cell(
+            uxx, uyy, uzz, uxy, uxz, uyz = evaluate_six_kernels_on_cell(
                 receivers[i, 0],
                 receivers[i, 1],
                 receivers[i, 2],
@@ -1030,17 +997,6 @@ def _tmi_sensitivity_t_dot_v_serial(
                 choclo.prism.kernel_ee,
                 choclo.prism.kernel_nn,
                 choclo.prism.kernel_uu,
-            )
-            uxy, uxz, uyz = evaluate_kernels_on_cell(
-                receivers[i, 0],
-                receivers[i, 1],
-                receivers[i, 2],
-                cells_bounds[j, 0],
-                cells_bounds[j, 1],
-                cells_bounds[j, 2],
-                cells_bounds[j, 3],
-                bottom[j],
-                top[j],
                 choclo.prism.kernel_en,
                 choclo.prism.kernel_eu,
                 choclo.prism.kernel_nu,
@@ -1133,7 +1089,7 @@ def _tmi_sensitivity_t_dot_v_parallel(
         local_row = np.empty(n_cells)
         for j in range(n_cells):
             # Evaluate kernels for the current cell and receiver
-            uxx, uyy, uzz = evaluate_kernels_on_cell(
+            uxx, uyy, uzz, uxy, uxz, uyz = evaluate_six_kernels_on_cell(
                 receivers[i, 0],
                 receivers[i, 1],
                 receivers[i, 2],
@@ -1146,17 +1102,6 @@ def _tmi_sensitivity_t_dot_v_parallel(
                 choclo.prism.kernel_ee,
                 choclo.prism.kernel_nn,
                 choclo.prism.kernel_uu,
-            )
-            uxy, uxz, uyz = evaluate_kernels_on_cell(
-                receivers[i, 0],
-                receivers[i, 1],
-                receivers[i, 2],
-                cells_bounds[j, 0],
-                cells_bounds[j, 1],
-                cells_bounds[j, 2],
-                cells_bounds[j, 3],
-                bottom[j],
-                top[j],
                 choclo.prism.kernel_en,
                 choclo.prism.kernel_eu,
                 choclo.prism.kernel_nu,
@@ -1475,7 +1420,7 @@ def _tmi_derivative_sensitivity_t_dot_v_serial(
     for i in range(n_receivers):
         for j in range(n_cells):
             # Evaluate kernels for the current cell and receiver
-            uxx, uyy, uzz = evaluate_kernels_on_cell(
+            uxx, uyy, uzz, uxy, uxz, uyz = evaluate_six_kernels_on_cell(
                 receivers[i, 0],
                 receivers[i, 1],
                 receivers[i, 2],
@@ -1488,17 +1433,6 @@ def _tmi_derivative_sensitivity_t_dot_v_serial(
                 kernel_xx,
                 kernel_yy,
                 kernel_zz,
-            )
-            uxy, uxz, uyz = evaluate_kernels_on_cell(
-                receivers[i, 0],
-                receivers[i, 1],
-                receivers[i, 2],
-                cells_bounds[j, 0],
-                cells_bounds[j, 1],
-                cells_bounds[j, 2],
-                cells_bounds[j, 3],
-                bottom[j],
-                top[j],
                 kernel_xy,
                 kernel_xz,
                 kernel_yz,
@@ -1599,7 +1533,7 @@ def _tmi_derivative_sensitivity_t_dot_v_parallel(
         local_row = np.empty(n_cells)
         for j in range(n_cells):
             # Evaluate kernels for the current cell and receiver
-            uxx, uyy, uzz = evaluate_kernels_on_cell(
+            uxx, uyy, uzz, uxy, uxz, uyz = evaluate_six_kernels_on_cell(
                 receivers[i, 0],
                 receivers[i, 1],
                 receivers[i, 2],
@@ -1612,17 +1546,6 @@ def _tmi_derivative_sensitivity_t_dot_v_parallel(
                 kernel_xx,
                 kernel_yy,
                 kernel_zz,
-            )
-            uxy, uxz, uyz = evaluate_kernels_on_cell(
-                receivers[i, 0],
-                receivers[i, 1],
-                receivers[i, 2],
-                cells_bounds[j, 0],
-                cells_bounds[j, 1],
-                cells_bounds[j, 2],
-                cells_bounds[j, 3],
-                bottom[j],
-                top[j],
                 kernel_xy,
                 kernel_xz,
                 kernel_yz,
@@ -1717,7 +1640,7 @@ def _diagonal_G_T_dot_G_tmi_serial(
     for i in range(n_receivers):
         for j in range(n_cells):
             # Evaluate kernels for the current cell and receiver
-            uxx, uyy, uzz = evaluate_kernels_on_cell(
+            uxx, uyy, uzz, uxy, uxz, uyz = evaluate_six_kernels_on_cell(
                 receivers[i, 0],
                 receivers[i, 1],
                 receivers[i, 2],
@@ -1730,17 +1653,6 @@ def _diagonal_G_T_dot_G_tmi_serial(
                 choclo.prism.kernel_ee,
                 choclo.prism.kernel_nn,
                 choclo.prism.kernel_uu,
-            )
-            uxy, uxz, uyz = evaluate_kernels_on_cell(
-                receivers[i, 0],
-                receivers[i, 1],
-                receivers[i, 2],
-                cells_bounds[j, 0],
-                cells_bounds[j, 1],
-                cells_bounds[j, 2],
-                cells_bounds[j, 3],
-                bottom[j],
-                top[j],
                 choclo.prism.kernel_en,
                 choclo.prism.kernel_eu,
                 choclo.prism.kernel_nu,
@@ -1827,7 +1739,7 @@ def _diagonal_G_T_dot_G_tmi_parallel(
         local_diagonal = np.empty(diagonal_size)
         for j in range(n_cells):
             # Evaluate kernels for the current cell and receiver
-            uxx, uyy, uzz = evaluate_kernels_on_cell(
+            uxx, uyy, uzz, uxy, uxz, uyz = evaluate_six_kernels_on_cell(
                 receivers[i, 0],
                 receivers[i, 1],
                 receivers[i, 2],
@@ -1840,17 +1752,6 @@ def _diagonal_G_T_dot_G_tmi_parallel(
                 choclo.prism.kernel_ee,
                 choclo.prism.kernel_nn,
                 choclo.prism.kernel_uu,
-            )
-            uxy, uxz, uyz = evaluate_kernels_on_cell(
-                receivers[i, 0],
-                receivers[i, 1],
-                receivers[i, 2],
-                cells_bounds[j, 0],
-                cells_bounds[j, 1],
-                cells_bounds[j, 2],
-                cells_bounds[j, 3],
-                bottom[j],
-                top[j],
                 choclo.prism.kernel_en,
                 choclo.prism.kernel_eu,
                 choclo.prism.kernel_nu,
