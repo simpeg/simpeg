@@ -932,7 +932,9 @@ def _tmi_sensitivity_t_dot_v_serial(
     result,
 ):
     r"""
-    Compute ``G.T @ v`` in serial, without building G, for TMI on 2d meshes.
+    Compute ``G.T @ v`` for TMI on 2d meshes, in serial.
+
+    This function doesn't allocates the ``G`` matrix in memory.
 
     Parameters
     ----------
@@ -1033,7 +1035,9 @@ def _tmi_sensitivity_t_dot_v_parallel(
     result,
 ):
     r"""
-    Compute ``G.T @ v`` in parallel, without building G, for TMI on 2d meshes.
+    Compute ``G.T @ v`` for TMI on 2d meshes, in parallel.
+
+    This function doesn't allocates the ``G`` matrix in memory.
 
     Parameters
     ----------
@@ -1149,7 +1153,9 @@ def _mag_sensitivity_t_dot_v_serial(
     result,
 ):
     r"""
-    Compute ``G.T @ v`` in serial, without building G, for mag components on 2d meshes.
+    Compute ``G.T @ v`` for a single magnetic component on 2d meshes, in serial.
+
+    This function doesn't allocates the ``G`` matrix in memory.
 
     Parameters
     ----------
@@ -1251,7 +1257,9 @@ def _mag_sensitivity_t_dot_v_parallel(
     result,
 ):
     r"""
-    Compute ``G.T @ v`` in parallel, without building G, for components on 2d meshes.
+    Compute ``G.T @ v`` for a single magnetic component on 2d meshes, in parallel.
+
+    This function doesn't allocates the ``G`` matrix in memory.
 
     Parameters
     ----------
@@ -1368,7 +1376,9 @@ def _tmi_derivative_sensitivity_t_dot_v_serial(
     result,
 ):
     r"""
-    Compute ``G.T @ v`` in serial, without building G, for TMI derivatives on 2d meshes.
+    Compute ``G.T @ v`` for a TMI derivative on 2d meshes, in serial.
+
+    This function doesn't allocates the ``G`` matrix in memory.
 
     Parameters
     ----------
@@ -1477,7 +1487,9 @@ def _tmi_derivative_sensitivity_t_dot_v_parallel(
     result,
 ):
     r"""
-    Compute ``G.T @ v`` in serial, without building G, for TMI derivatives on 2d meshes.
+    Compute ``G.T @ v`` for a TMI derivative on 2d meshes, in parallel.
+
+    This function doesn't allocates the ``G`` matrix in memory.
 
     Parameters
     ----------
