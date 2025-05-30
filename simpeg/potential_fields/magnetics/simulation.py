@@ -1619,29 +1619,29 @@ class SimulationEquivalentSourceLayer(
                         diagonal,
                     )
                 elif component in ("tmi_x", "tmi_y", "tmi_z"):
-                    raise NotImplementedError()
-                    # kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
-                    #     CHOCLO_KERNELS[component]
-                    # )
-                    # diagonal_gtg_func = NUMBA_FUNCTIONS_2D["diagonal_gtg"][
-                    #     "tmi_derivative"
-                    # ][self.numba_parallel]
-                    # diagonal_gtg_func(
-                    #     receivers,
-                    #     active_nodes,
-                    #     active_cell_nodes,
-                    #     regional_field,
-                    #     kernel_xx,
-                    #     kernel_yy,
-                    #     kernel_zz,
-                    #     kernel_xy,
-                    #     kernel_xz,
-                    #     kernel_yz,
-                    #     constant_factor,
-                    #     scalar_model,
-                    #     weights,
-                    #     diagonal,
-                    # )
+                    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
+                        CHOCLO_KERNELS[component]
+                    )
+                    diagonal_gtg_func = NUMBA_FUNCTIONS_2D["diagonal_gtg"][
+                        "tmi_derivative"
+                    ][self.numba_parallel]
+                    diagonal_gtg_func(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        regional_field,
+                        kernel_xx,
+                        kernel_yy,
+                        kernel_zz,
+                        kernel_xy,
+                        kernel_xz,
+                        kernel_yz,
+                        constant_factor,
+                        scalar_model,
+                        weights,
+                        diagonal,
+                    )
                 else:
                     kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
                     diagonal_gtg_func = NUMBA_FUNCTIONS_2D["diagonal_gtg"][
