@@ -110,7 +110,7 @@ def evaluate_kernels_on_cell(
     located on the observation point :math:`\mathbf{p}`.
     """
     # Initialize result floats to zero
-    result_x, result_y, result_z = 0, 0, 0
+    result_x, result_y, result_z = 0.0, 0.0, 0.0
     # Iterate over the vertices of the prism
     for i in range(2):
         # Compute shifted easting coordinate
@@ -149,3 +149,107 @@ def evaluate_kernels_on_cell(
                     shift_east, shift_north, shift_upward, radius
                 )
     return result_x, result_y, result_z
+
+
+@jit(nopython=True)
+def evaluate_six_kernels_on_cell(
+    easting,
+    northing,
+    upward,
+    prism_west,
+    prism_east,
+    prism_south,
+    prism_north,
+    prism_bottom,
+    prism_top,
+    kernel_xx,
+    kernel_yy,
+    kernel_zz,
+    kernel_xy,
+    kernel_xz,
+    kernel_yz,
+):
+    r"""
+    Evaluate six kernel functions on every shifted vertex of a prism.
+
+    Similar to ``evaluate_kernels_on_cell``, but designed to evaluate six kernels
+    instead of three. This function comes useful for magnetic forwards, when six kernels
+    are needed to be evaluated.
+
+    .. note::
+
+        This function was inspired in the ``_evaluate_kernel`` function in
+        Choclo (released under BSD 3-clause Licence):
+        https://www.fatiando.org/choclo
+
+    Parameters
+    ----------
+    easting, northing, upward : float
+        Easting, northing and upward coordinates of the observation point. Must
+        be in meters.
+    prism_west, prism_east : floats
+        The West and East boundaries of the prism. Must be in meters.
+    prism_south, prism_north : floats
+        The South and North boundaries of the prism. Must be in meters.
+    prism_bottom, prism_top : floats
+        The bottom and top boundaries of the prism. Must be in meters.
+    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz : callable
+        Kernel functions that will be evaluated on each one of the shifted
+        vertices of the prism.
+
+    Returns
+    -------
+    result_xx, result_yy, result_zz, result_xy, result_xz, result_yz : float
+        Evaluation of the kernel functions on each one of the vertices of the
+        prism.
+    """
+    # Initialize result floats to zero
+    result_xx, result_yy, result_zz = 0.0, 0.0, 0.0
+    result_xy, result_xz, result_yz = 0.0, 0.0, 0.0
+    # Iterate over the vertices of the prism
+    for i in range(2):
+        # Compute shifted easting coordinate
+        if i == 0:
+            shift_east = prism_east - easting
+        else:
+            shift_east = prism_west - easting
+        shift_east_sq = shift_east**2
+        for j in range(2):
+            # Compute shifted northing coordinate
+            if j == 0:
+                shift_north = prism_north - northing
+            else:
+                shift_north = prism_south - northing
+            shift_north_sq = shift_north**2
+            for k in range(2):
+                # Compute shifted upward coordinate
+                if k == 0:
+                    shift_upward = prism_top - upward
+                else:
+                    shift_upward = prism_bottom - upward
+                shift_upward_sq = shift_upward**2
+                # Compute the radius
+                radius = np.sqrt(shift_east_sq + shift_north_sq + shift_upward_sq)
+                # If i, j or k is 1, the corresponding shifted
+                # coordinate will refer to the lower boundary,
+                # meaning the corresponding term should have a minus
+                # sign.
+                result_xx += (-1) ** (i + j + k) * kernel_xx(
+                    shift_east, shift_north, shift_upward, radius
+                )
+                result_yy += (-1) ** (i + j + k) * kernel_yy(
+                    shift_east, shift_north, shift_upward, radius
+                )
+                result_zz += (-1) ** (i + j + k) * kernel_zz(
+                    shift_east, shift_north, shift_upward, radius
+                )
+                result_xy += (-1) ** (i + j + k) * kernel_xy(
+                    shift_east, shift_north, shift_upward, radius
+                )
+                result_xz += (-1) ** (i + j + k) * kernel_xz(
+                    shift_east, shift_north, shift_upward, radius
+                )
+                result_yz += (-1) ** (i + j + k) * kernel_yz(
+                    shift_east, shift_north, shift_upward, radius
+                )
+    return result_xx, result_yy, result_zz, result_xy, result_xz, result_yz
