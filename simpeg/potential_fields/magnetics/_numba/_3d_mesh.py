@@ -594,10 +594,10 @@ def _mag_sensitivity_t_dot_v_serial(
         Constant factor that will be used to multiply each element of the
         sensitivity matrix.
     scalar_model : bool
-        If True, the sensitivity matrix is built to work with scalar models
-        (susceptibilities).
-        If False, the sensitivity matrix is built to work with vector models
-        (effective susceptibilities).
+        If True, the result will be computed assuming that the ``model`` has
+        susceptibilities (scalar model) for each active cell.
+        If False, the result will be computed assuming that the ``model`` has
+        effective susceptibilities (vector model) for each active cell.
     vector : (n_receivers) numpy.ndarray
         Array that represents the vector used in the dot product.
     result : (n_active_cells) or (3 * n_active_cells) numpy.ndarray
@@ -702,10 +702,10 @@ def _mag_sensitivity_t_dot_v_parallel(
         Constant factor that will be used to multiply each element of the
         sensitivity matrix.
     scalar_model : bool
-        If True, the sensitivity matrix is built to work with scalar models
-        (susceptibilities).
-        If False, the sensitivity matrix is built to work with vector models
-        (effective susceptibilities).
+        If True, the result will be computed assuming that the ``model`` has
+        susceptibilities (scalar model) for each active cell.
+        If False, the result will be computed assuming that the ``model`` has
+        effective susceptibilities (vector model) for each active cell.
     vector : (n_receivers) numpy.ndarray
         Array that represents the vector used in the dot product.
     result : (n_active_cells) or (3 * n_active_cells) numpy.ndarray
@@ -815,10 +815,10 @@ def _tmi_sensitivity_t_dot_v_serial(
         Constant factor that will be used to multiply each element of the
         sensitivity matrix.
     scalar_model : bool
-        If True, the sensitivity matrix is build to work with scalar models
-        (susceptibilities).
-        If False, the sensitivity matrix is build to work with vector models
-        (effective susceptibilities).
+        If True, the result will be computed assuming that the ``model`` has
+        susceptibilities (scalar model) for each active cell.
+        If False, the result will be computed assuming that the ``model`` has
+        effective susceptibilities (vector model) for each active cell.
     vector : (n_receivers) numpy.ndarray
         Array that represents the vector used in the dot product.
     result : (n_active_cells) or (3 * n_active_cells) numpy.ndarray
@@ -927,10 +927,10 @@ def _tmi_sensitivity_t_dot_v_parallel(
         Constant factor that will be used to multiply each element of the
         sensitivity matrix.
     scalar_model : bool
-        If True, the sensitivity matrix is build to work with scalar models
-        (susceptibilities).
-        If False, the sensitivity matrix is build to work with vector models
-        (effective susceptibilities).
+        If True, the result will be computed assuming that the ``model`` has
+        susceptibilities (scalar model) for each active cell.
+        If False, the result will be computed assuming that the ``model`` has
+        effective susceptibilities (vector model) for each active cell.
     vector : (n_receivers) numpy.ndarray
         Array that represents the vector used in the dot product.
     result : (n_active_cells) or (3 * n_active_cells) numpy.ndarray
@@ -1059,10 +1059,10 @@ def _tmi_derivative_sensitivity_t_dot_v_serial(
         Constant factor that will be used to multiply each element of the
         sensitivity matrix.
     scalar_model : bool
-        If True, the sensitivity matrix is build to work with scalar models
-        (susceptibilities).
-        If False, the sensitivity matrix is build to work with vector models
-        (effective susceptibilities).
+        If True, the result will be computed assuming that the ``model`` has
+        susceptibilities (scalar model) for each active cell.
+        If False, the result will be computed assuming that the ``model`` has
+        effective susceptibilities (vector model) for each active cell.
     vector : (n_receivers) numpy.ndarray
         Array that represents the vector used in the dot product.
     result : (n_active_cells) or (3 * n_active_cells) numpy.ndarray
@@ -1179,10 +1179,10 @@ def _tmi_derivative_sensitivity_t_dot_v_parallel(
         Constant factor that will be used to multiply each element of the
         sensitivity matrix.
     scalar_model : bool
-        If True, the sensitivity matrix is build to work with scalar models
-        (susceptibilities).
-        If False, the sensitivity matrix is build to work with vector models
-        (effective susceptibilities).
+        If True, the result will be computed assuming that the ``model`` has
+        susceptibilities (scalar model) for each active cell.
+        If False, the result will be computed assuming that the ``model`` has
+        effective susceptibilities (vector model) for each active cell.
     vector : (n_receivers) numpy.ndarray
         Array that represents the vector used in the dot product.
     result : (n_active_cells) or (3 * n_active_cells) numpy.ndarray
@@ -1312,10 +1312,10 @@ def _diagonal_G_T_dot_G_mag_serial(
         Constant factor that will be used to multiply each element of the
         sensitivity matrix.
     scalar_model : bool
-        If True, the sensitivity matrix is built to work with scalar models
-        (susceptibilities).
-        If False, the sensitivity matrix is built to work with vector models
-        (effective susceptibilities).
+        If True, the result will be computed assuming that the ``model`` has
+        susceptibilities (scalar model) for each active cell.
+        If False, the result will be computed assuming that the ``model`` has
+        effective susceptibilities (vector model) for each active cell.
     weights : (n_receivers,) numpy.ndarray
         Array with data weights. It should be the diagonal of the ``W`` matrix,
         squared.
@@ -1408,10 +1408,10 @@ def _diagonal_G_T_dot_G_mag_parallel(
         Constant factor that will be used to multiply each element of the
         sensitivity matrix.
     scalar_model : bool
-        If True, the sensitivity matrix is built to work with scalar models
-        (susceptibilities).
-        If False, the sensitivity matrix is built to work with vector models
-        (effective susceptibilities).
+        If True, the result will be computed assuming that the ``model`` has
+        susceptibilities (scalar model) for each active cell.
+        If False, the result will be computed assuming that the ``model`` has
+        effective susceptibilities (vector model) for each active cell.
     weights : (n_receivers,) numpy.ndarray
         Array with data weights. It should be the diagonal of the ``W`` matrix,
         squared.
@@ -1506,10 +1506,10 @@ def _diagonal_G_T_dot_G_tmi_serial(
         Constant factor that will be used to multiply each element of the
         sensitivity matrix.
     scalar_model : bool
-        If True, the sensitivity matrix is built to work with scalar models
-        (susceptibilities).
-        If False, the sensitivity matrix is built to work with vector models
-        (effective susceptibilities).
+        If True, the result will be computed assuming that the ``model`` has
+        susceptibilities (scalar model) for each active cell.
+        If False, the result will be computed assuming that the ``model`` has
+        effective susceptibilities (vector model) for each active cell.
     weights : (n_receivers,) numpy.ndarray
         Array with data weights. It should be the diagonal of the ``W`` matrix,
         squared.
@@ -1606,10 +1606,10 @@ def _diagonal_G_T_dot_G_tmi_parallel(
         Constant factor that will be used to multiply each element of the
         sensitivity matrix.
     scalar_model : bool
-        If True, the sensitivity matrix is built to work with scalar models
-        (susceptibilities).
-        If False, the sensitivity matrix is built to work with vector models
-        (effective susceptibilities).
+        If True, the result will be computed assuming that the ``model`` has
+        susceptibilities (scalar model) for each active cell.
+        If False, the result will be computed assuming that the ``model`` has
+        effective susceptibilities (vector model) for each active cell.
     weights : (n_receivers,) numpy.ndarray
         Array with data weights. It should be the diagonal of the ``W`` matrix,
         squared.
@@ -1724,10 +1724,10 @@ def _diagonal_G_T_dot_G_tmi_deriv_serial(
         Constant factor that will be used to multiply each element of the
         sensitivity matrix.
     scalar_model : bool
-        If True, the sensitivity matrix is built to work with scalar models
-        (susceptibilities).
-        If False, the sensitivity matrix is built to work with vector models
-        (effective susceptibilities).
+        If True, the result will be computed assuming that the ``model`` has
+        susceptibilities (scalar model) for each active cell.
+        If False, the result will be computed assuming that the ``model`` has
+        effective susceptibilities (vector model) for each active cell.
     weights : (n_receivers,) numpy.ndarray
         Array with data weights. It should be the diagonal of the ``W`` matrix,
         squared.
@@ -1832,10 +1832,10 @@ def _diagonal_G_T_dot_G_tmi_deriv_parallel(
         Constant factor that will be used to multiply each element of the
         sensitivity matrix.
     scalar_model : bool
-        If True, the sensitivity matrix is built to work with scalar models
-        (susceptibilities).
-        If False, the sensitivity matrix is built to work with vector models
-        (effective susceptibilities).
+        If True, the result will be computed assuming that the ``model`` has
+        susceptibilities (scalar model) for each active cell.
+        If False, the result will be computed assuming that the ``model`` has
+        effective susceptibilities (vector model) for each active cell.
     weights : (n_receivers,) numpy.ndarray
         Array with data weights. It should be the diagonal of the ``W`` matrix,
         squared.
@@ -1965,9 +1965,9 @@ def _forward_mag(
         Constant factor that will be used to multiply each element of the
         sensitivity matrix.
     scalar_model : bool
-        If True, the forward will be computing assuming that the ``model`` has
+        If True, the forward will be computed assuming that the ``model`` has
         susceptibilities (scalar model) for each active cell.
-        If False, the forward will be computing assuming that the ``model`` has
+        If False, the forward will be computed assuming that the ``model`` has
         effective susceptibilities (vector model) for each active cell.
 
     Notes
