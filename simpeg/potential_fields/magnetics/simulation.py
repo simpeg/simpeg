@@ -1643,24 +1643,24 @@ class SimulationEquivalentSourceLayer(
                     #     diagonal,
                     # )
                 else:
-                    raise NotImplementedError()
-                    # kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
-                    # diagonal_gtg_func = NUMBA_FUNCTIONS_2D["diagonal_gtg"][
-                    #     "magnetic_component"
-                    # ][self.numba_parallel]
-                    # diagonal_gtg_func(
-                    #     receivers,
-                    #     active_nodes,
-                    #     active_cell_nodes,
-                    #     regional_field,
-                    #     kernel_x,
-                    #     kernel_y,
-                    #     kernel_z,
-                    #     constant_factor,
-                    #     scalar_model,
-                    #     weights,
-                    #     diagonal,
-                    # )
+                    kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
+                    diagonal_gtg_func = NUMBA_FUNCTIONS_2D["diagonal_gtg"][
+                        "magnetic_component"
+                    ][self.numba_parallel]
+                    diagonal_gtg_func(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        regional_field,
+                        kernel_x,
+                        kernel_y,
+                        kernel_z,
+                        constant_factor,
+                        scalar_model,
+                        weights,
+                        diagonal,
+                    )
         return diagonal
 
 

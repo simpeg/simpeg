@@ -1780,6 +1780,209 @@ def _diagonal_G_T_dot_G_tmi_parallel(
         diagonal += local_diagonal
 
 
+@jit(nopython=True, parallel=False)
+def _diagonal_G_T_dot_G_mag_serial(
+    receivers,
+    cells_bounds,
+    top,
+    bottom,
+    regional_field,
+    kernel_x,
+    kernel_y,
+    kernel_z,
+    constant_factor,
+    scalar_model,
+    weights,
+    diagonal,
+):
+    """
+    Diagonal of ``G.T @ W.T @ W @ G`` for components without storing ``G``, in serial.
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    cells_bounds : (n_active_cells, 4) numpy.ndarray
+        Array with the bounds of each active cell in the 2D mesh. For each row, the
+        bounds should be passed in the following order: ``x_min``, ``x_max``,
+        ``y_min``, ``y_max``.
+    top : (n_active_cells) np.ndarray
+        Array with the top boundaries of each active cell in the 2D mesh.
+    bottom : (n_active_cells) np.ndarray
+        Array with the bottom boundaries of each active cell in the 2D mesh.
+    regional_field : (3,) array
+        Array containing the x, y and z components of the regional magnetic
+        field (uniform background field).
+    kernel_x, kernel_y, kernel_z : callable
+        Kernels used to compute the desired magnetic component. For example,
+        for computing bx we need to use ``kernel_x=kernel_ee``,
+        ``kernel_y=kernel_en``, ``kernel_z=kernel_eu``.
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+    scalar_model : bool
+        If True, the result will be computed assuming that the ``model`` has
+        susceptibilities (scalar model) for each active cell.
+        If False, the result will be computed assuming that the ``model`` has
+        effective susceptibilities (vector model) for each active cell.
+    weights : (n_receivers,) numpy.ndarray
+        Array with data weights. It should be the diagonal of the ``W`` matrix,
+        squared.
+    diagonal : (n_active_cells,) numpy.ndarray
+        Array where the diagonal of ``G.T @ G`` will be added to.
+
+    Notes
+    -----
+    This function is meant to be run in serial. Use the
+    ``_diagonal_G_T_dot_G_mag_parallel`` one for parallelized computations.
+    """
+    fx, fy, fz = regional_field
+    regional_field_amplitude = np.sqrt(fx**2 + fy**2 + fz**2)
+    fx /= regional_field_amplitude
+    fy /= regional_field_amplitude
+    fz /= regional_field_amplitude
+
+    constant_factor = 1 / 4 / np.pi
+
+    n_receivers = receivers.shape[0]
+    n_cells = cells_bounds.shape[0]
+    # Evaluate kernel function on each node, for each receiver location
+    for i in range(n_receivers):
+        for j in range(n_cells):
+            # Evaluate kernels for the current cell and receiver
+            ux, uy, uz = evaluate_kernels_on_cell(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                kernel_x,
+                kernel_y,
+                kernel_z,
+            )
+            if scalar_model:
+                g_element = (
+                    constant_factor
+                    * regional_field_amplitude
+                    * (ux * fx + uy * fy + uz * fz)
+                )
+                diagonal[j] += weights[i] * g_element**2
+            else:
+                const = constant_factor * regional_field_amplitude
+                diagonal[j] += weights[i] * (const * ux) ** 2
+                diagonal[j + n_cells] += weights[i] * (const * uy) ** 2
+                diagonal[j + 2 * n_cells] += weights[i] * (const * uz) ** 2
+
+
+@jit(nopython=True, parallel=True)
+def _diagonal_G_T_dot_G_mag_parallel(
+    receivers,
+    cells_bounds,
+    top,
+    bottom,
+    regional_field,
+    kernel_x,
+    kernel_y,
+    kernel_z,
+    constant_factor,
+    scalar_model,
+    weights,
+    diagonal,
+):
+    """
+    Diagonal of ``G.T @ W.T @ W @ G`` for component without storing ``G``, in parallel.
+
+    Parameters
+    ----------
+    receivers : (n_receivers, 3) numpy.ndarray
+        Array with the locations of the receivers
+    cells_bounds : (n_active_cells, 4) numpy.ndarray
+        Array with the bounds of each active cell in the 2D mesh. For each row, the
+        bounds should be passed in the following order: ``x_min``, ``x_max``,
+        ``y_min``, ``y_max``.
+    top : (n_active_cells) np.ndarray
+        Array with the top boundaries of each active cell in the 2D mesh.
+    bottom : (n_active_cells) np.ndarray
+        Array with the bottom boundaries of each active cell in the 2D mesh.
+    regional_field : (3,) array
+        Array containing the x, y and z components of the regional magnetic
+        field (uniform background field).
+    kernel_x, kernel_y, kernel_z : callable
+        Kernels used to compute the desired magnetic component. For example,
+        for computing bx we need to use ``kernel_x=kernel_ee``,
+        ``kernel_y=kernel_en``, ``kernel_z=kernel_eu``.
+    constant_factor : float
+        Constant factor that will be used to multiply each element of the
+        sensitivity matrix.
+    scalar_model : bool
+        If True, the result will be computed assuming that the ``model`` has
+        susceptibilities (scalar model) for each active cell.
+        If False, the result will be computed assuming that the ``model`` has
+        effective susceptibilities (vector model) for each active cell.
+    weights : (n_receivers,) numpy.ndarray
+        Array with data weights. It should be the diagonal of the ``W`` matrix,
+        squared.
+    diagonal : (n_active_cells,) numpy.ndarray
+        Array where the diagonal of ``G.T @ G`` will be added to.
+
+    Notes
+    -----
+    This function is meant to be run in serial. Use the
+    ``_diagonal_G_T_dot_G_mag_parallel`` one for parallelized computations.
+    """
+    fx, fy, fz = regional_field
+    regional_field_amplitude = np.sqrt(fx**2 + fy**2 + fz**2)
+    fx /= regional_field_amplitude
+    fy /= regional_field_amplitude
+    fz /= regional_field_amplitude
+    diagonal_size = diagonal.size
+    constant_factor = 1 / 4 / np.pi
+    n_receivers = receivers.shape[0]
+    n_cells = cells_bounds.shape[0]
+    # Evaluate kernel function on each node, for each receiver location
+    for i in prange(n_receivers):
+        # Allocate array for the diagonal elements for the current receiver.
+        local_diagonal = np.empty(diagonal_size)
+        for j in range(n_cells):
+            # Evaluate kernels for the current cell and receiver
+            ux, uy, uz = evaluate_kernels_on_cell(
+                receivers[i, 0],
+                receivers[i, 1],
+                receivers[i, 2],
+                cells_bounds[j, 0],
+                cells_bounds[j, 1],
+                cells_bounds[j, 2],
+                cells_bounds[j, 3],
+                bottom[j],
+                top[j],
+                kernel_x,
+                kernel_y,
+                kernel_z,
+            )
+            if scalar_model:
+                g_element = (
+                    constant_factor
+                    * regional_field_amplitude
+                    * (ux * fx + uy * fy + uz * fz)
+                )
+                local_diagonal[j] = weights[i] * g_element**2
+            else:
+                const = constant_factor * regional_field_amplitude
+                local_diagonal[j] = weights[i] * (const * ux) ** 2
+                local_diagonal[j + n_cells] = weights[i] * (const * uy) ** 2
+                local_diagonal[j + 2 * n_cells] = weights[i] * (const * uz) ** 2
+        # Add the result to the diagonal.
+        # Apply reduction operation to add the values of the local diagonal to
+        # the running diagonal array. Avoid slicing the `diagonal` array when
+        # updating it to avoid racing conditions, just add the `local_diagonal`
+        # to the `diagonal` variable.
+        diagonal += local_diagonal
+
+
 NUMBA_FUNCTIONS_2D = {
     "forward": {
         "tmi": {
@@ -1829,8 +2032,8 @@ NUMBA_FUNCTIONS_2D = {
             True: _diagonal_G_T_dot_G_tmi_parallel,
         },
         "magnetic_component": {
-            False: None,
-            True: None,
+            False: _diagonal_G_T_dot_G_mag_serial,
+            True: _diagonal_G_T_dot_G_mag_parallel,
         },
         "tmi_derivative": {
             False: None,
