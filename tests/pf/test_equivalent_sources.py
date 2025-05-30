@@ -858,18 +858,6 @@ class TestMagneticEquivalentSourcesForwardOnly:
     Test magnetic equivalent sources methods without building the sensitivity matrix.
     """
 
-    # TODO:
-    # * Test for components: tmi, b components, tmi derivatives
-    # * Test for vector and scalar model.
-    # * Test serial and parallel.
-    # * Test methods:
-    #   * Jvec
-    #   * Jtvec
-    #   * getJ
-    #       * getJ @ v
-    #       * getJ.T @ v
-    #   * getJtJdiag
-
     def test_Jvec(
         self,
         coordinates,
