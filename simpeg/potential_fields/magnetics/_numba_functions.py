@@ -3292,11 +3292,93 @@ def _sensitivity_tmi_derivative_2d_mesh(
                 )
 
 
-_sensitivity_tmi_serial = jit(nopython=True, parallel=False)(_sensitivity_tmi)
-_sensitivity_tmi_parallel = jit(nopython=True, parallel=True)(_sensitivity_tmi)
-_forward_tmi_serial = jit(nopython=True, parallel=False)(_forward_tmi)
-_forward_tmi_parallel = jit(nopython=True, parallel=True)(_forward_tmi)
-_forward_mag_serial = jit(nopython=True, parallel=False)(_forward_mag)
-_forward_mag_parallel = jit(nopython=True, parallel=True)(_forward_mag)
-_sensitivity_mag_serial = jit(nopython=True, parallel=False)(_sensitivity_mag)
-_sensitivity_mag_parallel = jit(nopython=True, parallel=True)(_sensitivity_mag)
+NUMBA_FUNCTIONS = {
+    "forward": {
+        "tmi": {
+            parallel: jit(nopython=True, parallel=parallel)(_forward_tmi)
+            for parallel in (True, False)
+        },
+        "magnetic_component": {
+            parallel: jit(nopython=True, parallel=parallel)(_forward_mag)
+            for parallel in (True, False)
+        },
+        "tmi_derivative": {
+            parallel: jit(nopython=True, parallel=parallel)(_forward_tmi_derivative)
+            for parallel in (True, False)
+        },
+    },
+    "sensitivity": {
+        "tmi": {
+            parallel: jit(nopython=True, parallel=parallel)(_sensitivity_tmi)
+            for parallel in (True, False)
+        },
+        "magnetic_component": {
+            parallel: jit(nopython=True, parallel=parallel)(_sensitivity_mag)
+            for parallel in (True, False)
+        },
+        "tmi_derivative": {
+            parallel: jit(nopython=True, parallel=parallel)(_sensitivity_tmi_derivative)
+            for parallel in (True, False)
+        },
+    },
+    "forward_2d_mesh": {
+        "tmi": {
+            parallel: jit(nopython=True, parallel=parallel)(_forward_tmi_2d_mesh)
+            for parallel in (True, False)
+        },
+        "magnetic_component": {
+            parallel: jit(nopython=True, parallel=parallel)(_forward_mag_2d_mesh)
+            for parallel in (True, False)
+        },
+        "tmi_derivative": {
+            parallel: jit(nopython=True, parallel=parallel)(
+                _forward_tmi_derivative_2d_mesh
+            )
+            for parallel in (True, False)
+        },
+    },
+    "sensitivity_2d_mesh": {
+        "tmi": {
+            parallel: jit(nopython=True, parallel=parallel)(_sensitivity_tmi_2d_mesh)
+            for parallel in (True, False)
+        },
+        "magnetic_component": {
+            parallel: jit(nopython=True, parallel=parallel)(_sensitivity_mag_2d_mesh)
+            for parallel in (True, False)
+        },
+        "tmi_derivative": {
+            parallel: jit(nopython=True, parallel=parallel)(
+                _sensitivity_tmi_derivative_2d_mesh
+            )
+            for parallel in (True, False)
+        },
+    },
+    "gt_dot_v": {
+        "tmi": {
+            False: _tmi_sensitivity_t_dot_v_serial,
+            True: _tmi_sensitivity_t_dot_v_parallel,
+        },
+        "magnetic_component": {
+            False: _mag_sensitivity_t_dot_v_serial,
+            True: _mag_sensitivity_t_dot_v_parallel,
+        },
+        "tmi_derivative": {
+            False: _tmi_derivative_sensitivity_t_dot_v_serial,
+            True: _tmi_derivative_sensitivity_t_dot_v_parallel,
+        },
+    },
+    "diagonal_gtg": {
+        "tmi": {
+            False: _diagonal_G_T_dot_G_tmi_serial,
+            True: _diagonal_G_T_dot_G_tmi_parallel,
+        },
+        "magnetic_component": {
+            False: _diagonal_G_T_dot_G_mag_serial,
+            True: _diagonal_G_T_dot_G_mag_parallel,
+        },
+        "tmi_derivative": {
+            False: _diagonal_G_T_dot_G_tmi_deriv_serial,
+            True: _diagonal_G_T_dot_G_tmi_deriv_serial,
+        },
+    },
+}

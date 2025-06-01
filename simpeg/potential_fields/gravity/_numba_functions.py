@@ -639,20 +639,30 @@ def _sensitivity_gravity_2d_mesh(
             )
 
 
-# Define decorated versions of these functions
-_sensitivity_gravity_parallel = jit(nopython=True, parallel=True)(_sensitivity_gravity)
-_sensitivity_gravity_serial = jit(nopython=True, parallel=False)(_sensitivity_gravity)
-_forward_gravity_parallel = jit(nopython=True, parallel=True)(_forward_gravity)
-_forward_gravity_serial = jit(nopython=True, parallel=False)(_forward_gravity)
-_forward_gravity_2d_mesh_serial = jit(nopython=True, parallel=False)(
-    _forward_gravity_2d_mesh
-)
-_forward_gravity_2d_mesh_parallel = jit(nopython=True, parallel=True)(
-    _forward_gravity_2d_mesh
-)
-_sensitivity_gravity_2d_mesh_serial = jit(nopython=True, parallel=False)(
-    _sensitivity_gravity_2d_mesh
-)
-_sensitivity_gravity_2d_mesh_parallel = jit(nopython=True, parallel=True)(
-    _sensitivity_gravity_2d_mesh
-)
+# Define a dictionary with decorated versions of the Numba functions.
+NUMBA_FUNCTIONS = {
+    "sensitivity": {
+        parallel: jit(nopython=True, parallel=parallel)(_sensitivity_gravity)
+        for parallel in (True, False)
+    },
+    "forward": {
+        parallel: jit(nopython=True, parallel=parallel)(_forward_gravity)
+        for parallel in (True, False)
+    },
+    "sensitivity_2d_mesh": {
+        parallel: jit(nopython=True, parallel=parallel)(_sensitivity_gravity_2d_mesh)
+        for parallel in (True, False)
+    },
+    "forward_2d_mesh": {
+        parallel: jit(nopython=True, parallel=parallel)(_forward_gravity_2d_mesh)
+        for parallel in (True, False)
+    },
+    "diagonal_gtg": {
+        False: _diagonal_G_T_dot_G_serial,
+        True: _diagonal_G_T_dot_G_parallel,
+    },
+    "gt_dot_v": {
+        False: _sensitivity_gravity_t_dot_v_serial,
+        True: _sensitivity_gravity_t_dot_v_parallel,
+    },
+}
