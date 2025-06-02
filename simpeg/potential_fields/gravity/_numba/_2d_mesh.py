@@ -402,9 +402,9 @@ def _diagonal_G_T_dot_G_parallel(
     ``_diagonal_G_T_dot_G_serial`` one for serialized computations.
 
     This implementation instructs each thread to allocate their own array for
-    the current row of the sensitivity matrix. After computing the elements of
-    that row, it gets added to the running ``result`` array through a reduction
-    operation handled by Numba.
+    the diagonal elements of ``G.T @ G`` that correspond to a single receiver.
+    After computing them, the ``local_diagonal`` array gets added to the running
+    ``diagonal`` array through a reduction operation handled by Numba.
     """
     n_receivers = receivers.shape[0]
     n_cells = cells_bounds.shape[0]
