@@ -507,8 +507,13 @@ class TestGravityEquivalentSourcesForwardOnly:
         vector = np.random.default_rng(seed=42).uniform(size=model.size)
         expected = eqs_ram.getJ(model) @ vector
         atol = np.max(np.abs(expected)) * 1e-7
+        # Test Jvec
         np.testing.assert_allclose(
             expected, eqs_forward_only.Jvec(model, vector), atol=atol
+        )
+        # Test getJ
+        np.testing.assert_allclose(
+            expected, eqs_forward_only.getJ(model) @ vector, atol=atol
         )
 
     def test_Jtvec(
@@ -546,85 +551,14 @@ class TestGravityEquivalentSourcesForwardOnly:
         vector = np.random.default_rng(seed=42).uniform(size=gravity_survey.nD)
         expected = eqs_ram.getJ(model).T @ vector
         atol = np.max(np.abs(expected)) * 1e-7
+        # Test Jtvec
         np.testing.assert_allclose(
             expected, eqs_forward_only.Jtvec(model, vector), atol=atol
         )
-
-    def test_getJ_dot_v(
-        self,
-        coordinates,
-        tensor_mesh,
-        mesh_bottom,
-        mesh_top,
-        components,
-        engine,
-        parallel,
-    ):
-        """
-        Test getJ() @ v with "forward_only" vs. when J is stored in memory.
-        """
-        # Build survey
-        gravity_survey = build_gravity_survey(coordinates, components=components)
-        # Build simulations
-        mapping = get_mapping(tensor_mesh)
-        eqs_ram, eqs_forward_only = (
-            gravity.SimulationEquivalentSourceLayer(
-                mesh=tensor_mesh,
-                cell_z_top=mesh_top,
-                cell_z_bottom=mesh_bottom,
-                survey=gravity_survey,
-                rhoMap=mapping,
-                engine=engine,
-                store_sensitivities=store,
-                numba_parallel=parallel,
-            )
-            for store in ("ram", "forward_only")
+        # Test getJ
+        np.testing.assert_allclose(
+            expected, eqs_forward_only.getJ(model).T @ vector, atol=atol
         )
-        # Compare predictions of both simulations
-        model = get_block_model(tensor_mesh, 2.67)
-        vector = np.random.default_rng(seed=42).uniform(size=model.size)
-        jac_linop = eqs_forward_only.getJ(model)
-        expected = eqs_ram.getJ(model) @ vector
-        atol = np.max(np.abs(expected)) * 1e-7
-        np.testing.assert_allclose(expected, jac_linop @ vector, atol=atol)
-
-    def test_getJ_t_dot_v(
-        self,
-        coordinates,
-        tensor_mesh,
-        mesh_bottom,
-        mesh_top,
-        components,
-        engine,
-        parallel,
-    ):
-        """
-        Test getJ().T @ v with "forward_only" vs. when J is stored in memory.
-        """
-        # Build survey
-        gravity_survey = build_gravity_survey(coordinates, components=components)
-        # Build simulations
-        mapping = get_mapping(tensor_mesh)
-        eqs_ram, eqs_forward_only = (
-            gravity.SimulationEquivalentSourceLayer(
-                mesh=tensor_mesh,
-                cell_z_top=mesh_top,
-                cell_z_bottom=mesh_bottom,
-                survey=gravity_survey,
-                rhoMap=mapping,
-                engine=engine,
-                store_sensitivities=store,
-                numba_parallel=parallel,
-            )
-            for store in ("ram", "forward_only")
-        )
-        # Compare predictions of both simulations
-        model = get_block_model(tensor_mesh, 2.67)
-        vector = np.random.default_rng(seed=42).uniform(size=gravity_survey.nD)
-        jac_linop = eqs_forward_only.getJ(model)
-        expected = eqs_ram.getJ(model).T @ vector
-        atol = np.max(np.abs(expected)) * 1e-7
-        np.testing.assert_allclose(expected, jac_linop.T @ vector, atol=atol)
 
     def test_getJtJdiag(
         self,
