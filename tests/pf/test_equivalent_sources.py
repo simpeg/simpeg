@@ -25,6 +25,13 @@ MAGNETIC_COMPONENTS = [
     "tmi_z",
 ]
 
+# Define a pytest.mark.xfail to use for engine parametrizations when the method that is
+# being tested is not implemented when using geoana as engine.
+XFAIL_GEOANA = pytest.param(
+    "geoana",
+    marks=pytest.mark.xfail(reason="not implemented", raises=NotImplementedError),
+)
+
 
 def create_grid(x_range, y_range, size):
     """Create a 2D horizontal coordinates grid."""
@@ -462,10 +469,10 @@ class TestMagneticEquivalentSourcesForward:
     Test the forward capabilities of the magnetic equivalent sources.
     """
 
-    @pytest.mark.parametrize("engine", ("geoana", "choclo"))
-    @pytest.mark.parametrize("store_sensitivities", ("ram", "forward_only"))
-    @pytest.mark.parametrize("model_type", ("scalar", "vector"))
-    @pytest.mark.parametrize("components", MAGNETIC_COMPONENTS + [["tmi", "bx"]])
+    @pytest.mark.parametrize("engine", ["geoana", "choclo"])
+    @pytest.mark.parametrize("store_sensitivities", ["ram", "forward_only"])
+    @pytest.mark.parametrize("model_type", ["scalar", "vector"])
+    @pytest.mark.parametrize("components", [*MAGNETIC_COMPONENTS, ["tmi", "bx"]])
     def test_forward_vs_simulation(
         self,
         coordinates,
@@ -840,3 +847,162 @@ class TestMagneticEquivalentSources(BaseFittingEquivalentSources):
         np.testing.assert_allclose(
             prediction, synthetic_data.dobs, atol=atol, rtol=rtol
         )
+
+
+@pytest.mark.parametrize("parallel", [True, False], ids=["parallel", "serial"])
+@pytest.mark.parametrize("components", [*MAGNETIC_COMPONENTS, ["tmi", "bx"]])
+@pytest.mark.parametrize("engine", ["choclo", XFAIL_GEOANA])
+@pytest.mark.parametrize("model_type", ["scalar", "vector"])
+class TestMagneticEquivalentSourcesForwardOnly:
+    """
+    Test magnetic equivalent sources methods without building the sensitivity matrix.
+    """
+
+    def test_Jvec(
+        self,
+        coordinates,
+        tensor_mesh,
+        mesh_bottom,
+        mesh_top,
+        components,
+        engine,
+        parallel,
+        model_type,
+    ):
+        """
+        Test Jvec with "forward_only" vs. J @ v with J stored in ram.
+        """
+        # Build survey
+        magnetic_survey = build_magnetic_survey(coordinates, components)
+        # Define model
+        model = (
+            get_block_model(tensor_mesh, 0.2e-3)
+            if model_type == "scalar"
+            else get_block_model(tensor_mesh, (0.2e-3, -0.1e-3, 0.5e-3))
+        )
+        # Build simulations
+        mapping = simpeg.maps.IdentityMap(nP=model.size)
+        eqs_ram, eqs_forward_only = (
+            magnetics.SimulationEquivalentSourceLayer(
+                tensor_mesh,
+                mesh_top,
+                mesh_bottom,
+                survey=magnetic_survey,
+                chiMap=mapping,
+                engine=engine,
+                store_sensitivities=store,
+                numba_parallel=parallel,
+                model_type=model_type,
+            )
+            for store in ("ram", "forward_only")
+        )
+        # Compare predictions of both simulations
+        vector = np.random.default_rng(seed=42).uniform(size=model.size)
+        expected = eqs_ram.getJ(model) @ vector
+        atol = np.max(np.abs(expected)) * 1e-7
+        # Test Jvec
+        np.testing.assert_allclose(
+            expected, eqs_forward_only.Jvec(model, vector), atol=atol
+        )
+        # Test getJ() @ v
+        jacobian = eqs_forward_only.getJ(model)
+        np.testing.assert_allclose(expected, jacobian @ vector, atol=atol)
+
+    def test_Jtvec(
+        self,
+        coordinates,
+        tensor_mesh,
+        mesh_bottom,
+        mesh_top,
+        components,
+        engine,
+        parallel,
+        model_type,
+    ):
+        """
+        Test Jtvec with "forward_only" vs. J.T @ v with J stored in ram.
+        """
+        # Build survey
+        magnetic_survey = build_magnetic_survey(coordinates, components)
+        # Define model
+        model = (
+            get_block_model(tensor_mesh, 0.2e-3)
+            if model_type == "scalar"
+            else get_block_model(tensor_mesh, (0.2e-3, -0.1e-3, 0.5e-3))
+        )
+        # Build simulations
+        mapping = simpeg.maps.IdentityMap(nP=model.size)
+        eqs_ram, eqs_forward_only = (
+            magnetics.SimulationEquivalentSourceLayer(
+                tensor_mesh,
+                mesh_top,
+                mesh_bottom,
+                survey=magnetic_survey,
+                chiMap=mapping,
+                engine=engine,
+                store_sensitivities=store,
+                numba_parallel=parallel,
+                model_type=model_type,
+            )
+            for store in ("ram", "forward_only")
+        )
+        # Compare predictions of both simulations
+        vector = np.random.default_rng(seed=42).uniform(size=magnetic_survey.nD)
+        expected = eqs_ram.getJ(model).T @ vector
+        atol = np.max(np.abs(expected)) * 1e-7
+        # Test Jtvec
+        np.testing.assert_allclose(
+            expected, eqs_forward_only.Jtvec(model, vector), atol=atol
+        )
+        # Test getJ().T @ v
+        jacobian = eqs_forward_only.getJ(model)
+        np.testing.assert_allclose(expected, jacobian.T @ vector, atol=atol)
+
+    def test_getJtJdiag(
+        self,
+        coordinates,
+        tensor_mesh,
+        mesh_bottom,
+        mesh_top,
+        components,
+        engine,
+        parallel,
+        model_type,
+    ):
+        """
+        Test the ``getJtJdiag`` method, comparing forward_only with storing J in memory.
+        """
+        # Build survey
+        magnetic_survey = build_magnetic_survey(coordinates, components)
+        # Define model
+        model = (
+            get_block_model(tensor_mesh, 0.2e-3)
+            if model_type == "scalar"
+            else get_block_model(tensor_mesh, (0.2e-3, -0.1e-3, 0.5e-3))
+        )
+        # Build simulations
+        mapping = simpeg.maps.IdentityMap(nP=model.size)
+        eqs_ram, eqs_forward_only = (
+            magnetics.SimulationEquivalentSourceLayer(
+                tensor_mesh,
+                mesh_top,
+                mesh_bottom,
+                survey=magnetic_survey,
+                chiMap=mapping,
+                engine=engine,
+                store_sensitivities=store,
+                numba_parallel=parallel,
+                model_type=model_type,
+            )
+            for store in ("ram", "forward_only")
+        )
+        # Compare methods for both simulations
+        model = (
+            get_block_model(tensor_mesh, 0.2e-3)
+            if model_type == "scalar"
+            else get_block_model(tensor_mesh, (0.2e-3, -0.1e-3, 0.5e-3))
+        )
+        gtgdiag_ram = eqs_ram.getJtJdiag(model)
+        gtgdiag_linop = eqs_forward_only.getJtJdiag(model)
+        atol = np.max(np.abs(gtgdiag_ram)) * 1e-7
+        np.testing.assert_allclose(gtgdiag_ram, gtgdiag_linop, atol=atol)
