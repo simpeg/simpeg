@@ -1736,8 +1736,8 @@ def _diagonal_G_T_dot_G_tmi_parallel(
 
     Notes
     -----
-    This function is meant to be run in serial. Use the
-    ``_diagonal_G_T_dot_G_tmi_parallel`` one for parallelized computations.
+    This function is meant to be run in parallel. Use the
+    ``_diagonal_G_T_dot_G_tmi_serial`` one for serialized computations.
     """
     fx, fy, fz = regional_field
     regional_field_amplitude = np.sqrt(fx**2 + fy**2 + fz**2)
@@ -1946,8 +1946,8 @@ def _diagonal_G_T_dot_G_mag_parallel(
 
     Notes
     -----
-    This function is meant to be run in serial. Use the
-    ``_diagonal_G_T_dot_G_mag_parallel`` one for parallelized computations.
+    This function is meant to be run in parallel. Use the
+    ``_diagonal_G_T_dot_G_mag_serial`` one for serialized computations.
     """
     fx, fy, fz = regional_field
     regional_field_amplitude = np.sqrt(fx**2 + fy**2 + fz**2)
@@ -2160,8 +2160,8 @@ def _diagonal_G_T_dot_G_tmi_deriv_parallel(
 
     Notes
     -----
-    This function is meant to be run in serial. Use the
-    ``_diagonal_G_T_dot_G_tmi_parallel`` one for parallelized computations.
+    This function is meant to be run in parallel. Use the
+    ``_diagonal_G_T_dot_G_tmi_serial`` one for serialized computations.
     """
     fx, fy, fz = regional_field
     regional_field_amplitude = np.sqrt(fx**2 + fy**2 + fz**2)
