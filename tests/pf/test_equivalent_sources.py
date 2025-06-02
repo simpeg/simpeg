@@ -996,7 +996,7 @@ class TestMagneticEquivalentSourcesForwardOnly:
             )
             for store in ("ram", "forward_only")
         )
-        # Expected
+        # Compare methods for both simulations
         model = (
             get_block_model(tensor_mesh, 0.2e-3)
             if model_type == "scalar"
