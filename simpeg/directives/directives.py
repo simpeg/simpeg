@@ -284,7 +284,7 @@ class DirectiveList(object):
         self.verbose = debug
 
     def __iter__(self):
-        return self.dList.__iter__()
+        return iter(self.dList)
 
     @property
     def debug(self):
