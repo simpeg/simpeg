@@ -99,7 +99,7 @@ is used under the hood to handle the execution of all directives passed to the
 
 """
 
-from .directives import (
+from ._directives import (
     InversionDirective,
     DirectiveList,
     BetaEstimateMaxDerivative,
@@ -121,7 +121,7 @@ from .directives import (
     ProjectSphericalBounds,
 )
 
-from .pgi_directives import (
+from ._pgi_directives import (
     PGI_UpdateParameters,
     PGI_BetaAlphaSchedule,
     PGI_AddMrefInSmooth,
@@ -129,7 +129,7 @@ from .pgi_directives import (
 
 from ._regularization import UpdateIRLS, SphericalUnitsWeights
 
-from .sim_directives import (
+from ._sim_directives import (
     SimilarityMeasureInversionDirective,
     SimilarityMeasureSaveOutputEveryIteration,
     PairedBetaEstimate_ByEig,
