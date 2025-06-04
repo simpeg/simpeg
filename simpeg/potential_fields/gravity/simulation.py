@@ -119,22 +119,25 @@ def _get_conversion_factor(component):
 
 
 class Simulation3DIntegral(BasePFSimulation):
-    """
+    r"""
     Gravity simulation in integral form.
 
+    .. note::
+
+        The gravity simulation assumes the following units for its inputs and outputs:
+
+        - Density model is assumed to be in gram per cubic centimeter (g/cc).
+        - Acceleration components (``"gx"``, ``"gy"``, ``"gz"``) are returned in mgal
+          (:math:`10^{-5} \text{m}/\text{s}^2`).
+        - Gradient components (``"gxx"``, ``"gyy"``, ``"gzz"``, ``"gxy"``, ``"gxz"``,
+          ``"gyz"``, ``"guv"``) are returned in Eotvos (:math:`10^{-9} s^{-2}`).
+
     .. important::
 
-        Density model is assumed to be in g/cc.
+        Following SimPEG convention for the right-handed xyz coordinate system, the
+        z axis points *upwards*. Therefore, the ``"gz"`` component corresponds to the
+        **upward** component of the gravity acceleration vector.
 
-    .. important::
-
-        Acceleration components ("gx", "gy", "gz") are returned in mgal
-        (:math:`10^{-5} m/s^2`).
-
-    .. important::
-
-        Gradient components ("gxx", "gyy", "gzz", "gxy", "gxz", "gyz", "guv") are
-        returned in Eotvos (:math:`10^{-9} s^{-2}`).
 
     Parameters
     ----------
