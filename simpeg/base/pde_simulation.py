@@ -508,10 +508,10 @@ class BasePDESimulation(BaseSimulation):
                 raise TypeError(
                     f"{cls.__qualname__} is not a subclass of pymatsolver.base.BaseSolver"
                 )
-        if cls is pymatsolver.SolverLU:
+        if cls in (pymatsolver.SolverLU, pymatsolver.Solver):
             warnings.warn(
-                "The 'pymatsolver.SolverLU' solver might lead to high computation "
-                "times. "
+                f"The 'pymatsolver.{cls.__name__}' solver might lead to high "
+                "computation times. "
                 "We recommend using a faster alternative such as 'pymatsolver.Pardiso' "
                 "or 'pymatsolver.Mumps'.",
                 PerformanceWarning,

@@ -823,16 +823,18 @@ def test_solver_defaults(caplog):
     assert sim.solver is get_default_solver()
 
 
-def test_solver_lu_warning():
+@pytest.mark.parametrize("solver_class", [pymatsolver.SolverLU, pymatsolver.Solver])
+def test_performance_warning_on_solver(solver_class):
     """
-    Test warning when setting SolverLU as solver in the PDE simulation.
+    Test PerformanceWarning when setting an inefficient solver.
     """
     mesh = discretize.TensorMesh([2, 2, 2])
     regex = re.escape(
-        "The 'pymatsolver.SolverLU' solver might lead to high computation times."
+        f"The 'pymatsolver.{solver_class.__name__}' solver might lead to high "
+        "computation times."
     )
     with pytest.warns(PerformanceWarning, match=regex):
-        BasePDESimulation(mesh, solver=pymatsolver.SolverLU)
+        BasePDESimulation(mesh, solver=solver_class)
 
 
 def test_bad_solver():
