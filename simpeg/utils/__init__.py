@@ -144,14 +144,13 @@ Many of the functions here are used internally to SimPEG and have minimal docume
 
 Solver utilities
 ----------------
-This module contains utilities to get and set the default solver
-used by SimPEG simulations.
+Functions to get and set the default solver meant to be used in PDE simulations.
 
 .. autosummary::
   :toctree: generated/
 
-  solver_utils.get_default_solver
-  solver_utils.set_default_solver
+  get_default_solver
+  set_default_solver
 """
 
 from discretize.utils.interpolation_utils import interpolation_matrix
@@ -289,3 +288,4 @@ from .coord_utils import (
     rotatePointsFromNormals,
     rotationMatrixFromNormals,
 )
+from .solver_utils import get_default_solver, set_default_solver
