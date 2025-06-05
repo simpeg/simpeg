@@ -67,7 +67,7 @@ class BaseSaveGeoH5(InversionDirective, ABC):
         self.write(self.opt.iter)
 
     def get_names(
-        self, component: str, channel: str, iteration: int
+        self, component: str, channel: str | int | None, iteration: int
     ) -> tuple[str, str]:
         """
         Format the data and property_group name.
@@ -77,7 +77,9 @@ class BaseSaveGeoH5(InversionDirective, ABC):
             base_name += f"_{component}"
 
         channel_name = base_name
-        if channel:
+        if isinstance(channel, int):
+            channel_name += f"_[{channel}]"
+        elif isinstance(channel, str):
             channel_name += f"_{channel}"
 
         if self.label is not None:
@@ -280,7 +282,7 @@ class SaveArrayGeoH5(BaseSaveGeoH5, ABC):
                         self.data_type[component][channel] = data.entity_type
                         type_name = f"{self._attribute_type}_{component}"
                         if channel:
-                            type_name += f"_{channel}"
+                            type_name += f"_[{ii}]"
                         data.entity_type.name = type_name
                     else:
                         data.entity_type = w_s.find_type(
@@ -490,7 +492,7 @@ class SaveLPModelGroup(SavePropertyGroup):
         super().__init__(h5_object, **kwargs)
 
     def get_names(
-        self, component: str, channel: str, iteration: int
+        self, component: str, channel: int | None, iteration: int
     ) -> tuple[str, str]:
         """
         Format the data and property_group name.
@@ -545,7 +547,7 @@ class SavePGIModel(SaveArrayGeoH5):
         """
         petro_model = self.get_values(values)
         petro_model = self.apply_transformations(petro_model).flatten()
-        channel_name, base_name = self.get_names("petrophysics", "", iteration)
+        channel_name, _ = self.get_names("petrophysics", "", iteration)
         with fetch_active_workspace(self._geoh5, mode="r+") as w_s:
             h5_object = w_s.get_entity(self.h5_object)[0]
             data = h5_object.add_data(
