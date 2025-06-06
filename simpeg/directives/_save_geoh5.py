@@ -77,7 +77,7 @@ class BaseSaveGeoH5(InversionDirective, ABC):
             base_name += f"_{component}"
 
         channel_name = base_name
-        if isinstance(channel, int):
+        if isinstance(channel, np.integer):
             channel_name += f"_[{channel}]"
         elif isinstance(channel, str) and len(component) > 1:
             channel_name += f"_{channel}"
@@ -281,8 +281,11 @@ class SaveArrayGeoH5(BaseSaveGeoH5, ABC):
                     if channel not in self.data_type[component].keys():
                         self.data_type[component][channel] = data.entity_type
                         type_name = f"{self._attribute_type}_{component}"
-                        if channel:
+                        if isinstance(channel, int):
                             type_name += f"_[{ii}]"
+                        else:
+                            type_name += f"_{channel}"
+
                         data.entity_type.name = type_name
                     else:
                         data.entity_type = w_s.find_type(
