@@ -79,7 +79,7 @@ class BaseSaveGeoH5(InversionDirective, ABC):
         channel_name = base_name
         if isinstance(channel, int):
             channel_name += f"_[{channel}]"
-        elif isinstance(channel, str):
+        elif isinstance(channel, str) and len(component) > 1:
             channel_name += f"_{channel}"
 
         if self.label is not None:
