@@ -247,9 +247,7 @@ class Simulation1DRecursive(BaseSimulation):
                         np.abs(Z[i_freq]) ** 2 / (2 * np.pi * src.frequency * mu_0)
                     )
                 elif rx.component == "phase":
-                    d.append(
-                        (180.0 / np.pi) * np.angle(Z[i_freq]) 
-                    )
+                    d.append((180.0 / np.pi) * np.arctan2(Z[i_freq].imag, Z[i_freq].real))
 
         return np.array(d)
 
