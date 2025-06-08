@@ -67,7 +67,7 @@ class BaseSaveGeoH5(InversionDirective, ABC):
         self.write(self.opt.iter)
 
     def get_names(
-        self, component: str, channel: str | int | None, iteration: int
+        self, component: str, channel: str, iteration: int
     ) -> tuple[str, str]:
         """
         Format the data and property_group name.
@@ -77,9 +77,7 @@ class BaseSaveGeoH5(InversionDirective, ABC):
             base_name += f"_{component}"
 
         channel_name = base_name
-        if isinstance(channel, np.integer):
-            channel_name += f"_[{channel}]"
-        elif isinstance(channel, str) and len(component) > 1:
+        if len(channel) > 0:
             channel_name += f"_{channel}"
 
         if self.label is not None:
@@ -87,6 +85,17 @@ class BaseSaveGeoH5(InversionDirective, ABC):
             base_name += f"_{self.label}"
 
         return channel_name, base_name
+
+    @staticmethod
+    def _channel_label(channel: int, label: str | float | None) -> str:
+        """
+        Format the channel label.
+        """
+        if isinstance(label, str) and len(label) > 1:
+            return label
+        elif isinstance(label, float):
+            return f"[{channel}]"
+        return ""
 
     @abstractmethod
     def write(self, iteration: int, values: list[np.ndarray] = None):  # flake8: noqa
@@ -265,8 +274,9 @@ class SaveArrayGeoH5(BaseSaveGeoH5, ABC):
                     if self.sorting is not None:
                         values = values[self.sorting]
 
+                    label = self._channel_label(ii, channel)
                     channel_name, base_name = self.get_names(
-                        component, channel, iteration
+                        component, label, iteration
                     )
 
                     data = h5_object.add_data(
@@ -280,12 +290,7 @@ class SaveArrayGeoH5(BaseSaveGeoH5, ABC):
                     # Re-assign the data type
                     if channel not in self.data_type[component].keys():
                         self.data_type[component][channel] = data.entity_type
-                        type_name = f"{self._attribute_type}_{component}"
-                        if isinstance(channel, int):
-                            type_name += f"_[{ii}]"
-                        else:
-                            type_name += f"_{channel}"
-
+                        type_name = f"{self._attribute_type}_{component}" + f"_{label}"
                         data.entity_type.name = type_name
                     else:
                         data.entity_type = w_s.find_type(
@@ -448,10 +453,10 @@ class SavePropertyGroup(BaseSaveGeoH5):
 
             for component in self.components:
                 properties = []
-                for channel in self.channels:
-
+                for ii, channel in enumerate(self.channels):
+                    label = self._channel_label(ii, channel)
                     channel_name, base_name = self.get_names(
-                        component, channel, iteration
+                        component, label, iteration
                     )
                     children = [
                         child
