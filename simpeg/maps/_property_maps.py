@@ -554,6 +554,51 @@ class ChiMap(IdentityMap):
         return m / mu_0 - 1
 
 
+class Effective_Susceptibility_Map(IdentityMap):
+    r"""Effective susceptibility Map
+
+    Convert Effective Susceptibility (SI) to magnetic polarization (nT).
+
+
+    .. math::
+
+        \mu_0 M = esus * ||B_0||
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        The number of parameters accepted by the mapping is set to equal the number
+        of mesh cells.
+    nP : int
+        Set the number of parameters accepted by the mapping directly. Used if the
+        number of parameters is known. Used generally when the number of parameters
+        is not equal to the number of cells in a mesh.
+    ambient_field_magnitude : float
+        The magnitude of the ambient geomagnetic field.
+    """
+
+    def __init__(self, mesh=None, nP=None, ambient_field_magnitude=None, **kwargs):
+        super().__init__(mesh=mesh, nP=nP, **kwargs)
+        if ambient_field_magnitude is None or not isinstance(
+            ambient_field_magnitude, (float, int)
+        ):
+            raise TypeError(
+                "ambient_field_magnitude must be a float (or int convertible to float) and cannot be None"
+            )
+        self.ambient_field_magnitude = ambient_field_magnitude
+
+    def _transform(self, m):
+        return m * self.ambient_field_magnitude
+
+    def deriv(self, m, v=None):
+        if v is not None:
+            return self.ambient_field_magnitude * v
+        return self.ambient_field_magnitude * sp.eye(self.nP)
+
+    def inverse(self, m):
+        return m / self.ambient_field_magnitude
+
+
 class MuRelative(IdentityMap):
     r"""Mapping that computes the magnetic permeability given a set of relative permeabilities.
 
