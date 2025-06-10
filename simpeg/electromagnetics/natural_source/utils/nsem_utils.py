@@ -1,11 +1,8 @@
 from ...static.utils import drapeTopotoLoc
 
+
 def shift_to_discrete_topography(
-    locations,
-    mesh,
-    active_cells,
-    option="top",
-    height=0.
+    locations, mesh, active_cells, option="top", height=0.0
 ):
     """Shift locations relative to discrete surface topography.
 
