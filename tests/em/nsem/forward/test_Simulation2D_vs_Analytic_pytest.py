@@ -120,7 +120,7 @@ def get_analytic_halfspace_solution(sigma, f, survey_type, component, orientatio
     # Admittance data types (Yxy, Yyx)
     elif survey_type == "admittance":
         if component in ["real", "imag"]:
-            ampl = 0.5 * np.sqrt(sigma/(np.pi * f * mu_0))
+            ampl = 0.5 * np.sqrt(sigma / (np.pi * f * mu_0))
             if orientation == "yx":
                 ampl *= -1
             if component == "imag":
