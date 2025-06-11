@@ -4,6 +4,15 @@ import warnings
 from .survey import BaseSurvey
 from .utils import mkvc, validate_ndarray_with_shape, validate_float, validate_type
 
+try:
+    from warnings import deprecated
+except ImportError:
+    # Use the deprecated decorator provided by typing_extensions (which
+    # supports older versions of Python) if it cannot be imported from
+    # warnings.
+    from typing_extensions import deprecated
+
+
 __all__ = ["Data", "SyntheticData"]
 
 
@@ -58,7 +67,7 @@ class Data:
         relative_error=None,
         noise_floor=None,
         standard_deviation=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.survey = survey
@@ -284,6 +293,13 @@ class Data:
         return self.dobs.shape
 
     @property
+    @deprecated(
+        "The `index_dictionary` property has been deprecated. "
+        "Use the `get_slice()` or `get_all_slices()` methods provided "
+        "by the Survey object instead."
+        "This property will be removed in SimPEG v0.25.0.",
+        category=FutureWarning,
+    )
     def index_dictionary(self):
         """Dictionary for indexing data by sources and receiver.
 
@@ -328,12 +344,12 @@ class Data:
     ##########################
 
     def __setitem__(self, key, value):
-        index = self.index_dictionary[key[0]][key[1]]
-        self.dobs[index] = mkvc(value)
+        slice_obj = self.survey.get_slice(*key)
+        self.dobs[slice_obj] = mkvc(value)
 
     def __getitem__(self, key):
-        index = self.index_dictionary[key[0]][key[1]]
-        return self.dobs[index]
+        slice_obj = self.survey.get_slice(*key)
+        return self.dobs[slice_obj]
 
     def tovec(self):
         """Convert observed data to a vector

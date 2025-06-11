@@ -1,14 +1,22 @@
 import os
+import warnings
 from multiprocessing.pool import Pool
 
 import discretize
 import numpy as np
+from discretize import TensorMesh, TreeMesh
 from scipy.sparse import csr_matrix as csr
 
 from simpeg.utils import mkvc
 
 from ..simulation import LinearSimulation
 from ..utils import validate_active_indices, validate_integer, validate_string
+from ..utils.code_utils import deprecate_property, validate_type
+
+try:
+    import choclo
+except ImportError:
+    choclo = None
 
 ###############################################################################
 #                                                                             #
@@ -35,7 +43,7 @@ class BasePFSimulation(LinearSimulation):
     ----------
     mesh : discretize.TensorMesh or discretize.TreeMesh
         A 3D tensor or tree mesh.
-    ind_active : np.ndarray of int or bool
+    active_cells : np.ndarray of int or bool
         Indices array denoting the active topography cells.
     store_sensitivities : {'ram', 'disk', 'forward_only'}
         Options for storing sensitivities. There are 3 options
@@ -47,7 +55,20 @@ class BasePFSimulation(LinearSimulation):
     n_processes : None or int, optional
         The number of processes to use in the internal multiprocessing pool for forward
         modeling. The default value of 1 will not use multiprocessing. Any other setting
-        will. `None` implies setting by the number of cpus.
+        will. `None` implies setting by the number of cpus. If engine is
+        ``"choclo"``, then this argument will be ignored.
+    engine : {"geoana", "choclo"}, optional
+       Choose which engine should be used to run the forward model.
+    numba_parallel : bool, optional
+        If True, the simulation will run in parallel. If False, it will
+        run in serial. If ``engine`` is not ``"choclo"`` this argument will be
+        ignored.
+    ind_active : np.ndarray of int or bool
+
+        .. deprecated:: 0.23.0
+
+           Argument ``ind_active`` is deprecated in favor of
+           ``active_cells`` and will be removed in SimPEG v0.24.0.
 
     Notes
     -----
@@ -69,37 +90,57 @@ class BasePFSimulation(LinearSimulation):
     def __init__(
         self,
         mesh,
-        ind_active=None,
+        active_cells=None,
         store_sensitivities="ram",
         n_processes=1,
         sensitivity_dtype=np.float32,
+        engine="geoana",
+        numba_parallel=True,
+        ind_active=None,
         **kwargs,
     ):
-        # If deprecated property set with kwargs
-        if "actInd" in kwargs:
-            raise AttributeError(
-                "actInd was removed in SimPEG 0.17.0, please use ind_active"
+        # Deprecate ind_active argument
+        if ind_active is not None:
+            if active_cells is not None:
+                raise TypeError(
+                    "Cannot pass both 'active_cells' and 'ind_active'."
+                    "'ind_active' has been deprecated and will be removed in "
+                    " SimPEG v0.24.0, please use 'active_cells' instead.",
+                )
+            warnings.warn(
+                "'ind_active' has been deprecated and will be removed in "
+                " SimPEG v0.24.0, please use 'active_cells' instead.",
+                FutureWarning,
+                stacklevel=2,
             )
+            active_cells = ind_active
 
         if "forwardOnly" in kwargs:
             raise AttributeError(
                 "forwardOnly was removed in SimPEG 0.17.0, please set store_sensitivities='forward_only'"
             )
 
+        self.mesh = mesh
         self.store_sensitivities = store_sensitivities
         self.sensitivity_dtype = sensitivity_dtype
-        super().__init__(mesh, **kwargs)
-        self.solver = None
+        self.engine = engine
+        self.numba_parallel = numba_parallel
+        super().__init__(**kwargs)
         self.n_processes = n_processes
 
-        # Find non-zero cells indices
-        if ind_active is None:
-            ind_active = np.ones(mesh.n_cells, dtype=bool)
-        else:
-            ind_active = validate_active_indices("ind_active", ind_active, mesh.n_cells)
-        self._ind_active = ind_active
+        # Check sensitivity_path when engine is "choclo"
+        self._check_engine_and_sensitivity_path()
 
-        self.nC = int(sum(ind_active))
+        # Find non-zero cells indices
+        if active_cells is None:
+            active_cells = np.ones(mesh.n_cells, dtype=bool)
+        else:
+            active_cells = validate_active_indices(
+                "active_cells", active_cells, mesh.n_cells
+            )
+        self._active_cells = active_cells
+
+        self.nC = int(sum(active_cells))
 
         if isinstance(mesh, discretize.TensorMesh):
             nodes = mesh.nodes
@@ -122,15 +163,35 @@ class BasePFSimulation(LinearSimulation):
                     inds[:-1, 1:, 1:].reshape(-1, order="F"),
                     inds[1:, 1:, 1:].reshape(-1, order="F"),
                 ]
-            cell_nodes = np.stack(cell_nodes, axis=-1)[ind_active]
+            cell_nodes = np.stack(cell_nodes, axis=-1)[active_cells]
         elif isinstance(mesh, discretize.TreeMesh):
             nodes = np.r_[mesh.nodes, mesh.hanging_nodes]
-            cell_nodes = mesh.cell_nodes[ind_active]
+            cell_nodes = mesh.cell_nodes[active_cells]
         else:
             raise ValueError("Mesh must be 3D tensor or Octree.")
         unique, unique_inv = np.unique(cell_nodes.T, return_inverse=True)
         self._nodes = nodes[unique]  # unique active nodes
         self._unique_inv = unique_inv.reshape(cell_nodes.T.shape)
+
+    @property
+    def mesh(self):
+        """Mesh for the integral potential field simulations.
+
+        Returns
+        -------
+        discretize.TensorMesh or discretize.TreeMesh
+            3D Mesh on which the forward problem is discretized.
+        """
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, value):
+        value = validate_type("mesh", value, (TensorMesh, TreeMesh), cast=False)
+        if value.dim != 3:
+            raise ValueError(
+                f"{type(self).__name__} mesh must be 3D, received a {value.dim}D mesh."
+            )
+        self._mesh = value
 
     @property
     def store_sensitivities(self):
@@ -180,6 +241,11 @@ class BasePFSimulation(LinearSimulation):
 
     @property
     def n_processes(self):
+        """
+        Number of processes to use for forward modeling.
+
+        If ``engine`` is ``"choclo"``, then this property will be ignored.
+        """
         return self._n_processes
 
     @n_processes.setter
@@ -189,15 +255,72 @@ class BasePFSimulation(LinearSimulation):
         self._n_processes = value
 
     @property
-    def ind_active(self):
-        """Active topography cells.
+    def engine(self) -> str:
+        """
+        Engine that will be used to run the simulation.
+
+        It can be either ``"geoana"`` or "``choclo``".
+        """
+        return self._engine
+
+    @engine.setter
+    def engine(self, value: str):
+        validate_string(
+            "engine", value, string_list=("geoana", "choclo"), case_sensitive=True
+        )
+        if value == "choclo" and choclo is None:
+            raise ImportError(
+                "The choclo package couldn't be found."
+                "Running a gravity simulation with 'engine=\"choclo\"' needs "
+                "choclo to be installed."
+                "\nTry installing choclo with:"
+                "\n    pip install choclo"
+                "\nor:"
+                "\n    conda install choclo"
+            )
+        self._engine = value
+
+    @property
+    def numba_parallel(self) -> bool:
+        """
+        Run simulation in parallel or single-threaded when using Numba.
+
+        If True, the simulation will run in parallel. If False, it will
+        run in serial.
+
+        .. important::
+
+            If ``engine`` is not ``"choclo"`` this property will be ignored.
+        """
+        return self._numba_parallel
+
+    @numba_parallel.setter
+    def numba_parallel(self, value: bool):
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Invalid 'numba_parallel' value of type {type(value)}. Must be a bool."
+            )
+        self._numba_parallel = value
+
+    @property
+    def active_cells(self):
+        """Active cells in the mesh.
 
         Returns
         -------
         (n_cell) numpy.ndarray of bool
-            Returns the active topography cells
+            Returns the active cells in the mesh.
         """
-        return self._ind_active
+        return self._active_cells
+
+    ind_active = deprecate_property(
+        active_cells,
+        "ind_active",
+        "active_cells",
+        removal_version="0.24.0",
+        future_warn=True,
+        error=False,
+    )
 
     def linear_operator(self):
         """Return linear operator.
@@ -255,6 +378,61 @@ class BasePFSimulation(LinearSimulation):
             np.save(sens_name, kernel)
         return kernel
 
+    def _check_engine_and_sensitivity_path(self):
+        """
+        Check if sensitivity_path is a file if engine is set to "choclo"
+        """
+        if (
+            self.engine == "choclo"
+            and self.store_sensitivities == "disk"
+            and os.path.isdir(self.sensitivity_path)
+        ):
+            raise ValueError(
+                f"The passed sensitivity_path '{self.sensitivity_path}' is "
+                "a directory. "
+                "When using 'choclo' as the engine, 'senstivity_path' "
+                "should be the path to a new or existing file."
+            )
+
+    def _get_active_nodes(self):
+        """
+        Return locations of nodes only for active cells
+
+        Also return an array containing the indices of the "active nodes" for
+        each active cell in the mesh
+        """
+        # Get all nodes in the mesh
+        if isinstance(self.mesh, discretize.TreeMesh):
+            nodes = self.mesh.total_nodes
+        elif isinstance(self.mesh, discretize.TensorMesh):
+            nodes = self.mesh.nodes
+        else:
+            raise TypeError(f"Invalid mesh of type {self.mesh.__class__.__name__}.")
+        # Get original cell_nodes
+        cell_nodes = self.mesh.cell_nodes
+        # If all cells in the mesh are active, return nodes and cell_nodes
+        if self.nC == self.mesh.n_cells:
+            return nodes, cell_nodes
+        # Keep only the cell_nodes for active cells
+        cell_nodes = cell_nodes[self.active_cells]
+        # Get the unique indices of the nodes that belong to every active cell
+        # (these indices correspond to the original `nodes` array)
+        unique_nodes, active_cell_nodes = np.unique(cell_nodes, return_inverse=True)
+        # Select only the nodes that belong to the active cells (active nodes)
+        active_nodes = nodes[unique_nodes]
+        # Reshape indices of active cell nodes for each active cell in the mesh
+        active_cell_nodes = active_cell_nodes.reshape(cell_nodes.shape)
+        return active_nodes, active_cell_nodes
+
+    def _get_components_and_receivers(self):
+        """Generator for receiver locations and their field components."""
+        if not hasattr(self.survey, "source_field"):
+            raise AttributeError(
+                f"The survey '{self.survey}' has no 'source_field' attribute."
+            )
+        for receiver_object in self.survey.source_field.receiver_list:
+            yield receiver_object.components, receiver_object.locations
+
 
 class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
     """Base equivalent source layer simulation class.
@@ -272,10 +450,7 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
     """
 
     def __init__(self, mesh, cell_z_top, cell_z_bottom, **kwargs):
-        if mesh.dim != 2:
-            raise AttributeError("Mesh to equivalent source layer must be 2D.")
-
-        super().__init__(mesh, **kwargs)
+        super().__init__(mesh=mesh, **kwargs)
 
         if isinstance(cell_z_top, (int, float)):
             cell_z_top = float(cell_z_top) * np.ones(self.nC)
@@ -288,6 +463,8 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
                 "'cell_z_top' and 'cell_z_bottom' must have length equal to number of",
                 "cells, and match the number of active cells.",
             )
+
+        self._cell_z_top, self._cell_z_bottom = cell_z_top, cell_z_bottom
 
         all_nodes = self._nodes[self._unique_inv]
         all_nodes = [
@@ -302,6 +479,29 @@ class BaseEquivalentSourceLayerSimulation(BasePFSimulation):
         ]
         self._nodes = np.stack(all_nodes, axis=0)
         self._unique_inv = None
+
+    @property
+    def cell_z_top(self) -> np.ndarray:
+        """
+        Elevations for the top face of all cells in the layer.
+        """
+        return self._cell_z_top
+
+    @property
+    def cell_z_bottom(self) -> np.ndarray:
+        """
+        Elevations for the bottom face of all cells in the layer.
+        """
+        return self._cell_z_bottom
+
+    @BasePFSimulation.mesh.setter
+    def mesh(self, value):
+        value = validate_type("mesh", value, (TensorMesh, TreeMesh), cast=False)
+        if value.dim != 2:
+            raise ValueError(
+                f"{type(self).__name__} mesh must be 2D, received a {value.dim}D mesh."
+            )
+        self._mesh = value
 
 
 def progress(iteration, prog, final):
@@ -351,6 +551,12 @@ def get_dist_wgt(mesh, receiver_locations, actv, R, R0):
     wr : (n_cell) numpy.ndarray
         Distance weighting model; 0 for all inactive cells
     """
+    warnings.warn(
+        "The get_dist_wgt function has been deprecated, please import "
+        "simpeg.utils.distance_weighting. This will be removed in SimPEG 0.24.0",
+        FutureWarning,
+        stacklevel=2,
+    )
     # Find non-zero cells
     if actv.dtype == "bool":
         inds = (

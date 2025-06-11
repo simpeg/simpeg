@@ -45,7 +45,7 @@ class BaseSIPSimulation(BaseIPSimulation):
         storeJ=False,
         actinds=None,
         storeInnerProduct=True,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.tau = tau
@@ -359,6 +359,7 @@ class BaseSIPSimulation(BaseIPSimulation):
         """
         Generate Full sensitivity matrix
         """
+        self.model = m
 
         if self._Jmatrix is not None:
             return self._Jmatrix
@@ -603,7 +604,7 @@ class BaseSIPSimulation(BaseIPSimulation):
             return Jtv
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_update(self):
         toDelete = [
             "_etaDeriv_store",
             "_tauiDeriv_store",

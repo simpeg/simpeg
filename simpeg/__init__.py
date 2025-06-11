@@ -73,24 +73,32 @@ Mappings
   maps.ComboMap
   maps.ComplexMap
   maps.ExpMap
-  maps.LinearMap
   maps.IdentityMap
   maps.InjectActiveCells
-  maps.MuRelative
-  maps.LogMap
+  maps.LinearMap
   maps.LogisticSigmoidMap
+  maps.LogMap
+  maps.Mesh2Mesh
+  maps.MuRelative
   maps.ParametricBlock
+  maps.ParametricBlockInLayer
+  maps.ParametricCasingAndLayer
   maps.ParametricCircleMap
   maps.ParametricEllipsoid
   maps.ParametricLayer
   maps.ParametricPolyMap
+  maps.ParametricSplineMap
+  maps.PolynomialPetroClusterMap
   maps.Projection
   maps.ReciprocalMap
+  maps.SelfConsistentEffectiveMedium
   maps.SphericalSystem
+  maps.SumMap
   maps.Surject2Dto3D
   maps.SurjectFull
   maps.SurjectUnits
   maps.SurjectVertical1D
+  maps.TileMap
   maps.Weighting
   maps.Wires
 
@@ -155,7 +163,6 @@ from . import utils
 from .utils import mkvc
 from .utils import Report
 from .utils.solver_utils import (
-    _checkAccuracy,
     SolverWrapD,
     SolverWrapI,
     Solver,

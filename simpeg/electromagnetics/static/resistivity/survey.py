@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 
 from ....utils.code_utils import validate_string
@@ -7,7 +8,6 @@ from ..utils import drapeTopotoLoc
 from . import receivers as Rx
 from . import sources as Src
 from ..utils import static_utils
-from simpeg import data
 
 
 class Survey(BaseSurvey):
@@ -19,20 +19,26 @@ class Survey(BaseSurvey):
         List of SimPEG DC/IP sources
     survey_geometry : {"surface", "borehole", "general"}
         Survey geometry.
-    survey_type : {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
-        Survey type.
     """
 
     def __init__(
         self,
         source_list,
         survey_geometry="surface",
-        survey_type="dipole-dipole",
         **kwargs,
     ):
+        if (key := "survey_type") in kwargs:
+            warnings.warn(
+                f"Argument '{key}' is ignored and will be removed in future "
+                "versions of SimPEG. Types of sources and their corresponding "
+                "receivers are obtained from their respective classes, without "
+                "the need to specify the survey type.",
+                FutureWarning,
+                stacklevel=0,
+            )
+            kwargs.pop(key)
         super(Survey, self).__init__(source_list, **kwargs)
         self.survey_geometry = survey_geometry
-        self.survey_type = survey_type
 
     @property
     def survey_geometry(self):
@@ -56,29 +62,42 @@ class Survey(BaseSurvey):
 
     @property
     def survey_type(self):
-        """Survey type; one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
+        """
+        ``survey_type`` has been removed.
+
+        Survey type; one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
+
+        .. important:
+
+            The `survey_type` property has been removed. Types of sources and
+            their corresponding receivers are obtained from their respective
+            classes, without the need to specify the survey type.
 
         Returns
         -------
         str
             Survey type; one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
         """
-        return self._survey_type
+        warnings.warn(
+            "Property 'survey_type' has been removed."
+            "Types of sources and their corresponding receivers are obtained from "
+            "their respective classes, without the need to specify the survey type.",
+            FutureWarning,
+            stacklevel=0,
+        )
 
     @survey_type.setter
     def survey_type(self, var):
-        var = validate_string(
-            "survey_type",
-            var,
-            ("dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"),
+        warnings.warn(
+            "Property 'survey_type' has been removed."
+            "Types of sources and their corresponding receivers are obtained from "
+            "their respective classes, without the need to specify the survey type.",
+            FutureWarning,
+            stacklevel=0,
         )
-        self._survey_type = var
 
     def __repr__(self):
-        return (
-            f"{self.__class__.__name__}({self.survey_type}; "
-            f"#sources: {self.nSrc}; #data: {self.nD})"
-        )
+        return f"{self.__class__.__name__}(#sources: {self.nSrc}; #data: {self.nD})"
 
     @property
     def locations_a(self):
@@ -204,13 +223,15 @@ class Survey(BaseSurvey):
 
         geometric_factor = static_utils.geometric_factor(self, space_type=space_type)
 
-        geometric_factor = data.Data(self, geometric_factor)
+        # geometric_factor = data.Data(self, geometric_factor)
+        survey_slices = self.get_all_slices()
         for source in self.source_list:
             for rx in source.receiver_list:
                 if data_type is not None:
                     rx.data_type = data_type
                 if rx.data_type == "apparent_resistivity":
-                    rx._geometric_factor[source] = geometric_factor[source, rx]
+                    src_rx_slice = survey_slices[source, rx]
+                    rx._geometric_factor[source] = geometric_factor[src_rx_slice]
         return geometric_factor
 
     def _set_abmn_locations(self):
@@ -265,7 +286,13 @@ class Survey(BaseSurvey):
         )
 
     def drape_electrodes_on_topography(
-        self, mesh, ind_active, option="top", topography=None, force=False
+        self,
+        mesh,
+        active_cells,
+        option="top",
+        topography=None,
+        force=False,
+        ind_active=None,
     ):
         """Shift electrode locations to discrete surface topography.
 
@@ -273,7 +300,7 @@ class Survey(BaseSurvey):
         ----------
         mesh : discretize.TensorMesh or discretize.TreeMesh
             The mesh on which the discretized fields are computed
-        ind_active : numpy.ndarray of int or bool
+        active_cells : numpy.ndarray of int or bool
             Active topography cells
         option :{"top", "center"}
             Define topography at tops of cells or cell centers.
@@ -281,8 +308,21 @@ class Survey(BaseSurvey):
             Surface topography
         force : bool, default = ``False``
             If ``True`` force electrodes to surface even if borehole
+        ind_active : numpy.ndarray of int or bool, optional
+
+            .. deprecated:: 0.23.0
+
+               Argument ``ind_active`` is deprecated in favor of ``active_cells``
+               and will be removed in SimPEG v0.24.0.
 
         """
+        # Deprecate ind_active argument
+        if ind_active is not None:
+            raise TypeError(
+                "'ind_active' has been deprecated and will be removed in "
+                " SimPEG v0.24.0, please use 'active_cells' instead."
+            )
+
         if self.survey_geometry == "surface":
             loc_a = self.locations_a[:, :2]
             loc_b = self.locations_b[:, :2]
@@ -296,7 +336,7 @@ class Survey(BaseSurvey):
             inv_m, inv_n = inv[: len(loc_m)], inv[len(loc_m) :]
 
             electrodes_shifted = drapeTopotoLoc(
-                mesh, unique_electrodes, ind_active=ind_active, option=option
+                mesh, unique_electrodes, active_cells=active_cells, option=option
             )
             a_shifted = electrodes_shifted[inv_a]
             b_shifted = electrodes_shifted[inv_b]

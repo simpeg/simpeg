@@ -4,7 +4,6 @@ from simpeg import utils, maps
 from simpeg.utils.model_builder import get_indices_sphere
 from simpeg.potential_fields import magnetics as mag
 import numpy as np
-from pymatsolver import Pardiso
 
 
 class MagFwdProblemTests(unittest.TestCase):
@@ -34,11 +33,11 @@ class MagFwdProblemTests(unittest.TestCase):
         yr = np.linspace(-300, 300, 41)
         X, Y = np.meshgrid(xr, yr)
         Z = np.ones((xr.size, yr.size)) * 150
-        components = ["bx", "by", "bz"]
+        self.components = ["bx", "by", "bz"]
         self.xr = xr
         self.yr = yr
         self.rxLoc = np.c_[utils.mkvc(X), utils.mkvc(Y), utils.mkvc(Z)]
-        receivers = mag.Point(self.rxLoc, components=components)
+        receivers = mag.Point(self.rxLoc, components=self.components)
         srcField = mag.UniformBackgroundField(
             receiver_list=[receivers],
             amplitude=Btot,
@@ -52,7 +51,6 @@ class MagFwdProblemTests(unittest.TestCase):
             M,
             survey=self.survey,
             muMap=maps.ChiMap(M),
-            solver=Pardiso,
         )
         self.M = M
         self.chi = chi
@@ -69,10 +67,10 @@ class MagFwdProblemTests(unittest.TestCase):
             *self.sphere_center,
             self.chiblk,
             self.b0,
-            "secondary"
+            "secondary",
         )
 
-        n_obs, n_comp = self.rxLoc.shape[0], len(self.survey.components)
+        n_obs, n_comp = self.rxLoc.shape[0], len(self.components)
         dx, dy, dz = dpred.reshape(n_comp, n_obs)
 
         err_x = np.linalg.norm(dx - bxa) / np.linalg.norm(bxa)

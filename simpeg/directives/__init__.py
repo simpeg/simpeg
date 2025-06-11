@@ -55,6 +55,8 @@ Directives related to sparse inversions
 .. autosummary::
    :toctree: generated/
 
+   UpdateIRLS
+   SphericalUnitsWeights
    Update_IRLS
 
 
@@ -97,7 +99,7 @@ is used under the hood to handle the execution of all directives passed to the
 
 """
 
-from .directives import (
+from ._directives import (
     InversionDirective,
     DirectiveList,
     BetaEstimateMaxDerivative,
@@ -108,7 +110,6 @@ from .directives import (
     SaveModelEveryIteration,
     SaveOutputEveryIteration,
     SaveOutputDictEveryIteration,
-    Update_IRLS,
     UpdatePreconditioner,
     Update_Wj,
     AlphasSmoothEstimate_ByEig,
@@ -116,16 +117,19 @@ from .directives import (
     ScalingMultipleDataMisfits_ByEig,
     JointScalingSchedule,
     UpdateSensitivityWeights,
+    Update_IRLS,
     ProjectSphericalBounds,
 )
 
-from .pgi_directives import (
+from ._pgi_directives import (
     PGI_UpdateParameters,
     PGI_BetaAlphaSchedule,
     PGI_AddMrefInSmooth,
 )
 
-from .sim_directives import (
+from ._regularization import UpdateIRLS, SphericalUnitsWeights
+
+from ._sim_directives import (
     SimilarityMeasureInversionDirective,
     SimilarityMeasureSaveOutputEveryIteration,
     PairedBetaEstimate_ByEig,

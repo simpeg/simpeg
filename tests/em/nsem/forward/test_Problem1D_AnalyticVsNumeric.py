@@ -16,6 +16,7 @@ def getAppResPhs(nsemdata):
         return app_res, app_phs
 
     zList = []
+    survey_slices = nsemdata.survey.get_all_slices()
     for src in nsemdata.survey.source_list:
         zc = [src.frequency]
         for rx in src.receiver_list:
@@ -23,7 +24,8 @@ def getAppResPhs(nsemdata):
                 m = 1j
             else:
                 m = 1
-            zc.append(m * nsemdata[src, rx])
+            src_rx_slice = survey_slices[src, rx]
+            zc.append(m * nsemdata.dobs[src_rx_slice])
         zList.append(zc)
     return [
         appResPhs(zList[i][0], np.sum(zList[i][1:3])) for i in np.arange(len(zList))
@@ -32,9 +34,10 @@ def getAppResPhs(nsemdata):
 
 def calculateAnalyticSolution(source_list, mesh, model):
     surveyAna = nsem.Survey(source_list)
-    data1D = nsem.Data(surveyAna)
+    survey_slices = surveyAna.get_all_slices()
+    data1D = np.full(surveyAna.nD, np.nan)
     for src in surveyAna.source_list:
-        elev = src.receiver_list[0].locations[0]
+        elev = src.receiver_list[0].locations_e[0]
         anaEd, anaEu, anaHd, anaHu = nsem.utils.analytic_1d.getEHfields(
             mesh, model, src.frequency, elev
         )
@@ -45,7 +48,9 @@ def calculateAnalyticSolution(source_list, mesh, model):
         # anaH = (anaHtemp/anaEtemp[-1])#.conj()
         anaZ = anaE / anaH
         for rx in src.receiver_list:
-            data1D[src, rx] = getattr(anaZ, rx.component)
+            src_rx_slice = survey_slices[src, rx]
+            data1D[src_rx_slice] = getattr(anaZ, rx.component)
+    data1D = nsem.Data(surveyAna, data1D)
     return data1D
 
 

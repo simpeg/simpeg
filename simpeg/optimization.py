@@ -1,7 +1,8 @@
 import numpy as np
+import scipy
 import scipy.sparse as sp
 
-from .utils.solver_utils import SolverWrapI, Solver, SolverDiag
+from pymatsolver import Solver, Diagonal, SolverCG
 from .utils import (
     call_hooks,
     check_stoppers,
@@ -17,6 +18,23 @@ from .utils import (
 norm = np.linalg.norm
 
 
+# Create a flag if the installed version of SciPy is newer or equal to 1.12.0
+# (Used to choose whether to pass `tol` or `rtol` to the solvers. See #1516).
+class Version:
+    def __init__(self, version):
+        self.version = version
+
+    def as_tuple(self) -> tuple[int, int]:
+        major, minor = tuple(int(p) for p in self.version.split(".")[:2])
+        return (major, minor)
+
+    def __ge__(self, other):
+        return self.as_tuple() >= other.as_tuple()
+
+
+SCIPY_1_12 = Version(scipy.__version__) >= Version("1.12.0")
+
+
 __all__ = [
     "Minimize",
     "Remember",
@@ -29,8 +47,6 @@ __all__ = [
     "StoppingCriteria",
     "IterationPrinters",
 ]
-
-SolverICG = SolverWrapI(sp.linalg.cg, checkAccuracy=False)
 
 
 class StoppingCriteria(object):
@@ -189,38 +205,38 @@ class IterationPrinters(object):
     }
     phi_d = {
         "title": "phi_d",
-        "value": lambda M: M.parent.phi_d * M.parent.opt.factor,
+        "value": lambda M: M.parent.phi_d,
         "width": 10,
         "format": "%1.2e",
     }
     phi_m = {
         "title": "phi_m",
-        "value": lambda M: M.parent.phi_m * M.parent.opt.factor,
+        "value": lambda M: M.parent.phi_m,
         "width": 10,
         "format": "%1.2e",
     }
 
     phi_s = {
         "title": "phi_s",
-        "value": lambda M: M.parent.phi_s * M.parent.opt.factor,
+        "value": lambda M: M.parent.phi_s,
         "width": 10,
         "format": "%1.2e",
     }
     phi_x = {
         "title": "phi_x",
-        "value": lambda M: M.parent.phi_x * M.parent.opt.factor,
+        "value": lambda M: M.parent.phi_x,
         "width": 10,
         "format": "%1.2e",
     }
     phi_y = {
         "title": "phi_y",
-        "value": lambda M: M.parent.phi_y * M.parent.opt.factor,
+        "value": lambda M: M.parent.phi_y,
         "width": 10,
         "format": "%1.2e",
     }
     phi_z = {
         "title": "phi_z",
-        "value": lambda M: M.parent.phi_z * M.parent.opt.factor,
+        "value": lambda M: M.parent.phi_z,
         "width": 10,
         "format": "%1.2e",
     }
@@ -267,7 +283,6 @@ class Minimize(object):
     parent = None  #: This is the parent of the optimization routine.
 
     print_type = None
-    factor = 1.0
 
     def __init__(self, **kwargs):
         set_kwargs(self, **kwargs)
@@ -288,7 +303,6 @@ class Minimize(object):
         ]
 
         if self.print_type == "ubc":
-            self.factor = 2.0
             self.stoppers = [StoppingCriteria.iteration]
             self.printers = [
                 IterationPrinters.iteration,
@@ -896,9 +910,12 @@ class ProjectedGradient(Minimize, Remember):
             operator = sp.linalg.LinearOperator(
                 (shape[1], shape[1]), reduceHess, dtype=self.xc.dtype
             )
-            p, info = sp.linalg.cg(
-                operator, -Z.T * self.g, tol=self.tolCG, maxiter=self.maxIterCG
-            )
+
+            # Choose `rtol` or `tol` argument based on installed scipy version
+            tol_key = "rtol" if SCIPY_1_12 else "tol"
+
+            inp = {tol_key: self.tolCG, "maxiter": self.maxIterCG}
+            p, info = sp.linalg.cg(operator, -Z.T * self.g, **inp)
             p = Z * p  # bring up to full size
             # aSet_after = self.activeSet(self.xc+p)
         return p
@@ -954,10 +971,10 @@ class BFGS(Minimize, Remember):
         if getattr(self, "_bfgsH0", None) is None:
             print(
                 """
-                Default solver: SolverDiag is being used in bfgsH0
+                Default solver: Diagonal is being used in bfgsH0
                 """
             )
-            self._bfgsH0 = SolverDiag(sp.identity(self.xc.size))
+            self._bfgsH0 = Diagonal(sp.identity(self.xc.size))
         return self._bfgsH0
 
     @bfgsH0.setter
@@ -1073,9 +1090,10 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
 
     @timeIt
     def findSearchDirection(self):
-        Hinv = SolverICG(
-            self.H, M=self.approxHinv, tol=self.tolCG, maxiter=self.maxIterCG
-        )
+        # Choose `rtol` or `tol` argument based on installed scipy version
+        tol_key = "rtol" if SCIPY_1_12 else "tol"
+        inp = {tol_key: self.tolCG, "maxiter": self.maxIterCG}
+        Hinv = SolverCG(self.H, M=self.approxHinv, **inp)
         p = Hinv * (-self.g)
         return p
 

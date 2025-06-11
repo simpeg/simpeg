@@ -237,7 +237,10 @@ reg.norms = [p, q]
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.
-opt = optimization.ProjectedGNCG(maxIter=100, maxIterLS=20, maxIterCG=20, tolCG=1e-3)
+opt = optimization.ProjectedGNCG(
+    maxIter=100, maxIterLS=50, maxIterCG=20, tolCG=1e-3, upper=1e2, lower=1e-2
+)
+# limits here are used to guard against overflow and underflow in the ExpMap.
 
 # Define the inverse problem
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -255,7 +258,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 update_sensitivity_weights = directives.UpdateSensitivityWeights()
 
 # Reach target misfit for L2 solution, then use IRLS until model stops changing.
-IRLS = directives.Update_IRLS(max_irls_iterations=40, minGNiter=1, f_min_change=1e-5)
+IRLS = directives.UpdateIRLS(max_irls_iterations=40, f_min_change=1e-5)
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.

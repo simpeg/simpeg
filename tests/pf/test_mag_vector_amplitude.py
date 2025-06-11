@@ -1,4 +1,6 @@
 import unittest
+import pytest
+import matplotlib.pyplot as plt
 from simpeg import (
     directives,
     maps,
@@ -19,7 +21,6 @@ import shutil
 
 class MVIProblemTest(unittest.TestCase):
     def setUp(self):
-        np.random.seed(0)
         h0_amplitude, h0_inclination, h0_declination = (50000.0, 90.0, 0.0)
 
         # The magnetization is set along a different
@@ -99,14 +100,18 @@ class MVIProblemTest(unittest.TestCase):
             survey=survey,
             model_type="vector",
             chiMap=idenMap,
-            ind_active=actv,
+            active_cells=actv,
             store_sensitivities="disk",
         )
         self.sim = sim
 
         # Compute some data and add some random noise
         data = sim.make_synthetic_data(
-            utils.mkvc(self.model), relative_error=0.0, noise_floor=5.0, add_noise=True
+            utils.mkvc(self.model),
+            relative_error=0.0,
+            noise_floor=5.0,
+            add_noise=True,
+            random_seed=0,
         )
 
         reg = regularization.VectorAmplitude(
@@ -135,8 +140,8 @@ class MVIProblemTest(unittest.TestCase):
         # Here is where the norms are applied
         # Use pick a treshold parameter empirically based on the distribution of
         #  model parameters
-        IRLS = directives.Update_IRLS(
-            f_min_change=1e-3, max_irls_iterations=10, beta_tol=5e-1
+        IRLS = directives.UpdateIRLS(
+            f_min_change=1e-3, max_irls_iterations=10, misfit_tolerance=5e-1
         )
 
         # Pre-conditioner
@@ -156,28 +161,30 @@ class MVIProblemTest(unittest.TestCase):
         nC = int(mrec.shape[0] / 3)
         vec_xyz = mrec.reshape((nC, 3), order="F")
         residual = np.linalg.norm(vec_xyz - self.model) / np.linalg.norm(self.model)
-
-        # import matplotlib.pyplot as plt
-        # ax = plt.subplot()
-        # self.mesh.plot_slice(
-        #     self.actvMap * mrec.reshape((-1, 3), order="F"),
-        #     v_type="CCv",
-        #     view="vec",
-        #     ax=ax,
-        #     normal="Y",
-        #     grid=True,
-        #     quiver_opts={
-        #         "pivot": "mid",
-        #         "scale": 8 * np.abs(mrec).max(),
-        #         "scale_units": "inches",
-        #     },
-        # )
-        # plt.gca().set_aspect("equal", adjustable="box")
-        #
-        # plt.show()
-
         self.assertLess(residual, 1)
-        # self.assertTrue(residual < 0.05)
+
+    @pytest.mark.skip(reason="For validation only.")
+    def test_plot_results(self):
+        self.sim.store_sensitivities = "ram"
+        mrec = self.inv.run(self.mstart)
+
+        ax = plt.subplot()
+        self.mesh.plot_slice(
+            self.actvMap * mrec.reshape((-1, 3), order="F"),
+            v_type="CCv",
+            view="vec",
+            ax=ax,
+            normal="Y",
+            grid=True,
+            quiver_opts={
+                "pivot": "mid",
+                "scale": 8 * np.abs(mrec).max(),
+                "scale_units": "inches",
+            },
+        )
+        plt.gca().set_aspect("equal", adjustable="box")
+
+        plt.show()
 
     def tearDown(self):
         # Clean up the working directory

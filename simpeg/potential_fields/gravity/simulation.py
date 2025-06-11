@@ -1,10 +1,12 @@
-import os
+from __future__ import annotations
+import hashlib
 import warnings
 import numpy as np
-import discretize
+from numpy.typing import NDArray
 import scipy.constants as constants
 from geoana.kernels import prism_fz, prism_fzx, prism_fzy, prism_fzz
 from scipy.constants import G as NewtG
+from scipy.sparse.linalg import LinearOperator, aslinearoperator
 
 from simpeg import props
 from simpeg.utils import mkvc, sdiag
@@ -12,13 +14,15 @@ from simpeg.utils import mkvc, sdiag
 from ...base import BasePDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
 
-from ._numba_functions import (
-    choclo,
-    _sensitivity_gravity_serial,
-    _sensitivity_gravity_parallel,
-    _forward_gravity_serial,
-    _forward_gravity_parallel,
-)
+from ._numba import choclo, NUMBA_FUNCTIONS_3D, NUMBA_FUNCTIONS_2D
+
+try:
+    from warnings import deprecated
+except ImportError:
+    # Use the deprecated decorator provided by typing_extensions (which
+    # supports older versions of Python) if it cannot be imported from
+    # warnings.
+    from typing_extensions import deprecated
 
 if choclo is not None:
     from numba import jit
@@ -29,6 +33,48 @@ if choclo is not None:
         result = 0.5 * (
             choclo.prism.kernel_nn(easting, northing, upward, radius)
             - choclo.prism.kernel_ee(easting, northing, upward, radius)
+        )
+        return result
+
+    @jit(nopython=True)
+    def gravity_uv(
+        easting,
+        northing,
+        upward,
+        prism_west,
+        prism_east,
+        prism_south,
+        prism_north,
+        prism_bottom,
+        prism_top,
+        density,
+    ):
+        """Forward model the Guv gradiometry component."""
+        result = 0.5 * (
+            choclo.prism.gravity_nn(
+                easting,
+                northing,
+                upward,
+                prism_west,
+                prism_east,
+                prism_south,
+                prism_north,
+                prism_bottom,
+                prism_top,
+                density,
+            )
+            - choclo.prism.gravity_ee(
+                easting,
+                northing,
+                upward,
+                prism_west,
+                prism_east,
+                prism_south,
+                prism_north,
+                prism_bottom,
+                prism_top,
+                density,
+            )
         )
         return result
 
@@ -43,6 +89,19 @@ if choclo is not None:
         "gxz": choclo.prism.kernel_eu,
         "gyz": choclo.prism.kernel_nu,
         "guv": kernel_uv,
+    }
+
+    CHOCLO_FORWARD_FUNCS = {
+        "gx": choclo.prism.gravity_e,
+        "gy": choclo.prism.gravity_n,
+        "gz": choclo.prism.gravity_u,
+        "gxx": choclo.prism.gravity_ee,
+        "gyy": choclo.prism.gravity_nn,
+        "gzz": choclo.prism.gravity_uu,
+        "gxy": choclo.prism.gravity_en,
+        "gxz": choclo.prism.gravity_eu,
+        "gyz": choclo.prism.gravity_nu,
+        "guv": gravity_uv,
     }
 
 
@@ -60,22 +119,25 @@ def _get_conversion_factor(component):
 
 
 class Simulation3DIntegral(BasePFSimulation):
-    """
+    r"""
     Gravity simulation in integral form.
 
+    .. note::
+
+        The gravity simulation assumes the following units for its inputs and outputs:
+
+        - Density model is assumed to be in gram per cubic centimeter (g/cc).
+        - Acceleration components (``"gx"``, ``"gy"``, ``"gz"``) are returned in mgal
+          (:math:`10^{-5} \text{m}/\text{s}^2`).
+        - Gradient components (``"gxx"``, ``"gyy"``, ``"gzz"``, ``"gxy"``, ``"gxz"``,
+          ``"gyz"``, ``"guv"``) are returned in Eotvos (:math:`10^{-9} s^{-2}`).
+
     .. important::
 
-        Density model is assumed to be in g/cc.
+        Following SimPEG convention for the right-handed xyz coordinate system, the
+        z axis points *upwards*. Therefore, the ``"gz"`` component corresponds to the
+        **upward** component of the gravity acceleration vector.
 
-    .. important::
-
-        Acceleration components ("gx", "gy", "gz") are returned in mgal
-        (:math:`10^{-5} m/s^2`).
-
-    .. important::
-
-        Gradient components ("gxx", "gyy", "gzz", "gxy", "gxz", "gyz") are
-        returned in Eotvos (:math:`10^{-9} s^{-2}`).
 
     Parameters
     ----------
@@ -83,32 +145,39 @@ class Simulation3DIntegral(BasePFSimulation):
         Mesh use to run the gravity simulation.
     survey : simpeg.potential_fields.gravity.Survey
         Gravity survey with information of the receivers.
-    ind_active : (n_cells) numpy.ndarray, optional
+    active_cells : (n_cells) numpy.ndarray, optional
         Array that indicates which cells in ``mesh`` are active cells.
-    rho : numpy.ndarray (optional)
+    rho : numpy.ndarray, optional
         Density array for the active cells in the mesh.
-    rhoMap : Mapping (optional)
+    rhoMap : Mapping, optional
         Model mapping.
     sensitivity_dtype : numpy.dtype, optional
         Data type that will be used to build the sensitivity matrix.
-    store_sensitivities : str
+    store_sensitivities : {"ram", "disk", "forward_only"}
         Options for storing sensitivity matrix. There are 3 options
 
         - 'ram': sensitivities are stored in the computer's RAM
         - 'disk': sensitivities are written to a directory
         - 'forward_only': you intend only do perform a forward simulation and
-          sensitivities do not need to be stored
+          sensitivities do not need to be stored. The sensitivity matrix ``G``
+          is never created, but it'll be defined as
+          a :class:`~scipy.sparse.linalg.LinearOperator`.
 
     sensitivity_path : str, optional
         Path to store the sensitivity matrix if ``store_sensitivities`` is set
         to ``"disk"``. Default to "./sensitivities".
-    engine : str, optional
-       Choose which engine should be used to run the forward model:
-       ``"geoana"`` or "``choclo``".
+    engine : {"geoana", "choclo"}, optional
+       Choose which engine should be used to run the forward model.
     numba_parallel : bool, optional
         If True, the simulation will run in parallel. If False, it will
         run in serial. If ``engine`` is not ``"choclo"`` this argument will be
         ignored.
+    ind_active : np.ndarray of int or bool
+
+        .. deprecated:: 0.23.0
+
+           Argument ``ind_active`` is deprecated in favor of
+           ``active_cells`` and will be removed in SimPEG v0.24.0.
     """
 
     rho, rhoMap, rhoDeriv = props.Invertible("Density")
@@ -122,51 +191,11 @@ class Simulation3DIntegral(BasePFSimulation):
         numba_parallel=True,
         **kwargs,
     ):
-        super().__init__(mesh, **kwargs)
+        super().__init__(mesh, engine=engine, numba_parallel=numba_parallel, **kwargs)
         self.rho = rho
         self.rhoMap = rhoMap
-        self._G = None
-        self._gtg_diagonal = None
         self.modelMap = self.rhoMap
-        self.numba_parallel = numba_parallel
-        self.engine = engine
-        self._sanity_checks_engine(kwargs)
-        if self.engine == "choclo":
-            # Check dimensions of the mesh
-            if self.mesh.dim != 3:
-                raise ValueError(
-                    f"Invalid mesh with {self.mesh.dim} dimensions. "
-                    "Only 3D meshes are supported when using 'choclo' as engine."
-                )
-            # Define jit functions
-            if numba_parallel:
-                self._sensitivity_gravity = _sensitivity_gravity_parallel
-                self._forward_gravity = _forward_gravity_parallel
-            else:
-                self._sensitivity_gravity = _sensitivity_gravity_serial
-                self._forward_gravity = _forward_gravity_serial
 
-    def _sanity_checks_engine(self, kwargs):
-        """
-        Sanity checks for the engine parameter.
-
-        Needs the kwargs passed to the __init__ method to raise some warnings.
-        Will set n_processes to None if it's present in kwargs.
-        """
-        if self.engine not in ("choclo", "geoana"):
-            raise ValueError(
-                f"Invalid engine '{self.engine}'. Choose from 'geoana' or 'choclo'."
-            )
-        if self.engine == "choclo" and choclo is None:
-            raise ImportError(
-                "The choclo package couldn't be found."
-                "Running a gravity simulation with 'engine=\"choclo\"' needs "
-                "choclo to be installed."
-                "\nTry installing choclo with:"
-                "\n    pip install choclo"
-                "\nor:"
-                "\n    conda install choclo"
-            )
         # Warn if n_processes has been passed
         if self.engine == "choclo" and "n_processes" in kwargs:
             warnings.warn(
@@ -176,15 +205,6 @@ class Simulation3DIntegral(BasePFSimulation):
                 stacklevel=1,
             )
             self.n_processes = None
-        # Sanity checks for sensitivity_path when using choclo and storing in disk
-        if self.engine == "choclo" and self.store_sensitivities == "disk":
-            if os.path.isdir(self.sensitivity_path):
-                raise ValueError(
-                    f"The passed sensitivity_path '{self.sensitivity_path}' is "
-                    "a directory. "
-                    "When using 'choclo' as the engine, 'senstivity_path' "
-                    "should be the path to a new or existing file."
-                )
 
     def fields(self, m):
         """
@@ -192,8 +212,8 @@ class Simulation3DIntegral(BasePFSimulation):
 
         Parameters
         ----------
-        m : (n_active_cells,) numpy.ndarray
-            Array with values for the model.
+        m : (n_param,) numpy.ndarray
+            The model parameters.
 
         Returns
         -------
@@ -201,6 +221,7 @@ class Simulation3DIntegral(BasePFSimulation):
             Gravity fields generated by the given model on every receiver
             location.
         """
+        # Need to assign the model, so the rho property can be accessed.
         self.model = m
         if self.store_sensitivities == "forward_only":
             # Compute the linear operation without forming the full dense G
@@ -213,65 +234,238 @@ class Simulation3DIntegral(BasePFSimulation):
         return np.asarray(fields)
 
     def getJtJdiag(self, m, W=None, f=None):
+        r"""
+        Compute diagonal of :math:`\mathbf{J}^T \mathbf{J}``.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        W : (nD, nD) np.ndarray or scipy.sparse.sparray, optional
+            Diagonal matrix with the square root of the weights. If not None,
+            the function returns the diagonal of
+            :math:`\mathbf{J}^T \mathbf{W}^T \mathbf{W} \mathbf{J}``.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        (n_active_cells) np.ndarray
+            Array with the diagonal of ``J.T @ J``.
+
+        Notes
+        -----
+        If ``store_sensitivities`` is ``"forward_only"``, the ``G`` matrix is
+        never allocated in memory, and the diagonal is obtained by
+        accumulation, computing each element of the ``G`` matrix on the fly.
+
+        This method caches the diagonal ``G.T @ W.T @ W @ G`` and the sha256
+        hash of the diagonal of the ``W`` matrix. This way, if same weights are
+        passed to it, it reuses the cached diagonal so it doesn't need to be
+        recomputed.
+        If new weights are passed, the cache is updated with the latest
+        diagonal of ``G.T @ W.T @ W @ G``.
         """
-        Return the diagonal of JtJ
-        """
+        # Need to assign the model, so the rhoDeriv can be computed (if the
+        # model is None, the rhoDeriv is going to be Zero).
         self.model = m
 
-        if W is None:
-            W = np.ones(self.survey.nD)
-        else:
-            W = W.diagonal() ** 2
-        if getattr(self, "_gtg_diagonal", None) is None:
-            diag = np.zeros(self.G.shape[1])
-            for i in range(len(W)):
-                diag += W[i] * (self.G[i] * self.G[i])
-            self._gtg_diagonal = diag
-        else:
-            diag = self._gtg_diagonal
-        return mkvc((sdiag(np.sqrt(diag)) @ self.rhoDeriv).power(2).sum(axis=0))
+        # We should probably check that W is diagonal. Let's assume it for now.
+        weights = (
+            W.diagonal() ** 2
+            if W is not None
+            else np.ones(self.survey.nD, dtype=np.float64)
+        )
 
-    def getJ(self, m, f=None):
+        # Compute gtg (G.T @ W.T @ W @ G) if it's not cached, or if the
+        # weights are not the same.
+        weights_sha256 = hashlib.sha256(weights)
+        use_cached_gtg = (
+            hasattr(self, "_gtg_diagonal")
+            and hasattr(self, "_weights_sha256")
+            and self._weights_sha256.digest() == weights_sha256.digest()
+        )
+        if not use_cached_gtg:
+            self._gtg_diagonal = self._get_gtg_diagonal(weights)
+            self._weights_sha256 = weights_sha256
+
+        # Multiply the gtg_diagonal by the derivative of the mapping
+        diagonal = mkvc(
+            (sdiag(np.sqrt(self._gtg_diagonal)) @ self.rhoDeriv).power(2).sum(axis=0)
+        )
+        return diagonal
+
+    def _get_gtg_diagonal(self, weights: NDArray) -> NDArray:
         """
-        Sensitivity matrix
+        Compute the diagonal of ``G.T @ W.T @ W @ G``.
+
+        Parameters
+        ----------
+        weights : np.ndarray
+            Weights array: diagonal of ``W.T @ W``.
+
+        Returns
+        -------
+        np.ndarray
         """
-        return self.G.dot(self.rhoDeriv)
+        match self.store_sensitivities, self.engine:
+            case ("forward_only", "geoana"):
+                msg = (
+                    "Computing the diagonal of G.T @ G with "
+                    'store_sensitivities="forward_only" and engine="geoana" '
+                    "hasn't been implemented yet. "
+                    'Choose store_sensitivities="ram" or "disk", '
+                    'or another engine, like "choclo".'
+                )
+                raise NotImplementedError(msg)
+            case ("forward_only", "choclo"):
+                gtg_diagonal = self._gtg_diagonal_without_building_g(weights)
+            case (_, _):
+                # In Einstein notation, the j-th element of the diagonal is:
+                #   d_j = w_i * G_{ij} * G_{ij}
+                gtg_diagonal = np.asarray(
+                    np.einsum("i,ij,ij->j", weights, self.G, self.G)
+                )
+        return gtg_diagonal
+
+    def getJ(self, m, f=None) -> NDArray[np.float64 | np.float32] | LinearOperator:
+        r"""
+        Sensitivity matrix :math:`\mathbf{J}`.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        (nD, n_active_cells) np.ndarray or scipy.sparse.linalg.LinearOperator.
+            Array or :class:`~scipy.sparse.linalg.LinearOperator` for the
+            :math:`\mathbf{J}` matrix.
+            A :class:`~scipy.sparse.linalg.LinearOperator` will be returned if
+            ``store_sensitivities`` is ``"forward_only"``, otherwise a dense
+            array will be returned.
+
+        Notes
+        -----
+        If ``store_sensitivities`` is ``"ram"`` or ``"disk"``, a dense array
+        for the ``J`` matrix is returned.
+        A :class:`~scipy.sparse.linalg.LinearOperator` is returned if
+        ``store_sensitivities`` is ``"forward_only"``. This object can perform
+        operations like ``J @ m`` or ``J.T @ v`` without allocating the full
+        ``J`` matrix in memory.
+        """
+        # Need to assign the model, so the rhoDeriv can be computed (if the
+        # model is None, the rhoDeriv is going to be Zero).
+        self.model = m
+        rhoDeriv = (
+            self.rhoDeriv
+            if not isinstance(self.G, LinearOperator)
+            else aslinearoperator(self.rhoDeriv)
+        )
+        return self.G @ rhoDeriv
 
     def Jvec(self, m, v, f=None):
         """
-        Sensitivity times a vector
+        Dot product between sensitivity matrix and a vector.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters. This array is used to compute the ``J``
+            matrix.
+        v : (n_param,) numpy.ndarray
+            Vector used in the matrix-vector multiplication.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        (nD,) numpy.ndarray
+
+        Notes
+        -----
+        If ``store_sensitivities`` is set to ``"forward_only"``, then the
+        matrix `G` is never fully constructed, and the dot product is computed
+        by accumulation, computing the matrix elements on the fly. Otherwise,
+        the full matrix ``G`` is constructed and stored either in memory or
+        disk.
         """
+        # Need to assign the model, so the rhoDeriv can be computed (if the
+        # model is None, the rhoDeriv is going to be Zero).
+        self.model = m
         dmu_dm_v = self.rhoDeriv @ v
         return self.G @ dmu_dm_v.astype(self.sensitivity_dtype, copy=False)
 
     def Jtvec(self, m, v, f=None):
         """
-        Sensitivity transposed times a vector
+        Dot product between transposed sensitivity matrix and a vector.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters. This array is used to compute the ``J``
+            matrix.
+        v : (nD,) numpy.ndarray
+            Vector used in the matrix-vector multiplication.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        (nD,) numpy.ndarray
+
+        Notes
+        -----
+        If ``store_sensitivities`` is set to ``"forward_only"``, then the
+        matrix `G` is never fully constructed, and the dot product is computed
+        by accumulation, computing the matrix elements on the fly. Otherwise,
+        the full matrix ``G`` is constructed and stored either in memory or
+        disk.
         """
+        # Need to assign the model, so the rhoDeriv can be computed (if the
+        # model is None, the rhoDeriv is going to be Zero).
+        self.model = m
         Jtvec = self.G.T @ v.astype(self.sensitivity_dtype, copy=False)
         return np.asarray(self.rhoDeriv.T @ Jtvec)
 
     @property
-    def G(self):
+    def G(self) -> NDArray | np.memmap | LinearOperator:
         """
-        Gravity forward operator
+        Gravity forward operator.
         """
-        if getattr(self, "_G", None) is None:
-            if self.engine == "choclo":
-                self._G = self._sensitivity_matrix()
-            else:
-                self._G = self.linear_operator()
+        if not hasattr(self, "_G"):
+            match self.engine, self.store_sensitivities:
+                case ("choclo", "forward_only"):
+                    self._G = self._sensitivity_matrix_as_operator()
+                case ("choclo", _):
+                    self._G = self._sensitivity_matrix()
+                case ("geoana", "forward_only"):
+                    msg = (
+                        "Accessing matrix G with "
+                        'store_sensitivities="forward_only" and engine="geoana" '
+                        "hasn't been implemented yet. "
+                        'Choose store_sensitivities="ram" or "disk", '
+                        'or another engine, like "choclo".'
+                    )
+                    raise NotImplementedError(msg)
+                case ("geoana", _):
+                    self._G = self.linear_operator()
         return self._G
 
     @property
+    @deprecated(
+        "The `gtg_diagonal` property has been deprecated. "
+        "It will be removed in SimPEG v0.25.0.",
+        category=FutureWarning,
+    )
     def gtg_diagonal(self):
         """
         Diagonal of GtG
         """
-        if getattr(self, "_gtg_diagonal", None) is None:
-            return None
-
-        return self._gtg_diagonal
+        return getattr(self, "_gtg_diagonal", None)
 
     def evaluate_integral(self, receiver_location, components):
         """
@@ -384,6 +578,8 @@ class Simulation3DIntegral(BasePFSimulation):
         (nD,) numpy.ndarray
             Always return a ``np.float64`` array.
         """
+        # Get Numba function
+        forward_func = NUMBA_FUNCTIONS_3D["forward"][self.numba_parallel]
         # Gather active nodes and the indices of the nodes for each active cell
         active_nodes, active_cell_nodes = self._get_active_nodes()
         # Allocate fields array
@@ -399,7 +595,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 vector_slice = slice(
                     index_offset + i, index_offset + n_elements, n_components
                 )
-                self._forward_gravity(
+                forward_func(
                     receivers,
                     active_nodes,
                     densities,
@@ -413,12 +609,14 @@ class Simulation3DIntegral(BasePFSimulation):
 
     def _sensitivity_matrix(self):
         """
-        Compute the sensitivity matrix G
+        Compute the sensitivity matrix ``G``.
 
         Returns
         -------
         (nD, n_active_cells) numpy.ndarray
         """
+        # Get Numba function
+        sensitivity_func = NUMBA_FUNCTIONS_3D["sensitivity"][self.numba_parallel]
         # Gather active nodes and the indices of the nodes for each active cell
         active_nodes, active_cell_nodes = self._get_active_nodes()
         # Allocate sensitivity matrix
@@ -444,7 +642,7 @@ class Simulation3DIntegral(BasePFSimulation):
                 matrix_slice = slice(
                     index_offset + i, index_offset + n_rows, n_components
                 )
-                self._sensitivity_gravity(
+                sensitivity_func(
                     receivers,
                     active_nodes,
                     sensitivity_matrix[matrix_slice, :],
@@ -455,44 +653,100 @@ class Simulation3DIntegral(BasePFSimulation):
             index_offset += n_rows
         return sensitivity_matrix
 
-    def _get_active_nodes(self):
+    def _sensitivity_matrix_transpose_dot_vec(self, vector):
         """
-        Return locations of nodes only for active cells
+        Compute ``G.T @ v`` without building ``G``.
 
-        Also return an array containing the indices of the "active nodes" for
-        each active cell in the mesh
+        Parameters
+        ----------
+        vector : (nD) numpy.ndarray
+            Vector used in the dot product.
+
+        Returns
+        -------
+        (n_active_cells) numpy.ndarray
         """
-        # Get all nodes in the mesh
-        if isinstance(self.mesh, discretize.TreeMesh):
-            nodes = self.mesh.total_nodes
-        elif isinstance(self.mesh, discretize.TensorMesh):
-            nodes = self.mesh.nodes
-        else:
-            raise TypeError(f"Invalid mesh of type {self.mesh.__class__.__name__}.")
-        # Get original cell_nodes but only for active cells
-        cell_nodes = self.mesh.cell_nodes
-        # If all cells in the mesh are active, return nodes and cell_nodes
-        if self.nC == self.mesh.n_cells:
-            return nodes, cell_nodes
-        # Keep only the cell_nodes for active cells
-        cell_nodes = cell_nodes[self.ind_active]
-        # Get the unique indices of the nodes that belong to every active cell
-        # (these indices correspond to the original `nodes` array)
-        unique_nodes, active_cell_nodes = np.unique(cell_nodes, return_inverse=True)
-        # Select only the nodes that belong to the active cells (active nodes)
-        active_nodes = nodes[unique_nodes]
-        # Reshape indices of active cell nodes for each active cell in the mesh
-        active_cell_nodes = active_cell_nodes.reshape(cell_nodes.shape)
-        return active_nodes, active_cell_nodes
+        # Get Numba function
+        sensitivity_t_dot_v_func = NUMBA_FUNCTIONS_3D["gt_dot_v"][self.numba_parallel]
+        # Gather active nodes and the indices of the nodes for each active cell
+        active_nodes, active_cell_nodes = self._get_active_nodes()
+        # Allocate resulting array
+        result = np.zeros(self.nC)
+        # Start filling the result array
+        index_offset = 0
+        for components, receivers in self._get_components_and_receivers():
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                kernel_func = CHOCLO_KERNELS[component]
+                conversion_factor = _get_conversion_factor(component)
+                vector_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
+                )
+                sensitivity_t_dot_v_func(
+                    receivers,
+                    active_nodes,
+                    active_cell_nodes,
+                    kernel_func,
+                    constants.G * conversion_factor,
+                    vector[vector_slice],
+                    result,
+                )
+            index_offset += n_rows
+        return result
 
-    def _get_components_and_receivers(self):
-        """Generator for receiver locations and their field components."""
-        if not hasattr(self.survey, "source_field"):
-            raise AttributeError(
-                f"The survey '{self.survey}' has no 'source_field' attribute."
-            )
-        for receiver_object in self.survey.source_field.receiver_list:
-            yield receiver_object.components, receiver_object.locations
+    def _sensitivity_matrix_as_operator(self):
+        """
+        Create a LinearOperator for the sensitivity matrix G.
+
+        Returns
+        -------
+        scipy.sparse.linalg.LinearOperator
+        """
+        shape = (self.survey.nD, self.nC)
+        linear_op = LinearOperator(
+            shape=shape,
+            matvec=self._forward,
+            rmatvec=self._sensitivity_matrix_transpose_dot_vec,
+            dtype=np.float64,
+        )
+        return linear_op
+
+    def _gtg_diagonal_without_building_g(self, weights):
+        """
+        Compute the diagonal of ``G.T @ G`` without building the ``G`` matrix.
+
+        Parameters
+        -----------
+        weights : (nD,) array
+            Array with data weights. It should be the diagonal of the ``W``
+            matrix, squared.
+
+        Returns
+        -------
+        (n_active_cells) numpy.ndarray
+        """
+        # Get Numba function
+        diagonal_gtg_func = NUMBA_FUNCTIONS_3D["diagonal_gtg"][self.numba_parallel]
+        # Gather active nodes and the indices of the nodes for each active cell
+        active_nodes, active_cell_nodes = self._get_active_nodes()
+        # Allocate array for the diagonal of G.T @ G
+        diagonal = np.zeros(self.nC, dtype=np.float64)
+        # Start filling the diagonal array
+        for components, receivers in self._get_components_and_receivers():
+            for component in components:
+                kernel_func = CHOCLO_KERNELS[component]
+                conversion_factor = _get_conversion_factor(component)
+                diagonal_gtg_func(
+                    receivers,
+                    active_nodes,
+                    active_cell_nodes,
+                    kernel_func,
+                    constants.G * conversion_factor,
+                    weights,
+                    diagonal,
+                )
+        return diagonal
 
 
 class SimulationEquivalentSourceLayer(
@@ -506,12 +760,208 @@ class SimulationEquivalentSourceLayer(
     mesh : discretize.BaseMesh
         A 2D tensor or tree mesh defining discretization along the x and y directions
     cell_z_top : numpy.ndarray or float
-        Define the elevations for the top face of all cells in the layer. If an array it should be the same size as
-        the active cell set.
+        Define the elevations for the top face of all cells in the layer.
+        If an array it should be the same size as the active cell set.
     cell_z_bottom : numpy.ndarray or float
-        Define the elevations for the bottom face of all cells in the layer. If an array it should be the same size as
-        the active cell set.
+        Define the elevations for the bottom face of all cells in the layer.
+        If an array it should be the same size as the active cell set.
+    engine : {"geoana", "choclo"}, optional
+        Choose which engine should be used to run the forward model.
+    numba_parallel : bool, optional
+        If True, the simulation will run in parallel. If False, it will
+        run in serial. If ``engine`` is not ``"choclo"`` this argument will be
+        ignored.
     """
+
+    def __init__(
+        self,
+        mesh,
+        cell_z_top,
+        cell_z_bottom,
+        engine="geoana",
+        numba_parallel=True,
+        **kwargs,
+    ):
+        super().__init__(
+            mesh,
+            cell_z_top,
+            cell_z_bottom,
+            engine=engine,
+            numba_parallel=numba_parallel,
+            **kwargs,
+        )
+
+    def _forward(self, densities):
+        """
+        Forward model the fields of active cells in the mesh on receivers.
+
+        Parameters
+        ----------
+        densities : (n_active_cells) numpy.ndarray
+            Array containing the densities of the active cells in the mesh, in
+            g/cc.
+
+        Returns
+        -------
+        (nD,) numpy.ndarray
+            Always return a ``np.float64`` array.
+        """
+        # Get Numba function
+        forward_func = NUMBA_FUNCTIONS_2D["forward"][self.numba_parallel]
+        # Get cells in the 2D mesh and keep only active cells
+        cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
+        # Allocate fields array
+        fields = np.zeros(self.survey.nD, dtype=self.sensitivity_dtype)
+        # Compute fields
+        index_offset = 0
+        for components, receivers in self._get_components_and_receivers():
+            n_components = len(components)
+            n_elements = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                choclo_forward_func = CHOCLO_FORWARD_FUNCS[component]
+                conversion_factor = _get_conversion_factor(component)
+                vector_slice = slice(
+                    index_offset + i, index_offset + n_elements, n_components
+                )
+                forward_func(
+                    receivers,
+                    cells_bounds_active,
+                    self.cell_z_top,
+                    self.cell_z_bottom,
+                    densities,
+                    fields[vector_slice],
+                    choclo_forward_func,
+                    conversion_factor,
+                )
+            index_offset += n_elements
+        return fields
+
+    def _sensitivity_matrix(self):
+        """
+        Compute the sensitivity matrix G
+
+        Returns
+        -------
+        (nD, n_active_cells) numpy.ndarray
+        """
+        # Get Numba function
+        sensitivity_func = NUMBA_FUNCTIONS_2D["sensitivity"][self.numba_parallel]
+        # Get cells in the 2D mesh and keep only active cells
+        cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
+        # Allocate sensitivity matrix
+        shape = (self.survey.nD, self.nC)
+        if self.store_sensitivities == "disk":
+            sensitivity_matrix = np.memmap(
+                self.sensitivity_path,
+                shape=shape,
+                dtype=self.sensitivity_dtype,
+                order="C",  # it's more efficient to write in row major
+                mode="w+",
+            )
+        else:
+            sensitivity_matrix = np.empty(shape, dtype=self.sensitivity_dtype)
+        # Start filling the sensitivity matrix
+        index_offset = 0
+        for components, receivers in self._get_components_and_receivers():
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                choclo_forward_func = CHOCLO_FORWARD_FUNCS[component]
+                conversion_factor = _get_conversion_factor(component)
+                matrix_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
+                )
+                sensitivity_func(
+                    receivers,
+                    cells_bounds_active,
+                    self.cell_z_top,
+                    self.cell_z_bottom,
+                    sensitivity_matrix[matrix_slice, :],
+                    choclo_forward_func,
+                    conversion_factor,
+                )
+            index_offset += n_rows
+        return sensitivity_matrix
+
+    def _sensitivity_matrix_transpose_dot_vec(self, vector):
+        """
+        Compute ``G.T @ v`` without building ``G``.
+
+        Parameters
+        ----------
+        vector : (nD) numpy.ndarray
+            Vector used in the dot product.
+
+        Returns
+        -------
+        (n_active_cells) numpy.ndarray
+        """
+        # Get Numba function
+        g_t_dot_v_func = NUMBA_FUNCTIONS_2D["gt_dot_v"][self.numba_parallel]
+        # Get cells in the 2D mesh and keep only active cells
+        cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
+        # Allocate resulting array
+        result = np.zeros(self.nC)
+        # Start filling the result array
+        index_offset = 0
+        for components, receivers in self._get_components_and_receivers():
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                choclo_forward_func = CHOCLO_FORWARD_FUNCS[component]
+                conversion_factor = _get_conversion_factor(component)
+                vector_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
+                )
+                g_t_dot_v_func(
+                    receivers,
+                    cells_bounds_active,
+                    self.cell_z_top,
+                    self.cell_z_bottom,
+                    choclo_forward_func,
+                    conversion_factor,
+                    vector[vector_slice],
+                    result,
+                )
+            index_offset += n_rows
+        return result
+
+    def _gtg_diagonal_without_building_g(self, weights):
+        """
+        Compute the diagonal of ``G.T @ G`` without building the ``G`` matrix.
+
+        Parameters
+        -----------
+        weights : (nD,) array
+            Array with data weights. It should be the diagonal of the ``W``
+            matrix, squared.
+
+        Returns
+        -------
+        (n_active_cells) numpy.ndarray
+        """
+        # Get Numba function
+        diagonal_gtg_func = NUMBA_FUNCTIONS_2D["diagonal_gtg"][self.numba_parallel]
+        # Get cells in the 2D mesh and keep only active cells
+        cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
+        # Allocate array for the diagonal of G.T @ G
+        diagonal = np.zeros(self.nC, dtype=np.float64)
+        # Start filling the diagonal array
+        for components, receivers in self._get_components_and_receivers():
+            for component in components:
+                choclo_forward_func = CHOCLO_FORWARD_FUNCS[component]
+                conversion_factor = _get_conversion_factor(component)
+                diagonal_gtg_func(
+                    receivers,
+                    cells_bounds_active,
+                    self.cell_z_top,
+                    self.cell_z_bottom,
+                    choclo_forward_func,
+                    conversion_factor,
+                    weights,
+                    diagonal,
+                )
+        return diagonal
 
 
 class Simulation3DDifferential(BasePDESimulation):

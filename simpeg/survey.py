@@ -431,7 +431,7 @@ class BaseSurvey:
         self.source_list = source_list
 
         if counter is not None:
-            self.counter = counter
+            self._counter = validate_type("counter", counter, Counter, cast=False)
 
         self._uid = uuid.uuid4()
         super().__init__(**kwargs)
@@ -480,21 +480,6 @@ class BaseSurvey:
             A universal unique identifier
         """
         return self._uid
-
-    @property
-    def counter(self):
-        """A SimPEG counter object for counting iterations and operations
-
-        Returns
-        -------
-        simpeg.utils.counter_utils.Counter
-            A SimPEG counter object
-        """
-        return self._counter
-
-    @counter.setter
-    def counter(self, new_obj):
-        self._counter = validate_type("counter", new_obj, Counter, cast=False)
 
     # TODO: this should be private
     def get_source_indices(self, sources):
@@ -553,6 +538,92 @@ class BaseSurvey:
     def _n_fields(self):
         """number of fields required for solution"""
         return sum(src._fields_per_source for src in self.source_list)
+
+    def get_slice(self, source, receiver):
+        """
+        Get slice to index a flat array for a given source-receiver pair.
+
+        Use this method to index a data or uncertainty array for
+        a source-receiver pair of this survey.
+
+        Parameters
+        ----------
+        source : .BaseSrc
+            Source object.
+        receiver : .BaseRx
+            Receiver object.
+
+        Returns
+        -------
+        slice
+
+        Raises
+        ------
+        KeyError
+            If the given ``source`` or ``receiver`` do not belong to this survey.
+
+        See also
+        --------
+        .get_all_slices
+        """
+        # Create generator for source and receiver pairs
+        source_receiver_pairs = (
+            (src, rx) for src in self.source_list for rx in src.receiver_list
+        )
+        # Get the start and end offsets for the given source and receiver, and
+        # build the slice
+        src_rx_slice = None
+        end_offset = 0
+        for src, rx in source_receiver_pairs:
+            start_offset = end_offset
+            end_offset += rx.nD
+            if src is source and rx is receiver:
+                src_rx_slice = slice(start_offset, end_offset)
+                break
+        # Raise error if the source-receiver pair is not in the survey
+        if src_rx_slice is None:
+            msg = (
+                f"Source '{source}' and receiver '{receiver}' pair "
+                "is not part of the survey."
+            )
+            raise KeyError(msg)
+        return src_rx_slice
+
+    def get_all_slices(self):
+        """
+        Get slices to index a flat array for all source-receiver pairs.
+
+        .. warning::
+
+            Survey objects are mutable objects. If the sources or receivers in
+            it get modified, slices generated with this method will not match
+            the arrays linked to the modified survey.
+
+        Returns
+        -------
+        dict[tuple[.BaseSrc, .BaseRx], slice]
+            Dictionary with flat array slices for every pair of source and
+            receiver in the survey. The keys are tuples of a single source and
+            a single receiver, and the values are the corresponding slice for
+            each one of them.
+
+        See also
+        --------
+        .get_slice
+        """
+        # Create generator for source and receiver pairs
+        source_receiver_pairs = (
+            (src, rx) for src in self.source_list for rx in src.receiver_list
+        )
+        # Get the start and end offsets for all source-receiver pairs, and
+        # build the slices.
+        slices = {}
+        end_offset = 0
+        for src, rx in source_receiver_pairs:
+            start_offset = end_offset
+            end_offset += rx.nD
+            slices[(src, rx)] = slice(start_offset, end_offset)
+        return slices
 
 
 class BaseTimeSurvey(BaseSurvey):

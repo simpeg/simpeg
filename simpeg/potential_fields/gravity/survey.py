@@ -1,6 +1,14 @@
 from ...survey import BaseSurvey
-from ...utils.code_utils import validate_type
+from ...utils.code_utils import validate_list_of_types
 from .sources import SourceField
+
+try:
+    from warnings import deprecated
+except ImportError:
+    # Use the deprecated decorator provided by typing_extensions (which
+    # supports older versions of Python) if it cannot be imported from
+    # warnings.
+    from typing_extensions import deprecated
 
 
 class Survey(BaseSurvey):
@@ -13,10 +21,34 @@ class Survey(BaseSurvey):
     """
 
     def __init__(self, source_field, **kwargs):
-        self.source_field = validate_type(
-            "source_field", source_field, SourceField, cast=False
+        if "source_list" in kwargs:
+            msg = (
+                "source_list is not a valid argument to gravity.Survey. "
+                "Use source_field instead."
+            )
+            raise TypeError(msg)
+        super().__init__(source_list=source_field, **kwargs)
+
+    @BaseSurvey.source_list.setter
+    def source_list(self, new_list):
+        new_list = validate_list_of_types(
+            "source_list", new_list, SourceField, ensure_unique=True, min_n=1, max_n=1
         )
-        super().__init__(source_list=None, **kwargs)
+        self._source_list = new_list
+
+    @property
+    def source_field(self):
+        """A source object that contains the gravity receivers.
+
+        Returns
+        -------
+        simpeg.potential_fields.gravity.sources.SourceField
+        """
+        return self.source_list[0]
+
+    @source_field.setter
+    def source_field(self, new_src):
+        self.source_list = new_src
 
     def eval(self, fields):  # noqa: A003
         """Evaluate the field
@@ -75,8 +107,23 @@ class Survey(BaseSurvey):
         return sum(receiver.nD for receiver in self.source_field.receiver_list)
 
     @property
+    @deprecated(
+        "The `components` property is deprecated, "
+        "and will be removed in SimPEG v0.25.0. "
+        "Within a gravity survey, receivers can contain different components. "
+        "Iterate over the sources and receivers in the survey to get "
+        "information about their components.",
+        category=FutureWarning,
+    )
     def components(self):
         """Number of components measured at each receiver.
+
+        .. deprecated:: 0.24.0
+
+            The `components` property is deprecated, and will be removed in
+            SimPEG v0.25.0. Within a gravity survey, receivers can contain
+            different components. Iterate over the sources and receivers in the
+            survey to get information about their components.
 
         Returns
         -------

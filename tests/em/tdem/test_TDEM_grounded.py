@@ -6,7 +6,6 @@ import unittest
 import discretize
 from simpeg.electromagnetics import time_domain as tdem
 from simpeg import maps, tests
-from pymatsolver import Pardiso
 
 
 class TestGroundedSourceTDEM_j(unittest.TestCase):
@@ -76,7 +75,6 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
             time_steps=time_steps,
             mu=mu,
             sigmaMap=maps.ExpMap(mesh),
-            solver=Pardiso,
         )
         survey = tdem.Survey([src])
 
@@ -93,11 +91,12 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         print("Testing problem {} \n\n".format(self.prob_type))
 
     def derivtest(self, deriv_fct):
-        m0 = np.log(self.sigma) + np.random.rand(self.mesh.nC)
+        rng = np.random.default_rng(seed=42)
+        m0 = np.log(self.sigma) + rng.uniform(size=self.mesh.nC)
         self.prob.model = m0
 
         return tests.check_derivative(
-            deriv_fct, np.log(self.sigma), num=3, plotIt=False
+            deriv_fct, np.log(self.sigma), num=3, plotIt=False, random_seed=521
         )
 
     def test_deriv_phi(self):
@@ -131,22 +130,25 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         self.derivtest(deriv_check)
 
     def test_adjoint_phi(self):
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.mesh.nC)
+        rng = np.random.default_rng(seed=42)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=self.mesh.nC)
         a = w.T.dot(self.src._phiInitialDeriv(self.prob, v=v))
         b = v.T.dot(self.src._phiInitialDeriv(self.prob, v=w, adjoint=True))
         self.assertTrue(np.allclose(a, b))
 
     def test_adjoint_j(self):
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.mesh.nF)
+        rng = np.random.default_rng(seed=42)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=self.mesh.nF)
         a = w.T.dot(self.src.jInitialDeriv(self.prob, v=v))
         b = v.T.dot(self.src.jInitialDeriv(self.prob, v=w, adjoint=True))
         self.assertTrue(np.allclose(a, b))
 
     def test_adjoint_h(self):
-        v = np.random.rand(self.mesh.nC)
-        w = np.random.rand(self.mesh.nE)
+        rng = np.random.default_rng(seed=42)
+        v = rng.uniform(size=self.mesh.nC)
+        w = rng.uniform(size=self.mesh.nE)
         a = w.T.dot(self.src.hInitialDeriv(self.prob, v=v))
         b = v.T.dot(self.src.hInitialDeriv(self.prob, v=w, adjoint=True))
         self.assertTrue(np.allclose(a, b))

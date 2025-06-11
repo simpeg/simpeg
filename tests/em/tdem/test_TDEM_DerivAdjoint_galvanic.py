@@ -3,7 +3,6 @@ import numpy as np
 import discretize
 from simpeg import maps, tests
 from simpeg.electromagnetics import time_domain as tdem
-from pymatsolver import Pardiso as Solver
 
 plotIt = False
 
@@ -14,7 +13,6 @@ TOL = 0.5
 
 
 def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx", src_z=0.0):
-    np.random.seed(10)
     cs = 5.0
     ncx = 8
     ncy = 8
@@ -55,12 +53,12 @@ def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx", src_z=0.0):
 
     time_steps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
 
-    m = np.log(5e-1) * np.ones(mapping.nP) + 1e-3 * np.random.randn(mapping.nP)
+    rng = np.random.default_rng(seed=42)
+    m = np.log(5e-1) * np.ones(mapping.nP) + 1e-3 * rng.normal(size=mapping.nP)
 
     prb = getattr(tdem, "Simulation3D{}".format(prbtype))(
         mesh, survey=survey, time_steps=time_steps, sigmaMap=mapping
     )
-    prb.solver = Solver
 
     return prb, m, mesh
 
@@ -77,7 +75,10 @@ class TDEM_DerivTests(unittest.TestCase):
                 return [prb.dpred(m), lambda mx: prb.Jvec(m, mx)]
 
             print("test_Jvec_{prbtype}_{rxcomp}".format(prbtype=prbtype, rxcomp=rxcomp))
-            tests.check_derivative(derChk, m, plotIt=False, num=2, eps=1e-20)
+
+            tests.check_derivative(
+                derChk, m, plotIt=False, num=2, eps=1e-20, random_seed=52135
+            )
 
         def test_Jvec_e_dbzdt(self):
             self.JvecTest("ElectricField", "MagneticFluxTimeDerivativez")
@@ -107,8 +108,9 @@ class TDEM_DerivTests(unittest.TestCase):
             print("\nAdjoint Testing Jvec, Jtvec prob {}, {}".format(prbtype, rxcomp))
 
             prb, m0, mesh = setUp_TDEM(prbtype, rxcomp, src_z)
-            m = np.random.rand(prb.sigmaMap.nP)
-            d = np.random.randn(prb.survey.nD)
+            rng = np.random.default_rng(seed=42)
+            m = rng.uniform(size=prb.sigmaMap.nP)
+            d = rng.normal(size=prb.survey.nD)
 
             print(m.shape, d.shape, m0.shape)
 

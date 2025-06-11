@@ -46,12 +46,13 @@ def DerivJvecTest_1D(halfspace_value, freq=False, expMap=True):
     )
 
     x0 = np.r_[sigma_model, layer_thicknesses]
-    np.random.seed(1983)
 
     def fun(x):
         return simulation.dpred(x), lambda x: simulation.Jvec(x0, x)
 
-    return tests.check_derivative(fun, x0, num=6, plotIt=False, eps=FLR)
+    return tests.check_derivative(
+        fun, x0, num=6, plotIt=False, eps=FLR, random_seed=298376
+    )
 
 
 def DerivJvecTest(halfspace_value, freq=False, expMap=True):
@@ -69,13 +70,14 @@ def DerivJvecTest(halfspace_value, freq=False, expMap=True):
     )
 
     x0 = sigBG
-    np.random.seed(1983)
     survey = simulation.survey
 
     def fun(x):
         return simulation.dpred(x), lambda x: simulation.Jvec(x0, x)
 
-    return tests.check_derivative(fun, x0, num=4, plotIt=False, eps=FLR)
+    return tests.check_derivative(
+        fun, x0, num=4, plotIt=False, eps=FLR, random_seed=5553
+    )
 
 
 class NSEM_DerivTests(unittest.TestCase):
