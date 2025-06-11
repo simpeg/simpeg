@@ -8,6 +8,7 @@ from ..frequency_domain.simulation import BaseFDEMSimulation, Simulation3DElectr
 from ..frequency_domain.survey import Survey
 from ..utils import omega
 from .sources import Planewave
+from .receivers import Impedance, Tipper, Admittance, ApparentConductivity
 from .fields import (
     Fields1DPrimarySecondary,
     Fields1DElectricField,
@@ -307,12 +308,16 @@ class Simulation2DElectricField(BaseFDEMSimulation):
 
         for src in self.survey.source_list:
             for rx in src.receiver_list:
-                if rx.orientation != "xy":
+                if not (
+                    (rx.orientation == "xy" and isinstance(rx, Impedance)) or
+                    (rx.orientation == "yx" and isinstance(rx, Admittance))
+                ):
                     raise TypeError(
-                        "natural_source.Simulation2DElectricField only supports xy oriented"
-                        " receivers. Please use the Simulation2DMagneticField class for"
-                        " those receivers."
+                        "natural_source.Simulation2DElectricField only supports Impedance or"
+                        " Admittance receivers for an xy orientation. Please provide a survey"
+                        " with valid receivers."
                     )
+
 
         if h_bc is None:
             if isinstance(mesh, (TensorMesh, TreeMesh)):
@@ -533,11 +538,15 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
 
         for src in self.survey.source_list:
             for rx in src.receiver_list:
-                if rx.orientation != "yx":
+                if not (
+                    (rx.orientation == "yx" and isinstance(rx, Impedance)) or
+                    (rx.orientation == "xy" and isinstance(rx, Admittance)) or
+                    (rx.orientation == "zx" and isinstance(rx, Tipper))
+                ):
                     raise TypeError(
-                        "natural_source.Simulation2DMagneticField only supports yx oriented"
-                        " receivers. Please use the Simulation2DElectricField class for"
-                        " those receivers."
+                        "natural_source.Simulation2DMagneticField supports Impedance and"
+                        " Admittance receivers for an yx orientation, and Tipper receivers"
+                        " for a zx orientation. Please provide a survey with valid receivers."
                     )
 
         if e_bc is None:

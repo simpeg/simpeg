@@ -918,25 +918,39 @@ class Admittance(_ElectricAndMagneticReceiver):
         )
 
     def _eval_admittance(self, src, mesh, f):
-        if mesh.dim < 3:
+        if mesh.dim == 1:
             raise NotImplementedError(
-                "Admittance receiver not implemented for dim < 3."
+                "Admittance receiver not implemented for dim == 1."
             )
 
         e = f[src, "e"]
         h = f[src, "h"]
 
-        ex = self.getP(mesh, "Ex", 0) @ e
-        ey = self.getP(mesh, "Ey", 0) @ e
+        if mesh.dim == 2:
+            if self.orientation == "yx":
+                PE = self.getP(mesh, "Ex")
+                PH = self.getP(mesh, "CC")
+            elif self.orientation == "xy":
+                PE = self.getP(mesh, "CC")
+                PH = self.getP(mesh, "Ex")
+            
+            top = PH @ h[:, 0]
+            bot = PE @ e[:, 0]
+            
 
-        h = self.getP(mesh, "F" + self.orientation[0], 1) @ h
-
-        if self.orientation[1] == "x":
-            top = h[:, 0] * ey[:, 1] - h[:, 1] * ex[:, 1]
         else:
-            top = -h[:, 0] * ey[:, 0] + h[:, 1] * ex[:, 0]
 
-        bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
+            ex = self.getP(mesh, "Ex", 0) @ e
+            ey = self.getP(mesh, "Ey", 0) @ e
+
+            h = self.getP(mesh, "F" + self.orientation[0], 1) @ h
+
+            if self.orientation[1] == "x":
+                top = h[:, 0] * ey[:, 1] - h[:, 1] * ex[:, 1]
+            else:
+                top = -h[:, 0] * ey[:, 0] + h[:, 1] * ex[:, 0]
+
+            bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
 
         return top / bot
 

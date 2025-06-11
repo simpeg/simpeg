@@ -74,6 +74,16 @@ def get_survey(locations, frequencies, survey_type, component, orientation):
                 )
             ]
 
+        if survey_type == "admittance":
+            rx_list = [
+                nsem.receivers.Admittance(
+                    locations_e=locations,
+                    locations_h=locations,
+                    orientation=orientation,
+                    component=component,
+                )
+            ]
+
         # ZTEM data types (Tzx, Tzy)
         elif survey_type == "tipper":
             rx_list = [
@@ -107,6 +117,16 @@ def get_analytic_halfspace_solution(sigma, f, survey_type, component, orientatio
             else:
                 return 45
 
+    # Admittance data types (Yxy, Yyx)
+    elif survey_type == "admittance":
+        if component in ["real", "imag"]:
+            ampl = 0.5 * np.sqrt(sigma/(np.pi * f * mu_0))
+            if orientation == "yx":
+                ampl *= -1
+            if component == "imag":
+                ampl *= -1
+            return ampl
+
     # ZTEM data types (Tzx, Tzy)
     elif survey_type == "tipper":
         return 0.0
@@ -124,6 +144,10 @@ CASES_LIST_HALFSPACE = [
     ("impedance", "app_res", "yx"),
     ("impedance", "phase", "xy"),
     ("impedance", "phase", "yx"),
+    ("admittance", "real", "xy"),
+    ("admittance", "real", "yx"),
+    ("admittance", "imag", "xy"),
+    ("admittance", "imag", "yx"),
     # ("tipper", "real", "zx"),
     # ("tipper", "real", "zy"),
     # ("tipper", "imag", "zx"),
@@ -138,16 +162,24 @@ def test_analytic_halfspace_solution(
     # Numerical solution
     survey = get_survey(locations, frequencies, survey_type, component, orientation)
     model_hs = get_model(mesh, "halfspace")  # 1e-2 halfspace
-    if orientation in ["xy", "zx"]:
+    if (
+        (orientation == "xy" and survey_type == 'impedance') or
+        (orientation == "yx" and survey_type == 'admittance')
+    ):
         sim = nsem.simulation.Simulation2DElectricField(
             mesh, survey=survey, sigmaMap=mapping
         )
-    elif orientation in ["yx", "zy"]:
+    elif (
+        (orientation == "yx" and survey_type == 'impedance') or
+        (orientation == "xy" and survey_type == 'admittance') or
+        (orientation == "zx" and survey_type == 'tipper')
+    ):
         sim = nsem.simulation.Simulation2DMagneticField(
             mesh, survey=survey, sigmaMap=mapping
         )
 
     numeric_solution = sim.dpred(model_hs)
+    print(numeric_solution)
 
     # Analytic solution
     sigma_hs = 1e-2
@@ -161,6 +193,7 @@ def test_analytic_halfspace_solution(
         ]
     )
     analytic_solution = np.repeat(analytic_solution, n_locations)
+    print(analytic_solution)
 
     # # Error
     err = np.abs(
