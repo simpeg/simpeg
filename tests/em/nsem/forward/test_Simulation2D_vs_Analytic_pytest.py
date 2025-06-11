@@ -160,9 +160,8 @@ def test_analytic_halfspace_solution(
     # Numerical solution
     survey = get_survey(locations, frequencies, survey_type, component, orientation)
     model_hs = get_model(mesh, "halfspace")  # 1e-2 halfspace
-    if (
-        (orientation == "xy" and survey_type == 'impedance') or
-        (orientation == "yx" and survey_type == 'admittance')
+    if (orientation == "xy" and survey_type == "impedance") or (
+        orientation == "yx" and survey_type == "admittance"
     ):
         sim = nsem.simulation.Simulation2DElectricField(
             mesh, survey=survey, sigmaMap=mapping
