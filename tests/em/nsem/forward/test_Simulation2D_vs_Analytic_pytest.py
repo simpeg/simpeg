@@ -167,9 +167,9 @@ def test_analytic_halfspace_solution(
             mesh, survey=survey, sigmaMap=mapping
         )
     elif (
-        (orientation == "yx" and survey_type == 'impedance') or
-        (orientation == "xy" and survey_type == 'admittance') or
-        (orientation == "zx" and survey_type == 'tipper')
+        (orientation == "yx" and survey_type == "impedance")
+        or (orientation == "xy" and survey_type == "admittance")
+        or (orientation == "zx" and survey_type == "tipper")
     ):
         sim = nsem.simulation.Simulation2DMagneticField(
             mesh, survey=survey, sigmaMap=mapping
