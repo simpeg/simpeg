@@ -779,8 +779,8 @@ class Tipper(BaseNaturalSourceRx):
 
                 if v.ndim == 2:
                     # collapse into a long list of n_d vectors
-                    ghz_v = gtop_v.reshape((n_d, -1))
-                    ghx_v = gbot_v.reshape((n_d, -1))
+                    ghz_v = ghz_v.reshape((n_d, -1))
+                    ghx_v = ghx_v.reshape((n_d, -1))
 
                 gh_v = Phx.T @ ghx_v + Phz.T @ ghz_v
 
