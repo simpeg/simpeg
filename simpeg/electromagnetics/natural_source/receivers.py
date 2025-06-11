@@ -947,7 +947,6 @@ class Admittance(_ElectricAndMagneticReceiver):
             
             top = PH @ h[:, 0]
             bot = PE @ e[:, 0]
-            
 
         else:
 
@@ -966,33 +965,49 @@ class Admittance(_ElectricAndMagneticReceiver):
         return top / bot
 
     def _eval_admittance_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
-        if mesh.dim < 3:
+        if mesh.dim == 1:
             raise NotImplementedError(
-                "Admittance receiver not implemented for dim < 3."
+                "Admittance receiver not implemented for dim == 1."
             )
 
-        # Compute admittances
+        # COMPUTE ADMITTANCES
         e = f[src, "e"]
         h = f[src, "h"]
 
-        Pex = self.getP(mesh, "Ex", 0)
-        Pey = self.getP(mesh, "Ey", 0)
-        Ph = self.getP(mesh, "F" + self.orientation[0], 1)
+        if mesh.dim == 2:
+            if self.orientation == "yx":
+                Pe = self.getP(mesh, "Ex")
+                Ph = self.getP(mesh, "CC")
+            elif self.orientation == "xy":
+                Pe = self.getP(mesh, "CC")
+                Ph = self.getP(mesh, "Ex")
+            
+            top = Ph @ h[:, 0]
+            bot = Pe @ e[:, 0]
+            adm = top / bot
 
-        ex = Pex @ e
-        ey = Pey @ e
-        h = Ph @ h
-
-        if self.orientation[1] == "x":
-            p_ind = 1
             fact = 1.0
-        else:
-            p_ind = 0
-            fact = -1.0
 
-        top = fact * (h[:, 0] * ey[:, p_ind] - h[:, 1] * ex[:, p_ind])
-        bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
-        adm = top / bot
+        else:
+
+            Pex = self.getP(mesh, "Ex", 0)
+            Pey = self.getP(mesh, "Ey", 0)
+            Ph = self.getP(mesh, "F" + self.orientation[0], 1)
+
+            ex = Pex @ e
+            ey = Pey @ e
+            h = Ph @ h
+
+            if self.orientation[1] == "x":
+                p_ind = 1
+                fact = 1.0
+            else:
+                p_ind = 0
+                fact = -1.0
+
+            top = fact * (h[:, 0] * ey[:, p_ind] - h[:, 1] * ex[:, p_ind])
+            bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
+            adm = top / bot
 
         # ADJOINT
         if adjoint:
@@ -1003,14 +1018,21 @@ class Admittance(_ElectricAndMagneticReceiver):
             a_v = fact * v / bot  # term 1
             b_v = -adm * v / bot  # term 2
 
-            ex_v = np.c_[ey[:, 1], -ey[:, 0]] * b_v[:, None]  # terms dex in bot
-            ey_v = np.c_[-ex[:, 1], ex[:, 0]] * b_v[:, None]  # terms dey in bot
-            ex_v[:, p_ind] -= h[:, 1] * a_v  # add terms dex in top
-            ey_v[:, p_ind] += h[:, 0] * a_v  # add terms dey in top
-            e_v = Pex.T @ ex_v + Pey.T @ ey_v
+            if mesh.dim == 2:
 
-            h_v = np.c_[ey[:, p_ind], -ex[:, p_ind]] * a_v[:, None]  # h in top
-            h_v = Ph.T @ h_v
+                h_v = Ph.T @ a_v
+                e_v = Pe.T @ b_v
+
+            else:
+
+                ex_v = np.c_[ey[:, 1], -ey[:, 0]] * b_v[:, None]  # terms dex in bot
+                ey_v = np.c_[-ex[:, 1], ex[:, 0]] * b_v[:, None]  # terms dey in bot
+                ex_v[:, p_ind] -= h[:, 1] * a_v  # add terms dex in top
+                ey_v[:, p_ind] += h[:, 0] * a_v  # add terms dey in top
+                e_v = Pex.T @ ex_v + Pey.T @ ey_v
+
+                h_v = np.c_[ey[:, p_ind], -ex[:, p_ind]] * a_v[:, None]  # h in top
+                h_v = Ph.T @ h_v
 
             fu_e_v, fm_e_v = f._eDeriv(src, None, e_v, adjoint=True)
             fu_h_v, fm_h_v = f._hDeriv(src, None, h_v, adjoint=True)
@@ -1018,25 +1040,34 @@ class Admittance(_ElectricAndMagneticReceiver):
             return fu_e_v + fu_h_v, fm_e_v + fm_h_v
 
         # JVEC
-        de_v = f._eDeriv(src, du_dm_v, v, adjoint=False)
-        dh_v = Ph @ f._hDeriv(src, du_dm_v, v, adjoint=False)
+        if mesh.dim == 2:
 
-        dex_v = Pex @ de_v
-        dey_v = Pey @ de_v
+            de_v = Pe @ f._eDeriv(src, du_dm_v, v, adjoint=False)
+            dh_v = Ph @ f._hDeriv(src, du_dm_v, v, adjoint=False)
 
-        dtop_v = fact * (
-            h[:, 0] * dey_v[:, p_ind]
-            + dh_v[:, 0] * ey[:, p_ind]
-            - h[:, 1] * dex_v[:, p_ind]
-            - dh_v[:, 1] * ex[:, p_ind]
-        )
-        dbot_v = (
-            ex[:, 0] * dey_v[:, 1]
-            + dex_v[:, 0] * ey[:, 1]
-            - ex[:, 1] * dey_v[:, 0]
-            - dex_v[:, 1] * ey[:, 0]
-        )
-        adm_deriv = (bot * dtop_v - top * dbot_v) / (bot * bot)
+            adm_deriv = (dh_v - adm * de_v) / bot
+
+        else:
+
+            de_v = f._eDeriv(src, du_dm_v, v, adjoint=False)
+            dh_v = Ph @ f._hDeriv(src, du_dm_v, v, adjoint=False)
+
+            dex_v = Pex @ de_v
+            dey_v = Pey @ de_v
+
+            dtop_v = fact * (
+                h[:, 0] * dey_v[:, p_ind]
+                + dh_v[:, 0] * ey[:, p_ind]
+                - h[:, 1] * dex_v[:, p_ind]
+                - dh_v[:, 1] * ex[:, p_ind]
+            )
+            dbot_v = (
+                ex[:, 0] * dey_v[:, 1]
+                + dex_v[:, 0] * ey[:, 1]
+                - ex[:, 1] * dey_v[:, 0]
+                - dex_v[:, 1] * ey[:, 0]
+            )
+            adm_deriv = (bot * dtop_v - top * dbot_v) / (bot * bot)
 
         return getattr(adm_deriv, self.component)
 

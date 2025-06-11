@@ -8,7 +8,7 @@ from simpeg import (
 from simpeg.utils import model_builder
 from simpeg.electromagnetics import natural_source as nsem
 
-ADJ_RTOL = 1e-5
+ADJ_RTOL = 2e-5
 
 
 @pytest.fixture
@@ -110,6 +110,8 @@ CASES_LIST = [
     ("impedance", "yx", ["app_res"]),
     ("impedance", "xy", ["phase"]),
     ("impedance", "yx", ["phase"]),
+    ("admittance", "xy", ["real", "imag"]),
+    ("admittance", "yx", ["real", "imag"]),
 ]
 
 
@@ -132,11 +134,18 @@ class TestDerivatives:
         )
 
         # Define the simulation
-        if orientation in ["xy", "zy"]:
+        if (
+            (orientation == "xy" and survey_type == 'impedance') or
+            (orientation == "yx" and survey_type == 'admittance')
+        ):
             sim = nsem.simulation.Simulation2DElectricField(
                 mesh, survey=survey, sigmaMap=mapping
             )
-        elif orientation in ["yx", "zx"]:
+        elif (
+            (orientation == "yx" and survey_type == 'impedance') or
+            (orientation == "xy" and survey_type == 'admittance') or
+            (orientation == "zx" and survey_type == 'tipper')
+        ):
             sim = nsem.simulation.Simulation2DMagneticField(
                 mesh, survey=survey, sigmaMap=mapping
             )

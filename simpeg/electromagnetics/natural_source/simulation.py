@@ -8,7 +8,7 @@ from ..frequency_domain.simulation import BaseFDEMSimulation, Simulation3DElectr
 from ..frequency_domain.survey import Survey
 from ..utils import omega
 from .sources import Planewave
-from .receivers import Impedance, Tipper, Admittance, ApparentConductivity
+from .receivers import Impedance, Tipper, Admittance
 from .fields import (
     Fields1DPrimarySecondary,
     Fields1DElectricField,
