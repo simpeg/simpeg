@@ -7,7 +7,7 @@ from simpeg.utils import model_builder
 from simpeg import maps
 
 REL_TOLERANCE = 0.05
-ABS_TOLERANCE = 1e-13
+ABS_TOLERANCE = 1e-7
 
 
 @pytest.fixture
@@ -148,10 +148,8 @@ CASES_LIST_HALFSPACE = [
     ("admittance", "real", "yx"),
     ("admittance", "imag", "xy"),
     ("admittance", "imag", "yx"),
-    # ("tipper", "real", "zx"),
-    # ("tipper", "real", "zy"),
-    # ("tipper", "imag", "zx"),
-    # ("tipper", "imag", "zy"),
+    ("tipper", "real", "zx"),
+    ("tipper", "imag", "zx"),
 ]
 
 
@@ -196,8 +194,11 @@ def test_analytic_halfspace_solution(
     print(analytic_solution)
 
     # # Error
-    err = np.abs(
-        (numeric_solution - analytic_solution) / (analytic_solution + ABS_TOLERANCE)
-    )
-
-    assert np.all(err < REL_TOLERANCE)
+    if survey_type == 'tipper':
+        err = np.abs(numeric_solution - analytic_solution)
+        assert np.all(err < ABS_TOLERANCE)
+    else:
+        err = np.abs(
+            (numeric_solution - analytic_solution) / (analytic_solution + ABS_TOLERANCE)
+        )
+        assert np.all(err < REL_TOLERANCE)

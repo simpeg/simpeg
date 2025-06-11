@@ -702,21 +702,32 @@ class Tipper(BaseNaturalSourceRx):
         # will grab both primary and secondary and sum them!
         h = f[src, "h"]
 
-        Phx = self.getP(mesh, "Fx", 1)
-        Phy = self.getP(mesh, "Fy", 1)
-        Pho = self.getP(mesh, "F" + self.orientation[0], 0)
+        # Only Tzx
+        if mesh.dim == 2:
+            Phx = self.getP(mesh, "Ex")
+            Phz = self.getP(mesh, "Ey")
+            
+            top = Phz @ h[:, 0]
+            bot = Phx @ h[:, 0]
 
-        hx = Phx @ h
-        hy = Phy @ h
-        ho = Pho @ h
-
-        if self.orientation[1] == "x":
-            h = -hy
         else:
-            h = hx
 
-        top = h[:, 0] * ho[:, 1] - h[:, 1] * ho[:, 0]
-        bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
+            Phx = self.getP(mesh, "Fx", 1)
+            Phy = self.getP(mesh, "Fy", 1)
+            Pho = self.getP(mesh, "F" + self.orientation[0], 0)
+
+            hx = Phx @ h
+            hy = Phy @ h
+            ho = Pho @ h
+
+            if self.orientation[1] == "x":
+                h = -hy
+            else:
+                h = hx
+
+            top = h[:, 0] * ho[:, 1] - h[:, 1] * ho[:, 0]
+            bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
+
         return top / bot
 
     def _eval_tipper_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
