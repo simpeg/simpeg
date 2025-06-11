@@ -193,7 +193,7 @@ def test_analytic_halfspace_solution(
     print(analytic_solution)
 
     # # Error
-    if survey_type == 'tipper':
+    if survey_type == "tipper":
         err = np.abs(numeric_solution - analytic_solution)
         assert np.all(err < ABS_TOLERANCE)
     else:
