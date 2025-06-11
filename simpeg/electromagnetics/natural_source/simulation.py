@@ -309,15 +309,14 @@ class Simulation2DElectricField(BaseFDEMSimulation):
         for src in self.survey.source_list:
             for rx in src.receiver_list:
                 if not (
-                    (rx.orientation == "xy" and isinstance(rx, Impedance)) or
-                    (rx.orientation == "yx" and isinstance(rx, Admittance))
+                    (rx.orientation == "xy" and isinstance(rx, Impedance))
+                    or (rx.orientation == "yx" and isinstance(rx, Admittance))
                 ):
                     raise TypeError(
                         "natural_source.Simulation2DElectricField only supports Impedance or"
                         " Admittance receivers for an xy orientation. Please provide a survey"
                         " with valid receivers."
                     )
-
 
         if h_bc is None:
             if isinstance(mesh, (TensorMesh, TreeMesh)):
@@ -539,9 +538,9 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
         for src in self.survey.source_list:
             for rx in src.receiver_list:
                 if not (
-                    (rx.orientation == "yx" and isinstance(rx, Impedance)) or
-                    (rx.orientation == "xy" and isinstance(rx, Admittance)) or
-                    (rx.orientation == "zx" and isinstance(rx, Tipper))
+                    (rx.orientation == "yx" and isinstance(rx, Impedance))
+                    or (rx.orientation == "xy" and isinstance(rx, Admittance))
+                    or (rx.orientation == "zx" and isinstance(rx, Tipper))
                 ):
                     raise TypeError(
                         "natural_source.Simulation2DMagneticField supports Impedance and"

@@ -704,11 +704,14 @@ class Tipper(BaseNaturalSourceRx):
 
         # Only Tzx
         if mesh.dim == 2:
+
             Phx = self.getP(mesh, "Ex")
             Phz = self.getP(mesh, "Ey")
-            
-            top = Phz @ h[:, 0]
-            bot = Phx @ h[:, 0]
+
+            hz = Phz @ h[:, 0]
+            hx = Phx @ h[:, 0]
+
+            return hz / hx
 
         else:
 
@@ -728,77 +731,119 @@ class Tipper(BaseNaturalSourceRx):
             top = h[:, 0] * ho[:, 1] - h[:, 1] * ho[:, 0]
             bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
 
-        return top / bot
+            return top / bot
 
     def _eval_tipper_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
         # will grab both primary and secondary and sum them!
         h = f[src, "h"]
 
-        Phx = self.getP(mesh, "Fx", 1)
-        Phy = self.getP(mesh, "Fy", 1)
-        Pho = self.getP(mesh, "F" + self.orientation[0], 0)
+        if mesh.dim == 2:
 
-        hx = Phx @ h
-        hy = Phy @ h
-        ho = Pho @ h
+            Phx = self.getP(mesh, "Ex")
+            Phz = self.getP(mesh, "Ey")
 
-        if self.orientation[1] == "x":
-            h = -hy
+            hz = Phz @ h[:, 0]
+            hx = Phx @ h[:, 0]
+
+            tip = hz / hx
+
         else:
-            h = hx
 
-        top = h[:, 0] * ho[:, 1] - h[:, 1] * ho[:, 0]
-        bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
-        tip = top / bot
+            Phx = self.getP(mesh, "Fx", 1)
+            Phy = self.getP(mesh, "Fy", 1)
+            Pho = self.getP(mesh, "F" + self.orientation[0], 0)
 
-        if adjoint:
-            # Work backwards!
-            gtop_v = (v / bot)[..., None]
-            gbot_v = (-tip * v / bot)[..., None]
-            n_d = self.nD
-
-            ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v
-            ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v
-            gho_v = np.c_[-h[:, 1], h[:, 0]] * gtop_v
-            gh_v = np.c_[ho[:, 1], -ho[:, 0]] * gtop_v
+            hx = Phx @ h
+            hy = Phy @ h
+            ho = Pho @ h
 
             if self.orientation[1] == "x":
-                ghy_v -= gh_v
+                h = -hy
             else:
-                ghx_v += gh_v
+                h = hx
 
-            if v.ndim == 2:
-                # collapse into a long list of n_d vectors
-                ghx_v = ghx_v.reshape((n_d, -1))
-                ghy_v = ghy_v.reshape((n_d, -1))
-                gho_v = gho_v.reshape((n_d, -1))
+            top = h[:, 0] * ho[:, 1] - h[:, 1] * ho[:, 0]
+            bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
 
-            gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v + Pho.T @ gho_v
+            tip = top / bot
+
+        # ADJOINT
+        if adjoint:
+
+            n_d = self.nD
+
+            if mesh.dim == 2:
+
+                ghz_v = v / hx
+                ghx_v = -tip * v / hx
+
+                if v.ndim == 2:
+                    # collapse into a long list of n_d vectors
+                    ghz_v = gtop_v.reshape((n_d, -1))
+                    ghx_v = gbot_v.reshape((n_d, -1))
+
+                gh_v = Phx.T @ ghx_v + Phz.T @ ghz_v
+
+            else:
+                # Work backwards!
+                gtop_v = (v / bot)[..., None]
+                gbot_v = (-tip * v / bot)[..., None]
+                # n_d = self.nD
+
+                ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v
+                ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v
+                gho_v = np.c_[-h[:, 1], h[:, 0]] * gtop_v
+                gh_v = np.c_[ho[:, 1], -ho[:, 0]] * gtop_v
+
+                if self.orientation[1] == "x":
+                    ghy_v -= gh_v
+                else:
+                    ghx_v += gh_v
+
+                if v.ndim == 2:
+                    # collapse into a long list of n_d vectors
+                    ghx_v = ghx_v.reshape((n_d, -1))
+                    ghy_v = ghy_v.reshape((n_d, -1))
+                    gho_v = gho_v.reshape((n_d, -1))
+
+                gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v + Pho.T @ gho_v
+
             return f._hDeriv(src, None, gh_v, adjoint=True)
 
+        # JVEC
         dh_v = f._hDeriv(src, du_dm_v, v, adjoint=False)
-        dhx_v = Phx @ dh_v
-        dhy_v = Phy @ dh_v
-        dho_v = Pho @ dh_v
-        if self.orientation[1] == "x":
-            dh_v = -dhy_v
+
+        if mesh.dim == 2:
+
+            dhx_v = Phx @ dh_v
+            dhz_v = Phz @ dh_v
+
+            return (dhz_v - tip * dhx_v) / hx
+
         else:
-            dh_v = dhx_v
 
-        dtop_v = (
-            h[:, 0] * dho_v[:, 1]
-            + dh_v[:, 0] * ho[:, 1]
-            - h[:, 1] * dho_v[:, 0]
-            - dh_v[:, 1] * ho[:, 0]
-        )
-        dbot_v = (
-            hx[:, 0] * dhy_v[:, 1]
-            + dhx_v[:, 0] * hy[:, 1]
-            - hx[:, 1] * dhy_v[:, 0]
-            - dhx_v[:, 1] * hy[:, 0]
-        )
+            dhx_v = Phx @ dh_v
+            dhy_v = Phy @ dh_v
+            dho_v = Pho @ dh_v
+            if self.orientation[1] == "x":
+                dh_v = -dhy_v
+            else:
+                dh_v = dhx_v
 
-        return (bot * dtop_v - top * dbot_v) / (bot * bot)
+            dtop_v = (
+                h[:, 0] * dho_v[:, 1]
+                + dh_v[:, 0] * ho[:, 1]
+                - h[:, 1] * dho_v[:, 0]
+                - dh_v[:, 1] * ho[:, 0]
+            )
+            dbot_v = (
+                hx[:, 0] * dhy_v[:, 1]
+                + dhx_v[:, 0] * hy[:, 1]
+                - hx[:, 1] * dhy_v[:, 0]
+                - dhx_v[:, 1] * hy[:, 0]
+            )
+
+            return (bot * dtop_v - top * dbot_v) / (bot * bot)
 
     def eval(self, src, mesh, f):  # noqa: A003
         tip = self._eval_tipper(src, mesh, f)
@@ -944,7 +989,7 @@ class Admittance(_ElectricAndMagneticReceiver):
             elif self.orientation == "xy":
                 PE = self.getP(mesh, "CC")
                 PH = self.getP(mesh, "Ex")
-            
+
             top = PH @ h[:, 0]
             bot = PE @ e[:, 0]
 
@@ -981,7 +1026,7 @@ class Admittance(_ElectricAndMagneticReceiver):
             elif self.orientation == "xy":
                 Pe = self.getP(mesh, "CC")
                 Ph = self.getP(mesh, "Ex")
-            
+
             top = Ph @ h[:, 0]
             bot = Pe @ e[:, 0]
             adm = top / bot
