@@ -14,7 +14,7 @@ from ....utils import (
     define_plane_from_points,
     get_discrete_topography,
     shift_to_discrete_topography,
-    deprecate_function
+    deprecate_function,
 )
 from ....utils.io_utils import (  # noqa: F401
     read_dcip2d_ubc,
