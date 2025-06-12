@@ -227,8 +227,8 @@ def shift_to_discrete_topography(
     """
 
     if mesh._meshType != "TENSOR" and mesh._meshType != "TREE":
-        raise TypeError(
-            "'shift_to_discrete_topography only supported for TensorMesh and TreeMesh'."
+        raise NotImplementedError(
+            "shift_to_discrete_topography only supported for TensorMesh and TreeMesh'."
         )
 
     if not isinstance(heights, (int, float)):
@@ -273,8 +273,6 @@ def shift_to_discrete_topography(
             )
             inds = _closest_grid_indices(uniqXlocs, pts, dim=1)
             out = np.c_[uniqXlocs[inds], topoCC[inds]]
-    else:
-        raise NotImplementedError(f"{type(mesh)} mesh is not supported.")
 
     out[:, -1] += heights
 
