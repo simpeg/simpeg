@@ -4,7 +4,7 @@ import numpy as np
 from ....utils.code_utils import validate_string
 
 from ....survey import BaseSurvey
-from ..utils import drapeTopotoLoc
+from ....utils import shift_to_discrete_topography
 from . import receivers as Rx
 from . import sources as Src
 from ..utils import static_utils
@@ -335,7 +335,7 @@ class Survey(BaseSurvey):
             inv_b, inv = inv[: len(loc_b)], inv[len(loc_b) :]
             inv_m, inv_n = inv[: len(loc_m)], inv[len(loc_m) :]
 
-            electrodes_shifted = drapeTopotoLoc(
+            electrodes_shifted = shift_to_discrete_topography(
                 mesh, unique_electrodes, active_cells=active_cells, option=option
             )
             a_shifted = electrodes_shifted[inv_a]
