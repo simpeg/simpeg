@@ -1880,5 +1880,9 @@ gettopoCC = deprecate_function(
 )
 
 drapeTopotoLoc = deprecate_function(
-    shift_to_discrete_topography, "drapeTopotoLoc", removal_version="0.26.0", future_warn=True, error=False
+    shift_to_discrete_topography,
+    "drapeTopotoLoc",
+    removal_version="0.26.0",
+    future_warn=True,
+    error=False,
 )
