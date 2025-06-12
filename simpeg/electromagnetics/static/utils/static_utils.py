@@ -1872,7 +1872,11 @@ def gen_3d_survey_from_2d_lines(
 
 
 gettopoCC = deprecate_function(
-    get_discrete_topography, "gettopoCC", removal_version="0.26.0", future_warn=True, error=False
+    get_discrete_topography,
+    "gettopoCC",
+    removal_version="0.26.0",
+    future_warn=True,
+    error=False,
 )
 
 drapeTopotoLoc = deprecate_function(
