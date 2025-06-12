@@ -100,7 +100,6 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
     # Return the indexes inside
     return insideGrid
 
-# Not exactly a 'mesh' utility.
 def _closest_grid_indices(grid, pts, dim=2):
     """Return indices of closest gridded points for a set of input points.
 
@@ -273,18 +272,3 @@ def shift_to_discrete_topography(
     out[:, -1] += heights
 
     return out
-
-
-
-################################################
-#             DEPRECATED FUNCTIONS
-################################################
-meshTensor = deprecate_function(
-    unpack_widths, "meshTensor", removal_version="0.19.0", error=True
-)
-closestPoints = deprecate_function(
-    closest_points_index, "closestPoints", removal_version="0.19.0", error=True
-)
-ExtractCoreMesh = deprecate_function(
-    extract_core_mesh, "ExtractCoreMesh", removal_version="0.19.0", error=True
-)

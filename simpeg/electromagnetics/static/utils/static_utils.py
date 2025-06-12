@@ -12,7 +12,6 @@ from ....utils import (
     mkvc,
     model_builder,
     define_plane_from_points,
-    closest_grid_indices,
     get_discrete_topography,
     shift_to_discrete_topography,
 )
@@ -1530,162 +1529,162 @@ def r_unit(p1, p2):
 
     return vec, r
 
-# CALL get_discrete_topography
-def gettopoCC(mesh, ind_active, option="top"):
-    """
-    Generate surface topography from active indices of mesh.
+# # CALL get_discrete_topography
+# def gettopoCC(mesh, ind_active, option="top"):
+#     """
+#     Generate surface topography from active indices of mesh.
 
-    Parameters
-    ----------
-    mesh : discretize.TensorMesh or discretize.TreeMesh
-        A tensor or tree mesh
-    ind_active : numpy.ndarray of bool or int
-        Active cells index; i.e. indices of cells below surface
-    option : {"top", "center"}
-        Use string to specify if the surface passes through the
-        tops or cell centers of surface cells.
+#     Parameters
+#     ----------
+#     mesh : discretize.TensorMesh or discretize.TreeMesh
+#         A tensor or tree mesh
+#     ind_active : numpy.ndarray of bool or int
+#         Active cells index; i.e. indices of cells below surface
+#     option : {"top", "center"}
+#         Use string to specify if the surface passes through the
+#         tops or cell centers of surface cells.
 
-    Returns
-    -------
-    (n, dim) numpy.ndarray
-        xy[z] topography
-    """
-    # if mesh._meshType == "TENSOR":
-    #     if mesh.dim == 3:
-    #         mesh2D = discretize.TensorMesh([mesh.h[0], mesh.h[1]], mesh.x0[:2])
-    #         zc = mesh.cell_centers[:, 2]
-    #         ACTIND = ind_active.reshape(
-    #             (mesh.vnC[0] * mesh.vnC[1], mesh.vnC[2]), order="F"
-    #         )
-    #         ZC = zc.reshape((mesh.vnC[0] * mesh.vnC[1], mesh.vnC[2]), order="F")
-    #         topoCC = np.zeros(ZC.shape[0])
+#     Returns
+#     -------
+#     (n, dim) numpy.ndarray
+#         xy[z] topography
+# #     """
+#     if mesh._meshType == "TENSOR":
+#         if mesh.dim == 3:
+#             mesh2D = discretize.TensorMesh([mesh.h[0], mesh.h[1]], mesh.x0[:2])
+#             zc = mesh.cell_centers[:, 2]
+#             ACTIND = ind_active.reshape(
+#                 (mesh.vnC[0] * mesh.vnC[1], mesh.vnC[2]), order="F"
+#             )
+#             ZC = zc.reshape((mesh.vnC[0] * mesh.vnC[1], mesh.vnC[2]), order="F")
+#             topoCC = np.zeros(ZC.shape[0])
 
-    #         for i in range(ZC.shape[0]):
-    #             ind = np.argmax(ZC[i, :][ACTIND[i, :]])
-    #             if option == "top":
-    #                 dz = mesh.h[2][ACTIND[i, :]][ind] * 0.5
-    #             elif option == "center":
-    #                 dz = 0.0
-    #             else:
-    #                 raise Exception()
-    #             topoCC[i] = ZC[i, :][ACTIND[i, :]].max() + dz
-    #         return mesh2D, topoCC
+#             for i in range(ZC.shape[0]):
+#                 ind = np.argmax(ZC[i, :][ACTIND[i, :]])
+#                 if option == "top":
+#                     dz = mesh.h[2][ACTIND[i, :]][ind] * 0.5
+#                 elif option == "center":
+#                     dz = 0.0
+#                 else:
+#                     raise Exception()
+#                 topoCC[i] = ZC[i, :][ACTIND[i, :]].max() + dz
+#             return mesh2D, topoCC
 
-    #     elif mesh.dim == 2:
-    #         mesh1D = discretize.TensorMesh([mesh.h[0]], [mesh.x0[0]])
-    #         yc = mesh.cell_centers[:, 1]
-    #         ACTIND = ind_active.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
-    #         YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
-    #         topoCC = np.zeros(YC.shape[0])
-    #         for i in range(YC.shape[0]):
-    #             ind = np.argmax(YC[i, :][ACTIND[i, :]])
-    #             if option == "top":
-    #                 dy = mesh.h[1][ACTIND[i, :]][ind] * 0.5
-    #             elif option == "center":
-    #                 dy = 0.0
-    #             else:
-    #                 raise Exception()
-    #             topoCC[i] = YC[i, :][ACTIND[i, :]].max() + dy
-    #         return mesh1D, topoCC
+#         elif mesh.dim == 2:
+#             mesh1D = discretize.TensorMesh([mesh.h[0]], [mesh.x0[0]])
+#             yc = mesh.cell_centers[:, 1]
+#             ACTIND = ind_active.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
+#             YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
+#             topoCC = np.zeros(YC.shape[0])
+#             for i in range(YC.shape[0]):
+#                 ind = np.argmax(YC[i, :][ACTIND[i, :]])
+#                 if option == "top":
+#                     dy = mesh.h[1][ACTIND[i, :]][ind] * 0.5
+#                 elif option == "center":
+#                     dy = 0.0
+#                 else:
+#                     raise Exception()
+#                 topoCC[i] = YC[i, :][ACTIND[i, :]].max() + dy
+#             return mesh1D, topoCC
 
-    # elif mesh._meshType == "TREE":
-    #     inds = mesh.get_boundary_cells(ind_active, direction="zu")[0]
+#     elif mesh._meshType == "TREE":
+#         inds = mesh.get_boundary_cells(ind_active, direction="zu")[0]
 
-    #     if option == "top":
-    #         dz = mesh.h_gridded[inds, -1] * 0.5
-    #     elif option == "center":
-    #         dz = 0.0
-    #     return mesh.cell_centers[inds, :-1], mesh.cell_centers[inds, -1] + dz
-    # else:
-    #     raise NotImplementedError(f"{type(mesh)} mesh is not supported.")
+#         if option == "top":
+#             dz = mesh.h_gridded[inds, -1] * 0.5
+#         elif option == "center":
+#             dz = 0.0
+#         return mesh.cell_centers[inds, :-1], mesh.cell_centers[inds, -1] + dz
+#     else:
+#         raise NotImplementedError(f"{type(mesh)} mesh is not supported.")
 
 
-# Call shift_to_discrete_topography
-def drapeTopotoLoc(
-    mesh, pts, active_cells=None, option="top", topo=None, ind_active=None
-):
-    """Drape locations right below discretized surface topography
+# # Call shift_to_discrete_topography
+# def drapeTopotoLoc(
+#     mesh, pts, active_cells=None, option="top", topo=None, ind_active=None
+# ):
+#     """Drape locations right below discretized surface topography
 
-    This function projects the set of locations provided to the discrete
-    surface topography.
+#     This function projects the set of locations provided to the discrete
+#     surface topography.
 
-    Parameters
-    ----------
-    mesh : discretize.TensorMesh or discretize.TreeMesh
-        A 2D tensor or tree mesh
-    pts : (n, dim) numpy.ndarray
-        The set of points being projected to the discretize surface topography
-    active_cells : numpy.ndarray of int or bool, optional
-        Index array for all cells lying below the surface topography. Surface topography
-        can be specified using the 'ind_active' or 'topo' input parameters.
-    option : {"top", "center"}
-        Define whether the cell center or entire cell of actice cells must be below the topography.
-        The topography is defined using the 'topo' input parameter.
-    topo : (n, dim) numpy.ndarray
-        Surface topography. Can be used if an active indices array cannot be provided
-        for the input parameter 'ind_active'
-    ind_active : numpy.ndarray of int or bool, optional
+#     Parameters
+#     ----------
+#     mesh : discretize.TensorMesh or discretize.TreeMesh
+#         A 2D tensor or tree mesh
+#     pts : (n, dim) numpy.ndarray
+#         The set of points being projected to the discretize surface topography
+#     active_cells : numpy.ndarray of int or bool, optional
+#         Index array for all cells lying below the surface topography. Surface topography
+#         can be specified using the 'ind_active' or 'topo' input parameters.
+#     option : {"top", "center"}
+#         Define whether the cell center or entire cell of actice cells must be below the topography.
+#         The topography is defined using the 'topo' input parameter.
+#     topo : (n, dim) numpy.ndarray
+#         Surface topography. Can be used if an active indices array cannot be provided
+#         for the input parameter 'ind_active'
+#     ind_active : numpy.ndarray of int or bool, optional
 
-        .. deprecated:: 0.23.0
+#         .. deprecated:: 0.23.0
 
-           Argument ``ind_active`` is deprecated in favor of ``active_cells``
-           and will be removed in SimPEG v0.24.0.
-    """
-    # Deprecate ind_active argument
-    if ind_active is not None:
-        if active_cells is not None:
-            raise TypeError(
-                "Cannot pass both 'active_cells' and 'ind_active'."
-                "'ind_active' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'active_cells' instead.",
-            )
-        warnings.warn(
-            "'ind_active' has been deprecated and will be removed in "
-            " SimPEG v0.24.0, please use 'active_cells' instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        active_cells = ind_active
+#            Argument ``ind_active`` is deprecated in favor of ``active_cells``
+#            and will be removed in SimPEG v0.24.0.
+#     """
+#     # Deprecate ind_active argument
+#     if ind_active is not None:
+#         if active_cells is not None:
+#             raise TypeError(
+#                 "Cannot pass both 'active_cells' and 'ind_active'."
+#                 "'ind_active' has been deprecated and will be removed in "
+#                 " SimPEG v0.24.0, please use 'active_cells' instead.",
+#             )
+#         warnings.warn(
+#             "'ind_active' has been deprecated and will be removed in "
+#             " SimPEG v0.24.0, please use 'active_cells' instead.",
+#             FutureWarning,
+#             stacklevel=2,
+#         )
+#         active_cells = ind_active
 
-    # if isinstance(mesh, discretize.CurvilinearMesh):
-    #     raise ValueError("Curvilinear mesh is not supported.")
+#     if isinstance(mesh, discretize.CurvilinearMesh):
+#         raise ValueError("Curvilinear mesh is not supported.")
 
-    # if mesh.dim == 2:
-    #     # if shape is (*, 1) or (*, 2) just grab first column
-    #     if pts.ndim == 2 and pts.shape[1] in [1, 2]:
-    #         pts = pts[:, 0]
-    #     if pts.ndim > 1:
-    #         raise ValueError("pts should be 1d array")
-    # elif mesh.dim == 3:
-    #     if pts.shape[1] not in [2, 3]:
-    #         raise ValueError("shape of pts should be (x, 3) or (x, 2)")
-    #     # just grab the xy locations in the first two columns
-    #     pts = pts[:, :2]
-    # else:
-    #     raise ValueError("Unsupported mesh dimension")
+#     if mesh.dim == 2:
+#         # if shape is (*, 1) or (*, 2) just grab first column
+#         if pts.ndim == 2 and pts.shape[1] in [1, 2]:
+#             pts = pts[:, 0]
+#         if pts.ndim > 1:
+#             raise ValueError("pts should be 1d array")
+#     elif mesh.dim == 3:
+#         if pts.shape[1] not in [2, 3]:
+#             raise ValueError("shape of pts should be (x, 3) or (x, 2)")
+#         # just grab the xy locations in the first two columns
+#         pts = pts[:, :2]
+#     else:
+#         raise ValueError("Unsupported mesh dimension")
 
-    # if active_cells is None:
-    #     active_cells = discretize.utils.active_from_xyz(mesh, topo)
+#     if active_cells is None:
+#         active_cells = discretize.utils.active_from_xyz(mesh, topo)
 
-    # if mesh._meshType == "TENSOR":
-    #     meshtemp, topoCC = gettopoCC(mesh, active_cells, option=option)
-    #     inds = meshtemp.closest_points_index(pts)
-    #     topo = topoCC[inds]
-    #     out = np.c_[pts, topo]
+#     if mesh._meshType == "TENSOR":
+#         meshtemp, topoCC = gettopoCC(mesh, active_cells, option=option)
+#         inds = meshtemp.closest_points_index(pts)
+#         topo = topoCC[inds]
+#         out = np.c_[pts, topo]
 
-    # elif mesh._meshType == "TREE":
-    #     if mesh.dim == 3:
-    #         uniqXYlocs, topoCC = gettopoCC(mesh, active_cells, option=option)
-    #         inds = closestPointsGrid(uniqXYlocs, pts)
-    #         out = np.c_[uniqXYlocs[inds, :], topoCC[inds]]
-    #     else:
-    #         uniqXlocs, topoCC = gettopoCC(mesh, active_cells, option=option)
-    #         inds = closestPointsGrid(uniqXlocs, pts, dim=1)
-    #         out = np.c_[uniqXlocs[inds], topoCC[inds]]
-    # else:
-    #     raise NotImplementedError(f"{type(mesh)} mesh is not supported.")
+#     elif mesh._meshType == "TREE":
+#         if mesh.dim == 3:
+#             uniqXYlocs, topoCC = gettopoCC(mesh, active_cells, option=option)
+#             inds = closestPointsGrid(uniqXYlocs, pts)
+#             out = np.c_[uniqXYlocs[inds, :], topoCC[inds]]
+#         else:
+#             uniqXlocs, topoCC = gettopoCC(mesh, active_cells, option=option)
+#             inds = closestPointsGrid(uniqXlocs, pts, dim=1)
+#             out = np.c_[uniqXlocs[inds], topoCC[inds]]
+#     else:
+#         raise NotImplementedError(f"{type(mesh)} mesh is not supported.")
 
-    # return out
+#     return out
 
 
 def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
@@ -1736,33 +1735,39 @@ def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
         raise Exception("Only works for 2D and 3D models")
 
 
-# CALL closest grid points
 def closestPointsGrid(grid, pts, dim=2):
-    """Move a list of points to the closest points on a grid.
+    """Return indices of closest gridded points for a set of input points.
 
     Parameters
     ----------
     grid : (n, dim) numpy.ndarray
-        A gridded set of points
+        A gridded set of points.
     pts : (m, dim) numpy.ndarray
-        Points being projected to gridded locations
+        Points being projected to gridded locations.
     dim : int, default=2
-        Dimension of the points
+        Dimension of the points.
 
     Returns
     -------
     (n,) numpy.ndarray
-        indices for the closest gridded location for all *pts* supplied.
+        Indices of the closest gridded points for all *pts* supplied.
     """
-    # if dim == 1:
-    #     nodeInds = np.asarray(
-    #         [np.abs(pt - grid).argmin() for pt in pts.tolist()], dtype=int
-    #     )
-    # else:
-    #     tree = cKDTree(grid)
-    #     _, nodeInds = tree.query(pts)
 
-    # return nodeInds
+    warnings.warn(
+        "'closestPointsGrid' is now deprecated and will be removed in v0.26."
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    if dim == 1:
+        nodeInds = np.asarray(
+            [np.abs(pt - grid).argmin() for pt in pts.tolist()], dtype=int
+        )
+    else:
+        tree = cKDTree(grid)
+        _, nodeInds = tree.query(pts)
+
+    return nodeInds
 
 
 def gen_3d_survey_from_2d_lines(
@@ -1863,3 +1868,12 @@ def gen_3d_survey_from_2d_lines(
         line_inds=line_inds,
     )
     return IO_3d, survey_3d
+
+
+gettopoCC = deprecate_function(
+    get_discrete_topography, "gettopoCC", removal_version="0.26.0", error=False
+)
+
+drapeTopotoLoc = deprecate_function(
+    shift_to_discrete_topography, "drapeTopotoLoc", removal_version="0.26.0", error=False
+)
