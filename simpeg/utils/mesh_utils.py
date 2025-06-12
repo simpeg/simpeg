@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.spatial import cKDTree
-from .code_utils import deprecate_function
 
 from discretize import TensorMesh
 
@@ -20,8 +19,8 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
     vrtx : (n_nodes, 3) numpy.ndarray of float
         The location of the vertices of the triangles
     trgl : (n_triang, 3) numpy.ndarray of int
-        Each row describes the 3 indices into the `vrtx` array that make up a triangle's
-        vertices.
+        Each row describes the 3 indices into the `vrtx` array that make up a
+        triangle's vertices.
     mesh : TensorMesh
     boundaries : bool, optional
     internal : bool, optional
@@ -208,12 +207,13 @@ def shift_to_discrete_topography(
     mesh : TensorMesh or discretize.TreeMesh
         The mesh (2D or 3D) defining the discrete domain.
     pts : (n, dim) numpy.ndarray
-        The original set of points being shifted relative to the discretize surface topography.
+        The original set of points being shifted relative to the discretize
+        surface topography.
     active_cells : numpy.ndarray of int or bool, optional
         Index array for all cells lying below the surface topography.
     option : {"top", "center"}
-        Define whether the cell center or entire cell of actice cells must be below the topography.
-        The topography is defined using the 'topo' input parameter.
+        Define whether the cell center or entire cell of actice cells must be below
+        the topography.The topography is defined using the 'topo' input parameter.
     heights : float or (n,) numpy.ndarray
         Height(s) relative to the true surface topography.
     topo : (n, dim) numpy.ndarray
