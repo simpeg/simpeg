@@ -278,11 +278,6 @@ from .mat_utils import (
     diagEst,
     uniqueRows,
 )
-from .mesh_utils import (
-    meshTensor,
-    closestPoints,
-    ExtractCoreMesh,
-)
 from .curv_utils import (
     volTetra,
     faceInfo,

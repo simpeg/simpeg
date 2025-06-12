@@ -8,7 +8,7 @@ from discretize.utils import (  # noqa: F401
     unpack_widths,
     closest_points_index,
     extract_core_mesh,
-    active_from_xyz
+    active_from_xyz,
 )
 
 
@@ -100,6 +100,7 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
     # Return the indexes inside
     return insideGrid
 
+
 def _closest_grid_indices(grid, pts, dim=2):
     """Return indices of closest gridded points for a set of input points.
 
@@ -127,7 +128,8 @@ def _closest_grid_indices(grid, pts, dim=2):
 
     return grid_inds
 
-def get_discrete_topography(mesh, ind_active, option="top"):
+
+def get_discrete_topography(mesh, active_cells, option="top"):
     """
     Generate the discrete topography locations.
 
@@ -135,7 +137,7 @@ def get_discrete_topography(mesh, ind_active, option="top"):
     ----------
     mesh : TensorMesh or discretize.TreeMesh
         A tensor or tree mesh.
-    ind_active : numpy.ndarray of bool or int
+    active_cells : numpy.ndarray of bool or int
         Active cells index; i.e. indices of cells below surface
     option : {"top", "center"}
         Use string to specify if the surface passes through the
@@ -150,7 +152,7 @@ def get_discrete_topography(mesh, ind_active, option="top"):
         if mesh.dim == 3:
             mesh2D = TensorMesh([mesh.h[0], mesh.h[1]], mesh.x0[:2])
             zc = mesh.cell_centers[:, 2]
-            ACTIND = ind_active.reshape(
+            ACTIND = active_cells.reshape(
                 (mesh.vnC[0] * mesh.vnC[1], mesh.vnC[2]), order="F"
             )
             ZC = zc.reshape((mesh.vnC[0] * mesh.vnC[1], mesh.vnC[2]), order="F")
@@ -170,7 +172,7 @@ def get_discrete_topography(mesh, ind_active, option="top"):
         elif mesh.dim == 2:
             mesh1D = TensorMesh([mesh.h[0]], [mesh.x0[0]])
             yc = mesh.cell_centers[:, 1]
-            ACTIND = ind_active.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
+            ACTIND = active_cells.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
             YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
             topoCC = np.zeros(YC.shape[0])
             for i in range(YC.shape[0]):
@@ -185,7 +187,7 @@ def get_discrete_topography(mesh, ind_active, option="top"):
             return mesh1D, topoCC
 
     elif mesh._meshType == "TREE":
-        inds = mesh.get_boundary_cells(ind_active, direction="zu")[0]
+        inds = mesh.get_boundary_cells(active_cells, direction="zu")[0]
 
         if option == "top":
             dz = mesh.h_gridded[inds, -1] * 0.5
@@ -197,7 +199,7 @@ def get_discrete_topography(mesh, ind_active, option="top"):
 
 
 def shift_to_discrete_topography(
-    mesh, pts, active_cells, option="top", height=0.0
+    mesh, pts, active_cells=None, option="top", heights=0.0, topo=None
 ):
     """Shift locations relative to discrete surface topography.
 
@@ -208,8 +210,7 @@ def shift_to_discrete_topography(
     pts : (n, dim) numpy.ndarray
         The original set of points being shifted relative to the discretize surface topography.
     active_cells : numpy.ndarray of int or bool, optional
-        Index array for all cells lying below the surface topography. Surface topography
-        can be specified using the 'ind_active' or 'topo' input parameters.
+        Index array for all cells lying below the surface topography.
     option : {"top", "center"}
         Define whether the cell center or entire cell of actice cells must be below the topography.
         The topography is defined using the 'topo' input parameter.
@@ -217,7 +218,7 @@ def shift_to_discrete_topography(
         Height(s) relative to the true surface topography.
     topo : (n, dim) numpy.ndarray
         Surface topography. Can be used if an active indices array cannot be provided
-        for the input parameter 'ind_active'.
+        for the input parameter 'active_cells'.
 
     Returns
     -------
@@ -225,10 +226,12 @@ def shift_to_discrete_topography(
         The set of points shifted relative to the discretize surface topography.
     """
 
-    if mesh._meshType not 'TENSOR' and mesh._meshType not 'TREE':
-        raise TypeError("'shift_to_discrete_topography only supported for TensorMesh and TreeMesh'.")
+    if mesh._meshType != "TENSOR" and mesh._meshType != "TREE":
+        raise TypeError(
+            "'shift_to_discrete_topography only supported for TensorMesh and TreeMesh'."
+        )
 
-    if not isinstance(height, (int, float)):
+    if not isinstance(heights, (int, float)):
         if len(pts) != len(heights):
             raise ValueError(
                 "If supplied as a `numpy.ndarray`, the number of heights must equal the number of points."
@@ -259,12 +262,16 @@ def shift_to_discrete_topography(
 
     elif mesh._meshType == "TREE":
         if mesh.dim == 3:
-            uniqXYlocs, topoCC = get_discrete_topography(mesh, active_cells, option=option)
-            inds = _closest_grid_points(uniqXYlocs, pts)
+            uniqXYlocs, topoCC = get_discrete_topography(
+                mesh, active_cells, option=option
+            )
+            inds = _closest_grid_indices(uniqXYlocs, pts)
             out = np.c_[uniqXYlocs[inds, :], topoCC[inds]]
         else:
-            uniqXlocs, topoCC = get_discrete_topography(mesh, active_cells, option=option)
-            inds = _closest_grid_points(uniqXlocs, pts, dim=1)
+            uniqXlocs, topoCC = get_discrete_topography(
+                mesh, active_cells, option=option
+            )
+            inds = _closest_grid_indices(uniqXlocs, pts, dim=1)
             out = np.c_[uniqXlocs[inds], topoCC[inds]]
     else:
         raise NotImplementedError(f"{type(mesh)} mesh is not supported.")

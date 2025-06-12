@@ -14,6 +14,7 @@ from ....utils import (
     define_plane_from_points,
     get_discrete_topography,
     shift_to_discrete_topography,
+    deprecate_function
 )
 from ....utils.io_utils import (  # noqa: F401
     read_dcip2d_ubc,
@@ -1754,8 +1755,8 @@ def closestPointsGrid(grid, pts, dim=2):
     """
 
     warnings.warn(
-        "'closestPointsGrid' is now deprecated and will be removed in v0.26."
-        DeprecationWarning,
+        "closestPointsGrid is now deprecated. It will be removed in SimPEG version 0.26.0.",
+        FutureWarning,
         stacklevel=2,
     )
 
@@ -1871,9 +1872,9 @@ def gen_3d_survey_from_2d_lines(
 
 
 gettopoCC = deprecate_function(
-    get_discrete_topography, "gettopoCC", removal_version="0.26.0", error=False
+    get_discrete_topography, "gettopoCC", removal_version="0.26.0", future_warn=True, error=False
 )
 
 drapeTopotoLoc = deprecate_function(
-    shift_to_discrete_topography, "drapeTopotoLoc", removal_version="0.26.0", error=False
+    shift_to_discrete_topography, "drapeTopotoLoc", removal_version="0.26.0", future_warn=True, error=False
 )
