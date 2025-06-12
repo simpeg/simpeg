@@ -31,4 +31,3 @@ from .test_utils import (
     blockInhalfSpace,
     twoLayer,
 )
-from .nsem_utils import shift_to_discrete_topography
