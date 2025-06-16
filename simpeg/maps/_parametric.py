@@ -2,7 +2,6 @@
 Parametric map classes.
 """
 
-import warnings
 import discretize
 import numpy as np
 from numpy.polynomial import polynomial
@@ -335,12 +334,6 @@ class ParametricPolyMap(IdentityMap):
         Active cells array. Can be a boolean ``numpy.ndarray`` of length
         ``mesh.n_cells`` or a ``numpy.ndarray`` of ``int`` containing the
         indices of the active cells.
-    actInd : numpy.ndarray, optional
-
-        .. deprecated:: 0.23.0
-
-           Argument ``actInd`` is deprecated in favor of ``active_cells`` and will
-           be removed in SimPEG v0.24.0.
 
     Examples
     --------
@@ -404,7 +397,7 @@ class ParametricPolyMap(IdentityMap):
         normal="X",
         active_cells=None,
         slope=1e4,
-        actInd=None,
+        **kwargs,
     ):
         super().__init__(mesh=mesh)
         self.logSigma = logSigma
@@ -412,21 +405,13 @@ class ParametricPolyMap(IdentityMap):
         self.normal = normal
         self.slope = slope
 
-        # Deprecate actInd argument
-        if actInd is not None:
-            if active_cells is not None:
-                raise TypeError(
-                    "Cannot pass both 'active_cells' and 'actInd'."
-                    "'actInd' has been deprecated and will be removed in "
-                    " SimPEG v0.24.0, please use 'active_cells' instead.",
-                )
-            warnings.warn(
-                "'actInd' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'active_cells' instead.",
-                FutureWarning,
-                stacklevel=2,
+        # Deprecate indActive argument
+        if kwargs.pop("indActive", None) is not None:
+            raise TypeError(
+                "'indActive' was removed in SimPEG v0.24.0, please use 'active_cells' instead."
             )
-            active_cells = actInd
+        if kwargs:  # TODO Remove this when removing kwargs argument.
+            raise TypeError("Unsupported keyword argument " + kwargs.popitem()[0])
 
         if active_cells is None:
             active_cells = np.ones(mesh.n_cells, dtype=bool)
@@ -498,8 +483,7 @@ class ParametricPolyMap(IdentityMap):
         "actInd",
         "active_cells",
         removal_version="0.24.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     @property
@@ -1103,13 +1087,6 @@ class BaseParametric(IdentityMap):
     active_cells : numpy.ndarray, optional
         Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
-    indActive : numpy.ndarray
-
-        .. deprecated:: 0.23.0
-
-           Argument ``indActive`` is deprecated in favor of ``active_cells`` and will
-           be removed in SimPEG v0.24.0.
-
 
     """
 
@@ -1119,26 +1096,15 @@ class BaseParametric(IdentityMap):
         slope=None,
         slopeFact=1.0,
         active_cells=None,
-        indActive=None,
         **kwargs,
     ):
-        super(BaseParametric, self).__init__(mesh, **kwargs)
-
         # Deprecate indActive argument
-        if indActive is not None:
-            if active_cells is not None:
-                raise TypeError(
-                    "Cannot pass both 'active_cells' and 'indActive'."
-                    "'indActive' has been deprecated and will be removed in "
-                    " SimPEG v0.24.0, please use 'active_cells' instead.",
-                )
-            warnings.warn(
-                "'indActive' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'active_cells' instead.",
-                FutureWarning,
-                stacklevel=2,
+        if kwargs.pop("indActive", None) is not None:
+            raise TypeError(
+                "'indActive' was removed in SimPEG v0.24.0, please use 'active_cells' instead."
             )
-            active_cells = indActive
+
+        super(BaseParametric, self).__init__(mesh, **kwargs)
 
         self.active_cells = active_cells
         self.slopeFact = slopeFact
@@ -1189,8 +1155,7 @@ class BaseParametric(IdentityMap):
         "indActive",
         "active_cells",
         removal_version="0.24.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     @property
@@ -1321,12 +1286,6 @@ class ParametricLayer(BaseParametric):
     slopeFact : float
         Scaling factor for the sharpness of the boundaries based on cell size.
         Using this option, we set *a = slopeFact / dh*.
-    indActive : numpy.ndarray
-
-        .. deprecated:: 0.23.0
-
-           Argument ``indActive`` is deprecated in favor of ``active_cells`` and will
-           be removed in SimPEG v0.24.0.
 
     Examples
     --------
@@ -1357,9 +1316,6 @@ class ParametricLayer(BaseParametric):
     >>> mesh.plot_image(act_map * layer_map * model, ax=ax)
 
     """
-
-    def __init__(self, mesh, **kwargs):
-        super().__init__(mesh, **kwargs)
 
     @property
     def nP(self):
@@ -1589,12 +1545,6 @@ class ParametricBlock(BaseParametric):
         Epsilon value used in the ekblom representation of the block
     p : float
         p-value used in the ekblom representation of the block.
-    indActive : numpy.ndarray
-
-        .. deprecated:: 0.23.0
-
-           Argument ``indActive`` is deprecated in favor of ``active_cells`` and will
-           be removed in SimPEG v0.24.0.
 
     Examples
     --------
@@ -1938,12 +1888,6 @@ class ParametricEllipsoid(ParametricBlock):
         Using this option, we set *a = slopeFact / dh*.
     epsilon : float
         Epsilon value used in the ekblom representation of the block
-    indActive : numpy.ndarray
-
-        .. deprecated:: 0.23.0
-
-           Argument ``indActive`` is deprecated in favor of ``active_cells`` and will
-           be removed in SimPEG v0.24.0.
 
     Examples
     --------
