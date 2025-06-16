@@ -506,7 +506,7 @@ class MagDipole(BaseFDEMSrc):
             gridX = simulation.mesh.gridFx
             gridY = simulation.mesh.gridFy
             gridZ = simulation.mesh.gridFz
-            C = simulation.mesh.edge_curl.T
+            C = simulation.MeI * simulation.mesh.edge_curl.T * simulation.Mf
 
         if simulation.mesh._meshType == "CYL":
             coordinates = "cylindrical"
