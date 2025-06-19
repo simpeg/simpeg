@@ -173,7 +173,7 @@ class XYZSystem(object):
     @property
     def data_uncert_array_culled(self):
         dobs = self.data_array_nan
-        return np.where(np.isnan(dobs), np.inf, self.data_uncert_array)
+        return np.where(np.isnan(dobs) | np.isnan(self.data_uncert_array), np.inf, self.data_uncert_array)
 
     dipole_moments = [1]
     
