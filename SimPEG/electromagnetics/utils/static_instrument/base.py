@@ -539,7 +539,7 @@ class XYZSystem(object):
 
             derrall = reshape_nosplit(derr)
             with np.errstate(divide='ignore'):
-                xyzresp.flightlines['resdata'] = np.sqrt(np.nansum(derrall**2, axis=1) / (derrall > 0).sum(axis=1))
+                xyzresp.flightlines['resdata'] = np.sqrt(np.nansum(derrall**2, axis=1) / (~derrall.isna()).sum(axis=1))
             
         dpred = dpred / self.xyz.model_info.get("scalefactor", 1)
         
