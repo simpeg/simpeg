@@ -2,7 +2,7 @@ schema_version: 1
 
 context:
   name: "mira-simpeg"
-  version: "0.23.0.1b1"
+  version: "0.23.0.1"
   python_min: "3.10"
 
 package:
