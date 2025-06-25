@@ -30,7 +30,7 @@ def true_solution(freq, sigma_half):
         -np.sqrt(np.pi * freq * mu_0 / sigma_half),
         -np.sqrt(np.pi * freq * mu_0 / sigma_half),
         1 / sigma_half,
-        45.0,
+        -135.0,
     ]
 
     return soln
