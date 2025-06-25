@@ -554,7 +554,7 @@ class ChiMap(IdentityMap):
         return m / mu_0 - 1
 
 
-class Effective_Susceptibility_Map(IdentityMap):
+class EffectiveSusceptibilityMap(IdentityMap):
     r"""Effective susceptibility Map
 
     Convert Effective Susceptibility (SI) to magnetic polarization (nT).
