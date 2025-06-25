@@ -1889,7 +1889,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         return dpred
 
-    def Magnetic_Polarization(self, m):
+    def magnetic_polarization(self, m):
         r"""
         Computes the total magnetic polarization :math:`\mu_0\mathbf{M}`.
 
