@@ -77,7 +77,9 @@ class DualMomentTEMXYZSystem(base.XYZSystem):
     @property
     def sounding_filter(self):
         # Exclude soundings with no usable gates
-        return self._xyz.dbdt_inuse_ch1gt.values.sum(axis=1) + self._xyz.dbdt_inuse_ch2gt.sum(axis=1) > 0
+        ch1 = np.isfinite(self._xyz.dbdt_ch1gt.values) & np.isfinite(self._xyz.dbdt_std_ch1gt.values) & self._xyz.dbdt_inuse_ch1gt
+        ch2 = np.isfinite(self._xyz.dbdt_ch2gt.values) & np.isfinite(self._xyz.dbdt_std_ch2gt.values) & self._xyz.dbdt_inuse_ch2gt
+        return ch1.sum(axis=1) + ch2.sum(axis=1) > 0
 
     @property
     def area(self):
