@@ -7,6 +7,7 @@ import discretize
 import numpy as np
 import scipy.sparse as sp
 from scipy.sparse import csr_matrix as csr
+from scipy.sparse.linalg import aslinearoperator, LinearOperator
 from discretize.tests import check_derivative
 from discretize.utils import Zero, Identity, mkvc, speye, sdiag
 import uuid
@@ -529,7 +530,10 @@ class ComboMap(IdentityMap):
 
         mi = m
         for map_i in reversed(self.maps):
-            deriv = map_i.deriv(mi) * deriv
+            if isinstance(deriv, LinearOperator):
+                deriv = aslinearoperator(map_i.deriv(mi)) * deriv
+            else:
+                deriv = map_i.deriv(mi) * deriv
             mi = map_i * mi
         return deriv
 
