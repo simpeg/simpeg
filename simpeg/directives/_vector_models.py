@@ -143,7 +143,9 @@ class VectorInversion(InversionDirective):
             if np.any(out_bound):
                 scale = upper_bound / amplitude
                 for ind in indices:
-                    model[ind] *= scale
+                    vec = model[ind]
+                    vec[out_bound] *= scale[out_bound]
+                    model[ind] = vec
 
                 self.invProb.model = model
                 self.opt.xc = model
