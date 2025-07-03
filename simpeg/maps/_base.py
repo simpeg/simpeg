@@ -530,8 +530,13 @@ class ComboMap(IdentityMap):
 
         mi = m
         for map_i in reversed(self.maps):
+            map_i_deriv = map_i.deriv(mi)
             if isinstance(deriv, LinearOperator):
-                deriv = aslinearoperator(map_i.deriv(mi)) * deriv
+                deriv = aslinearoperator(map_i_deriv) * deriv
+            elif isinstance(map_i_deriv, LinearOperator) and isinstance(
+                deriv, sp.spmatrix
+            ):
+                deriv = map_i_deriv * aslinearoperator(deriv)
             else:
                 deriv = map_i.deriv(mi) * deriv
             mi = map_i * mi
