@@ -963,7 +963,8 @@ class ComplexMap(IdentityMap):
 
         if v is not None:
             return LinearOperator(shp, matvec=fwd, rmatvec=adj) * v
-        return LinearOperator(shp, matvec=fwd, rmatvec=adj)
+        # return LinearOperator(shp, matvec=fwd, rmatvec=adj)
+        return sp.hstack([sdiag(np.ones(nC)), 1j * sdiag(np.ones(nC))])
 
 
 class SelfConsistentEffectiveMedium(IdentityMap):
