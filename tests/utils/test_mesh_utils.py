@@ -27,9 +27,9 @@ def get_mesh(mesh_type, dim):
 def get_points(dim):
     """Test points."""
     if dim == 2:
-        return np.array([[1.0, 3.0], [4.0, -2.0]])
+        return np.array([[1.1, 3.0], [-3.9, -2.0]])
     else:
-        return np.array([[1.0, -4.0, 3.0], [4.0, 5.0, -2.0]])
+        return np.array([[1.1, -3.6, 3.0], [-3.9, 4.4, -2.0]])
 
 
 def get_active_cells(mesh):
@@ -43,32 +43,49 @@ def get_active_cells(mesh):
 
 
 CASES_LIST_SUCCESS = [
-    ("tensor", 2, "center", 0.0),
-    ("tensor", 3, "top", np.r_[1.5, 1.5]),
-    ("tree", 2, "top", np.r_[1.5, 1.5]),
-    ("tree", 3, "center", 0.0),
+    ("tensor", 2, "center", False, 0.0),
+    ("tensor", 3, "top", False, np.r_[1.25, 1.25]),
+    ("tree", 2, "top", False, np.r_[1.25, 1.25]),
+    ("tree", 3, "center", False, 0.0),
+    ("tensor", 2, "center", True, 0.0),
+    ("tensor", 3, "top", True, np.r_[1.25, 1.25]),
+    ("tree", 2, "top", True, np.r_[1.25, 1.25]),
+    ("tree", 3, "center", True, 0.0),
 ]
 
 
-@pytest.mark.parametrize("mesh_type, dim, option, heights", CASES_LIST_SUCCESS)
-def test_function_success(mesh_type, dim, option, heights):
+@pytest.mark.parametrize(
+    "mesh_type, dim, option, shift_horizontal, heights", CASES_LIST_SUCCESS
+)
+def test_function_success(mesh_type, dim, option, shift_horizontal, heights):
     """Test cases that run properly."""
     mesh = get_mesh(mesh_type, dim)
     active_cells = get_active_cells(mesh)
     pts = get_points(dim)
 
     pts_shifted = shift_to_discrete_topography(
-        mesh, pts, active_cells, option=option, heights=heights
+        mesh,
+        pts,
+        active_cells,
+        option=option,
+        shift_horizontal=shift_horizontal,
+        heights=heights,
     )
 
     if isinstance(heights, (int, float)):
         heights = np.array([heights])
 
-    correct_elevation = heights[0]
+    correct_elevations = heights.copy()
     if option == "center":
-        correct_elevation -= 0.5 * DH
+        correct_elevations -= 0.5 * DH
 
-    assert np.all(np.isclose(pts_shifted[:, -1], correct_elevation))
+    if shift_horizontal:
+        correct_locations = np.round(pts) + 0.5 * DH
+    else:
+        correct_locations = pts.copy()
+    correct_locations[:, -1] = correct_elevations
+
+    assert np.all(np.isclose(pts_shifted, correct_locations))
 
 
 def test_dimension_error():
@@ -112,3 +129,11 @@ def test_size_errors():
 
     with pytest.raises(ValueError):
         shift_to_discrete_topography(mesh, pts, active_cells, heights=heights)
+
+
+mesh_type = "tensor"
+dim = 3
+option = "top"
+shift_horizontal = True
+heights = 0.0
+test_function_success(mesh_type, dim, option, shift_horizontal, heights)

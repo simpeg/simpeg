@@ -12,7 +12,7 @@ from discretize.utils import (  # noqa: F401
 
 
 def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
-    """Takes a triangulated surface and determine which mesh cells it intersects.
+    """Takes a triangulated surface and determines which mesh cells it intersects.
 
     Parameters
     ----------
@@ -130,7 +130,7 @@ def _closest_grid_indices(grid, pts, dim=2):
 
 def get_discrete_topography(mesh, active_cells, option="top"):
     """
-    Generate the discrete topography locations.
+    Generate discrete topography locations.
 
     Parameters
     ----------
@@ -198,9 +198,16 @@ def get_discrete_topography(mesh, active_cells, option="top"):
 
 
 def shift_to_discrete_topography(
-    mesh, pts, active_cells=None, option="top", heights=0.0, topo=None
+    mesh,
+    pts,
+    active_cells=None,
+    option="top",
+    shift_horizontal=True,
+    heights=0.0,
+    topo=None,
 ):
-    """Shift locations relative to discrete surface topography.
+    """
+    Shift locations relative to discrete surface topography.
 
     Parameters
     ----------
@@ -215,10 +222,14 @@ def shift_to_discrete_topography(
         Define whether the cell center or entire cell of actice cells must be below
         the topography.The topography is defined using the 'topo' input parameter.
     heights : float or (n,) numpy.ndarray
-        Height(s) relative to the true surface topography.
+        Height(s) relative to the true surface topography. Used to preserve flight
+        heights or borehole depths.
+    shift_horizontal : bool
+        When True, locations are shifted horizontally to lie vertically over cell
+        centers. When False, the original horizontal locations are preserved.
     topo : (n, dim) numpy.ndarray
-        Surface topography. Can be used if an active indices array cannot be provided
-        for the input parameter 'active_cells'.
+        Surface topography. Can be used if an active indices array cannot be
+        provided for the input parameter 'active_cells'.
 
     Returns
     -------
@@ -258,7 +269,10 @@ def shift_to_discrete_topography(
         mesh_temp, topoCC = get_discrete_topography(mesh, active_cells, option=option)
         inds = mesh_temp.closest_points_index(pts)
         topo = topoCC[inds]
-        out = np.c_[pts, topo]
+        if shift_horizontal:
+            out = np.c_[mesh_temp.cell_centers[inds], topo]
+        else:
+            out = np.c_[pts, topo]
 
     elif mesh._meshType == "TREE":
         if mesh.dim == 3:
@@ -266,13 +280,19 @@ def shift_to_discrete_topography(
                 mesh, active_cells, option=option
             )
             inds = _closest_grid_indices(uniqXYlocs, pts)
-            out = np.c_[uniqXYlocs[inds, :], topoCC[inds]]
+            if shift_horizontal:
+                out = np.c_[uniqXYlocs[inds, :], topoCC[inds]]
+            else:
+                out = np.c_[pts, topoCC[inds]]
         else:
             uniqXlocs, topoCC = get_discrete_topography(
                 mesh, active_cells, option=option
             )
             inds = _closest_grid_indices(uniqXlocs, pts, dim=1)
-            out = np.c_[uniqXlocs[inds], topoCC[inds]]
+            if shift_horizontal:
+                out = np.c_[uniqXlocs[inds], topoCC[inds]]
+            else:
+                out = np.c_[pts, topoCC[inds]]
 
     out[:, -1] += heights
 
