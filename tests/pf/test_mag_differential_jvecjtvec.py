@@ -63,7 +63,7 @@ def test_derivative(deriv_type, mesh, survey):
     np.random.seed(40)
 
     chimap = maps.ChiMap(mesh)
-    eff_sus_map = maps.Effective_Susceptibility_Map(
+    eff_sus_map = maps.EffectiveSusceptibilityMap(
         nP=mesh.n_cells * 3, ambient_field_magnitude=survey.source_field.amplitude
     )
 
@@ -131,7 +131,7 @@ def test_adjoint(deriv_type, mesh, survey):
     np.random.seed(40)
 
     chimap = maps.ChiMap(mesh)
-    eff_sus_map = maps.Effective_Susceptibility_Map(
+    eff_sus_map = maps.EffectiveSusceptibilityMap(
         nP=mesh.n_cells * 3, ambient_field_magnitude=survey.source_field.amplitude
     )
 
