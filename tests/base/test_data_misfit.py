@@ -71,6 +71,32 @@ class DataMisfitTest(unittest.TestCase):
         self.data.noise_floor = self.noise_floor
         self.dmis.test(x=self.model, random_seed=17)
 
+    def test_real_valued(self):
+        # Change model
+        new_model = self.model + 1
+
+        # Misfit to data
+        misfit_original = self.dmis(new_model)
+
+        # Test pseudo-complex, with 0 imaginary part; misfit must be the same
+        d_pseudo = Data(self.sim.survey, dobs=self.data.dobs + 0j * self.data.dobs)
+        d_pseudo.relative_error = self.relative
+        d_pseudo.noise_floor = self.noise_floor
+        dmis_pseudo = data_misfit.L2DataMisfit(simulation=self.sim, data=d_pseudo)
+        misfit_pseudo = dmis_pseudo(new_model)
+        # assert_array_equal with strict also checks dtype
+        np.testing.assert_array_equal(misfit_original, misfit_pseudo, strict=True)
+
+        # Test actually complex; misfit must be different
+        data_imag = self.sim.make_synthetic_data(self.model, random_seed=17)
+        d_complex = Data(self.sim.survey, dobs=self.data.dobs + 1j * data_imag.dobs)
+        d_complex.relative_error = self.relative
+        d_complex.noise_floor = self.noise_floor
+        dmis_complex = data_misfit.L2DataMisfit(simulation=self.sim, data=d_complex)
+        misfit_complex = dmis_complex(new_model)
+        assert misfit_original != misfit_complex
+        assert misfit_complex.dtype == np.float64
+
 
 class MockSimulation(simulation.BaseSimulation):
     """
