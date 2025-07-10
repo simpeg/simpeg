@@ -2689,7 +2689,7 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 #                               Hierarchical                                  #
 ###############################################################################
 class Simulation3DHierarchicalElectricField(
-    BaseHierarchicalElectricalSimulation, Simulation3DMagneticFluxDensity
+    BaseHierarchicalElectricalSimulation, Simulation3DElectricField
 ):
     r"""
     Solve the EB-formulation of Maxwell's equations for the electric field, e.
