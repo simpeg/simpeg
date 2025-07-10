@@ -344,7 +344,7 @@ class Survey(BaseSurvey):
                 unique_electrodes,
                 active_cells=active_cells,
                 option=option,
-                shift_horizontal=shift_horizontal
+                shift_horizontal=shift_horizontal,
             )
             a_shifted = electrodes_shifted[inv_a]
             b_shifted = electrodes_shifted[inv_b]
