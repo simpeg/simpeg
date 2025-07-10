@@ -41,17 +41,22 @@ class BaseSaveGeoH5(InversionDirective, ABC):
     def __init__(
         self,
         h5_object,
+        *,
         dmisfit=None,
         label: str | None = None,
         channels: list[str] = ("",),
         components: list[str] = ("",),
         association: str | None = None,
+        open_geoh5: bool = False,
+        close_geoh5: bool = False,
         **kwargs,
     ):
         self.label = label
         self.channels = channels
         self.components = components
         self.h5_object = h5_object
+        self.open_geoh5 = open_geoh5
+        self.close_geoh5 = close_geoh5
 
         if association is not None:
             self.association = association
@@ -61,10 +66,20 @@ class BaseSaveGeoH5(InversionDirective, ABC):
         )
 
     def initialize(self):
+        if self.open_geoh5:
+            self._geoh5.open(mode="r+")
+
         self.write(0)
 
+        if self.close_geoh5:
+            self._geoh5.close()
+
     def endIter(self):
+        if self.open_geoh5:
+            self._geoh5.open(mode="r+")
         self.write(self.opt.iter)
+        if self.close_geoh5:
+            self._geoh5.close()
 
     def get_names(
         self, component: str, channel: str, iteration: int
