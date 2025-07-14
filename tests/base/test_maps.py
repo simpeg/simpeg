@@ -1026,5 +1026,87 @@ class TestParametric(DeprecatedIndActive):
         np.testing.assert_allclose(mapping.active_cells, new_active_cells)
 
 
+class TestComplexMapDerivative:
+    """
+    Test deriv method of ComplexMap.
+    """
+
+    @pytest.fixture
+    def mesh(self):
+        return discretize.TensorMesh([4])
+
+    @pytest.fixture
+    def active_cells(self, mesh):
+        return mesh.cell_centers < 0.5
+
+    def test_deriv(self, mesh, active_cells):
+        """
+        Test the deriv method.
+
+        Since the mapping is linear, the derivative matrix times a vector should return
+        the same as evaluating the mapping on the same vector.
+        """
+        n_cells = mesh.n_cells
+        n_active_cells = np.sum(active_cells)
+        mapping = maps.ComplexMap(nP=n_active_cells * 2)
+        m = np.random.default_rng(seed=12).uniform(size=n_cells)
+        derivative = mapping.deriv(m)
+        expected = mapping * m
+        np.testing.assert_allclose(expected, derivative @ m)
+
+    def test_deriv_with_vector(self, mesh, active_cells):
+        """
+        Test the deriv method with a ``v`` argument.
+
+        Since the mapping is linear, the derivative matrix times a vector should return
+        the same as evaluating the mapping on the same vector.
+        """
+        n_cells = mesh.n_cells
+        n_active_cells = np.sum(active_cells)
+        mapping = maps.ComplexMap(nP=n_active_cells * 2)
+        rng = np.random.default_rng(seed=12)
+        m = rng.uniform(size=n_cells)
+        v = rng.uniform(size=n_cells)
+        derivative = mapping.deriv(m, v=v)
+        expected = mapping * v
+        np.testing.assert_allclose(expected, derivative)
+
+    def test_deriv_within_combo(self, mesh, active_cells):
+        """
+        Test the deriv method when being called within a ``ComboMap``.
+        """
+        n_cells = mesh.n_cells
+        n_active_cells = np.sum(active_cells)
+        inject_map = maps.InjectActiveCells(
+            mesh, active_cells=active_cells, value_inactive=0
+        )
+        complex_map = maps.ComplexMap(nP=n_active_cells * 2)
+        mapping = inject_map * complex_map
+        rng = np.random.default_rng(seed=12)
+        m = rng.uniform(size=n_cells)
+        expected = mapping * m
+        derivative = mapping.deriv(m)
+        np.testing.assert_allclose(expected, derivative @ m)
+
+    def test_deriv_within_combo_with_vector(self, mesh, active_cells):
+        """
+        Test the deriv method when being called within a ``ComboMap`` and ``v`` as an
+        array.
+        """
+        n_cells = mesh.n_cells
+        n_active_cells = np.sum(active_cells)
+        inject_map = maps.InjectActiveCells(
+            mesh, active_cells=active_cells, value_inactive=0
+        )
+        complex_map = maps.ComplexMap(nP=n_active_cells * 2)
+        mapping = inject_map * complex_map
+        rng = np.random.default_rng(seed=12)
+        m = rng.uniform(size=n_cells)
+        v = rng.uniform(size=n_cells)
+        derivative = mapping.deriv(m, v=v)
+        expected = mapping * v
+        np.testing.assert_allclose(expected, derivative)
+
+
 if __name__ == "__main__":
     unittest.main()
