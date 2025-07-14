@@ -521,7 +521,7 @@ class ComboMap(IdentityMap):
             \frac{\partial \mathbf{f_2}}{\partial \mathbf{f_{1}}}
             \frac{\partial \mathbf{f_1}}{\partial \mathbf{m}}
         """
-        deriv = v if v is not None else sp.eye_array(self.maps[-1].shape[1])
+        deriv = v if v is not None else sp.eye_array(self.maps[-1].nP)
         mi = m
         for map_i in reversed(self.maps):
             deriv = map_i.deriv(mi) @ deriv
