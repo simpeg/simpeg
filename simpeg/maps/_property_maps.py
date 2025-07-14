@@ -5,7 +5,6 @@ Maps that transform physical properties from one space to another.
 import warnings
 import numpy as np
 import scipy.sparse as sp
-from scipy.sparse.linalg import LinearOperator
 from scipy.constants import mu_0
 from scipy.special import expit, logit
 from discretize.utils import mkvc, sdiag, rotation_matrix_from_normals
@@ -953,17 +952,13 @@ class ComplexMap(IdentityMap):
 
         """
         nC = self.shape[0]
-        shp = (nC, nC * 2)
-
-        def fwd(v):
-            return v[:nC] + v[nC:] * 1j
-
-        def adj(v):
-            return np.r_[v.real, v.imag]
-
+        identity_matrix = sp.eye_array(nC)
+        derivative = sp.block_array(
+            [[identity_matrix, 1j * identity_matrix]], format="csr"
+        )
         if v is not None:
-            return LinearOperator(shp, matvec=fwd, rmatvec=adj) * v
-        return LinearOperator(shp, matvec=fwd, rmatvec=adj)
+            return derivative @ v
+        return derivative
 
 
 class SelfConsistentEffectiveMedium(IdentityMap):
