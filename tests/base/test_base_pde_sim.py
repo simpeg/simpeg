@@ -11,7 +11,7 @@ from discretize.utils import Zero
 import scipy.sparse as sp
 import pytest
 
-from simpeg.utils.solver_utils import get_default_solver
+from simpeg.utils import get_default_solver
 
 
 # define a very simple class...
