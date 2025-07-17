@@ -9,14 +9,11 @@ then
   # Add conda-forge as channel
   conda config --add channels conda-forge
   # Remove defaults channels
-  conda config --remove channels defaults   # from ~/.condarc
-  conda config --remove channels defaults --system # from system's .condarc
-  conda config --show channels
-
-  conda config --show-sources
-
+  # (both from ~/.condarc and from /usr/share/miniconda/.condarc)
+  conda config --remove channels defaults
+  conda config --remove channels defaults --system
   # Update conda
-  conda update --yes -c conda-forge -n base conda
+  conda update --yes -n base conda
 fi
 
 cp .ci/environment_test.yml environment_test_with_pyversion.yml
