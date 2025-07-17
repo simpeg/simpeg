@@ -313,9 +313,9 @@ class Simulation2DElectricField(BaseFDEMSimulation):
                     or (rx.orientation == "yx" and isinstance(rx, Admittance))
                 ):
                     raise TypeError(
-                        "natural_source.Simulation2DElectricField only supports Impedance or"
-                        " Admittance receivers for an xy orientation. Please provide a survey"
-                        " with valid receivers."
+                        "natural_source.Simulation2DElectricField only supports Impedance for"
+                        " an xy receiver orientation OR Admittance for a yx receiver"
+                        " orientation. Please provide a survey with valid receivers."
                     )
 
         if h_bc is None:
