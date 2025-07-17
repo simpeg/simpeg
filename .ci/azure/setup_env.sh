@@ -11,10 +11,12 @@ then
   # Remove defaults channels
   conda config --remove channels defaults
   conda config --show channels
-  conda config --get
-  # Configure TOS conda-forge
-  conda tos accept --override-channels --channel conda-forge
+  echo "---------------"
+  conda info
+  echo "---------------"
+  echo "---------------"
   conda tos view
+  echo "---------------"
   # Update conda
   conda update --yes -c conda-forge -n base conda
 fi
