@@ -11,7 +11,7 @@ then
   conda config --remove channels defaults
   # Update conda
   conda config --show channels
-  conda update --yes -n base conda
+  # conda update --yes -n base conda
 fi
 
 cp .ci/environment_test.yml environment_test_with_pyversion.yml
