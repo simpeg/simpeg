@@ -11,12 +11,9 @@ then
   # Remove defaults channels
   conda config --remove channels defaults --force
   conda config --show channels
-  echo "---------------"
-  conda info
-  echo "---------------"
-  echo "---------------"
-  conda tos view
-  echo "---------------"
+
+  conda config --show-sources
+
   # Update conda
   conda update --yes -c conda-forge -n base conda
 fi
