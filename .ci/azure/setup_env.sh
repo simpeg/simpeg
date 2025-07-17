@@ -6,14 +6,14 @@ is_azure=$(echo "${TF_BUILD:-false}" | tr '[:upper:]' '[:lower:]')
 
 if ${is_azure}
 then
-  # Configure conda-forge as the only channel
+  # Add conda-forge as channel
   conda config --add channels conda-forge
-  conda config --remove channels defaults
-  conda config --show channels
-  # Update conda
+  # Configure TOS for defaults and conda-forge
+  conda tos reject --override-channels --channel defaults
+  conda tos accept --override-channels --channel conda-forge
   conda tos view
-  conda tos reject defaults
-  conda update --yes -n base conda
+  # Update conda
+  conda update --yes -c conda-forge -n base conda
 fi
 
 cp .ci/environment_test.yml environment_test_with_pyversion.yml
