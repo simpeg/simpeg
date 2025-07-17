@@ -10,6 +10,7 @@ then
   conda config --remove channels defaults
   conda config --add channels conda-forge
   # Update conda
+  conda config --show channels
   conda update --yes -n base conda
 fi
 
