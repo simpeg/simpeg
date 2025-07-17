@@ -6,9 +6,10 @@ is_azure=$(echo "${TF_BUILD:-false}" | tr '[:upper:]' '[:lower:]')
 
 if ${is_azure}
 then
-  # Configure conda-forge as the default channel
+  conda config --show channels
+  # Configure conda-forge as the only channel
+  conda config --remove channels default
   conda config --add channels conda-forge
-  conda config --set channel_priority disabled
   # Update conda
   conda update --yes -n base conda
 fi
