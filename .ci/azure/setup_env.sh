@@ -9,7 +9,7 @@ then
   # Add conda-forge as channel
   conda config --add channels conda-forge
   # Remove defaults channels
-  conda config --remove channels defaults --force
+  conda config --remove channels defaults --system
   conda config --show channels
 
   conda config --show-sources
