@@ -11,6 +11,7 @@ then
   # Remove defaults channels
   conda config --remove channels defaults
   conda config --show channels
+  conda config --get
   # Configure TOS conda-forge
   conda tos accept --override-channels --channel conda-forge
   conda tos view
