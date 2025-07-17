@@ -8,8 +8,11 @@ if ${is_azure}
 then
   # Add conda-forge as channel
   conda config --add channels conda-forge
-  # Configure TOS for defaults and conda-forge
-  conda tos reject --override-channels --channel defaults
+  # Remove defaults channels
+  conda config --remove channels https://repo.anaconda.com/pkgs/main
+  conda config --remove channels https://repo.anaconda.com/pkgs/r
+  conda config --show channels
+  # Configure TOS conda-forge
   conda tos accept --override-channels --channel conda-forge
   conda tos view
   # Update conda
