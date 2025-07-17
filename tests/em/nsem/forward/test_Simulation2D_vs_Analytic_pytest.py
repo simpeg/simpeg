@@ -176,7 +176,6 @@ def test_analytic_halfspace_solution(
         )
 
     numeric_solution = sim.dpred(model_hs)
-    print(numeric_solution)
 
     # Analytic solution
     sigma_hs = 1e-2
