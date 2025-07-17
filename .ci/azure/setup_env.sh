@@ -8,7 +8,7 @@ if ${is_azure}
 then
   conda config --show channels
   # Configure conda-forge as the only channel
-  conda config --remove channels default
+  conda config --remove channels defaults
   conda config --add channels conda-forge
   # Update conda
   conda update --yes -n base conda
