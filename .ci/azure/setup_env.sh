@@ -6,7 +6,6 @@ is_azure=$(echo "${TF_BUILD:-false}" | tr '[:upper:]' '[:lower:]')
 
 if ${is_azure}
 then
-  conda config --show channels
   # Configure conda-forge as the only channel
   conda config --remove channels defaults
   conda config --add channels conda-forge
