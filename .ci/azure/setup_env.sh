@@ -9,8 +9,10 @@ then
   # Configure conda-forge as the only channel
   conda config --add channels conda-forge
   conda config --remove channels defaults
-  # Update conda
   conda config --show channels
+  # Update conda
+  conda tos view
+  conda tos reject defaults
   conda update --yes -n base conda
 fi
 
