@@ -189,7 +189,6 @@ def test_analytic_halfspace_solution(
         ]
     )
     analytic_solution = np.repeat(analytic_solution, n_locations)
-    print(analytic_solution)
 
     # # Error
     if survey_type == "tipper":
