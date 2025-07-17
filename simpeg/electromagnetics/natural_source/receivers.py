@@ -788,7 +788,6 @@ class Tipper(BaseNaturalSourceRx):
                 # Work backwards!
                 gtop_v = (v / bot)[..., None]
                 gbot_v = (-tip * v / bot)[..., None]
-                # n_d = self.nD
 
                 ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v
                 ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v
