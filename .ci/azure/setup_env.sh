@@ -9,8 +9,7 @@ then
   # Add conda-forge as channel
   conda config --add channels conda-forge
   # Remove defaults channels
-  conda config --remove channels https://repo.anaconda.com/pkgs/main
-  conda config --remove channels https://repo.anaconda.com/pkgs/r
+  conda config --remove channels defaults
   conda config --show channels
   # Configure TOS conda-forge
   conda tos accept --override-channels --channel conda-forge
