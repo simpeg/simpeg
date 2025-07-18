@@ -14,7 +14,7 @@ from .utils import (
     validate_ndarray_with_shape,
 )
 from .version import __version__ as simpeg_version
-from .utils.solver_utils import get_default_solver
+from .utils import get_default_solver
 
 
 class BaseInvProblem:

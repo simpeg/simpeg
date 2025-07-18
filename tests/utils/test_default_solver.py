@@ -2,11 +2,8 @@ import warnings
 import pytest
 from pymatsolver import SolverCG
 
-from simpeg.utils.solver_utils import (
-    get_default_solver,
-    set_default_solver,
-    DefaultSolverWarning,
-)
+from simpeg.utils import get_default_solver, set_default_solver
+from simpeg.utils.solver_utils import DefaultSolverWarning
 
 
 @pytest.fixture(autouse=True)
