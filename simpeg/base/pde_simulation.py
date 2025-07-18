@@ -9,8 +9,7 @@ from ..simulation import BaseSimulation
 from .. import props
 from scipy.constants import mu_0
 
-from ..utils import validate_type, get_logger, PerformanceWarning
-from ..utils.solver_utils import get_default_solver
+from ..utils import validate_type, get_default_solver, get_logger, PerformanceWarning
 
 
 def __inner_mat_mul_op(M, u, v=None, adjoint=False):

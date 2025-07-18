@@ -45,4 +45,4 @@ dependencies:
 # PyPI uploading
   - wheel
   - twine
-  - build
+  - python-build
