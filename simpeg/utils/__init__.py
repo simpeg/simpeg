@@ -11,6 +11,17 @@ Many of the utilities are imported from `discretize.utils`. See that package's
 documentation for many details on items.
 
 
+Logger
+======
+Function to fetch the SimPEG logger. It can be used to stream messages to the logger,
+and to temporarily adjust its configuration (e.g. change log level).
+
+.. autosummary::
+  :toctree: generated/
+
+  get_logger
+
+
 Counter Utility Functions
 =========================
 
@@ -151,10 +162,20 @@ Functions to get and set the default solver meant to be used in PDE simulations.
 
   get_default_solver
   set_default_solver
+
+Custom warnings
+---------------
+List of custom warnings used in SimPEG.
+
+.. autosummary::
+  :toctree: generated/
+
+  PerformanceWarning
 """
 
 from discretize.utils.interpolation_utils import interpolation_matrix
 
+from .logger import get_logger
 from .code_utils import (
     mem_profile_class,
     hook,
@@ -289,3 +310,4 @@ from .coord_utils import (
     rotationMatrixFromNormals,
 )
 from .solver_utils import get_default_solver, set_default_solver
+from .warnings import PerformanceWarning
