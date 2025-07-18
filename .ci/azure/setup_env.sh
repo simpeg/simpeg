@@ -2,10 +2,17 @@
 set -ex #echo on and exit if any line fails
 
 # TF_BUILD is set to True on azure pipelines.
-is_azure=$(${TF_BUILD:-false} | tr '[:upper:]' '[:lower:]')
+is_azure=$(echo "${TF_BUILD:-false}" | tr '[:upper:]' '[:lower:]')
 
 if ${is_azure}
 then
+  # Add conda-forge as channel
+  conda config --add channels conda-forge
+  # Remove defaults channels
+  # (both from ~/.condarc and from /usr/share/miniconda/.condarc)
+  conda config --remove channels defaults
+  conda config --remove channels defaults --system
+  # Update conda
   conda update --yes -n base conda
 fi
 
