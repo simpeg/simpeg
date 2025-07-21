@@ -447,7 +447,7 @@ class BasePDESimulation(BaseSimulation):
                 "To avoid receiving this message, pass a solver to the simulation. "
                 "For example:"
                 "\n\n"
-                "  from simpeg.utils.solver_utils import get_default_solver\n"
+                "  from simpeg.utils import get_default_solver\n"
                 "\n"
                 "  solver = get_default_solver()\n"
                 f"  simulation = {type(self).__name__}(solver=solver, ...)"
