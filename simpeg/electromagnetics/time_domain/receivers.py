@@ -1,5 +1,5 @@
 import scipy.sparse as sp
-
+import numpy as np
 from ...utils import mkvc, validate_type, validate_direction
 from discretize.utils import Zero
 from ...survey import BaseTimeRx
@@ -120,6 +120,20 @@ class BaseRx(BaseTimeRx):
         projected_time_grid = f._TLoc(self.projField)
         return time_mesh.get_interpolation_matrix(self.times, projected_time_grid)
 
+    def active_times(self, projection):
+        """Get active times for the receiver.
+
+        Parameters
+        ----------
+        projection : Sparse matrix
+
+        Returns
+        -------
+        numpy.ndarray
+            Active times for the receiver.
+        """
+        return np.unique(sp.find(projection)[1])
+
     def getP(self, mesh, time_mesh, f):
         """Returns projection matrices as a list for all components collected by the receivers.
 
@@ -145,6 +159,7 @@ class BaseRx(BaseTimeRx):
 
         Ps = self.getSpatialP(mesh, f)
         Pt = self.getTimeP(time_mesh, f)
+        Pt = Pt[:, self.active_times(Pt)]
         P = sp.kron(Pt, Ps)
 
         if self.storeProjections:
@@ -172,7 +187,7 @@ class BaseRx(BaseTimeRx):
             Fields projected to the receiver(s)
         """
         P = self.getP(mesh, time_mesh, f)
-        f_part = mkvc(f[src, self.projField, :])
+        f_part = mkvc(f[src, self.projField, self.active_times(self.timeP)])
         return P * f_part
 
     def evalDeriv(self, src, mesh, time_mesh, f, v, adjoint=False):
@@ -293,7 +308,7 @@ class PointMagneticFluxTimeDerivative(BaseRx):
             )
 
         P = self.getP(mesh, time_mesh, f)
-        f_part = mkvc(f[src, "b", :])
+        f_part = mkvc(f[src, "b", self.active_times(self.timeP)])
         return P * f_part
 
     def getTimeP(self, time_mesh, f):
