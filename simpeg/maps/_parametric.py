@@ -1475,7 +1475,7 @@ class ParametricLayer(BaseParametric):
             mDict["val_layer"] - mDict["val_background"]
         ) * self._atanLayerDeriv_layer_thickness(mDict)
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
         r"""Derivative of the mapping with respect to the input parameters.
 
         Let :math:`\mathbf{m} = [\sigma_0, \;\sigma_1,\; z_L , \; h]` be the set of
@@ -1517,7 +1517,20 @@ class ParametricLayer(BaseParametric):
         """
 
         mDict = self.mDict(m)
-
+        if v is not None:
+            return (
+                sp.csr_matrix(
+                    np.vstack(
+                        [
+                            self._deriv_val_background(mDict),
+                            self._deriv_val_layer(mDict),
+                            self._deriv_layer_center(mDict),
+                            self._deriv_layer_thickness(mDict),
+                        ]
+                    ).T
+                )
+                * v
+            )
         return sp.csr_matrix(
             np.vstack(
                 [
@@ -1840,7 +1853,7 @@ class ParametricBlock(BaseParametric):
             ]
         ).T
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
         r"""Derivative of the mapping with respect to the input parameters.
 
         Let :math:`\mathbf{m} = [\sigma_0, \;\sigma_1,\; x_b, \; dx, (\; y_b, \; dy, \; z_b , dz)]`
@@ -1877,6 +1890,14 @@ class ParametricBlock(BaseParametric):
             input argument *v* is not ``None``, the method returns the derivative times
             the vector *v*.
         """
+        if v is not None:
+            return (
+                sp.csr_matrix(
+                    getattr(self, "_deriv{}D".format(self.mesh.dim))(self.mDict(m))
+                )
+                * v
+            )
+
         return sp.csr_matrix(
             getattr(self, "_deriv{}D".format(self.mesh.dim))(self.mDict(m))
         )
@@ -2275,9 +2296,28 @@ class ParametricCasingAndLayer(ParametricLayer):
             + d_insideCasing_cont_dcasing_top
         )
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
         mDict = self.mDict(m)
-
+        if v is not None:
+            return (
+                sp.csr_matrix(
+                    np.vstack(
+                        [
+                            self._deriv_val_background(mDict),
+                            self._deriv_val_layer(mDict),
+                            self._deriv_val_casing(mDict),
+                            self._deriv_val_insideCasing(mDict),
+                            self._deriv_layer_center(mDict),
+                            self._deriv_layer_thickness(mDict),
+                            self._deriv_casing_radius(mDict),
+                            self._deriv_casing_thickness(mDict),
+                            self._deriv_casing_bottom(mDict),
+                            self._deriv_casing_top(mDict),
+                        ]
+                    ).T
+                )
+                * v
+            )
         return sp.csr_matrix(
             np.vstack(
                 [
