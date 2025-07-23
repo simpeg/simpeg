@@ -2,7 +2,7 @@
 Forward Simulation of Gravity Anomaly Data on a Tensor Mesh
 ===========================================================
 
-Here we use the module *SimPEG.potential_fields.gravity* to predict gravity
+Here we use the module *simpeg.potential_fields.gravity* to predict gravity
 anomaly data for a synthetic density contrast model. The simulation is
 carried out on a tensor mesh. For this tutorial, we focus on the following:
 
@@ -28,9 +28,9 @@ import os
 from discretize import TensorMesh
 from discretize.utils import mkvc, active_from_xyz
 
-from SimPEG.utils import plot2Ddata, model_builder
-from SimPEG import maps
-from SimPEG.potential_fields import gravity
+from simpeg.utils import plot2Ddata, model_builder
+from simpeg import maps
+from simpeg.potential_fields import gravity
 
 save_output = False
 
@@ -190,7 +190,7 @@ simulation = gravity.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
     rhoMap=model_map,
-    ind_active=ind_active,
+    active_cells=ind_active,
     store_sensitivities="forward_only",
     engine="choclo",
 )
@@ -214,14 +214,22 @@ dpred = simulation.dpred(model)
 # Plot
 fig = plt.figure(figsize=(7, 5))
 
+v_max = np.max(np.abs(dpred))
+
 ax1 = fig.add_axes([0.1, 0.1, 0.75, 0.85])
-plot2Ddata(receiver_list[0].locations, dpred, ax=ax1, contourOpts={"cmap": "bwr"})
+plot2Ddata(
+    receiver_list[0].locations,
+    dpred,
+    clim=(-v_max, v_max),
+    ax=ax1,
+    contourOpts={"cmap": "bwr"},
+)
 ax1.set_title("Gravity Anomaly (Z-component)")
 ax1.set_xlabel("x (m)")
 ax1.set_ylabel("y (m)")
 
 ax2 = fig.add_axes([0.82, 0.1, 0.03, 0.85])
-norm = mpl.colors.Normalize(vmin=-np.max(np.abs(dpred)), vmax=np.max(np.abs(dpred)))
+norm = mpl.colors.Normalize(vmin=-v_max, vmax=v_max)
 cbar = mpl.colorbar.ColorbarBase(
     ax2, norm=norm, orientation="vertical", cmap=mpl.cm.bwr, format="%.1e"
 )

@@ -11,8 +11,8 @@ First we invert the TMI for an equivalent source layer, from which we
 recover 3-component magnetic data. This data is then transformed to amplitude
 
 Secondly, we invert the non-linear inverse problem with
-:class:`SimPEG.directives.UpdateSensitivityWeights`. We also
-uses the :class:`SimPEG.regularization.Sparse` to apply sparsity
+:class:`simpeg.directives.UpdateSensitivityWeights`. We also
+uses the :class:`simpeg.regularization.Sparse` to apply sparsity
 assumption in order to improve the recovery of a compact prism.
 
 """
@@ -20,7 +20,7 @@ assumption in order to improve the recovery of a compact prism.
 import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
-from SimPEG import (
+from simpeg import (
     data,
     data_misfit,
     directives,
@@ -31,9 +31,9 @@ from SimPEG import (
     regularization,
 )
 
-from SimPEG.potential_fields import magnetics
-from SimPEG import utils
-from SimPEG.utils import mkvc
+from simpeg.potential_fields import magnetics
+from simpeg import utils
+from simpeg.utils import mkvc
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 
 # sphinx_gallery_thumbnail_number = 4
@@ -137,7 +137,7 @@ ind = utils.model_builder.get_indices_block(
 )[0]
 
 # Assign magnetization value, inducing field strength will
-# be applied in by the :class:`SimPEG.PF.Magnetics` problem
+# be applied in by the :class:`simpeg.PF.Magnetics` problem
 model = np.zeros(mesh.nC)
 model[ind] = chi_e
 
@@ -152,7 +152,7 @@ simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
     chiMap=idenMap,
-    ind_active=actv,
+    active_cells=actv,
     store_sensitivities="forward_only",
 )
 simulation.M = M_xyz
@@ -225,7 +225,11 @@ idenMap = maps.IdentityMap(nP=nC)
 
 # Create static map
 simulation = magnetics.simulation.Simulation3DIntegral(
-    mesh=mesh, survey=survey, chiMap=idenMap, ind_active=surf, store_sensitivities="ram"
+    mesh=mesh,
+    survey=survey,
+    chiMap=idenMap,
+    active_cells=surf,
+    store_sensitivities="ram",
 )
 
 wr = simulation.getJtJdiag(mstart) ** 0.5
@@ -253,9 +257,10 @@ betaest = directives.BetaEstimate_ByEig(beta0_ratio=2)
 
 # Target misfit to stop the inversion,
 # try to fit as much as possible of the signal, we don't want to lose anything
-IRLS = directives.Update_IRLS(
-    f_min_change=1e-3, minGNiter=1, beta_tol=1e-1, max_irls_iterations=5
+IRLS = directives.UpdateIRLS(
+    f_min_change=1e-3, misfit_tolerance=1e-1, max_irls_iterations=5
 )
+
 update_Jacobi = directives.UpdatePreconditioner()
 # Put all the parts together
 inv = inversion.BaseInversion(invProb, directiveList=[betaest, IRLS, update_Jacobi])
@@ -281,7 +286,11 @@ srcField = magnetics.sources.UniformBackgroundField(
 surveyAmp = magnetics.survey.Survey(srcField)
 
 simulation = magnetics.simulation.Simulation3DIntegral(
-    mesh=mesh, survey=surveyAmp, chiMap=idenMap, ind_active=surf, is_amplitude_data=True
+    mesh=mesh,
+    survey=surveyAmp,
+    chiMap=idenMap,
+    active_cells=surf,
+    is_amplitude_data=True,
 )
 
 bAmp = simulation.fields(mrec)
@@ -339,7 +348,11 @@ mstart = np.ones(nC) * 1e-4
 
 # Create the forward model operator
 simulation = magnetics.simulation.Simulation3DIntegral(
-    survey=surveyAmp, mesh=mesh, chiMap=idenMap, ind_active=actv, is_amplitude_data=True
+    survey=surveyAmp,
+    mesh=mesh,
+    chiMap=idenMap,
+    active_cells=actv,
+    is_amplitude_data=True,
 )
 
 data_obj = data.Data(survey, dobs=bAmp, noise_floor=wd)
@@ -363,13 +376,7 @@ invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 betaest = directives.BetaEstimate_ByEig(beta0_ratio=1)
 
 # Specify the sparse norms
-IRLS = directives.Update_IRLS(
-    max_irls_iterations=10,
-    f_min_change=1e-3,
-    minGNiter=1,
-    coolingRate=1,
-    beta_search=False,
-)
+IRLS = directives.UpdateIRLS(max_irls_iterations=10, f_min_change=1e-3)
 
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are updated between each iteration.
@@ -378,7 +385,8 @@ update_Jacobi = directives.UpdatePreconditioner()
 
 # Put all together
 inv = inversion.BaseInversion(
-    invProb, directiveList=[update_SensWeight, betaest, IRLS, update_Jacobi]
+    invProb,
+    directiveList=[update_SensWeight, betaest, IRLS, update_Jacobi],
 )
 
 # Invert

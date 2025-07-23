@@ -33,10 +33,10 @@ from matplotlib.colors import LogNorm
 import tarfile
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
+from discretize.utils import mkvc, active_from_xyz
 
-from SimPEG.utils import model_builder
-from SimPEG import (
+from simpeg.utils import model_builder
+from simpeg import (
     maps,
     data_misfit,
     regularization,
@@ -46,18 +46,14 @@ from SimPEG import (
     directives,
     utils,
 )
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static import induced_polarization as ip
-from SimPEG.electromagnetics.static.utils.static_utils import (
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg.electromagnetics.static import induced_polarization as ip
+from simpeg.electromagnetics.static.utils.static_utils import (
     apparent_resistivity_from_voltage,
     plot_pseudosection,
 )
-from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
+from simpeg.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
 
 mpl.rcParams.update({"font.size": 16})
 # sphinx_gallery_thumbnail_number = 7
@@ -188,11 +184,9 @@ hz = [(dh, nbcz)]
 mesh = TreeMesh([hx, hz], x0="CN")
 
 # Mesh refinement based on topography
-mesh = refine_tree_xyz(
-    mesh,
+mesh.refine_surface(
     topo_xyz[:, [0, 2]],
-    octree_levels=[0, 0, 4, 4],
-    method="surface",
+    padding_cells_by_level=[0, 0, 4, 4],
     finalize=False,
 )
 
@@ -209,16 +203,12 @@ unique_locations = np.unique(
     np.reshape(electrode_locations, (4 * dc_data.survey.nD, 2)), axis=0
 )
 
-mesh = refine_tree_xyz(
-    mesh, unique_locations, octree_levels=[4, 4], method="radial", finalize=False
-)
+mesh.refine_points(unique_locations, padding_cells_by_level=[4, 4], finalize=False)
 
 # Refine core mesh region
 xp, zp = np.meshgrid([-600.0, 600.0], [-400.0, 0.0])
 xyz = np.c_[mkvc(xp), mkvc(zp)]
-mesh = refine_tree_xyz(
-    mesh, xyz, octree_levels=[0, 0, 2, 8], method="box", finalize=False
-)
+mesh.refine_bounding_box(xyz, padding_cells_by_level=[0, 0, 2, 8], finalize=False)
 
 mesh.finalize()
 
@@ -286,7 +276,7 @@ starting_conductivity_model = background_conductivity * np.ones(nC)
 
 # Define the problem. Define the cells below topography and the mapping
 dc_simulation = dc.Simulation2DNodal(
-    mesh, survey=dc_survey, sigmaMap=conductivity_map, solver=Solver, storeJ=True
+    mesh, survey=dc_survey, sigmaMap=conductivity_map, storeJ=True
 )
 
 #######################################################################
@@ -401,7 +391,7 @@ true_conductivity_model[ind_conductor] = true_conductor_conductivity
 ind_resistor = model_builder.get_indices_sphere(np.r_[120.0, -180.0], 60.0, mesh.gridCC)
 true_conductivity_model[ind_resistor] = true_resistor_conductivity
 
-true_conductivity_model[~ind_active] = np.NaN
+true_conductivity_model[~ind_active] = np.nan
 
 # Plot True Model
 norm = LogNorm(vmin=1e-3, vmax=1e-1)
@@ -427,7 +417,7 @@ plt.show()
 fig = plt.figure(figsize=(9, 4))
 
 recovered_conductivity = conductivity_map * recovered_conductivity_model
-recovered_conductivity[~ind_active] = np.NaN
+recovered_conductivity[~ind_active] = np.nan
 
 ax1 = fig.add_axes([0.14, 0.17, 0.68, 0.7])
 mesh.plot_image(
@@ -525,7 +515,6 @@ ip_simulation = ip.Simulation2DNodal(
     survey=ip_survey,
     etaMap=chargeability_map,
     sigma=conductivity_map * recovered_conductivity_model,
-    solver=Solver,
     storeJ=True,
 )
 
@@ -607,10 +596,10 @@ sphere_chargeability = 1e-1
 
 true_chargeability_model = np.zeros(len(mesh))
 true_chargeability_model[ind_conductor] = sphere_chargeability
-true_chargeability_model[~ind_active] = np.NaN
+true_chargeability_model[~ind_active] = np.nan
 
 recovered_chargeability = chargeability_map * recovered_chargeability_model
-recovered_chargeability[~ind_active] = np.NaN
+recovered_chargeability[~ind_active] = np.nan
 
 # Plot True Model
 fig = plt.figure(figsize=(9, 4))

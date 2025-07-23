@@ -2,10 +2,9 @@
 # matplotlib.use('Agg')
 
 import discretize
-from SimPEG import maps, tests, utils
-from SimPEG.electromagnetics import frequency_domain as fdem
+from simpeg import maps, tests, utils
+from simpeg.electromagnetics import frequency_domain as fdem
 
-from pymatsolver import Pardiso as Solver
 
 import numpy as np
 import unittest
@@ -15,8 +14,6 @@ TOL_FWD = 5e-1  # relative tolerance for prim-sec comparison
 
 TOL_JT = 1e-10
 FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
-
-np.random.seed(2016)
 
 # To test the primary secondary-source, we look at make sure doing primary
 # secondary for a simple model gives comprable results to just solving a 3D
@@ -128,15 +125,16 @@ class PrimSecFDEMTest(object):
                 lambda x: self.secondarySimulation.Jvec(x0, x, f=self.fields_primsec),
             ]
 
-        return tests.check_derivative(fun, x0, num=2, plotIt=False)
+        return tests.check_derivative(fun, x0, num=2, plotIt=False, random_seed=515)
 
     def AdjointTest(self):
         print("\nTesting adjoint")
 
         m = model
         f = self.fields_primsec
-        v = np.random.rand(self.secondarySurvey.nD)
-        w = np.random.rand(self.secondarySimulation.sigmaMap.nP)
+        rng = np.random.default_rng(seed=2016)
+        v = rng.uniform(size=self.secondarySurvey.nD)
+        w = rng.uniform(size=self.secondarySimulation.sigmaMap.nP)
 
         vJw = v.dot(self.secondarySimulation.Jvec(m, w, f))
         wJtv = w.dot(self.secondarySimulation.Jtvec(m, v, f))
@@ -169,7 +167,6 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
         self.primarySimulation = fdem.Simulation3DMagneticFluxDensity(
             meshp, sigmaMap=primaryMapping
         )
-        self.primarySimulation.solver = Solver
         primarySrc = fdem.Src.MagDipole(self.rxlist, frequency=freq, location=src_loc)
         self.primarySurvey = fdem.Survey([primarySrc])
 
@@ -185,7 +182,6 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
         self.secondarySimulation = fdem.Simulation3DMagneticFluxDensity(
             meshs, survey=self.secondarySurvey, sigmaMap=mapping
         )
-        self.secondarySimulation.solver = Solver
 
         # Full 3D problem to compare with
         self.survey3D = fdem.Survey([primarySrc])
@@ -193,7 +189,6 @@ class PrimSecFDEMSrcTest_Cyl2Cart_EB_EB(unittest.TestCase, PrimSecFDEMTest):
         self.simulation3D = fdem.Simulation3DMagneticFluxDensity(
             meshs, survey=self.survey3D, sigmaMap=mapping
         )
-        self.simulation3D.solver = Solver
 
         # solve and store fields
         print("   solving primary - secondary")
@@ -236,7 +231,6 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         self.primarySimulation = fdem.Simulation3DCurrentDensity(
             meshp, sigmaMap=primaryMapping
         )
-        self.primarySimulation.solver = Solver
         s_e = np.zeros(meshp.nF)
         inds = meshp.nFx + meshp.closest_points_index(src_loc, grid_loc="Fz")
         s_e[inds] = 1.0 / csz
@@ -260,7 +254,6 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
             survey=self.secondarySurvey,
             sigmaMap=mapping,
         )
-        self.secondarySimulation.solver = Solver
 
         # Full 3D problem to compare with
 
@@ -276,7 +269,6 @@ class PrimSecFDEMSrcTest_Cyl2Cart_HJ_EB(unittest.TestCase, PrimSecFDEMTest):
         self.simulation3D = fdem.Simulation3DElectricField(
             meshs, survey=self.survey3D, sigmaMap=mapping
         )
-        self.simulation3D.solver = Solver
         self.simulation3D.model = model
 
         # solve and store fields

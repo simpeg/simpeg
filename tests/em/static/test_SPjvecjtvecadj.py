@@ -1,10 +1,10 @@
 import pytest
 import numpy as np
-import SimPEG.electromagnetics.static.spontaneous_potential as sp
-import SimPEG.electromagnetics.static.resistivity as dc
+import simpeg.electromagnetics.static.self_potential as sp
+import simpeg.electromagnetics.static.resistivity as dc
 import discretize
-from SimPEG import utils
-from SimPEG import maps
+from simpeg import utils
+from simpeg import maps
 from discretize.tests import check_derivative, assert_isadjoint
 
 
@@ -43,8 +43,8 @@ def test_forward():
         mesh=mesh, survey=dc_survey, sigma=conductivity
     )
 
-    dc_dpred = sim_dc.make_synthetic_data(None, add_noise=False)
-    sp_dpred = sim.make_synthetic_data(q, add_noise=False)
+    dc_dpred = sim_dc.make_synthetic_data(None, add_noise=False, random_seed=40)
+    sp_dpred = sim.make_synthetic_data(q, add_noise=False, random_seed=40)
 
     np.testing.assert_allclose(dc_dpred.dobs, sp_dpred.dobs)
 
@@ -71,8 +71,9 @@ def test_deriv(q_map):
 
         return d, Jvec
 
-    m0 = np.random.randn(q_map.shape[1])
-    check_derivative(func, m0, plotIt=False)
+    rng = np.random.default_rng(seed=42)
+    m0 = rng.normal(size=q_map.shape[1])
+    check_derivative(func, m0, plotIt=False, random_seed=rng)
 
 
 @pytest.mark.parametrize(
@@ -87,7 +88,8 @@ def test_adjoint(q_map):
     sim.model = None
     sim.qMap = q_map
 
-    model = np.random.rand(q_map.shape[1])
+    rng = np.random.default_rng(seed=42)
+    model = rng.uniform(size=q_map.shape[1])
     f = sim.fields(model)
 
     def Jvec(v):
@@ -96,7 +98,9 @@ def test_adjoint(q_map):
     def Jtvec(v):
         return sim.Jtvec(model, v, f=f)
 
-    assert_isadjoint(Jvec, Jtvec, shape_u=(q_map.shape[1],), shape_v=(survey.nD))
+    assert_isadjoint(
+        Jvec, Jtvec, shape_u=(q_map.shape[1],), shape_v=(survey.nD), random_seed=rng
+    )
 
 
 def test_errors():
@@ -110,10 +114,34 @@ def test_clears():
     # set qMap as a non-linear map to make sure it adds the correct
     # items to be cleared on model update
     sim.qMap = maps.IdentityMap()
-    assert sim.deleteTheseOnModelUpdate == []
-    assert sim.clean_on_model_update == []
+    assert sim._delete_on_model_update == []
 
     sim.storeJ = True
     sim.qMap = maps.ExpMap()
-    assert sim.deleteTheseOnModelUpdate == ["_Jmatrix", "_gtgdiag"]
-    assert sim.clean_on_model_update == []
+    assert sim._delete_on_model_update == ["_Jmatrix", "_gtgdiag"]
+
+
+def test_deprecations():
+    """
+    Test warning after importing deprecated `spontaneous_potential` module
+    """
+    msg = (
+        "The 'spontaneous_potential' module has been renamed to 'self_potential'. "
+        "Please use the 'self_potential' module instead. "
+        "The 'spontaneous_potential' module will be removed in SimPEG 0.23."
+    )
+    with pytest.warns(FutureWarning, match=msg):
+        import simpeg.electromagnetics.static.spontaneous_potential  # noqa: F401
+
+
+def test_imported_objects_on_deprecated_module():
+    """
+    Test if the new `self_potential` module and the deprecated `spontaneous
+    potential` have the same members.
+    """
+    import simpeg.electromagnetics.static.spontaneous_potential as spontaneous
+
+    members_self = set([m for m in dir(sp) if not m.startswith("_")])
+    members_spontaneous = set([m for m in dir(spontaneous) if not m.startswith("_")])
+    difference = members_self - members_spontaneous
+    assert not difference

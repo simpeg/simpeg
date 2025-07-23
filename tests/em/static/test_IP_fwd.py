@@ -3,14 +3,9 @@ import unittest
 import numpy as np
 import discretize
 
-from SimPEG import utils, maps
-from SimPEG.electromagnetics import resistivity as dc
-from SimPEG.electromagnetics import induced_polarization as ip
-
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
+from simpeg import utils, maps
+from simpeg.electromagnetics import resistivity as dc
+from simpeg.electromagnetics import induced_polarization as ip
 
 
 class IPProblemAnalyticTests(unittest.TestCase):
@@ -55,7 +50,6 @@ class IPProblemAnalyticTests(unittest.TestCase):
         simulationdc = dc.simulation.Simulation3DNodal(
             mesh=self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
         )
-        simulationdc.solver = Solver
         data0 = simulationdc.dpred(self.sigma0)
         finf = simulationdc.fields(self.sigmaInf)
         datainf = simulationdc.dpred(self.sigmaInf, f=finf)
@@ -68,7 +62,6 @@ class IPProblemAnalyticTests(unittest.TestCase):
             Ainv=simulationdc.Ainv,
             _f=finf,
         )
-        simulationip.solver = Solver
         data_full = data0 - datainf
         data = simulationip.dpred(self.eta)
         err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
@@ -84,7 +77,6 @@ class IPProblemAnalyticTests(unittest.TestCase):
         simulationdc = dc.simulation.Simulation3DCellCentered(
             mesh=self.mesh, survey=self.surveyDC, sigmaMap=maps.IdentityMap(self.mesh)
         )
-        simulationdc.solver = Solver
         data0 = simulationdc.dpred(self.sigma0)
         finf = simulationdc.fields(self.sigmaInf)
         datainf = simulationdc.dpred(self.sigmaInf, f=finf)
@@ -97,7 +89,6 @@ class IPProblemAnalyticTests(unittest.TestCase):
             Ainv=simulationdc.Ainv,
             _f=finf,
         )
-        simulationip.solver = Solver
         data_full = data0 - datainf
         data = simulationip.dpred(self.eta)
         err = np.linalg.norm((data - data_full) / data_full) ** 2 / data_full.size
@@ -157,7 +148,6 @@ class ApparentChargeability3DTest(unittest.TestCase):
         simulationdc = dc.simulation.Simulation3DNodal(
             self.mesh,
             sigmaMap=maps.IdentityMap(self.mesh),
-            solver=Solver,
             survey=self.survey_dc,
         )
         data0 = simulationdc.dpred(self.sigma0)
@@ -170,7 +160,6 @@ class ApparentChargeability3DTest(unittest.TestCase):
             sigma=self.sigmaInf,
             etaMap=maps.IdentityMap(self.mesh),
             Ainv=simulationdc.Ainv,
-            solver=Solver,
         )
         data = simulationip.dpred(self.eta)
 
@@ -180,7 +169,6 @@ class ApparentChargeability3DTest(unittest.TestCase):
             sigma=self.sigmaInf,
             etaMap=maps.IdentityMap(self.mesh),
             Ainv=simulationdc.Ainv,
-            solver=Solver,
             storeJ=True,
         )
         data2 = simulationip_stored.dpred(self.eta)
@@ -203,7 +191,6 @@ class ApparentChargeability3DTest(unittest.TestCase):
         simulationdc = dc.simulation.Simulation3DCellCentered(
             self.mesh,
             sigmaMap=maps.IdentityMap(self.mesh),
-            solver=Solver,
             survey=self.survey_dc,
         )
         data0 = simulationdc.dpred(self.sigma0)
@@ -216,7 +203,6 @@ class ApparentChargeability3DTest(unittest.TestCase):
             sigma=self.sigmaInf,
             etaMap=maps.IdentityMap(self.mesh),
             Ainv=simulationdc.Ainv,
-            solver=Solver,
         )
         data = simulationip.dpred(self.eta)
 

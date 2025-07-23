@@ -32,9 +32,9 @@ import matplotlib.pyplot as plt
 from discretize import TreeMesh
 from discretize.utils import refine_tree_xyz, active_from_xyz
 
-from SimPEG.utils import plot2Ddata, mkvc
-from SimPEG.electromagnetics import frequency_domain as fdem
-from SimPEG import (
+from simpeg.utils import plot2Ddata, mkvc
+from simpeg.electromagnetics import frequency_domain as fdem
+from simpeg import (
     maps,
     data,
     data_misfit,
@@ -45,11 +45,6 @@ from SimPEG import (
     inversion,
     utils,
 )
-
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
 
 # sphinx_gallery_thumbnail_number = 3
 
@@ -289,7 +284,9 @@ starting_model = background_conductivity * np.ones(nC)
 #
 
 simulation = fdem.simulation.Simulation3DMagneticFluxDensity(
-    mesh, survey=survey, sigmaMap=model_map, Solver=Solver
+    mesh,
+    survey=survey,
+    sigmaMap=model_map,
 )
 
 

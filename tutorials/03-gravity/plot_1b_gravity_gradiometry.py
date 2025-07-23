@@ -2,7 +2,7 @@
 Forward Simulation of Gradiometry Data on a Tree Mesh
 =====================================================
 
-Here we use the module *SimPEG.potential_fields.gravity* to predict gravity
+Here we use the module *simpeg.potential_fields.gravity* to predict gravity
 gradiometry data for a synthetic density contrast model. The simulation is
 carried out on a tree mesh. For this tutorial, we focus on the following:
 
@@ -26,9 +26,9 @@ import matplotlib.pyplot as plt
 
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
-from SimPEG.utils import plot2Ddata, model_builder
-from SimPEG import maps
-from SimPEG.potential_fields import gravity
+from simpeg.utils import plot2Ddata, model_builder
+from simpeg import maps
+from simpeg.potential_fields import gravity
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -211,7 +211,7 @@ simulation = gravity.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
     rhoMap=model_map,
-    ind_active=ind_active,
+    active_cells=ind_active,
     store_sensitivities="forward_only",
     engine="choclo",
 )

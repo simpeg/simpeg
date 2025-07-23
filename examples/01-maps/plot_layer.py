@@ -19,7 +19,7 @@ The model is
 """
 
 import discretize
-from SimPEG import maps
+from simpeg import maps
 import numpy as np
 import matplotlib.pyplot as plt
 

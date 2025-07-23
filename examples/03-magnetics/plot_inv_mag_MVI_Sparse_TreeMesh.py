@@ -1,8 +1,8 @@
 """
-Magnetic inversion on a TreeMesh
-================================
+Magnetic inversion on a TreeMesh with remanence
+===============================================
 
-In this example, we demonstrate the use of a Magnetic Vector Inverison
+In this example, we demonstrate the use of a Magnetic Vector Inversion
 on 3D TreeMesh for the inversion of magnetics affected by remanence.
 The mesh is auto-generated based
 on the position of the observation locations and topography.
@@ -11,12 +11,11 @@ We invert the data twice, first for a smooth starting model using the
 Cartesian coordinate system, and second for a compact model using
 the Spherical formulation.
 
-The inverse problem uses the :class:'SimPEG.regularization.Sparse'
-that
+The inverse problem uses the :class:`simpeg.regularization.Sparse`.
 
 """
 
-from SimPEG import (
+from simpeg import (
     data,
     data_misfit,
     directives,
@@ -27,11 +26,11 @@ from SimPEG import (
     regularization,
 )
 
-from SimPEG import utils
-from SimPEG.utils import mkvc
+from simpeg import utils
+from simpeg.utils import mkvc
 
-from discretize.utils import active_from_xyz, mesh_builder_xyz, refine_tree_xyz
-from SimPEG.potential_fields import magnetics
+from discretize.utils import active_from_xyz, mesh_builder_xyz
+from simpeg.potential_fields import magnetics
 import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
@@ -112,9 +111,7 @@ padDist = np.ones((3, 2)) * 100
 mesh = mesh_builder_xyz(
     xyzLoc, h, padding_distance=padDist, depth_core=100, mesh_type="tree"
 )
-mesh = refine_tree_xyz(
-    mesh, topo, method="surface", octree_levels=[4, 4], finalize=True
-)
+mesh.refine_surface(topo, padding_cells_by_level=[4, 4], finalize=True)
 
 
 # Define an active cells from topo
@@ -156,7 +153,7 @@ idenMap = maps.IdentityMap(nP=nC * 3)
 
 # Create the simulation
 simulation = magnetics.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, chiMap=idenMap, ind_active=actv, model_type="vector"
+    survey=survey, mesh=mesh, chiMap=idenMap, active_cells=actv, model_type="vector"
 )
 
 # Compute some data and add some random noise
@@ -260,7 +257,9 @@ sensitivity_weights = directives.UpdateSensitivityWeights()
 # Here is where the norms are applied
 # Use a threshold parameter empirically based on the distribution of
 #  model parameters
-IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=2, beta_tol=5e-1)
+IRLS = directives.UpdateIRLS(
+    f_min_change=1e-3, max_irls_iterations=2, misfit_tolerance=5e-1
+)
 
 # Pre-conditioner
 update_Jacobi = directives.UpdatePreconditioner()
@@ -344,16 +343,14 @@ opt.approxHinv = None
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=beta)
 
 # Here is where the norms are applied
-irls = directives.Update_IRLS(
+irls = directives.UpdateIRLS(
     f_min_change=1e-4,
     max_irls_iterations=20,
-    minGNiter=1,
-    beta_tol=0.5,
-    coolingRate=1,
-    coolEps_q=True,
-    sphericalDomain=True,
+    misfit_tolerance=0.5,
 )
-
+scale_spherical = directives.SphericalUnitsWeights(
+    amplitude=wires.amp, angles=[reg_t, reg_p]
+)
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are updated between each iteration.
 spherical_projection = directives.ProjectSphericalBounds()
@@ -362,7 +359,13 @@ update_Jacobi = directives.UpdatePreconditioner()
 
 inv = inversion.BaseInversion(
     invProb,
-    directiveList=[spherical_projection, irls, sensitivity_weights, update_Jacobi],
+    directiveList=[
+        scale_spherical,
+        spherical_projection,
+        irls,
+        sensitivity_weights,
+        update_Jacobi,
+    ],
 )
 
 mrec_MVI_S = inv.run(m_start)

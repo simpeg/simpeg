@@ -6,8 +6,8 @@ import unittest
 import discretize as ds
 import numpy as np
 
-import SimPEG.dask  # noqa: F401
-from SimPEG import (
+import simpeg.dask  # noqa: F401
+from simpeg import (
     data_misfit,
     inverse_problem,
     inversion,
@@ -17,9 +17,9 @@ from SimPEG import (
     tests,
     utils,
 )
-from SimPEG.electromagnetics import induced_polarization as ip
-from SimPEG.electromagnetics import resistivity as dc
-from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
+from simpeg.electromagnetics import induced_polarization as ip
+from simpeg.electromagnetics import resistivity as dc
+from simpeg.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
 
 np.random.seed(30)
 
@@ -117,6 +117,7 @@ class IPProblemTests2DN(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=66346,
         )
         self.assertTrue(passed)
 
@@ -133,7 +134,11 @@ class IPProblemTests2DN(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -162,7 +167,7 @@ class IPProblemTestsCC(unittest.TestCase):
             mesh=mesh, survey=survey, sigma=sigma, etaMap=maps.IdentityMap(mesh)
         )
         mSynth = np.ones(mesh.nC) * 0.1
-        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.WeightedLeastSquares(mesh)
@@ -187,6 +192,7 @@ class IPProblemTestsCC(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -203,7 +209,11 @@ class IPProblemTestsCC(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -232,7 +242,7 @@ class IPProblemTestsN(unittest.TestCase):
             mesh=mesh, survey=survey, sigma=sigma, etaMap=maps.IdentityMap(mesh)
         )
         mSynth = np.ones(mesh.nC) * 0.1
-        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.WeightedLeastSquares(mesh)
@@ -256,6 +266,7 @@ class IPProblemTestsN(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -272,7 +283,11 @@ class IPProblemTestsN(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -305,7 +320,7 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
             storeJ=True,
         )
         mSynth = np.ones(mesh.nC) * 0.1
-        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.WeightedLeastSquares(mesh)
@@ -329,6 +344,7 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -345,7 +361,11 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -385,7 +405,7 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
             storeJ=True,
         )
         mSynth = np.ones(mesh.nC) * 0.1
-        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.WeightedLeastSquares(mesh)
@@ -409,6 +429,7 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -425,7 +446,11 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 

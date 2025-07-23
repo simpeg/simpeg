@@ -15,8 +15,8 @@ Craig Miller
 import os
 import shutil
 import tarfile
-from SimPEG.potential_fields import gravity
-from SimPEG import (
+from simpeg.potential_fields import gravity
+from simpeg import (
     data_misfit,
     maps,
     regularization,
@@ -25,11 +25,11 @@ from SimPEG import (
     directives,
     inversion,
 )
-from SimPEG.utils import download, plot2Ddata
+from simpeg.utils import download, plot2Ddata
 
 import matplotlib.pyplot as plt
 import numpy as np
-from SimPEG.utils.drivers.gravity_driver import GravityDriver_Inv
+from simpeg.utils.drivers.gravity_driver import GravityDriver_Inv
 
 
 def run(plotIt=True, cleanAfterRun=True):
@@ -92,7 +92,7 @@ def run(plotIt=True, cleanAfterRun=True):
     # Now that we have a model and a survey we can build the linear system ...
     # Create the forward model operator
     simulation = gravity.simulation.Simulation3DIntegral(
-        survey=survey, mesh=mesh, rhoMap=staticCells, ind_active=active
+        survey=survey, mesh=mesh, rhoMap=staticCells, active_cells=active
     )
 
     # %% Create inversion objects
@@ -121,13 +121,16 @@ def run(plotIt=True, cleanAfterRun=True):
     invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
     # Specify how the initial beta is found
-    betaest = directives.BetaEstimate_ByEig(beta0_ratio=0.5, seed=518936)
+    betaest = directives.BetaEstimate_ByEig(beta0_ratio=0.5, random_seed=518936)
 
     # IRLS sets up the Lp inversion problem
     # Set the eps parameter parameter in Line 11 of the
     # input file based on the distribution of model (DEFAULT = 95th %ile)
-    IRLS = directives.Update_IRLS(
-        f_min_change=1e-4, max_irls_iterations=40, coolEpsFact=1.5, beta_tol=5e-1
+    IRLS = directives.UpdateIRLS(
+        f_min_change=1e-4,
+        max_irls_iterations=40,
+        irls_cooling_factor=1.5,
+        misfit_tolerance=5e-1,
     )
 
     # Preconditioning refreshing for each IRLS iteration

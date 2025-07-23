@@ -5,8 +5,8 @@ import pytest
 import inspect
 
 import discretize
-from SimPEG import maps, objective_function, regularization, utils
-from SimPEG.regularization import (
+from simpeg import maps, objective_function, regularization, utils
+from simpeg.regularization import (
     BaseRegularization,
     WeightedLeastSquares,
     Sparse,
@@ -15,7 +15,7 @@ from SimPEG.regularization import (
     SmoothnessFirstOrder,
     SmoothnessSecondOrder,
 )
-from SimPEG.objective_function import ComboObjectiveFunction
+from simpeg.objective_function import ComboObjectiveFunction
 
 
 TOL = 1e-7
@@ -89,15 +89,16 @@ class RegularizationTests(unittest.TestCase):
 
                     print("--- Checking {} --- \n".format(reg.__class__.__name__))
 
+                    rng = np.random.default_rng(seed=639)
                     if mapping.nP != "*":
-                        m = np.random.rand(mapping.nP)
+                        m = rng.random(mapping.nP)
                     else:
-                        m = np.random.rand(mesh.nC)
+                        m = rng.random(mesh.nC)
                     mref = np.ones_like(m) * np.mean(m)
                     reg.reference_model = mref
 
                     # test derivs
-                    passed = reg.test(m, eps=TOL)
+                    passed = reg.test(m, eps=TOL, random_seed=rng)
                     self.assertTrue(passed)
 
         def test_regularization_ActiveCells(self):
@@ -139,13 +140,14 @@ class RegularizationTests(unittest.TestCase):
                     reg = r(
                         mesh, active_cells=active_cells, mapping=maps.IdentityMap(nP=nP)
                     )
-                    m = np.random.rand(mesh.nC)[active_cells]
+                    rng = np.random.default_rng(seed=532)
+                    m = rng.random(mesh.nC)[active_cells]
                     mref = np.ones_like(m) * np.mean(m)
                     reg.reference_model = mref
 
                     print("--- Checking {} ---\n".format(reg.__class__.__name__))
 
-                    passed = reg.test(m, eps=TOL)
+                    passed = reg.test(m, eps=TOL, random_seed=rng)
                     self.assertTrue(passed)
 
     if testRegMesh:
@@ -239,7 +241,8 @@ class RegularizationTests(unittest.TestCase):
 
     def test_addition(self):
         mesh = discretize.TensorMesh([8, 7, 6])
-        m = np.random.rand(mesh.nC)
+        rng = np.random.default_rng(seed=523)
+        m = rng.random(mesh.nC)
 
         reg1 = regularization.WeightedLeastSquares(mesh)
         reg2 = regularization.WeightedLeastSquares(mesh)
@@ -247,21 +250,22 @@ class RegularizationTests(unittest.TestCase):
         reg_a = reg1 + reg2
         self.assertTrue(len(reg_a) == 2)
         self.assertTrue(reg1(m) + reg2(m) == reg_a(m))
-        reg_a.test(eps=TOL)
+        reg_a.test(eps=TOL, random_seed=rng)
 
         reg_b = 2 * reg1 + reg2
         self.assertTrue(len(reg_b) == 2)
         self.assertTrue(2 * reg1(m) + reg2(m) == reg_b(m))
-        reg_b.test(eps=TOL)
+        reg_b.test(eps=TOL, random_seed=rng)
 
         reg_c = reg1 + reg2 / 2
         self.assertTrue(len(reg_c) == 2)
         self.assertTrue(reg1(m) + 0.5 * reg2(m) == reg_c(m))
-        reg_c.test(eps=TOL)
+        reg_c.test(eps=TOL, random_seed=rng)
 
     def test_mappings(self):
         mesh = discretize.TensorMesh([8, 7, 6])
-        m = np.random.rand(2 * mesh.nC)
+        rng = np.random.default_rng(seed=123)
+        m = rng.random(2 * mesh.nC)
 
         wires = maps.Wires(("sigma", mesh.nC), ("mu", mesh.nC))
 
@@ -276,9 +280,9 @@ class RegularizationTests(unittest.TestCase):
             self.assertTrue(reg3.nP == 2 * mesh.nC)
             self.assertTrue(reg3(m) == reg1(m) + reg2(m))
 
-            reg1.test(eps=TOL)
-            reg2.test(eps=TOL)
-            reg3.test(eps=TOL)
+            reg1.test(eps=TOL, random_seed=rng)
+            reg2.test(eps=TOL, random_seed=rng)
+            reg3.test(eps=TOL, random_seed=rng)
 
     def test_mref_is_zero(self):
         mesh = discretize.TensorMesh([10, 5, 8])
@@ -469,7 +473,7 @@ class RegularizationTests(unittest.TestCase):
         )
         mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * actMap
 
-        regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
+        regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].active_cells]])
         reg = regularization.WeightedLeastSquares(regMesh)
 
         self.assertTrue(reg._nC_residual == regMesh.nC)
@@ -577,7 +581,8 @@ class RegularizationTests(unittest.TestCase):
     def test_vector_amplitude(self):
         n_comp = 4
         mesh = discretize.TensorMesh([8, 7])
-        model = np.random.randn(mesh.nC, n_comp)
+        rng = np.random.default_rng(5412)
+        model = rng.random((mesh.nC, n_comp))
 
         with pytest.raises(TypeError, match="'regularization_mesh' must be of type"):
             regularization.VectorAmplitude("abc")
@@ -593,7 +598,7 @@ class RegularizationTests(unittest.TestCase):
             reg.objfcts[0].f_m(model.flatten(order="F")), np.linalg.norm(model, axis=1)
         )
 
-        reg.test(model.flatten(order="F"))
+        reg.test(model.flatten(order="F"), random_seed=rng)
 
 
 def test_WeightedLeastSquares():
@@ -615,6 +620,7 @@ def test_WeightedLeastSquares():
 def test_cross_ref_reg(dim):
     mesh = discretize.TensorMesh([3, 4, 5][:dim])
     actives = mesh.cell_centers[:, -1] < 0.6
+    rng = np.random.default_rng(6634)
     n_active = actives.sum()
 
     ref_dir = dim * [1]
@@ -627,8 +633,8 @@ def test_cross_ref_reg(dim):
     assert cross_reg._nC_residual == dim * n_active
 
     # give it some cell weights, and some cell vector weights to do something with
-    cell_weights = np.random.rand(n_active)
-    cell_vec_weights = np.random.rand(n_active, dim)
+    cell_weights = rng.random(n_active)
+    cell_vec_weights = rng.random((n_active, dim))
     cross_reg.set_weights(cell_weights=cell_weights)
     cross_reg.set_weights(vec_weights=cell_vec_weights)
 
@@ -637,8 +643,8 @@ def test_cross_ref_reg(dim):
     else:
         assert cross_reg.W.shape == (n_active, n_active)
 
-    m = np.random.rand(dim * n_active)
-    cross_reg.test(m)
+    m = rng.random(dim * n_active)
+    cross_reg.test(m, random_seed=rng)
 
 
 def test_cross_reg_reg_errors():

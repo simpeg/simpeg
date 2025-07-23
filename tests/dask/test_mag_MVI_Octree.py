@@ -1,6 +1,6 @@
 import unittest
-import SimPEG.dask  # noqa: F401
-from SimPEG import (
+import simpeg.dask  # noqa: F401
+from simpeg import (
     directives,
     maps,
     inverse_problem,
@@ -14,7 +14,7 @@ from SimPEG import (
 
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 import numpy as np
-from SimPEG.potential_fields import magnetics as mag
+from simpeg.potential_fields import magnetics as mag
 import shutil
 
 
@@ -100,7 +100,7 @@ class MVIProblemTest(unittest.TestCase):
             survey=survey,
             model_type="vector",
             chiMap=idenMap,
-            ind_active=actv,
+            active_cells=actv,
             store_sensitivities="disk",
             chunk_format="auto",
         )
@@ -108,7 +108,11 @@ class MVIProblemTest(unittest.TestCase):
 
         # Compute some data and add some random noise
         data = sim.make_synthetic_data(
-            utils.mkvc(self.model), relative_error=0.0, noise_floor=5.0, add_noise=True
+            utils.mkvc(self.model),
+            relative_error=0.0,
+            noise_floor=5.0,
+            add_noise=True,
+            random_seed=40,
         )
 
         # This Mapping connects the regularizations for the three-component
@@ -146,8 +150,8 @@ class MVIProblemTest(unittest.TestCase):
         # Here is where the norms are applied
         # Use pick a treshold parameter empirically based on the distribution of
         #  model parameters
-        IRLS = directives.Update_IRLS(
-            f_min_change=1e-3, max_irls_iterations=0, beta_tol=5e-1
+        IRLS = directives.UpdateIRLS(
+            f_min_change=1e-3, max_irls_iterations=0, misfit_tolerance=5e-1
         )
 
         # Pre-conditioner
@@ -208,14 +212,14 @@ class MVIProblemTest(unittest.TestCase):
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=beta)
 
         # Here is where the norms are applied
-        IRLS = directives.Update_IRLS(
+        IRLS = directives.UpdateIRLS(
             f_min_change=1e-4,
             max_irls_iterations=5,
-            minGNiter=1,
-            beta_tol=0.5,
-            coolingRate=1,
-            coolEps_q=True,
-            sphericalDomain=True,
+            misfit_tolerance=0.5,
+        )
+
+        spherical_scale = directives.SphericalUnitsWeights(
+            amplitude=wires.amp, angles=[reg_t, reg_p]
         )
 
         # Special directive specific to the mag amplitude problem. The sensitivity
@@ -226,7 +230,13 @@ class MVIProblemTest(unittest.TestCase):
 
         self.inv = inversion.BaseInversion(
             invProb,
-            directiveList=[ProjSpherical, IRLS, sensitivity_weights, update_Jacobi],
+            directiveList=[
+                spherical_scale,
+                ProjSpherical,
+                IRLS,
+                sensitivity_weights,
+                update_Jacobi,
+            ],
         )
 
     def test_mag_inverse(self):

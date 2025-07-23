@@ -17,14 +17,10 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from scipy.constants import mu_0
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
 import time
 
-from SimPEG.electromagnetics import time_domain as TDEM
-from SimPEG import utils, maps, Report
+from simpeg.electromagnetics import time_domain as TDEM
+from simpeg import utils, maps, Report
 
 ###############################################################################
 # Model Parameters
@@ -192,14 +188,12 @@ prob_magnetostatic = TDEM.Simulation3DMagneticFluxDensity(
     survey=survey_magnetostatic,
     sigmaMap=maps.IdentityMap(mesh),
     time_steps=ramp,
-    solver=Solver,
 )
 prob_ramp_on = TDEM.Simulation3DMagneticFluxDensity(
     mesh=mesh,
     survey=survey_ramp_on,
     sigmaMap=maps.IdentityMap(mesh),
     time_steps=ramp,
-    solver=Solver,
 )
 
 ###############################################################################

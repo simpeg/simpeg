@@ -3,10 +3,10 @@
 import unittest
 import numpy as np
 
-from SimPEG.electromagnetics import resistivity as dc
-from SimPEG.electromagnetics.static import utils
-from SimPEG import data
-from SimPEG.utils.io_utils import io_utils_electromagnetics as io_utils
+from simpeg.electromagnetics import resistivity as dc
+from simpeg.electromagnetics.static import utils
+from simpeg import data
+from simpeg.utils.io_utils import io_utils_electromagnetics as io_utils
 import shutil
 import os
 
@@ -39,7 +39,8 @@ class Test_DCIP_IO(unittest.TestCase):
                 self.station_spacing,
             )
         survey2D = dc.survey.Survey(source_list)
-        dobs = np.random.rand(survey2D.nD)
+        rng = np.random.default_rng(seed=42)
+        dobs = rng.uniform(size=survey2D.nD)
         dunc = 1e-3 * np.ones(survey2D.nD)
         data2D = data.Data(survey2D, dobs=dobs, standard_deviation=dunc)
 
@@ -94,7 +95,8 @@ class Test_DCIP_IO(unittest.TestCase):
                 self.station_spacing,
             )
         survey2D = dc.survey.Survey(source_list)
-        dobs = np.random.rand(survey2D.nD)
+        rng = np.random.default_rng(seed=42)
+        dobs = rng.uniform(size=survey2D.nD)
         dunc = 1e-3 * np.ones(survey2D.nD)
         data2D = data.Data(survey2D, dobs=dobs, standard_deviation=dunc)
 
@@ -151,7 +153,8 @@ class Test_DCIP_IO(unittest.TestCase):
                 self.station_spacing,
             )
         survey3D = dc.survey.Survey(source_list)
-        dobs = np.random.rand(survey3D.nD)
+        rng = np.random.default_rng(seed=42)
+        dobs = rng.uniform(size=survey3D.nD)
         dunc = 1e-3 * np.ones(survey3D.nD)
         data3D = data.Data(survey3D, dobs=dobs, standard_deviation=dunc)
 

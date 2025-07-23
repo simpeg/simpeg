@@ -33,9 +33,9 @@ import tarfile
 
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
-from SimPEG.utils import plot2Ddata, model_builder
-from SimPEG.potential_fields import gravity
-from SimPEG import (
+from simpeg.utils import plot2Ddata, model_builder
+from simpeg.potential_fields import gravity
+from simpeg import (
     maps,
     data,
     data_misfit,
@@ -220,7 +220,7 @@ simulation = gravity.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
     rhoMap=model_map,
-    ind_active=ind_active,
+    active_cells=ind_active,
     engine="choclo",
 )
 
@@ -271,13 +271,12 @@ starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
 
 # Defines the directives for the IRLS regularization. This includes setting
 # the cooling schedule for the trade-off parameter.
-update_IRLS = directives.Update_IRLS(
+update_IRLS = directives.UpdateIRLS(
     f_min_change=1e-4,
     max_irls_iterations=30,
-    coolEpsFact=1.5,
-    beta_tol=1e-2,
+    irls_cooling_factor=1.5,
+    misfit_tolerance=1e-2,
 )
-
 # Options for outputting recovered models and predicted data for each beta.
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 

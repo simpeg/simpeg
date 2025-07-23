@@ -2,7 +2,7 @@
 Forward Simulation of Gradiometry Data for Magnetic Vector Models
 =================================================================
 
-Here we use the module *SimPEG.potential_fields.magnetics* to predict magnetic
+Here we use the module *simpeg.potential_fields.magnetics* to predict magnetic
 gradiometry data for magnetic vector models. The simulation is performed on a
 Tree mesh. For this tutorial, we focus on the following:
 
@@ -27,9 +27,9 @@ import matplotlib.pyplot as plt
 
 from discretize import TreeMesh
 from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
-from SimPEG.utils import plot2Ddata, model_builder, mat_utils
-from SimPEG import maps
-from SimPEG.potential_fields import magnetics
+from simpeg.utils import plot2Ddata, model_builder, mat_utils
+from simpeg import maps
+from simpeg.potential_fields import magnetics
 
 # sphinx_gallery_thumbnail_number = 2
 
@@ -225,18 +225,23 @@ cbar.set_label(
 # in the case of remanent magnetization.
 #
 
+###############################################################################
 # Define the forward simulation. By setting the 'store_sensitivities' keyword
 # argument to "forward_only", we simulate the data without storing the sensitivities
+
 simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
     chiMap=model_map,
-    ind_active=ind_active,
+    active_cells=ind_active,
     model_type="vector",
     store_sensitivities="forward_only",
 )
 
+
+###############################################################################
 # Compute predicted data for some model
+
 dpred = simulation.dpred(model)
 n_data = len(dpred)
 

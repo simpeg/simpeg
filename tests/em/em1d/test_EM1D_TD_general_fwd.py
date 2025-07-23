@@ -1,7 +1,7 @@
 import unittest
-from SimPEG import maps
-import SimPEG.electromagnetics.time_domain as tdem
-from SimPEG.electromagnetics.utils import convolve_with_waveform
+from simpeg import maps
+import simpeg.electromagnetics.time_domain as tdem
+from simpeg.electromagnetics.utils import convolve_with_waveform
 from geoana.em.tdem import (
     vertical_magnetic_flux_horizontal_loop as b_loop,
     vertical_magnetic_flux_time_deriv_horizontal_loop as dbdt_loop,
@@ -274,6 +274,15 @@ class EM1D_TD_LineCurrent_FwdProblemTests(unittest.TestCase):
         )
 
         np.testing.assert_allclose(self.bzdt, empymod_solution, rtol=1e-2)
+
+
+def test_backwards_compatible_filter_key():
+
+    srv = tdem.Survey([])
+    sim = tdem.Simulation1DLayered(survey=srv)
+    sim.time_filter = "key_81_CosSin_2009"
+
+    assert sim.time_filter == "key_81_2009"
 
 
 if __name__ == "__main__":

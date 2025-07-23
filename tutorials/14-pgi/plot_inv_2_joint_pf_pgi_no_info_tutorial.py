@@ -33,8 +33,8 @@ from discretize import TreeMesh
 from discretize.utils import active_from_xyz
 import matplotlib.pyplot as plt
 import numpy as np
-import SimPEG.potential_fields as pf
-from SimPEG import (
+import simpeg.potential_fields as pf
+from simpeg import (
     data_misfit,
     directives,
     inverse_problem,
@@ -44,7 +44,7 @@ from SimPEG import (
     regularization,
     utils,
 )
-from SimPEG.utils import io_utils
+from simpeg.utils import io_utils
 
 # Reproducible science
 np.random.seed(518936)
@@ -234,7 +234,7 @@ simulation_grav = pf.gravity.simulation.Simulation3DIntegral(
     survey=data_grav.survey,
     mesh=mesh,
     rhoMap=wires.den,
-    ind_active=actv,
+    active_cells=actv,
     engine="choclo",
 )
 dmis_grav = data_misfit.L2DataMisfit(data=data_grav, simulation=simulation_grav)
@@ -243,7 +243,7 @@ simulation_mag = pf.magnetics.simulation.Simulation3DIntegral(
     survey=data_mag.survey,
     mesh=mesh,
     chiMap=wires.sus,
-    ind_active=actv,
+    active_cells=actv,
 )
 dmis_mag = data_misfit.L2DataMisfit(data=data_mag, simulation=simulation_mag)
 

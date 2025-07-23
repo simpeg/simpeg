@@ -1,9 +1,10 @@
 import shutil
 import unittest
 import numpy as np
-
+import pytest
+import matplotlib.pyplot as plt
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
-from SimPEG import (
+from simpeg import (
     directives,
     maps,
     inverse_problem,
@@ -13,13 +14,11 @@ from SimPEG import (
     utils,
     regularization,
 )
-from SimPEG.potential_fields import magnetics as mag
+from simpeg.potential_fields import magnetics as mag
 
 
 class MagInvLinProblemTest(unittest.TestCase):
     def setUp(self):
-        np.random.seed(0)
-
         # First we need to define the direction of the inducing field
         # As a simple case, we pick a vertical inducing field of magnitude
         # 50,000nT.
@@ -105,13 +104,17 @@ class MagInvLinProblemTest(unittest.TestCase):
             self.mesh,
             survey=survey,
             chiMap=idenMap,
-            ind_active=actv,
+            active_cells=actv,
             store_sensitivities="ram",
             n_processes=None,
         )
         self.sim = sim
         data = sim.make_synthetic_data(
-            self.model, relative_error=0.0, noise_floor=1.0, add_noise=True
+            self.model,
+            relative_error=0.0,
+            noise_floor=1.0,
+            add_noise=True,
+            random_seed=0,
         )
 
         # Create a regularization
@@ -134,7 +137,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         )
 
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e6)
-        IRLS = directives.Update_IRLS()
+        IRLS = directives.UpdateIRLS()
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights()
         self.inv = inversion.BaseInversion(
@@ -145,16 +148,19 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Run the inversion
         mrec = self.inv.run(self.model * 1e-4)
         residual = np.linalg.norm(mrec - self.model) / np.linalg.norm(self.model)
-
-        # import matplotlib.pyplot as plt
-        # plt.figure()
-        # ax = plt.subplot(1, 2, 1)
-        # self.mesh.plot_slice(self.actvMap*mrec, ax=ax, normal="Y", grid=True)
-        # ax = plt.subplot(1, 2, 2)
-        # self.mesh.plot_slice(self.actvMap*self.model, ax=ax, normal="Y", grid=True)
-        # plt.show()
-
         self.assertLess(residual, 0.5)
+
+    @pytest.mark.skip(reason="For validation only.")
+    def test_plot_results(self):
+        self.sim.store_sensitivities = "ram"
+        mrec = self.inv.run(self.model * 1e-4)
+
+        plt.figure()
+        ax = plt.subplot(1, 2, 1)
+        self.mesh.plot_slice(self.actvMap * mrec, ax=ax, normal="Y", grid=True)
+        ax = plt.subplot(1, 2, 2)
+        self.mesh.plot_slice(self.actvMap * self.model, ax=ax, normal="Y", grid=True)
+        plt.show()
 
     def tearDown(self):
         # Clean up the working directory

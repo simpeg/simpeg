@@ -11,8 +11,9 @@ properties are linked by polynomial relationships that change between rock units
 
 import discretize as Mesh
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
 import numpy as np
-from SimPEG import (
+from simpeg import (
     data_misfit,
     directives,
     inverse_problem,
@@ -324,10 +325,16 @@ CS = axes[3].contour(
     alpha=0.25,
     cmap="viridis",
 )
-axes[3].scatter(wires.m1 * mcluster_map, wires.m2 * mcluster_map, marker="v")
+cs_proxy = mlines.Line2D([], [], label="True Petrophysical Distribution")
+
+ps = axes[3].scatter(
+    wires.m1 * mcluster_map,
+    wires.m2 * mcluster_map,
+    marker="v",
+    label="Recovered model crossplot",
+)
 axes[3].set_title("Petrophysical Distribution")
-CS.collections[0].set_label("")
-axes[3].legend(["True Petrophysical Distribution", "Recovered model crossplot"])
+axes[3].legend(handles=[cs_proxy, ps])
 axes[3].set_xlabel("Property 1")
 axes[3].set_ylabel("Property 2")
 
@@ -372,7 +379,6 @@ CS = axes[7].contour(
     500,
     cmap="viridis",
     linestyles="--",
-    label="Modeled Petro. Distribution",
 )
 axes[7].scatter(
     wires.m1 * mcluster_no_map,
@@ -380,8 +386,12 @@ axes[7].scatter(
     marker="v",
     label="Recovered model crossplot",
 )
+cs_modeled_proxy = mlines.Line2D(
+    [], [], linestyle="--", label="Modeled Petro. Distribution"
+)
+
 axes[7].set_title("Petrophysical Distribution")
-axes[7].legend()
+axes[7].legend(handles=[cs_proxy, cs_modeled_proxy, ps])
 axes[7].set_xlabel("Property 1")
 axes[7].set_ylabel("Property 2")
 
@@ -423,8 +433,7 @@ CS = axes[11].contour(
 )
 axes[11].scatter(wires.m1 * mtik, wires.m2 * mtik, marker="v")
 axes[11].set_title("Petro Distribution")
-CS.collections[0].set_label("")
-axes[11].legend(["True Petro Distribution", "Recovered model crossplot"])
+axes[11].legend(handles=[cs_proxy, ps])
 axes[11].set_xlabel("Property 1")
 axes[11].set_ylabel("Property 2")
 plt.subplots_adjust(wspace=0.3, hspace=0.3, top=0.85)

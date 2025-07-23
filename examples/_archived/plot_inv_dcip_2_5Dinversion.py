@@ -17,20 +17,15 @@ the obtained resistivity model, sensitivity function is formed and used for
 subsequent IP inversion to recover a chargeability model.
 """
 
-from SimPEG.electromagnetics.static import resistivity as DC
-from SimPEG.electromagnetics.static import induced_polarization as IP
-from SimPEG.electromagnetics.static.utils import generate_dcip_survey, genTopography
-from SimPEG import maps, utils
+from simpeg.electromagnetics.static import resistivity as DC
+from simpeg.electromagnetics.static import induced_polarization as IP
+from simpeg.electromagnetics.static.utils import generate_dcip_survey, genTopography
+from simpeg import maps, utils
 from discretize.utils import active_from_xyz
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import numpy as np
 from pylab import hist
-
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
 
 
 def run(plotIt=True, survey_type="dipole-dipole"):
@@ -130,9 +125,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
 
     # Generate 2.5D DC problem
     # "N" means potential is defined at nodes
-    prb = DC.Simulation2DNodal(
-        mesh, survey=survey_dc, rhoMap=mapping, storeJ=True, solver=Solver
-    )
+    prb = DC.Simulation2DNodal(mesh, survey=survey_dc, rhoMap=mapping, storeJ=True)
 
     # Make synthetic DC data with 5% Gaussian noise
     data_dc = prb.make_synthetic_data(mtrue_dc, relative_error=0.05, add_noise=True)
@@ -144,7 +137,7 @@ def run(plotIt=True, survey_type="dipole-dipole"):
     # "N" means potential is defined at nodes
     survey_ip = IP.from_dc_to_ip_survey(survey_dc, dim="2.5D")
     prb_ip = IP.Simulation2DNodal(
-        mesh, survey=survey_ip, etaMap=actmap, storeJ=True, rho=rho, solver=Solver
+        mesh, survey=survey_ip, etaMap=actmap, storeJ=True, rho=rho
     )
 
     data_ip = prb_ip.make_synthetic_data(mtrue_ip, relative_error=0.05, add_noise=True)

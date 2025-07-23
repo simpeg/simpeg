@@ -2,15 +2,15 @@
 Magnetic inversion on a TreeMesh
 ================================
 
-In this example, we demonstrate the use of a Magnetic Vector Inverison
+In this example, we demonstrate the use of a Magnetic Vector Inversion
 on 3D TreeMesh for the inversion of magnetic data.
 
-The inverse problem uses the :class:'SimPEG.regularization.VectorAmplitude'
-regularization borrowed from ...
+The inverse problem uses the :class:`simpeg.regularization.VectorAmplitude`
+regularization.
 
 """
 
-from SimPEG import (
+from simpeg import (
     data,
     data_misfit,
     directives,
@@ -21,11 +21,11 @@ from SimPEG import (
     regularization,
 )
 
-from SimPEG import utils
-from SimPEG.utils import mkvc, sdiag
+from simpeg import utils
+from simpeg.utils import mkvc, sdiag
 
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
-from SimPEG.potential_fields import magnetics
+from simpeg.potential_fields import magnetics
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -123,7 +123,7 @@ idenMap = maps.IdentityMap(nP=nC * 3)
 
 # Create the simulation
 simulation = magnetics.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, chiMap=idenMap, ind_active=actv, model_type="vector"
+    survey=survey, mesh=mesh, chiMap=idenMap, active_cells=actv, model_type="vector"
 )
 
 # Compute some data and add some random noise
@@ -183,7 +183,9 @@ betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 sensitivity_weights = directives.UpdateSensitivityWeights()
 
 # Here is where the norms are applied
-IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=10, beta_tol=5e-1)
+IRLS = directives.UpdateIRLS(
+    f_min_change=1e-3, max_irls_iterations=10, misfit_tolerance=5e-1
+)
 
 # Pre-conditioner
 update_Jacobi = directives.UpdatePreconditioner()

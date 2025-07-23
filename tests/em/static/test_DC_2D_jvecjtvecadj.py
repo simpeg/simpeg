@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import discretize
-from SimPEG import (
+from simpeg import (
     maps,
     utils,
     data_misfit,
@@ -11,12 +11,7 @@ from SimPEG import (
     inversion,
     inverse_problem,
 )
-from SimPEG.electromagnetics import resistivity as dc
-
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
+from simpeg.electromagnetics import resistivity as dc
 
 
 class DCProblem_2DTests(unittest.TestCase):
@@ -47,12 +42,11 @@ class DCProblem_2DTests(unittest.TestCase):
             mesh,
             rhoMap=maps.IdentityMap(mesh),
             storeJ=self.storeJ,
-            solver=Solver,
             survey=survey,
             bc_type=self.bc_type,
         )
         mSynth = np.ones(mesh.nC) * 1.0
-        data = simulation.make_synthetic_data(mSynth, add_noise=True)
+        data = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data)
@@ -78,6 +72,7 @@ class DCProblem_2DTests(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=9582376,
         )
         self.assertTrue(passed)
 
@@ -94,7 +89,11 @@ class DCProblem_2DTests(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=23,
         )
         self.assertTrue(passed)
 

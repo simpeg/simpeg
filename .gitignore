@@ -25,6 +25,7 @@ pip-log.txt
 
 # Unit test / coverage reports
 .coverage
+coverage_html_report/*
 .tox
 nosetests.xml
 
@@ -46,17 +47,19 @@ docs/_build/
 docs/warnings.txt
 docs/content/api/generated/*
 .DS_Store
-docs/content/examples/*
-docs/content/tutorials/*
+docs/content/user-guide/examples/*
+docs/content/user-guide/tutorials/*
 docs/modules/*
 docs/sg_execution_times.rst
 .vscode/*
 
 # paths to where data are downloaded
+examples/04-dcip/test_url/*
 examples/20-published/bookpurnong_inversion/*
 examples/20-published/._bookpurnong_inversion
 examples/20-published/*.tar.gz
 examples/20-published/*.png
+examples/20-published/Chile_GRAV_4_Miller/*
 tutorials/03-gravity/gravity/*
 tutorials/03-gravity/outputs/*
 tutorials/04-magnetics/magnetics/*
@@ -92,4 +95,4 @@ tutorials/13-joint_inversion/cross_gradient_data/*
 *.tar.gz
 
 # setuptools_scm
-SimPEG/version.py
+simpeg/version.py

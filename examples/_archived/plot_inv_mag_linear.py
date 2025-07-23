@@ -11,9 +11,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
-from SimPEG.potential_fields import magnetics
-from SimPEG import utils
-from SimPEG import (
+from simpeg.potential_fields import magnetics
+from simpeg import utils
+from simpeg import (
     data,
     data_misfit,
     maps,
@@ -91,7 +91,7 @@ def run(plotIt=True):
         survey=survey,
         mesh=mesh,
         chiMap=idenMap,
-        ind_active=actv,
+        active_cells=actv,
     )
 
     # Compute linear forward operator and compute some data
@@ -128,7 +128,7 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a threshold parameter empirically based on the distribution of
     #  model parameters
-    IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=40)
+    IRLS = directives.UpdateIRLS(f_min_change=1e-3, max_irls_iterations=40)
     saveDict = directives.SaveOutputEveryIteration(save_txt=False)
     update_Jacobi = directives.UpdatePreconditioner()
     # Add sensitivity weights
@@ -291,7 +291,7 @@ def run(plotIt=True):
         axs = plt.subplot()
         axs.plot(saveDict.phi_d, "k", lw=2)
         axs.plot(
-            np.r_[IRLS.iterStart, IRLS.iterStart],
+            np.r_[IRLS.metrics.start_irls_iter, IRLS.metrics.start_irls_iter],
             np.r_[0, np.max(saveDict.phi_d)],
             "k:",
         )
@@ -299,7 +299,7 @@ def run(plotIt=True):
         twin = axs.twinx()
         twin.plot(saveDict.phi_m, "k--", lw=2)
         axs.text(
-            IRLS.iterStart,
+            IRLS.metrics.start_irls_iter,
             0,
             "IRLS Steps",
             va="bottom",

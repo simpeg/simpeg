@@ -1,14 +1,12 @@
 import numpy as np
-import multiprocessing as mp
-import sys
 
-from SimPEG.potential_fields import gravity
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG import maps
+from simpeg.potential_fields import gravity
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg import maps
 from discretize import TensorMesh
 import scipy.sparse as sp
 
-from SimPEG.meta import (
+from simpeg.meta import (
     MetaSimulation,
     SumMetaSimulation,
     RepeatedSimulation,
@@ -16,9 +14,6 @@ from SimPEG.meta import (
     MultiprocessingSumMetaSimulation,
     MultiprocessingRepeatedSimulation,
 )
-
-if sys.version_info[0] == 3 and sys.version_info[1] <= 8:
-    mp.set_start_method("spawn")
 
 
 def test_meta_correctness():

@@ -1,6 +1,6 @@
 import unittest
-from SimPEG.electromagnetics import natural_source as nsem
-from SimPEG import discretize
+from simpeg.electromagnetics import natural_source as nsem
+from simpeg import discretize
 import numpy as np
 
 

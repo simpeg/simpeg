@@ -7,10 +7,9 @@ from matplotlib.colors import LogNorm
 from scipy.constants import mu_0
 import time
 
-from SimPEG.electromagnetics import time_domain as tdem
-from SimPEG import utils, maps
+from simpeg.electromagnetics import time_domain as tdem
+from simpeg import utils, maps
 
-from pymatsolver import Pardiso
 
 plotIt = False
 TOL = 1e-4
@@ -158,14 +157,12 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
             survey=survey,
             time_steps=time_steps,
             sigmaMap=maps.IdentityMap(mesh),
-            solver=Pardiso,
         )
         prob_late_ontime = tdem.Simulation3DMagneticFluxDensity(
             mesh=mesh,
             survey=survey_late_ontime,
             time_steps=time_steps,
             sigmaMap=maps.IdentityMap(mesh),
-            solver=Pardiso,
         )
 
         fields_dict = {}
@@ -232,8 +229,9 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         assert all(passed)
 
         prob.sigma = 1e-4 * np.ones(mesh.nC)
-        v = utils.mkvc(np.random.rand(mesh.nE))
-        w = utils.mkvc(np.random.rand(mesh.nF))
+        rng = np.random.default_rng(seed=42)
+        v = utils.mkvc(rng.uniform(size=mesh.nE))
+        w = utils.mkvc(rng.uniform(size=mesh.nF))
         assert np.all(
             mesh.get_edge_inner_product(1e-4 * np.ones(mesh.nC)) * v == prob.MeSigma * v
         )
@@ -256,8 +254,9 @@ class TestInductiveSourcesPermeability(unittest.TestCase):
         )
 
         prob.rho = 1.0 / 1e-3 * np.ones(mesh.nC)
-        v = utils.mkvc(np.random.rand(mesh.nE))
-        w = utils.mkvc(np.random.rand(mesh.nF))
+        rng = np.random.default_rng(seed=42)
+        v = utils.mkvc(rng.uniform(size=mesh.nE))
+        w = utils.mkvc(rng.uniform(size=mesh.nF))
 
         np.testing.assert_allclose(
             mesh.get_edge_inner_product(1e-3 * np.ones(mesh.nC)) * v, prob.MeSigma * v
