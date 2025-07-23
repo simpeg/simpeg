@@ -1,4 +1,5 @@
 import inspect
+import warnings
 import numpy as np
 import pymatsolver
 import scipy.sparse as sp
@@ -8,7 +9,7 @@ from ..simulation import BaseSimulation
 from .. import props
 from scipy.constants import mu_0
 
-from ..utils import validate_type, get_default_solver
+from ..utils import validate_type, get_default_solver, get_logger, PerformanceWarning
 
 
 def __inner_mat_mul_op(M, u, v=None, adjoint=False):
@@ -433,12 +434,24 @@ class BasePDESimulation(BaseSimulation):
         pairs of keyword arguments and parameter values for the solver. Please visit
         `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__ to learn more
         about solvers and their parameters.
-
     """
 
     def __init__(self, mesh, solver=None, solver_opts=None, **kwargs):
         self.mesh = mesh
         super().__init__(**kwargs)
+        if solver is None:
+            solver = get_default_solver()
+            get_logger().info(
+                f"Setting the default solver '{solver.__name__}' for the "
+                f"'{type(self).__name__}'.\n"
+                "To avoid receiving this message, pass a solver to the simulation. "
+                "For example:"
+                "\n\n"
+                "  from simpeg.utils import get_default_solver\n"
+                "\n"
+                "  solver = get_default_solver()\n"
+                f"  simulation = {type(self).__name__}(solver=solver, ...)"
+            )
         self.solver = solver
         if solver_opts is None:
             solver_opts = {}
@@ -483,10 +496,6 @@ class BasePDESimulation(BaseSimulation):
         type[pymatsolver.solvers.Base]
             Numerical solver used to solve the forward problem.
         """
-        if self._solver is None:
-            # do not cache this, in case the user wants to
-            # change it after the first time it is requested.
-            return get_default_solver(warn=True)
         return self._solver
 
     @solver.setter
@@ -498,6 +507,15 @@ class BasePDESimulation(BaseSimulation):
                 raise TypeError(
                     f"{cls.__qualname__} is not a subclass of pymatsolver.base.BaseSolver"
                 )
+        if cls in (pymatsolver.SolverLU, pymatsolver.Solver):
+            warnings.warn(
+                f"The 'pymatsolver.{cls.__name__}' solver might lead to high "
+                "computation times. "
+                "We recommend using a faster alternative such as 'pymatsolver.Pardiso' "
+                "or 'pymatsolver.Mumps'.",
+                PerformanceWarning,
+                stacklevel=2,
+            )
         self._solver = cls
 
     @property
