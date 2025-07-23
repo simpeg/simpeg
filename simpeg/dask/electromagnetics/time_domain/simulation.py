@@ -561,6 +561,87 @@ def compute_rows(
     return np.vstack(rows)
 
 
+def evaluate_dpred_block(indices, sources, mesh, time_mesh, fields):
+    """
+    Evaluate the data prediction for a block of sources.
+    """
+    data = []
+    for ind in indices:
+
+        receiver_list = sources[ind].receiver_list
+        if len(receiver_list) == 0:
+            continue
+
+        for receiver in receiver_list:
+            data.append(receiver.eval(sources[ind], mesh, time_mesh, fields))
+
+    return np.hstack(data)
+
+
+def dpred(self, m=None, f=None):
+    # Docstring inherited from BaseSimulation.
+    if self.survey is None:
+        raise AttributeError(
+            "The survey has not yet been set and is required to compute "
+            "data. Please set the survey for the simulation: "
+            "simulation.survey = survey"
+        )
+
+    try:
+        client = get_client()
+    except ValueError:
+        client = None
+
+    if f is None:
+        f = self.fields(m)
+
+    delayed_chunks = []
+
+    source_block = np.array_split(
+        np.arange(len(self.survey.source_list)), self.n_threads(client=client)
+    )
+    if client:
+        mesh = client.scatter(self.mesh, workers=self.worker)
+        time_mesh = client.scatter(self.time_mesh, workers=self.worker)
+        fields = client.scatter(f, workers=self.worker)
+        source_list = client.scatter(self.survey.source_list, workers=self.worker)
+    else:
+        mesh = self.mesh
+        time_mesh = self.time_mesh
+        delayed_eval = delayed(evaluate_dpred_block)
+        source_list = self.survey.source_list
+        fields = f
+
+    for block in source_block:
+        if len(block) == 0:
+            continue
+
+        if client:
+            delayed_chunks.append(
+                client.submit(
+                    evaluate_dpred_block,
+                    block,
+                    source_list,
+                    mesh,
+                    time_mesh,
+                    fields,
+                    workers=self.worker,
+                )
+            )
+        else:
+            delayed_chunks.append(
+                delayed_eval(block, source_list, mesh, time_mesh, fields)
+            )
+
+    if client:
+        result = client.gather(delayed_chunks)
+    else:
+        result = dask.compute(delayed_chunks)[0]
+
+    return np.hstack(result)
+
+
+Sim.dpred = dpred
 Sim.fields = fields
 Sim.getSourceTerm = getSourceTerm
 Sim.compute_J = compute_J
