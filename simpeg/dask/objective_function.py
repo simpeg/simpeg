@@ -132,9 +132,7 @@ class DaskComboMisfits(ComboObjectiveFunction):
 
         values = []
         count = 0
-        for ind, futures in enumerate(self._futures):
-
-            priority = len(self._futures) - ind  # reverse order for priority
+        for futures in self._futures:
             for objfct, worker in zip(futures, self._workers, strict=True):
 
                 if self.multipliers[count] == 0.0:
@@ -147,7 +145,6 @@ class DaskComboMisfits(ComboObjectiveFunction):
                         self.multipliers[count],
                         m_future,
                         workers=worker,
-                        priority=priority,
                     )
                 )
                 count += 1
@@ -196,12 +193,11 @@ class DaskComboMisfits(ComboObjectiveFunction):
         client = self.client
         m_future = self._m_as_future
 
+        derivs = 0.0
         count = 0
-        future_deriv = []
-        for ind, futures in enumerate(self._futures):
 
-            priority = len(self._futures) - ind  # reverse order for priority
-
+        for futures in self._futures:
+            future_deriv = []
             for objfct, worker in zip(futures, self._workers):
                 if self.multipliers[count] == 0.0:  # don't evaluate the fct
                     continue
@@ -213,14 +209,13 @@ class DaskComboMisfits(ComboObjectiveFunction):
                         self.multipliers[count],
                         m_future,
                         workers=worker,
-                        priority=priority,
                     )
                 )
 
                 count += 1
-        future_deriv = client.gather(future_deriv)
+            future_deriv = client.gather(future_deriv)
 
-        derivs = np.sum(future_deriv, axis=0)
+            derivs += np.sum(future_deriv, axis=0)
 
         return derivs
 
@@ -239,11 +234,12 @@ class DaskComboMisfits(ComboObjectiveFunction):
         m_future = self._m_as_future
         [v_future] = client.scatter([v], broadcast=True)
 
+        derivs = 0.0
         count = 0
-        future_derivs = []
-        for ind, futures in enumerate(self._futures):
 
-            priority = len(self._futures) - ind  # reverse order for priority
+        for futures in self._futures:
+
+            future_derivs = []
             for objfct, worker in zip(futures, self._workers):
                 if self.multipliers[count] == 0.0:  # don't evaluate the fct
                     continue
@@ -257,13 +253,12 @@ class DaskComboMisfits(ComboObjectiveFunction):
                         v_future,
                         # field,
                         workers=worker,
-                        priority=priority,
                     )
                 )
                 count += 1
 
-        future_derivs = self.client.gather(future_derivs)
-        derivs = np.sum(future_derivs, axis=0)
+            future_derivs = self.client.gather(future_derivs)
+            derivs += np.sum(future_derivs, axis=0)
 
         return derivs
 
@@ -275,11 +270,10 @@ class DaskComboMisfits(ComboObjectiveFunction):
 
         client = self.client
         m_future = self._m_as_future
-        # dpred = []
-        future_preds = []
-        for ind, futures in enumerate(self._futures):
+        dpred = []
 
-            priority = len(self._futures) - ind  # reverse order for priority
+        for futures in self._futures:
+            future_preds = []
             for objfct, worker in zip(futures, self._workers):
                 future_preds.append(
                     client.submit(
@@ -287,10 +281,9 @@ class DaskComboMisfits(ComboObjectiveFunction):
                         objfct,
                         m_future,
                         workers=worker,
-                        priority=priority,
                     )
                 )
-        dpred = client.gather(future_preds)
+            dpred += client.gather(future_preds)
 
         return dpred
 
@@ -301,11 +294,13 @@ class DaskComboMisfits(ComboObjectiveFunction):
         self.model = m
         m_future = self._m_as_future
         if getattr(self, "_jtjdiag", None) is None:
-            client = self.client
-            work = []
-            for ind, futures in enumerate(self._futures):
 
-                priority = len(self._futures) - ind  # reverse order for priority
+            jtj_diag = 0.0
+            client = self.client
+
+            for futures in self._futures:
+                work = []
+
                 for objfct, worker in zip(futures, self._workers):
                     work.append(
                         client.submit(
@@ -313,12 +308,11 @@ class DaskComboMisfits(ComboObjectiveFunction):
                             objfct,
                             m_future,
                             workers=worker,
-                            priority=priority,
                         )
                     )
 
-            work = client.gather(work)
-            jtj_diag = np.sum(work, axis=0)
+                work = client.gather(work)
+                jtj_diag += np.sum(work, axis=0)
 
             self._jtjdiag = jtj_diag
 
@@ -338,18 +332,15 @@ class DaskComboMisfits(ComboObjectiveFunction):
         # The above should pass the model to all the internal simulations.
         f = []
 
-        for ind, futures in enumerate(self._futures):
-
-            priority = len(self._futures) - ind  # reverse order for priority
-
+        for futures in self._futures:
+            f.append([])
             for objfct, worker in zip(futures, self._workers):
-                f.append(
+                f[-1].append(
                     client.submit(
                         _calc_fields,
                         objfct,
                         m_future,
                         workers=worker,
-                        priority=priority,
                     )
                 )
         self._stashed_fields = f
@@ -376,9 +367,7 @@ class DaskComboMisfits(ComboObjectiveFunction):
         [self._m_as_future] = client.scatter([value], broadcast=True)
 
         stores = []
-        for ind, futures in enumerate(self._futures):
-
-            priority = len(self._futures) - ind  # reverse order for priority
+        for futures in self._futures:
             for objfct, worker in zip(futures, self._workers):
                 stores.append(
                     client.submit(
@@ -386,7 +375,6 @@ class DaskComboMisfits(ComboObjectiveFunction):
                         objfct,
                         self._m_as_future,
                         workers=worker,
-                        priority=priority,
                     )
                 )
         self.client.gather(stores)  # blocking call to ensure all models were stored
@@ -430,11 +418,9 @@ class DaskComboMisfits(ComboObjectiveFunction):
         client = self.client
         m_future = self._m_as_future
         residuals = []
-        future_residuals = []
-        for ind, futures in enumerate(self._futures):
 
-            priority = len(self._futures) - ind  # reverse order for priority
-
+        for futures in self._futures:
+            future_residuals = []
             for objfct, worker in zip(futures, self._workers):
                 future_residuals.append(
                     client.submit(
@@ -442,10 +428,9 @@ class DaskComboMisfits(ComboObjectiveFunction):
                         objfct,
                         m_future,
                         workers=worker,
-                        priority=priority,
                     )
                 )
-        residuals = client.gather(future_residuals)
+            residuals += client.gather(future_residuals)
 
         return residuals
 
