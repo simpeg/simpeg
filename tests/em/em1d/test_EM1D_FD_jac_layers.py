@@ -1,7 +1,7 @@
 import unittest
-from SimPEG import maps
+from simpeg import maps
 from discretize import tests, TensorMesh
-import SimPEG.electromagnetics.frequency_domain as fdem
+import simpeg.electromagnetics.frequency_domain as fdem
 import numpy as np
 from scipy.constants import mu_0
 
@@ -118,7 +118,7 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
         dm = m_1D * 0.5
 
         passed = tests.check_derivative(
-            derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
+            derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15, random_seed=9186724
         )
         self.assertTrue(passed)
         if passed:
@@ -155,14 +155,18 @@ class EM1D_FD_Jacobian_Test_MagDipole(unittest.TestCase):
 
         def misfit(m, dobs):
             dpred = self.sim.dpred(m)
-            misfit = 0.5 * np.linalg.norm(dpred - dobs) ** 2
-            dmisfit = self.sim.Jtvec(m, dr)
+            misfit = np.linalg.norm(dpred - dobs) ** 2
+            dmisfit = 2.0 * self.sim.Jtvec(
+                m, dr
+            )  # derivative of ||dpred - dobs||^2 gives factor of 2
             return misfit, dmisfit
 
         def derChk(m):
             return misfit(m, dobs)
 
-        passed = tests.check_derivative(derChk, m_ini, num=4, plotIt=False, eps=1e-27)
+        passed = tests.check_derivative(
+            derChk, m_ini, num=4, plotIt=False, eps=1e-27, random_seed=2345
+        )
         self.assertTrue(passed)
         if passed:
             print("EM1DFM MagDipole Jtvec test works")
@@ -277,7 +281,7 @@ class EM1D_FD_Jacobian_Test_CircularLoop(unittest.TestCase):
         dm = m_1D * 0.5
 
         passed = tests.check_derivative(
-            derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
+            derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15, random_seed=664
         )
         self.assertTrue(passed)
         if passed:
@@ -314,14 +318,18 @@ class EM1D_FD_Jacobian_Test_CircularLoop(unittest.TestCase):
 
         def misfit(m, dobs):
             dpred = self.sim.dpred(m)
-            misfit = 0.5 * np.linalg.norm(dpred - dobs) ** 2
-            dmisfit = self.sim.Jtvec(m, dr)
+            misfit = np.linalg.norm(dpred - dobs) ** 2
+            dmisfit = 2 * self.sim.Jtvec(
+                m, dr
+            )  # derivative of ||dpred - dobs||^2 gives factor of 2
             return misfit, dmisfit
 
         def derChk(m):
             return misfit(m, dobs)
 
-        passed = tests.check_derivative(derChk, m_ini, num=4, plotIt=False, eps=1e-27)
+        passed = tests.check_derivative(
+            derChk, m_ini, num=4, plotIt=False, eps=1e-27, random_seed=42
+        )
         self.assertTrue(passed)
         if passed:
             print("EM1DFM Circular Loop Jtvec test works")
@@ -416,7 +424,7 @@ class EM1D_FD_Jacobian_Test_LineCurrent(unittest.TestCase):
             return [fwdfun(m), lambda mx: jacfun(m, mx)]
 
         passed = tests.check_derivative(
-            derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15
+            derChk, m_1D, num=4, dx=dm, plotIt=False, eps=1e-15, random_seed=1123
         )
         self.assertTrue(passed)
         if passed:
@@ -450,14 +458,18 @@ class EM1D_FD_Jacobian_Test_LineCurrent(unittest.TestCase):
 
         def misfit(m, dobs):
             dpred = self.sim.dpred(m)
-            misfit = 0.5 * np.linalg.norm(dpred - dobs) ** 2
-            dmisfit = self.sim.Jtvec(m, dr)
+            misfit = np.linalg.norm(dpred - dobs) ** 2
+            dmisfit = 2 * self.sim.Jtvec(
+                m, dr
+            )  # derivative of ||dpred - dobs||^2 gives factor of 2
             return misfit, dmisfit
 
         def derChk(m):
             return misfit(m, dobs)
 
-        passed = tests.check_derivative(derChk, m_ini, num=4, plotIt=False, eps=1e-27)
+        passed = tests.check_derivative(
+            derChk, m_ini, num=4, plotIt=False, eps=1e-27, random_seed=124
+        )
         self.assertTrue(passed)
         if passed:
             print("EM1DFM Piecewise Linear Loop Jtvec test works")

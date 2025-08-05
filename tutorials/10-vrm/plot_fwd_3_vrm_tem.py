@@ -2,8 +2,8 @@
 Forward Simulation Including Inductive Response
 ===============================================
 
-Here we use the modules *SimPEG.electromagnetics.viscous_remanent_magnetization*
-and *SimPEG.electromagnetics.time_domain* to simulation the transient response
+Here we use the modules *simpeg.electromagnetics.viscous_remanent_magnetization*
+and *simpeg.electromagnetics.time_domain* to simulation the transient response
 over a conductive and magnetically viscous Earth. We consider a small-loop,
 ground-based survey which uses a coincident loop geometry. Earth is comprised
 of a conductive pipe and resistive surface layer as well as a magnetically
@@ -28,9 +28,9 @@ separate simulations, then add them together to compute the total response.
 # --------------
 #
 
-import SimPEG.electromagnetics.viscous_remanent_magnetization as vrm
-import SimPEG.electromagnetics.time_domain as tdem
-from SimPEG import maps
+import simpeg.electromagnetics.viscous_remanent_magnetization as vrm
+import simpeg.electromagnetics.time_domain as tdem
+from simpeg import maps
 
 from discretize import TensorMesh, CylindricalMesh
 from discretize.utils import mkvc
@@ -38,11 +38,6 @@ from discretize.utils import mkvc
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
 
 # sphinx_gallery_thumbnail_number = 3
 
@@ -156,7 +151,9 @@ cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 time_steps = [(5e-06, 20), (0.0001, 20), (0.001, 21)]
 
 tdem_simulation = tdem.simulation.Simulation3DMagneticFluxDensity(
-    mesh, survey=tdem_survey, sigmaMap=model_map, solver=Solver
+    mesh,
+    survey=tdem_survey,
+    sigmaMap=model_map,
 )
 
 tdem_simulation.time_steps = time_steps
@@ -256,7 +253,7 @@ ind_active = np.ones(mesh.nC, dtype="bool")
 vrm_simulation = vrm.Simulation3DLogUniform(
     mesh,
     survey=vrm_survey,
-    indActive=ind_active,
+    active_cells=ind_active,
     refinement_factor=1,
     refinement_distance=[100.0],
     chi0=chi0_model,

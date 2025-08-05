@@ -1,9 +1,14 @@
+import re
+
 import numpy as np
 import unittest
 
 import discretize
-from SimPEG.seismic import straight_ray_tomography as tomo
-from SimPEG import tests, maps, utils
+import pytest
+
+from simpeg.seismic import straight_ray_tomography as tomo
+from simpeg import tests, maps, utils
+from simpeg.seismic.straight_ray_tomography.simulation import Simulation2DIntegral
 
 TOL = 1e-5
 FLR = 1e-14
@@ -35,7 +40,29 @@ class TomoTest(unittest.TestCase):
         def fun(x):
             return self.problem.dpred(x), lambda x: self.problem.Jvec(s, x)
 
-        return tests.check_derivative(fun, s, num=4, plotIt=False, eps=FLR)
+        return tests.check_derivative(
+            fun, s, num=4, plotIt=False, eps=FLR, random_seed=664
+        )
+
+
+def test_required_mesh_arg():
+    msg = ".*missing 1 required positional argument: 'mesh'"
+    with pytest.raises(TypeError, match=msg):
+        Simulation2DIntegral()
+
+
+def test_bad_mesh_type():
+    mesh = discretize.CylindricalMesh([3, 3, 3])
+    msg = "mesh must be an instance of TensorMesh, not CylindricalMesh"
+    with pytest.raises(TypeError, match=msg):
+        Simulation2DIntegral(mesh)
+
+
+def test_bad_mesh_dim():
+    mesh = discretize.TensorMesh([3, 3, 3])
+    msg = re.escape("Simulation2DIntegral mesh must be 2D, received a 3D mesh.")
+    with pytest.raises(ValueError, match=msg):
+        Simulation2DIntegral(mesh)
 
 
 if __name__ == "__main__":

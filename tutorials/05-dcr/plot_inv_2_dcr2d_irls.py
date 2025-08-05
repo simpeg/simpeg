@@ -29,10 +29,10 @@ from matplotlib.colors import LogNorm
 import tarfile
 
 from discretize import TreeMesh
-from discretize.utils import mkvc, refine_tree_xyz, active_from_xyz
+from discretize.utils import mkvc, active_from_xyz
 
-from SimPEG.utils import model_builder
-from SimPEG import (
+from simpeg.utils import model_builder
+from simpeg import (
     maps,
     data_misfit,
     regularization,
@@ -42,17 +42,12 @@ from SimPEG import (
     directives,
     utils,
 )
-from SimPEG.electromagnetics.static import resistivity as dc
-from SimPEG.electromagnetics.static.utils.static_utils import (
+from simpeg.electromagnetics.static import resistivity as dc
+from simpeg.electromagnetics.static.utils.static_utils import (
     plot_pseudosection,
     apparent_resistivity_from_voltage,
 )
-from SimPEG.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
-
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
+from simpeg.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
 
 mpl.rcParams.update({"font.size": 16})
 # sphinx_gallery_thumbnail_number = 3
@@ -179,11 +174,9 @@ hz = [(dh, nbcz)]
 mesh = TreeMesh([hx, hz], x0="CN")
 
 # Mesh refinement based on topography
-mesh = refine_tree_xyz(
-    mesh,
+mesh.refine_surface(
     topo_xyz[:, [0, 2]],
-    octree_levels=[0, 0, 4, 4],
-    method="surface",
+    padding_cells_by_level=[0, 0, 4, 4],
     finalize=False,
 )
 
@@ -200,16 +193,12 @@ unique_locations = np.unique(
     np.reshape(electrode_locations, (4 * dc_data.survey.nD, 2)), axis=0
 )
 
-mesh = refine_tree_xyz(
-    mesh, unique_locations, octree_levels=[4, 4], method="radial", finalize=False
-)
+mesh.refine_points(unique_locations, padding_cells_by_level=[4, 4], finalize=False)
 
 # Refine core mesh region
 xp, zp = np.meshgrid([-600.0, 600.0], [-400.0, 0.0])
 xyz = np.c_[mkvc(xp), mkvc(zp)]
-mesh = refine_tree_xyz(
-    mesh, xyz, octree_levels=[0, 0, 2, 8], method="box", finalize=False
-)
+mesh.refine_bounding_box(xyz, padding_cells_by_level=[0, 0, 2, 8], finalize=False)
 
 mesh.finalize()
 
@@ -274,7 +263,7 @@ starting_conductivity_model = background_conductivity * np.ones(nC)
 
 # Define the problem. Define the cells below topography and the mapping
 simulation = dc.simulation_2d.Simulation2DNodal(
-    mesh, survey=survey, sigmaMap=conductivity_map, solver=Solver, storeJ=True
+    mesh, survey=survey, sigmaMap=conductivity_map, storeJ=True
 )
 
 #######################################################################
@@ -302,10 +291,10 @@ regmap = maps.IdentityMap(nP=int(ind_active.sum()))
 
 reg = regularization.Sparse(
     mesh,
-    indActive=ind_active,
+    active_cells=ind_active,
     reference_model=starting_conductivity_model,
     mapping=regmap,
-    gradientType="total",
+    gradient_type="total",
     alpha_s=0.01,
     alpha_x=1,
     alpha_y=1,
@@ -338,9 +327,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 update_sensitivity_weighting = directives.UpdateSensitivityWeights()
 
 # Reach target misfit for L2 solution, then use IRLS until model stops changing.
-update_IRLS = directives.Update_IRLS(
-    max_irls_iterations=25, minGNiter=1, chifact_start=1.0
-)
+update_IRLS = directives.UpdateIRLS(max_irls_iterations=25, chifact_start=1.0)
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
@@ -393,7 +380,7 @@ true_conductivity_model[ind_conductor] = true_conductor_conductivity
 ind_resistor = model_builder.get_indices_sphere(np.r_[120.0, -180.0], 60.0, mesh.gridCC)
 true_conductivity_model[ind_resistor] = true_resistor_conductivity
 
-true_conductivity_model[~ind_active] = np.NaN
+true_conductivity_model[~ind_active] = np.nan
 
 ############################################################
 # Plotting True and Recovered Conductivity Model
@@ -402,10 +389,10 @@ true_conductivity_model[~ind_active] = np.NaN
 
 # Get L2 and sparse recovered model in base 10
 l2_conductivity = conductivity_map * inv_prob.l2model
-l2_conductivity[~ind_active] = np.NaN
+l2_conductivity[~ind_active] = np.nan
 
 recovered_conductivity = conductivity_map * recovered_conductivity_model
-recovered_conductivity[~ind_active] = np.NaN
+recovered_conductivity[~ind_active] = np.nan
 
 # Plot True Model
 norm = LogNorm(vmin=1e-3, vmax=1e-1)

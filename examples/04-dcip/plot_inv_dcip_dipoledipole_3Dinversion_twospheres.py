@@ -17,7 +17,7 @@ Following example will show you how user can implement a 3D DC inversion.
 """
 
 import discretize
-from SimPEG import (
+from simpeg import (
     maps,
     utils,
     data_misfit,
@@ -27,14 +27,9 @@ from SimPEG import (
     directives,
     inversion,
 )
-from SimPEG.electromagnetics.static import resistivity as DC, utils as DCutils
+from simpeg.electromagnetics.static import resistivity as DC, utils as DCutils
 import numpy as np
 import matplotlib.pyplot as plt
-
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
 
 np.random.seed(12345)
 
@@ -153,10 +148,10 @@ survey = DC.Survey(survey1.source_list + survey2.source_list + survey3.source_li
 
 # Setup Problem with exponential mapping and Active cells only in the core mesh
 expmap = maps.ExpMap(mesh)
-mapactive = maps.InjectActiveCells(mesh=mesh, indActive=actind, valInactive=-5.0)
+mapactive = maps.InjectActiveCells(mesh=mesh, active_cells=actind, value_inactive=-5.0)
 mapping = expmap * mapactive
 problem = DC.Simulation3DCellCentered(
-    mesh, survey=survey, sigmaMap=mapping, solver=Solver, bc_type="Neumann"
+    mesh, survey=survey, sigmaMap=mapping, bc_type="Neumann"
 )
 
 data = problem.make_synthetic_data(mtrue[actind], relative_error=0.05, add_noise=True)

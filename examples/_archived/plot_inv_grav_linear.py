@@ -6,13 +6,14 @@ Create a synthetic block model and invert
 with a compact norm
 
 """
+
 import numpy as np
 import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
-from SimPEG.potential_fields import gravity
-from SimPEG import (
+from simpeg.potential_fields import gravity
+from simpeg import (
     maps,
     data,
     data_misfit,
@@ -23,8 +24,8 @@ from SimPEG import (
     inversion,
 )
 
-from SimPEG import utils
-from SimPEG.utils import plot2Ddata
+from simpeg import utils
+from simpeg.utils import plot2Ddata
 
 
 def run(plotIt=True):
@@ -83,7 +84,7 @@ def run(plotIt=True):
 
     # Create the forward simulation
     simulation = gravity.simulation.Simulation3DIntegral(
-        survey=survey, mesh=mesh, rhoMap=idenMap, ind_active=actv
+        survey=survey, mesh=mesh, rhoMap=idenMap, active_cells=actv
     )
 
     # Compute linear forward operator and compute some data
@@ -102,7 +103,7 @@ def run(plotIt=True):
     rxLoc = survey.source_field.receiver_list[0].locations
 
     # Create a regularization
-    reg = regularization.Sparse(mesh, indActive=actv, mapping=idenMap)
+    reg = regularization.Sparse(mesh, active_cells=actv, mapping=idenMap)
     reg.norms = [0, 0, 0, 0]
 
     # Data misfit function
@@ -119,15 +120,15 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a threshold parameter empirically based on the distribution of
     # model parameters
-    update_IRLS = directives.Update_IRLS(
+    update_IRLS = directives.UpdateIRLS(
         f_min_change=1e-4,
         max_irls_iterations=30,
-        coolEpsFact=1.5,
-        beta_tol=1e-2,
+        irls_cooling_factor=1.5,
+        misfit_tolerance=1e-2,
     )
     saveDict = directives.SaveOutputEveryIteration(save_txt=False)
     update_Jacobi = directives.UpdatePreconditioner()
-    sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+    sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
     inv = inversion.BaseInversion(
         invProb,
         directiveList=[
@@ -260,7 +261,9 @@ def run(plotIt=True):
         axs = plt.subplot()
         axs.plot(saveDict.phi_d, "k", lw=2)
         axs.plot(
-            np.r_[update_IRLS.iterStart, update_IRLS.iterStart],
+            np.r_[
+                update_IRLS.metrics.start_irls_iter, update_IRLS.metrics.start_irls_iter
+            ],
             np.r_[0, np.max(saveDict.phi_d)],
             "k:",
         )
@@ -268,7 +271,7 @@ def run(plotIt=True):
         twin = axs.twinx()
         twin.plot(saveDict.phi_m, "k--", lw=2)
         axs.text(
-            update_IRLS.iterStart,
+            update_IRLS.metrics.start_irls_iter,
             np.max(saveDict.phi_d) / 2.0,
             "IRLS Steps",
             va="bottom",

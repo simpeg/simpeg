@@ -1,6 +1,6 @@
 import unittest
-import SimPEG.dask  # noqa: F401
-from SimPEG import (
+import simpeg.dask  # noqa: F401
+from simpeg import (
     directives,
     maps,
     inverse_problem,
@@ -14,14 +14,14 @@ from SimPEG import (
 
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 import numpy as np
-from SimPEG.potential_fields import magnetics as mag
+from simpeg.potential_fields import magnetics as mag
 import shutil
 
 
 class MVIProblemTest(unittest.TestCase):
     def setUp(self):
         np.random.seed(0)
-        H0 = (50000.0, 90.0, 0.0)
+        h0_amplitude, h0_inclination, h0_declination = (50000.0, 90.0, 0.0)
 
         # The magnetization is set along a different
         # direction (induced + remanence)
@@ -47,7 +47,12 @@ class MVIProblemTest(unittest.TestCase):
         # Create a MAGsurvey
         xyzLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
         rxLoc = mag.Point(xyzLoc)
-        srcField = mag.SourceField([rxLoc], parameters=H0)
+        srcField = mag.UniformBackgroundField(
+            receiver_list=[rxLoc],
+            amplitude=h0_amplitude,
+            inclination=h0_inclination,
+            declination=h0_declination,
+        )
         survey = mag.Survey(srcField)
 
         # Create a mesh
@@ -95,7 +100,7 @@ class MVIProblemTest(unittest.TestCase):
             survey=survey,
             model_type="vector",
             chiMap=idenMap,
-            ind_active=actv,
+            active_cells=actv,
             store_sensitivities="disk",
             chunk_format="auto",
         )
@@ -103,7 +108,11 @@ class MVIProblemTest(unittest.TestCase):
 
         # Compute some data and add some random noise
         data = sim.make_synthetic_data(
-            utils.mkvc(self.model), relative_error=0.0, noise_floor=5.0, add_noise=True
+            utils.mkvc(self.model),
+            relative_error=0.0,
+            noise_floor=5.0,
+            add_noise=True,
+            random_seed=40,
         )
 
         # This Mapping connects the regularizations for the three-component
@@ -112,17 +121,17 @@ class MVIProblemTest(unittest.TestCase):
 
         # Create three regularization for the different components
         # of magnetization
-        reg_p = regularization.Sparse(mesh, indActive=actv, mapping=wires.p)
-        reg_p.mref = np.zeros(3 * nC)
+        reg_p = regularization.Sparse(mesh, active_cells=actv, mapping=wires.p)
+        reg_p.reference_model = np.zeros(3 * nC)
 
-        reg_s = regularization.Sparse(mesh, indActive=actv, mapping=wires.s)
-        reg_s.mref = np.zeros(3 * nC)
+        reg_s = regularization.Sparse(mesh, active_cells=actv, mapping=wires.s)
+        reg_s.reference_model = np.zeros(3 * nC)
 
-        reg_t = regularization.Sparse(mesh, indActive=actv, mapping=wires.t)
-        reg_t.mref = np.zeros(3 * nC)
+        reg_t = regularization.Sparse(mesh, active_cells=actv, mapping=wires.t)
+        reg_t.reference_model = np.zeros(3 * nC)
 
         reg = reg_p + reg_s + reg_t
-        reg.mref = np.zeros(3 * nC)
+        reg.reference_model = np.zeros(3 * nC)
 
         # Data misfit function
         dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
@@ -141,13 +150,13 @@ class MVIProblemTest(unittest.TestCase):
         # Here is where the norms are applied
         # Use pick a treshold parameter empirically based on the distribution of
         #  model parameters
-        IRLS = directives.Update_IRLS(
-            f_min_change=1e-3, max_irls_iterations=0, beta_tol=5e-1
+        IRLS = directives.UpdateIRLS(
+            f_min_change=1e-3, max_irls_iterations=0, misfit_tolerance=5e-1
         )
 
         # Pre-conditioner
         update_Jacobi = directives.UpdatePreconditioner()
-        sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+        sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
         inv = inversion.BaseInversion(
             invProb, directiveList=[sensitivity_weights, IRLS, update_Jacobi, betaest]
         )
@@ -166,24 +175,24 @@ class MVIProblemTest(unittest.TestCase):
 
         # Create a Combo Regularization
         # Regularize the amplitude of the vectors
-        reg_a = regularization.Sparse(mesh, indActive=actv, mapping=wires.amp)
+        reg_a = regularization.Sparse(mesh, active_cells=actv, mapping=wires.amp)
         reg_a.norms = [0.0, 0.0, 0.0, 0.0]  # Sparse on the model and its gradients
-        reg_a.mref = np.zeros(3 * nC)
+        reg_a.reference_model = np.zeros(3 * nC)
 
         # Regularize the vertical angle of the vectors
-        reg_t = regularization.Sparse(mesh, indActive=actv, mapping=wires.theta)
+        reg_t = regularization.Sparse(mesh, active_cells=actv, mapping=wires.theta)
         reg_t.alpha_s = 0.0  # No reference angle
         reg_t.space = "spherical"
         reg_t.norms = [2.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
         # Regularize the horizontal angle of the vectors
-        reg_p = regularization.Sparse(mesh, indActive=actv, mapping=wires.phi)
+        reg_p = regularization.Sparse(mesh, active_cells=actv, mapping=wires.phi)
         reg_p.alpha_s = 0.0  # No reference angle
         reg_p.space = "spherical"
         reg_p.norms = [2.0, 0.0, 0.0, 0.0]  # Only norm on gradients used
 
         reg = reg_a + reg_t + reg_p
-        reg.mref = np.zeros(3 * nC)
+        reg.reference_model = np.zeros(3 * nC)
 
         Lbound = np.kron(np.asarray([0, -np.inf, -np.inf]), np.ones(nC))
         Ubound = np.kron(np.asarray([10, np.inf, np.inf]), np.ones(nC))
@@ -203,14 +212,14 @@ class MVIProblemTest(unittest.TestCase):
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=beta)
 
         # Here is where the norms are applied
-        IRLS = directives.Update_IRLS(
+        IRLS = directives.UpdateIRLS(
             f_min_change=1e-4,
             max_irls_iterations=5,
-            minGNiter=1,
-            beta_tol=0.5,
-            coolingRate=1,
-            coolEps_q=True,
-            sphericalDomain=True,
+            misfit_tolerance=0.5,
+        )
+
+        spherical_scale = directives.SphericalUnitsWeights(
+            amplitude=wires.amp, angles=[reg_t, reg_p]
         )
 
         # Special directive specific to the mag amplitude problem. The sensitivity
@@ -221,7 +230,13 @@ class MVIProblemTest(unittest.TestCase):
 
         self.inv = inversion.BaseInversion(
             invProb,
-            directiveList=[ProjSpherical, IRLS, sensitivity_weights, update_Jacobi],
+            directiveList=[
+                spherical_scale,
+                ProjSpherical,
+                IRLS,
+                sensitivity_weights,
+                update_Jacobi,
+            ],
         )
 
     def test_mag_inverse(self):

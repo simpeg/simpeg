@@ -1,20 +1,16 @@
 # import matplotlib
 # matplotlib.use('Agg')
+import pytest
 import unittest
 import numpy as np
 import discretize
 
-from SimPEG.electromagnetics import resistivity as dc
-from SimPEG.electromagnetics.static import utils
-from SimPEG import maps, mkvc
-from SimPEG.utils import io_utils
+from simpeg.electromagnetics import resistivity as dc
+from simpeg.electromagnetics.static import utils
+from simpeg import maps, mkvc
+from simpeg.utils import io_utils
 import shutil
 import os
-
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
 
 
 class DCUtilsTests_halfspace(unittest.TestCase):
@@ -82,17 +78,16 @@ class DCUtilsTests_halfspace(unittest.TestCase):
                 dim=self.mesh.dim,
             )
 
-            self.assertEqual(survey_type, survey.survey_type)
-
             # Setup Problem with exponential mapping
             expmap = maps.ExpMap(self.mesh)
             problem = dc.Simulation3DCellCentered(
                 self.mesh, sigmaMap=expmap, survey=survey, bc_type="Neumann"
             )
-            problem.solver = Solver
 
             # Create synthetic data
-            dobs = problem.make_synthetic_data(self.model, relative_error=0.0)
+            dobs = problem.make_synthetic_data(
+                self.model, relative_error=0.0, random_seed=40
+            )
             dobs.noise_floor = 1e-5
 
             # Testing IO
@@ -225,26 +220,35 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
         survey_type = ["dipole-dipole", "pole-pole", "pole-dipole", "dipole-pole"]
         data_type = "volt"
         dimension_type = "3D"
-        end_locations = np.r_[-1000.0, 1000.0, 0.0, 0.0]
+        end_locations = [
+            np.r_[-1000.0, 1000.0, 0.0, 0.0],
+            np.r_[0.0, 0.0, -1000.0, 1000.0],
+        ]
         station_separation = 200.0
         num_rx_per_src = 5
 
         # The source lists for each line can be appended to create the source
         # list for the whole survey.
         source_list = []
-        for ii in range(0, len(survey_type)):
-            source_list += utils.generate_dcip_sources_line(
-                survey_type[ii],
-                data_type,
-                dimension_type,
-                end_locations,
-                0.0,
-                num_rx_per_src,
-                station_separation,
-            )
+        lineID = []
+        for end_location in end_locations:
+            for survey_type_i in survey_type:
+                source_list += utils.generate_dcip_sources_line(
+                    survey_type_i,
+                    data_type,
+                    dimension_type,
+                    end_location,
+                    0.0,
+                    num_rx_per_src,
+                    station_separation,
+                )
 
         # Define the survey
         self.survey = dc.survey.Survey(source_list)
+
+        lineID = np.ones(len(self.survey.locations_a))
+        lineID[int(len(self.survey.locations_a) / 2) :] = 2
+        self.lineID = lineID
 
     def test_generate_survey_from_abmn_locations(self):
         survey_new, sorting_index = utils.generate_survey_from_abmn_locations(
@@ -281,7 +285,7 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
         is_rx = np.array(is_rx, dtype=float)
 
         _, idx = np.unique(
-            np.c_[self.survey.locations_a, self.survey.locations_b, is_rx],
+            np.c_[self.survey.locations_a, self.survey.locations_b, is_rx, self.lineID],
             axis=0,
             return_index=True,
         )
@@ -299,13 +303,14 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
         self.assertTrue(passed)
 
     def test_convert_to_2d(self):
-        # Only 1 line of 3D data along x direction starting from (-1000,0,0)
-        lineID = np.ones(self.survey.nD, dtype=int)
-        survey_2d, IND = utils.convert_survey_3d_to_2d_lines(
-            self.survey, lineID, data_type="volt", output_indexing=True
+        # 3D survey has two lines of data, one E-W and the other N-S.
+        survey_2d_list, IND = utils.convert_survey_3d_to_2d_lines(
+            self.survey, self.lineID, data_type="volt", output_indexing=True
         )
+
+        # First, check that coordinates remain the same even after the transformation for the first line
         IND = IND[0]
-        survey_2d = survey_2d[0]
+        survey_2d = survey_2d_list[0]
 
         ds = np.c_[-1000.0, 0.0, 0.0]
 
@@ -326,8 +331,78 @@ class DCUtilsTests_survey_from_ABMN(unittest.TestCase):
             survey_2d.locations_n,
         ]
 
+        # Coordinates should be roughly the same
         passed = np.allclose(loc3d[:, 0::2], loc2d)
         self.assertTrue(passed)
+
+        # Check that the first x-coordinate for electrode A is zero for both surveys
+        for survey in survey_2d_list:
+            self.assertEqual(survey.locations_a[0, 0], 0)
+
+
+class TestConvertTo2DInvalidInputs:
+    """
+    Test convert_survey_3d_to_2d_lines after passing invalid inputs.
+    """
+
+    @pytest.fixture
+    def survey_3d(self):
+        """Sample 3D DC survey."""
+        receiver = dc.receivers.Dipole(
+            locations_m=np.array([[-100, 0, 0]]),
+            locations_n=np.array([[100, 0, 0]]),
+            data_type="volt",
+        )
+        source = dc.sources.Dipole(
+            receiver_list=[receiver],
+            location_a=np.array([-50, 0, 0]),
+            location_b=np.array([50, 0, 0]),
+        )
+        survey = dc.Survey(source_list=[source])
+        return survey
+
+    @pytest.fixture
+    def survey_2d(self):
+        """Sample 2D DC survey."""
+        receiver = dc.receivers.Dipole(
+            locations_m=np.array([[-100, 0]]),
+            locations_n=np.array([[100, 0]]),
+            data_type="volt",
+        )
+        source = dc.sources.Dipole(
+            receiver_list=[receiver],
+            location_a=np.array([-50, 0]),
+            location_b=np.array([50, 0]),
+        )
+        survey = dc.Survey(source_list=[source])
+        return survey
+
+    def test_invalid_survey(self, survey_2d):
+        """
+        Test if error is raised when passing an invalid survey (2D survey)
+        """
+        line_ids = np.ones(survey_2d.nD)
+        with pytest.raises(ValueError, match="Invalid 2D 'survey'"):
+            utils.convert_survey_3d_to_2d_lines(survey_2d, line_ids)
+
+    def test_invalid_line_ids_wrong_dims(self, survey_3d):
+        """
+        Test if error is raised after invalid line_ids with wrong dimensions.
+        """
+        line_ids = np.atleast_2d(np.ones(survey_3d.nD))
+        msg = "Invalid 'lineID' array with '2' dimensions. "
+        with pytest.raises(ValueError, match=msg):
+            utils.convert_survey_3d_to_2d_lines(survey_3d, line_ids)
+
+    def test_invalid_line_ids_wrong_size(self, survey_3d):
+        """
+        Test if error is raised after an invalid line_ids with wrong size.
+        """
+        size = survey_3d.nD - 1
+        line_ids = np.ones(size)
+        msg = f"Invalid 'lineID' array with '{size}' elements. "
+        with pytest.raises(ValueError, match=msg):
+            utils.convert_survey_3d_to_2d_lines(survey_3d, line_ids)
 
 
 if __name__ == "__main__":

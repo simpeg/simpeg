@@ -1,0 +1,68 @@
+parameters:
+  os : ['ubuntu-latest']
+  py_vers: ['3.10']
+  test: ['tests/em',
+         'tests/base tests/flow tests/seis tests/utils',
+         'tests/meta',
+         'tests/docs -s -v',
+         'tests/examples/test_examples_1.py',
+         'tests/examples/test_examples_2.py',
+         'tests/examples/test_examples_3.py',
+         'tests/examples/test_tutorials_1.py tests/examples/test_tutorials_2.py',
+         'tests/examples/test_tutorials_3.py',
+         'tests/pf',
+         'tests/dask', # This code must be tested on its own to avoid modifying the implementation for any other tests.
+         ]
+
+jobs:
+  - ${{ each os in parameters.os }}:
+    - ${{ each py_vers in parameters.py_vers }}:
+      - ${{ each test in parameters.test }}:
+        - job:
+          displayName: ${{ os }}_${{ py_vers }}_${{ test }}
+          pool:
+            vmImage: ${{ os }}
+          timeoutInMinutes: 120
+          variables:
+            python.version: ${{ py_vers }}
+            test.target: ${{ test }}
+          steps:
+
+          # Checkout simpeg repo, including tags.
+          # We need to sync tags and disable shallow depth in order to get the
+          # SimPEG version while building the docs.
+          - checkout: self
+            fetchDepth: 0
+            fetchTags: true
+            displayName: Checkout repository (including tags)
+
+          - bash: echo "##vso[task.prependpath]$CONDA/bin"
+            displayName: Add conda to PATH
+
+          - bash: .ci/azure/setup_env.sh
+            displayName: Setup SimPEG environment
+
+          - bash: .ci/azure/run_tests_with_coverage.sh
+            displayName: 'Testing ${{ test }}'
+
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: $(Build.SourcesDirectory)/docs/_build/html
+              artifactName: html_docs
+            displayName: 'Publish documentation artifact'
+            condition: and(eq('${{ test }}', 'tests/docs -s -v'), succeededOrFailed())
+
+          - bash: |
+              job="${{ os }}_${{ py_vers }}_${{ test }}"
+              jobhash=$(echo $job | sha256sum | cut -f 1 -d " " | cut -c 1-7)
+              cp coverage.xml "coverage-$jobhash.xml"
+              echo "##vso[task.setvariable variable=jobhash]$jobhash"
+            condition: succeededOrFailed()
+            displayName: 'Rename coverage report'
+
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: $(Build.SourcesDirectory)/coverage-$(jobhash).xml
+              artifactName: coverage-$(jobhash)
+            condition: succeededOrFailed()
+            displayName: 'Publish coverage artifact'

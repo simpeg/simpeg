@@ -3,11 +3,10 @@ import unittest
 import discretize
 import matplotlib.pyplot as plt
 import numpy as np
-from pymatsolver import Pardiso as Solver
 from scipy.constants import mu_0
-from SimPEG import maps
-from SimPEG.electromagnetics import analytics
-from SimPEG.electromagnetics import time_domain as tdem
+from simpeg import maps
+from simpeg.electromagnetics import analytics
+from simpeg.electromagnetics import time_domain as tdem
 
 
 def analytic_wholespace_dipole_comparison(
@@ -163,7 +162,6 @@ def analytic_wholespace_dipole_comparison(
         mesh=mesh, survey=survey, sigmaMap=mapping
     )
 
-    sim.solver = Solver
     sim.time_steps = [
         (1e-06, 40),
         (5e-06, 40),
@@ -267,7 +265,6 @@ def analytic_halfspace_mag_dipole_comparison(
     sim = tdem.Simulation3DMagneticFluxDensity(
         mesh, survey=survey, time_steps=time_steps, sigmaMap=mapping
     )
-    sim.solver = Solver
 
     sigma = np.ones(mesh.shape_cells[2]) * 1e-8
     sigma[active] = sig_half

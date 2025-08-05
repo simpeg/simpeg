@@ -5,9 +5,9 @@ import matplotlib.pylab as plt
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import mu_0
-from SimPEG import SolverLU, utils
-from SimPEG.electromagnetics import analytics
-from SimPEG.electromagnetics import frequency_domain as fdem
+from simpeg import utils
+from simpeg.electromagnetics import analytics
+from simpeg.electromagnetics import frequency_domain as fdem
 
 # import matplotlib
 # matplotlib.use('Agg')
@@ -59,14 +59,6 @@ class FDEM_analyticTests(unittest.TestCase):
         sigma[mesh.gridCC[:, 2] > 0] = 1e-8
 
         prb = fdem.Simulation3DMagneticFluxDensity(mesh, survey=survey, sigma=sigma)
-
-        try:
-            from pymatsolver import Pardiso
-
-            prb.solver = Pardiso
-        except ImportError:
-            prb.solver = SolverLU
-
         self.prb = prb
         self.mesh = mesh
         self.sig = sig

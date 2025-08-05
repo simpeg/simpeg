@@ -12,9 +12,10 @@ model.
 
 
 """
+
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
-from SimPEG import (
+from simpeg import (
     utils,
     maps,
     regularization,
@@ -24,13 +25,13 @@ from SimPEG import (
     directives,
     inversion,
 )
-from SimPEG.potential_fields import magnetics
+from simpeg.potential_fields import magnetics
 import numpy as np
 import matplotlib.pyplot as plt
 
 
 def run(plotIt=True):
-    H0 = (50000.0, 90.0, 0.0)
+    h0_amplitude, h0_inclination, h0_declination = (50000.0, 90.0, 0.0)
 
     # Create a mesh
     dx = 5.0
@@ -62,7 +63,12 @@ def run(plotIt=True):
     # Create a MAGsurvey
     rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T)]
     rxLoc = magnetics.Point(rxLoc)
-    srcField = magnetics.SourceField([rxLoc], parameters=H0)
+    srcField = magnetics.UniformBackgroundField(
+        receiver_list=[rxLoc],
+        amplitude=h0_amplitude,
+        inclination=h0_inclination,
+        declination=h0_declination,
+    )
     survey = magnetics.Survey(srcField)
 
     # We can now create a susceptibility model and generate data
@@ -90,7 +96,7 @@ def run(plotIt=True):
         mesh,
         survey=survey,
         chiMap=idenMap,
-        ind_active=actv,
+        active_cells=actv,
         store_sensitivities="forward_only",
     )
 
@@ -111,7 +117,7 @@ def run(plotIt=True):
 
     # Create the forward model operator
     prob = magnetics.Simulation3DIntegral(
-        mesh, survey=survey, chiMap=sumMap, ind_active=actv, store_sensitivities="ram"
+        mesh, survey=survey, chiMap=sumMap, active_cells=actv, store_sensitivities="ram"
     )
 
     # Make sensitivity weighting
@@ -133,17 +139,19 @@ def run(plotIt=True):
     regMesh = TensorMesh([len(domains)])
 
     reg_m1 = regularization.Sparse(regMesh, mapping=wires.homo)
-    reg_m1.cell_weights = wires.homo * wr
+    reg_m1.set_weights(weights=wires.homo * wr)
+
     reg_m1.norms = [0, 2]
-    reg_m1.mref = np.zeros(sumMap.shape[1])
+    reg_m1.reference_model = np.zeros(sumMap.shape[1])
 
     # Regularization for the voxel model
     reg_m2 = regularization.Sparse(
         mesh, active_cells=actv, mapping=wires.hetero, gradient_type="components"
     )
-    reg_m2.cell_weights = wires.hetero * wr
+    reg_m2.set_weights(weights=wires.hetero * wr)
+
     reg_m2.norms = [0, 0, 0, 0]
-    reg_m2.mref = np.zeros(sumMap.shape[1])
+    reg_m2.reference_model = np.zeros(sumMap.shape[1])
 
     reg = reg_m1 + reg_m2
 
@@ -167,7 +175,8 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a threshold parameter empirically based on the distribution of
     #  model parameters
-    IRLS = directives.Update_IRLS(f_min_change=1e-3, minGNiter=1)
+    IRLS = directives.UpdateIRLS(f_min_change=1e-3)
+
     update_Jacobi = directives.UpdatePreconditioner()
     inv = inversion.BaseInversion(invProb, directiveList=[IRLS, betaest, update_Jacobi])
 

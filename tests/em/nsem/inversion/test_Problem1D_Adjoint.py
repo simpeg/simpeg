@@ -2,8 +2,8 @@ import numpy as np
 import unittest
 from scipy.constants import mu_0
 
-from SimPEG.electromagnetics import natural_source as nsem
-from SimPEG import maps
+from simpeg.electromagnetics import natural_source as nsem
+from simpeg import maps
 
 
 TOL = 1e-4
@@ -50,9 +50,9 @@ def JvecAdjointTest_1D(sigmaHalf, formulation="PrimSec"):
     m = np.r_[sigma_model, layer_thicknesses]
     u = simulation.fields(m)
 
-    np.random.seed(1983)
-    v = np.random.rand(survey.nD)
-    w = np.random.rand(len(m))
+    rng = np.random.default_rng(seed=1983)
+    v = rng.uniform(size=survey.nD)
+    w = rng.uniform(size=len(m))
 
     vJw = v.dot(simulation.Jvec(m, w, u))
     wJtv = w.dot(simulation.Jtvec(m, v, u))
@@ -80,14 +80,10 @@ def JvecAdjointTest(sigmaHalf, formulation="PrimSec"):
     m = sigma
     u = problem.fields(m)
 
-    np.random.seed(1983)
-    v = np.random.rand(
-        survey.nD,
-    )
+    rng = np.random.default_rng(seed=1983)
+    v = rng.uniform(size=survey.nD)
     # print problem.PropMap.PropModel.nP
-    w = np.random.rand(
-        problem.mesh.nC,
-    )
+    w = rng.uniform(size=problem.mesh.nC)
 
     vJw = v.ravel().dot(problem.Jvec(m, w, u))
     wJtv = w.ravel().dot(problem.Jtvec(m, v, u))

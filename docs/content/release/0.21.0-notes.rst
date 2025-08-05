@@ -1,0 +1,276 @@
+.. _0.21.0_notes:
+
+===========================
+SimPEG 0.21.0 Release Notes
+===========================
+
+April 8th, 2024
+
+.. contents:: Highlights
+    :depth: 3
+
+Updates
+=======
+
+New features
+------------
+
+Gravity simulation using Choclo
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Now we can use a faster and more memory efficient implementation of the gravity
+simulation ``simpeg.potential_fields.gravity.Simulation3DIntegral``, making use
+of Choclo and Numba.  To make use of this functionality you will need to
+`install Choclo <https://www.fatiando.org/choclo/latest/install.html>`__ in
+addition to ``SimPEG``.
+
+See https://github.com/simpeg/simpeg/pull/1285.
+
+Use Dask with MetaSimulation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A new ``simpeg.meta.DaskMetaSimulation`` class has been added that allows to
+use Dask with ``simpeg.meta.MetaSimulations``.
+
+See https://github.com/simpeg/simpeg/pull/1199.
+
+Rotated Gradients
+~~~~~~~~~~~~~~~~~
+
+Added a new ``simpeg.regularization.SmoothnessFullGradient`` regularization
+class that allows to regularize first order smoothness along any arbitrary
+direction, enabling anisotropic weighting. This regularization also works for
+a ``SimplexMesh``.
+
+See https://github.com/simpeg/simpeg/pull/1167.
+
+Logistic Sigmoid Map
+~~~~~~~~~~~~~~~~~~~~
+
+New ``simpeg.map.LogisticSigmoidMap`` mapping class that computes the logistic
+sigmoid of the model parameters. This is an alternative method to incorporate
+upper and lower bounds on model parameters.
+
+See https://github.com/simpeg/simpeg/pull/1352.
+
+Create Jacobian matrix in NSEM and FDEM simulations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The frequency domain electromagnetic simulations (including natural source) now
+support creating and storing the Jacobian matrix. You can access it by using
+the ``getJ`` method.
+
+See https://github.com/simpeg/simpeg/pull/1276.
+
+
+Documentation
+-------------
+
+This new release includes major improvements in documentation pages: more
+detailed docstrings of classes and methods, the addition of directive classes
+to the API reference, improvements to the contributing guide, among corrections
+and fixes.
+
+
+Breaking changes
+----------------
+
+Removal of deprecated bits
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Several deprecated bits of code has been removed in this release. From old
+classes, methods and properties that were marked for deprecation a few releases
+back. These removals simplify the SimPEG API and cleans up the codebase.
+
+Remove factor of half in data misfits and regularizations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Simplify the definition of data misfit and regularization terms by removing the
+leading factor of one half from these functions. This change makes it easier to
+interpret the resulting values of these objective functions, while
+avoiding confusions with their definition.
+
+See https://github.com/simpeg/simpeg/pull/1326.
+
+
+Bugfixes
+--------
+
+A few bugs have been fixed:
+
+-  Fix issue with lengthscales in coterminal angle calculations by
+   `@domfournier <https://github.com/domfournier>`__ in https://github.com/simpeg/simpeg/pull/1299
+-  ISSUE-1341: Set parent of objective functions by `@domfournier <https://github.com/domfournier>`__ in
+   https://github.com/simpeg/simpeg/pull/1342
+-  Ravel instead of flatten by `@thibaut-kobold <https://github.com/thibaut-kobold>`__ in
+   https://github.com/simpeg/simpeg/pull/1343
+-  Fix implementation of coterminal function by `@domfournier <https://github.com/domfournier>`__ in
+   https://github.com/simpeg/simpeg/pull/1334
+-  Simpeg vector update by `@johnweis0480 <https://github.com/johnweis0480>`__ in
+   https://github.com/simpeg/simpeg/pull/1329
+
+
+Contributors
+============
+
+This is a combination of contributors and reviewers who've made contributions
+towards this release (in no particular order).
+
+* `@ckohnke <https://github.com/ckohnke>`__
+* `@dccowan <https://github.com/dccowan>`__
+* `@domfournier <https://github.com/domfournier>`__
+* `@ghwilliams <https://github.com/ghwilliams>`__
+* `@jcapriot <https://github.com/jcapriot>`__
+* `@JKutt <https://github.com/JKutt>`__
+* `@johnweis0480 <https://github.com/johnweis0480>`__
+* `@lheagy <https://github.com/lheagy>`__
+* `@mplough-kobold <https://github.com/mplough-kobold>`__
+* `@santisoler <https://github.com/santisoler>`__
+* `@thibaut-kobold <https://github.com/thibaut-kobold>`__
+* `@YingHuuu <https://github.com/YingHuuu>`__
+
+We would like to highlight the contributions made by new contributors:
+
+- `@mplough-kobold <https://github.com/mplough-kobold>`__ made their first
+  contribution in https://github.com/simpeg/simpeg/pull/1282
+- `@ghwilliams <https://github.com/ghwilliams>`__ made their first contribution
+  in https://github.com/simpeg/simpeg/pull/1292
+- `@johnweis0480 <https://github.com/johnweis0480>`__ made their first
+  contribution in https://github.com/simpeg/simpeg/pull/1329
+- `@ckohnke <https://github.com/ckohnke>`__ made their first contribution in
+  https://github.com/simpeg/simpeg/pull/1352
+- `@YingHuuu <https://github.com/YingHuuu>`__ made their first contribution in
+  https://github.com/simpeg/simpeg/pull/1344
+
+
+Pull Requests
+=============
+
+-  Add 0.20.0 release notes to toc by `@jcapriot <https://github.com/jcapriot>`__ in
+   https://github.com/simpeg/simpeg/pull/1277
+-  add plausible analytics to simpeg docs by `@lheagy <https://github.com/lheagy>`__ in
+   https://github.com/simpeg/simpeg/pull/1279
+-  Refresh links in documentation by `@mplough-kobold <https://github.com/mplough-kobold>`__ in
+   https://github.com/simpeg/simpeg/pull/1282
+-  Run pytest on Azure with increased verbosity by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1287 -  Allow to use random seed in make_synthetic_data by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1286
+-  pgi doc by `@thibaut-kobold <https://github.com/thibaut-kobold>`__ in
+   https://github.com/simpeg/simpeg/pull/1291
+-  Fix deprecation warning for gradientType in SparseSmoothness by
+   `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1284
+-  Gravity simulation with Choclo as engine by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1285
+-  Fix minor flake8 warning by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1307
+-  ISSUE-1298: Use normal distributed noise in example. by `@domfournier <https://github.com/domfournier>`__
+   in https://github.com/simpeg/simpeg/pull/1312
+-  Ditch deprecated functions in utils.model_builder by `@domfournier <https://github.com/domfournier>`__ in
+   https://github.com/simpeg/simpeg/pull/1311 -  Triaxial magnetic gradient forward modelling by `@thibaut-kobold <https://github.com/thibaut-kobold>`__ in
+   https://github.com/simpeg/simpeg/pull/1288
+-  Documentation improvements for classes in Objective Function Pieces
+   by `@ghwilliams <https://github.com/ghwilliams>`__ in https://github.com/simpeg/simpeg/pull/1292
+-  Fix description of source_field in gravity survey by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1322
+-  Add ``weights_keys`` method to ``BaseRegularization`` by `@santisoler <https://github.com/santisoler>`__
+   in https://github.com/simpeg/simpeg/pull/1320
+-  Bump versions of flake8 and black and pin flake plugins by
+   `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1330
+-  Move ``__init__`` in ``BaseSimulation`` to the top of the class by
+   `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1323
+-  Simpeg vector update by `@johnweis0480 <https://github.com/johnweis0480>`__ in
+   https://github.com/simpeg/simpeg/pull/1329
+-  Fix typo in error messages by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1324
+-  Fix issue with lengthscales in coterminal angle calculations by
+   `@domfournier <https://github.com/domfournier>`__ in https://github.com/simpeg/simpeg/pull/1299
+-  Simplify check for invalid multipliers by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1336
+-  Ravel instead of flatten by `@thibaut-kobold <https://github.com/thibaut-kobold>`__ in
+   https://github.com/simpeg/simpeg/pull/1343
+-  Fix implementation of coterminal function by `@domfournier <https://github.com/domfournier>`__ in
+   https://github.com/simpeg/simpeg/pull/1334
+-  Update cross gradient hessian approximation by `@jcapriot <https://github.com/jcapriot>`__ in
+   https://github.com/simpeg/simpeg/pull/1355
+-  ISSUE-1341: Set parent of objective functions by `@domfournier <https://github.com/domfournier>`__ in
+   https://github.com/simpeg/simpeg/pull/1342
+-  Fix partial derivatives in regularization docs by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1362
+-  Remove factor of half in data misfits and regularizations by `@lheagy <https://github.com/lheagy>`__
+   in https://github.com/simpeg/simpeg/pull/1326
+-  Improvements to template for a bug report issue by `@lheagy <https://github.com/lheagy>`__ in
+   https://github.com/simpeg/simpeg/pull/1359
+-  Simplify a few gravity simulation tests by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1363
+-  Exponential Sinusoids Simulation by `@lheagy <https://github.com/lheagy>`__ in
+   https://github.com/simpeg/simpeg/pull/1337
+-  Replace magnetic SourceField for UniformBackgroundField by
+   `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1364
+-  Remove deprecated regularization classes by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1365
+-  Removed deprecated properties of UpdateSensitivityWeights by
+   `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1368
+-  Replace indActive for active_cells in regularizations by `@santisoler <https://github.com/santisoler>`__
+   in https://github.com/simpeg/simpeg/pull/1366
+-  Remove the debug argument from InversionDirective by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1370
+-  Remove cellDiff properties of RegularizationMesh by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1371
+-  Remove deprecated bits of code by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1372
+-  Use choclo in gravity tutorials by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1378
+-  Remove surface2ind_topo by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1374
+-  Speed up sphinx documentation building by `@jcapriot <https://github.com/jcapriot>`__ in
+   https://github.com/simpeg/simpeg/pull/1382
+-  Add docs/sg_execution_times.rst to .gitignore by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1380
+-  Describe merge process of Pull Requests in docs by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1375
+-  Simplify private methods in gravity simulation by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1384
+-  Update Slack links: point to Mattermost by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1385
+-  added getJ for fdem and nsem simulations by `@JKutt <https://github.com/JKutt>`__ in
+   https://github.com/simpeg/simpeg/pull/1276
+-  Add LogisticSigmoidMap by `@ckohnke <https://github.com/ckohnke>`__ in
+   https://github.com/simpeg/simpeg/pull/1352
+-  Remove the cell_weights attribute in regularizations by `@santisoler <https://github.com/santisoler>`__
+   in https://github.com/simpeg/simpeg/pull/1376
+-  Remove regmesh, mref and gradientType from regularizations by
+   `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1377
+-  Test if gravity sensitivities are stored on disk by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1388
+-  Check if mesh is 3D when using Choclo in gravity simulation by
+   `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1386
+-  Rotated Gradients by `@jcapriot <https://github.com/jcapriot>`__ in
+   https://github.com/simpeg/simpeg/pull/1167
+-  Add directives to the API Reference by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1397
+-  Remove deprecated modelType in mag simulation by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1399
+-  Remove mref property of PGI regularization by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1400
+-  Add link to User Tutorials to navbar in docs by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1401
+-  Improve documentation for base simulation classes by `@ghwilliams <https://github.com/ghwilliams>`__ in
+   https://github.com/simpeg/simpeg/pull/1295
+-  Enforce regularization ``weights`` as dictionaries by `@YingHuuu <https://github.com/YingHuuu>`__ in
+   https://github.com/simpeg/simpeg/pull/1344
+-  Minor adjustments to Sphinx configuration by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1398
+-  Update AUTHORS.rst by `@lheagy <https://github.com/lheagy>`__ in
+   https://github.com/simpeg/simpeg/pull/1259
+-  Update year in LICENSE by `@lheagy <https://github.com/lheagy>`__ in
+   https://github.com/simpeg/simpeg/pull/1404
+-  Dask MetaSim by `@jcapriot <https://github.com/jcapriot>`__ in
+   https://github.com/simpeg/simpeg/pull/1199
+-  Add Ying and Williams to AUTHORS.rst by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1405
+-  Remove link to “twitter” by `@jcapriot <https://github.com/jcapriot>`__ in
+   https://github.com/simpeg/simpeg/pull/1406
+-  Bump Black version to 24.3.0 by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1403
+-  Publish documentation on azure `@jcapriot <https://github.com/jcapriot>`__ in
+   https://github.com/simpeg/simpeg/pull/1412

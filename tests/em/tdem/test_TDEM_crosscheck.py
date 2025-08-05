@@ -1,12 +1,9 @@
 import unittest
 import discretize
 
-from SimPEG import maps
-from SimPEG.electromagnetics import time_domain as tdem
-from SimPEG.electromagnetics import utils
+from simpeg import maps
+from simpeg.electromagnetics import time_domain as tdem
 import numpy as np
-
-from pymatsolver import Pardiso as Solver
 
 TOL = 1e-4
 FLR = 1e-20
@@ -16,7 +13,6 @@ def setUp_TDEM(
     prbtype="MagneticFluxDensity", rxcomp="bz", waveform="stepoff", src_type=None
 ):
     # set a seed so that the same conductivity model is used for all runs
-    np.random.seed(25)
     cs = 10.0
     ncx = 4
     ncy = 4
@@ -39,13 +35,11 @@ def setUp_TDEM(
     )
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
 
-    rxtimes = np.logspace(-4, -3, 20)
+    rxtimes = np.hstack([np.r_[0], np.logspace(-4, -3, 20)])
 
     if waveform.upper() == "RAW":
-        out = utils.VTEMFun(prb.times, 0.00595, 0.006, 100)
-        wavefun = interp1d(prb.times, out)
         t0 = 0.006
-        waveform = tdem.Src.RawWaveform(off_time=t0, waveform_function=wavefun)
+        waveform = tdem.sources.VTEMWaveform(off_time=t0)
         time_steps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
         rxtimes = t0 + rxtimes
 
@@ -74,9 +68,11 @@ def setUp_TDEM(
     prb = getattr(tdem, "Simulation3D{}".format(prbtype))(
         mesh, survey=survey, time_steps=time_steps, sigmaMap=mapping
     )
-    prb.solver = Solver
 
-    m = np.log(1e-1) * np.ones(prb.sigmaMap.nP) + 1e-2 * np.random.rand(prb.sigmaMap.nP)
+    rng = np.random.default_rng(seed=42)
+    m = np.log(1e-1) * np.ones(prb.sigmaMap.nP) + 1e-2 * rng.uniform(
+        size=prb.sigmaMap.nP
+    )
 
     return prb, m, mesh
 

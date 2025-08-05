@@ -1,7 +1,7 @@
 import unittest
 import discretize
 
-from SimPEG import (
+from simpeg import (
     utils,
     maps,
     data_misfit,
@@ -12,14 +12,7 @@ from SimPEG import (
     tests,
 )
 import numpy as np
-from SimPEG.electromagnetics import spectral_induced_polarization as sip
-
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from SimPEG import SolverLU as Solver
-
-np.random.seed(38)
+from simpeg.electromagnetics import spectral_induced_polarization as sip
 
 
 class SIPProblemTestsCC(unittest.TestCase):
@@ -63,12 +56,11 @@ class SIPProblemTestsCC(unittest.TestCase):
             etaMap=wires.eta,
             tauiMap=wires.taui,
             verbose=False,
-            solver=Solver,
             survey=survey,
         )
         mSynth = np.r_[eta, 1.0 / tau]
         problem.model = mSynth
-        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.WeightedLeastSquares(mesh)
@@ -93,14 +85,16 @@ class SIPProblemTestsCC(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=51,
         )
         self.assertTrue(passed)
 
     def test_adjoint(self):
         # Adjoint Test
         # u = np.random.rand(self.mesh.nC*self.survey.nSrc)
-        v = np.random.rand(self.mesh.nC * 2)
-        w = np.random.rand(self.survey.nD)
+        rng = np.random.default_rng(seed=38)
+        v = rng.uniform(size=self.mesh.nC * 2)
+        w = rng.uniform(size=self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-10
@@ -109,7 +103,11 @@ class SIPProblemTestsCC(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=38,
         )
         self.assertTrue(passed)
 
@@ -155,12 +153,11 @@ class SIPProblemTestsN(unittest.TestCase):
             etaMap=wires.eta,
             tauiMap=wires.taui,
             verbose=False,
-            solver=Solver,
             survey=survey,
         )
         mSynth = np.r_[eta, 1.0 / tau]
         problem.model = mSynth
-        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.WeightedLeastSquares(mesh)
@@ -185,13 +182,15 @@ class SIPProblemTestsN(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=643,
         )
         self.assertTrue(passed)
 
     def test_adjoint(self):
         # Adjoint Test
-        v = np.random.rand(self.mesh.nC * 2)
-        w = np.random.rand(self.survey.nD)
+        rng = np.random.default_rng(seed=38)
+        v = rng.uniform(size=self.mesh.nC * 2)
+        w = rng.uniform(size=self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
@@ -200,7 +199,11 @@ class SIPProblemTestsN(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=2
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=2,
+            random_seed=521,
         )
         self.assertTrue(passed)
 
@@ -257,16 +260,21 @@ class SIPProblemTestsN_air(unittest.TestCase):
             tauiMap=actmaptau * wires.taui,
             cMap=actmapc * wires.c,
             actinds=~airind,
-            solver=Solver,
             survey=survey,
         )
         mSynth = np.r_[eta[~airind], 1.0 / tau[~airind], c[~airind]]
-        dobs = problem.make_synthetic_data(mSynth, add_noise=True)
+        dobs = problem.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
-        reg_eta = regularization.Simple(mesh, mapping=wires.eta, indActive=~airind)
-        reg_taui = regularization.Simple(mesh, mapping=wires.taui, indActive=~airind)
-        reg_c = regularization.Simple(mesh, mapping=wires.c, indActive=~airind)
+        reg_eta = regularization.WeightedLeastSquares(
+            mesh, mapping=wires.eta, active_cells=~airind
+        )
+        reg_taui = regularization.WeightedLeastSquares(
+            mesh, mapping=wires.taui, active_cells=~airind
+        )
+        reg_c = regularization.WeightedLeastSquares(
+            mesh, mapping=wires.c, active_cells=~airind
+        )
         reg = reg_eta + reg_taui + reg_c
         opt = optimization.InexactGaussNewton(
             maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
@@ -289,13 +297,15 @@ class SIPProblemTestsN_air(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=575,
         )
         self.assertTrue(passed)
 
     def test_adjoint(self):
         # Adjoint Test
-        v = np.random.rand(self.reg.mapping.nP)
-        w = np.random.rand(self.survey.nD)
+        rng = np.random.default_rng(seed=38)
+        v = rng.uniform(size=self.reg.mapping.nP)
+        w = rng.uniform(size=self.survey.nD)
         wtJv = w.dot(self.p.Jvec(self.m0, v))
         vtJtw = v.dot(self.p.Jtvec(self.m0, w))
         passed = np.abs(wtJv - vtJtw) < 1e-8
@@ -304,7 +314,11 @@ class SIPProblemTestsN_air(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=57556,
         )
         self.assertTrue(passed)
 

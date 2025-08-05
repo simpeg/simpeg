@@ -34,9 +34,9 @@ import tarfile
 
 from discretize import TensorMesh
 from discretize.utils import active_from_xyz
-from SimPEG.potential_fields import magnetics
-from SimPEG.utils import plot2Ddata, model_builder
-from SimPEG import (
+from simpeg.potential_fields import magnetics
+from simpeg.utils import plot2Ddata, model_builder
+from simpeg import (
     maps,
     data,
     inverse_problem,
@@ -160,10 +160,12 @@ receiver_list = [receiver_list]
 inclination = 90
 declination = 0
 strength = 50000
-inducing_field = (strength, inclination, declination)
 
-source_field = magnetics.sources.SourceField(
-    receiver_list=receiver_list, parameters=inducing_field
+source_field = magnetics.sources.UniformBackgroundField(
+    receiver_list=receiver_list,
+    amplitude=strength,
+    inclination=inclination,
+    declination=declination,
 )
 
 # Define the survey
@@ -227,14 +229,26 @@ starting_model = background_susceptibility * np.ones(nC)
 # class.
 #
 
+###############################################################################
 # Define the problem. Define the cells below topography and the mapping
+
 simulation = magnetics.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
     model_type="scalar",
     chiMap=model_map,
-    ind_active=active_cells,
+    active_cells=active_cells,
+    engine="choclo",
 )
+
+###############################################################################
+# .. tip::
+#
+#    Since SimPEG v0.22.0 we can use `Choclo
+#    <https://www.fatiando.org/choclo>`_ as the engine for running the magnetic
+#    simulations, which results in faster and more memory efficient runs. Just
+#    pass ``engine="choclo"`` when constructing the simulation.
+#
 
 
 #######################################################################
@@ -293,11 +307,11 @@ save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 # Defines the directives for the IRLS regularization. This includes setting
 # the cooling schedule for the trade-off parameter.
-update_IRLS = directives.Update_IRLS(
+update_IRLS = directives.UpdateIRLS(
     f_min_change=1e-4,
     max_irls_iterations=30,
-    coolEpsFact=1.5,
-    beta_tol=1e-2,
+    cooling_factor=1.5,
+    misfit_tolerance=1e-2,
 )
 
 # Updating the preconditioner if it is model dependent.
@@ -307,7 +321,7 @@ update_jacobi = directives.UpdatePreconditioner()
 target_misfit = directives.TargetMisfit(chifact=1)
 
 # Add sensitivity weights
-sensitivity_weights = directives.UpdateSensitivityWeights(everyIter=False)
+sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
 
 # The directives are defined as a list.
 directives_list = [

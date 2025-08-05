@@ -2,7 +2,7 @@
 1D Inversion of Time-Domain Data for a Single Sounding
 ======================================================
 
-Here we use the module *SimPEG.electromangetics.time_domain_1d* to invert
+Here we use the module *simpeg.electromangetics.time_domain_1d* to invert
 time domain data and recover a 1D electrical conductivity model.
 In this tutorial, we focus on the following:
 
@@ -18,7 +18,6 @@ at the loop's centre.
 
 """
 
-
 #########################################################################
 # Import modules
 # --------------
@@ -31,10 +30,10 @@ import matplotlib.pyplot as plt
 
 from discretize import TensorMesh
 
-import SimPEG.electromagnetics.time_domain as tdem
+import simpeg.electromagnetics.time_domain as tdem
 
-from SimPEG.utils import mkvc, plot_1d_layer_model
-from SimPEG import (
+from simpeg.utils import mkvc, plot_1d_layer_model
+from simpeg import (
     maps,
     data,
     data_misfit,
@@ -227,7 +226,7 @@ reg_map = maps.IdentityMap(nP=mesh.nC)
 reg = regularization.Sparse(mesh, mapping=reg_map, alpha_s=0.01, alpha_x=1.0)
 
 # set reference model
-reg.mref = starting_model
+reg.reference_model = starting_model
 
 # Define sparse and blocky norms p, q
 reg.norms = [1, 0]
@@ -251,7 +250,7 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
 # Defining a starting value for the trade-off parameter (beta) between the data
 # misfit and the regularization.
-starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
+starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e2)
 
 # Update the preconditionner
 update_Jacobi = directives.UpdatePreconditioner()
@@ -260,9 +259,7 @@ update_Jacobi = directives.UpdatePreconditioner()
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 # Directives for the IRLS
-update_IRLS = directives.Update_IRLS(
-    max_irls_iterations=30, minGNiter=1, coolEpsFact=1.5, update_beta=True
-)
+update_IRLS = directives.UpdateIRLS(max_irls_iterations=30, irls_cooling_factor=1.5)
 
 # Updating the preconditionner if it is model dependent.
 update_jacobi = directives.UpdatePreconditioner()

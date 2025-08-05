@@ -7,7 +7,7 @@ the RESOLVE and SkyTEM data sets. The original data can be downloaded from:
 `https://storage.googleapis.com/simpeg/bookpurnong/bookpurnong.tar.gz <https://storage.googleapis.com/simpeg/bookpurnong/bookpurnong.tar.gz>`_
 
 The forward simulation is performed on the cylindrically symmetric mesh using
-:code:`SimPEG.electromagnetics.frequency_domain`, and :code:`SimPEG.electromagnetics.time_domain`
+:code:`simpeg.electromagnetics.frequency_domain`, and :code:`simpeg.electromagnetics.time_domain`
 
 The RESOLVE data are inverted first. This recovered model is then used as a
 reference model for the SkyTEM inversion
@@ -33,10 +33,9 @@ import shutil
 import matplotlib
 import matplotlib.pyplot as plt
 from scipy.constants import mu_0
-from pymatsolver import Pardiso as Solver
 
 import discretize
-from SimPEG import (
+from simpeg import (
     maps,
     utils,
     data_misfit,
@@ -47,7 +46,7 @@ from SimPEG import (
     directives,
     data,
 )
-from SimPEG.electromagnetics import frequency_domain as FDEM, time_domain as TDEM
+from simpeg.electromagnetics import frequency_domain as FDEM, time_domain as TDEM
 
 
 def download_and_unzip_data(
@@ -214,7 +213,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
 
     # Set FDEM survey (In-phase and Quadrature)
     survey = FDEM.Survey(source_list)
-    prb = FDEM.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping, solver=Solver)
+    prb = FDEM.Simulation3DMagneticFluxDensity(mesh, sigmaMap=mapping)
     prb.survey = survey
 
     # ------------------ RESOLVE Inversion ------------------ #
@@ -244,7 +243,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     dmisfit = data_misfit.L2DataMisfit(simulation=prb, data=data_resolve)
 
     # Regularization
-    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
+    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].active_cells]])
     reg = regularization.WeightedLeastSquares(
         regMesh, mapping=maps.IdentityMap(regMesh)
     )
@@ -261,7 +260,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     inv = inversion.BaseInversion(invProb, directiveList=[target])
     reg.alpha_s = 1e-3
     reg.alpha_x = 1.0
-    reg.mref = m0.copy()
+    reg.reference_model = m0.copy()
     opt.LSshorten = 0.5
     opt.remember("xc")
     # run the inversion
@@ -317,9 +316,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
         (1e-4, 10),
         (5e-4, 15),
     ]
-    prob = TDEM.Simulation3DElectricField(
-        mesh, time_steps=timeSteps, sigmaMap=mapping, solver=Solver
-    )
+    prob = TDEM.Simulation3DElectricField(mesh, time_steps=timeSteps, sigmaMap=mapping)
     survey = TDEM.Survey(source_list)
     prob.survey = survey
 
@@ -360,7 +357,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     dmisfit = data_misfit.L2DataMisfit(simulation=prob, data=data_sky)
 
     # Regularization
-    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].indActive]])
+    regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].active_cells]])
     reg = regularization.WeightedLeastSquares(
         regMesh, mapping=maps.IdentityMap(regMesh)
     )
@@ -379,7 +376,7 @@ def run(plotIt=True, saveFig=False, cleanup=True):
     reg.alpha_x = 1.0
     opt.LSshorten = 0.5
     opt.remember("xc")
-    reg.mref = mopt_re  # Use RESOLVE model as a reference model
+    reg.reference_model = mopt_re  # Use RESOLVE model as a reference model
 
     # run the inversion
     mopt_sky = inv.run(m0)
