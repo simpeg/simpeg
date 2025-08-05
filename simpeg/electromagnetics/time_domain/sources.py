@@ -1428,11 +1428,7 @@ class MagDipole(BaseTDEMSrc):
                 self.waveform.has_initial_fields is True
                 and time < simulation.time_steps[1]
             ):
-                if simulation._fieldType == "b":
-                    return Zero()
-                elif simulation._fieldType == "e":
-                    # Compute s_e from vector potential
-                    return C.T * (MfMui * b)
+                return C.T * (MfMui * b)
             else:
                 return C.T * (MfMui * b) * self.waveform.eval(time)
 
@@ -1443,11 +1439,7 @@ class MagDipole(BaseTDEMSrc):
                 self.waveform.has_initial_fields is True
                 and time < simulation.time_steps[1]
             ):
-                if simulation._fieldType == "h":
-                    return Zero()
-                elif simulation._fieldType == "j":
-                    # Compute s_e from vector potential
-                    return C * h
+                return C * h
             else:
                 return C * h * self.waveform.eval(time)
 

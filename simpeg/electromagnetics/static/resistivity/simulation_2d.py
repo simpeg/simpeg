@@ -21,6 +21,7 @@ from .fields import FieldsDC, Fields3DCellCentered, Fields3DNodal
 from .utils import _mini_pole_pole
 from scipy.special import k0e, k1e, k0
 from discretize.utils import make_boundary_bool
+import discretize.base
 
 
 class BaseDCSimulation2D(BaseElectricalPDESimulation):
@@ -127,6 +128,15 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         miniaturize = validate_type("miniaturize", miniaturize, bool)
         if miniaturize:
             self._dipoles, self._invs, self._mini_survey = _mini_pole_pole(self.survey)
+
+    @BaseElectricalPDESimulation.mesh.setter
+    def mesh(self, value):
+        value = validate_type("mesh", value, discretize.base.BaseMesh, cast=False)
+        if value.dim != 2:
+            raise ValueError(
+                f"{type(self).__name__} mesh must be 2D, received a {value.dim}D mesh."
+            )
+        self._mesh = value
 
     @property
     def survey(self):
@@ -268,10 +278,10 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         """
         Generate Full sensitivity matrix
         """
+        self.model = m
         if getattr(self, "_Jmatrix", None) is None:
             if self.verbose:
                 print("Calculating J and storing")
-            self.model = m
             if f is None:
                 f = self.fields(m)
             self._Jmatrix = (self._Jtvec(m, v=None, f=f)).T
@@ -357,16 +367,18 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
             v = self._mini_survey_dataT(v)
             Jtv = np.zeros(m.size, dtype=float)
 
+            # Get dict of flat array slices for each source-receiver pair in the survey
+            survey_slices = survey.get_all_slices()
+
             for iky, ky in enumerate(kys):
                 u_ky = f[:, self._solutionType, iky]
-                count = 0
                 for i_src, src in enumerate(survey.source_list):
                     u_src = u_ky[:, i_src]
                     df_duT_sum = 0
                     df_dmT_sum = 0
                     for rx in src.receiver_list:
-                        my_v = v[count : count + rx.nD]
-                        count += rx.nD
+                        src_rx_slice = survey_slices[src, rx]
+                        my_v = v[src_rx_slice]
                         # wrt f, need possibility wrt m
                         PTv = rx.evalDeriv(src, self.mesh, f, my_v, adjoint=True)
                         df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
@@ -435,8 +447,8 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         return q
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        toDelete = super().deleteTheseOnModelUpdate
+    def _delete_on_model_update(self):
+        toDelete = super()._delete_on_model_update
         if self.fix_Jmatrix:
             return toDelete
         return toDelete + ["_Jmatrix"]

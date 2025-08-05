@@ -1,5 +1,9 @@
+import re
+
+import pymatsolver
 from simpeg.base import with_property_mass_matrices, BasePDESimulation
 from simpeg import props, maps
+from simpeg.utils import PerformanceWarning
 import unittest
 import discretize
 import numpy as np
@@ -8,6 +12,8 @@ from discretize.tests import check_derivative
 from discretize.utils import Zero
 import scipy.sparse as sp
 import pytest
+
+from simpeg.utils import get_default_solver
 
 
 # define a very simple class...
@@ -28,11 +34,11 @@ class SimpleSim(BasePDESimulation):
         self.muMap = muMap
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_update(self):
         """
         matrices to be deleted if the model for conductivity/resistivity is updated
         """
-        toDelete = super().deleteTheseOnModelUpdate
+        toDelete = super()._delete_on_model_update
         if self.sigmaMap is not None or self.rhoMap is not None:
             toDelete = toDelete + self._clear_on_sigma_update
         return toDelete
@@ -806,3 +812,48 @@ def test_bad_derivative_stash():
 
     with pytest.raises(TypeError):
         sim.MeSigmaDeriv(u, v)
+
+
+def test_solver_defaults(caplog):
+    mesh = discretize.TensorMesh([2, 2, 2])
+    sim = BasePDESimulation(mesh)
+    # Check that logging.info was created
+    assert "Setting the default solver" in caplog.text
+    # Test if default solver was properly set
+    assert sim.solver is get_default_solver()
+
+
+@pytest.mark.parametrize("solver_class", [pymatsolver.SolverLU, pymatsolver.Solver])
+def test_performance_warning_on_solver(solver_class):
+    """
+    Test PerformanceWarning when setting an inefficient solver.
+    """
+    mesh = discretize.TensorMesh([2, 2, 2])
+    regex = re.escape(
+        f"The 'pymatsolver.{solver_class.__name__}' solver might lead to high "
+        "computation times."
+    )
+    with pytest.warns(PerformanceWarning, match=regex):
+        BasePDESimulation(mesh, solver=solver_class)
+
+
+def test_bad_solver():
+    mesh = discretize.TensorMesh([2, 2, 2])
+    msg = re.escape("BasePDESimulation.solver must be a class")
+    with pytest.raises(TypeError, match=msg):
+        BasePDESimulation(mesh, solver="f")
+
+    msg = re.escape("str is not a subclass of pymatsolver.base.BaseSolver")
+    with pytest.raises(TypeError, match=msg):
+        BasePDESimulation(mesh, solver=str)
+
+
+def test_mesh_required():
+    with pytest.raises(TypeError):
+        BasePDESimulation()
+
+
+def test_bad_mesh():
+    with pytest.raises(TypeError):
+        # should error on anything besides a discretize.base.BaseMesh
+        BasePDESimulation(np.array([1, 2, 3]))

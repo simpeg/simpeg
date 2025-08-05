@@ -378,9 +378,11 @@ def dip_azimuth2cartesian(dip, azm):
     Parameters
     ----------
     dip : float or 1D numpy.ndarray
-        Dip angle in degrees. Values in range [0, 90]
+        Dip angle in degrees. Values in range [-90, 90]. Positive values correspond to
+        a vector pointing downwards (negative z component).
     azm : float or 1D numpy.ndarray
-        Asimuthal angle (strike) in degrees. Defined clockwise from Northing. Values is range [0, 360]
+        Azimuthal angle (strike) in degrees. Defined clockwise from Northing.
+        Values is range [0, 360] or [-180, 180].
 
     Returns
     -------
@@ -388,6 +390,42 @@ def dip_azimuth2cartesian(dip, azm):
         Numpy array whose columns represent the x, y and z components of the
         vector(s) in Cartesian coordinates
 
+    Examples
+    --------
+    >>> vector = dip_azimuth2cartesian(0, 45)
+    >>> x, y, z = vector[0].tolist()
+    >>> x, y, z  # doctest: +NUMBER
+    (0.707, 0.707, 0.0)
+
+    >>> vector = dip_azimuth2cartesian(0, -45)
+    >>> x, y, z = vector[0].tolist()
+    >>> x, y, z  # doctest: +NUMBER
+    (-0.707, 0.707, 0.0)
+
+    >>> vector = dip_azimuth2cartesian(60, 0)
+    >>> x, y, z = vector[0].tolist()
+    >>> x, y, z  # doctest: +NUMBER
+    (0.0, 0.5, -0.866)
+
+    >>> vector = dip_azimuth2cartesian(-30, 0)
+    >>> x, y, z = vector[0].tolist()
+    >>> x, y, z  # doctest: +NUMBER
+    (0.0, 0.866, 0.5)
+
+    >>> vector = dip_azimuth2cartesian(90, 0)
+    >>> x, y, z = vector[0].tolist()
+    >>> x, y, z  # doctest: +NUMBER
+    (0.0, 0.0, -1.0)
+
+    >>> vector = dip_azimuth2cartesian(-90, 0)
+    >>> x, y, z = vector[0].tolist()
+    >>> x, y, z  # doctest: +NUMBER
+    (0.0, 0.0, 1.0)
+
+    >>> vector = dip_azimuth2cartesian(30, 60)
+    >>> x, y, z = vector[0].tolist()
+    >>> x, y, z  # doctest: +NUMBER
+    (0.75, 0.433, -0.5)
     """
 
     azm = np.asarray(azm)

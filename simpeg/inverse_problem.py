@@ -14,7 +14,7 @@ from .utils import (
     validate_ndarray_with_shape,
 )
 from .version import __version__ as simpeg_version
-from .utils.solver_utils import get_default_solver
+from .utils import get_default_solver
 
 
 class BaseInvProblem:
@@ -144,7 +144,7 @@ class BaseInvProblem:
         self._opt = validate_type("opt", value, Minimize, cast=False)
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_update(self):
         """A list of properties stored on this object to delete when the model is updated
 
         Returns
@@ -170,7 +170,7 @@ class BaseInvProblem:
             value = validate_ndarray_with_shape(
                 "model", value, shape=[("*",), ("*", "*")], dtype=None
             )
-        for prop in self.deleteTheseOnModelUpdate:
+        for prop in self._delete_on_model_update:
             if hasattr(self, prop):
                 delattr(self, prop)
         self._model = value

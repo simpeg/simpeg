@@ -57,7 +57,7 @@ class Simulation1DRecursive(BaseSimulation):
         fix_Jmatrix=False,
         **kwargs,
     ):
-        super().__init__(mesh=None, survey=survey, **kwargs)
+        super().__init__(survey=survey, **kwargs)
         self.fix_Jmatrix = fix_Jmatrix
         self.sigma = sigma
         self.rho = rho
@@ -248,8 +248,7 @@ class Simulation1DRecursive(BaseSimulation):
                     )
                 elif rx.component == "phase":
                     d.append(
-                        (180.0 / np.pi)
-                        * np.arctan(np.imag(Z[i_freq]) / np.real(Z[i_freq]))
+                        (180.0 / np.pi) * np.arctan2(Z[i_freq].imag, Z[i_freq].real)
                     )
 
         return np.array(d)
@@ -352,8 +351,8 @@ class Simulation1DRecursive(BaseSimulation):
         return JTvec
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        toDelete = super().deleteTheseOnModelUpdate
+    def _delete_on_model_update(self):
+        toDelete = super()._delete_on_model_update
         if self.fix_Jmatrix:
             return toDelete
         else:
