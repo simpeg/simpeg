@@ -1026,5 +1026,58 @@ class TestParametric(DeprecatedIndActive):
         np.testing.assert_allclose(mapping.active_cells, new_active_cells)
 
 
+class TestParametricDeriv:
+    """
+    Test the ``deriv`` method of parametric maps.
+    """
+
+    @pytest.fixture
+    def mesh_2d(self):
+        """Sample mesh."""
+        h = np.ones(10)
+        return discretize.TensorMesh([h, h], "CC")
+
+    @pytest.fixture
+    def mesh_3d(self):
+        """Sample mesh."""
+        h = np.ones(10)
+        return discretize.TensorMesh([h, h, h], "CCN")
+
+    @pytest.mark.parametrize(
+        ("map_class", "model_size"),
+        [
+            (maps.ParametricBlock, 8),
+            (maps.ParametricEllipsoid, 8),
+            (maps.ParametricLayer, 4),
+            (maps.ParametricPolyMap, 2 + 4),
+        ],
+    )
+    def test_deriv_signature_3d(self, mesh_3d, map_class, model_size):
+        """
+        Test if ``map.deriv(m) @ v`` is equivalent to ``map.deriv(m, v=v)`` on 3d maps.
+        """
+        kwargs = {}
+        if map_class is maps.ParametricPolyMap:
+            kwargs["order"] = [1, 1]
+        mapping = map_class(mesh_3d, **kwargs)
+        rng = np.random.default_rng(seed=48)
+        model = rng.uniform(size=model_size)
+        v = rng.uniform(size=model_size)
+        derivative = mapping.deriv(model)
+        np.testing.assert_allclose(derivative @ v, mapping.deriv(model, v=v))
+
+    def test_deriv_signature_2d(self, mesh_2d):
+        """
+        Test if ``map.deriv(m) @ v`` is equivalent to ``map.deriv(m, v=v)`` on 2d maps.
+        """
+        model_size = 5
+        mapping = maps.ParametricCircleMap(mesh_2d)
+        rng = np.random.default_rng(seed=48)
+        model = rng.uniform(size=model_size)
+        v = rng.uniform(size=model_size)
+        derivative = mapping.deriv(model)
+        np.testing.assert_allclose(derivative @ v, mapping.deriv(model, v=v))
+
+
 if __name__ == "__main__":
     unittest.main()
