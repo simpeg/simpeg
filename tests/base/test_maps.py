@@ -1055,6 +1055,7 @@ class TestParametricDeriv:
         ("map_class", "model_size"),
         [
             (maps.ParametricBlock, 8),
+            (maps.ParametricBlockInLayer, 9),
             (maps.ParametricEllipsoid, 8),
             (maps.ParametricLayer, 4),
             (maps.ParametricPolyMap, 2 + 4),
