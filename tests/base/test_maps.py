@@ -1046,6 +1046,11 @@ class TestParametricDeriv:
         h = 10
         return discretize.TensorMesh([h, h, h], "CCN")
 
+    @pytest.fixture
+    def cyl_mesh(self):
+        """Sample cylindrical mesh."""
+        return discretize.CylindricalMesh([4, 6, 5])
+
     @pytest.mark.parametrize(
         ("map_class", "model_size"),
         [
@@ -1075,6 +1080,18 @@ class TestParametricDeriv:
         """
         model_size = 5
         mapping = maps.ParametricCircleMap(mesh_2d)
+        rng = np.random.default_rng(seed=48)
+        model = rng.uniform(size=model_size)
+        v = rng.uniform(size=model_size)
+        derivative = mapping.deriv(model)
+        np.testing.assert_allclose(derivative @ v, mapping.deriv(model, v=v))
+
+    def test_deriv_cyl_mesh(self, cyl_mesh):
+        """
+        Test maps on a cylindrical mesh.
+        """
+        model_size = 10
+        mapping = maps.ParametricCasingAndLayer(cyl_mesh)
         rng = np.random.default_rng(seed=48)
         model = rng.uniform(size=model_size)
         v = rng.uniform(size=model_size)
