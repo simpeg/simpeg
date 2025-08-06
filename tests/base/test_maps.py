@@ -1029,6 +1029,9 @@ class TestParametric(DeprecatedIndActive):
 class TestParametricDeriv:
     """
     Test the ``deriv`` method of parametric maps.
+
+
+    Test if ``map.deriv(m) @ v`` is equivalent to ``map.deriv(m, v=v)``.
     """
 
     @pytest.fixture
@@ -1052,9 +1055,9 @@ class TestParametricDeriv:
             (maps.ParametricPolyMap, 2 + 4),
         ],
     )
-    def test_deriv_signature_3d(self, mesh_3d, map_class, model_size):
+    def test_deriv_mesh_3d(self, mesh_3d, map_class, model_size):
         """
-        Test if ``map.deriv(m) @ v`` is equivalent to ``map.deriv(m, v=v)`` on 3d maps.
+        Test maps on a 3d mesh.
         """
         kwargs = {}
         if map_class is maps.ParametricPolyMap:
@@ -1066,9 +1069,9 @@ class TestParametricDeriv:
         derivative = mapping.deriv(model)
         np.testing.assert_allclose(derivative @ v, mapping.deriv(model, v=v))
 
-    def test_deriv_signature_2d(self, mesh_2d):
+    def test_deriv_mesh_2d(self, mesh_2d):
         """
-        Test if ``map.deriv(m) @ v`` is equivalent to ``map.deriv(m, v=v)`` on 2d maps.
+        Test maps on a 2d mesh.
         """
         model_size = 5
         mapping = maps.ParametricCircleMap(mesh_2d)
