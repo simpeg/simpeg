@@ -187,7 +187,8 @@ class BaseRx(BaseTimeRx):
             Fields projected to the receiver(s)
         """
         P = self.getP(mesh, time_mesh, f)
-        f_part = mkvc(f[src, self.projField, self.active_times(self.timeP)])
+        time_proj = self.getTimeP(time_mesh, f)
+        f_part = mkvc(f[src, self.projField, self.active_times(time_proj)])
         return P * f_part
 
     def evalDeriv(self, src, mesh, time_mesh, f, v, adjoint=False):
@@ -308,7 +309,8 @@ class PointMagneticFluxTimeDerivative(BaseRx):
             )
 
         P = self.getP(mesh, time_mesh, f)
-        f_part = mkvc(f[src, "b", self.active_times(self.timeP)])
+        time_proj = self.getTimeP(time_mesh, f)
+        f_part = mkvc(f[src, "b", self.active_times(time_proj)])
         return P * f_part
 
     def getTimeP(self, time_mesh, f):
