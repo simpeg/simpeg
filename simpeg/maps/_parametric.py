@@ -2281,27 +2281,7 @@ class ParametricCasingAndLayer(ParametricLayer):
 
     def deriv(self, m, v=None):
         mDict = self.mDict(m)
-        if v is not None:
-            return (
-                sp.csr_matrix(
-                    np.vstack(
-                        [
-                            self._deriv_val_background(mDict),
-                            self._deriv_val_layer(mDict),
-                            self._deriv_val_casing(mDict),
-                            self._deriv_val_insideCasing(mDict),
-                            self._deriv_layer_center(mDict),
-                            self._deriv_layer_thickness(mDict),
-                            self._deriv_casing_radius(mDict),
-                            self._deriv_casing_thickness(mDict),
-                            self._deriv_casing_bottom(mDict),
-                            self._deriv_casing_top(mDict),
-                        ]
-                    ).T
-                )
-                * v
-            )
-        return sp.csr_matrix(
+        derivative = sp.csr_matrix(
             np.vstack(
                 [
                     self._deriv_val_background(mDict),
@@ -2317,6 +2297,9 @@ class ParametricCasingAndLayer(ParametricLayer):
                 ]
             ).T
         )
+        if v is not None:
+            return derivative @ v
+        return derivative
 
 
 class ParametricBlockInLayer(ParametricLayer):
