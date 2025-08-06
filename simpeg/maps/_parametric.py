@@ -1515,23 +1515,8 @@ class ParametricLayer(BaseParametric):
             input argument *v* is not ``None``, the method returns the derivative times
             the vector *v*.
         """
-
         mDict = self.mDict(m)
-        if v is not None:
-            return (
-                sp.csr_matrix(
-                    np.vstack(
-                        [
-                            self._deriv_val_background(mDict),
-                            self._deriv_val_layer(mDict),
-                            self._deriv_layer_center(mDict),
-                            self._deriv_layer_thickness(mDict),
-                        ]
-                    ).T
-                )
-                * v
-            )
-        return sp.csr_matrix(
+        derivative = sp.csr_matrix(
             np.vstack(
                 [
                     self._deriv_val_background(mDict),
@@ -1541,6 +1526,9 @@ class ParametricLayer(BaseParametric):
                 ]
             ).T
         )
+        if v is not None:
+            return derivative @ v
+        return derivative
 
 
 class ParametricBlock(BaseParametric):
@@ -1890,17 +1878,12 @@ class ParametricBlock(BaseParametric):
             input argument *v* is not ``None``, the method returns the derivative times
             the vector *v*.
         """
-        if v is not None:
-            return (
-                sp.csr_matrix(
-                    getattr(self, "_deriv{}D".format(self.mesh.dim))(self.mDict(m))
-                )
-                * v
-            )
-
-        return sp.csr_matrix(
+        derivative = sp.csr_matrix(
             getattr(self, "_deriv{}D".format(self.mesh.dim))(self.mDict(m))
         )
+        if v is not None:
+            return derivative @ v
+        return derivative
 
 
 class ParametricEllipsoid(ParametricBlock):
@@ -2771,8 +2754,12 @@ class ParametricBlockInLayer(ParametricLayer):
         elif self.mesh.dim == 3:
             return self._transform3d(m)
 
-    def deriv(self, m):
-        if self.mesh.dim == 2:
-            return sp.csr_matrix(self._deriv2d(m))
-        elif self.mesh.dim == 3:
-            return sp.csr_matrix(self._deriv3d(m))
+    def deriv(self, m, v=None):
+        derivative = (
+            sp.csr_matrix(self._deriv2d(m))
+            if self.mesh.dim == 2
+            else sp.csr_matrix(self._deriv3d(m))
+        )
+        if v is not None:
+            return derivative @ v
+        return derivative
