@@ -1037,13 +1037,13 @@ class TestParametricDeriv:
     @pytest.fixture
     def mesh_2d(self):
         """Sample mesh."""
-        h = np.ones(10)
+        h = 10
         return discretize.TensorMesh([h, h], "CC")
 
     @pytest.fixture
     def mesh_3d(self):
         """Sample mesh."""
-        h = np.ones(10)
+        h = 10
         return discretize.TensorMesh([h, h, h], "CCN")
 
     @pytest.mark.parametrize(
