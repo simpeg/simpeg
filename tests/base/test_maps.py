@@ -1052,16 +1052,16 @@ class TestParametricDeriv:
         return discretize.CylindricalMesh([4, 6, 5])
 
     @pytest.mark.parametrize(
-        ("map_class", "model_size"),
+        "map_class",
         [
-            (maps.ParametricBlock, 8),
-            (maps.ParametricBlockInLayer, 9),
-            (maps.ParametricEllipsoid, 8),
-            (maps.ParametricLayer, 4),
-            (maps.ParametricPolyMap, 2 + 4),
+            maps.ParametricBlock,
+            maps.ParametricBlockInLayer,
+            maps.ParametricEllipsoid,
+            maps.ParametricLayer,
+            maps.ParametricPolyMap,
         ],
     )
-    def test_deriv_mesh_3d(self, mesh_3d, map_class, model_size):
+    def test_deriv_mesh_3d(self, mesh_3d, map_class):
         """
         Test maps on a 3d mesh.
         """
@@ -1069,6 +1069,7 @@ class TestParametricDeriv:
         if map_class is maps.ParametricPolyMap:
             kwargs["order"] = [1, 1]
         mapping = map_class(mesh_3d, **kwargs)
+        model_size = mapping.shape[1]
         rng = np.random.default_rng(seed=48)
         model = rng.uniform(size=model_size)
         v = rng.uniform(size=model_size)
@@ -1079,8 +1080,8 @@ class TestParametricDeriv:
         """
         Test maps on a 2d mesh.
         """
-        model_size = 5
         mapping = maps.ParametricCircleMap(mesh_2d)
+        model_size = mapping.shape[1]
         rng = np.random.default_rng(seed=48)
         model = rng.uniform(size=model_size)
         v = rng.uniform(size=model_size)
@@ -1091,8 +1092,8 @@ class TestParametricDeriv:
         """
         Test maps on a cylindrical mesh.
         """
-        model_size = 10
         mapping = maps.ParametricCasingAndLayer(cyl_mesh)
+        model_size = mapping.shape[1]
         rng = np.random.default_rng(seed=48)
         model = rng.uniform(size=model_size)
         v = rng.uniform(size=model_size)
