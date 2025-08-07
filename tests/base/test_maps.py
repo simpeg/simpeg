@@ -1100,5 +1100,20 @@ class TestParametricDeriv:
         np.testing.assert_allclose(derivative @ v, mapping.deriv(model, v=v))
 
 
+def test_deriv_SelfConsistentEffectiveMedium():
+    """
+    Test deriv method of ``SelfConsistentEffectiveMedium``.
+    """
+    h = 10
+    mesh = discretize.TensorMesh([h, h, h], "CCN")
+    mapping = maps.SelfConsistentEffectiveMedium(mesh, sigma0=1, sigma1=2)
+    model_size = mapping.shape[1]
+    rng = np.random.default_rng(seed=48)
+    model = rng.uniform(size=model_size)
+    v = rng.uniform(size=model_size)
+    derivative = mapping.deriv(model)
+    np.testing.assert_allclose(derivative @ v, mapping.deriv(model, v=v), rtol=1e-6)
+
+
 if __name__ == "__main__":
     unittest.main()
