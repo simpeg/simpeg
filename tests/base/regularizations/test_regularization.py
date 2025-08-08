@@ -791,25 +791,18 @@ class TestRemovedObjects:
     )
     def test_mref_property(self, mesh, regularization_class):
         """Test mref property."""
-        msg = "mref has been removed, please use reference_model."
         reg = regularization_class(mesh)
-        with pytest.raises(NotImplementedError, match=msg):
-            reg.mref
+        assert not hasattr(reg, "mref")
 
     def test_regmesh_property(self, mesh):
         """Test regmesh property."""
-        msg = "regmesh has been removed, please use regularization_mesh."
         reg = BaseRegularization(mesh)
-        with pytest.raises(NotImplementedError, match=msg):
-            reg.regmesh
+        assert not hasattr(reg, "regmesh")
 
     @pytest.mark.parametrize("regularization_class", (Sparse, SparseSmoothness))
     def test_gradient_type(self, mesh, regularization_class):
         """Test gradientType argument."""
-        msg = (
-            "'gradientType' argument has been removed. "
-            "Please use 'gradient_type' instead."
-        )
+        msg = "got an unexpected keyword argument"
         with pytest.raises(TypeError, match=msg):
             regularization_class(mesh, gradientType="total")
 
@@ -820,10 +813,7 @@ class TestRemovedObjects:
     def test_ind_active(self, mesh, regularization_class):
         """Test if error is raised when passing the indActive argument."""
         active_cells = np.ones(len(mesh), dtype=bool)
-        msg = (
-            "'indActive' argument has been removed. "
-            "Please use 'active_cells' instead."
-        )
+        msg = "got an unexpected keyword argument"
         with pytest.raises(TypeError, match=msg):
             regularization_class(mesh, indActive=active_cells)
 
@@ -835,9 +825,7 @@ class TestRemovedObjects:
         """Test if error is raised when trying to access the indActive property."""
         active_cells = np.ones(len(mesh), dtype=bool)
         reg = regularization_class(mesh, active_cells=active_cells)
-        msg = "indActive has been removed, please use active_cells."
-        with pytest.raises(NotImplementedError, match=msg):
-            reg.indActive
+        assert not hasattr(reg, "indActive")
 
     @pytest.mark.parametrize(
         "regularization_class",
@@ -846,7 +834,7 @@ class TestRemovedObjects:
     def test_cell_weights_argument(self, mesh, regularization_class):
         """Test if error is raised when passing the cell_weights argument."""
         weights = np.ones(len(mesh))
-        msg = "'cell_weights' argument has been removed. Please use 'weights' instead."
+        msg = "got an unexpected keyword argument"
         with pytest.raises(TypeError, match=msg):
             regularization_class(mesh, cell_weights=weights)
 
@@ -856,28 +844,8 @@ class TestRemovedObjects:
     def test_cell_weights_property(self, mesh, regularization_class):
         """Test if error is raised when trying to access the cell_weights property."""
         weights = {"weights": np.ones(len(mesh))}
-        msg = (
-            "'cell_weights' has been removed. "
-            "Please access weights using the `set_weights`, `get_weights`, and "
-            "`remove_weights` methods."
-        )
         reg = regularization_class(mesh, weights=weights)
-        with pytest.raises(AttributeError, match=msg):
-            reg.cell_weights
-
-    @pytest.mark.parametrize(
-        "regularization_class", (BaseRegularization, WeightedLeastSquares)
-    )
-    def test_cell_weights_setter(self, mesh, regularization_class):
-        """Test if error is raised when trying to set the cell_weights property."""
-        msg = (
-            "'cell_weights' has been removed. "
-            "Please access weights using the `set_weights`, `get_weights`, and "
-            "`remove_weights` methods."
-        )
-        reg = regularization_class(mesh)
-        with pytest.raises(AttributeError, match=msg):
-            reg.cell_weights = "dummy variable"
+        assert not hasattr(reg, "cell_weights")
 
 
 @pytest.mark.parametrize(
