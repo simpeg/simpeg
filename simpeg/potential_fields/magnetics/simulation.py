@@ -16,7 +16,7 @@ from scipy.constants import mu_0
 from scipy.sparse.linalg import LinearOperator, aslinearoperator
 
 from simpeg import props, utils
-from simpeg.utils import mat_utils, mkvc, sdiag
+from simpeg.utils import mat_utils, mkvc, sdiag, get_default_solver
 from simpeg.utils.code_utils import validate_string, validate_type
 from simpeg.utils.solver_utils import get_default_solver
 
@@ -2204,7 +2204,7 @@ def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
 
     # Create an optimization program
     opt = optimization.InexactGaussNewton(maxIter=miter)
-    opt.bfgsH0 = get_default_solver(warn=True)(sp.identity(model.nP), flag="D")
+    opt.bfgsH0 = get_default_solver()(sp.identity(model.nP), flag="D")
     # Create a regularization program
     reg = regularization.WeightedLeastSquares(model)
     # Create an objective function
