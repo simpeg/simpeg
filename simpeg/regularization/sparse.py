@@ -574,12 +574,6 @@ class SparseSmoothness(BaseSparse, SmoothnessFirstOrder):
     """
 
     def __init__(self, mesh, orientation="x", gradient_type="total", **kwargs):
-        # Raise error if removed arguments were passed
-        if (key := "gradientType") in kwargs:
-            raise TypeError(
-                f"'{key}' argument has been removed. "
-                "Please use 'gradient_type' instead."
-            )
         self.gradient_type = gradient_type
         super().__init__(mesh=mesh, orientation=orientation, **kwargs)
 
@@ -920,13 +914,6 @@ class Sparse(WeightedLeastSquares):
             TypeError(
                 f"'regularization_mesh' must be of type {RegularizationMesh} or {BaseMesh}. "
                 f"Value of type {type(mesh)} provided."
-            )
-
-        # Raise error if removed arguments were passed
-        if (key := "gradientType") in kwargs:
-            raise TypeError(
-                f"'{key}' argument has been removed. "
-                "Please use 'gradient_type' instead."
             )
 
         self._regularization_mesh = mesh
