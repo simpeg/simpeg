@@ -1,6 +1,8 @@
 from ..objective_function import ComboObjectiveFunction, BaseObjectiveFunction
 
 import numpy as np
+from concurrent.futures import ProcessPoolExecutor, as_completed
+
 from dask.distributed import Client
 from ..data_misfit import L2DataMisfit
 
@@ -456,3 +458,211 @@ class DaskComboMisfits(ComboObjectiveFunction):
                 )
             )
         self.client.gather(stores)  # blocking call to ensure all models were stored
+
+
+class ConcurrentComboMisfits(ComboObjectiveFunction):
+    """
+    A composite objective function for distributed computing.
+    """
+
+    def __init__(
+        self,
+        objfcts: list[BaseObjectiveFunction],
+        multipliers=None,
+        **kwargs,
+    ):
+        self._model: np.ndarray | None = None
+
+        super().__init__(objfcts=objfcts, multipliers=multipliers, **kwargs)
+
+    def __call__(self, m, f=None):
+        self.model = m
+
+        futures = []
+        values = []
+        count = 0
+        with ProcessPoolExecutor() as executor:
+            for objfct in self.objfcts:
+                if self.multipliers[count] == 0.0:
+                    continue
+
+                values.append(
+                    executor.submit(_calc_objective, objfct, self.multipliers[count], m)
+                )
+                count += 1
+
+            for future in as_completed(futures):
+                values.append(future.result())
+
+        return np.sum(values)
+
+    def deriv(self, m, f=None):
+        """
+        First derivative of the composite objective function is the sum of the
+        derivatives of each objective function in the list, weighted by their
+        respective multplier.
+
+        :param numpy.ndarray m: model
+        :param SimPEG.Fields f: Fields object (if applicable)
+        """
+        self.model = m
+
+        futures = []
+        derivs = 0.0
+        count = 0
+        with ProcessPoolExecutor() as executor:
+            for objfct in self.objfcts:
+                if self.multipliers[count] == 0.0:  # don't evaluate the fct
+                    continue
+
+                futures.append(
+                    executor.submit(
+                        _deriv,
+                        objfct,
+                        self.multipliers[count],
+                        m,
+                    )
+                )
+
+                count += 1
+
+            for future in as_completed(futures):
+                derivs += future.result()
+
+        return derivs
+
+    def deriv2(self, m, v=None, f=None):
+        """
+        Second derivative of the composite objective function is the sum of the
+        second derivatives of each objective function in the list, weighted by
+        their respective multplier.
+
+        :param numpy.ndarray m: model
+        :param numpy.ndarray v: vector we are multiplying by
+        :param SimPEG.Fields f: Fields object (if applicable)
+        """
+        self.model = m
+
+        futures = []
+        derivs = 0.0
+        count = 0
+
+        with ProcessPoolExecutor() as executor:
+            for objfct in self.objfcts:
+                if self.multipliers[count] == 0.0:  # don't evaluate the fct
+                    continue
+
+                futures.append(
+                    executor.submit(_deriv2, objfct, self.multipliers[count], m, v)
+                )
+                count += 1
+
+            for future in as_completed(futures):
+                derivs += future.result()
+
+        return derivs
+
+    def get_dpred(self, m, f=None):
+        """
+        Request calculation of predicted data from all simulations.
+        """
+        self.model = m
+
+        dpred = []
+        futures = []
+        with ProcessPoolExecutor() as executor:
+            for objfct in self.objfcts:
+                futures.append(executor.submit(_calc_dpred, objfct, m))
+
+            for future in as_completed(futures):
+                dpred.append(future.result())
+
+        return dpred
+
+    def getJtJdiag(self, m, f=None):
+        """
+        Request calculation of the diagonal of JtJ from all simulations.
+        """
+        self.model = m
+
+        if getattr(self, "_jtjdiag", None) is None:
+
+            jtj_diag = 0.0
+            futures = []
+            with ProcessPoolExecutor() as executor:
+                for objfct in self.objfcts:
+                    futures.append(executor.submit(_get_jtj_diag, objfct, m))
+
+                for future in as_completed(futures):
+                    jtj_diag += future.result()
+
+            self._jtjdiag = jtj_diag
+
+        return self._jtjdiag
+
+    def fields(self, m):
+        """
+        Request calculation of fields from all simulations.
+
+        Store list of futures for fields in self._stashed_fields.
+        """
+        self.model = m
+
+        if getattr(self, "_stashed_fields", None) is not None:
+            return self._stashed_fields
+        # The above should pass the model to all the internal simulations.
+        futures = []
+        fields = []
+        with ProcessPoolExecutor() as executor:
+            for objfct in self.objfcts:
+                futures.append(executor.submit(_calc_fields, objfct, m))
+            for future in as_completed(futures):
+                fields.append(future.result())
+
+        self._stashed_fields = fields
+        return fields
+
+    @property
+    def model(self):
+        return self._model
+
+    @model.setter
+    def model(self, value):
+        # Only send the model to the internal simulations if it was updated.
+        if (
+            isinstance(value, np.ndarray)
+            and isinstance(self.model, np.ndarray)
+            and np.allclose(value, self.model)
+        ):
+            return
+
+        self._stashed_fields = None
+        self._jtjdiag = None
+
+        stores = []
+        with ProcessPoolExecutor() as executor:
+            for objfct in self.objfcts:
+                stores.append(executor.submit(_store_model, objfct, value))
+
+            # blocking call to ensure all models were stored
+            for store in as_completed(stores):
+                store.result()
+
+        self._model = value
+
+    def residuals(self, m, f=None):
+        """
+        Compute the residual for the data misfit.
+        """
+        self.model = m
+
+        futures = []
+        residuals = []
+        with ProcessPoolExecutor() as executor:
+            for objfct in self.objfcts:
+                futures.append(executor.submit(_calc_residual, objfct, m))
+
+            for future in as_completed(futures):
+                residuals.append(future.result())
+
+        return residuals
