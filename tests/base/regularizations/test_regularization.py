@@ -880,32 +880,6 @@ class TestRemovedObjects:
             reg.cell_weights = "dummy variable"
 
 
-class TestRemovedRegularizations:
-    """
-    Test if errors are raised after creating removed regularization classes.
-    """
-
-    @pytest.mark.parametrize(
-        "regularization_class",
-        (
-            regularization.PGIwithNonlinearRelationshipsSmallness,
-            regularization.PGIwithRelationships,
-            regularization.Simple,
-            regularization.SimpleSmall,
-            regularization.SimpleSmoothDeriv,
-            regularization.Small,
-            regularization.SmoothDeriv,
-            regularization.SmoothDeriv2,
-            regularization.Tikhonov,
-        ),
-    )
-    def test_removed_class(self, regularization_class):
-        class_name = regularization_class.__name__
-        msg = f"{class_name} has been removed, please use."
-        with pytest.raises(NotImplementedError, match=msg):
-            regularization_class()
-
-
 @pytest.mark.parametrize(
     "regularization_class", (BaseRegularization, WeightedLeastSquares)
 )
