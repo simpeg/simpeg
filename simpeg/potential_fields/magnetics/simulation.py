@@ -18,7 +18,6 @@ from scipy.sparse.linalg import LinearOperator, aslinearoperator
 from simpeg import props, utils
 from simpeg.utils import mat_utils, mkvc, sdiag, get_default_solver
 from simpeg.utils.code_utils import validate_string, validate_type
-from simpeg.utils.solver_utils import get_default_solver
 
 from ...base import BaseMagneticPDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
