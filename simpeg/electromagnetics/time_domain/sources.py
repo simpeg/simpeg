@@ -1476,13 +1476,10 @@ class CircularLoop(MagDipole):
         if location is None:
             location = np.r_[0.0, 0.0, 0.0]
 
-        if "moment" in kwargs:
-            kwargs.pop("moment")
-
         self.n_turns = n_turns
 
         BaseTDEMSrc.__init__(
-            self, receiver_list=receiver_list, location=location, moment=None, **kwargs
+            self, receiver_list=receiver_list, location=location, **kwargs
         )
 
         self.orientation = orientation
