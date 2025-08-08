@@ -92,3 +92,4 @@ tutorials/13-joint_inversion/cross_gradient_data/*
 
 # setuptools_scm
 SimPEG/version.py
+README.txt

@@ -155,7 +155,7 @@ class BaseRx(BaseTimeRx):
 
     @lp_power.setter
     def lp_power(self, var):
-        self._lp_power = validate_float("lp_power", var, min_val=0.0, max_val=0.99999)
+        self._lp_power = validate_float("lp_power", var, min_val=0.0, max_val=1.0)
 
     def getSpatialP(self, mesh, f):
         """Get spatial projection matrix from mesh to receivers.
