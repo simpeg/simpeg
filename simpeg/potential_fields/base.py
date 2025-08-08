@@ -92,7 +92,7 @@ class BasePFSimulation(LinearSimulation):
         if kwargs.pop("ind_active", None) is not None:
             raise TypeError(
                 "'ind_active' has been removed in "
-                " SimPEG v0.24.0, please use 'active_cells' instead.",
+                "SimPEG v0.24.0, please use 'active_cells' instead.",
             )
 
         self.mesh = mesh
