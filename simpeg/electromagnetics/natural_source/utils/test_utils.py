@@ -188,14 +188,16 @@ def setupSimpegNSEM_tests_location_assign_list(
                 else:
                     rxList.append(
                         Impedance(
-                            [rx_loc, rx_loc],
+                            locations_e=rx_loc,
+                            locations_h=rx_loc,
                             orientation=rx_type,
                             component="apparent_resistivity",
                         )
                     )
                     rxList.append(
                         Impedance(
-                            [rx_loc, rx_loc],
+                            locations_e=rx_loc,
+                            locations_h=rx_loc,
                             orientation=rx_type,
                             component="phase",
                         )
