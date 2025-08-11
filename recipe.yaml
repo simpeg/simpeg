@@ -20,7 +20,6 @@ build:
 requirements:
   host:
     - python 3.10.*
-    - poetry-core >=1.0.0
     - setuptools >=64
     - setuptools_scm >=8
     - pip
@@ -40,8 +39,6 @@ requirements:
     - choclo >=0.3.0
     - fsspec >=0.3.3
     - scikit-learn >=1.2
-  run_exports:
-    - libblas * *mkl
 
 tests:
   - python:
