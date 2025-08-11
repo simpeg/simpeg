@@ -53,18 +53,18 @@ def create_simulation_1d(sim_type, deriv_type):
     frequencies = np.logspace(-2, 1, 30)
 
     rx_list = [
-        nsem.receivers.PointNaturalSource([[0]], orientation="xy", component="real"),
-        nsem.receivers.PointNaturalSource([[0]], orientation="xy", component="imag"),
-        nsem.receivers.PointNaturalSource(
+        nsem.receivers.Impedance([[0]], orientation="xy", component="real"),
+        nsem.receivers.Impedance([[0]], orientation="xy", component="imag"),
+        nsem.receivers.Impedance(
             [[0]], orientation="xy", component="apparent_resistivity"
         ),
-        nsem.receivers.PointNaturalSource([[0]], orientation="xy", component="phase"),
-        nsem.receivers.PointNaturalSource([[0]], orientation="yx", component="real"),
-        nsem.receivers.PointNaturalSource([[0]], orientation="yx", component="imag"),
-        nsem.receivers.PointNaturalSource(
+        nsem.receivers.Impedance([[0]], orientation="xy", component="phase"),
+        nsem.receivers.Impedance([[0]], orientation="yx", component="real"),
+        nsem.receivers.Impedance([[0]], orientation="yx", component="imag"),
+        nsem.receivers.Impedance(
             [[0]], orientation="yx", component="apparent_resistivity"
         ),
-        nsem.receivers.PointNaturalSource([[0]], orientation="yx", component="phase"),
+        nsem.receivers.Impedance([[0]], orientation="yx", component="phase"),
     ]
     src_list = [nsem.sources.Planewave(rx_list, frequency=f) for f in frequencies]
     survey = nsem.Survey(src_list)
@@ -169,18 +169,12 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
             sim_kwargs["h_bc"] = h_bc
 
         rx_list = [
-            nsem.receivers.PointNaturalSource(
-                rx_locs, orientation="xy", component="real"
-            ),
-            nsem.receivers.PointNaturalSource(
-                rx_locs, orientation="xy", component="imag"
-            ),
-            nsem.receivers.PointNaturalSource(
+            nsem.receivers.Impedance(rx_locs, orientation="xy", component="real"),
+            nsem.receivers.Impedance(rx_locs, orientation="xy", component="imag"),
+            nsem.receivers.Impedance(
                 rx_locs, orientation="xy", component="apparent_resistivity"
             ),
-            nsem.receivers.PointNaturalSource(
-                rx_locs, orientation="xy", component="phase"
-            ),
+            nsem.receivers.Impedance(rx_locs, orientation="xy", component="phase"),
         ]
         src_list = [nsem.sources.Planewave(rx_list, frequency=f) for f in frequencies]
         survey = nsem.Survey(src_list)
@@ -219,18 +213,12 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
             sim_kwargs["e_bc"] = e_bc
 
         rx_list = [
-            nsem.receivers.PointNaturalSource(
-                rx_locs, orientation="yx", component="real"
-            ),
-            nsem.receivers.PointNaturalSource(
-                rx_locs, orientation="yx", component="imag"
-            ),
-            nsem.receivers.PointNaturalSource(
+            nsem.receivers.Impedance(rx_locs, orientation="yx", component="real"),
+            nsem.receivers.Impedance(rx_locs, orientation="yx", component="imag"),
+            nsem.receivers.Impedance(
                 rx_locs, orientation="yx", component="apparent_resistivity"
             ),
-            nsem.receivers.PointNaturalSource(
-                rx_locs, orientation="yx", component="phase"
-            ),
+            nsem.receivers.Impedance(rx_locs, orientation="yx", component="phase"),
         ]
         src_list = [nsem.sources.Planewave(rx_list, frequency=f) for f in frequencies]
         survey = nsem.Survey(src_list)
@@ -291,10 +279,10 @@ class Sim_2D(unittest.TestCase):
         rx_locs = np.c_[np.linspace(-8000, 8000, 3), np.zeros(3)]
         mesh_1d = TensorMesh([5])
         mesh_2d = TensorMesh([5, 5])
-        r_xy = nsem.receivers.PointNaturalSource(
+        r_xy = nsem.receivers.Impedance(
             rx_locs, orientation="xy", component="apparent_resistivity"
         )
-        r_yx = nsem.receivers.PointNaturalSource(
+        r_yx = nsem.receivers.Impedance(
             rx_locs, orientation="yx", component="apparent_resistivity"
         )
         survey_xy = nsem.Survey([nsem.sources.Planewave([r_xy], frequency=10)])
