@@ -177,13 +177,13 @@ def setupSimpegNSEM_tests_location_assign_list(
                 if singleList:
                     rxList.append(
                         Impedance(
-                            [rx_loc],
+                            rx_loc,
                             orientation=rx_type,
                             component="apparent_resistivity",
                         )
                     )
                     rxList.append(
-                        Impedance([rx_loc], orientation=rx_type, component="phase")
+                        Impedance(rx_loc, orientation=rx_type, component="phase")
                     )
                 else:
                     rxList.append(
@@ -203,19 +203,17 @@ def setupSimpegNSEM_tests_location_assign_list(
                         )
                     )
             else:
-                rxList.append(
-                    Impedance([rx_loc], orientation=rx_type, component="real")
-                )
+                rxList.append(Impedance(rx_loc, orientation=rx_type, component="real"))
                 rxList.append(
                     Impedance(
-                        [rx_loc],
+                        rx_loc,
                         orientation=rx_type,
                         component="imag",
                     )
                 )
         if rx_type in ["zx", "zy"]:
-            rxList.append(Tipper([rx_loc], orientation=rx_type, component="real"))
-            rxList.append(Tipper([rx_loc], orientation=rx_type, component="imag"))
+            rxList.append(Tipper(rx_loc, orientation=rx_type, component="real"))
+            rxList.append(Tipper(rx_loc, orientation=rx_type, component="imag"))
 
     srcList = []
     if singleFreq:
