@@ -14,7 +14,7 @@ import scipy.sparse as sp
 from ..typing import RandomSeed
 
 from ..data_misfit import BaseDataMisfit
-from ..objective_function import ComboObjectiveFunction
+from ..objective_function import BaseObjectiveFunction, ComboObjectiveFunction
 from ..maps import IdentityMap, Wires
 
 from ..regularization import (
@@ -1841,8 +1841,6 @@ class SaveEveryIteration(InversionDirective):
     @property
     def fileName(self):
         if getattr(self, "_fileName", None) is None:
-            from datetime import datetime
-
             self._fileName = "{0!s}-{1!s}".format(
                 self.name, datetime.now().strftime("%Y-%m-%d-%H-%M")
             )
@@ -3027,12 +3025,12 @@ class ScaleMisfitMultipliers(InversionDirective):
         Path to save the chi-factors log file.
     """
 
-    def __init__(self, path: Path | None, **kwargs):
+    def __init__(self, path: Path | None = None, **kwargs):
         self.last_beta = None
         self.chi_factors = None
 
         if path is None:
-            path = Path()
+            path = Path("./")
 
         self.filepath = path / "ChiFactors.log"
 
@@ -3081,7 +3079,7 @@ class ScaleMisfitMultipliers(InversionDirective):
         )
 
         # Update the scaling
-        self.scalings *= scalings
+        self.scalings = self.scalings * scalings
 
         # Normalize total phi_d with scalings
         self.invProb.dmisfit.multipliers = self.multipliers * self.scalings
