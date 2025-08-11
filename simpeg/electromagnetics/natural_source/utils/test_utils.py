@@ -67,8 +67,12 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
 
     receiver_list = []
     for _ in range(len(["z1d", "z1d"])):
-        receiver_list.append(Impedance(mkvc(np.array([0.0]), 2).T, component="real"))
-        receiver_list.append(Impedance(mkvc(np.array([0.0]), 2).T, component="imag"))
+        receiver_list.append(
+            Impedance(mkvc(np.array([0.0]), 2).T, component="real", orientation="xy")
+        )
+        receiver_list.append(
+            Impedance(mkvc(np.array([0.0]), 2).T, component="imag", orientation="xy")
+        )
     # Source list
     source_list = []
     for freq in freqs:
