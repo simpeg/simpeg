@@ -109,15 +109,15 @@ def _closest_grid_indices(grid, pts, dim=2):
         A gridded set of points.
     pts : (m, dim) numpy.ndarray
         Points being projected to gridded locations.
-    dim : int, default=2
-        Dimension of the points.
+    dim : int
+        The `dim` input is deprecated and will be removed in SimPEG v0.24.0.
 
     Returns
     -------
     (n,) numpy.ndarray
         Indices of the closest gridded points for all *pts* supplied.
     """
-    if dim == 1:
+    if grid.squeeze().ndim == 1:
         grid_inds = np.asarray(
             [np.abs(pt - grid).argmin() for pt in pts.tolist()], dtype=int
         )
@@ -164,7 +164,7 @@ def get_discrete_topography(mesh, active_cells, option="top"):
                 elif option == "center":
                     dz = 0.0
                 else:
-                    raise Exception()
+                    raise ValueError("'option' must be 'top' or 'center'.")
                 topoCC[i] = ZC[i, :][ACTIND[i, :]].max() + dz
             return mesh2D, topoCC
 
@@ -181,7 +181,7 @@ def get_discrete_topography(mesh, active_cells, option="top"):
                 elif option == "center":
                     dy = 0.0
                 else:
-                    raise Exception()
+                    raise ValueError("'option' must be 'top' or 'center'.")
                 topoCC[i] = YC[i, :][ACTIND[i, :]].max() + dy
             return mesh1D, topoCC
 
