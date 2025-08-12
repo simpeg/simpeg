@@ -158,8 +158,8 @@ def get_discrete_topography(mesh, active_cells, option="top"):
             topoCC = np.zeros(ZC.shape[0])
 
             for i in range(ZC.shape[0]):
-                ind = np.argmax(ZC[i, :][ACTIND[i, :]])
                 if option == "top":
+                    ind = np.argmax(ZC[i, :][ACTIND[i, :]])
                     dz = mesh.h[2][ACTIND[i, :]][ind] * 0.5
                 elif option == "center":
                     dz = 0.0
