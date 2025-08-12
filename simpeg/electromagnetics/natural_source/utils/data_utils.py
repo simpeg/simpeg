@@ -6,8 +6,6 @@ from scipy.constants import mu_0
 import simpeg as simpeg
 from simpeg.electromagnetics.natural_source.survey import Survey, Data
 from simpeg.electromagnetics.natural_source.receivers import (
-    PointNaturalSource,
-    Point3DTipper,
     Impedance,
     Tipper,
 )
@@ -70,9 +68,9 @@ def extract_data_info(NSEMdata):
             src_rx_slice = survey_slices[src, rx]
             dL.append(NSEMdata.dobs[src_rx_slice])
             freqL.append(np.ones(rx.nD) * src.frequency)
-            if isinstance(rx, (Impedance, PointNaturalSource)):
+            if isinstance(rx, Impedance):
                 rxTL.extend((("z" + rx.orientation + " ") * rx.nD).split())
-            if isinstance(rx, (Tipper, Point3DTipper)):
+            if isinstance(rx, Tipper):
                 rxTL.extend((("t" + rx.orientation + " ") * rx.nD).split())
     return np.concatenate(dL), np.concatenate(freqL), np.array(rxTL)
 
