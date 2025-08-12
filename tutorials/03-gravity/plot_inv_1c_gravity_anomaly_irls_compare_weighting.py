@@ -218,7 +218,7 @@ starting_model = np.zeros(nC)
 #
 
 simulation = gravity.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, rhoMap=model_map, ind_active=ind_active
+    survey=survey, mesh=mesh, rhoMap=model_map, active_cells=ind_active
 )
 
 # Define the data misfit. Here the data misfit is the L2 norm of the weighted
