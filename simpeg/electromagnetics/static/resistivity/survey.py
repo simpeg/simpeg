@@ -1,4 +1,3 @@
-import warnings
 import numpy as np
 
 from ....utils.code_utils import validate_string
@@ -24,6 +23,7 @@ class Survey(BaseSurvey):
     def __init__(
         self,
         source_list,
+        survey_geometry="surface",
         **kwargs,
     ):
         if kwargs.pop("survey_type", None) is not None:
@@ -32,13 +32,8 @@ class Survey(BaseSurvey):
                 "their corresponding receivers are obtained from their respective classes, without "
                 "the need to specify the survey type.",
             )
-        if kwargs.pop("survey_geometry", None) is not None:
-            warnings.warn(
-                "Argument 'survey_geometry' is deprecated and will be removed in SimPEG 0.25.0.",
-                FutureWarning,
-                stacklevel=2,
-            )
         super(Survey, self).__init__(source_list, **kwargs)
+        self.survey_geometry = survey_geometry
 
     @property
     def survey_geometry(self):
@@ -51,20 +46,10 @@ class Survey(BaseSurvey):
         str
             Survey geometry; one of {"surface", "borehole", "general"}
         """
-        warnings.warn(
-            "Argument 'survey_geometry' is deprecated and will be removed in SimPEG 0.25.0.",
-            FutureWarning,
-            stacklevel=2,
-        )
         return self._survey_geometry
 
     @survey_geometry.setter
     def survey_geometry(self, var):
-        warnings.warn(
-            "Argument 'survey_geometry' is deprecated and will be removed in SimPEG 0.25.0.",
-            FutureWarning,
-            stacklevel=2,
-        )
         var = validate_string(
             "survey_geometry", var, ("surface", "borehole", "general")
         )
@@ -315,3 +300,10 @@ class Survey(BaseSurvey):
             self._locations_b = b_shifted
             self._locations_m = m_shifted
             self._locations_n = n_shifted
+
+        elif self.survey_geometry == "borehole":
+            raise Exception("Not implemented yet for borehole survey_geometry")
+        else:
+            raise Exception(
+                f"Input valid survey survey_geometry: {self.survey_geometry}"
+            )

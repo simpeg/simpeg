@@ -1,4 +1,3 @@
-import warnings
 from ....survey import BaseTimeSurvey
 from . import sources
 from . import receivers
@@ -20,20 +19,15 @@ class Survey(BaseTimeSurvey):
     _n_pulse = 2
     _T = 8.0
 
-    def __init__(self, source_list, **kwargs):
+    def __init__(self, source_list, survey_geometry="surface", **kwargs):
         if kwargs.pop("survey_type", None) is not None:
             raise TypeError(
                 "Argument 'survey_type' has been removed in SimPEG 0.24.0. Types of sources and"
                 "their corresponding receivers are obtained from their respective classes, without "
                 "the need to specify the survey type.",
             )
-        if kwargs.pop("survey_geometry", None) is not None:
-            warnings.warn(
-                "Argument 'survey_geometry' is deprecated and will be removed in SimPEG 0.25.0.",
-                FutureWarning,
-                stacklevel=2,
-            )
         super(Survey, self).__init__(source_list, **kwargs)
+        self.survey_geometry = survey_geometry
 
     @property
     def n_pulse(self):
@@ -61,31 +55,18 @@ class Survey(BaseTimeSurvey):
     def survey_geometry(self):
         """Survey geometry
 
-        This property is deprecated.
-
         Returns
         -------
         str
             Survey geometry; one of {"surface", "borehole", "general"}
         """
-        warnings.warn(
-            "Argument 'survey_geometry' is deprecated and will be removed in SimPEG 0.25.0.",
-            FutureWarning,
-            stacklevel=2,
-        )
         return self._survey_geometry
 
     @survey_geometry.setter
     def survey_geometry(self, var):
-        warnings.warn(
-            "Argument 'survey_geometry' is deprecated and will be removed in SimPEG 0.25.0.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        var = validate_string(
+        self._survey_geometry = validate_string(
             "survey_geometry", var, ("surface", "borehole", "general")
         )
-        self._survey_geometry = var
 
     @property
     def survey_type(self):
