@@ -85,7 +85,7 @@ def test_function_success(mesh_type, dim, option, shift_horizontal, heights):
         correct_locations = pts.copy()
     correct_locations[:, -1] = correct_elevations
 
-    assert np.all(np.isclose(pts_shifted, correct_locations))
+    np.testing.assert_allclose(correct_locations, pts_shifted)
 
 
 def test_dimension_error():
