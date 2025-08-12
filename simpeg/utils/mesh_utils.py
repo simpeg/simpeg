@@ -158,8 +158,8 @@ def get_discrete_topography(mesh, active_cells, option="top"):
             topoCC = np.zeros(ZC.shape[0])
 
             for i in range(ZC.shape[0]):
-                ind = np.argmax(ZC[i, :][ACTIND[i, :]])
                 if option == "top":
+                    ind = np.argmax(ZC[i, :][ACTIND[i, :]])
                     dz = mesh.h[2][ACTIND[i, :]][ind] * 0.5
                 elif option == "center":
                     dz = 0.0
@@ -218,16 +218,16 @@ def shift_to_discrete_topography(
         surface topography.
     active_cells : numpy.ndarray of int or bool, optional
         Index array for all cells lying below the surface topography.
-    option : {"top", "center"}
+    option : {"top", "center"}, optional
         Define whether the cell center or entire cell of actice cells must be below
         the topography.The topography is defined using the 'topo' input parameter.
-    heights : float or (n,) numpy.ndarray
+    heights : float or (n,) numpy.ndarray, optional
         Height(s) relative to the true surface topography. Used to preserve flight
         heights or borehole depths.
-    shift_horizontal : bool
+    shift_horizontal : bool, optional
         When True, locations are shifted horizontally to lie vertically over cell
         centers. When False, the original horizontal locations are preserved.
-    topo : (n, dim) numpy.ndarray
+    topo : (n, dim) numpy.ndarray, optional
         Surface topography. Can be used if an active indices array cannot be
         provided for the input parameter 'active_cells'.
 
@@ -242,11 +242,10 @@ def shift_to_discrete_topography(
             "shift_to_discrete_topography only supported for TensorMesh and TreeMesh'."
         )
 
-    if not isinstance(heights, (int, float)):
-        if len(pts) != len(heights):
-            raise ValueError(
-                "If supplied as a `numpy.ndarray`, the number of heights must equal the number of points."
-            )
+    if not isinstance(heights, (int, float)) and len(pts) != len(heights):
+        raise ValueError(
+            "If supplied as a `numpy.ndarray`, the number of heights must equal the number of points."
+        )
 
     if mesh.dim == 2:
         # if shape is (*, 1) or (*, 2) just grab first column
