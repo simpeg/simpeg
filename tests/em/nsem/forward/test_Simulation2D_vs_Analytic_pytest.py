@@ -190,10 +190,11 @@ def test_analytic_halfspace_solution(
     )
     analytic_solution = np.repeat(analytic_solution, n_locations)
 
-    # # Error
+    # Error
     if survey_type == "tipper":
-        err = np.abs(numeric_solution - analytic_solution)
-        assert np.all(err < ABS_TOLERANCE)
+        np.testing.assert_allclose(
+            analytic_solution, numeric_solution, rtol=REL_TOLERANCE, atol=ABS_TOLERANCE
+        )
     else:
         err = np.abs(
             (numeric_solution - analytic_solution) / (analytic_solution + ABS_TOLERANCE)

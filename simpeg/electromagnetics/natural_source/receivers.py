@@ -300,7 +300,7 @@ class Impedance(_ElectricAndMagneticReceiver):
 
     def _eval_impedance(self, src, mesh, f):
         if mesh.dim < 3 and self.orientation in ["xx", "yy"]:
-            return 0.0
+            return np.zeros((self.nD, 1), dtype=complex)
         e = f[src, "e"]
         h = f[src, "h"]
         if mesh.dim == 3:
