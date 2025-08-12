@@ -39,8 +39,6 @@ class Survey(BaseSurvey):
     def survey_geometry(self):
         """Survey geometry
 
-        This property is deprecated.
-
         Returns
         -------
         str
