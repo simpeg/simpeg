@@ -144,8 +144,10 @@ def get_discrete_topography(mesh, active_cells, option="top"):
 
     Returns
     -------
-    (n, dim) numpy.ndarray
-        xy[z] topography.
+    (n,) or (n, 1) numpy.ndarray
+        Horizontal locations x[y] for discrete topography.
+    (n,) numpy.ndarray
+        Elevations for discrete topography.
     """
     if mesh._meshType == "TENSOR":
         if mesh.dim == 3:
@@ -166,7 +168,7 @@ def get_discrete_topography(mesh, active_cells, option="top"):
                 else:
                     raise ValueError("'option' must be 'top' or 'center'.")
                 topoCC[i] = ZC[i, :][ACTIND[i, :]].max() + dz
-            return mesh2D, topoCC
+            return mesh2D.cell_centers, topoCC
 
         elif mesh.dim == 2:
             mesh1D = TensorMesh([mesh.h[0]], [mesh.x0[0]])
@@ -183,7 +185,7 @@ def get_discrete_topography(mesh, active_cells, option="top"):
                 else:
                     raise ValueError("'option' must be 'top' or 'center'.")
                 topoCC[i] = YC[i, :][ACTIND[i, :]].max() + dy
-            return mesh1D, topoCC
+            return mesh1D.cell_centers, topoCC
 
     elif mesh._meshType == "TREE":
         inds = mesh.get_boundary_cells(active_cells, direction="zu")[0]
@@ -264,34 +266,25 @@ def shift_to_discrete_topography(
     if active_cells is None:
         active_cells = active_from_xyz(mesh, topo)
 
-    if mesh._meshType == "TENSOR":
-        mesh_temp, topoCC = get_discrete_topography(mesh, active_cells, option=option)
-        inds = mesh_temp.closest_points_index(pts)
-        topo = topoCC[inds]
+    if mesh.dim == 3:
+        uniqXYlocs, topoCC = get_discrete_topography(
+            mesh, active_cells, option=option
+        )
+        inds = _closest_grid_indices(uniqXYlocs, pts)
         if shift_horizontal:
-            out = np.c_[mesh_temp.cell_centers[inds], topo]
+            out = np.c_[uniqXYlocs[inds, :], topoCC[inds]]
         else:
-            out = np.c_[pts, topo]
+            out = np.c_[pts, topoCC[inds]]
+    else:
+        uniqXlocs, topoCC = get_discrete_topography(
+            mesh, active_cells, option=option
+        )
+        inds = _closest_grid_indices(uniqXlocs, pts, dim=1)
+        if shift_horizontal:
+            out = np.c_[uniqXlocs[inds], topoCC[inds]]
+        else:
+            out = np.c_[pts, topoCC[inds]]
 
-    elif mesh._meshType == "TREE":
-        if mesh.dim == 3:
-            uniqXYlocs, topoCC = get_discrete_topography(
-                mesh, active_cells, option=option
-            )
-            inds = _closest_grid_indices(uniqXYlocs, pts)
-            if shift_horizontal:
-                out = np.c_[uniqXYlocs[inds, :], topoCC[inds]]
-            else:
-                out = np.c_[pts, topoCC[inds]]
-        else:
-            uniqXlocs, topoCC = get_discrete_topography(
-                mesh, active_cells, option=option
-            )
-            inds = _closest_grid_indices(uniqXlocs, pts, dim=1)
-            if shift_horizontal:
-                out = np.c_[uniqXlocs[inds], topoCC[inds]]
-            else:
-                out = np.c_[pts, topoCC[inds]]
 
     out[:, -1] += heights
 
