@@ -13,10 +13,10 @@ import pytest
 
 def create_survey(freq):
     receivers_list = [
-        nsem.receivers.PointNaturalSource(component="real"),
-        nsem.receivers.PointNaturalSource(component="imag"),
-        nsem.receivers.PointNaturalSource(component="app_res"),
-        nsem.receivers.PointNaturalSource(component="phase"),
+        nsem.receivers.Impedance([[]], component="real"),
+        nsem.receivers.Impedance([[]], component="imag"),
+        nsem.receivers.Impedance([[]], component="app_res"),
+        nsem.receivers.Impedance([[]], component="phase"),
     ]
 
     source_list = [nsem.sources.Planewave(receivers_list, f) for f in freq]
