@@ -218,16 +218,16 @@ def shift_to_discrete_topography(
         surface topography.
     active_cells : numpy.ndarray of int or bool, optional
         Index array for all cells lying below the surface topography.
-    option : {"top", "center"}
+    option : {"top", "center"}, optional
         Define whether the cell center or entire cell of actice cells must be below
         the topography.The topography is defined using the 'topo' input parameter.
-    heights : float or (n,) numpy.ndarray
+    heights : float or (n,) numpy.ndarray, optional
         Height(s) relative to the true surface topography. Used to preserve flight
         heights or borehole depths.
-    shift_horizontal : bool
+    shift_horizontal : bool, optional
         When True, locations are shifted horizontally to lie vertically over cell
         centers. When False, the original horizontal locations are preserved.
-    topo : (n, dim) numpy.ndarray
+    topo : (n, dim) numpy.ndarray, optional
         Surface topography. Can be used if an active indices array cannot be
         provided for the input parameter 'active_cells'.
 
