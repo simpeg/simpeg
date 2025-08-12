@@ -242,11 +242,10 @@ def shift_to_discrete_topography(
             "shift_to_discrete_topography only supported for TensorMesh and TreeMesh'."
         )
 
-    if not isinstance(heights, (int, float)):
-        if len(pts) != len(heights):
-            raise ValueError(
-                "If supplied as a `numpy.ndarray`, the number of heights must equal the number of points."
-            )
+    if not isinstance(heights, (int, float)) and len(pts) != len(heights):
+        raise ValueError(
+            "If supplied as a `numpy.ndarray`, the number of heights must equal the number of points."
+        )
 
     if mesh.dim == 2:
         # if shape is (*, 1) or (*, 2) just grab first column
