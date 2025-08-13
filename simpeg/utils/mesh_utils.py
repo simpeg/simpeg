@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.spatial import cKDTree
+import warnings
 
 from discretize import TensorMesh
 
@@ -128,7 +129,7 @@ def _closest_grid_indices(grid, pts, dim=2):
     return grid_inds
 
 
-def get_discrete_topography(mesh, active_cells, option="top"):
+def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top", option=None):
     """
     Generate discrete topography locations.
 
@@ -138,17 +139,30 @@ def get_discrete_topography(mesh, active_cells, option="top"):
         A tensor or tree mesh.
     active_cells : numpy.ndarray of bool or int
         Active cells index; i.e. indices of cells below surface
-    option : {"top", "center"}
-        Use string to specify if the surface passes through the
-        tops or cell centers of surface cells.
+    topo_cell_cutoff : {"top", "center"}
+        String to specify the cutoff for ground cells and the locations of the discrete
+        topography. For "top", ground cells lie entirely below the surface topography and the
+        discrete topography is defined on the top faces of surface cells.
+        For "center", only the cell centers must lie below the surface topograpy and the
+        discrete topography is defined at the centers of surface cells.
+    option :
+        This input argument is deprecated and will be removed in SimPEG v.0.25.0.
+        Please use `topo_cell_cutoff`.
 
     Returns
     -------
-    (n,) or (n, 1) numpy.ndarray
+    (n, [2]) numpy.ndarray
         Horizontal locations x[y] for discrete topography.
     (n,) numpy.ndarray
         Elevations for discrete topography.
     """
+    if option is not None:
+        topo_cell_cutoff = option
+        warnings.DeprecationWarning(
+            "The 'option' input argument is deprecated and will be removed in SimPEG v.0.25.0. Please use 'topo_cell_cutoff'."
+        )
+
+
     if mesh._meshType == "TENSOR":
         if mesh.dim == 3:
             mesh2D = TensorMesh([mesh.h[0], mesh.h[1]], mesh.x0[:2])
@@ -160,13 +174,13 @@ def get_discrete_topography(mesh, active_cells, option="top"):
             topoCC = np.zeros(ZC.shape[0])
 
             for i in range(ZC.shape[0]):
-                if option == "top":
+                if topo_cell_cutoff == "top":
                     ind = np.argmax(ZC[i, :][ACTIND[i, :]])
                     dz = mesh.h[2][ACTIND[i, :]][ind] * 0.5
-                elif option == "center":
+                elif topo_cell_cutoff == "center":
                     dz = 0.0
                 else:
-                    raise ValueError("'option' must be 'top' or 'center'.")
+                    raise ValueError("'topo_cell_cutoff' must be 'top' or 'center'.")
                 topoCC[i] = ZC[i, :][ACTIND[i, :]].max() + dz
             return mesh2D.cell_centers, topoCC
 
@@ -178,21 +192,21 @@ def get_discrete_topography(mesh, active_cells, option="top"):
             topoCC = np.zeros(YC.shape[0])
             for i in range(YC.shape[0]):
                 ind = np.argmax(YC[i, :][ACTIND[i, :]])
-                if option == "top":
+                if topo_cell_cutoff == "top":
                     dy = mesh.h[1][ACTIND[i, :]][ind] * 0.5
-                elif option == "center":
+                elif topo_cell_cutoff == "center":
                     dy = 0.0
                 else:
-                    raise ValueError("'option' must be 'top' or 'center'.")
+                    raise ValueError("'topo_cell_cutoff' must be 'top' or 'center'.")
                 topoCC[i] = YC[i, :][ACTIND[i, :]].max() + dy
             return mesh1D.cell_centers, topoCC
 
     elif mesh._meshType == "TREE":
         inds = mesh.get_boundary_cells(active_cells, direction="zu")[0]
 
-        if option == "top":
+        if topo_cell_cutoff == "top":
             dz = mesh.h_gridded[inds, -1] * 0.5
-        elif option == "center":
+        elif topo_cell_cutoff == "center":
             dz = 0.0
         return mesh.cell_centers[inds, :-1], mesh.cell_centers[inds, -1] + dz
     else:
@@ -203,10 +217,11 @@ def shift_to_discrete_topography(
     mesh,
     pts,
     active_cells=None,
-    option="top",
+    topo_cell_cutoff="top",
     shift_horizontal=True,
     heights=0.0,
     topo=None,
+    option=None,
 ):
     """
     Shift locations relative to discrete surface topography.
@@ -220,9 +235,13 @@ def shift_to_discrete_topography(
         surface topography.
     active_cells : numpy.ndarray of int or bool, optional
         Index array for all cells lying below the surface topography.
-    option : {"top", "center"}, optional
-        Define whether the cell center or entire cell of actice cells must be below
-        the topography.The topography is defined using the 'topo' input parameter.
+    topo_cell_cutoff : {"top", "center"}
+        String to specify the cutoff for ground cells and the locations of the discrete
+        topography. For "top", ground cells lie entirely below the surface topography and the
+        discrete topography is defined on the top faces of surface cells.
+        For "center", only the cell centers must lie below the surface topograpy and the
+        discrete topography is defined at the centers of surface cells. The topography is
+        defined using the 'topo' input parameter.
     heights : float or (n,) numpy.ndarray, optional
         Height(s) relative to the true surface topography. Used to preserve flight
         heights or borehole depths.
@@ -232,12 +251,21 @@ def shift_to_discrete_topography(
     topo : (n, dim) numpy.ndarray, optional
         Surface topography. Can be used if an active indices array cannot be
         provided for the input parameter 'active_cells'.
+    option :
+        This input argument is deprecated and will be removed in SimPEG v.0.25.0.
+        Please use `topo_cell_cutoff`.
 
     Returns
     -------
     (n, dim) numpy.ndarray
         The set of points shifted relative to the discretize surface topography.
     """
+
+    if option is not None:
+        topo_cell_cutoff = option
+        warnings.DeprecationWarning(
+            "The 'option' input argument is deprecated and will be removed in SimPEG v.0.25.0. Please use 'topo_cell_cutoff'."
+        )
 
     if mesh._meshType != "TENSOR" and mesh._meshType != "TREE":
         raise NotImplementedError(
@@ -268,7 +296,7 @@ def shift_to_discrete_topography(
 
     if mesh.dim == 3:
         uniqXYlocs, topoCC = get_discrete_topography(
-            mesh, active_cells, option=option
+            mesh, active_cells, topo_cell_cutoff=topo_cell_cutoff
         )
         inds = _closest_grid_indices(uniqXYlocs, pts)
         if shift_horizontal:
@@ -277,7 +305,7 @@ def shift_to_discrete_topography(
             out = np.c_[pts, topoCC[inds]]
     else:
         uniqXlocs, topoCC = get_discrete_topography(
-            mesh, active_cells, option=option
+            mesh, active_cells, topo_cell_cutoff=topo_cell_cutoff
         )
         inds = _closest_grid_indices(uniqXlocs, pts, dim=1)
         if shift_horizontal:
