@@ -287,7 +287,7 @@ class SaveArrayGeoH5(BaseSaveGeoH5, ABC):
                     values = prop[ii, cc, :]
 
                     if self.sorting is not None:
-                        values = values[self.sorting]
+                        values = values[self.sorting].flatten()
 
                     label = self._channel_label(ii, channel)
                     channel_name, base_name = self.get_names(
