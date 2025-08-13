@@ -36,7 +36,7 @@ def getAppResPhs(NSEMdata, survey):
     ]
 
 
-def setup1DSurvey(sigmaHalf, tD=False, structure=False):
+def setup1DSurvey(sigmaHalf, tD=False, structure=False, rx_orientation="xy"):
     # Frequency
     num_frequencies = 33
     freqs = np.logspace(3, -3, num_frequencies)
@@ -68,10 +68,14 @@ def setup1DSurvey(sigmaHalf, tD=False, structure=False):
     receiver_list = []
     for _ in range(len(["z1d", "z1d"])):
         receiver_list.append(
-            Impedance(mkvc(np.array([0.0]), 2).T, component="real", orientation="xy")
+            Impedance(
+                mkvc(np.array([0.0]), 2).T, component="real", orientation=rx_orientation
+            )
         )
         receiver_list.append(
-            Impedance(mkvc(np.array([0.0]), 2).T, component="imag", orientation="xy")
+            Impedance(
+                mkvc(np.array([0.0]), 2).T, component="imag", orientation=rx_orientation
+            )
         )
     # Source list
     source_list = []
