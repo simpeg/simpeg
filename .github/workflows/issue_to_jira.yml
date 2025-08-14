@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   call-workflow-create-jira-issue:
+    if: github.repository == 'MiraGeoscience/simpeg'  # do not run on repository forks
     uses: MiraGeoscience/CI-tools/.github/workflows/reusable-jira-issue_to_jira.yml@main
     with:
       project-key: 'GEOPY'
