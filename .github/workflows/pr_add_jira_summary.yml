@@ -1,7 +1,7 @@
 name: Add JIRA issue summary
 
 on:
-  pull_request:
+  pull_request_target:  # zizmor: ignore[dangerous-triggers]
     types: [opened]
 
 permissions:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   call-workflow-add-jira-issue-summary:
-    if: github.event.pull_request.head.repo.full_name == 'MiraGeoscience/simpeg'  # do not run on repository forks
+    if: github.repository == 'MiraGeoscience/simpeg'  # run only if targeting the Mira repo
     uses: MiraGeoscience/CI-tools/.github/workflows/reusable-jira-pr_add_jira_summary.yml@main
     secrets:
       JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
