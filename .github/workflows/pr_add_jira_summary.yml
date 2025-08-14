@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   call-workflow-add-jira-issue-summary:
-    if: github.repository == 'MiraGeoscience/simpeg'  # run only if targeting the Mira repo
+    if: startsWith(github.repository, 'MiraGeoscience/')  # run if PR targets the Mira repo only
     uses: MiraGeoscience/CI-tools/.github/workflows/reusable-jira-pr_add_jira_summary.yml@main
     secrets:
       JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
