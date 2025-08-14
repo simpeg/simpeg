@@ -1,13 +1,12 @@
+from __future__ import annotations
 import types
-
 import numpy as np
 from functools import wraps
 import warnings
 
 from discretize.utils import as_array_n_by_dim  # noqa: F401
-from discretize.utils import requires as module_requires
 
-# scooby is a soft dependency for simpeg
+# scooby is a soft dependency for SimPEG
 try:
     from scooby import Report as ScoobyReport
 except ImportError:
@@ -15,16 +14,10 @@ except ImportError:
     class ScoobyReport:
         def __init__(self, additional, core, optional, ncol, text_width, sort):
             print(
-                "\n  *ERROR*: `simpeg.Report` requires `scooby`."
+                "\n  *ERROR*: `SimPEG.Report` requires `scooby`."
                 "\n           Install it via `pip install scooby` or"
                 "\n           `conda install -c conda-forge scooby`.\n"
             )
-
-
-try:
-    import memory_profiler
-except ImportError:
-    memory_profiler = False
 
 
 def requires(var):
@@ -87,7 +80,7 @@ def requires(var):
     return requiresVar
 
 
-@module_requires({"memory_profiler": memory_profiler})
+@requires("memory_profiler")
 def mem_profile_class(input_class, *args):
     """Creates a new class from the target class with memory profiled methods.
 
@@ -329,7 +322,7 @@ def call_hooks(match, mainFirst=False):
 
     Use the following syntax::
 
-        @call_hooks('doEndIteration')
+        @callHooks('doEndIteration')
         def doEndIteration(self):
             pass
 
@@ -461,7 +454,7 @@ class Report(ScoobyReport):
 
     >>> import pytest
     >>> import dateutil
-    >>> from simpeg import Report
+    >>> from SimPEG import Report
     >>> Report()                            # Default values
     >>> Report(pytest)                      # Provide additional package
     >>> Report([pytest, dateutil], ncol=5)  # Define nr of columns
@@ -473,14 +466,16 @@ class Report(ScoobyReport):
 
         # Mandatory packages.
         core = [
-            "simpeg",
+            "SimPEG",
             "discretize",
             "pymatsolver",
             "numpy",
             "scipy",
+            "sklearn",
             "matplotlib",
+            "empymod",
             "geoana",
-            "libdlf",
+            "pandas",
         ]
 
         # Optional packages.
@@ -489,8 +484,6 @@ class Report(ScoobyReport):
             "pydiso",
             "numba",
             "dask",
-            "sklearn",
-            "pandas",
             "sympy",
             "IPython",
             "ipywidgets",
@@ -498,7 +491,6 @@ class Report(ScoobyReport):
             "vtk",
             "utm",
             "memory_profiler",
-            "choclo",
         ]
 
         super().__init__(
@@ -517,11 +509,7 @@ class Report(ScoobyReport):
 
 
 def deprecate_class(
-    removal_version=None,
-    new_location=None,
-    future_warn=False,
-    error=False,
-    replace_docstring=True,
+    removal_version=None, new_location=None, future_warn=False, error=False
 ):
     """Utility function to deprecate a class
 
@@ -568,8 +556,7 @@ def deprecate_class(
         cls.__init__ = __init__
         if new_location is not None:
             parent_name = f"{new_location}.{parent_name}"
-        if replace_docstring:
-            cls.__doc__ = f""" This class has been deprecated, see `{parent_name}` for documentation"""
+        cls.__doc__ = f""" This class has been deprecated, see `{parent_name}` for documentation"""
         return cls
 
     return decorator
@@ -934,9 +921,7 @@ def validate_float(
         return var
 
 
-def validate_list_of_types(
-    property_name, var, class_type, ensure_unique=False, min_n=0, max_n=None
-):
+def validate_list_of_types(property_name, var, class_type, ensure_unique=False):
     """Validate list of instances of a certain class
 
     Parameters
@@ -949,8 +934,6 @@ def validate_list_of_types(
         Class type(s) that are allowed in the list
     ensure_unique : bool, optional
         Checks if all items in the var are unique items.
-    min_n, max_n : int, optional
-        Minimum and maximum supported list length. Defaults accept any length list.
 
     Returns
     -------
@@ -964,20 +947,8 @@ def validate_list_of_types(
     else:
         raise TypeError(f"{property_name!r} must be a list of {class_type}")
 
-    if max_n is not None:
-        if min_n == max_n and len(var) != max_n:
-            raise ValueError(
-                f"{property_name!r} must have exactly {min_n} item{'s' if min_n != 1 else ''}."
-            )
-        elif len(var) > max_n:
-            raise ValueError(
-                f"{property_name!r} must have at most {max_n} item{'s' if max_n != 1 else ''}."
-            )
-    if len(var) < min_n:
-        raise ValueError(
-            f"{property_name!r} must have at least {min_n} item{'s' if min_n != 1 else ''}."
-        )
-    if all(isinstance(x, class_type) for x in var):
+    is_true = [isinstance(x, class_type) for x in var]
+    if np.all(is_true):
         if ensure_unique and len(set(var)) != len(var):
             raise ValueError(
                 f"The {property_name!r} list must be unique. Cannot re-use items"
@@ -1056,10 +1027,7 @@ def validate_ndarray_with_shape(property_name, var, shape=None, dtype=float):
         dtypes = dtype
     for dtype in dtypes:
         try:
-            if isinstance(var, np.ndarray):
-                var = var.astype(dtype, casting="safe", copy=False)
-            else:
-                var = np.asarray(var, dtype=dtype)
+            var = np.asarray(var, dtype=dtype)
             bad_type = False
             break
         except (TypeError, ValueError) as err:
@@ -1133,42 +1101,21 @@ def validate_type(property_name, obj, obj_type, cast=True, strict=False):
     obj_type
         Returns the object in the specified type when validated
     """
-    if not isinstance(obj_type, tuple):
-        obj_type = (obj_type,)
-
-    if len(obj_type) > 1:
-        type_name = (
-            ", ".join(cls.__qualname__ for cls in obj_type[:-1])
-            + " or "
-            + obj_type[-1].__qualname__
-        )
-    else:
-        type_name = obj_type[0].__qualname__
-
     if cast:
-        good_cast = False
-        err = None
-        for cls in obj_type:
-            try:
-                new_obj = cls(obj)
-                good_cast = True
-            except Exception as trial_error:
-                err = trial_error
-            if good_cast:
-                obj = new_obj
-                break
-        if not good_cast:
+        try:
+            obj = obj_type(obj)
+        except Exception as err:
             raise TypeError(
-                f"{type(obj).__qualname__} cannot be converted to {type_name} "
+                f"{type(obj).__name__} cannot be converted to type {obj_type.__name__} "
                 f"required for {property_name}."
             ) from err
-    if strict and type(obj) not in obj_type:
+    if strict and type(obj) is not obj_type:
         raise TypeError(
-            f"{property_name} must be exactly a {type_name}, not {type(obj).__qualname__}"
+            f"Object must be exactly a {obj_type.__name__} for {property_name}"
         )
     if not isinstance(obj, obj_type):
         raise TypeError(
-            f"{property_name} must be an instance of {type_name}, not {type(obj).__qualname__}"
+            f"Object must be an instance of {obj_type.__name__} for {property_name}"
         )
     return obj
 
@@ -1285,32 +1232,32 @@ def validate_active_indices(property_name, index_arr, n_cells):
 #                      DEPRECATIONS
 ###############################################################
 memProfileWrapper = deprecate_function(
-    mem_profile_class, "memProfileWrapper", removal_version="0.18.0", error=True
+    mem_profile_class, "memProfileWrapper", removal_version="0.18.0", future_warn=True
 )
 setKwargs = deprecate_function(
-    set_kwargs, "setKwargs", removal_version="0.18.0", error=True
+    set_kwargs, "setKwargs", removal_version="0.18.0", future_warn=True
 )
 printTitles = deprecate_function(
-    print_titles, "printTitles", removal_version="0.18.0", error=True
+    print_titles, "printTitles", removal_version="0.18.0", future_warn=True
 )
 printLine = deprecate_function(
-    print_line, "printLine", removal_version="0.18.0", error=True
+    print_line, "printLine", removal_version="0.18.0", future_warn=True
 )
 printStoppers = deprecate_function(
-    print_stoppers, "printStoppers", removal_version="0.18.0", error=True
+    print_stoppers, "printStoppers", removal_version="0.18.0", future_warn=True
 )
 checkStoppers = deprecate_function(
-    check_stoppers, "checkStoppers", removal_version="0.18.0", error=True
+    check_stoppers, "checkStoppers", removal_version="0.18.0", future_warn=True
 )
 printDone = deprecate_function(
-    print_done, "printDone", removal_version="0.18.0", error=True
+    print_done, "printDone", removal_version="0.18.0", future_warn=True
 )
 callHooks = deprecate_function(
-    call_hooks, "callHooks", removal_version="0.18.0", error=True
+    call_hooks, "callHooks", removal_version="0.18.0", future_warn=True
 )
 dependentProperty = deprecate_function(
-    dependent_property, "dependentProperty", removal_version="0.18.0", error=True
+    dependent_property, "dependentProperty", removal_version="0.18.0", future_warn=True
 )
 asArray_N_x_Dim = deprecate_function(
-    as_array_n_by_dim, "asArray_N_x_Dim", removal_version="0.19.0", error=True
+    as_array_n_by_dim, "asArray_N_x_Dim", removal_version="0.19.0", future_warn=True
 )

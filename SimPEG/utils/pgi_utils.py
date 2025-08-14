@@ -19,7 +19,7 @@ from sklearn.mixture._gaussian_mixture import (
 )
 from sklearn.mixture._base import check_random_state, ConvergenceWarning
 import warnings
-from simpeg.maps import IdentityMap
+from SimPEG.maps import IdentityMap
 
 
 ###############################################################################
