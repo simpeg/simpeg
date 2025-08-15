@@ -889,10 +889,19 @@ class Bounded(object):
 class InexactCG(object):
 
     def __init__(self, *, cg_rtol=1e-1, cg_atol=0, cg_maxiter=5, **kwargs):
+
+        if (val := kwargs.pop("tolCG", None)) is None:
+            self.tolCG = val
+        else:
+            self.cg_rtol = cg_rtol
+            self.cg_atol = cg_atol
+
+        if (val := kwargs.pop("maxIterCG", None)) is None:
+            self.maxIterCG = val
+        else:
+            self.cg_maxiter = cg_maxiter
+
         super().__init__(**kwargs)
-        self.cg_rtol = cg_rtol
-        self.cg_atol = cg_atol
-        self.cg_maxiter = cg_maxiter
 
     @property
     def cg_atol(self):
@@ -1356,7 +1365,12 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
         active_set_grad_scale=1e-2,
         **kwargs,
     ):
-        if cg_rtol is None and cg_atol is None:
+        if (val := kwargs.pop("tolCG", None)) is not None:
+            # Deprecated path when tolCG is passed.
+            self.tolCG = val
+            cg_rtol = 0.0
+            cg_atol = self.cg_atol
+        elif cg_rtol is None and cg_atol is None:
             # Note these defaults match previous settings...
             # but they're not good in general...
             # Ideally they will change to cg_rtol=1E-3 and cg_atol=0.0
@@ -1373,6 +1387,17 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
             cg_atol = 0.0
         elif cg_rtol is None:
             cg_rtol = 1e-3
+
+        if (val := kwargs.pop("stepActiveSet", None)) is not None:
+            self.stepActiveSet = val
+        else:
+            self.step_active_set = step_active_set
+
+        if (val := kwargs.pop("stepOffBoundsFact", None)) is not None:
+            self.stepOffBoundsFact = val
+        else:
+            self.active_set_grad_scale = active_set_grad_scale
+
         super().__init__(
             lower=lower,
             upper=upper,
@@ -1381,9 +1406,6 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
             cg_atol=cg_atol,
             **kwargs,
         )
-
-        self.step_active_set = step_active_set
-        self.active_set_grad_scale = active_set_grad_scale
 
         # initialize some tracking parameters
         self.cg_count = 0
