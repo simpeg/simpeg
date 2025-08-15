@@ -556,7 +556,9 @@ class TestJacobianGravity(BaseFixtures):
             pytest.param(
                 "geoana",
                 "forward_only",
-                marks=pytest.mark.xfail(reason="not implemented"),
+                marks=pytest.mark.xfail(
+                    raises=NotImplementedError, reason="not implemented"
+                ),
             ),
         ],
     )
@@ -596,7 +598,9 @@ class TestJacobianGravity(BaseFixtures):
             pytest.param(
                 "geoana",
                 "forward_only",
-                marks=pytest.mark.xfail(reason="not implemented"),
+                marks=pytest.mark.xfail(
+                    raises=NotImplementedError, reason="not implemented"
+                ),
             ),
         ],
     )
@@ -631,7 +635,12 @@ class TestJacobianGravity(BaseFixtures):
         "engine",
         [
             "choclo",
-            pytest.param("geoana", marks=pytest.mark.xfail(reason="not implemented")),
+            pytest.param(
+                "geoana",
+                marks=pytest.mark.xfail(
+                    raises=NotImplementedError, reason="not implemented"
+                ),
+            ),
         ],
     )
     @pytest.mark.parametrize("method", ["Jvec", "Jtvec"])
@@ -707,7 +716,12 @@ class TestJacobianGravity(BaseFixtures):
         "engine",
         [
             "choclo",
-            pytest.param("geoana", marks=pytest.mark.xfail(reason="not implemented")),
+            pytest.param(
+                "geoana",
+                marks=pytest.mark.xfail(
+                    raises=NotImplementedError, reason="not implemented"
+                ),
+            ),
         ],
     )
     @pytest.mark.parametrize("weights", [True, False])

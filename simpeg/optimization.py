@@ -273,6 +273,7 @@ class Minimize(object):
     tolX = 1e-1  #: Tolerance on norm(x) movement
     tolG = 1e-1  #: Tolerance on gradient norm
     eps = 1e-5  #: Small value
+    require_decrease = True  #: Require decrease in the objective function. If False, we will still take a step when the linesearch fails
 
     stopNextIteration = False  #: Stops the optimization program nicely.
     use_WolfeCurvature = False  #: add the Wolfe Curvature criteria for line search
@@ -409,9 +410,12 @@ class Minimize(object):
             p = self.scaleSearchDirection(self.searchDirection)
             xt, passLS = self.modifySearchDirection(p)
             if not passLS:
-                xt, caught = self.modifySearchDirectionBreak(p)
-                if not caught:
-                    return self.xc
+                if self.require_decrease is True:
+                    xt, caught = self.modifySearchDirectionBreak(p)
+                    if not caught:
+                        return self.xc
+                else:
+                    print("Linesearch failed. Stepping anyways...")
             self.doEndIteration(xt)
             if self.stopNextIteration:
                 break

@@ -258,8 +258,8 @@ rst-roles = [
 # pyproject.toml
 [tool.pytest.ini_options]
 filterwarnings = [
-    "ignore::simpeg.utils.solver_utils.DefaultSolverWarning",
     "error:You are running a pytest without setting a random seed.*:UserWarning",
     "error:The `index_dictionary` property has been deprecated:FutureWarning",
+    'error:The `simpeg\.directives\.[a-z_]+` submodule has been deprecated',
 ]
 xfail_strict = true
