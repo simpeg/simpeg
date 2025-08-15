@@ -890,13 +890,13 @@ class InexactCG(object):
 
     def __init__(self, *, cg_rtol=1e-1, cg_atol=0, cg_maxiter=5, **kwargs):
 
-        if (val := kwargs.pop("tolCG", None)) is None:
+        if (val := kwargs.pop("tolCG", None)) is not None:
             self.tolCG = val
         else:
             self.cg_rtol = cg_rtol
             self.cg_atol = cg_atol
 
-        if (val := kwargs.pop("maxIterCG", None)) is None:
+        if (val := kwargs.pop("maxIterCG", None)) is not None:
             self.maxIterCG = val
         else:
             self.cg_maxiter = cg_maxiter
@@ -947,7 +947,7 @@ class InexactCG(object):
 
     @cg_rtol.setter
     def cg_rtol(self, value):
-        self._cg_rtol = validate_float("cg_rtol", value, min_val=0, inclusive_min=False)
+        self._cg_rtol = validate_float("cg_rtol", value, min_val=0, inclusive_min=True)
 
     @property
     def cg_maxiter(self):
