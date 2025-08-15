@@ -13,10 +13,10 @@ import pytest
 
 def create_survey(freq):
     receivers_list = [
-        nsem.receivers.PointNaturalSource(component="real"),
-        nsem.receivers.PointNaturalSource(component="imag"),
-        nsem.receivers.PointNaturalSource(component="app_res"),
-        nsem.receivers.PointNaturalSource(component="phase"),
+        nsem.receivers.Impedance([[]], component="real"),
+        nsem.receivers.Impedance([[]], component="imag"),
+        nsem.receivers.Impedance([[]], component="app_res"),
+        nsem.receivers.Impedance([[]], component="phase"),
     ]
 
     source_list = [nsem.sources.Planewave(receivers_list, f) for f in freq]
@@ -30,7 +30,7 @@ def true_solution(freq, sigma_half):
         -np.sqrt(np.pi * freq * mu_0 / sigma_half),
         -np.sqrt(np.pi * freq * mu_0 / sigma_half),
         1 / sigma_half,
-        45.0,
+        -135.0,
     ]
 
     return soln
