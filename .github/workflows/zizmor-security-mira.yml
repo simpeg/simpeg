@@ -20,6 +20,8 @@ on:
 jobs:
   call-workflow-zizmor:
     name: Zizmor analysis
+    # run on the Mira repo only (upstram SimPEG repo has its own workflow for Zizmor)
+    if: startsWith(github.repository, 'MiraGeoscience/')
     permissions:
       contents: read
       actions: read
