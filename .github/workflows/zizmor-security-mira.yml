@@ -1,0 +1,28 @@
+name: Zizmor analysis
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - develop
+      - main
+      - release/**
+      - feature/**
+      - hotfix/**
+  push:
+    branches:
+      - main
+      - develop
+      - feature/**
+      - hotfix/**
+      - release/**
+
+jobs:
+  call-workflow-zizmor:
+    name: Zizmor analysis
+    # run on the Mira repo only (upstream SimPEG repo has its own workflow for Zizmor)
+    if: startsWith(github.repository, 'MiraGeoscience/')
+    permissions:
+      contents: read
+      actions: read
+    uses: MiraGeoscience/CI-tools/.github/workflows/reusable-zizmor-security.yml@main

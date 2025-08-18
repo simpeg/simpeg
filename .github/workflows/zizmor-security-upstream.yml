@@ -13,6 +13,8 @@ permissions: {}
 
 jobs:
   lint:
+    # run only if not on the Mira repo (MiraGeoscience repo has its own workflow for Zizmor)
+    if: ${{ !startsWith(github.repository, 'MiraGeoscience/') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
