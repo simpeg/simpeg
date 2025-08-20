@@ -128,7 +128,7 @@ class TestFieldsCrosscheck:
 
         return test
 
-    @pytest.mark.parametrize("sim_pairs", [("e", "b"), ("h", "j")])
+    @pytest.mark.parametrize("sim_pairs", [("e", "b"), ("h", "j")], ids=["eb", "hj"])
     @pytest.mark.parametrize("field_test", FIELDS_TEST)
     def test_fields_cross_check_EBHJ(
         self, sim_pairs, field_test, relative_tolerance=RELTOL, verbose=VERBOSE
