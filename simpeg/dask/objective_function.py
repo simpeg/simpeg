@@ -1,9 +1,9 @@
 from ..objective_function import ComboObjectiveFunction, BaseObjectiveFunction
 
 import numpy as np
-from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from dask.distributed import Client
+from dask import array, delayed, compute
 from ..data_misfit import L2DataMisfit
 
 from simpeg.utils import validate_list_of_types
@@ -91,7 +91,6 @@ def _validate_type_or_future_of_type(
 
     futures = []
     for work in workload:
-
         for obj, worker in zip(work, workers):
             futures.append(
                 client.submit(
@@ -108,7 +107,7 @@ def _validate_type_or_future_of_type(
         return workload
 
 
-class DaskComboMisfits(ComboObjectiveFunction):
+class DistributedComboMisfits(ComboObjectiveFunction):
     """
     A composite objective function for distributed computing.
     """
@@ -460,7 +459,7 @@ class DaskComboMisfits(ComboObjectiveFunction):
         self.client.gather(stores)  # blocking call to ensure all models were stored
 
 
-class ConcurrentComboMisfits(ComboObjectiveFunction):
+class DaskComboMisfits(ComboObjectiveFunction):
     """
     A composite objective function for distributed computing.
     """
@@ -469,6 +468,7 @@ class ConcurrentComboMisfits(ComboObjectiveFunction):
         self,
         objfcts: list[BaseObjectiveFunction],
         multipliers=None,
+        worker: str | None = None,
         **kwargs,
     ):
         self._model: np.ndarray | None = None
@@ -479,22 +479,17 @@ class ConcurrentComboMisfits(ComboObjectiveFunction):
         self.model = m
 
         futures = []
-        values = []
         count = 0
-        with ProcessPoolExecutor() as executor:
-            for objfct in self.objfcts:
-                if self.multipliers[count] == 0.0:
-                    continue
 
-                values.append(
-                    executor.submit(_calc_objective, objfct, self.multipliers[count], m)
-                )
-                count += 1
+        delayed_call = delayed(_calc_objective)
+        for objfct in self.objfcts:
+            if self.multipliers[count] == 0.0:
+                continue
 
-            for future in as_completed(futures):
-                values.append(future.result())
+            futures.append(delayed_call(objfct, self.multipliers[count], m))
+            count += 1
 
-        return np.sum(values)
+        return np.sum(compute(futures)[0])
 
     def deriv(self, m, f=None):
         """
@@ -508,28 +503,29 @@ class ConcurrentComboMisfits(ComboObjectiveFunction):
         self.model = m
 
         futures = []
-        derivs = 0.0
-        count = 0
-        with ProcessPoolExecutor() as executor:
-            for objfct in self.objfcts:
-                if self.multipliers[count] == 0.0:  # don't evaluate the fct
-                    continue
 
-                futures.append(
-                    executor.submit(
-                        _deriv,
+        count = 0
+
+        delayed_call = delayed(_deriv)
+        for objfct in self.objfcts:
+            if self.multipliers[count] == 0.0:  # don't evaluate the fct
+                continue
+
+            futures.append(
+                array.from_delayed(
+                    delayed_call(
                         objfct,
                         self.multipliers[count],
                         m,
-                    )
+                    ),
+                    shape=m.shape,
+                    dtype=float,
                 )
+            )
 
-                count += 1
+            count += 1
 
-            for future in as_completed(futures):
-                derivs += future.result()
-
-        return derivs
+        return array.sum(futures, axis=0).compute()
 
     def deriv2(self, m, v=None, f=None):
         """
@@ -544,23 +540,23 @@ class ConcurrentComboMisfits(ComboObjectiveFunction):
         self.model = m
 
         futures = []
-        derivs = 0.0
         count = 0
 
-        with ProcessPoolExecutor() as executor:
-            for objfct in self.objfcts:
-                if self.multipliers[count] == 0.0:  # don't evaluate the fct
-                    continue
+        delayed_call = delayed(_deriv2)
+        for objfct in self.objfcts:
+            if self.multipliers[count] == 0.0:  # don't evaluate the fct
+                continue
 
-                futures.append(
-                    executor.submit(_deriv2, objfct, self.multipliers[count], m, v)
+            futures.append(
+                array.from_delayed(
+                    delayed_call(objfct, self.multipliers[count], m, v),
+                    shape=m.shape,
+                    dtype=float,
                 )
-                count += 1
+            )
+            count += 1
 
-            for future in as_completed(futures):
-                derivs += future.result()
-
-        return derivs
+        return array.sum(futures, axis=0).compute()
 
     def get_dpred(self, m, f=None):
         """
@@ -568,16 +564,13 @@ class ConcurrentComboMisfits(ComboObjectiveFunction):
         """
         self.model = m
 
-        dpred = []
         futures = []
-        with ProcessPoolExecutor() as executor:
-            for objfct in self.objfcts:
-                futures.append(executor.submit(_calc_dpred, objfct, m))
+        delayed_call = delayed(_calc_dpred)
 
-            for future in as_completed(futures):
-                dpred.append(future.result())
+        for objfct in self.objfcts:
+            futures.append(delayed_call(objfct, m))
 
-        return dpred
+        return compute(futures)[0]
 
     def getJtJdiag(self, m, f=None):
         """
@@ -587,68 +580,19 @@ class ConcurrentComboMisfits(ComboObjectiveFunction):
 
         if getattr(self, "_jtjdiag", None) is None:
 
-            jtj_diag = 0.0
             futures = []
-            with ProcessPoolExecutor() as executor:
-                for objfct in self.objfcts:
-                    futures.append(executor.submit(_get_jtj_diag, objfct, m))
+            delayed_call = delayed(_get_jtj_diag)
 
-                for future in as_completed(futures):
-                    jtj_diag += future.result()
+            for objfct in self.objfcts:
+                futures.append(
+                    array.from_delayed(
+                        delayed_call(objfct, m), shape=m.shape, dtype=float
+                    )
+                )
 
-            self._jtjdiag = jtj_diag
+            self._jtjdiag = array.sum(futures, axis=0).compute()
 
         return self._jtjdiag
-
-    def fields(self, m):
-        """
-        Request calculation of fields from all simulations.
-
-        Store list of futures for fields in self._stashed_fields.
-        """
-        self.model = m
-
-        if getattr(self, "_stashed_fields", None) is not None:
-            return self._stashed_fields
-        # The above should pass the model to all the internal simulations.
-        futures = []
-        fields = []
-        with ProcessPoolExecutor() as executor:
-            for objfct in self.objfcts:
-                futures.append(executor.submit(_calc_fields, objfct, m))
-            for future in as_completed(futures):
-                fields.append(future.result())
-
-        self._stashed_fields = fields
-        return fields
-
-    @property
-    def model(self):
-        return self._model
-
-    @model.setter
-    def model(self, value):
-        # Only send the model to the internal simulations if it was updated.
-        if (
-            isinstance(value, np.ndarray)
-            and isinstance(self.model, np.ndarray)
-            and np.allclose(value, self.model)
-        ):
-            return
-
-        self._stashed_fields = None
-        self._jtjdiag = None
-
-        stores = []
-        with ProcessPoolExecutor() as executor:
-            for objfct in self.objfcts:
-                stores.append(executor.submit(_store_model, objfct, value))
-
-            # blocking call to ensure all models were stored
-            for store in as_completed(stores):
-                store.result()
-
-        self._model = value
 
     def residuals(self, m, f=None):
         """
@@ -657,12 +601,9 @@ class ConcurrentComboMisfits(ComboObjectiveFunction):
         self.model = m
 
         futures = []
-        residuals = []
-        with ProcessPoolExecutor() as executor:
-            for objfct in self.objfcts:
-                futures.append(executor.submit(_calc_residual, objfct, m))
 
-            for future in as_completed(futures):
-                residuals.append(future.result())
+        delayed_call = delayed(_calc_residual)
+        for objfct in self.objfcts:
+            futures.append(delayed_call(objfct, m))
 
-        return residuals
+        return compute(futures)[0]
