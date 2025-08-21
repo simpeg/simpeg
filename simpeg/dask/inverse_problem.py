@@ -1,7 +1,7 @@
 from ..inverse_problem import BaseInvProblem
 import numpy as np
 
-from .objective_function import DaskComboMisfits
+from .objective_function import DaskComboMisfits, DistributedComboMisfits
 from scipy.sparse.linalg import LinearOperator
 from ..regularization import WeightedLeastSquares, Sparse
 from ..objective_function import ComboObjectiveFunction
@@ -12,7 +12,7 @@ from simpeg.version import __version__ as simpeg_version
 def get_dpred(self, m, f=None):
     dpreds = []
 
-    if isinstance(self.dmisfit, DaskComboMisfits):
+    if isinstance(self.dmisfit, DaskComboMisfits | DistributedComboMisfits):
         return self.dmisfit.get_dpred(m, f=f)
 
     for objfct in self.dmisfit.objfcts:
@@ -31,7 +31,7 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
     self.dpred = self.get_dpred(m)
     residuals = []
 
-    if isinstance(self.dmisfit, DaskComboMisfits):
+    if isinstance(self.dmisfit, DaskComboMisfits | DistributedComboMisfits):
         residuals = self.dmisfit.residuals(m)
     else:
         for (_, objfct), pred in zip(self.dmisfit, self.dpred):
