@@ -1,6 +1,4 @@
-import warnings
 import numpy as np
-from .code_utils import deprecate_function
 from ..typing import RandomSeed
 from discretize.utils import (  # noqa: F401
     Zero,
@@ -132,7 +130,6 @@ def eigenvalue_by_power_iteration(
     n_pw_iter=4,
     fields_list=None,
     random_seed: RandomSeed | None = None,
-    seed: RandomSeed | None = None,
 ):
     r"""Estimate largest eigenvalue in absolute value using power iteration.
 
@@ -157,12 +154,6 @@ def eigenvalue_by_power_iteration(
         Random seed for the initial random guess of eigenvector. It can either
         be an int, a predefined Numpy random number generator, or any valid
         input to ``numpy.random.default_rng``.
-    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
-
-        .. deprecated:: 0.23.0
-
-           Argument ``seed`` is deprecated in favor of ``random_seed`` and will
-           be removed in SimPEG v0.24.0.
 
     Returns
     -------
@@ -189,21 +180,6 @@ def eigenvalue_by_power_iteration(
     selected from a uniform distribution.
 
     """
-    # Deprecate seed argument
-    if seed is not None:
-        if random_seed is not None:
-            raise TypeError(
-                "Cannot pass both 'random_seed' and 'seed'."
-                "'seed' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'random_seed' instead.",
-            )
-        warnings.warn(
-            "'seed' has been deprecated and will be removed in "
-            " SimPEG v0.24.0, please use 'random_seed' instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        random_seed = seed
     rng = np.random.default_rng(seed=random_seed)
 
     # Initial guess for eigen-vector
@@ -507,44 +483,3 @@ def define_plane_from_points(xyz1, xyz2, xyz3):
     d = -(a * xyz1[0] + b * xyz1[1] + c * xyz1[2])
 
     return a, b, c, d
-
-
-################################################
-#             DEPRECATED FUNCTIONS
-################################################
-
-
-diagEst = deprecate_function(
-    estimate_diagonal, "diagEst", removal_version="0.19.0", error=True
-)
-uniqueRows = deprecate_function(
-    unique_rows, "uniqueRows", removal_version="0.19.0", error=True
-)
-sdInv = deprecate_function(sdinv, "sdInv", removal_version="0.19.0", error=True)
-getSubArray = deprecate_function(
-    get_subarray, "getSubArray", removal_version="0.19.0", error=True
-)
-inv3X3BlockDiagonal = deprecate_function(
-    inverse_3x3_block_diagonal,
-    "inv3X3BlockDiagonal",
-    removal_version="0.19.0",
-    error=True,
-)
-inv2X2BlockDiagonal = deprecate_function(
-    inverse_2x2_block_diagonal,
-    "inv2X2BlockDiagonal",
-    removal_version="0.19.0",
-    error=True,
-)
-makePropertyTensor = deprecate_function(
-    make_property_tensor,
-    "makePropertyTensor",
-    removal_version="0.19.0",
-    error=True,
-)
-invPropertyTensor = deprecate_function(
-    inverse_property_tensor,
-    "invPropertyTensor",
-    removal_version="0.19.0",
-    error=True,
-)

@@ -14,7 +14,6 @@ from ...utils import (
     validate_direction,
     validate_integer,
 )
-from ...utils.code_utils import deprecate_property
 
 from ..utils import omega
 from ..utils import segmented_line_current_source_term, line_through_faces
@@ -773,10 +772,6 @@ class CircularLoop(MagDipole):
         **kwargs,
     ):
         kwargs.pop("moment", None)
-
-        # Raise error on deprecated arguments
-        if (key := "N") in kwargs.keys():
-            raise TypeError(f"'{key}' property has been removed. Please use 'n_turns'.")
         self.n_turns = n_turns
 
         super().__init__(
@@ -876,10 +871,6 @@ class CircularLoop(MagDipole):
         out = self._loop.vector_potential(obsLoc, coordinates)
         out[np.isnan(out)] = 0
         return self.n_turns * out
-
-    N = deprecate_property(
-        n_turns, "N", "n_turns", removal_version="0.19.0", error=True
-    )
 
 
 class PrimSecSigma(BaseFDEMSrc):
