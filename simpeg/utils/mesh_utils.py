@@ -162,7 +162,6 @@ def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top", option=N
             "The 'option' input argument is deprecated and will be removed in SimPEG v.0.25.0. Please use 'topo_cell_cutoff'."
         )
 
-
     if mesh._meshType == "TENSOR":
         if mesh.dim == 3:
             mesh2D = TensorMesh([mesh.h[0], mesh.h[1]], mesh.x0[:2])
