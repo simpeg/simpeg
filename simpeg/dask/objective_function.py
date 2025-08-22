@@ -15,10 +15,24 @@ from simpeg.utils import validate_list_of_types
 
 
 def _calc_fields(objfct, _):
+    if isinstance(objfct, ComboObjectiveFunction):
+        fields = []
+        for objfct_ in objfct.objfcts:
+            fields.append(_calc_fields(objfct_, _))
+
+        return fields
+
     return objfct.simulation.fields(m=objfct.simulation.model)
 
 
 def _calc_dpred(objfct, _):
+    if isinstance(objfct, ComboObjectiveFunction):
+        dpreds = []
+        for objfct_ in objfct.objfcts:
+            dpreds.append(_calc_dpred(objfct_, _))
+
+        return np.hstack(dpreds)
+
     return objfct.simulation.dpred(m=objfct.simulation.model)
 
 
@@ -27,21 +41,46 @@ def _calc_objective(objfct, multiplier, model):
 
 
 def _calc_residual(objfct, _):
+    if isinstance(objfct, ComboObjectiveFunction):
+        residuals = 0.0
+        for objfct_ in objfct.objfcts:
+            residuals += _calc_residual(objfct_, _)
+
+        return np.hstack(residuals)
+
     return objfct.W * (
         objfct.data.dobs - objfct.simulation.dpred(m=objfct.simulation.model)
     )
 
 
 def _deriv(objfct, multiplier, _):
-    return multiplier * objfct.deriv(objfct.simulation.model)
+    if isinstance(objfct, ComboObjectiveFunction):
+        deriv = 0.0
+        for multiplier_, objfct_ in objfct:
+            deriv += _deriv(objfct_, multiplier_, _)
+    else:
+        deriv = objfct.deriv(objfct.simulation.model)
+    return multiplier * deriv
 
 
 def _deriv2(objfct, multiplier, _, v):
-    return multiplier * objfct.deriv2(objfct.simulation.model, v)
+
+    if isinstance(objfct, ComboObjectiveFunction):
+        deriv2 = 0.0
+        for multiplier_, objfct_ in objfct:
+            deriv2 += _deriv2(objfct_, multiplier_, _, v)
+    else:
+        deriv2 = objfct.deriv2(objfct.simulation.model, v)
+    return multiplier * deriv2
 
 
 def _store_model(objfct, model):
-    objfct.simulation.model = model
+
+    if isinstance(objfct, ComboObjectiveFunction):
+        for objfct_ in objfct.objfcts:
+            _store_model(objfct_, model)
+    else:
+        objfct.simulation.model = model
 
 
 def _setter_broadcast(objfct, key, value):
@@ -56,6 +95,13 @@ def _setter_broadcast(objfct, key, value):
 
 
 def _get_jtj_diag(objfct, _):
+    if isinstance(objfct, ComboObjectiveFunction):
+        jtj = 0.0
+        for objfct_ in objfct.objfcts:
+            jtj += _get_jtj_diag(objfct_, _)
+
+        return jtj
+
     jtj = objfct.simulation.getJtJdiag(objfct.simulation.model, objfct.W)
     return jtj.flatten()
 
@@ -64,8 +110,13 @@ def _set_worker(objfct, worker):
     """
     Set the worker for the objective function.
     """
-    for sim in objfct.simulation.simulations:
-        sim.worker = worker
+    if isinstance(objfct, ComboObjectiveFunction):
+        for objfct_ in objfct.objfcts:
+            _set_worker(objfct_, worker)
+
+    else:
+        for sim in objfct.simulation.simulations:
+            sim.worker = worker
 
 
 def _validate_type_or_future_of_type(
@@ -417,7 +468,7 @@ class DistributedComboMisfits(ComboObjectiveFunction):
         futures, workers = _validate_type_or_future_of_type(
             "objfcts",
             objfcts,
-            (L2DataMisfit, Future),
+            (L2DataMisfit, Future, ComboObjectiveFunction),
             client,
             workers=self.workers,
             return_workers=True,
