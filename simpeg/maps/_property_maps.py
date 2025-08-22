@@ -1455,13 +1455,16 @@ class SelfConsistentEffectiveMedium(IdentityMap):
     def _transform(self, m):
         return self._sc2phaseEMTSpheroidstransform(m)
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
         """
         Derivative of the effective conductivity with respect to the
         volume fraction of phase 2 material
         """
         sige = self._transform(m)
-        return self._sc2phaseEMTSpheroidstransformDeriv(sige, m)
+        derivative = self._sc2phaseEMTSpheroidstransformDeriv(sige, m)
+        if v is not None:
+            return derivative @ v
+        return derivative
 
     def inverse(self, sige):
         """
