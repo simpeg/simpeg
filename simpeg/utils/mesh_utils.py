@@ -313,7 +313,6 @@ def shift_to_discrete_topography(
         else:
             out = np.c_[pts, topoCC[inds]]
 
-
     out[:, -1] += heights
 
     return out
