@@ -3,6 +3,7 @@ Maps that transform physical properties from one space to another.
 """
 
 import warnings
+from numbers import Real
 import numpy as np
 import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
@@ -557,13 +558,6 @@ class ChiMap(IdentityMap):
 class EffectiveSusceptibilityMap(IdentityMap):
     r"""Effective susceptibility Map
 
-    Convert Effective Susceptibility (SI) to magnetic polarization (nT).
-
-
-    .. math::
-
-        \mu_0 M = esus * ||B_0||
-
     Parameters
     ----------
     mesh : discretize.BaseMesh
@@ -575,12 +569,23 @@ class EffectiveSusceptibilityMap(IdentityMap):
         is not equal to the number of cells in a mesh.
     ambient_field_magnitude : float
         The magnitude of the ambient geomagnetic field.
+
+    Notes
+    -----
+    This map converts effective susceptibility values (:math:`\chi_\text{eff}`) into magnetic
+    polarization (:math:`\mathbf{I}`):
+
+    .. math::
+        \mathbf{I} = \mu_0 \mathbf{M} = \chi_\text{eff} \lVert \mathbf{B}_0 \rVert
+
+    where :math:`\mathbf{M}` is the magnetization vector, and
+    :math:`\lVert \mathbf{B}_0 \rVert` is the magnitude of the ambient field in nT.
     """
 
     def __init__(self, mesh=None, nP=None, ambient_field_magnitude=None, **kwargs):
         super().__init__(mesh=mesh, nP=nP, **kwargs)
         if ambient_field_magnitude is None or not isinstance(
-            ambient_field_magnitude, (float, int)
+            ambient_field_magnitude, Real
         ):
             raise TypeError(
                 "ambient_field_magnitude must be a float (or int convertible to float) and cannot be None"

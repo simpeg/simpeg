@@ -17,12 +17,11 @@ from scipy.constants import mu_0
 from scipy.sparse.linalg import LinearOperator, aslinearoperator
 
 from simpeg import props, utils
-from simpeg.utils import mat_utils, mkvc, sdiag, get_default_solver
+from simpeg.utils import mat_utils, mkvc, sdiag
 from simpeg.utils.code_utils import validate_string, validate_type
 
 from ...base import BaseMagneticPDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
-from .analytics import CongruousMagBC
 from .survey import Survey
 
 from ._numba import choclo, NUMBA_FUNCTIONS_3D, NUMBA_FUNCTIONS_2D
@@ -1665,14 +1664,14 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         Magnetic Permeability Model (H/ m). Set this for forward
         modeling or to fix while inverting for remanence. This is used if
         muMap == None
-    muMap : SimPEG.maps.IdentityMap, optional
+    muMap : simpeg.maps.IdentityMap, optional
         The mapping used to go from the simulation model to `mu`. Set this
         to invert for `mu`.
     rem : float, array_like
         Magnetic Polarization \mu_0*M (nT). Set this for forward
         modeling or to fix remanent magnetization while inverting for permeability.
         This is used if remMap == None
-    remMap : SimPEG.maps.IdentityMap, optional
+    remMap : simpeg.maps.IdentityMap, optional
         The mapping used to go from the simulation model to `mu_0*M`. Set this
         to invert for `mu_0*M`.
     storeJ: bool
@@ -1889,7 +1888,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         return dpred
 
-    def magnetic_polarization(self, m):
+    def magnetic_polarization(self, m=None):
         r"""
         Computes the total magnetic polarization :math:`\mu_0\mathbf{M}`.
 
@@ -1908,27 +1907,11 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         """
         self.model = m
+        f = self.fields(m)
+        b_field, u = f["b"], f["u"]
+        MfMu0iI = self.mesh.get_face_inner_product(1.0 / mu_0, invert_matrix=True)
 
-        self._Ainv = self.solver(self.getA(m), **self.solver_opts)
-
-        rhs = self._getRHS(m)
-
-        u = self._Ainv * rhs
-        b_field = -self.MfMuiI * self._DivT * u
-
-        if not np.isscalar(self.mu) or not np.allclose(self.mu, mu_0):
-            b_field += self._MfMu0i * self.MfMuiI * self._b0 - self._b0
-
-        if self.rem is not None:
-            b_field += (
-                self.MfMuiI
-                * self.mesh.get_face_inner_product(
-                    self.rem
-                    / np.tile(self.mu * np.ones(self.mesh.n_cells), self.mesh.dim)
-                )
-            ).diagonal()
-
-        mu0_h = -self._MfMu0iI * self._DivT * u
+        mu0_h = -MfMu0iI * self._DivT * u
         mu0_m = b_field - mu0_h
 
         return mu0_m

@@ -4,7 +4,7 @@ import simpeg.potential_fields as PF
 from simpeg import utils, maps
 from discretize.utils import mkvc, refine_tree_xyz
 import numpy as np
-from tests.utils.shared_helpers import ProlateEllispse
+from tests.utils.ellipsoid import ProlateEllipsoid
 
 
 @pytest.fixture
@@ -89,7 +89,7 @@ def test_forward(model_type, mesh):
     axes = [600.0, 200.0]
     strike_dip_rake = [0, 0, 90]
 
-    ellipsoid = ProlateEllispse(
+    ellipsoid = ProlateEllipsoid(
         center,
         axes,
         strike_dip_rake,
@@ -145,6 +145,18 @@ def test_forward(model_type, mesh):
 
     assert err < tol
 
+    u0_M_analytic = ellipsoid.Magnetization()
+    u0_M_numeric = mesh.average_face_to_cell_vector * simulation.magnetic_polarization()
+    u0_M_numeric = u0_M_numeric.reshape((mesh.n_cells, 3), order="F")
+    u0_M_numeric = np.mean(u0_M_numeric[ind_ellipsoid, :], axis=0)
+
+    assert np.allclose(
+        u0_M_numeric,
+        u0_M_analytic,
+        rtol=0.1,
+        atol=0.01 * np.max(np.abs(u0_M_analytic)),
+    )
+
 
 def test_exact_tmi(mesh):
     """
@@ -170,7 +182,7 @@ def test_exact_tmi(mesh):
     axes = [600.0, 200.0]
     strike_dip_rake = [0, 0, 90]
 
-    ellipsoid = ProlateEllispse(
+    ellipsoid = ProlateEllipsoid(
         center,
         axes,
         strike_dip_rake,
@@ -238,7 +250,7 @@ def test_differential_magnetization_against_integral(mesh):
     axes = [600.0, 200.0]
     strike_dip_rake = [0, 0, 90]
 
-    ellipsoid = ProlateEllispse(
+    ellipsoid = ProlateEllipsoid(
         center,
         axes,
         strike_dip_rake,
@@ -272,7 +284,7 @@ def test_differential_magnetization_against_integral(mesh):
         chi=eff_sus_model,
         model_type="vector",
         store_sensitivities="forward_only",
-        ind_active=ind_ellipsoid,
+        active_cells=ind_ellipsoid,
     )
 
     dpred_numeric_differential = simulation_differential.dpred()

@@ -4,7 +4,7 @@ import simpeg.potential_fields as PF
 from simpeg import utils, maps
 from discretize.utils import mkvc, refine_tree_xyz
 import numpy as np
-from tests.utils.shared_helpers import ProlateEllispse
+from tests.utils.ellipsoid import ProlateEllipsoid
 
 
 @pytest.fixture
@@ -85,7 +85,7 @@ def test_recievers(mesh):
     axes = [600.0, 200.0]
     strike_dip_rake = [0, 0, 90]
 
-    ellipsoid = ProlateEllispse(
+    ellipsoid = ProlateEllipsoid(
         center,
         axes,
         strike_dip_rake,
