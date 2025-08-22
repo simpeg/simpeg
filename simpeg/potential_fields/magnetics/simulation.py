@@ -17,7 +17,7 @@ from scipy.sparse.linalg import LinearOperator, aslinearoperator
 
 from simpeg import props, utils
 from simpeg.utils import mat_utils, mkvc, sdiag, get_default_solver
-from simpeg.utils.code_utils import deprecate_property, validate_string, validate_type
+from simpeg.utils.code_utils import validate_string, validate_type
 
 from ...base import BaseMagneticPDESimulation
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
@@ -155,12 +155,6 @@ class Simulation3DIntegral(BasePFSimulation):
         If True, the simulation will run in parallel. If False, it will
         run in serial. If ``engine`` is not ``"choclo"`` this argument will be
         ignored.
-    ind_active : np.ndarray of int or bool
-
-        .. deprecated:: 0.23.0
-
-           Argument ``ind_active`` is deprecated in favor of
-           ``active_cells`` and will be removed in SimPEG v0.24.0.
     """
 
     chi, chiMap, chiDeriv = props.Invertible("Magnetic Susceptibility (SI)")
@@ -283,10 +277,6 @@ class Simulation3DIntegral(BasePFSimulation):
                 case ("geoana", _):
                     self._G = self.linear_operator()
         return self._G
-
-    modelType = deprecate_property(
-        model_type, "modelType", "model_type", removal_version="0.18.0", error=True
-    )
 
     @property
     def nD(self):

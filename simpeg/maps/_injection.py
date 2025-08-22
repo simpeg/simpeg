@@ -2,7 +2,6 @@
 Injection and interpolation map classes.
 """
 
-import warnings
 import discretize
 import numpy as np
 import scipy.sparse as sp
@@ -23,12 +22,18 @@ class Mesh2Mesh(IdentityMap):
     Takes a model on one mesh are translates it to another mesh.
     """
 
-    def __init__(self, meshes, active_cells=None, indActive=None, **kwargs):
+    def __init__(self, meshes, active_cells=None, **kwargs):
         # Sanity checks for the meshes parameter
         try:
             mesh, mesh2 = meshes
         except TypeError:
             raise TypeError("Couldn't unpack 'meshes' into two meshes.")
+
+        # Deprecate indActive argument
+        if kwargs.pop("indActive", None) is not None:
+            raise TypeError(
+                "'indActive' was removed in SimPEG v0.24.0, please use 'active_cells' instead.",
+            )
 
         super().__init__(mesh=mesh, **kwargs)
 
@@ -39,22 +44,6 @@ class Mesh2Mesh(IdentityMap):
                 f"Found meshes with dimensions '{mesh.dim}' and '{mesh2.dim}'. "
                 + "Both meshes must have the same dimension."
             )
-
-        # Deprecate indActive argument
-        if indActive is not None:
-            if active_cells is not None:
-                raise TypeError(
-                    "Cannot pass both 'active_cells' and 'indActive'."
-                    "'indActive' has been deprecated and will be removed in "
-                    " SimPEG v0.24.0, please use 'active_cells' instead.",
-                )
-            warnings.warn(
-                "'indActive' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'active_cells' instead.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            active_cells = indActive
 
         self.active_cells = active_cells
 
@@ -100,8 +89,7 @@ class Mesh2Mesh(IdentityMap):
         "indActive",
         "active_cells",
         removal_version="0.24.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     @property
@@ -165,20 +153,6 @@ class InjectActiveCells(IdentityMap):
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
     value_inactive : float or numpy.ndarray
         The physical property value assigned to all inactive cells in the mesh
-    indActive : numpy.ndarray
-
-        .. deprecated:: 0.23.0
-
-           Argument ``indActive`` is deprecated in favor of ``active_cells`` and will
-           be removed in SimPEG v0.24.0.
-
-    valInactive : float or numpy.ndarray
-
-        .. deprecated:: 0.23.0
-
-           Argument ``valInactive`` is deprecated in favor of ``value_inactive`` and
-           will be removed in SimPEG v0.24.0.
-
     """
 
     def __init__(
@@ -187,43 +161,23 @@ class InjectActiveCells(IdentityMap):
         active_cells=None,
         value_inactive=0.0,
         nC=None,
-        indActive=None,
-        valInactive=0.0,
+        **kwargs,
     ):
         self.mesh = mesh
         self.nC = nC or mesh.nC
 
         # Deprecate indActive argument
-        if indActive is not None:
-            if active_cells is not None:
-                raise TypeError(
-                    "Cannot pass both 'active_cells' and 'indActive'."
-                    "'indActive' has been deprecated and will be removed in "
-                    " SimPEG v0.24.0, please use 'active_cells' instead.",
-                )
-            warnings.warn(
-                "'indActive' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'active_cells' instead.",
-                FutureWarning,
-                stacklevel=2,
+        if kwargs.pop("indActive", None) is not None:
+            raise TypeError(
+                "'indActive' was removed in SimPEG v0.24.0, please use 'active_cells' instead."
             )
-            active_cells = indActive
-
         # Deprecate valInactive argument
-        if not isinstance(valInactive, Number) or valInactive != 0.0:
-            if not isinstance(value_inactive, Number) or value_inactive != 0.0:
-                raise TypeError(
-                    "Cannot pass both 'value_inactive' and 'valInactive'."
-                    "'valInactive' has been deprecated and will be removed in "
-                    " SimPEG v0.24.0, please use 'value_inactive' instead.",
-                )
-            warnings.warn(
-                "'valInactive' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'value_inactive' instead.",
-                FutureWarning,
-                stacklevel=2,
+        if kwargs.pop("valInactive", None) is not None:
+            raise TypeError(
+                "'valInactive' was removed in SimPEG v0.24.0, please use 'value_inactive' instead."
             )
-            value_inactive = valInactive
+        if kwargs:  # TODO Remove this when removing kwargs argument.
+            raise TypeError("Unsupported keyword argument " + kwargs.popitem()[0])
 
         self.active_cells = active_cells
         self._nP = np.sum(self.active_cells)
@@ -260,8 +214,7 @@ class InjectActiveCells(IdentityMap):
         "valInactive",
         "value_inactive",
         removal_version="0.24.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     @property
@@ -286,8 +239,7 @@ class InjectActiveCells(IdentityMap):
         "indActive",
         "active_cells",
         removal_version="0.24.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     @property

@@ -1,4 +1,3 @@
-import warnings
 import numpy as np
 import scipy.ndimage as ndi
 import scipy.sparse as sp
@@ -443,12 +442,6 @@ def create_random_model(
         Number of smoothing iterations after convolutions
     bounds : list of float
         Lower and upper bound for the model values
-    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
-
-        .. deprecated:: 0.23.0
-
-           Argument ``seed`` is deprecated in favor of ``random_seed`` and will
-           be removed in SimPEG v0.24.0.
 
     Returns
     -------
@@ -467,21 +460,6 @@ def create_random_model(
     >>> plt.show()
 
     """
-    # Deprecate seed argument
-    if "seed" in kwargs:
-        if random_seed != 1000:
-            raise TypeError(
-                "Cannot pass both 'random_seed' and 'seed'."
-                "'seed' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'random_seed' instead.",
-            )
-        warnings.warn(
-            "'seed' has been deprecated and will be removed in "
-            " SimPEG v0.24.0, please use 'random_seed' instead.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        random_seed = kwargs.pop("seed")
     if kwargs:
         args = ", ".join([f"'{key}'" for key in kwargs])
         raise TypeError(f"Invalid arguments {args}.")
