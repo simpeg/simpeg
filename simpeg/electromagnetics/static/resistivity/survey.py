@@ -3,7 +3,7 @@ import numpy as np
 from ....utils.code_utils import validate_string
 
 from ....survey import BaseSurvey
-from ..utils import drapeTopotoLoc
+from ....utils import shift_to_discrete_topography
 from . import receivers as Rx
 from . import sources as Src
 from ..utils import static_utils
@@ -242,6 +242,8 @@ class Survey(BaseSurvey):
         option="top",
         topography=None,
         force=False,
+        shift_horizontal=True,
+        ind_active=None,
     ):
         """Shift electrode locations to discrete surface topography.
 
@@ -256,7 +258,17 @@ class Survey(BaseSurvey):
         topography : (n, dim) numpy.ndarray, default = ``None``
             Surface topography
         force : bool, default = ``False``
-            If ``True`` force electrodes to surface even if borehole
+            If ``True`` force electrodes to surface even if borehole.
+        shift_horizontal : bool
+            When True, locations are shifted horizontally to lie vertically over cell
+            centers. When False, the original horizontal locations are preserved.
+        ind_active : numpy.ndarray of int or bool, optional
+
+            .. deprecated:: 0.23.0
+
+               Argument ``ind_active`` is deprecated in favor of ``active_cells``
+               and will be removed in SimPEG v0.25.0.
+
         """
 
         if self.survey_geometry == "surface":
@@ -271,8 +283,12 @@ class Survey(BaseSurvey):
             inv_b, inv = inv[: len(loc_b)], inv[len(loc_b) :]
             inv_m, inv_n = inv[: len(loc_m)], inv[len(loc_m) :]
 
-            electrodes_shifted = drapeTopotoLoc(
-                mesh, unique_electrodes, active_cells=active_cells, option=option
+            electrodes_shifted = shift_to_discrete_topography(
+                mesh,
+                unique_electrodes,
+                active_cells=active_cells,
+                option=option,
+                shift_horizontal=shift_horizontal,
             )
             a_shifted = electrodes_shifted[inv_a]
             b_shifted = electrodes_shifted[inv_b]
