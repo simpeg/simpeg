@@ -230,7 +230,7 @@ class InversionDirective:
         list of simpeg.survey.Survey
             Survey for all data misfits.
         """
-        return [simulation.survey for simulation in self.simulation]
+        return [objfcts.simulation.survey for objfcts in self.dmisfit.objfcts]
 
     @property
     def simulation(self) -> list["BaseSimulation"]:
@@ -245,14 +245,7 @@ class InversionDirective:
         list of simpeg.simulation.BaseSimulation
             Simulation for all data misfits.
         """
-        simulations = []
-        for objfct in self.dmisfit.objfcts:
-            if isinstance(objfct, ComboObjectiveFunction):
-                simulations += [o.simulation for o in objfct.objfcts]
-
-            else:
-                simulations.append(objfct.simulation)
-        return simulations
+        return [objfcts.simulation for objfcts in self.dmisfit.objfcts]
 
     def initialize(self):
         """Initialize inversion parameter(s) according to directive."""
