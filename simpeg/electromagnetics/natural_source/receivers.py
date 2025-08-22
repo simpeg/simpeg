@@ -4,7 +4,6 @@ from ...utils.code_utils import (
     validate_ndarray_with_shape,
     deprecate_class,
 )
-import warnings
 import numpy as np
 from scipy.constants import mu_0
 from ...survey import BaseRx
@@ -1229,158 +1228,19 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
         )
 
 
-@deprecate_class(removal_version="0.24.0", future_warn=True, replace_docstring=False)
+@deprecate_class(removal_version="0.24.0", error=True, replace_docstring=False)
 class PointNaturalSource(Impedance):
-    """Point receiver class for magnetotelluric simulations.
-
+    """
     .. warning::
-        This class is deprecated and will be removed in SimPEG v0.24.0.
+        This class was removed in SimPEG v0.24.0.
         Please use :class:`.natural_source.receivers.Impedance`.
-
-    Assumes that the data locations are standard xyz coordinates;
-    i.e. (x,y,z) is (Easting, Northing, up).
-
-    Parameters
-    ----------
-    locations : (n_loc, n_dim) numpy.ndarray
-        Receiver locations.
-    orientation : {'xx', 'xy', 'yx', 'yy'}
-        MT receiver orientation.
-    component : {'real', 'imag', 'apparent_resistivity', 'phase'}
-        MT data type.
     """
 
-    def __init__(
-        self,
-        locations=None,
-        orientation="xy",
-        component="real",
-        locations_e=None,
-        locations_h=None,
-        **kwargs,
-    ):
-        if locations is None:
-            if (locations_e is None) ^ (
-                locations_h is None
-            ):  # if only one of them is none
-                raise TypeError(
-                    "Either locations or both locations_e and locations_h must be passed"
-                )
-            if locations_e is None and locations_h is None:
-                warnings.warn(
-                    "Using the default for locations is deprecated behavior. Please explicitly set locations. ",
-                    FutureWarning,
-                    stacklevel=2,
-                )
-                locations_e = np.array([[0.0]])
-                locations_h = locations_e
-        else:  # locations was not None
-            if locations_e is not None or locations_h is not None:
-                raise TypeError(
-                    "Cannot pass both locations and locations_e or locations_h at the same time."
-                )
-            if isinstance(locations, list):
-                if len(locations) == 2:
-                    locations_e = locations[0]
-                    locations_h = locations[1]
-                elif len(locations) == 1:
-                    locations_e = locations[0]
-                    locations_h = locations[0]
-                else:
-                    raise ValueError("incorrect size of list, must be length of 1 or 2")
-            else:
-                locations_e = locations_h = locations
 
-        super().__init__(
-            locations_e=locations_e,
-            locations_h=locations_h,
-            orientation=orientation,
-            component=component,
-            **kwargs,
-        )
-
-    def eval(self, src, mesh, f, return_complex=False):  # noqa: A003
-        if return_complex:
-            warnings.warn(
-                "Calling with return_complex=True is deprecated in SimPEG 0.23. Instead set rx.component='complex'",
-                FutureWarning,
-                stacklevel=2,
-            )
-            temp = self.component
-            self.component = "complex"
-            out = super().eval(src, mesh, f)
-            self.component = temp
-        else:
-            out = super().eval(src, mesh, f)
-        return out
-
-    locations = property(lambda self: self._locations[0], Impedance.locations.fset)
-
-
-@deprecate_class(removal_version="0.24.0", future_warn=True, replace_docstring=False)
+@deprecate_class(removal_version="0.24.0", error=True, replace_docstring=False)
 class Point3DTipper(Tipper):
-    """Point receiver class for Z-axis tipper simulations.
-
-    .. warning::
-        This class is deprecated and will be removed in SimPEG v0.24.0.
-        Please use :class:`.natural_source.receivers.Tipper`.
-
-    Assumes that the data locations are standard xyz coordinates;
-    i.e. (x,y,z) is (Easting, Northing, up).
-
-    Parameters
-    ----------
-    locations : (n_loc, n_dim) numpy.ndarray
-        Receiver locations.
-    orientation : str, default = 'zx'
-        NSEM receiver orientation. Must be one of {'zx', 'zy'}
-    component : str, default = 'real'
-        NSEM data type. Choose one of {'real', 'imag', 'apparent_resistivity', 'phase'}
     """
-
-    def __init__(
-        self,
-        locations,
-        orientation="zx",
-        component="real",
-        locations_e=None,
-        locations_h=None,
-        **kwargs,
-    ):
-        # note locations_e and locations_h never did anything for this class anyways
-        # so can just issue a warning here...
-        if locations_e is not None or locations_h is not None:
-            warnings.warn(
-                "locations_e and locations_h are unused for this class",
-                UserWarning,
-                stacklevel=2,
-            )
-        if isinstance(locations, list):
-            if len(locations) < 3:
-                locations = locations[0]
-            else:
-                raise ValueError("incorrect size of list, must be length of 1 or 2")
-
-        super().__init__(
-            locations_h=locations,
-            orientation=orientation,
-            component=component,
-            **kwargs,
-        )
-
-    def eval(self, src, mesh, f, return_complex=False):  # noqa: A003
-        if return_complex:
-            warnings.warn(
-                "Calling with return_complex=True is deprecated in SimPEG 0.23. Instead set rx.component='complex'",
-                FutureWarning,
-                stacklevel=2,
-            )
-            temp = self.component
-            self.component = "complex"
-            out = super().eval(src, mesh, f)
-            self.component = temp
-        else:
-            out = super().eval(src, mesh, f)
-        return out
-
-    locations = property(lambda self: self._locations[0], Tipper.locations.fset)
+    .. warning::
+        This class was removed in SimPEG v0.24.0.
+        Please use :class:`.natural_source.receivers.Tipper`.
+    """

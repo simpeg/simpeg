@@ -67,3 +67,11 @@ class TestDeprecatedFunctions:
         msg = "closestPointsGrid is now deprecated. It will be removed in SimPEG version 0.26.0."
         with pytest.warns(FutureWarning, match=msg):
             closestPointsGrid(mesh.cell_centers, points)
+
+    def test_error_argument(self, mesh, points, active_cells):
+        """
+        Test if error is raised after passing ``ind_active`` as argument.
+        """
+        msg = "Unsupported keyword argument ind_active"
+        with pytest.raises(TypeError, match=msg):
+            drapeTopotoLoc(mesh, points, ind_active=active_cells)

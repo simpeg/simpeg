@@ -1,4 +1,3 @@
-import warnings
 import numpy as np
 
 from ....utils.code_utils import validate_string
@@ -27,24 +26,18 @@ class Survey(BaseSurvey):
         survey_geometry="surface",
         **kwargs,
     ):
-        if (key := "survey_type") in kwargs:
-            warnings.warn(
-                f"Argument '{key}' is ignored and will be removed in future "
-                "versions of SimPEG. Types of sources and their corresponding "
-                "receivers are obtained from their respective classes, without "
+        if kwargs.pop("survey_type", None) is not None:
+            raise TypeError(
+                "Argument 'survey_type' has been removed in SimPEG 0.24.0. Types of sources and"
+                "their corresponding receivers are obtained from their respective classes, without "
                 "the need to specify the survey type.",
-                FutureWarning,
-                stacklevel=0,
             )
-            kwargs.pop(key)
         super(Survey, self).__init__(source_list, **kwargs)
         self.survey_geometry = survey_geometry
 
     @property
     def survey_geometry(self):
         """Survey geometry
-
-        This property is deprecated.
 
         Returns
         -------
@@ -65,36 +58,17 @@ class Survey(BaseSurvey):
         """
         ``survey_type`` has been removed.
 
-        Survey type; one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
-
         .. important:
 
             The `survey_type` property has been removed. Types of sources and
             their corresponding receivers are obtained from their respective
             classes, without the need to specify the survey type.
-
-        Returns
-        -------
-        str
-            Survey type; one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
         """
-        warnings.warn(
-            "Property 'survey_type' has been removed."
-            "Types of sources and their corresponding receivers are obtained from "
-            "their respective classes, without the need to specify the survey type.",
-            FutureWarning,
-            stacklevel=0,
-        )
+        raise AttributeError("'survey_type' has been removed.")
 
     @survey_type.setter
     def survey_type(self, var):
-        warnings.warn(
-            "Property 'survey_type' has been removed."
-            "Types of sources and their corresponding receivers are obtained from "
-            "their respective classes, without the need to specify the survey type.",
-            FutureWarning,
-            stacklevel=0,
-        )
+        raise AttributeError("'survey_type' has been removed.")
 
     def __repr__(self):
         return f"{self.__class__.__name__}(#sources: {self.nSrc}; #data: {self.nD})"
@@ -193,8 +167,6 @@ class Survey(BaseSurvey):
     def set_geometric_factor(
         self,
         space_type="halfspace",
-        data_type=None,
-        survey_type=None,
     ):
         """
         Set and return the geometric factor for all data
@@ -203,32 +175,18 @@ class Survey(BaseSurvey):
         ----------
         space_type : {'halfspace', 'wholespace'}
             Calculate geometric factors using a half-space or whole-space formula.
-        data_type : str, default = ``None``
-            This input argument is now deprecated
-        survey_type : str, default = ``None``
-            This input argument is now deprecated
 
         Returns
         -------
         (nD) numpy.ndarray
             The geometric factor for each datum
         """
-        if data_type is not None:
-            raise TypeError(
-                "The data_type kwarg has been removed, please set the data_type on the "
-                "receiver object itself."
-            )
-        if survey_type is not None:
-            raise TypeError("The survey_type parameter is no longer needed")
-
         geometric_factor = static_utils.geometric_factor(self, space_type=space_type)
 
         # geometric_factor = data.Data(self, geometric_factor)
         survey_slices = self.get_all_slices()
         for source in self.source_list:
             for rx in source.receiver_list:
-                if data_type is not None:
-                    rx.data_type = data_type
                 if rx.data_type == "apparent_resistivity":
                     src_rx_slice = survey_slices[source, rx]
                     rx._geometric_factor[source] = geometric_factor[src_rx_slice]
@@ -277,14 +235,6 @@ class Survey(BaseSurvey):
         self._locations_m = np.vstack(locations_m)
         self._locations_n = np.vstack(locations_n)
 
-    def getABMN_locations(self):
-        """The 'getABMN_locations' method has been removed."""
-        raise TypeError(
-            "The getABMN_locations method has been Removed. Please instead "
-            "ask for the property of interest: survey.locations_a, "
-            "survey.locations_b, survey.locations_m, or survey.locations_n."
-        )
-
     def drape_electrodes_on_topography(
         self,
         mesh,
@@ -317,15 +267,9 @@ class Survey(BaseSurvey):
             .. deprecated:: 0.23.0
 
                Argument ``ind_active`` is deprecated in favor of ``active_cells``
-               and will be removed in SimPEG v0.24.0.
+               and will be removed in SimPEG v0.25.0.
 
         """
-        # Deprecate ind_active argument
-        if ind_active is not None:
-            raise TypeError(
-                "'ind_active' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'active_cells' instead."
-            )
 
         if self.survey_geometry == "surface":
             loc_a = self.locations_a[:, :2]
@@ -377,10 +321,3 @@ class Survey(BaseSurvey):
             raise Exception(
                 f"Input valid survey survey_geometry: {self.survey_geometry}"
             )
-
-    def drapeTopo(self, *args, **kwargs):
-        """This method is deprecated. See :meth:`drape_electrodes_on_topography`"""
-        raise TypeError(
-            "The drapeTopo method has been removed. Please instead "
-            "use the drape_electrodes_on_topography method."
-        )

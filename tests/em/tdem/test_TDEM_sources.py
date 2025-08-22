@@ -1,4 +1,3 @@
-import pytest
 import unittest
 
 import numpy as np
@@ -6,7 +5,6 @@ import scipy.sparse as sp
 from discretize.tests import check_derivative
 from numpy.testing import assert_array_almost_equal
 from simpeg.electromagnetics.time_domain.sources import (
-    CircularLoop,
     ExponentialWaveform,
     HalfSineWaveform,
     PiecewiseLinearWaveform,
@@ -526,19 +524,3 @@ class TestExponentialWaveform(unittest.TestCase):
 def test_simple_source():
     waveform = StepOffWaveform()
     assert waveform.eval(0.0) == 1.0
-
-
-def test_removal_circular_loop_n():
-    """
-    Test if passing the N argument to CircularLoop raises an error
-    """
-    msg = "'N' property has been removed. Please use 'n_turns'."
-    with pytest.raises(TypeError, match=msg):
-        CircularLoop(
-            [],
-            waveform=StepOffWaveform(),
-            location=np.array([0.0, 0.0, 0.0]),
-            radius=1.0,
-            current=0.5,
-            N=2,
-        )

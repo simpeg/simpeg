@@ -23,14 +23,26 @@ from simpeg.regularization.sparse import Sparse
 
 
 class directivesValidation(unittest.TestCase):
+
+    def test_error_irls_and_beta_scheduling(self):
+        """
+        Test if validation error when ``UpdateIRLS`` and ``BetaSchedule`` are present.
+        """
+        directives_list = directives.DirectiveList(
+            directives.UpdateIRLS(),
+            directives.BetaSchedule(coolingFactor=2, coolingRate=1),
+        )
+        msg = "Beta scheduling is handled by the"
+        with pytest.raises(AssertionError, match=msg):
+            directives_list.validate()
+
     def test_validation_pass(self):
         betaest = directives.BetaEstimate_ByEig()
 
-        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
-        beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
+        IRLS = directives.UpdateIRLS()
 
         update_Jacobi = directives.UpdatePreconditioner()
-        dList = [betaest, IRLS, beta_schedule, update_Jacobi]
+        dList = [betaest, IRLS, update_Jacobi]
         directiveList = directives.DirectiveList(*dList)
 
         self.assertTrue(directiveList.validate())
@@ -38,11 +50,10 @@ class directivesValidation(unittest.TestCase):
     def test_validation_fail(self):
         betaest = directives.BetaEstimate_ByEig()
 
-        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
+        IRLS = directives.UpdateIRLS()
         update_Jacobi = directives.UpdatePreconditioner()
-        beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
 
-        dList = [betaest, update_Jacobi, IRLS, beta_schedule]
+        dList = [betaest, update_Jacobi, IRLS]
         directiveList = directives.DirectiveList(*dList)
 
         with self.assertRaises(AssertionError):
@@ -60,9 +71,8 @@ class directivesValidation(unittest.TestCase):
     def test_validation_warning(self):
         betaest = directives.BetaEstimate_ByEig()
 
-        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
-        beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
-        dList = [betaest, IRLS, beta_schedule]
+        IRLS = directives.UpdateIRLS()
+        dList = [betaest, IRLS]
         directiveList = directives.DirectiveList(*dList)
 
         with pytest.warns(UserWarning):
@@ -119,7 +129,7 @@ class ValidationInInversion(unittest.TestCase):
         betaest = directives.BetaEstimate_ByEig()
 
         # Here is where the norms are applied
-        IRLS = directives.Update_IRLS(f_min_change=1e-4, minGNiter=3, beta_tol=1e-2)
+        IRLS = directives.UpdateIRLS(f_min_change=1e-4)
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights()
         with self.assertRaises(AssertionError):
@@ -446,53 +456,6 @@ def test_save_output_dict(RegClass):
         assert "x SparseSmoothness.norm" in out_dict
 
 
-class TestDeprecatedArguments:
-    """
-    Test if directives raise errors after passing deprecated arguments.
-    """
-
-    def test_debug(self):
-        """
-        Test if InversionDirective raises error after passing 'debug'.
-        """
-        msg = "'debug' property has been removed. Please use 'verbose'."
-        with pytest.raises(TypeError, match=msg):
-            directives.InversionDirective(debug=True)
-
-
-class TestUpdateSensitivityWeightsRemovedArgs:
-    """
-    Test if `UpdateSensitivityWeights` raises errors after passing removed arguments.
-    """
-
-    def test_every_iter(self):
-        """
-        Test if `UpdateSensitivityWeights` raises error after passing `everyIter`.
-        """
-        msg = "'everyIter' property has been removed. Please use 'every_iteration'."
-        with pytest.raises(TypeError, match=msg):
-            directives.UpdateSensitivityWeights(everyIter=True)
-
-    def test_threshold(self):
-        """
-        Test if `UpdateSensitivityWeights` raises error after passing `threshold`.
-        """
-        msg = "'threshold' property has been removed. Please use 'threshold_value'."
-        with pytest.raises(TypeError, match=msg):
-            directives.UpdateSensitivityWeights(threshold=True)
-
-    def test_normalization(self):
-        """
-        Test if `UpdateSensitivityWeights` raises error after passing `normalization`.
-        """
-        msg = (
-            "'normalization' property has been removed. "
-            "Please define normalization using 'normalization_method'."
-        )
-        with pytest.raises(TypeError, match=msg):
-            directives.UpdateSensitivityWeights(normalization=True)
-
-
 class TestUpdateSensitivityNormalization:
     """
     Test the `normalization` property and setter in `UpdateSensitivityWeights`
@@ -598,9 +561,9 @@ class TestBetaEstimatorArguments:
         assert directive.random_seed == random_seed
 
 
-class TestDeprecateSeedProperty:
+class TestRemovedSeedProperty:
     """
-    Test deprecation of seed property.
+    Test removal of seed property.
     """
 
     CLASSES = (
@@ -610,63 +573,31 @@ class TestDeprecateSeedProperty:
         directives.ScalingMultipleDataMisfits_ByEig,
     )
 
-    def get_message_duplicated_error(self, old_name, new_name, version="v0.24.0"):
+    def get_message_removed_error(self, old_name, new_name, version="v0.24.0"):
         msg = (
-            f"Cannot pass both '{new_name}' and '{old_name}'."
-            f"'{old_name}' has been deprecated and will be removed in "
-            f" SimPEG {version}, please use '{new_name}' instead."
-        )
-        return msg
-
-    def get_message_deprecated_warning(self, old_name, new_name, version="v0.24.0"):
-        msg = (
-            f"'{old_name}' has been deprecated and will be removed in "
+            f"'{old_name}' has been removed in "
             f" SimPEG {version}, please use '{new_name}' instead."
         )
         return msg
 
     @pytest.mark.parametrize("directive", CLASSES)
-    def test_warning_argument(self, directive):
+    def test_error_argument(self, directive):
         """
-        Test if warning is raised after passing ``seed`` to the constructor.
+        Test if error is raised after passing ``seed`` to the constructor.
         """
-        msg = self.get_message_deprecated_warning("seed", "random_seed")
-        seed = 42135
-        with pytest.warns(FutureWarning, match=msg):
-            directive_instance = directive(seed=42135)
-        assert directive_instance.random_seed == seed
-
-    @pytest.mark.parametrize("directive", CLASSES)
-    def test_error_duplicated_argument(self, directive):
-        """
-        Test error after passing ``seed`` and ``random_seed`` to the constructor.
-        """
-        msg = self.get_message_duplicated_error("seed", "random_seed")
+        msg = self.get_message_removed_error("seed", "random_seed")
         with pytest.raises(TypeError, match=msg):
-            directive(seed=42, random_seed=42)
+            directive(seed=42135)
 
     @pytest.mark.parametrize("directive", CLASSES)
-    def test_warning_accessing_property(self, directive):
+    def test_error_accessing_property(self, directive):
         """
-        Test warning when trying to access the ``seed`` property.
-        """
-        directive_obj = directive(random_seed=42)
-        msg = "seed has been deprecated, please use random_seed"
-        with pytest.warns(FutureWarning, match=msg):
-            seed = directive_obj.seed
-        np.testing.assert_allclose(seed, directive_obj.random_seed)
-
-    @pytest.mark.parametrize("directive", CLASSES)
-    def test_warning_setter(self, directive):
-        """
-        Test warning when trying to set the ``seed`` property.
+        Test error when trying to access the ``seed`` property.
         """
         directive_obj = directive(random_seed=42)
-        msg = "seed has been deprecated, please use random_seed"
-        new_seed = 35
-        with pytest.warns(FutureWarning, match=msg):
-            directive_obj.seed = new_seed
-        np.testing.assert_allclose(directive_obj.random_seed, new_seed)
+        msg = "seed has been removed, please use random_seed"
+        with pytest.raises(NotImplementedError, match=msg):
+            directive_obj.seed
 
 
 class TestUpdateIRLS:

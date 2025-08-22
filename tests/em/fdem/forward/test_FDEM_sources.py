@@ -376,24 +376,6 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
         assert self.bPrimaryTest(src, "j")
 
 
-def test_removal_circular_loop_n():
-    """
-    Test if passing the N argument to CircularLoop raises an error
-    """
-    msg = "'N' property has been removed. Please use 'n_turns'."
-    with pytest.raises(TypeError, match=msg):
-        fdem.sources.CircularLoop(
-            [],
-            frequency=1e-3,
-            radius=np.sqrt(1 / np.pi),
-            location=[0, 0, 0],
-            orientation="Z",
-            mu=mu_0,
-            current=0.5,
-            N=2,
-        )
-
-
 def test_line_current_failures():
     rx_locs = [[0.5, 0.5, 0]]
     tx_locs = [[0, 0, 0], [0, 1, 0], [1, 1, 0], [1, 0, 0], [0, 0, 0]]

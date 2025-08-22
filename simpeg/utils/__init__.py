@@ -270,43 +270,5 @@ from .pgi_utils import (
     GaussianMixtureWithNonlinearRelationships,
     GaussianMixtureWithNonlinearRelationshipsWithPrior,
 )
-
-# Deprecated imports
-interpmat = deprecate_function(
-    interpolation_matrix, "interpmat", removal_version="0.19.0", error=True
-)
-
-from .code_utils import (
-    memProfileWrapper,
-    setKwargs,
-    printTitles,
-    printLine,
-    checkStoppers,
-    printStoppers,
-    printDone,
-    callHooks,
-    dependentProperty,
-    asArray_N_x_Dim,
-)
-from .mat_utils import (
-    sdInv,
-    getSubArray,
-    inv3X3BlockDiagonal,
-    inv2X2BlockDiagonal,
-    makePropertyTensor,
-    invPropertyTensor,
-    diagEst,
-    uniqueRows,
-)
-from .curv_utils import (
-    volTetra,
-    faceInfo,
-    indexCube,
-    exampleLrmGrid,
-)
-from .coord_utils import (
-    rotatePointsFromNormals,
-    rotationMatrixFromNormals,
-)
 from .solver_utils import get_default_solver, set_default_solver
 from .warnings import PerformanceWarning
