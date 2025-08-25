@@ -25,15 +25,29 @@ def _calc_fields(objfct, _):
     return objfct.simulation.fields(m=objfct.simulation.model)
 
 
-def _calc_dpred(objfct, _):
+def _calc_dpred(objfct, _, return_residuals=False):
     if isinstance(objfct, ComboObjectiveFunction):
         dpreds = []
+        residuals = []
         for objfct_ in objfct.objfcts:
-            dpreds.append(_calc_dpred(objfct_, _))
 
+            if return_residuals:
+                dpred_, residual_ = _calc_dpred(objfct_, _, return_residuals)
+                dpreds.append(dpred_)
+                residuals.append(residual_)
+            else:
+                dpreds.append(_calc_dpred(objfct_, _))
+
+        if return_residuals:
+            return np.hstack(dpreds), np.hstack(residuals)
         return np.hstack(dpreds)
 
-    return objfct.simulation.dpred(m=objfct.simulation.model)
+    dpred = objfct.simulation.dpred(m=objfct.simulation.model)
+    if return_residuals:
+        residual = objfct.W * (objfct.data.dobs - dpred)
+        return dpred, residual
+
+    return dpred
 
 
 def _calc_objective(objfct, multiplier, model):
@@ -371,7 +385,7 @@ class DistributedComboMisfits(ComboObjectiveFunction):
 
         return derivs
 
-    def get_dpred(self, m, f=None):
+    def get_dpred(self, m, f=None, return_residuals=False):
         """
         Request calculation of predicted data from all simulations.
         """
@@ -380,7 +394,7 @@ class DistributedComboMisfits(ComboObjectiveFunction):
         client = self.client
         m_future = self._m_as_future
         dpred = []
-
+        residuals = []
         for futures in self._workloads:
             future_preds = []
             for future, worker in zip(futures, self._workers, strict=True):
@@ -389,12 +403,23 @@ class DistributedComboMisfits(ComboObjectiveFunction):
                         _calc_dpred,
                         future,
                         m_future,
+                        return_residuals,
                         workers=worker,
                     )
                 )
-            dpred += client.gather(future_preds)
+            results = client.gather(future_preds)
 
-        return dpred
+            for result in results:
+                if return_residuals:
+                    dpred += [result[0]]
+                    residuals += [result[1]]
+                else:
+                    dpred += [result]
+
+        if return_residuals:
+            return np.hstack(dpred), np.hstack(residuals)
+
+        return np.hstack(dpred)
 
     def getJtJdiag(self, m, f=None):
         """

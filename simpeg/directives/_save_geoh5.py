@@ -355,8 +355,11 @@ class SaveDataGeoH5(SaveArrayGeoH5):
         else:
             dpred = getattr(self.invProb, "dpred", None)
             if dpred is None:
-                dpred = self.invProb.get_dpred(self.invProb.model)
+                dpred, residuals = self.invProb.get_dpred(
+                    self.invProb.model, return_residuals=True
+                )
                 self.invProb.dpred = dpred
+                self.invProb.residuals = residuals
 
             if self.joint_index is not None:
                 dpred = [dpred[ind] for ind in self.joint_index]
