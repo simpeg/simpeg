@@ -74,6 +74,16 @@ def _deriv2(objfct, multiplier, _, v):
     return multiplier * deriv2
 
 
+def _get_attr(objfct, key):
+    if isinstance(objfct, ComboObjectiveFunction):
+        attr = []
+        for objfct_ in objfct.objfcts:
+            attr.append(_get_attr(objfct_, key))
+        return attr
+
+    return objfct.nP
+
+
 def _store_model(objfct, model):
 
     if isinstance(objfct, ComboObjectiveFunction):
@@ -161,9 +171,10 @@ def _validate_type_or_future_of_type(
                     lambda v: not isinstance(v, obj_type), obj, workers=worker
                 )
             )
-            assignments.append(client.submit(_set_worker, obj, worker))
+            assignments.append(client.submit(_set_worker, obj, worker, workers=worker))
 
     client.gather(assignments)
+
     is_not_obj = np.array(client.gather(futures))
     if np.any(is_not_obj):
         raise TypeError(f"{property_name} futures must be an instance of {obj_type}")
@@ -195,7 +206,7 @@ class DistributedComboMisfits(ComboObjectiveFunction):
             multipliers = len(objfcts) * [1]
 
         super().__init__(**kwargs)
-
+        self._nP = None
         self.objfcts = objfcts
         self.multipliers = np.array(multipliers, dtype=float)
 
@@ -206,8 +217,8 @@ class DistributedComboMisfits(ComboObjectiveFunction):
 
         values = []
         count = 0
-        for futures in self._futures:
-            for objfct, worker in zip(futures, self._workers, strict=True):
+        for futures in self._workloads:
+            for future, worker in zip(futures, self._workers, strict=True):
 
                 if self.multipliers[count] == 0.0:
                     continue
@@ -215,7 +226,7 @@ class DistributedComboMisfits(ComboObjectiveFunction):
                 values.append(
                     client.submit(
                         _calc_objective,
-                        objfct,
+                        future,
                         self.multipliers[count],
                         m_future,
                         workers=worker,
@@ -225,6 +236,30 @@ class DistributedComboMisfits(ComboObjectiveFunction):
 
         values = self.client.gather(values)
         return np.sum(values)
+
+    @property
+    def nP(self):
+        """Number of model parameters.
+
+        Returns
+        -------
+        int
+            Number of model parameters.
+        """
+        if self._nP is None:
+            nP = []
+            for futures in self._workloads:
+                for future, worker in zip(futures, self._workers, strict=True):
+                    nP.append(
+                        self.client.submit(
+                            _get_attr,
+                            future,
+                            "nP",
+                            workers=worker,
+                        )
+                    )
+            self._nP = np.sum(self.client.gather(nP))
+        return self._nP
 
     @property
     def client(self):
@@ -270,16 +305,16 @@ class DistributedComboMisfits(ComboObjectiveFunction):
         derivs = 0.0
         count = 0
 
-        for futures in self._futures:
+        for futures in self._workloads:
             future_deriv = []
-            for objfct, worker in zip(futures, self._workers):
+            for future, worker in zip(futures, self._workers, strict=True):
                 if self.multipliers[count] == 0.0:  # don't evaluate the fct
                     continue
 
                 future_deriv.append(
                     client.submit(
                         _deriv,
-                        objfct,
+                        future,
                         self.multipliers[count],
                         m_future,
                         workers=worker,
@@ -311,17 +346,17 @@ class DistributedComboMisfits(ComboObjectiveFunction):
         derivs = 0.0
         count = 0
 
-        for futures in self._futures:
+        for futures in self._workloads:
 
             future_derivs = []
-            for objfct, worker in zip(futures, self._workers):
+            for future, worker in zip(futures, self._workers, strict=True):
                 if self.multipliers[count] == 0.0:  # don't evaluate the fct
                     continue
 
                 future_derivs.append(
                     client.submit(
                         _deriv2,
-                        objfct,
+                        future,
                         self.multipliers[count],
                         m_future,
                         v_future,
@@ -346,13 +381,13 @@ class DistributedComboMisfits(ComboObjectiveFunction):
         m_future = self._m_as_future
         dpred = []
 
-        for futures in self._futures:
+        for futures in self._workloads:
             future_preds = []
-            for objfct, worker in zip(futures, self._workers):
+            for future, worker in zip(futures, self._workers, strict=True):
                 future_preds.append(
                     client.submit(
                         _calc_dpred,
-                        objfct,
+                        future,
                         m_future,
                         workers=worker,
                     )
@@ -372,14 +407,14 @@ class DistributedComboMisfits(ComboObjectiveFunction):
             jtj_diag = 0.0
             client = self.client
 
-            for futures in self._futures:
+            for futures in self._workloads:
                 work = []
 
-                for objfct, worker in zip(futures, self._workers):
+                for future, worker in zip(futures, self._workers, strict=True):
                     work.append(
                         client.submit(
                             _get_jtj_diag,
-                            objfct,
+                            future,
                             m_future,
                             workers=worker,
                         )
@@ -406,13 +441,13 @@ class DistributedComboMisfits(ComboObjectiveFunction):
         # The above should pass the model to all the internal simulations.
         f = []
 
-        for futures in self._futures:
+        for futures in self._workloads:
             f.append([])
-            for objfct, worker in zip(futures, self._workers):
+            for future, worker in zip(futures, self._workers, strict=True):
                 f[-1].append(
                     client.submit(
                         _calc_fields,
-                        objfct,
+                        future,
                         m_future,
                         workers=worker,
                     )
@@ -441,12 +476,12 @@ class DistributedComboMisfits(ComboObjectiveFunction):
         [self._m_as_future] = client.scatter([value], broadcast=True)
 
         stores = []
-        for futures in self._futures:
-            for objfct, worker in zip(futures, self._workers):
+        for futures in self._workloads:
+            for future, worker in zip(futures, self._workers, strict=True):
                 stores.append(
                     client.submit(
                         _store_model,
-                        objfct,
+                        future,
                         self._m_as_future,
                         workers=worker,
                     )
@@ -475,7 +510,7 @@ class DistributedComboMisfits(ComboObjectiveFunction):
         )
 
         self._objfcts = objfcts
-        self._futures = futures
+        self._workloads = futures
         self._workers = workers
 
     @property
@@ -516,13 +551,13 @@ class DistributedComboMisfits(ComboObjectiveFunction):
         m_future = self._m_as_future
         residuals = []
 
-        for futures in self._futures:
+        for futures in self._workloads:
             future_residuals = []
-            for objfct, worker in zip(futures, self._workers):
+            for future, worker in zip(futures, self._workers, strict=True):
                 future_residuals.append(
                     client.submit(
                         _calc_residual,
-                        objfct,
+                        future,
                         m_future,
                         workers=worker,
                     )

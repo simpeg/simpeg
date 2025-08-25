@@ -9,15 +9,28 @@ from simpeg.utils import call_hooks
 from simpeg.version import __version__ as simpeg_version
 
 
+def get_nested_predicted(objfcts, m, f=None):
+    dpreds = []
+
+    for objfct in objfcts:
+
+        if isinstance(objfct, ComboObjectiveFunction):
+            dpreds += get_nested_predicted(objfct.objfcts, m, f=f)
+
+        else:
+            dpred = objfct.simulation.dpred(m, f=f)
+            dpreds += [np.asarray(dpred)]
+
+    return dpreds
+
+
 def get_dpred(self, m, f=None):
     dpreds = []
 
-    if isinstance(self.dmisfit, DaskComboMisfits | DistributedComboMisfits):
+    if isinstance(self.dmisfit, DistributedComboMisfits):
         return self.dmisfit.get_dpred(m, f=f)
 
-    for objfct in self.dmisfit.objfcts:
-        dpred = objfct.simulation.dpred(m, f=f)
-        dpreds += [np.asarray(dpred)]
+    dpreds = get_nested_predicted(self.dmisfit.objfcts, m, f=f)
 
     return dpreds
 
