@@ -208,7 +208,7 @@ class InversionDirective:
             The data misfit associated with the directive.
         """
         if getattr(self, "_dmisfit", None) is None:
-            self.dmisfit = self.invProb.dmisfit  # go through the setter
+            self._dmisfit = self.invProb.dmisfit  # go through the setter
         return self._dmisfit
 
     @dmisfit.setter
