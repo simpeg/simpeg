@@ -26,7 +26,7 @@ requirements:
   run:
     - python >=${{ python_min }}
     # Mira packages
-    - geoh5py >=0.12.0a, <0.13.dev
+    - geoh5py >=0.12.0a.dev, <0.13.dev
     # direct dependencies
     - discretize >=0.11
     - geoana >=0.7.0
