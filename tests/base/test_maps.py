@@ -32,6 +32,7 @@ REMOVED_IGNORE = [
 MAPS_TO_EXCLUDE_2D = [
     "ComboMap",
     "ActiveCells",
+    "EffectiveSusceptibilityMap",
     "InjectActiveCells",
     "LogMap",
     "LinearMap",
@@ -59,6 +60,7 @@ MAPS_TO_EXCLUDE_2D = [
 MAPS_TO_EXCLUDE_3D = [
     "ComboMap",
     "ActiveCells",
+    "EffectiveSusceptibilityMap",
     "InjectActiveCells",
     "LogMap",
     "LinearMap",
