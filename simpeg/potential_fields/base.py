@@ -84,7 +84,6 @@ class BasePFSimulation(LinearSimulation):
         self,
         mesh,
         active_cells=None,
-        store_sensitivities="ram",
         n_processes=1,
         sensitivity_dtype=np.float32,
         engine="geoana",
@@ -114,7 +113,6 @@ class BasePFSimulation(LinearSimulation):
             )
 
         self.mesh = mesh
-        self.store_sensitivities = store_sensitivities
         self.sensitivity_dtype = sensitivity_dtype
         self.engine = engine
         self.numba_parallel = numba_parallel
