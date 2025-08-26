@@ -582,13 +582,11 @@ class EffectiveSusceptibilityMap(IdentityMap):
     :math:`\lVert \mathbf{B}_0 \rVert` is the magnitude of the ambient field in nT.
     """
 
-    def __init__(self, mesh=None, nP=None, ambient_field_magnitude=None, **kwargs):
+    def __init__(self, ambient_field_magnitude, mesh=None, nP=None, **kwargs):
         super().__init__(mesh=mesh, nP=nP, **kwargs)
-        if ambient_field_magnitude is None or not isinstance(
-            ambient_field_magnitude, Real
-        ):
+        if not isinstance(ambient_field_magnitude, Real):
             raise TypeError(
-                "ambient_field_magnitude must be a float (or int convertible to float) and cannot be None"
+                "ambient_field_magnitude must be a float (or int convertible to float)"
             )
         self.ambient_field_magnitude = ambient_field_magnitude
 

@@ -119,7 +119,7 @@ def test_forward(model_type, mesh):
         mu_model = None
 
     simulation = PF.magnetics.simulation.Simulation3DDifferential(
-        survey=survey, mesh=mesh, mu=mu_model, rem=u0_Mr_model, use_float32_solver=True
+        survey=survey, mesh=mesh, mu=mu_model, rem=u0_Mr_model, solver_dtype=np.float32
     )
 
     dpred_numeric = simulation.dpred()

@@ -1672,7 +1672,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         modeling or to fix remanent magnetization while inverting for permeability.
         This is used if ``remMap`` is None.
     remMap : simpeg.maps.IdentityMap, optional
-        The mapping used to go from the simulation model to :math:`\mu_0 \mathbf{M}`. 
+        The mapping used to go from the simulation model to :math:`\mu_0 \mathbf{M}`.
         Set this to invert for :math:`\mu_0 \mathbf{M}`.
     storeJ: bool
         Whether to store the sensitivity matrix. If set to True
@@ -1683,7 +1683,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
     Notes
     -----
     This simulation solves for the magnetostatic PDE:
-    
+
     .. math::
         \nabla \cdot \Vec{B} = 0
 
@@ -1711,7 +1711,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         rem=None,
         remMap=None,
         storeJ=False,
-        use_float32_solver=False,
+        solver_dtype=np.float64,
         **kwargs,
     ):
         if mu is None:
@@ -1723,7 +1723,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         self.remMap = remMap
 
         self.storeJ = storeJ
-        self.use_float32_solver = use_float32_solver
+        self.solver_dtype = solver_dtype
 
         self._MfMu0i = self.mesh.get_face_inner_product(1.0 / mu_0)
         self._Div = self.Mcc * self.mesh.face_divergence
@@ -1779,18 +1779,25 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         self._storeJ = validate_type("storeJ", value, bool)
 
     @property
-    def use_float32_solver(self):
-        """Whether to solve Ainv*rhs using float32 precision.
+    def solver_dtype(self):
+        """
+        Data type used by the solver.
 
         Returns
         -------
-        bool
+        numpy.dtype
+            Either np.float32 or np.float64
         """
-        return self._use_float32_solver
+        return self._solver_dtype
 
-    @use_float32_solver.setter
-    def use_float32_solver(self, value):
-        self._use_float32_solver = validate_type("use_float32_solver", value, bool)
+    @solver_dtype.setter
+    def solver_dtype(self, value):
+        """
+        Set the solver dtype. Must be np.float32 or np.float64.
+        """
+        if value not in (np.float32, np.float64):
+            raise ValueError("solver_dtype must be np.float32 or np.float64")
+        self._solver_dtype = value
 
     @cached_property
     @utils.requires("survey")
@@ -1842,8 +1849,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
     def _getA(self):
         A = self._Div * self.MfMuiI * self._DivT
 
-        if self.use_float32_solver:
-            A = A.astype(np.float32)
+        A = A.astype(self.solver_dtype)
 
         return A
 
@@ -2070,7 +2076,11 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
     def _projectFields(self, f):
 
-        components = self.survey.components
+        rx_list = self.survey.source_field.receiver_list
+        components = []
+        for rx in rx_list:
+            components.extend(rx.components)
+        components = set(components)
 
         if "bx" in components or "tmi" in components:
             bx = self._Qfx * f["b"]
@@ -2085,7 +2095,6 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
                 (bx + b0[0]) ** 2 + (by + b0[1]) ** 2 + (bz + b0[2]) ** 2
             ) - np.sqrt(b0[0] ** 2 + b0[1] ** 2 + b0[2] ** 2)
 
-        rx_list = self.survey.source_field.receiver_list
         n_total = 0
         total_data_list = []
         for rx in rx_list:
@@ -2113,7 +2122,11 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
     @utils.count
     def _projectFieldsDeriv(self, bs):
-        components = self.survey.components
+        rx_list = self.survey.source_field.receiver_list
+        components = []
+        for rx in rx_list:
+            components.extend(rx.components)
+        components = set(components)
 
         if "tmi" in components:
             b0 = self.survey.source_field.b0
@@ -2135,7 +2148,6 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
             Qtmi = dDhalf_dD * (xterm + yterm + zterm)
 
-        rx_list = self.survey.source_field.receiver_list
         n_total = 0
         total_data_list = []
         for rx in rx_list:
