@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   call-workflow-create-jira-issue:
+    if: startsWith(github.repository, 'MiraGeoscience/')  # run on the Mira repo only
     uses: MiraGeoscience/CI-tools/.github/workflows/reusable-jira-issue_to_jira.yml@main
     with:
       project-key: 'GEOPY'

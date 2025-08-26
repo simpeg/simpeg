@@ -10,7 +10,9 @@ permissions:
 
 jobs:
   call-workflow-add-jira-issue-summary:
+    if: startsWith(github.repository, 'MiraGeoscience/')  # run if PR targets the Mira repo only
     uses: MiraGeoscience/CI-tools/.github/workflows/reusable-jira-pr_add_jira_summary.yml@main
     secrets:
       JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
-      JIRA_BASIC_AUTH: ${{ secrets.JIRA_BASIC_AUTH }}
+      JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
