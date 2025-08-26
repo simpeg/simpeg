@@ -1663,33 +1663,37 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
     mu : float, array_like
         Magnetic Permeability Model (H/ m). Set this for forward
         modeling or to fix while inverting for remanence. This is used if
-        muMap == None
+        ``muMap`` is None.
     muMap : simpeg.maps.IdentityMap, optional
-        The mapping used to go from the simulation model to `mu`. Set this
-        to invert for `mu`.
+        The mapping used to go from the simulation model to ``mu``. Set this
+        to invert for ``mu``.
     rem : float, array_like
-        Magnetic Polarization \mu_0*M (nT). Set this for forward
+        Magnetic Polarization :math:`\mu_0 \mathbf{M}` (nT). Set this for forward
         modeling or to fix remanent magnetization while inverting for permeability.
-        This is used if remMap == None
+        This is used if ``remMap`` is None.
     remMap : simpeg.maps.IdentityMap, optional
-        The mapping used to go from the simulation model to `mu_0*M`. Set this
-        to invert for `mu_0*M`.
+        The mapping used to go from the simulation model to :math:`\mu_0 \mathbf{M}`. 
+        Set this to invert for :math:`\mu_0 \mathbf{M}`.
     storeJ: bool
         Whether to store the sensitivity matrix. If set to True
     use_float32_solver: bool
-        Whether to solve Ainv*rhs using float32 precision.
+        Whether to solve ``Ainv @ rhs`` using float32 precision.
 
 
     Notes
     -----
     This simulation solves for the magnetostatic PDE:
-    \nabla \cdot \Vec{B} = 0
+    
+    .. math::
+        \nabla \cdot \Vec{B} = 0
 
     where the constitutive relation is specified as:
-    \Vec{B} = \mu\Vec{H} + \mu_0\Vec{M_r}
 
-    where \Vec{M_r} is a fixed magnetization unaffected by the inducing field
-    and \mu\Vec{H} is the induced magnetization
+    .. math::
+        \Vec{B} = \mu\Vec{H} + \mu_0\Vec{M_r}
+
+    where :math:`\Vec{M_r}` is a fixed magnetization unaffected by the inducing field
+    and :math:`\mu\Vec{H}` is the induced magnetization.
     """
 
     _Ainv = None
@@ -1739,7 +1743,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         Returns
         -------
-        SimPEG.potential_fields.magnetics.Survey
+        simpeg.potential_fields.magnetics.Survey
         """
         if self._survey is None:
             raise AttributeError("Simulation must have a survey")
@@ -1900,9 +1904,9 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         Returns
         -------
         mu0_m : np.ndarray
-            The magnetic polarization μ₀ * M in nanoteslas (nT), defined on the mesh faces.
+            The magnetic polarization :math:`\mu_0 \mathbf{M}` in nanoteslas (nT), defined on the mesh faces.
             The result is ordered as a concatenation of the x, y, and z face components
-            (i.e., [Mx_faces, My_faces, Mz_faces]).
+            (i.e., ``[Mx_faces, My_faces, Mz_faces]``).
 
 
         """
@@ -1951,7 +1955,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         else:
             J = self._Jtvec(m, v=None, f=f).T
 
-        if self.storeJ is True:
+        if self.storeJ:
             self._Jmatrix = J
         return J
 

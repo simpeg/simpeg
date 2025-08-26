@@ -568,7 +568,7 @@ class EffectiveSusceptibilityMap(IdentityMap):
         number of parameters is known. Used generally when the number of parameters
         is not equal to the number of cells in a mesh.
     ambient_field_magnitude : float
-        The magnitude of the ambient geomagnetic field.
+        The magnitude of the ambient geomagnetic field in nT.
 
     Notes
     -----
