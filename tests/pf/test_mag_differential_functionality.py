@@ -155,45 +155,23 @@ def test_recievers(mesh):
     assert np.allclose(jv_all, jv_stack, atol=1e-8)
 
 
-def test_component_validation(mesh):
+def test_unsupported_components(mesh):
     """
-    Test that invalid reciever types raise an error.
+    Test error when survey has unsupported components.
     """
-
-    ccx = np.linspace(-1400, 1400, num=57)
-    ccy = np.linspace(-1400, 1400, num=57)
-    ccx, ccy = np.meshgrid(ccx, ccy)
-    ccz = 50.0 * np.ones_like(ccx)
-
-    components_invalid = ["bx", "by", "bz", "bxx", "byy", "bzz", "tmi"]
-
-    rxLoc = PF.magnetics.receivers.Point(
-        np.c_[utils.mkvc(ccy.T), utils.mkvc(ccx.T), utils.mkvc(ccz.T)],
-        components=components_invalid,
-    )
-
-    inducing_field = [55000.0, 60.0, 90.0]
-
-    srcField = PF.magnetics.sources.UniformBackgroundField(
-        [rxLoc], inducing_field[0], inducing_field[1], inducing_field[2]
-    )
-    survey = PF.magnetics.survey.Survey(srcField)
-
-    chimap = maps.ChiMap(mesh)
-    eff_sus_map = maps.EffectiveSusceptibilityMap(
-        nP=mesh.n_cells * 3, ambient_field_magnitude=survey.source_field.amplitude
-    )
-
-    wire_map = maps.Wires(("mu", mesh.n_cells), ("rem", mesh.n_cells * 3))
-    mu_map = chimap * wire_map.mu
-    rem_map = eff_sus_map * wire_map.rem
-
-    with pytest.raises(
-        ValueError, match="does not currently support the following components"
-    ):
-        _ = PF.magnetics.simulation.Simulation3DDifferential(
-            mesh=mesh,
-            survey=survey,
-            muMap=mu_map,
-            remMap=rem_map,
+    supported_components = ["tmi", "bx", "by", "bz"]
+    unsupported_components = ["bxx", "byy", "bzz"]
+    receivers = [
+        PF.magnetics.Point(
+            np.array([[0, 0, 0], [1, 2, 3]]),
+            components=components,
         )
+        for components in (*supported_components, *unsupported_components)
+    ]
+    inducing_field = [55000.0, 60.0, 90.0]
+    source = PF.magnetics.sources.UniformBackgroundField(receivers, *inducing_field)
+    survey = PF.magnetics.survey.Survey(source)
+
+    msg = "Found unsupported magnetic components "
+    with pytest.raises(NotImplementedError, match=msg):
+        PF.magnetics.simulation.Simulation3DDifferential(survey=survey, mesh=mesh)
