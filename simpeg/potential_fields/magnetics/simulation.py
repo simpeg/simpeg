@@ -1802,6 +1802,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
     @cached_property
     @utils.requires("survey")
     def _b0(self):
+        # Todo: Experiment with avoiding array of constants
         b0 = self.survey.source_field.b0
         b0 = np.r_[
             b0[0] * np.ones(self.mesh.nFx),

@@ -215,6 +215,10 @@ class MapTests(unittest.TestCase):
         mapping = maps.ReciprocalMap(self.mesh3)
         self.assertTrue(mapping.test(random_seed=42))
 
+    def test_EffectiveSusceptibilityMap(self):
+        mapping = maps.EffectiveSusceptibilityMap(50000.0, mesh=self.mesh3)
+        self.assertTrue(mapping.test(random_seed=42))
+
     def test_Mesh2MeshMap(self):
         mapping = maps.Mesh2Mesh([self.mesh22, self.mesh2])
         self.assertTrue(mapping.test(random_seed=42))
