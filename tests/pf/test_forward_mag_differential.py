@@ -1,3 +1,4 @@
+import re
 import pytest
 import discretize
 import simpeg.potential_fields as PF
@@ -318,3 +319,19 @@ def test_differential_magnetization_against_integral(mesh):
         "||dpred_pde-dpred_analytic||/||dpred_analytic|| = "
         + "{:.{}f}".format(diff_differential, 2)
     )
+
+
+def test_invalid_solver_dtype(mesh):
+    """
+    Test error upon invalid `solver_dtype`.
+    """
+    survey = get_survey()
+    invalid_dtype = np.int64
+    msg = re.escape(
+        f"Invalid `solver_dtype` '{invalid_dtype}'. "
+        "It must be np.float32 or np.float64."
+    )
+    with pytest.raises(ValueError, match=msg):
+        PF.magnetics.simulation.Simulation3DDifferential(
+            survey=survey, mesh=mesh, solver_dtype=invalid_dtype
+        )

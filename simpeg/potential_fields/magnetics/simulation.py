@@ -1796,7 +1796,11 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         Set the solver dtype. Must be np.float32 or np.float64.
         """
         if value not in (np.float32, np.float64):
-            raise ValueError("solver_dtype must be np.float32 or np.float64")
+            msg = (
+                f"Invalid `solver_dtype` '{value}'. "
+                "It must be np.float32 or np.float64."
+            )
+            raise ValueError(msg)
         self._solver_dtype = value
 
     @cached_property
