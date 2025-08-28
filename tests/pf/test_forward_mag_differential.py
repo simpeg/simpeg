@@ -360,3 +360,80 @@ def test_unsupported_components(mesh):
     )
     with pytest.raises(NotImplementedError, match=msg):
         PF.magnetics.simulation.Simulation3DDifferential(survey=survey, mesh=mesh)
+
+
+@pytest.mark.parametrize(
+    "components",
+    ["bx", "by", "bz", "tmi", ["bx", "by", "bz"]],
+    ids=["bx", "by", "bz", "tmi", "b_field"],
+)
+class TestGetJ:
+
+    @pytest.fixture
+    def mesh_small(self):
+        """
+        Define a small mesh that would generate a J matrix small enough to fit in memory
+        """
+        h = [(10.0, 8)]
+        mesh = discretize.TreeMesh([h, h, h], x0="CCC", diagonal_balance=True)
+        mesh.refine_points((0, 0, 0), level=-1)
+        mesh.finalize()
+        return mesh
+
+    @pytest.fixture
+    def survey_small(self, components):
+        """
+        Define a small survey.
+        """
+        x = np.linspace(-20, 20, 11)
+        x, y = tuple(c.ravel() for c in np.meshgrid(x, x))
+        z = np.ones_like(x)
+        locations = np.vstack((x, y, z)).T
+        receiver = PF.magnetics.receivers.Point(
+            locations,
+            components=components,
+        )
+        inducing_field = (55_000, -71, 12)
+        source = PF.magnetics.sources.UniformBackgroundField(
+            [receiver], *inducing_field
+        )
+        survey = PF.magnetics.survey.Survey(source)
+        return survey
+
+    def test_getJ_vs_Jvec(self, mesh_small, survey_small):
+        """
+        Test the getJ method against Jvec.
+        """
+        rng = np.random.default_rng(seed=41)
+        model = rng.uniform(0, 1e-1, size=mesh_small.n_cells)
+        mapping = maps.IdentityMap(nP=model.size)
+        simulation = PF.magnetics.simulation.Simulation3DDifferential(
+            survey=survey_small,
+            mesh=mesh_small,
+            muMap=mapping,
+            storeJ=False,  # explicitly not storing J
+        )
+
+        vector = rng.uniform(0, 1e-1, size=mesh_small.n_cells)
+        result = simulation.getJ(model) @ vector
+        expected = simulation.Jvec(model, vector)
+        np.testing.assert_allclose(result, expected)
+
+    def test_getJ_vs_Jtvec(self, mesh_small, survey_small):
+        """
+        Test the getJ method against Jtvec.
+        """
+        rng = np.random.default_rng(seed=41)
+        model = rng.uniform(0, 1e-1, size=mesh_small.n_cells)
+        mapping = maps.IdentityMap(nP=model.size)
+        simulation = PF.magnetics.simulation.Simulation3DDifferential(
+            survey=survey_small,
+            mesh=mesh_small,
+            muMap=mapping,
+            storeJ=False,  # explicitly not storing J
+        )
+
+        vector = rng.uniform(0, 1e-1, size=survey_small.nD)
+        result = simulation.getJ(model).T @ vector
+        expected = simulation.Jtvec(model, vector)
+        np.testing.assert_allclose(result, expected)
