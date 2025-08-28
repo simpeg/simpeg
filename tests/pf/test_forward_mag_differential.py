@@ -335,3 +335,28 @@ def test_invalid_solver_dtype(mesh):
         PF.magnetics.simulation.Simulation3DDifferential(
             survey=survey, mesh=mesh, solver_dtype=invalid_dtype
         )
+
+
+def test_unsupported_components(mesh):
+    """
+    Test error when survey has unsupported components.
+    """
+    supported_components = ["tmi", "bx", "by", "bz"]
+    unsupported_components = ["bxx"]
+    receivers = [
+        PF.magnetics.Point(
+            np.array([[0, 0, 0], [1, 2, 3]]),
+            components=components,
+        )
+        for components in (*supported_components, *unsupported_components)
+    ]
+    inducing_field = [55000.0, 60.0, 90.0]
+    source = PF.magnetics.sources.UniformBackgroundField(receivers, *inducing_field)
+    survey = PF.magnetics.survey.Survey(source)
+
+    msg = (
+        "Found unsupported magnetic components "
+        f"'{', '.join(c for c in unsupported_components)}' "
+    )
+    with pytest.raises(NotImplementedError, match=msg):
+        PF.magnetics.simulation.Simulation3DDifferential(survey=survey, mesh=mesh)

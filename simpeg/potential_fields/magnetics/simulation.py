@@ -1702,6 +1702,8 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         "Magnetic Polarization (nT)", optional=True
     )
 
+    _supported_components = ("tmi", "bx", "by", "bz")
+
     def __init__(
         self,
         mesh,
@@ -1753,15 +1755,21 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
     def survey(self, value):
         if value is not None:
             value = validate_type("survey", value, Survey, cast=False)
-            supported_components = ["tmi", "bx", "by", "bz"]
-            invalid_components = [
-                comp for comp in value.components if comp not in supported_components
-            ]
-            if invalid_components:
-                raise ValueError(
-                    f"The differential magnetic simulation does not currently support the following components: {invalid_components}. "
-                    f"Supported components are: {supported_components}"
+            unsupported_components = {
+                component
+                for source in value.source_list
+                for receiver in source.receiver_list
+                for component in receiver.components
+                if component not in self._supported_components
+            }
+            if unsupported_components:
+                msg = (
+                    f"Found unsupported magnetic components "
+                    f"'{', '.join(c for c in unsupported_components)}' in the survey."
+                    f"The {type(self).__name__} currently supports the following "
+                    f"components: {', '.join(c for c in self._supported_components)}"
                 )
+                raise NotImplementedError(msg)
         self._survey = value
 
     @property
