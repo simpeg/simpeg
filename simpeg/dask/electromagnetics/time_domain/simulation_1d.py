@@ -13,7 +13,7 @@ def Jmatrix(self):
     """
     if getattr(self, "_Jmatrix", None) is None:
         Jmat = self.getJ(self.model)
-        self._Jmatrix = Jmat["ds"]
+        self._Jmatrix = Jmat["ds"] * self.sigmaDeriv
 
     return self._Jmatrix
 
