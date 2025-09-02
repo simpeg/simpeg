@@ -16,21 +16,7 @@ from geoh5py.groups.property_group import GroupTypeEnum
 from geoh5py.groups import UIJsonGroup
 from geoh5py.objects import ObjectBase
 from geoh5py.ui_json.utils import fetch_active_workspace
-
-
-def compute_JtJdiags(data_misfit, m):
-    if hasattr(data_misfit, "getJtJdiag"):
-        return data_misfit.getJtJdiag(m)
-    else:
-        jtj_diags = []
-        for dmisfit in data_misfit.objfcts:
-            jtj_diags.append(dmisfit.getJtJdiag(m))
-
-        jtj_diag = np.zeros_like(jtj_diags[0])
-        for multiplier, diag in zip(data_misfit.multipliers, jtj_diags):
-            jtj_diag += multiplier * diag
-
-    return np.asarray(jtj_diag)
+from simpeg.directives.directives import compute_JtJdiags
 
 
 class BaseSaveGeoH5(InversionDirective, ABC):
@@ -369,8 +355,11 @@ class SaveDataGeoH5(SaveArrayGeoH5):
         else:
             dpred = getattr(self.invProb, "dpred", None)
             if dpred is None:
-                dpred = self.invProb.get_dpred(self.invProb.model)
+                dpred, residuals = self.invProb.get_dpred(
+                    self.invProb.model, return_residuals=True
+                )
                 self.invProb.dpred = dpred
+                self.invProb.residuals = residuals
 
             if self.joint_index is not None:
                 dpred = [dpred[ind] for ind in self.joint_index]

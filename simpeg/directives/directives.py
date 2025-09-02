@@ -54,12 +54,17 @@ def compute_JtJdiags(data_misfit, m):
     if hasattr(data_misfit, "getJtJdiag"):
         return data_misfit.getJtJdiag(m)
     else:
-        jtj_diags = []
-        for dmisfit in data_misfit.objfcts:
-            jtj_diags.append(dmisfit.getJtJdiag(m))
+        jtj_diag_list = []
+        jtj_diag = np.zeros_like(m)
 
-        jtj_diag = np.zeros_like(jtj_diags[0])
-        for multiplier, diag in zip(data_misfit.multipliers, jtj_diags):
+        for dmisfit in data_misfit.objfcts:
+            if isinstance(dmisfit, ComboObjectiveFunction):
+                jtj_diag += compute_JtJdiags(dmisfit, m)
+
+            else:
+                jtj_diag_list.append(dmisfit.getJtJdiag(m))
+
+        for multiplier, diag in zip(data_misfit.multipliers, jtj_diag_list):
             jtj_diag += multiplier * diag
 
     return np.asarray(jtj_diag)
@@ -203,7 +208,7 @@ class InversionDirective:
             The data misfit associated with the directive.
         """
         if getattr(self, "_dmisfit", None) is None:
-            self.dmisfit = self.invProb.dmisfit  # go through the setter
+            self._dmisfit = self.invProb.dmisfit  # go through the setter
         return self._dmisfit
 
     @dmisfit.setter

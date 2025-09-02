@@ -1,18 +1,52 @@
-from ..objective_function import ComboObjectiveFunction, BaseObjectiveFunction
+from ..objective_function import (
+    ComboObjectiveFunction,
+    BaseObjectiveFunction,
+    _validate_multiplier,
+    _check_length_objective_funcs_multipliers,
+)
 
 import numpy as np
-from dask.distributed import Client
+
+from dask.distributed import Client, Future
 from ..data_misfit import L2DataMisfit
 
 from simpeg.utils import validate_list_of_types
 
 
 def _calc_fields(objfct, _):
+    if isinstance(objfct, ComboObjectiveFunction):
+        fields = []
+        for objfct_ in objfct.objfcts:
+            fields.append(_calc_fields(objfct_, _))
+
+        return fields
+
     return objfct.simulation.fields(m=objfct.simulation.model)
 
 
-def _calc_dpred(objfct, _):
-    return objfct.simulation.dpred(m=objfct.simulation.model)
+def _calc_dpred(objfct, _, return_residuals=False):
+    if isinstance(objfct, ComboObjectiveFunction):
+        dpreds = []
+        residuals = []
+        for objfct_ in objfct.objfcts:
+
+            if return_residuals:
+                dpred_, residual_ = _calc_dpred(objfct_, _, return_residuals)
+                dpreds.append(dpred_)
+                residuals.append(residual_)
+            else:
+                dpreds.append(_calc_dpred(objfct_, _))
+
+        if return_residuals:
+            return np.hstack(dpreds), np.hstack(residuals)
+        return np.hstack(dpreds)
+
+    dpred = objfct.simulation.dpred(m=objfct.simulation.model)
+    if return_residuals:
+        residual = objfct.W * (objfct.data.dobs - dpred)
+        return dpred, residual
+
+    return dpred
 
 
 def _calc_objective(objfct, multiplier, model):
@@ -20,21 +54,46 @@ def _calc_objective(objfct, multiplier, model):
 
 
 def _calc_residual(objfct, _):
+    if isinstance(objfct, ComboObjectiveFunction):
+        residuals = 0.0
+        for objfct_ in objfct.objfcts:
+            residuals += _calc_residual(objfct_, _)
+
+        return np.hstack(residuals)
+
     return objfct.W * (
         objfct.data.dobs - objfct.simulation.dpred(m=objfct.simulation.model)
     )
 
 
 def _deriv(objfct, multiplier, _):
-    return multiplier * objfct.deriv(objfct.simulation.model)
+    if isinstance(objfct, ComboObjectiveFunction):
+        deriv = 0.0
+        for multiplier_, objfct_ in objfct:
+            deriv += _deriv(objfct_, multiplier_, _)
+    else:
+        deriv = objfct.deriv(objfct.simulation.model)
+    return multiplier * deriv
 
 
 def _deriv2(objfct, multiplier, _, v):
-    return multiplier * objfct.deriv2(objfct.simulation.model, v)
+
+    if isinstance(objfct, ComboObjectiveFunction):
+        deriv2 = 0.0
+        for multiplier_, objfct_ in objfct:
+            deriv2 += _deriv2(objfct_, multiplier_, _, v)
+    else:
+        deriv2 = objfct.deriv2(objfct.simulation.model, v)
+    return multiplier * deriv2
 
 
 def _store_model(objfct, model):
-    objfct.simulation.model = model
+
+    if isinstance(objfct, ComboObjectiveFunction):
+        for objfct_ in objfct.objfcts:
+            _store_model(objfct_, model)
+    else:
+        objfct.simulation.model = model
 
 
 def _setter_broadcast(objfct, key, value):
@@ -45,13 +104,32 @@ def _setter_broadcast(objfct, key, value):
         setattr(objfct, key, value)
 
     for sim in objfct.simulation.simulations:
-        if hasattr(sim, key):
-            setattr(sim, key, value)
+        setattr(sim, key, value)
 
 
 def _get_jtj_diag(objfct, _):
+    if isinstance(objfct, ComboObjectiveFunction):
+        jtj = 0.0
+        for objfct_ in objfct.objfcts:
+            jtj += _get_jtj_diag(objfct_, _)
+
+        return jtj
+
     jtj = objfct.simulation.getJtJdiag(objfct.simulation.model, objfct.W)
     return jtj.flatten()
+
+
+def _set_worker(objfct, worker):
+    """
+    Set the worker for the objective function.
+    """
+    if isinstance(objfct, ComboObjectiveFunction):
+        for objfct_ in objfct.objfcts:
+            _set_worker(objfct_, worker)
+
+    else:
+        for sim in objfct.simulation.simulations:
+            sim.worker = worker
 
 
 def _validate_type_or_future_of_type(
@@ -72,48 +150,52 @@ def _validate_type_or_future_of_type(
         property_name, objects, obj_type, ensure_unique=True
     )
     workload = [[]]
-    lookup = {}
+
     count = 0
     for obj in objects:
         if count == len(workers):
             count = 0
             workload.append([])
-        obj.simulation.simulations[0].worker = workers[count]
-        future = client.scatter([obj], workers=workers[count])[0]
-        lookup[obj] = (future, workers[count])
-        if hasattr(obj, "name"):
-            future.name = obj.name
+
+        if isinstance(obj, Future):
+            future = obj
+        else:
+            future = client.scatter([obj], workers=workers[count])[0]
 
         workload[-1].append(future)
         count += 1
 
     futures = []
+    assignments = []
     for work in workload:
-
         for obj, worker in zip(work, workers):
             futures.append(
                 client.submit(
                     lambda v: not isinstance(v, obj_type), obj, workers=worker
                 )
             )
+            assignments.append(client.submit(_set_worker, obj, worker, workers=worker))
+
+    client.gather(assignments)
+
     is_not_obj = np.array(client.gather(futures))
     if np.any(is_not_obj):
         raise TypeError(f"{property_name} futures must be an instance of {obj_type}")
 
     if return_workers:
-        return workload, workers, lookup
+        return workload, workers
     else:
         return workload
 
 
-class DaskComboMisfits(ComboObjectiveFunction):
+class DistributedComboMisfits(ComboObjectiveFunction):
     """
     A composite objective function for distributed computing.
     """
 
     def __init__(
         self,
-        objfcts: list[BaseObjectiveFunction],
+        objfcts: list[BaseObjectiveFunction] | list[Future],
         multipliers=None,
         client: Client | None = None,
         workers: list[str] | None = None,
@@ -123,7 +205,13 @@ class DaskComboMisfits(ComboObjectiveFunction):
         self.client = client
         self.workers = workers
 
-        super().__init__(objfcts=objfcts, multipliers=multipliers, **kwargs)
+        if multipliers is None:
+            multipliers = len(objfcts) * [1]
+
+        super().__init__(**kwargs)
+        self._nP = None
+        self.objfcts = objfcts
+        self.multipliers = np.array(multipliers, dtype=float)
 
     def __call__(self, m, f=None):
         self.model = m
@@ -132,8 +220,8 @@ class DaskComboMisfits(ComboObjectiveFunction):
 
         values = []
         count = 0
-        for futures in self._futures:
-            for objfct, worker in zip(futures, self._workers, strict=True):
+        for futures in self._workloads:
+            for future, worker in zip(futures, self._workers, strict=True):
 
                 if self.multipliers[count] == 0.0:
                     continue
@@ -141,7 +229,7 @@ class DaskComboMisfits(ComboObjectiveFunction):
                 values.append(
                     client.submit(
                         _calc_objective,
-                        objfct,
+                        future,
                         self.multipliers[count],
                         m_future,
                         workers=worker,
@@ -196,16 +284,16 @@ class DaskComboMisfits(ComboObjectiveFunction):
         derivs = 0.0
         count = 0
 
-        for futures in self._futures:
+        for futures in self._workloads:
             future_deriv = []
-            for objfct, worker in zip(futures, self._workers):
+            for future, worker in zip(futures, self._workers, strict=True):
                 if self.multipliers[count] == 0.0:  # don't evaluate the fct
                     continue
 
                 future_deriv.append(
                     client.submit(
                         _deriv,
-                        objfct,
+                        future,
                         self.multipliers[count],
                         m_future,
                         workers=worker,
@@ -237,17 +325,17 @@ class DaskComboMisfits(ComboObjectiveFunction):
         derivs = 0.0
         count = 0
 
-        for futures in self._futures:
+        for futures in self._workloads:
 
             future_derivs = []
-            for objfct, worker in zip(futures, self._workers):
+            for future, worker in zip(futures, self._workers, strict=True):
                 if self.multipliers[count] == 0.0:  # don't evaluate the fct
                     continue
 
                 future_derivs.append(
                     client.submit(
                         _deriv2,
-                        objfct,
+                        future,
                         self.multipliers[count],
                         m_future,
                         v_future,
@@ -262,7 +350,7 @@ class DaskComboMisfits(ComboObjectiveFunction):
 
         return derivs
 
-    def get_dpred(self, m, f=None):
+    def get_dpred(self, m, f=None, return_residuals=False):
         """
         Request calculation of predicted data from all simulations.
         """
@@ -271,21 +359,32 @@ class DaskComboMisfits(ComboObjectiveFunction):
         client = self.client
         m_future = self._m_as_future
         dpred = []
-
-        for futures in self._futures:
+        residuals = []
+        for futures in self._workloads:
             future_preds = []
-            for objfct, worker in zip(futures, self._workers):
+            for future, worker in zip(futures, self._workers, strict=True):
                 future_preds.append(
                     client.submit(
                         _calc_dpred,
-                        objfct,
+                        future,
                         m_future,
+                        return_residuals,
                         workers=worker,
                     )
                 )
-            dpred += client.gather(future_preds)
+            results = client.gather(future_preds)
 
-        return dpred
+            for result in results:
+                if return_residuals:
+                    dpred += [result[0]]
+                    residuals += [result[1]]
+                else:
+                    dpred += [result]
+
+        if return_residuals:
+            return np.hstack(dpred), np.hstack(residuals)
+
+        return np.hstack(dpred)
 
     def getJtJdiag(self, m, f=None):
         """
@@ -298,14 +397,14 @@ class DaskComboMisfits(ComboObjectiveFunction):
             jtj_diag = 0.0
             client = self.client
 
-            for futures in self._futures:
+            for futures in self._workloads:
                 work = []
 
-                for objfct, worker in zip(futures, self._workers):
+                for future, worker in zip(futures, self._workers, strict=True):
                     work.append(
                         client.submit(
                             _get_jtj_diag,
-                            objfct,
+                            future,
                             m_future,
                             workers=worker,
                         )
@@ -332,13 +431,13 @@ class DaskComboMisfits(ComboObjectiveFunction):
         # The above should pass the model to all the internal simulations.
         f = []
 
-        for futures in self._futures:
+        for futures in self._workloads:
             f.append([])
-            for objfct, worker in zip(futures, self._workers):
+            for future, worker in zip(futures, self._workers, strict=True):
                 f[-1].append(
                     client.submit(
                         _calc_fields,
-                        objfct,
+                        future,
                         m_future,
                         workers=worker,
                     )
@@ -367,12 +466,12 @@ class DaskComboMisfits(ComboObjectiveFunction):
         [self._m_as_future] = client.scatter([value], broadcast=True)
 
         stores = []
-        for futures in self._futures:
-            for objfct, worker in zip(futures, self._workers):
+        for futures in self._workloads:
+            for future, worker in zip(futures, self._workers, strict=True):
                 stores.append(
                     client.submit(
                         _store_model,
-                        objfct,
+                        future,
                         self._m_as_future,
                         workers=worker,
                     )
@@ -391,23 +490,46 @@ class DaskComboMisfits(ComboObjectiveFunction):
     def objfcts(self, objfcts):
         client = self.client
 
-        futures, workers, lookup = _validate_type_or_future_of_type(
+        futures, workers = _validate_type_or_future_of_type(
             "objfcts",
             objfcts,
-            L2DataMisfit,
+            (L2DataMisfit, Future, ComboObjectiveFunction),
             client,
             workers=self.workers,
             return_workers=True,
         )
 
         self._objfcts = objfcts
-        self._futures = futures
+        self._workloads = futures
         self._workers = workers
 
-        self._lookup = {
-            misfit.simulation: (future, worker)
-            for misfit, (future, worker) in lookup.items()
-        }
+    @property
+    def multipliers(self):
+        r"""Multipliers for the objective functions.
+
+        For a composite objective function :math:`\phi`, that is, a weighted sum of
+        objective functions :math:`\phi_i` with multipliers :math:`c_i` such that
+
+        .. math::
+            \phi = \sum_{i = 1}^N c_i \phi_i,
+
+        this method returns the multipliers :math:`c_i` in
+        the same order of the ``objfcts``.
+
+        Returns
+        -------
+        list of int
+            Multipliers for the objective functions.
+        """
+        return self._multipliers
+
+    @multipliers.setter
+    def multipliers(self, value):
+        """Set multipliers attribute after checking if they are valid."""
+        for multiplier in value:
+            _validate_multiplier(multiplier)
+        _check_length_objective_funcs_multipliers(self.objfcts, value)
+        self._multipliers = value
 
     def residuals(self, m, f=None):
         """
@@ -419,13 +541,13 @@ class DaskComboMisfits(ComboObjectiveFunction):
         m_future = self._m_as_future
         residuals = []
 
-        for futures in self._futures:
+        for futures in self._workloads:
             future_residuals = []
-            for objfct, worker in zip(futures, self._workers):
+            for future, worker in zip(futures, self._workers, strict=True):
                 future_residuals.append(
                     client.submit(
                         _calc_residual,
-                        objfct,
+                        future,
                         m_future,
                         workers=worker,
                     )
@@ -433,26 +555,3 @@ class DaskComboMisfits(ComboObjectiveFunction):
             residuals += client.gather(future_residuals)
 
         return residuals
-
-    def broadcast_updates(self, updates: dict):
-        """
-        Set the attributes of the objective functions and simulations
-        """
-        stores = []
-        client = self.client
-        for fun, (key, value) in updates.items():
-            if fun not in self._lookup:
-                continue
-
-            future, worker = self._lookup[fun]
-
-            stores.append(
-                client.submit(
-                    _setter_broadcast,
-                    future,
-                    key,
-                    value,
-                    workers=worker,
-                )
-            )
-        self.client.gather(stores)  # blocking call to ensure all models were stored

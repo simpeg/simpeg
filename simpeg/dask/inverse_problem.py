@@ -1,7 +1,7 @@
 from ..inverse_problem import BaseInvProblem
 import numpy as np
 
-from .objective_function import DaskComboMisfits
+from .objective_function import DistributedComboMisfits
 from scipy.sparse.linalg import LinearOperator
 from ..regularization import WeightedLeastSquares, Sparse
 from ..objective_function import ComboObjectiveFunction
@@ -9,17 +9,46 @@ from simpeg.utils import call_hooks
 from simpeg.version import __version__ as simpeg_version
 
 
-def get_dpred(self, m, f=None):
+def get_nested_predicted(objfcts, m, f=None, return_residuals=False):
     dpreds = []
+    residuals = []
+    for objfct in objfcts:
 
-    if isinstance(self.dmisfit, DaskComboMisfits):
-        return self.dmisfit.get_dpred(m, f=f)
+        if isinstance(objfct, ComboObjectiveFunction):
+            nesting = get_nested_predicted(
+                objfct.objfcts, m, f=f, return_residuals=return_residuals
+            )
 
-    for objfct in self.dmisfit.objfcts:
-        dpred = objfct.simulation.dpred(m, f=f)
-        dpreds += [np.asarray(dpred)]
+            if return_residuals:
+                dpreds += nesting[0]
+                residuals += nesting[1]
+            else:
+                dpreds += nesting
+        else:
+            dpred = objfct.simulation.dpred(m, f=f)
+            dpreds += [np.asarray(dpred)]
 
+            if return_residuals:
+                residual = objfct.W * (objfct.data.dobs - dpred)
+                residuals += [np.asarray(residual)]
+
+    if return_residuals:
+        return dpreds, residuals
     return dpreds
+
+
+def get_dpred(self, m, f=None, return_residuals=False):
+    if isinstance(self.dmisfit, DistributedComboMisfits):
+        results = self.dmisfit.get_dpred(m, f=f, return_residuals=return_residuals)
+    else:
+        results = get_nested_predicted(
+            self.dmisfit.objfcts, m, f=f, return_residuals=return_residuals
+        )
+
+    if return_residuals:
+        return np.hstack(results[0]), np.hstack(results[1])
+
+    return np.hstack(results)
 
 
 BaseInvProblem.get_dpred = get_dpred
@@ -27,19 +56,12 @@ BaseInvProblem.get_dpred = get_dpred
 
 def dask_evalFunction(self, m, return_g=True, return_H=True):
     """evalFunction(m, return_g=True, return_H=True)"""
-    self.model = m
-    self.dpred = self.get_dpred(m)
-    residuals = []
 
-    if isinstance(self.dmisfit, DaskComboMisfits):
-        residuals = self.dmisfit.residuals(m)
-    else:
-        for (_, objfct), pred in zip(self.dmisfit, self.dpred):
-            residuals.append(objfct.W * (objfct.data.dobs - pred))
+    if not np.allclose(self.model, m):
+        self.model = m
+        self.dpred, self.residuals = self.get_dpred(m, return_residuals=True)
 
-    phi_d = 0.0
-    for residual in residuals:
-        phi_d += np.vdot(residual, residual)
+    phi_d = np.vdot(self.residuals, self.residuals)
 
     reg2Deriv = []
     if isinstance(self.reg, ComboObjectiveFunction):
