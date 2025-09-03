@@ -1676,8 +1676,9 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         Set this to invert for :math:`\mu_0 \mathbf{M}`.
     storeJ: bool
         Whether to store the sensitivity matrix. If set to True
-    use_float32_solver: bool
-        Whether to solve ``Ainv @ rhs`` using float32 precision.
+    solver_dtype: dtype, optional
+        Data type to use for the matrix that gets passed to the ``solver``.
+        Default to `numpy.float64`.
 
 
     Notes
