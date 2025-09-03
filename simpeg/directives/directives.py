@@ -3058,10 +3058,9 @@ class ScaleMisfitMultipliers(InversionDirective):
     def endIter(self):
         ratio = self.invProb.beta / self.last_beta
         chi_factors = []
-        for objfct, pred in zip(self.invProb.dmisfit.objfcts, self.invProb.dpred):
-            residual = objfct.W * (objfct.data.dobs - pred)
+        for residual in self.invProb.residuals:
             phi_d = np.vdot(residual, residual)
-            chi_factors.append(phi_d / objfct.nD)
+            chi_factors.append(phi_d / len(residual))
 
         self.chi_factors = np.asarray(chi_factors)
 

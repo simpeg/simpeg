@@ -46,9 +46,9 @@ def get_dpred(self, m, f=None, return_residuals=False):
         )
 
     if return_residuals:
-        return np.hstack(results[0]), np.hstack(results[1])
+        return results[0], results[1]
 
-    return np.hstack(results)
+    return results
 
 
 BaseInvProblem.get_dpred = get_dpred
@@ -61,7 +61,7 @@ def dask_evalFunction(self, m, return_g=True, return_H=True):
         self.model = m
         self.dpred, self.residuals = self.get_dpred(m, return_residuals=True)
 
-    phi_d = np.vdot(self.residuals, self.residuals)
+    phi_d = (np.hstack(self.residuals) ** 2.0).sum()
 
     reg2Deriv = []
     if isinstance(self.reg, ComboObjectiveFunction):

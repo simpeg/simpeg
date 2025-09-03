@@ -149,38 +149,48 @@ def _validate_type_or_future_of_type(
     objects = validate_list_of_types(
         property_name, objects, obj_type, ensure_unique=True
     )
-    workload = [[]]
+    workloads = {}
+    for worker in workers:
+        workloads[worker] = []
 
     count = 0
-    for obj in objects:
-        if count == len(workers):
-            count = 0
-            workload.append([])
+    for ii, obj in enumerate(objects):
+        count = ii % len(workers)
 
         if isinstance(obj, Future):
             future = obj
+            count = workers.index(client.who_has(obj)[obj.key])
         else:
             future = client.scatter([obj], workers=workers[count])[0]
 
-        workload[-1].append(future)
-        count += 1
+        workloads[workers[count]].append(future)
 
     futures = []
     assignments = []
-    for work in workload:
-        for obj, worker in zip(work, workers):
+    for worker, work in workloads.items():
+        for future in work:
             futures.append(
                 client.submit(
-                    lambda v: not isinstance(v, obj_type), obj, workers=worker
+                    lambda v: not isinstance(v, obj_type), future, workers=worker
                 )
             )
-            assignments.append(client.submit(_set_worker, obj, worker, workers=worker))
+            assignments.append(
+                client.submit(_set_worker, future, worker, workers=worker)
+            )
 
     client.gather(assignments)
 
     is_not_obj = np.array(client.gather(futures))
     if np.any(is_not_obj):
         raise TypeError(f"{property_name} futures must be an instance of {obj_type}")
+
+    # Re-distribute the workload to ensure all workers are equally loaded
+    workload = []
+    for work in workloads.values():
+        for ii, future in enumerate(work):
+            if len(workload) <= ii:
+                workload.append([])
+            workload[ii].append(future)
 
     if return_workers:
         return workload, workers
@@ -382,9 +392,9 @@ class DistributedComboMisfits(ComboObjectiveFunction):
                     dpred += [result]
 
         if return_residuals:
-            return np.hstack(dpred), np.hstack(residuals)
+            return dpred, residuals
 
-        return np.hstack(dpred)
+        return dpred
 
     def getJtJdiag(self, m, f=None):
         """
