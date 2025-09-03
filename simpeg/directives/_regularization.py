@@ -218,7 +218,7 @@ class UpdateIRLS(InversionDirective):
         chi_factor : float
             Chi factor to compute the target misfit from.
         """
-        return self.invProb.dpred.shape[0] * chi_factor
+        return np.hstack(self.invProb.dpred).shape[0] * chi_factor
 
     def adjust_cooling_schedule(self):
         """
