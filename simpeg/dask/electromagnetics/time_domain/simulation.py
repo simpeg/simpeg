@@ -186,7 +186,7 @@ def compute_J(self, m, f=None):
         for ind, (block, field_deriv) in enumerate(
             zip(blocks, times_field_derivs[tInd + 1], strict=True)
         ):
-            ATinv_df_duT_v[ind] = get_field_deriv_block(
+            atinv_block_deriv = get_field_deriv_block(
                 self,
                 block,
                 field_deriv,
@@ -202,45 +202,43 @@ def compute_J(self, m, f=None):
 
             if client:
                 field_derivatives = client.scatter(
-                    ATinv_df_duT_v[ind], workers=self.worker
+                    atinv_block_deriv, workers=self.worker
                 )
             else:
-                field_derivatives = ATinv_df_duT_v[ind]
+                field_derivatives = atinv_block_deriv
 
-            for bb, row in enumerate(block):
-                if client:
-                    j_row_updates.append(
-                        client.submit(
-                            compute_rows,
+            if client:
+                j_row_updates.append(
+                    client.submit(
+                        compute_rows,
+                        sim,
+                        tInd,
+                        block,
+                        field_derivatives,
+                        fields_array,
+                        time_mask,
+                        workers=self.worker,
+                    )
+                )
+            else:
+                j_row_updates.append(
+                    array.from_delayed(
+                        delayed_compute_rows(
                             sim,
                             tInd,
-                            row,
-                            bb,
+                            block,
                             field_derivatives,
                             fields_array,
                             time_mask,
-                            workers=self.worker,
-                        )
+                        ),
+                        dtype=np.float32,
+                        shape=(
+                            np.sum([len(chunk[1][0]) for chunk in block]),
+                            m.size,
+                        ),
                     )
-                else:
-                    j_row_updates.append(
-                        array.from_delayed(
-                            delayed_compute_rows(
-                                sim,
-                                tInd,
-                                row,
-                                bb,
-                                field_derivatives,
-                                fields_array,
-                                time_mask,
-                            ),
-                            dtype=np.float32,
-                            shape=(
-                                np.sum([len(chunk[1][0]) for chunk in block]),
-                                m.size,
-                            ),
-                        )
-                    )
+                )
+            ATinv_df_duT_v[ind] = atinv_block_deriv
 
         if client:
             j_row_updates = np.vstack(client.gather(j_row_updates))
@@ -499,8 +497,7 @@ def deriv_block(ATinv_df_duT_v, Asubdiag, local_ind, field_derivs):
 def compute_rows(
     simulation,
     tInd,
-    chunks,
-    ind,
+    block,
     field_derivs,
     fields,
     time_mask,
@@ -508,40 +505,45 @@ def compute_rows(
     """
     Compute the rows of the sensitivity matrix for a given source and receiver.
     """
-    (address, ind_array) = chunks
-    # for (address, ind_array), field_derivs in zip(chunks, ATinv_df_duT_v):
-    src = simulation.survey.source_list[address[0]]
-    time_check = np.kron(time_mask, np.ones(ind_array[2], dtype=bool))[ind_array[0]]
-    local_ind = np.arange(len(ind_array[0]))[time_check]
+    rows = []
+    for ind, (address, ind_array) in enumerate(block):
+        # for (address, ind_array), field_derivs in zip(chunks, ATinv_df_duT_v):
+        src = simulation.survey.source_list[address[0]]
+        time_check = np.kron(time_mask, np.ones(ind_array[2], dtype=bool))[ind_array[0]]
+        local_ind = np.arange(len(ind_array[0]))[time_check]
 
-    if len(local_ind) < 1:
+        if len(local_ind) < 1:
+            row_block = np.zeros(
+                (len(ind_array[1]), simulation.model.size), dtype=np.float32
+            )
+            rows.append(row_block)
+            continue
+
+        dAsubdiagT_dm_v = simulation.getAsubdiagDeriv(
+            tInd,
+            fields[:, address[0], tInd],
+            field_derivs[ind][:, local_ind],
+            adjoint=True,
+        )
+
+        dRHST_dm_v = simulation.getRHSDeriv(
+            tInd + 1, src, field_derivs[ind][:, local_ind], adjoint=True
+        )  # on nodes of time mesh
+
+        un_src = fields[:, address[0], tInd + 1]
+        # cell centered on time mesh
+        dAT_dm_v = simulation.getAdiagDeriv(
+            tInd, un_src, field_derivs[ind][:, local_ind], adjoint=True
+        )
         row_block = np.zeros(
             (len(ind_array[1]), simulation.model.size), dtype=np.float32
         )
-        return row_block
+        row_block[time_check, :] = (-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v).T.astype(
+            np.float32
+        )
+        rows.append(row_block)
 
-    dAsubdiagT_dm_v = simulation.getAsubdiagDeriv(
-        tInd,
-        fields[:, address[0], tInd],
-        field_derivs[ind][:, local_ind],
-        adjoint=True,
-    )
-
-    dRHST_dm_v = simulation.getRHSDeriv(
-        tInd + 1, src, field_derivs[ind][:, local_ind], adjoint=True
-    )  # on nodes of time mesh
-
-    un_src = fields[:, address[0], tInd + 1]
-    # cell centered on time mesh
-    dAT_dm_v = simulation.getAdiagDeriv(
-        tInd, un_src, field_derivs[ind][:, local_ind], adjoint=True
-    )
-    row_block = np.zeros((len(ind_array[1]), simulation.model.size), dtype=np.float32)
-    row_block[time_check, :] = (-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v).T.astype(
-        np.float32
-    )
-
-    return row_block
+    return np.vstack(rows)
 
 
 def evaluate_dpred_block(indices, sources, mesh, time_mesh, fields):
