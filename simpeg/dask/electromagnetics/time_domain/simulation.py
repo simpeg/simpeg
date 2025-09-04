@@ -200,16 +200,15 @@ def compute_J(self, m, f=None):
             if len(block) == 0:
                 continue
 
-            field_derivatives = ATinv_df_duT_v[ind]
             if client:
                 field_derivatives = client.scatter(
                     ATinv_df_duT_v[ind], workers=self.worker
                 )
+            else:
+                field_derivatives = ATinv_df_duT_v[ind]
+
             for bb, row in enumerate(block):
                 if client:
-                    # field_derivatives = client.scatter(
-                    #     ATinv_df_duT_v[ind], workers=self.worker
-                    # )
                     j_row_updates.append(
                         client.submit(
                             compute_rows,
