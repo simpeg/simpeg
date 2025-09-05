@@ -21,6 +21,13 @@ For details on the available classes and functions in SimPEG, please visit the
 .. toctree::
   :glob:
   :maxdepth: 1
+  :caption: How to Guide
+
+  how-to-guide/choosing-solvers
+
+.. toctree::
+  :glob:
+  :maxdepth: 1
   :caption: Tutorials
 
   tutorials/**/index
