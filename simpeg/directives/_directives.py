@@ -330,8 +330,11 @@ class DirectiveList(object):
             getattr(r, ruleType)()
 
     def validate(self):
-        [directive.validate(self) for directive in self.dList]
+        [directive.validate(self) for directive in self]
         return True
+
+    def __iter__(self):
+        return iter(self.dList)
 
 
 class BaseBetaEstimator(InversionDirective):
