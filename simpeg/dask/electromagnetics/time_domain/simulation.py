@@ -176,8 +176,9 @@ def compute_J(self, m, f=None):
         delayed_compute_rows = delayed(compute_rows)
         sim = self
     for tInd, dt in zip(reversed(range(self.nT)), reversed(self.time_steps)):
+
         AdiagTinv = Ainv[dt]
-        j_row_updates = []
+        future_updates = []
         time_mask = data_times > simulation_times[tInd]
 
         if not np.any(time_mask):
@@ -200,15 +201,15 @@ def compute_J(self, m, f=None):
             if len(block) == 0:
                 continue
 
-            if client:
-                field_derivatives = client.scatter(
-                    atinv_block_deriv, workers=self.worker
-                )
-            else:
-                field_derivatives = atinv_block_deriv
+            # if client:
+            #     field_derivatives = client.scatter(
+            #         atinv_block_deriv, workers=self.worker
+            #     )
+            # else:
+            field_derivatives = atinv_block_deriv
 
             if client:
-                j_row_updates.append(
+                future_updates.append(
                     client.submit(
                         compute_rows,
                         sim,
@@ -221,7 +222,7 @@ def compute_J(self, m, f=None):
                     )
                 )
             else:
-                j_row_updates.append(
+                future_updates.append(
                     array.from_delayed(
                         delayed_compute_rows(
                             sim,
@@ -241,9 +242,9 @@ def compute_J(self, m, f=None):
             ATinv_df_duT_v[ind] = atinv_block_deriv
 
         if client:
-            j_row_updates = np.vstack(client.gather(j_row_updates))
+            j_row_updates = np.vstack(client.gather(future_updates))
         else:
-            j_row_updates = array.vstack(j_row_updates).compute()
+            j_row_updates = array.vstack(future_updates).compute()
 
         if self.store_sensitivities == "disk":
             sens_name = self.sensitivity_path[:-5] + f"_{tInd % 2}.zarr"
