@@ -187,7 +187,7 @@ def compute_J(self, m, f=None):
         for ind, (block, field_deriv) in enumerate(
             zip(blocks, times_field_derivs[tInd + 1], strict=True)
         ):
-            atinv_block_deriv = get_field_deriv_block(
+            ATinv_df_duT_v[ind] = get_field_deriv_block(
                 self,
                 block,
                 field_deriv,
@@ -198,15 +198,15 @@ def compute_J(self, m, f=None):
                 client,
             )
 
+        if client:
+            field_derivatives = client.scatter(ATinv_df_duT_v, workers=self.worker)
+        else:
+            field_derivatives = ATinv_df_duT_v
+
+        for block_ind in range(len(blocks)):
+
             if len(block) == 0:
                 continue
-
-            # if client:
-            #     field_derivatives = client.scatter(
-            #         atinv_block_deriv, workers=self.worker
-            #     )
-            # else:
-            field_derivatives = atinv_block_deriv
 
             if client:
                 future_updates.append(
@@ -214,7 +214,8 @@ def compute_J(self, m, f=None):
                         compute_rows,
                         sim,
                         tInd,
-                        block,
+                        block_ind,
+                        blocks,
                         field_derivatives,
                         fields_array,
                         time_mask,
@@ -227,7 +228,8 @@ def compute_J(self, m, f=None):
                         delayed_compute_rows(
                             sim,
                             tInd,
-                            block,
+                            block_ind,
+                            blocks,
                             field_derivatives,
                             fields_array,
                             time_mask,
@@ -239,7 +241,6 @@ def compute_J(self, m, f=None):
                         ),
                     )
                 )
-            ATinv_df_duT_v[ind] = atinv_block_deriv
 
         if client:
             j_row_updates = np.vstack(client.gather(future_updates))
@@ -498,7 +499,8 @@ def deriv_block(ATinv_df_duT_v, Asubdiag, local_ind, field_derivs):
 def compute_rows(
     simulation,
     tInd,
-    block,
+    block_ind,
+    blocks,
     field_derivs,
     fields,
     time_mask,
@@ -507,7 +509,7 @@ def compute_rows(
     Compute the rows of the sensitivity matrix for a given source and receiver.
     """
     rows = []
-    for ind, (address, ind_array) in enumerate(block):
+    for ind, (address, ind_array) in enumerate(blocks[block_ind]):
         # for (address, ind_array), field_derivs in zip(chunks, ATinv_df_duT_v):
         src = simulation.survey.source_list[address[0]]
         time_check = np.kron(time_mask, np.ones(ind_array[2], dtype=bool))[ind_array[0]]
@@ -523,18 +525,18 @@ def compute_rows(
         dAsubdiagT_dm_v = simulation.getAsubdiagDeriv(
             tInd,
             fields[:, address[0], tInd],
-            field_derivs[ind][:, local_ind],
+            field_derivs[block_ind][ind][:, local_ind],
             adjoint=True,
         )
 
         dRHST_dm_v = simulation.getRHSDeriv(
-            tInd + 1, src, field_derivs[ind][:, local_ind], adjoint=True
+            tInd + 1, src, field_derivs[block_ind][ind][:, local_ind], adjoint=True
         )  # on nodes of time mesh
 
         un_src = fields[:, address[0], tInd + 1]
         # cell centered on time mesh
         dAT_dm_v = simulation.getAdiagDeriv(
-            tInd, un_src, field_derivs[ind][:, local_ind], adjoint=True
+            tInd, un_src, field_derivs[block_ind][ind][:, local_ind], adjoint=True
         )
         row_block = np.zeros(
             (len(ind_array[1]), simulation.model.size), dtype=np.float32
