@@ -67,7 +67,7 @@ def test_function_success(mesh_type, dim, option, shift_horizontal, heights):
         mesh,
         pts,
         active_cells,
-        option=option,
+        topo_cell_cutoff=option,
         shift_horizontal=shift_horizontal,
         heights=heights,
     )
@@ -86,19 +86,6 @@ def test_function_success(mesh_type, dim, option, shift_horizontal, heights):
     correct_locations[:, -1] = correct_elevations
 
     np.testing.assert_allclose(correct_locations, pts_shifted)
-
-
-def test_dimension_error():
-    """Throw unsupported mesh dimension error."""
-    mesh_type = "tensor"
-    dim = 1
-
-    mesh = get_mesh(mesh_type, dim)
-    active_cells = get_active_cells(mesh)
-    pts = get_points(dim)
-
-    with pytest.raises(ValueError):
-        shift_to_discrete_topography(mesh, pts, active_cells)
 
 
 def test_mesh_type_error():
@@ -131,9 +118,9 @@ def test_size_errors():
         shift_to_discrete_topography(mesh, pts, active_cells, heights=heights)
 
 
-mesh_type = "tensor"
-dim = 3
-option = "top"
-shift_horizontal = True
-heights = 0.0
-test_function_success(mesh_type, dim, option, shift_horizontal, heights)
+# mesh_type = "tensor"
+# dim = 3
+# option = "top"
+# shift_horizontal = True
+# heights = 0.0
+# test_function_success(mesh_type, dim, option, shift_horizontal, heights)

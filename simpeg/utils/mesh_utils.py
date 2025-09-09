@@ -129,9 +129,9 @@ def _closest_grid_indices(grid, pts, dim=2):
     return grid_inds
 
 
-def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top", option=None):
+def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top"):
     """
-    Generate discrete topography locations.
+    Generate discrete topography locations from mesh and active cells.
 
     Parameters
     ----------
@@ -145,24 +145,12 @@ def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top", option=N
         discrete topography is defined on the top faces of surface cells.
         For "center", only the cell centers must lie below the surface topograpy and the
         discrete topography is defined at the centers of surface cells.
-    option :
-        This input argument is deprecated and will be removed in SimPEG v.0.25.0.
-        Please use `topo_cell_cutoff`.
 
     Returns
     -------
-    (n, [2]) numpy.ndarray
-        Horizontal locations x[y] for discrete topography.
-    (n,) numpy.ndarray
-        Elevations for discrete topography.
+    (n, dim) numpy.ndarray
+        Discrete topography locations; i.e. xy[z].
     """
-    if option is not None:
-        topo_cell_cutoff = option
-        message = (
-            "The 'option' input argument is deprecated and will be removed in SimPEG v.0.25.0." +
-            " Please use 'topo_cell_cutoff'."
-        )
-        warnings.warn(message, DeprecationWarning, stacklevel=2)
 
     if mesh._meshType == "TENSOR":
         if mesh.dim == 3:
@@ -183,7 +171,7 @@ def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top", option=N
                 else:
                     raise ValueError("'topo_cell_cutoff' must be 'top' or 'center'.")
                 topoCC[i] = ZC[i, :][ACTIND[i, :]].max() + dz
-            return mesh2D.cell_centers, topoCC
+            return np.c_[mesh2D.cell_centers, topoCC]
 
         elif mesh.dim == 2:
             mesh1D = TensorMesh([mesh.h[0]], [mesh.x0[0]])
@@ -200,7 +188,7 @@ def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top", option=N
                 else:
                     raise ValueError("'topo_cell_cutoff' must be 'top' or 'center'.")
                 topoCC[i] = YC[i, :][ACTIND[i, :]].max() + dy
-            return mesh1D.cell_centers, topoCC
+            return np.c_[mesh1D.cell_centers, topoCC]
 
     elif mesh._meshType == "TREE":
         inds = mesh.get_boundary_cells(active_cells, direction="zu")[0]
@@ -209,7 +197,7 @@ def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top", option=N
             dz = mesh.h_gridded[inds, -1] * 0.5
         elif topo_cell_cutoff == "center":
             dz = 0.0
-        return mesh.cell_centers[inds, :-1], mesh.cell_centers[inds, -1] + dz
+        return np.c_[mesh.cell_centers[inds, :-1], mesh.cell_centers[inds, -1] + dz]
     else:
         raise NotImplementedError(f"{type(mesh)} mesh is not supported.")
 
@@ -217,12 +205,10 @@ def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top", option=N
 def shift_to_discrete_topography(
     mesh,
     pts,
-    active_cells=None,
+    active_cells,
     topo_cell_cutoff="top",
     shift_horizontal=True,
     heights=0.0,
-    topo=None,
-    option=None,
 ):
     """
     Shift locations relative to discrete surface topography.
@@ -249,24 +235,12 @@ def shift_to_discrete_topography(
     shift_horizontal : bool, optional
         When True, locations are shifted horizontally to lie vertically over cell
         centers. When False, the original horizontal locations are preserved.
-    topo : (n, dim) numpy.ndarray, optional
-        Surface topography. Can be used if an active indices array cannot be
-        provided for the input parameter 'active_cells'.
-    option :
-        This input argument is deprecated and will be removed in SimPEG v.0.25.0.
-        Please use `topo_cell_cutoff`.
 
     Returns
     -------
     (n, dim) numpy.ndarray
         The set of points shifted relative to the discretize surface topography.
     """
-
-    if option is not None:
-        topo_cell_cutoff = option
-        warnings.DeprecationWarning(
-            "The 'option' input argument is deprecated and will be removed in SimPEG v.0.25.0. Please use 'topo_cell_cutoff'."
-        )
 
     if mesh._meshType != "TENSOR" and mesh._meshType != "TREE":
         raise NotImplementedError(
@@ -278,42 +252,68 @@ def shift_to_discrete_topography(
             "If supplied as a `numpy.ndarray`, the number of heights must equal the number of points."
         )
 
-    if mesh.dim == 2:
-        # if shape is (*, 1) or (*, 2) just grab first column
-        if pts.ndim == 2 and pts.shape[1] in [1, 2]:
-            pts = pts[:, 0]
-        if pts.ndim > 1:
-            raise ValueError("pts should be 1d array")
-    elif mesh.dim == 3:
-        if pts.shape[1] not in [2, 3]:
-            raise ValueError("shape of pts should be (x, 3) or (x, 2)")
-        # just grab the xy locations in the first two columns
-        pts = pts[:, :2]
-    else:
-        raise ValueError("Unsupported mesh dimension")
+    discrete_topography = get_discrete_topography(
+        mesh, active_cells, topo_cell_cutoff=topo_cell_cutoff
+    )
 
-    if active_cells is None:
-        active_cells = active_from_xyz(mesh, topo)
-
-    if mesh.dim == 3:
-        uniqXYlocs, topoCC = get_discrete_topography(
-            mesh, active_cells, topo_cell_cutoff=topo_cell_cutoff
-        )
-        inds = _closest_grid_indices(uniqXYlocs, pts)
-        if shift_horizontal:
-            out = np.c_[uniqXYlocs[inds, :], topoCC[inds]]
-        else:
-            out = np.c_[pts, topoCC[inds]]
+    if pts.ndim == 2 and pts.shape[1] == mesh.dim:
+        has_elevation = True
+        horizontal_pts = pts[:, :-1]
     else:
-        uniqXlocs, topoCC = get_discrete_topography(
-            mesh, active_cells, topo_cell_cutoff=topo_cell_cutoff
-        )
-        inds = _closest_grid_indices(uniqXlocs, pts, dim=1)
-        if shift_horizontal:
-            out = np.c_[uniqXlocs[inds], topoCC[inds]]
+        has_elevation = False
+        horizontal_pts = pts.squeeze()  # in case (n, 1) array
+    
+    topo_inds = _closest_grid_indices(discrete_topography[:, :-1], horizontal_pts, dim=mesh.dim-1)
+    
+    if shift_horizontal:
+        if has_elevation:
+            cell_inds = mesh.point2index(pts)
+            out = np.c_[mesh.cell_centers[cell_inds, :-1], discrete_topography[topo_inds, -1]]
         else:
-            out = np.c_[pts, topoCC[inds]]
+            out = discrete_topography[topo_inds, :]
+    else:
+        out = np.c_[horizontal_pts, discrete_topography[topo_inds, -1]]
 
     out[:, -1] += heights
+
+    
+
+
+
+    # if mesh.dim == 2:
+    #     # if shape is (*, 1) or (*, 2) just grab first column
+    #     if pts.ndim == 2 and pts.shape[1] in [1, 2]:
+    #         pts = pts[:, 0]
+    #     if pts.ndim > 1:
+    #         raise ValueError("pts should be 1d array")
+    # elif mesh.dim == 3:
+    #     if pts.shape[1] not in [2, 3]:
+    #         raise ValueError("shape of pts should be (x, 3) or (x, 2)")
+    #     # just grab the xy locations in the first two columns
+    #     pts = pts[:, :2]
+    # else:
+    #     raise ValueError("Unsupported mesh dimension")
+
+
+    # if mesh.dim == 3:
+    #     uniqXYlocs, topoCC = get_discrete_topography(
+    #         mesh, active_cells, topo_cell_cutoff=topo_cell_cutoff
+    #     )
+    #     inds = _closest_grid_indices(uniqXYlocs, pts)
+    #     if shift_horizontal:
+    #         out = np.c_[uniqXYlocs[inds, :], topoCC[inds]]
+    #     else:
+    #         out = np.c_[pts, topoCC[inds]]
+    # else:
+    #     uniqXlocs, topoCC = get_discrete_topography(
+    #         mesh, active_cells, topo_cell_cutoff=topo_cell_cutoff
+    #     )
+    #     inds = _closest_grid_indices(uniqXlocs, pts, dim=1)
+    #     if shift_horizontal:
+    #         out = np.c_[uniqXlocs[inds], topoCC[inds]]
+    #     else:
+    #         out = np.c_[pts, topoCC[inds]]
+
+    # out[:, -1] += heights
 
     return out
