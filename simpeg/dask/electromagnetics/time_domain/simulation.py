@@ -71,7 +71,7 @@ def getSourceTerm(self, tInd):
 
     source_list = self.survey.source_list
     source_block = np.array_split(
-        np.arange(len(source_list)), self.n_threads(client=client)
+        np.arange(len(source_list)), int(self.n_threads(client=client) / 2)
     )
 
     if client:
