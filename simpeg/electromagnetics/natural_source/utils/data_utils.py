@@ -6,8 +6,8 @@ from scipy.constants import mu_0
 import simpeg as simpeg
 from simpeg.electromagnetics.natural_source.survey import Survey, Data
 from simpeg.electromagnetics.natural_source.receivers import (
-    PointNaturalSource,
-    Point3DTipper,
+    Impedance,
+    Tipper,
 )
 from simpeg.electromagnetics.natural_source.sources import PlanewaveXYPrimary
 from simpeg.electromagnetics.natural_source.utils import (
@@ -68,9 +68,9 @@ def extract_data_info(NSEMdata):
             src_rx_slice = survey_slices[src, rx]
             dL.append(NSEMdata.dobs[src_rx_slice])
             freqL.append(np.ones(rx.nD) * src.frequency)
-            if isinstance(rx, PointNaturalSource):
+            if isinstance(rx, Impedance):
                 rxTL.extend((("z" + rx.orientation + " ") * rx.nD).split())
-            if isinstance(rx, Point3DTipper):
+            if isinstance(rx, Tipper):
                 rxTL.extend((("t" + rx.orientation + " ") * rx.nD).split())
     return np.concatenate(dL), np.concatenate(freqL), np.array(rxTL)
 
@@ -124,9 +124,9 @@ def resample_data(NSEMdata, locs="All", freqs="All", rxs="All", verbose=False):
         rx_comp = []
         for rxT in rxs:
             if "z" in rxT[0]:
-                rxtype = PointNaturalSource
+                rxtype = Impedance
             elif "t" in rxT[0]:
-                rxtype = Point3DTipper
+                rxtype = Tipper
             else:
                 raise IOError("Unknown rx type string")
             orient = rxT[1:3]
@@ -258,8 +258,8 @@ def convert3Dto1Dobject(NSEMdata, rxType3D="yx"):
     for loc in uniLocs:
         # Make the receiver list
         rx1DList = []
-        rx1DList.append(PointNaturalSource(simpeg.mkvc(loc, 2).T, "real"))
-        rx1DList.append(PointNaturalSource(simpeg.mkvc(loc, 2).T, "imag"))
+        rx1DList.append(Impedance(simpeg.mkvc(loc, 2).T, component="real"))
+        rx1DList.append(Impedance(simpeg.mkvc(loc, 2).T, component="imag"))
         # Source list
         locrecData = recData[
             np.sqrt(
