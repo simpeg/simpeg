@@ -1,4 +1,8 @@
+import re
+from datetime import datetime
+import pathlib
 import unittest
+import warnings
 from statistics import harmonic_mean
 
 import pytest
@@ -660,6 +664,213 @@ class TestUpdateIRLS:
             assert obj_fun.irls_threshold == irls_threshold / irls_cooling_factor
         # The irls_threshold for the sparse_regularization should not be changed
         assert sparse_regularization.irls_threshold == irls_threshold
+
+
+class DummySaveEveryIteration(directives.SaveEveryIteration):
+    """
+    Dummy non-abstract class to test SaveEveryIteration.
+    """
+
+    @property
+    def file_abs_path(self) -> pathlib.Path:
+        """
+        Simple implementation of abstract property file_abs_path.
+        """
+        return self.directory / self.name
+
+
+class MockOpt:
+    """Mock Opt object."""
+
+    def __init__(self, xc=None, maxIter=100):
+        if xc is None:
+            xc = np.random.default_rng(seed=42).uniform(size=23)
+        self.xc = xc
+        self.maxIter = maxIter
+
+
+class MockInvProb:
+    """Mock InvProb object."""
+
+    def __init__(self, opt):
+        self.opt = opt
+
+
+class MockInversion:
+    """Mock Inversion object."""
+
+    def __init__(self, xc=None, maxIter=100):
+        opt = MockOpt(xc=xc, maxIter=maxIter)
+        inv_prob = MockInvProb(opt)
+        self.invProb = inv_prob
+
+
+class TestSaveEveryIteration:
+    """Test the SaveEveryIteration directive."""
+
+    @pytest.mark.parametrize("directory", ["dummy/path", "../dummy/path"])
+    def test_directory(self, directory):
+        """Test the directory property."""
+        directive = DummySaveEveryIteration(directory=directory)
+        assert directive.directory == pathlib.Path(directory).resolve()
+
+    def test_no_directory(self):
+        """Test if the directory property is None when on_disk is False"""
+        directive = DummySaveEveryIteration(directory="blah", on_disk=False)
+        assert directive._directory is None
+
+        # accessing the directive property should raise error when on_disk is False
+        msg = re.escape("directory' is only available")
+        with pytest.raises(AttributeError, match=msg):
+            directive.directory
+
+        # using the directive setter should raise error when on_disk is False
+
+    @pytest.mark.parametrize("directory", ["dummy/path", "../dummy/path"])
+    def test_directory_setter(self, directory):
+        """Test the directory setter."""
+        directive = DummySaveEveryIteration()
+        directive.directory = directory
+        assert directive.directory == pathlib.Path(directory).resolve()
+
+    def test_directory_setter_error_none(self):
+        """Test error when trying to set directory=None if on_disk is True."""
+        directive = DummySaveEveryIteration()
+        msg = re.escape("Directory is not optional if 'on_disk==True'")
+        with pytest.raises(ValueError, match=msg):
+            directive.directory = None
+
+    def test_name(self):
+        """Test the name property."""
+        name = "blah"
+        directive = DummySaveEveryIteration(name=name)
+        assert directive.name == name
+
+    def test_name_setter(self):
+        """Test the name setter."""
+        directive = DummySaveEveryIteration()
+        name = "blah"
+        directive.name = name
+        assert directive.name == name
+
+    def test_mkdir(self, tmp_path):
+        """Test _mkdir_and_check_output_file."""
+        directory = tmp_path / "blah"
+        directive = DummySaveEveryIteration(directory=directory)
+        directive._mkdir_and_check_output_file()
+        assert directory.exists()
+        fname = directory / directive.name
+        assert not fname.exists()
+
+    @pytest.mark.parametrize(
+        "should_exist", [True, False], ids=["should_exist", "should_not_exist"]
+    )
+    def test_check_output_file_exists(self, tmp_path, should_exist):
+        """Test _mkdir_and_check_output_file when file exists."""
+        directory = tmp_path / "blah"
+        directory.mkdir(parents=True)
+        directive = DummySaveEveryIteration(directory=directory)
+        fname = directive.file_abs_path
+        fname.touch()
+        assert fname.exists()
+
+        if should_exist:
+            # No warning should be raised if exists and should exist
+            with warnings.catch_warnings():
+                warnings.simplefilter("error")
+                directive._mkdir_and_check_output_file(should_exist=should_exist)
+        else:
+            # Warning should be raised if exists and should not exist
+            with pytest.warns(UserWarning, match="Overwriting file"):
+                directive._mkdir_and_check_output_file(should_exist=should_exist)
+
+    @pytest.mark.parametrize(
+        "should_exist", [True, False], ids=["should_exist", "should_not_exist"]
+    )
+    def test_check_output_file_doesnt_exist(self, tmp_path, should_exist):
+        """Test _mkdir_and_check_output_file when file doesn't exist."""
+        directory = tmp_path / "blah"
+        directory.mkdir(parents=True)
+        directive = DummySaveEveryIteration(directory=directory)
+        fname = directive.file_abs_path
+
+        if should_exist:
+            # Warning should be raised if doesn't exist and should exist
+            with pytest.warns(UserWarning, match=f"File {fname} was not found"):
+                directive._mkdir_and_check_output_file(should_exist=should_exist)
+        else:
+            # No warning should be raised if doesn't exist and should not exist
+            with warnings.catch_warnings():
+                warnings.simplefilter("error")
+                directive._mkdir_and_check_output_file(should_exist=should_exist)
+
+    @pytest.mark.parametrize("opt", [True, False], ids=["with-opt", "without-opt"])
+    def test_initialize(self, opt):
+        """
+        Test the initialize method.
+        """
+        directive = DummySaveEveryIteration()
+        if opt:
+            directive.inversion = MockInversion(maxIter=10000)
+
+        expected_start_time = datetime.now().strftime("%Y-%m-%d-%H-%M")
+        directive.initialize()
+        assert directive._start_time == expected_start_time
+
+        if opt:
+            assert directive._iter_format == "05d"
+
+
+class TestSaveModelEveryIteration:
+    """Test the SaveModelEveryIteration directive."""
+
+    def test_on_disk(self):
+        """
+        Test on_disk is always True.
+        """
+        directive = directives.SaveModelEveryIteration()
+        assert directive.on_disk
+
+    def test_end_iter(self, tmp_path):
+        """
+        Test if endIter saves the model to a file.
+        """
+        directory = tmp_path / "dummy_dir"
+        directive = directives.SaveModelEveryIteration(directory=directory)
+
+        # Add a mock inversion to the directive
+        mock_inversion = MockInversion()
+        directive.inversion = mock_inversion
+
+        # Initialize and call endIter
+        directive.initialize()
+        directive.endIter()
+
+        # Check if file exists
+        assert directory.exists()
+        assert directive.file_abs_path.exists()
+        array = np.load(directive.file_abs_path)
+
+        np.testing.assert_equal(array, mock_inversion.invProb.opt.xc)
+
+
+class TestSaveOutputEveryIteration:
+    """
+    Test the SaveOutputEveryIteration directive.
+
+    Need a full inversion to test it.
+
+    Test:
+        * endIter generates the output file with the right content
+        * load_results properly loads data from file
+            * test errors
+    """
+
+
+class TestSaveOutputDictEveryIteration:
+    """
+    Test the SaveOutputDictEveryIteration directive.
+    """
 
 
 if __name__ == "__main__":
