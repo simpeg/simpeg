@@ -188,7 +188,7 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
 #     return eBG_bp
 
 
-def primary_e_1d_solution(mesh, sigma_1d, freq, n_pad=2000):
+def primary_e_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=2000):
     r"""Compute 1D electric field solution. 
 
     Parameters
@@ -196,10 +196,14 @@ def primary_e_1d_solution(mesh, sigma_1d, freq, n_pad=2000):
     mesh : discretize.base.BaseTensorMesh
         A 1d, 2d or 3d tensor mesh or tree mesh.
     sigma_1d :
-        1D conductivity model defined along the vertical discretization. Conductivities are
-        defined from the bottom cell upwards.
+        1D conductivity model defined along the vertical discretization.
+        Conductivities are defined from the bottom cell upwards.
     freq : float
         Operating frequency in Hz.
+    top_bc : string {"dirichlet", "neumann"}
+        Use "dirichlet" for a solution where the electric field is equal to 1 at
+        the top of the mesh. Use "neumann" to implement a boundary condition
+        such that the magnetic field is equal to 1 at the top of the mesh.
     n_pad : int
         Number of padding cells added to top and bottom of discrete 1D solution
         to ensure boundary conditions implemented accurately.
@@ -275,14 +279,14 @@ def primary_e_1d_solution(mesh, sigma_1d, freq, n_pad=2000):
     .. math::
         \big [ \mathbf{G_n^T M_{\mu} G_n} + i \omega\mathbf{M_\sigma} \big ] \mathbf{e} + i\omega h_y \bigg |_{bot}^{top} = 0
 
-    When $\mu = \mu_0$, we can multiply through an obtain:
+    When $\mu = \mu_0$, we can multiply through and obtain:
 
     .. math::
         \big [ \mathbf{G_n^T G_n} + i \omega \mu_0 \, diag (\sigma) \big ] \mathbf{e} + i\omega \mu_0 h_y \bigg |_{bot}^{top} = 0
     
     **Implementing Discrete Boundary Conditions:**
 
-    At the top node of the mesn, we know that:
+    At the top node of the mesh, we know that:
 
     .. math::
     \frac{-e_{n-1} + 2 e_n - e_{n+1}}{h^2} + i \omega \mu_0 \sigma_n e_n
@@ -333,10 +337,7 @@ def primary_e_1d_solution(mesh, sigma_1d, freq, n_pad=2000):
     """
 
     # Extract vertical discretization
-    if mesh.dim == 1:
-        hz = mesh.h
-    else:
-        hz = mesh.h[-1]
+    hz = mesh.h[-1]
 
     if len(hz) != len(sigma_1d):
         raise ValueError(
@@ -346,35 +347,48 @@ def primary_e_1d_solution(mesh, sigma_1d, freq, n_pad=2000):
         )
 
     # Generate extended 1D mesh and model to solve 1D problem
-    hz_ext = np.r_[hz[0] * np.ones(n_pad), hz, hz[-1] * np.ones(n_pad)]
+    if n_pad == 0:
+        hz_ext = hz
+    else:
+        hz_ext = np.r_[hz[0] * np.ones(n_pad), hz, hz[-1] * np.ones(n_pad)]
     mesh_1d_ext = TensorMesh([hz_ext], origin=[mesh.origin[-1] - hz[0] * n_pad])
 
     sigma_1d_ext = np.r_[
         sigma_1d[0] * np.ones(n_pad), sigma_1d, sigma_1d[-1] * np.ones(n_pad)
     ]
-    sigma_1d_ext = mesh_1d_ext.average_face_to_cell.T * sigma_1d_ext
-    sigma_1d_ext[0] = sigma_1d[1]
-    sigma_1d_ext[-1] = sigma_1d[-2]
+    sigma_1d_ext = mesh_1d_ext.average_face_to_cell.T * (hz_ext * sigma_1d_ext)
+    sigma_1d_ext[0] = hz[1] * sigma_1d[1]
+    sigma_1d_ext[-1] = hz[-2] * sigma_1d[-2]
+
+    # Could add background susceptibility in future
+    mui_1d_ext = hz_ext / mu_0
 
     # Solve the 1D problem for electric fields on nodes
     w = 2 * np.pi * freq
     k = np.sqrt(-1.0j * w * mu_0 * sigma_1d_ext[0])
 
-    A = (
-        mesh_1d_ext.nodal_gradient.T @ mesh_1d_ext.nodal_gradient
-        + 1j * w * mu_0 * sdiag(sigma_1d_ext)
-    )
-    A[0, 0] = (1.0 + 1j * k * hz[0]) / hz[0] ** 2 + 1j * w * mu_0 * sigma_1d[0]
-    A[0, 1] = -1 / hz[0] ** 2
+    A = mesh_1d_ext.nodal_gradient.T @ (
+        sdiag(mui_1d_ext) @ mesh_1d_ext.nodal_gradient
+    ) + 1j * w * sdiag(sigma_1d_ext)
+    # Need to replace mu_0 if adding background 1d permeability
+    A[0, 0] = (1.0 + 1j * k * hz[0]) / (mu_0 * hz[0] ** 2) + 1j * w * sigma_1d[0]
+    A[0, 1] = -1 / (mu_0 * hz[0] ** 2)
 
     q = np.zeros(mesh_1d_ext.n_faces, dtype=np.complex128)
-    q[-1] = -1j * w * mu_0 / hz[-1]
+    if top_bc == "neumann":
+        q[-1] = -1j * w
+    else:
+        A[-1, -2] = 0
+        q[-1] = A[-1, -1]
 
     Ainv = Solver(A)
     e_1d = Ainv * q
 
     # Return solution along original vertical discretization
-    return e_1d[n_pad:-n_pad]
+    if n_pad == 0:
+        return e_1d
+    else:
+        return e_1d[n_pad:-n_pad]
 
 
 def project_e_1d_to_e_primary(mesh, e_1d):
