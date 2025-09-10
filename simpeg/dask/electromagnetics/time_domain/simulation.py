@@ -70,9 +70,6 @@ def getSourceTerm(self, tInd):
         sim = self
 
     source_list = self.survey.source_list
-    source_block = np.array_split(
-        np.arange(len(source_list)), int(self.n_threads(client=client) / 2)
-    )
 
     if client:
         sim = client.scatter(self, workers=self.worker)
@@ -82,22 +79,19 @@ def getSourceTerm(self, tInd):
         sim = self
 
     block_compute = []
-    for block in source_block:
+    for source in source_list:
         if client:
             block_compute.append(
                 client.submit(
                     source_evaluation,
                     sim,
-                    block,
                     self.times[tInd],
-                    source_list,
+                    source,
                     workers=self.worker,
                 )
             )
         else:
-            block_compute.append(
-                delayed_source_eval(self, block, self.times[tInd], source_list)
-            )
+            block_compute.append(delayed_source_eval(self, self.times[tInd], source))
 
     if client:
         blocks = client.gather(block_compute)
@@ -283,12 +277,12 @@ def field_projection(field_array, src_list, array_ind, time_ind, func):
     return new_array
 
 
-def source_evaluation(simulation, indices, time_channel, sources):
+def source_evaluation(simulation, time_channel, source):
     s_m, s_e = [], []
-    for ind in indices:
-        sm, se = sources[ind].eval(simulation, time_channel)
-        s_m.append(sm)
-        s_e.append(se)
+
+    sm, se = source.eval(simulation, time_channel)
+    s_m.append(sm)
+    s_e.append(se)
 
     return s_m, s_e
 
