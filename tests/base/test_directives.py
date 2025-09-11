@@ -1004,6 +1004,7 @@ class TestSaveOutputEveryIteration(BaseTestOutputDirective):
             (True, False),
             (False, None),
         ],
+        ids=["on_disk-test_load_results", "on_disk", "not_on_disk"],
     )
     def test_end_iter(self, tmp_path, on_disk, test_load_results):
         """Test the endIter method."""
@@ -1093,7 +1094,7 @@ class TestSaveOutputDictEveryIteration(BaseTestOutputDirective):
         assert hasattr(directive, "outDict")
         assert not directive.outDict
 
-    @pytest.mark.parametrize("on_disk", [True, False])
+    @pytest.mark.parametrize("on_disk", [True, False], ids=["on_disk", "not_on_disk"])
     def test_end_iter(self, tmp_path, on_disk):
         """Test the endIter method."""
         inv_prob = self.get_inversion_problem()
