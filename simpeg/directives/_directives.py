@@ -1819,7 +1819,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
     @property
     def file_abs_path(self):
-        if self.save_txt:
+        if self.on_disk:
             return self.directory / self._time_file_name.with_suffix(".txt")
 
     save_txt = deprecate_property(
