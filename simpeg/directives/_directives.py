@@ -1756,7 +1756,13 @@ class SaveModelEveryIteration(SaveEveryIteration):
     """
 
     def __init__(self, **kwargs):
-        kwargs.pop("on_disk", None)
+        if "on_disk" in kwargs:
+            msg = (
+                f"The 'on_disk' argument is ignored by the '{type(self).__name__}' "
+                "directive, it's always True."
+            )
+            warnings.warn(msg, UserWarning, stacklevel=2)
+            kwargs.pop("on_disk")
         super().__init__(on_disk=True, **kwargs)
 
     def initialize(self):
@@ -1770,6 +1776,15 @@ class SaveModelEveryIteration(SaveEveryIteration):
     def on_disk(self):
         """This class always saves to disk."""
         return True
+
+    @on_disk.setter
+    def on_disk(self, value):  # noqa: F811
+        """This class always saves to disk."""
+        msg = (
+            f"Cannot modify value of 'on_disk' for {type(self).__name__}' directive. "
+            "It's always True."
+        )
+        raise AttributeError(msg)
 
     @property
     def file_abs_path(self):

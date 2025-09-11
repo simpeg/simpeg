@@ -834,6 +834,24 @@ class TestSaveModelEveryIteration:
         directive = directives.SaveModelEveryIteration()
         assert directive.on_disk
 
+    def test_on_disk_argument(self):
+        """
+        Test warning after passing on_disk as argument.
+        """
+        msg = re.escape("The 'on_disk' argument is ignored")
+        with pytest.warns(UserWarning, match=msg):
+            directive = directives.SaveModelEveryIteration(on_disk=False)
+        assert directive.on_disk
+
+    def test_on_disk_setter(self):
+        """
+        Test error after trying to modify value of on_disk.
+        """
+        directive = directives.SaveModelEveryIteration()
+        msg = re.escape("Cannot modify value of 'on_disk'")
+        with pytest.raises(AttributeError, match=msg):
+            directive.on_disk = False
+
     def test_end_iter(self, tmp_path):
         """
         Test if endIter saves the model to a file.
