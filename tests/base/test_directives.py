@@ -868,14 +868,14 @@ class BaseTestOutputDirective:
         """
         # Mesh
         # ----
-        h = [(4.0, 10)]
+        h = [(1.0, 6)]
         mesh = discretize.TensorMesh([h, h, h], origin="CCN")
 
         # Survey
         # ------
-        x = np.linspace(-10.0, 10.0, 21)
+        x = np.linspace(-2.0, 2.0, 5)
         xx, yy = np.meshgrid(x, x)
-        zz = 5.0 * np.ones_like(xx)
+        zz = 1.0 * np.ones_like(xx)
         receiver_locations = np.vstack([c.ravel() for c in (xx, yy, zz)]).T
         receivers = gravity.Point(locations=receiver_locations, components="gz")
         source_field = gravity.SourceField([receivers])
@@ -894,8 +894,8 @@ class BaseTestOutputDirective:
         model = simpeg.utils.model_builder.add_block(
             mesh.cell_centers,
             model,
-            p0=[-4.0, -4.0, -8.0],
-            p1=[4.0, 4.0, -4.0],
+            p0=[-1.0, -1.0, -2.0],
+            p1=[1.0, 1.0, -1.0],
             prop_value=200,
         )
         synthetic_data = simulation.make_synthetic_data(
