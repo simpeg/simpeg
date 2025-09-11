@@ -860,13 +860,6 @@ class TestSaveModelEveryIteration:
 class TestSaveOutputEveryIteration:
     """
     Test the SaveOutputEveryIteration directive.
-
-    Need a full inversion to test it.
-
-    Test:
-        * endIter generates the output file with the right content
-        * load_results properly loads data from file
-            * test errors
     """
 
     def get_inversion_problem(self):
@@ -1033,6 +1026,18 @@ class TestSaveOutputEveryIteration:
                     getattr(directive, attribute),
                     original_values[attribute],
                 )
+
+    def test_load_results_error(self, tmp_path):
+        """
+        Test error when no file_name is passed to load_results.
+        """
+        directory = tmp_path / "dummy"
+        directive = directives.SaveOutputEveryIteration(
+            directory=directory, on_disk=False
+        )
+        msg = re.escape("'file_name' is a required argument")
+        with pytest.raises(TypeError, match=msg):
+            directive.load_results()
 
 
 class TestSaveOutputDictEveryIteration:
