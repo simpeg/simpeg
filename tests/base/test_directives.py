@@ -1018,6 +1018,22 @@ class TestSaveOutputEveryIteration:
             assert "phi_m" in lines[0]
             assert len(lines) > 1
 
+            # Test load_results
+            original_values = {attr: getattr(directive, attr) for attr in lists}
+            for attribute in lists:
+                # Clean the lists
+                setattr(directive, attribute, [])
+
+            # Load results and check if they are the same as the original ones
+            directive.load_results()
+
+            # Check that the original values were recovered
+            for attribute in lists:
+                np.testing.assert_equal(
+                    getattr(directive, attribute),
+                    original_values[attribute],
+                )
+
 
 class TestSaveOutputDictEveryIteration:
     """
