@@ -857,9 +857,9 @@ class TestSaveModelEveryIteration:
         np.testing.assert_equal(array, mock_inversion.invProb.opt.xc)
 
 
-class TestSaveOutputEveryIteration:
+class BaseTestOutputDirective:
     """
-    Test the SaveOutputEveryIteration directive.
+    Base class to test directives that need a full inversion.
     """
 
     def get_inversion_problem(self):
@@ -918,9 +918,7 @@ class TestSaveOutputEveryIteration:
 
         return inv_prob
 
-    def get_directives(
-        self, save_output_directive: directives.SaveOutputEveryIteration
-    ):
+    def get_directives(self, save_output_directive: directives.SaveEveryIteration):
         """
         Get list of directives to use in the sample gravity inversion.
 
@@ -945,6 +943,12 @@ class TestSaveOutputEveryIteration:
             target_misfit,
         ]
         return directives_list
+
+
+class TestSaveOutputEveryIteration(BaseTestOutputDirective):
+    """
+    Test the SaveOutputEveryIteration directive.
+    """
 
     def test_initialize(self, tmp_path):
         """Test the initialize method."""
@@ -1040,10 +1044,56 @@ class TestSaveOutputEveryIteration:
             directive.load_results()
 
 
-class TestSaveOutputDictEveryIteration:
+class TestSaveOutputDictEveryIteration(BaseTestOutputDirective):
     """
     Test the SaveOutputDictEveryIteration directive.
     """
+
+    def test_initialize(self):
+        """Test the initialize method."""
+        directive = directives.SaveOutputDictEveryIteration()
+        directive.initialize()
+
+        # Check outDict was created and is empty
+        assert hasattr(directive, "outDict")
+        assert not directive.outDict
+
+    @pytest.mark.parametrize("on_disk", [True, False])
+    def test_end_iter(self, tmp_path, on_disk):
+        """Test the endIter method."""
+        inv_prob = self.get_inversion_problem()
+
+        directory = tmp_path / "dummy"
+        directive = directives.SaveOutputDictEveryIteration(
+            directory=directory, on_disk=on_disk
+        )
+        directives_list = self.get_directives(directive)
+        inversion = simpeg.inversion.BaseInversion(inv_prob, directives_list)
+
+        initial_model = np.zeros(inv_prob.dmisfit.nP)
+        inversion.run(initial_model)
+
+        # Check if the outDict is not empty
+        assert directive.outDict
+        fields = [
+            "iter",
+            "beta",
+            "phi_d",
+            "phi_m",
+            "f",
+            "m",
+            "dpred",
+        ]
+        for iteration in directive.outDict:
+            for field in fields:
+                assert field in directive.outDict[iteration]
+
+        # Check if output files were created
+        if on_disk:
+            assert directory.exists()
+            assert directory.is_dir()
+            files = list(directory.iterdir())
+            assert len(files) == len(directive.outDict)
 
 
 if __name__ == "__main__":
