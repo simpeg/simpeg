@@ -17,15 +17,16 @@ SimPEG can make use of the solvers available in :mod:`pymatsolver`, like
 :class:`pymatsolver.Pardiso`, :class:`pymatsolver.Mumps` or
 :class:`pymatsolver.SolverLU`.
 The choice of an appropriate solver can affect the computation time required to
-solve the PDE.
+solve the PDE. Generally we recommend using direct solvers over iterative solvers
+for SimPEG, but be aware that direct solvers have much larger memory requirements.
 
 The ``Pardiso`` solver wraps the `oneMKL PARDISO
 <https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2023-0/onemkl-pardiso-parallel-direct-sparse-solver-iface.html>`_
-solver available for Intel CPUs.
+solver available for x86_64 CPUs.
 
 The ``Mumps`` solver wraps `MUMPS
 <https://mumps-solver.org/index.php?page=home>`_, a fast solver available for
-other CPU brands, including Apple silicon architecture.
+all CPU brands, including Apple silicon architecture.
 
 The ``SolverLU`` wraps SciPy's :func:`scipy.sparse.linalg.splu`. The
 performance of this solver is not up to the level of ``Mumps`` and ``Pardiso``.
@@ -36,7 +37,7 @@ other faster solvers.
 The default solver
 ------------------
 
-We can use :func:`simpeg.utils.get_default_solver` to obtain the best default
+We can use :func:`simpeg.utils.get_default_solver` to obtain the a reasonable default
 solver available for our system:
 
 .. code:: python
@@ -47,6 +48,8 @@ solver available for our system:
    # Get default solver
    solver = simpeg.utils.get_default_solver()
    print(f"Solver: {solver}")
+
+which would print out on an x86_64 cpu:
 
 .. code::
 
@@ -69,6 +72,14 @@ We can then use this solver in a simulation:
 
    # Use the default solver in the simulation
    simulation = dc.Simulation3DNodal(mesh=mesh, survey=survey, solver=solver)
+
+.. note::
+
+    The priority list used to choose a default solver is: 
+
+    1) ``Pardiso``
+    2) ``Mumps``
+    3) ``SolverLU``
 
 
 Setting solvers manually
@@ -94,3 +105,6 @@ Alternatively, we can manually set a solver. For example, if we want to use
    For such scenarios, we recommend using the
    :func:`simpeg.utils.get_default_solver` function, that will always return
    a suitable solver for the current system.
+
+Ultimately, choosing the best solver is a mixture of the problem you are solving and your current system. Experiment with different solvers yourself to choose the best.
+
