@@ -818,6 +818,7 @@ class TestSaveEveryIteration:
         assert directive._start_time == expected_start_time
 
         if opt:
+            # maxIter was set to 10000, so the _iter_format should be "05d"
             assert directive._iter_format == "05d"
 
 
