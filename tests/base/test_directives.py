@@ -9,6 +9,7 @@ import pytest
 import numpy as np
 
 import discretize
+import simpeg
 from simpeg import (
     maps,
     directives,
@@ -19,6 +20,7 @@ from simpeg import (
     simulation,
 )
 from simpeg.data_misfit import L2DataMisfit
+from simpeg.potential_fields import gravity
 from simpeg.potential_fields import magnetics as mag
 import shutil
 
@@ -866,6 +868,155 @@ class TestSaveOutputEveryIteration:
         * load_results properly loads data from file
             * test errors
     """
+
+    def get_inversion_problem(self):
+        """
+        Simple gravity inversion problem to test the directive.
+        """
+        # Mesh
+        # ----
+        h = [(4.0, 10)]
+        mesh = discretize.TensorMesh([h, h, h], origin="CCN")
+
+        # Survey
+        # ------
+        x = np.linspace(-10.0, 10.0, 21)
+        xx, yy = np.meshgrid(x, x)
+        zz = 5.0 * np.ones_like(xx)
+        receiver_locations = np.vstack([c.ravel() for c in (xx, yy, zz)]).T
+        receivers = gravity.Point(locations=receiver_locations, components="gz")
+        source_field = gravity.SourceField([receivers])
+        survey = gravity.Survey(source_field)
+
+        # Simulation
+        # ----------
+        mapping = simpeg.maps.IdentityMap(mesh=mesh)
+        simulation = gravity.Simulation3DIntegral(
+            mesh=mesh, survey=survey, rhoMap=mapping, engine="choclo"
+        )
+
+        # Synthetic data
+        # --------------
+        model = np.zeros(mesh.n_cells)
+        model = simpeg.utils.model_builder.add_block(
+            mesh.cell_centers,
+            model,
+            p0=[-4.0, -4.0, -8.0],
+            p1=[4.0, 4.0, -4.0],
+            prop_value=200,
+        )
+        synthetic_data = simulation.make_synthetic_data(
+            model,
+            relative_error=0.1,
+            random_seed=4,
+            add_noise=True,
+        )
+
+        # Inversion problem
+        # -----------------
+        data_misfit = simpeg.data_misfit.L2DataMisfit(
+            data=synthetic_data, simulation=simulation
+        )
+        regularization = simpeg.regularization.WeightedLeastSquares(mesh)
+        optimizer = optimization.ProjectedGNCG()
+        inv_prob = simpeg.inverse_problem.BaseInvProblem(
+            data_misfit, regularization, optimizer
+        )
+
+        return inv_prob
+
+    def get_directives(
+        self, save_output_directive: directives.SaveOutputEveryIteration
+    ):
+        """
+        Get list of directives to use in the sample gravity inversion.
+
+        Include the save_output_directive passed as argument in the list.
+        """
+        sensitivity_weights = simpeg.directives.UpdateSensitivityWeights(
+            every_iteration=False
+        )
+        update_jacobi = simpeg.directives.UpdatePreconditioner(
+            update_every_iteration=True
+        )
+        starting_beta = simpeg.directives.BetaEstimate_ByEig(beta0_ratio=10)
+        beta_schedule = simpeg.directives.BetaSchedule(coolingFactor=2.0, coolingRate=1)
+        target_misfit = simpeg.directives.TargetMisfit(chifact=1.0)
+
+        directives_list = [
+            sensitivity_weights,
+            starting_beta,
+            update_jacobi,
+            beta_schedule,
+            save_output_directive,
+            target_misfit,
+        ]
+        return directives_list
+
+    def test_initialize(self, tmp_path):
+        """Test the initialize method."""
+        directory = tmp_path / "dummy"
+        directive = directives.SaveOutputEveryIteration(
+            on_disk=True, directory=directory
+        )
+        directive.initialize()
+
+        # Check directory was created
+        assert directory.exists()
+
+        # Check that the file was created
+        assert directive.file_abs_path is not None
+        assert directive.file_abs_path.exists()
+
+        # Check header in file
+        with directive.file_abs_path.open(mode="r") as f:
+            lines = f.readlines()
+        assert len(lines) == 1
+        assert "beta" in lines[0]
+        assert "phi_d" in lines[0]
+        assert "phi_m" in lines[0]
+
+    @pytest.mark.parametrize("on_disk", [True, False])
+    def test_end_iter(self, tmp_path, on_disk):
+        """Test the endIter method."""
+        inv_prob = self.get_inversion_problem()
+
+        directory = tmp_path / "dummy"
+        directive = directives.SaveOutputEveryIteration(
+            directory=directory, on_disk=on_disk
+        )
+        directives_list = self.get_directives(directive)
+        inversion = simpeg.inversion.BaseInversion(inv_prob, directives_list)
+
+        initial_model = np.zeros(inv_prob.dmisfit.nP)
+        inversion.run(initial_model)
+
+        # Check that lists are not empty
+        lists = [
+            "beta",
+            "phi_d",
+            "phi_m",
+            "phi_m_small",
+            "phi_m_smooth_x",
+            "phi_m_smooth_y",
+            "phi_m_smooth_z",
+            "phi",
+        ]
+        for attribute in lists:
+            assert getattr(directive, attribute)
+
+        # Check that the file was created if on_disk
+        if on_disk:
+            assert directive.file_abs_path is not None
+            assert directive.file_abs_path.exists()
+
+            # Check content of file
+            with directive.file_abs_path.open(mode="r") as f:
+                lines = f.readlines()
+            assert "beta" in lines[0]
+            assert "phi_d" in lines[0]
+            assert "phi_m" in lines[0]
+            assert len(lines) > 1
 
 
 class TestSaveOutputDictEveryIteration:
