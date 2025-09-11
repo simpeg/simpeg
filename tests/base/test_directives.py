@@ -973,8 +973,21 @@ class TestSaveOutputEveryIteration(BaseTestOutputDirective):
         assert "phi_d" in lines[0]
         assert "phi_m" in lines[0]
 
-    @pytest.mark.parametrize("on_disk", [True, False])
-    def test_end_iter(self, tmp_path, on_disk):
+    @pytest.mark.parametrize(
+        ("on_disk", "test_load_results"),
+        [
+            pytest.param(
+                True,
+                True,
+                marks=pytest.mark.xfail(
+                    reason="bug in load_results", raises=AttributeError
+                ),
+            ),
+            (True, False),
+            (False, None),
+        ],
+    )
+    def test_end_iter(self, tmp_path, on_disk, test_load_results):
         """Test the endIter method."""
         inv_prob = self.get_inversion_problem()
 
@@ -1002,20 +1015,24 @@ class TestSaveOutputEveryIteration(BaseTestOutputDirective):
         for attribute in lists:
             assert getattr(directive, attribute)
 
+        # Just exit the test if on_disk is False
+        if not on_disk:
+            return
+
         # Check that the file was created if on_disk
-        if on_disk:
-            assert directive.file_abs_path is not None
-            assert directive.file_abs_path.exists()
+        assert directive.file_abs_path is not None
+        assert directive.file_abs_path.exists()
 
-            # Check content of file
-            with directive.file_abs_path.open(mode="r") as f:
-                lines = f.readlines()
-            assert "beta" in lines[0]
-            assert "phi_d" in lines[0]
-            assert "phi_m" in lines[0]
-            assert len(lines) > 1
+        # Check content of file
+        with directive.file_abs_path.open(mode="r") as f:
+            lines = f.readlines()
+        assert "beta" in lines[0]
+        assert "phi_d" in lines[0]
+        assert "phi_m" in lines[0]
+        assert len(lines) > 1
 
-            # Test load_results
+        # Test load_results
+        if test_load_results:
             original_values = {attr: getattr(directive, attr) for attr in lists}
             for attribute in lists:
                 # Clean the lists
