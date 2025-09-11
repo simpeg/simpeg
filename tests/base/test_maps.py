@@ -32,6 +32,7 @@ REMOVED_IGNORE = [
 MAPS_TO_EXCLUDE_2D = [
     "ComboMap",
     "ActiveCells",
+    "EffectiveSusceptibilityMap",
     "InjectActiveCells",
     "LogMap",
     "LinearMap",
@@ -59,6 +60,7 @@ MAPS_TO_EXCLUDE_2D = [
 MAPS_TO_EXCLUDE_3D = [
     "ComboMap",
     "ActiveCells",
+    "EffectiveSusceptibilityMap",
     "InjectActiveCells",
     "LogMap",
     "LinearMap",
@@ -211,6 +213,10 @@ class MapTests(unittest.TestCase):
         mapping = maps.ReciprocalMap(self.mesh2)
         self.assertTrue(mapping.test(random_seed=42))
         mapping = maps.ReciprocalMap(self.mesh3)
+        self.assertTrue(mapping.test(random_seed=42))
+
+    def test_EffectiveSusceptibilityMap(self):
+        mapping = maps.EffectiveSusceptibilityMap(50000.0, mesh=self.mesh3)
         self.assertTrue(mapping.test(random_seed=42))
 
     def test_Mesh2MeshMap(self):
