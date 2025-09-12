@@ -934,10 +934,10 @@ class InexactCG(object):
     ):
 
         if (val := kwargs.pop("tolCG", None)) is not None:
-            self.tolCG = val
+            self.tolCG = val  # Deprecated cg_rtol
         else:
             self.cg_rtol = cg_rtol
-            self.cg_atol = cg_atol
+        self.cg_atol = cg_atol
 
         if (val := kwargs.pop("maxIterCG", None)) is not None:
             self.maxIterCG = val
@@ -1591,6 +1591,7 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
         removal_version="0.26.0",
         future_warn=True,
     )
+
     stepOffBoundsFact = deprecate_property(
         active_set_grad_scale,
         old_name="stepOffBoundsFact",
