@@ -62,47 +62,9 @@ def getSourceTerm(self, tInd):
     elif getattr(self, "_stashed_sources", None) is None:
         self._stashed_sources = {}
 
-    try:
-        client = get_client()
-        sim = client.scatter(self, workers=self.worker)
-    except ValueError:
-        client = None
-        sim = self
-
-    source_list = self.survey.source_list
-    source_block = np.array_split(
-        np.arange(len(source_list)), self.n_threads(client=client)
-    )
-
-    if client:
-        sim = client.scatter(self, workers=self.worker)
-        source_list = client.scatter(source_list, workers=self.worker)
-    else:
-        delayed_source_eval = delayed(source_evaluation)
-        sim = self
-
-    block_compute = []
-    for block in source_block:
-        if client:
-            block_compute.append(
-                client.submit(
-                    source_evaluation,
-                    sim,
-                    block,
-                    self.times[tInd],
-                    source_list,
-                    workers=self.worker,
-                )
-            )
-        else:
-            block_compute.append(
-                delayed_source_eval(self, block, self.times[tInd], source_list)
-            )
-
-    if client:
-        blocks = client.gather(block_compute)
-    else:
-        blocks = dask.compute(block_compute)[0]
+    blocks = []
+    for source in self.survey.source_list:
+        blocks.append(source_evaluation(self, self.times[tInd], source))
 
     s_m, s_e = [], []
     for block in blocks:
@@ -283,12 +245,12 @@ def field_projection(field_array, src_list, array_ind, time_ind, func):
     return new_array
 
 
-def source_evaluation(simulation, indices, time_channel, sources):
+def source_evaluation(simulation, time_channel, source):
     s_m, s_e = [], []
-    for ind in indices:
-        sm, se = sources[ind].eval(simulation, time_channel)
-        s_m.append(sm)
-        s_e.append(se)
+
+    sm, se = source.eval(simulation, time_channel)
+    s_m.append(sm)
+    s_e.append(se)
 
     return s_m, s_e
 
