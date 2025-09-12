@@ -188,8 +188,8 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
 #     return eBG_bp
 
 
-def primary_e_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=2000):
-    r"""Compute 1D electric field solution. 
+def primary_e_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=100):
+    r"""Compute 1D electric field solution.
 
     Parameters
     ----------
@@ -201,12 +201,14 @@ def primary_e_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=2000):
     freq : float
         Operating frequency in Hz.
     top_bc : string {"dirichlet", "neumann"}
-        Use "dirichlet" for a solution where the electric field is equal to 1 at
-        the top of the mesh. Use "neumann" to implement a boundary condition
-        such that the magnetic field is equal to 1 at the top of the mesh.
+        Use "dirichlet" for a solution where the electric field is equal
+        to 1 at the top of the mesh. Use "neumann" to implement a boundary
+        condition such that the magnetic field is equal to 1 at the top of
+        the mesh.
     n_pad : int
-        Number of padding cells added to top and bottom of discrete 1D solution
-        to ensure boundary conditions implemented accurately.
+        Number of padding cells added to the bottom of discrete 1D solution.
+        This ensures accuracy of the 1D solution at the bottom of the mesh
+        supplied by the user.
 
     Returns
     -------
@@ -238,7 +240,8 @@ def primary_e_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=2000):
     where
 
     .. math::
-        k = \sqrt{-i\omega\mu_0\sigma} = (1 - i)\sqrt{\frac{\omega \mu_0\sigma}{2}}
+        k = \sqrt{-i\omega\mu_0\sigma}
+        = (1 - i)\sqrt{\frac{\omega \mu_0\sigma}{2}}
 
     So if $\Delta z$ is negative, the downgoing wave decays. From Faraday's law:
 
@@ -251,8 +254,8 @@ def primary_e_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=2000):
 
     **Discrete system:**
 
-    We take the inner product of Faraday's law with a test function $\mathbf{u}$, and the
-    inner product of Ampere's law with a test function $\mathbf{f}$.
+    We take the inner product of Faraday's law with a test function $\mathbf{u}$,
+    and the inner product of Ampere's law with a test function $\mathbf{f}$.
     .. math::
         \begin{align}
         &\langle u , \partial_z e_x \rangle + i\omega \langle u , b \rangle = 0 \\
@@ -260,79 +263,103 @@ def primary_e_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=2000):
         \end{align}
 
     The inner-product with Ampere's law is Integrated by parts:
-    
+
     .. math::
         \begin{align}
-        &\langle u , \partial_z e_x \rangle + i\omega \langle u , b_y \rangle = 0 \\
-        &- \langle \partial_z f , h_y \rangle + f h_y \bigg |_{bot}^{top} + \langle f, \sigma e_x \rangle = 0
+        &\langle u , \partial_z e_x \rangle
+        + i\omega \langle u , b_y \rangle = 0 \\
+        &- \langle \partial_z f , h_y \rangle
+        + f h_y \bigg |_{bot}^{top} + \langle f, \sigma e_x \rangle = 0
         \end{align}
 
     In discrete form, the above equations are approximated by:
+
     .. math::
         \begin{align}
         &\mathbf{G_n e} = - i\omega \mathbf{b} \\
-        &-i \omega \mathbf{G_n^T M_{\mu} b} + i \omega\mathbf{M_\sigma e} + i\omega h_y \bigg |_{bot}^{top} = 0
+        &-i \omega \mathbf{G_n^T M_{\frac{1}{\mu}} b}
+        + i \omega\mathbf{M_\sigma e} + i\omega h_y \bigg |_{bot}^{top} = 0
         \end{align}
 
     Combining these equations, we obtain the following system:
-    
-    .. math::
-        \big [ \mathbf{G_n^T M_{\mu} G_n} + i \omega\mathbf{M_\sigma} \big ] \mathbf{e} + i\omega h_y \bigg |_{bot}^{top} = 0
-
-    When $\mu = \mu_0$, we can multiply through and obtain:
 
     .. math::
-        \big [ \mathbf{G_n^T G_n} + i \omega \mu_0 \, diag (\sigma) \big ] \mathbf{e} + i\omega \mu_0 h_y \bigg |_{bot}^{top} = 0
-    
-    **Implementing Discrete Boundary Conditions:**
+        \big [ \mathbf{G_n^T M_{\frac{1}{\mu}} G_n}
+        + i \omega\mathbf{M_\sigma} \big ] \mathbf{e}
+        + i\omega h_y \bigg |_{bot}^{top} = 0
 
-    At the top node of the mesh, we know that:
+    **Dirichlet boundary condition at top of mesh:**
 
-    .. math::
-    \frac{-e_{n-1} + 2 e_n - e_{n+1}}{h^2} + i \omega \mu_0 \sigma_n e_n
-    = \bigg ( \frac{-e_{n-1} + e_n}{h^2} \bigg ) + \bigg ( \frac{e_n - e_{n+1}}{h^2} \bigg ) + i \omega \mu_0 \sigma_n e_n = 0
+    Let $\mathbf{A}$ represent the systems matrix and let $\mathbf{q}$
+    represent the right-hand side. To set $e_n=1$ at the top of the mesh,
+    we replace $A_{n, n-1}=0$ and set $q_n = A_{n, n}$.
 
-    Using Taylor expansion:
+    **Neumann boundary condition at top of mesh:**
 
-    .. math::
-        e_{n+1} - e_n = \frac{\partial e_n}{\partial z} h = - i\omega\mu_0 h
-
-    Thus:
+    Here, the Neumann condition corresponds to setting the magnetic field
+    to 1 at the top node of the mesh. We know that:
 
     .. math::
-        \frac{-e_{n-1} + 2 e_n - e_{n+1}}{h^2} + i \omega \mu_0 \sigma_n e_n
-        = \bigg ( \frac{-e_{n-1} + e_n}{h^2} \bigg ) + \bigg ( \frac{i\omega \mu_0}{h} \bigg ) + i \omega \mu_0 \sigma_n e_n = 0
+        \frac{-e_{n-1} + 2 e_n - e_{n+1}}{h^2}
+        + i \omega \mu \sigma_n e_n
+        = \bigg ( \frac{-e_{n-1} + e_n}{h^2} \bigg )
+        + \bigg ( \frac{e_n - e_{n+1}}{h^2} \bigg )
+        + i \omega \mu \sigma_n e_n = 0
 
-    And we set
-    
-    .. math::
-        q_n = - \frac{i \omega \mu_0}{h}
-
-    At the bottom of the mesh, we know that:
-
-    .. math::
-    \frac{-e_{-1} + 2 e_0 - e_{1}}{h^2} + i \omega \mu_0 \sigma e_0
-    = \frac{-e_{-1} + e_0}{h^2} + \frac{e_0 - e_{1}}{h^2} + i \omega \mu_0 \sigma e_0 = 0
-
-    But we know at the bottom, from Taylor expansion:
+    where $h$ is the width of the last mesh cell and $\mu$ is its magnetic
+    permeability. To set the Neumann condition, we use Taylor expansion:
 
     .. math::
-    e_{-1} - e_0 = -\frac{\partial e_0}{\partial z} h = i\omega b_0 h
+        e_{n+1} - e_n = \frac{\partial e_n}{\partial z} h = - i\omega\mu h
 
-    Thus:
+    We then combine the above two expressions and multiply by
+    $h/\mu$ to obtain:
 
     .. math::
-        \frac{e_0 - e_{1}}{h^2} + i \omega \mu_0 \sigma e_0 - \frac{i \omega b_0}{h} = 0
+        \frac{1}{\mu} \bigg ( \frac{-e_{n-1} + 2 e_n - e_{n+1}}{h} \bigg )
+        + i \omega h \sigma_n e_n
+        = \frac{1}{\mu} \bigg ( \frac{-e_{n-1} + e_n}{h} \bigg )
+        + \frac{i\omega}
+        + i \omega h \sigma_n e_n = 0
 
-    But
+    The boundary condition is implemented by setting $q_n = - i \omega$.
+
+    **Boundary condition at bottom of mesh**
+
+    At the bottom of the mesh, we assume that there is only a downgoing
+    planewave. We know that:
+
+    .. math::
+        \frac{-e_{-1} + 2 e_0 - e_{1}}{h^2} + i \omega \mu \sigma_0 e_0
+        = \frac{-e_{-1} + e_0}{h^2} + \frac{e_0 - e_{1}}{h^2}
+        + i \omega \mu \sigma_0 e_0 = 0
+
+    where $h$ is the width of the first mesh cell and $\mu$ is its magnetic
+    permeability. From Taylor expansion:
+
+    .. math::
+        e_{-1} - e_0 = -\frac{\partial e_0}{\partial z} h = i\omega b_0 h
+
+    where $b_0$ is the magnetic flux density at node $0$. Thus:
+
+    .. math::
+        \frac{e_0 - e_{1}}{h^2} + i \omega \mu \sigma_0 e_0
+        - \frac{i \omega b_0}{h} = 0
+
+    Given a downgoing planewave has the form $E = E_0 \, e^{ikz}$,
+    where $k = \sqrt{-i \omega \mu \sigma_0}$, we know from Faraday's law that:
 
     .. math::
         k e_0 + \omega b_0 = 0
 
-    So
+    By combining and multiplying through by $h / \mu$ we obtain:
 
     .. math::
-        \frac{e_0 - e_{1}}{h^2} + i \omega \mu_0 \sigma e_0 + \frac{ik}{h} e_0 = 0
+        \frac{1}{\mu} \bigg ( \frac{e_0 - e_{1}}{h} \bigg )
+        + i \omega h \sigma_0 e_0 + \frac{ik}{\mu} e_0 = 0
+
+    Boundary conditions are implemented by replacing the entries of the
+    system matrix $\mathbf{A}$.
 
     """
 
@@ -341,39 +368,40 @@ def primary_e_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=2000):
 
     if len(hz) != len(sigma_1d):
         raise ValueError(
-            "Number of cells in vertical direction must match length of 'sigma_1d'. Here hz has length {} and sigma_1d has length {}".format(
-                len(hz), len(sigma_1d)
-            )
+            "Number of cells in vertical direction must match length of "
+            "'sigma_1d'. Here hz has length {} and sigma_1d has length "
+            "{}".format(len(hz), len(sigma_1d))
         )
 
-    # Generate extended 1D mesh and model to solve 1D problem
+    # Generate extended 1D mesh and conductivity model to solve 1D problem
     if n_pad == 0:
         hz_ext = hz
     else:
-        hz_ext = np.r_[hz[0] * np.ones(n_pad), hz, hz[-1] * np.ones(n_pad)]
+        hz_ext = np.r_[hz[0] * np.ones(n_pad), hz]
     mesh_1d_ext = TensorMesh([hz_ext], origin=[mesh.origin[-1] - hz[0] * n_pad])
 
     sigma_1d_ext = np.r_[
-        sigma_1d[0] * np.ones(n_pad), sigma_1d, sigma_1d[-1] * np.ones(n_pad)
+        sigma_1d[0] * np.ones(n_pad),
+        sigma_1d,
     ]
     sigma_1d_ext = mesh_1d_ext.average_face_to_cell.T * (hz_ext * sigma_1d_ext)
-    sigma_1d_ext[0] = hz[1] * sigma_1d[1]
-    sigma_1d_ext[-1] = hz[-2] * sigma_1d[-2]
+    sigma_1d_ext[-1] = hz[-1] * sigma_1d[-1]  # Needed for top BC
 
-    # Could add background susceptibility in future
+    # Could add background susceptibility in future.
     mui_1d_ext = hz_ext / mu_0
 
-    # Solve the 1D problem for electric fields on nodes
+    # Generate system matrix
     w = 2 * np.pi * freq
-    k = np.sqrt(-1.0j * w * mu_0 * sigma_1d_ext[0])
-
     A = mesh_1d_ext.nodal_gradient.T @ (
         sdiag(mui_1d_ext) @ mesh_1d_ext.nodal_gradient
     ) + 1j * w * sdiag(sigma_1d_ext)
-    # Need to replace mu_0 if adding background 1d permeability
-    A[0, 0] = (1.0 + 1j * k * hz[0]) / (mu_0 * hz[0] ** 2) + 1j * w * sigma_1d[0]
-    A[0, 1] = -1 / (mu_0 * hz[0] ** 2)
 
+    # Bottom boundary condition
+    k = np.sqrt(-1.0j * w * mu_0 * sigma_1d_ext[0])
+    A[0, 0] = 1.0 / (mu_0 * hz[0]) + 1j * k / mu_0 + 1j * w * hz[0] * sigma_1d[0]
+    A[0, 1] = -1 / (mu_0 * hz[0])
+
+    # Top boundary condition
     q = np.zeros(mesh_1d_ext.n_faces, dtype=np.complex128)
     if top_bc == "neumann":
         q[-1] = -1j * w
@@ -381,14 +409,10 @@ def primary_e_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=2000):
         A[-1, -2] = 0
         q[-1] = A[-1, -1]
 
+    # Solve and return solution on original vertical discretization
     Ainv = Solver(A)
     e_1d = Ainv * q
-
-    # Return solution along original vertical discretization
-    if n_pad == 0:
-        return e_1d
-    else:
-        return e_1d[n_pad:-n_pad]
+    return e_1d[n_pad:]
 
 
 def project_e_1d_to_e_primary(mesh, e_1d):
@@ -406,7 +430,6 @@ def project_e_1d_to_e_primary(mesh, e_1d):
     numpy.ndarray (n_edges, n_polarization)
         Electric fields on the edges of the mesh for each polarization.
     """
-
     if mesh.dim == 1:
         return e_1d
 
