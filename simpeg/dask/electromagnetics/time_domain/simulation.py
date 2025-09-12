@@ -62,42 +62,9 @@ def getSourceTerm(self, tInd):
     elif getattr(self, "_stashed_sources", None) is None:
         self._stashed_sources = {}
 
-    # try:
-    #     client = get_client()
-    #     sim = client.scatter(self, workers=self.worker)
-    # except ValueError:
-    #     client = None
-    #     sim = self
-    #
-    # source_list = self.survey.source_list
-    #
-    # if client:
-    #     sim = client.scatter(self, workers=self.worker)
-    #     source_list = client.scatter(source_list, workers=self.worker)
-    # else:
-    #     delayed_source_eval = delayed(source_evaluation)
-    #     sim = self
-
     blocks = []
     for source in self.survey.source_list:
         blocks.append(source_evaluation(self, self.times[tInd], source))
-    #     if client:
-    #         block_compute.append(
-    #             client.submit(
-    #                 source_evaluation,
-    #                 sim,
-    #                 self.times[tInd],
-    #                 source,
-    #                 workers=self.worker,
-    #             )
-    #         )
-    #     else:
-    #         block_compute.append(delayed_source_eval(self, self.times[tInd], source))
-    #
-    # if client:
-    #     blocks = client.gather(block_compute)
-    # else:
-    #     blocks = dask.compute(block_compute)[0]
 
     s_m, s_e = [], []
     for block in blocks:
