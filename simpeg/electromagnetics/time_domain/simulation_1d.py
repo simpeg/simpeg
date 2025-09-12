@@ -243,7 +243,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
         sig = self.compute_complex_sigma(frequencies)
         mu = self.compute_complex_mu(frequencies)
 
-        rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
+        # TODO geoana currently only support real mu input.
+        rTE = rTE_forward(frequencies, unique_lambs, sig, mu.real, self.thicknesses)
         rTE = rTE[:, inv_lambs]
         v = ((C0s * rTE) @ self._fhtfilt.j0 + (C1s * rTE) @ self._fhtfilt.j1) @ W.T
 
