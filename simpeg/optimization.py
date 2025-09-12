@@ -1,6 +1,7 @@
 import warnings
 
 import numpy as np
+import numpy.typing as npt
 import scipy.sparse as sp
 
 from pymatsolver import Solver, Diagonal, SolverCG
@@ -788,14 +789,27 @@ class Remember(object):
 
 
 class Bounded(object):
+    """Mixin class for bounded minimizers
 
-    def __init__(self, *, lower=None, upper=None, **kwargs):
+    Parameters
+    ----------
+    lower, upper : float or numpy.ndarray, optional
+        The lower and upper bounds.
+    """
+
+    def __init__(
+        self,
+        *,
+        lower: None | float | npt.NDArray[np.float64],
+        upper: None | float | npt.NDArray[np.float64] = None,
+        **kwargs,
+    ):
         self.lower = lower
         self.upper = upper
         super().__init__(**kwargs)
 
     @property
-    def lower(self):
+    def lower(self) -> None | float | npt.NDArray[np.float64]:
         """The lower bound value.
 
         Returns
@@ -814,7 +828,7 @@ class Bounded(object):
         self._lower = value
 
     @property
-    def upper(self):
+    def upper(self) -> None | float | npt.NDArray[np.float64]:
         """The upper bound value.
 
         Returns
@@ -833,7 +847,7 @@ class Bounded(object):
         self._upper = value
 
     @count
-    def projection(self, x):
+    def projection(self, x: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         """projection(x)
 
         Make sure we are feasible.
@@ -846,7 +860,7 @@ class Bounded(object):
         return x
 
     @count
-    def activeSet(self, x):
+    def activeSet(self, x: npt.NDArray[np.float64]) -> npt.NDArray[bool]:
         """activeSet(x)
 
         If we are on a bound
@@ -860,7 +874,7 @@ class Bounded(object):
         return out
 
     @count
-    def inactiveSet(self, x):
+    def inactiveSet(self, x: npt.NDArray[np.float64]) -> npt.NDArray[bool]:
         """inactiveSet(x)
 
         The free variables.
@@ -869,7 +883,7 @@ class Bounded(object):
         return np.logical_not(self.activeSet(x))
 
     @count
-    def bindingSet(self, x):
+    def bindingSet(self, x: npt.NDArray[np.float64]) -> npt.NDArray[bool]:
         """bindingSet(x)
 
         If we are on a bound and the negative gradient points away from the
@@ -887,8 +901,37 @@ class Bounded(object):
 
 
 class InexactCG(object):
+    """Mixin to hold common parameters for a CG solver.
 
-    def __init__(self, *, cg_rtol=1e-1, cg_atol=0, cg_maxiter=5, **kwargs):
+    Parameters
+    ----------
+    cg_rtol : float, optional
+        Relative tolerance stopping condition on the CG residual
+    cg_atol : float, optional
+        Absolute tolerance stopping condition on the CG residual
+    cg_maxiter : int, optional
+        Maximum number of CG iterations to perform
+
+    Notes
+    -----
+
+    The convergence check for CG is:
+    >>> norm(A @ x_k - b) <= max(cg_rtol * norm(A @ x_0 - b), cg_atol)
+
+    See Also
+    --------
+    scipy.sparse.linalg.cg
+
+    """
+
+    def __init__(
+        self,
+        *,
+        cg_rtol: float = 1e-1,
+        cg_atol: float = 0,
+        cg_maxiter: int = 5,
+        **kwargs,
+    ):
 
         if (val := kwargs.pop("tolCG", None)) is not None:
             self.tolCG = val
@@ -904,7 +947,7 @@ class InexactCG(object):
         super().__init__(**kwargs)
 
     @property
-    def cg_atol(self):
+    def cg_atol(self) -> float:
         """Absolute tolerance for inner CG iterations.
 
         CG iterations are terminated if:
@@ -927,7 +970,7 @@ class InexactCG(object):
         self._cg_atol = validate_float("cg_atol", value, min_val=0, inclusive_min=True)
 
     @property
-    def cg_rtol(self):
+    def cg_rtol(self) -> float:
         """Relative tolerance for inner CG iterations.
 
         CG iterations are terminated if:
@@ -950,7 +993,7 @@ class InexactCG(object):
         self._cg_rtol = validate_float("cg_rtol", value, min_val=0, inclusive_min=True)
 
     @property
-    def cg_maxiter(self):
+    def cg_maxiter(self) -> int:
         """Maximum number of CG iterations.
         Returns
         -------
@@ -1201,7 +1244,14 @@ class InexactGaussNewton(InexactCG, BFGS):
 
     """
 
-    def __init__(self, *, cg_rtol=1e-1, cg_atol=0.0, cg_maxiter=5, **kwargs):
+    def __init__(
+        self,
+        *,
+        cg_rtol: float = 1e-1,
+        cg_atol: float = 0.0,
+        cg_maxiter: int = 5,
+        **kwargs,
+    ):
         super().__init__(
             cg_rtol=cg_rtol, cg_atol=cg_atol, cg_maxiter=cg_maxiter, **kwargs
         )
@@ -1356,13 +1406,13 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
     def __init__(
         self,
         *,
-        lower=-np.inf,
-        upper=np.inf,
-        cg_maxiter=5,
-        cg_rtol=None,
-        cg_atol=None,
-        step_active_set=True,
-        active_set_grad_scale=1e-2,
+        lower: None | float | npt.NDArray[np.float64] = -np.inf,
+        upper: None | float | npt.NDArray[np.float64] = np.inf,
+        cg_maxiter: int = 5,
+        cg_rtol: float = None,
+        cg_atol: float = None,
+        step_active_set: bool = True,
+        active_set_grad_scale: float = 1e-2,
         **kwargs,
     ):
         if (val := kwargs.pop("tolCG", None)) is not None:
@@ -1423,7 +1473,7 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
     name = "Projected GNCG"
 
     @property
-    def step_active_set(self):
+    def step_active_set(self) -> bool:
         """Whether to include the active set's gradient in the step direction.
 
         Returns
@@ -1433,11 +1483,11 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
         return self._step_active_set
 
     @step_active_set.setter
-    def step_active_set(self, value):
+    def step_active_set(self, value: bool):
         self._step_active_set = validate_type("step_active_set", value, bool)
 
     @property
-    def active_set_grad_scale(self):
+    def active_set_grad_scale(self) -> float:
         """Scalar to apply to the active set's gradient
 
         if `step_active_set` is `True`, then the active set's gradient is multiplied by this value
@@ -1450,7 +1500,7 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
         return self._active_set_grad_scale
 
     @active_set_grad_scale.setter
-    def active_set_grad_scale(self, value):
+    def active_set_grad_scale(self, value: float):
         self._active_set_grad_scale = validate_float(
             "active_set_grad_scale", value, min_val=0, inclusive_min=True
         )
