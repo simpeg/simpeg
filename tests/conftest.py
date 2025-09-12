@@ -4,7 +4,7 @@ import logging
 
 
 @pytest.fixture(scope="session", autouse=True)
-def quiet_logger_for_tests():
+def quiet_logger_for_tests(request):
     logger = get_logger()
 
     init_level = logger.level
@@ -12,6 +12,18 @@ def quiet_logger_for_tests():
     # set the logger to the higher WARNING level to
     # ignore the default solver messages.
     logger.setLevel(logging.WARNING)
+
+    yield
+
+    logger.setLevel(init_level)
+
+
+@pytest.fixture()
+def info_logging():
+    # provide a fixture to temporarily set the logging level to info
+    logger = get_logger()
+    init_level = logger.level
+    logger.setLevel(logging.INFO)
 
     yield
 
