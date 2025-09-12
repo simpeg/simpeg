@@ -308,8 +308,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 v_dh_temp = (
                     W
                     @ (
-                        (C0s_dh * rTE) @ self._fhtfilt.j0
-                        + (C1s_dh * rTE) @ self._fhtfilt.j1
+                        ((C0s_dh * rTE) @ self._fhtfilt.j0).real
+                        + ((C1s_dh * rTE) @ self._fhtfilt.j1).real
                     ).T
                 )
                 # need to re-arange v_dh as it's currently (n_data x n_freqs)
