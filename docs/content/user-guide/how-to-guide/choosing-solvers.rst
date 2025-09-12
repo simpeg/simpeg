@@ -37,7 +37,7 @@ other faster solvers.
 The default solver
 ------------------
 
-We can use :func:`simpeg.utils.get_default_solver` to obtain the a reasonable default
+We can use :func:`simpeg.utils.get_default_solver` to obtain a reasonable default
 solver available for our system:
 
 .. code:: python
