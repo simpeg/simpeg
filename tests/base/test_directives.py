@@ -1,4 +1,5 @@
 import re
+from collections import namedtuple
 from datetime import datetime
 import pathlib
 import unittest
@@ -798,7 +799,9 @@ class TestSaveEveryIteration:
 
         if should_exist:
             # Warning should be raised if doesn't exist and should exist
-            with pytest.warns(UserWarning, match=f"File {fname} was not found"):
+            with pytest.warns(
+                UserWarning, match=re.escape(f"File {fname} was not found")
+            ):
                 directive._mkdir_and_check_output_file(should_exist=should_exist)
         else:
             # No warning should be raised if doesn't exist and should not exist
@@ -822,6 +825,19 @@ class TestSaveEveryIteration:
         if opt:
             # maxIter was set to 10000, so the _iter_format should be "05d"
             assert directive._iter_format == "05d"
+
+    def test_time_iter_no_opt(self):
+        directive = DummySaveEveryIteration(name="dummy")
+        time_name = directive._time_file_name.name
+        assert directive._time_iter_file_name.name == time_name + "_###"
+
+    def test_deprecated_fileName(self):
+        directive = DummySaveEveryIteration(name="dummy")
+
+        with pytest.warns(FutureWarning, match=r"'fileName' has been deprecated .*"):
+            f_name = directive.fileName
+
+        assert f_name == "dummy"
 
 
 class TestSaveModelEveryIteration:
@@ -968,28 +984,38 @@ class TestSaveOutputEveryIteration(BaseTestOutputDirective):
     Test the SaveOutputEveryIteration directive.
     """
 
-    def test_initialize(self, tmp_path):
+    @pytest.mark.parametrize("on_disk", [True, False])
+    def test_initialize(self, tmp_path, on_disk):
         """Test the initialize method."""
         directory = tmp_path / "dummy"
         directive = directives.SaveOutputEveryIteration(
-            on_disk=True, directory=directory
+            on_disk=on_disk, directory=directory
         )
         directive.initialize()
 
         # Check directory was created
-        assert directory.exists()
+        if on_disk:
+            assert directory.exists()
 
-        # Check that the file was created
-        assert directive.file_abs_path is not None
-        assert directive.file_abs_path.exists()
+            # Check that the file was created
+            assert directive.file_abs_path is not None
+            assert directive.file_abs_path.exists()
 
-        # Check header in file
-        with directive.file_abs_path.open(mode="r") as f:
-            lines = f.readlines()
-        assert len(lines) == 1
-        assert "beta" in lines[0]
-        assert "phi_d" in lines[0]
-        assert "phi_m" in lines[0]
+            # Check header in file
+            with directive.file_abs_path.open(mode="r") as f:
+                lines = f.readlines()
+            assert len(lines) == 1
+            assert "beta" in lines[0]
+            assert "phi_d" in lines[0]
+            assert "phi_m" in lines[0]
+        else:
+            assert directive.file_abs_path is None
+
+        assert directive.beta == []
+        assert directive.phi_d == []
+        assert directive.phi_m == []
+        assert directive.phi_m_smooth_z == []
+        assert directive.phi == []
 
     @pytest.mark.parametrize(
         ("on_disk", "test_load_results"),
@@ -1130,6 +1156,137 @@ class TestSaveOutputDictEveryIteration(BaseTestOutputDirective):
             assert directory.is_dir()
             files = list(directory.iterdir())
             assert len(files) == len(directive.outDict)
+
+    def test_deprecated(self):
+        with pytest.warns(FutureWarning, match=".*saveOnDisk has been deprecated.*"):
+            directive = directives.SaveOutputDictEveryIteration(saveOnDisk=True)
+
+        assert directive.on_disk
+
+    @pytest.mark.parametrize("on_disk", [True, False], ids=["on_disk", "not_on_disk"])
+    def test_file_abs_path_optional(self, on_disk):
+        directive = directives.SaveOutputDictEveryIteration(on_disk=on_disk)
+        if on_disk:
+            assert directive.file_abs_path is not None
+        else:
+            assert directive.file_abs_path is None
+
+
+class MockJointInvProb:
+
+    def __init__(self):
+        self.opt = namedtuple("Opt", "f iter cg_count")(0.1, 10, 200)
+        self.betas = [1, 2, 3]
+        self.phi_d_list = [0.1, 0.2, 0.3]
+        self.phi_m_list = [0.2, 0.3, 0.4]
+        self.lambd = 1e5
+        self.phi_sim = 10
+
+
+class TestSimMeasureSaveOutputEveryIteration:
+
+    @pytest.mark.parametrize("on_disk", [True, False])
+    def test_initialize(self, tmp_path, on_disk):
+        """Test the initialize method."""
+        directory = tmp_path / "dummy"
+        directive = directives.SimilarityMeasureSaveOutputEveryIteration(
+            on_disk=on_disk, directory=directory
+        )
+        directive.initialize()
+
+        # Check directory was created
+        if on_disk:
+            assert directory.exists()
+
+            # Check that the file was created
+            assert directive.file_abs_path is not None
+            assert directive.file_abs_path.exists()
+
+            # Check header in file
+            with directive.file_abs_path.open(mode="r") as f:
+                lines = f.readlines()
+            assert len(lines) == 1
+            assert "betas" in lines[0]
+            assert "joint_phi_d" in lines[0]
+            assert "joint_phi_m" in lines[0]
+            assert "phi_sim" in lines[0]
+        else:
+            assert directive.file_abs_path is None
+
+        assert directive.betas == []
+        assert directive.lambd == []
+        assert directive.phi_d == []
+        assert directive.phi_m == []
+        assert directive.phi_sim == []
+        assert directive.phi == []
+
+    @pytest.mark.parametrize("on_disk", [True, False])
+    def test_end_iter(self, tmp_path, on_disk):
+        directory = tmp_path / "dummy"
+        directive = directives.SimilarityMeasureSaveOutputEveryIteration(
+            on_disk=on_disk, directory=directory
+        )
+        directive.initialize()
+
+        joint_problem = MockJointInvProb()
+        joint_inv = namedtuple("JointInversion", "invProb")(joint_problem)
+        directive.inversion = joint_inv
+
+        assert directive.invProb is joint_inv.invProb
+
+        directive.endIter()
+
+        assert directive.betas == [joint_problem.betas]
+        assert directive.phi_d == [joint_problem.phi_d_list]
+        assert directive.phi_m == [joint_problem.phi_m_list]
+        assert directive.lambd == [joint_problem.lambd]
+        assert directive.phi_sim == [joint_problem.phi_sim]
+        assert directive.phi == [joint_problem.opt.f]
+
+        if on_disk:
+            out_file = directive.file_abs_path
+            assert out_file.exists()
+
+            n_lines = 0
+            with open(out_file) as f:
+                while f.readline():
+                    n_lines += 1
+            assert n_lines == 2  # header plus one line
+
+    @pytest.mark.xfail(
+        reason="np.loadtxt will not work to read in log file that has nested lists."
+    )
+    @pytest.mark.parametrize("pass_file_name", [True, False])
+    def test_load_results(self, tmp_path, pass_file_name):
+        directory = tmp_path / "dummy"
+        directive = directives.SimilarityMeasureSaveOutputEveryIteration(
+            directory=directory, on_disk=True
+        )
+        directive.initialize()
+
+        joint_problem = MockJointInvProb()
+        joint_inv = namedtuple("JointInversion", "invProb")(joint_problem)
+        directive.inversion = joint_inv
+
+        directive.endIter()
+
+        if pass_file_name:
+            log_file = directive.file_abs_path
+            directive.load_results(log_file)
+        else:
+            directive.load_results()
+
+        assert directive.betas == [joint_problem.betas]
+        assert directive.phi_d == [joint_problem.phi_d_list]
+        assert directive.phi_m == [joint_problem.phi_m_list]
+        assert directive.lambd == [joint_problem.lambd]
+        assert directive.phi_sim == [joint_problem.phi_sim]
+        assert directive.phi == [joint_problem.opt.f]
+
+    def test_load_results_error(self):
+        directive = directives.SimilarityMeasureSaveOutputEveryIteration(on_disk=False)
+        with pytest.raises(TypeError, match=r"'file_name' is a required argument.*"):
+            directive.load_results()
 
 
 if __name__ == "__main__":

@@ -146,23 +146,23 @@ class SimilarityMeasureSaveOutputEveryIteration(SaveOutputEveryIteration):
         self.phi_sim = []
 
     def endIter(self):
-        self.betas.append(["{:.2e}".format(elem) for elem in self.invProb.betas])
-        self.phi_d.append(["{:.3e}".format(elem) for elem in self.invProb.phi_d_list])
-        self.phi_m.append(["{:.3e}".format(elem) for elem in self.invProb.phi_m_list])
-        self.lambd.append("{:.2e}".format(self.invProb.lambd))
+        self.betas.append(self.invProb.betas)
+        self.phi_d.append(self.invProb.phi_d_list)
+        self.phi_m.append(self.invProb.phi_m_list)
+        self.lambd.append(self.invProb.lambd)
         self.phi_sim.append(self.invProb.phi_sim)
         self.phi.append(self.opt.f)
 
-        if self.save_txt:
+        if self.on_disk:
             self._mkdir_and_check_output_file(should_exist=True)
             with open(self.file_abs_path, "a") as f:
                 f.write(
-                    " {0:2d}  {1}  {2}  {3}  {4}  {5:1.4e}  {6:d}  {7:1.4e}\n".format(
+                    " {0:2d}  {1}  {2:.2e}  {3}  {4}  {5:1.4e}  {6:d}  {7:1.4e}\n".format(
                         self.opt.iter,
-                        self.betas[-1],
+                        [f"{el:.2e}" for el in self.betas[-1]],
                         self.lambd[-1],
-                        self.phi_d[-1],
-                        self.phi_m[-1],
+                        [f"{el:.3e}" for el in self.phi_d[-1]],
+                        [f"{el:.3e}" for el in self.phi_m[-1]],
                         self.phi_sim[-1],
                         self.opt.cg_count,
                         self.phi[-1],

@@ -1756,7 +1756,7 @@ class SaveEveryIteration(InversionDirective, metaclass=ABCMeta):
     @property
     def fileName(self):
         warnings.warn(
-            "'fileName' as been deprecated and will be removed in SimPEG 0.26.0 use 'file_abs_path'",
+            "'fileName' has been deprecated and will be removed in SimPEG 0.26.0 use 'file_abs_path'",
             FutureWarning,
             stacklevel=2,
         )
