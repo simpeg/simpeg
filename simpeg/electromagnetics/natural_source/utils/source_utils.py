@@ -157,7 +157,8 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
 #     unixy = np.unique(a.view(a.dtype.descr * a.shape[1])).view(float).reshape(-1, 2)
 #     uniz = np.unique(mesh.gridCC[:, 2])
 #     # # Note: Everything is using e^iwt
-#     # Need to loop thourgh the xy locations, assess the model and calculate the fields at the phusdo cell centers.
+#     # Need to loop thourgh the xy locations, assess the model and
+#     # calculate the fields at the phusdo cell centers.
 #     # Then interpolate the cc fields to the edges.
 
 #     e0_1d = get1DEfields(mesh1d, sigma_1d, freq)
@@ -213,7 +214,8 @@ def primary_e_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=500):
     Returns
     -------
     numpy.ndarray (n_edges,)
-        Total electric field solution on the nodes of the 1D vertical discretization.
+        Total electric field solution on the nodes of the 1D vertical
+        discretization.
 
     Notes
     -----
@@ -232,8 +234,10 @@ def primary_e_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=500):
     
     .. math::
         \begin{align}
-        &\langle \phi , \partial_z e_x \rangle + i\omega \langle \phi , b \rangle = 0 \\
-        &\langle \psi , \partial_z h_y \rangle + \langle \psi, \sigma e \rangle = 0
+        &\langle \phi , \partial_z e_x \rangle
+        + i\omega \langle \phi , b \rangle = 0 \\
+        &\langle \psi , \partial_z h_y \rangle
+        + \langle \psi, \sigma e \rangle = 0
         \end{align}
 
     The inner-product with Ampere's law is Integrated by parts,
@@ -451,7 +455,8 @@ def primary_h_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=500):
     Returns
     -------
     numpy.ndarray (n_edges,)
-        Total magnetic field solution on the nodes of the 1D vertical discretization.
+        Total magnetic field solution on the nodes of the 1D vertical
+        discretization.
 
     Notes
     -----
@@ -470,8 +475,10 @@ def primary_h_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=500):
     
     .. math::
         \begin{align}
-        &\langle \phi , \partial_z e_y \rangle - i\omega \langle \phi , \mu h_x \rangle = 0 \\
-        &\langle \psi , \partial_z h_x \rangle - \langle \psi, j_y \rangle = 0
+        &\langle \phi , \partial_z e_y \rangle
+        - i\omega \langle \phi , \mu h_x \rangle = 0 \\
+        &\langle \psi , \partial_z h_x \rangle
+        - \langle \psi, j_y \rangle = 0
         \end{align}
 
     The inner-product with Ampere's law is Integrated by parts,
@@ -633,7 +640,7 @@ def primary_h_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=500):
 
     rho_1d = sigma_1d**-1
     rho_1d_ext = np.r_[rho_1d[0] * np.ones(n_pad), rho_1d]
-    rho_1d_ext = hz_ext * rho_1d_ext 
+    rho_1d_ext = hz_ext * rho_1d_ext
 
     # Could add background susceptibility in future.
     mu_1d_ext = mesh_1d_ext.average_face_to_cell.T * (hz_ext * mu_0)
@@ -646,9 +653,9 @@ def primary_h_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=500):
     ) + 1j * w * sdiag(mu_1d_ext)
 
     # Bottom boundary condition
-    k = np.sqrt(-1.j * w * mu_0 / rho_1d_ext[0])
-    A[0, 0] = rho_1d_ext[0] * (1.j * k + 1 / hz[0])  + 1.j * w * mu_0 * hz[0]
-    A[0, 1] = - rho_1d_ext[0] / hz[0]
+    k = np.sqrt(-1.0j * w * mu_0 / rho_1d_ext[0])
+    A[0, 0] = rho_1d_ext[0] * (1.0j * k + 1 / hz[0]) + 1.0j * w * mu_0 * hz[0]
+    A[0, 1] = -rho_1d_ext[0] / hz[0]
 
     # Top boundary condition
     q = np.zeros(mesh_1d_ext.n_faces, dtype=np.complex128)
@@ -701,8 +708,9 @@ def project_e_1d_to_e_primary(mesh, e_1d):
 
         # Incident E-field polarized along y-direction
         ep_y = (
-            mesh_1d.get_interpolation_matrix(mesh.edges_y[:, 2], location_type="nodes")
-            @ e_1d
+            mesh_1d.get_interpolation_matrix(
+                mesh.edges_y[:, 2], location_type="nodes"
+            ) @ e_1d
         )
         ep_y = np.r_[np.zeros(mesh.n_edges_x), ep_y, np.zeros(mesh.n_edges_z)]
 
