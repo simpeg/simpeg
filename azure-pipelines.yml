@@ -39,6 +39,8 @@ stages:
 
   - stage: Testing
     dependsOn: StyleChecks
+    variables:
+      CONDA_CACHE_DIR: /usr/share/miniconda/envs
     jobs:
       - template: .ci/azure/test.yml
 
