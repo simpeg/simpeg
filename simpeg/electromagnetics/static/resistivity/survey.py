@@ -3,7 +3,7 @@ import numpy as np
 from ....utils.code_utils import validate_string
 
 from ....survey import BaseSurvey
-from ..utils import drapeTopotoLoc
+from ....utils import shift_to_discrete_topography
 from . import receivers as Rx
 from . import sources as Src
 from ..utils import static_utils
@@ -242,6 +242,9 @@ class Survey(BaseSurvey):
         option="top",
         topography=None,
         force=False,
+        shift_horizontal=True,
+        option=None,
+        ind_active=None,
     ):
         """Shift electrode locations to discrete surface topography.
 
@@ -251,13 +254,29 @@ class Survey(BaseSurvey):
             The mesh on which the discretized fields are computed
         active_cells : numpy.ndarray of int or bool
             Active topography cells
-        option :{"top", "center"}
+        topo_cell_cutoff :{"top", "center"}
             Define topography at tops of cells or cell centers.
         topography : (n, dim) numpy.ndarray, default = ``None``
             Surface topography
         force : bool, default = ``False``
-            If ``True`` force electrodes to surface even if borehole
+            If ``True`` force electrodes to surface even if borehole.
+        shift_horizontal : bool
+            When True, locations are shifted horizontally to lie vertically over cell
+            centers. When False, the original horizontal locations are preserved.
+        option : 
+            Argument ``option`` is deprecated in favor of ``topo_cell_cutoff``
+            and will be removed in SimPEG v0.27.0.
+        ind_active : numpy.ndarray of int or bool, optional
+
+            .. deprecated:: 0.23.0
+
+               Argument ``ind_active`` is deprecated in favor of ``active_cells``
+               and will be removed in SimPEG v0.25.0.
+
         """
+
+        if option is not None:
+            topo_cell_cutoff = option
 
         if self.survey_geometry == "surface":
             loc_a = self.locations_a[:, :2]
@@ -271,8 +290,12 @@ class Survey(BaseSurvey):
             inv_b, inv = inv[: len(loc_b)], inv[len(loc_b) :]
             inv_m, inv_n = inv[: len(loc_m)], inv[len(loc_m) :]
 
-            electrodes_shifted = drapeTopotoLoc(
-                mesh, unique_electrodes, active_cells=active_cells, option=option
+            electrodes_shifted = shift_to_discrete_topography(
+                mesh,
+                unique_electrodes,
+                active_cells=active_cells,
+                topo_cell_cutoff=option,
+                shift_horizontal=shift_horizontal,
             )
             a_shifted = electrodes_shifted[inv_a]
             b_shifted = electrodes_shifted[inv_b]
