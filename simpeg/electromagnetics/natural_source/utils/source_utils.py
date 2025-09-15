@@ -188,8 +188,8 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
 #     return eBG_bp
 
 
-def primary_e_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=100):
-    r"""Compute 1D electric field solution.
+def primary_e_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=500):
+    r"""Compute 1D electric field solution on nodes.
 
     Parameters
     ----------
@@ -225,51 +225,26 @@ def primary_e_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=100):
         &\frac{\partial h_y}{\partial z} + \sigma e_x = 0
         \end{align}
 
-    **Boundary Conditions:**
-
-    At the top boundary, we set $h_y^{(top)} = 1$. Therefore from Faraday's law:
-
-    .. math::
-        \frac{\partial e_x^{(top)}}{\partial z} = - i\omega\mu_0
-
-    At the bottom boundary, there is only a downgoing wave of the form:
-
-    .. math::
-        e_x = E^- \exp (ikz)
-
-    where
-
-    .. math::
-        k = \sqrt{-i\omega\mu_0\sigma}
-        = (1 - i)\sqrt{\frac{\omega \mu_0\sigma}{2}}
-
-    So if $\Delta z$ is negative, the downgoing wave decays. From Faraday's law:
-
-    .. math::
-        \begin{align}
-        & ik E^- \exp (ikz) + i\omega b = 0 \\
-        \implies & ik e_x + i \omega b = 0 \\
-        \implies & k e_x + \omega b = 0
-        \end{align}
-
     **Discrete system:**
 
-    We take the inner product of Faraday's law with a test function $\mathbf{u}$,
-    and the inner product of Ampere's law with a test function $\mathbf{f}$.
+    We take the inner product of Faraday's law with a test function $\phi$,
+    and the inner product of Ampere's law with a test function $\psi$.
+    
     .. math::
         \begin{align}
-        &\langle u , \partial_z e_x \rangle + i\omega \langle u , b \rangle = 0 \\
-        &\langle f , \partial_z h_y \rangle + \langle f, \sigma e \rangle = 0
+        &\langle \phi , \partial_z e_x \rangle + i\omega \langle \phi , b \rangle = 0 \\
+        &\langle \psi , \partial_z h_y \rangle + \langle \psi, \sigma e \rangle = 0
         \end{align}
 
-    The inner-product with Ampere's law is Integrated by parts:
+    The inner-product with Ampere's law is Integrated by parts,
+    and since $b_y = \mu h_y$:
 
     .. math::
         \begin{align}
-        &\langle u , \partial_z e_x \rangle
-        + i\omega \langle u , b_y \rangle = 0 \\
-        &- \langle \partial_z f , h_y \rangle
-        + f h_y \bigg |_{bot}^{top} + \langle f, \sigma e_x \rangle = 0
+        &\langle \phi , \partial_z e_x \rangle
+        + i\omega \langle \phi , b_y \rangle = 0 \\
+        - \langle \partial_z \psi , \mu^{-1} b_y \rangle
+        &+ \psi h_y \bigg |_{bot}^{top} + \langle \psi, \sigma e_x \rangle = 0
         \end{align}
 
     In discrete form, the above equations are approximated by:
@@ -288,75 +263,111 @@ def primary_e_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=100):
         + i \omega\mathbf{M_\sigma} \big ] \mathbf{e}
         + i\omega h_y \bigg |_{bot}^{top} = 0
 
-    **Dirichlet boundary condition at top of mesh:**
+    **Boundary Conditions:**
 
-    Let $\mathbf{A}$ represent the systems matrix and let $\mathbf{q}$
-    represent the right-hand side. To set $e_n=1$ at the top of the mesh,
-    we replace $A_{n, n-1}=0$ and set $q_n = A_{n, n}$.
-
-    **Neumann boundary condition at top of mesh:**
-
-    Here, the Neumann condition corresponds to setting the magnetic field
-    to 1 at the top node of the mesh. We know that:
+    At the top boundary, we can set either a Dirichlet or Neumann boundary
+    condition on the electric field solution. For the Dirichlet condition,
+    we set:
 
     .. math::
-        \frac{-e_{n-1} + 2 e_n - e_{n+1}}{h^2}
-        + i \omega \mu \sigma_n e_n
-        = \bigg ( \frac{-e_{n-1} + e_n}{h^2} \bigg )
-        + \bigg ( \frac{e_n - e_{n+1}}{h^2} \bigg )
-        + i \omega \mu \sigma_n e_n = 0
+        e_x^{(top)} = 1
 
-    where $h$ is the width of the last mesh cell and $\mu$ is its magnetic
-    permeability. To set the Neumann condition, we use Taylor expansion:
+    For the Neumann condition, we set:
 
     .. math::
-        e_{n+1} - e_n = \frac{\partial e_n}{\partial z} h = - i\omega\mu h
+        \frac{\partial e_x^{(top)}}{\partial z} = - i\omega\mu
+
+    which corresponds to $h_y^{(top)} = 1$. At the bottom boundary, there
+    is only a downgoing wave of the form:
+
+    .. math::
+        e_x = E^- \exp (ikz)
+
+    where
+
+    .. math::
+        k = \sqrt{-i\omega\mu_0\sigma}
+        = (1 - i)\sqrt{\frac{\omega \mu_0\sigma}{2}}
+
+    So if $\Delta z$ is negative, the downgoing wave decays. Thus we have the
+    following condition:
+
+    .. math::
+        \begin{align}
+        & ik E^- \exp (ikz) + i\omega b = 0 \\
+        \implies & ik e_x + i \omega b = 0 \\
+        \implies & k e_x + \omega b = 0
+        \end{align}
+
+    **Implementing the top boundary condition:**
+
+    For the Dirichlet condition, let $\mathbf{A}$ represent the systems matrix
+    and let $\mathbf{q}$ represent the right-hand side. To set $e_n=1$ at the
+    top of the mesh, we replace $A_{n, n-1}=0$ and set $q_n = A_{n, n}$.
+
+    The Neumann condition corresponds to setting the magnetic field
+    to 1 at the top node of the mesh. At the top of the mesh,
+    we know that:
+
+    .. math::
+        \frac{-e_{n-1} + 2 e_n - e_{n+1}}{(\Delta z)^2}
+        + i \omega \, \mu \, \sigma e_n
+        = \bigg ( \frac{-e_{n-1} + e_n}{(\Delta z)^2} \bigg )
+        + \bigg ( \frac{e_n - e_{n+1}}{(\Delta z)^2} \bigg )
+        + i \omega \mu \sigma e_n = 0
+
+    where $\Delta z$ is the width of the last mesh cell, and $\sigma$
+    and $\mu$ are homogeneous within the region. To set the Neumann condition,
+    we use Taylor expansion:
+
+    .. math::
+        e_{n+1} - e_n = \frac{\partial e_n}{\partial z} \Delta z
+        = - i\omega \mu \Delta z
 
     We then combine the above two expressions and multiply by
-    $h/\mu$ to obtain:
+    $\Delta z/\mu$ to obtain:
 
     .. math::
-        \frac{1}{\mu} \bigg ( \frac{-e_{n-1} + 2 e_n - e_{n+1}}{h} \bigg )
-        + i \omega h \sigma_n e_n
-        = \frac{1}{\mu} \bigg ( \frac{-e_{n-1} + e_n}{h} \bigg )
+        \frac{1}{\mu} \bigg ( \frac{-e_{n-1} + e_n}{\Delta z} \bigg )
         + \frac{i\omega}
-        + i \omega h \sigma_n e_n = 0
+        + i \omega \sigma \Delta z \, e_n = 0
 
     The boundary condition is implemented by setting $q_n = - i \omega$.
 
-    **Boundary condition at bottom of mesh**
+    **Implementing the bottom boundary condition**
 
     At the bottom of the mesh, we assume that there is only a downgoing
     planewave. We know that:
 
     .. math::
-        \frac{-e_{-1} + 2 e_0 - e_{1}}{h^2} + i \omega \mu \sigma_0 e_0
-        = \frac{-e_{-1} + e_0}{h^2} + \frac{e_0 - e_{1}}{h^2}
-        + i \omega \mu \sigma_0 e_0 = 0
+        \frac{-e_{-1} + 2 e_0 - e_{1}}{(\Delta z)^2} + i \omega \mu \sigma e_0
+        = \frac{-e_{-1} + e_0}{(\Delta z)^2} + \frac{e_0 - e_{1}}{(\Delta z)^2}
+        + i \omega \mu \sigma e_0 = 0
 
-    where $h$ is the width of the first mesh cell and $\mu$ is its magnetic
-    permeability. From Taylor expansion:
+    where $Delta z$ is the width of the first mesh cell, and $\sigma$ and $\mu$
+    are homogeneous within the local region. From Taylor expansion:
 
     .. math::
-        e_{-1} - e_0 = -\frac{\partial e_0}{\partial z} h = i\omega b_0 h
+        e_{-1} - e_0 = -\frac{\partial e_0}{\partial z} \Delta z
+        = i\omega b_0 \Delta z
 
     where $b_0$ is the magnetic flux density at node $0$. Thus:
 
     .. math::
-        \frac{e_0 - e_{1}}{h^2} + i \omega \mu \sigma_0 e_0
-        - \frac{i \omega b_0}{h} = 0
+        \frac{e_0 - e_{1}}{(\Delta z)^2} + i \omega \mu \sigma e_0
+        - \frac{i \omega b_0}{\Delta z} = 0
 
-    Given a downgoing planewave has the form $E = E_0 \, e^{ikz}$,
-    where $k = \sqrt{-i \omega \mu \sigma_0}$, we know from Faraday's law that:
+    Given a downgoing planewave has the form $E = E_0 \, e^{ik(z-z_0)}$,
+    where $k = \sqrt{-i \omega \mu \sigma}$, we know from Faraday's law that:
 
     .. math::
         k e_0 + \omega b_0 = 0
 
-    By combining and multiplying through by $h / \mu$ we obtain:
+    By combining and multiplying through by $\Delta z / \mu$ we obtain:
 
     .. math::
-        \frac{1}{\mu} \bigg ( \frac{e_0 - e_{1}}{h} \bigg )
-        + i \omega h \sigma_0 e_0 + \frac{ik}{\mu} e_0 = 0
+        \frac{1}{\mu} \bigg ( \frac{e_0 - e_{1}}{\Delta z} \bigg )
+        + i \omega \sigma \Delta z \, e_0 + \frac{ik}{\mu} e_0 = 0
 
     Boundary conditions are implemented by replacing the entries of the
     system matrix $\mathbf{A}$.
@@ -415,6 +426,245 @@ def primary_e_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=100):
     return e_1d[n_pad:]
 
 
+def primary_h_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=500):
+    r"""Compute 1D magnetic field solution on nodes.
+
+    Parameters
+    ----------
+    mesh : discretize.base.BaseTensorMesh
+        A 1d, 2d or 3d tensor mesh or tree mesh.
+    sigma_1d :
+        1D conductivity model defined along the vertical discretization.
+        Conductivities are defined from the bottom cell upwards.
+    freq : float
+        Operating frequency in Hz.
+    top_bc : string {"dirichlet", "neumann"}
+        Use "dirichlet" for a solution where the magnetic field is equal
+        to 1 at the top of the mesh. Use "neumann" to implement a boundary
+        condition such that the electric field is equal to 1 at the top of
+        the mesh.
+    n_pad : int
+        Number of padding cells added to the bottom of discrete 1D solution.
+        This ensures accuracy of the 1D solution at the bottom of the mesh
+        supplied by the user.
+
+    Returns
+    -------
+    numpy.ndarray (n_edges,)
+        Total magnetic field solution on the nodes of the 1D vertical discretization.
+
+    Notes
+    -----
+    For the 1D magnetic field solution, Maxwell's equations take the form:
+
+    .. math::
+        \begin{align}
+        &\frac{\partial e_y}{\partial z} - i\omega \mu h_x = 0 \\
+        &\frac{\partial h_x}{\partial z} - j_y = 0
+        \end{align}
+
+    **Discrete system:**
+
+    We take the inner product of Faraday's law with a test function $\phi$,
+    and the inner product of Ampere's law with a test function $\psi$.
+    
+    .. math::
+        \begin{align}
+        &\langle \phi , \partial_z e_y \rangle - i\omega \langle \phi , \mu h_x \rangle = 0 \\
+        &\langle \psi , \partial_z h_x \rangle - \langle \psi, j_y \rangle = 0
+        \end{align}
+
+    The inner-product with Ampere's law is Integrated by parts,
+    and since $e_y = \rho j_y$:
+
+    .. math::
+        \begin{align}
+        &-\langle \partial_z \phi , \rho \, j_y \rangle
+        + \phi e_y \bigg |_{bot}^{top}
+        - i\omega \langle \phi , \mu h_x \rangle = 0 \\
+        &\langle \psi , \partial_z h_x \rangle
+        - \langle \psi, j_y \rangle = 0
+        \end{align}
+
+    In discrete form, the above equations are approximated by:
+
+    .. math::
+        \begin{align}
+        &\mathbf{G_n^T M_\rho \, j} + i\omega \mathbf{M_\mu \, h}
+        = e_y \bigg |_{bot}^{top} \\
+        &\mathbf{G_n \n h} = \mathbf{j}
+        \end{align}
+
+    Combining these equations, we obtain the following system:
+
+    .. math::
+        \big [ \mathbf{G_n^T M_\rho G_n}
+        + i \omega\mathbf{M_\mu} \big ] \mathbf{h}
+        = e_y \bigg |_{bot}^{top}
+
+
+    **Boundary Conditions:**
+
+    At the top boundary, we can set either a Dirichlet or Neumann boundary
+    condition on the magnetic field solution. For the Dirichlet condition,
+    we set:
+
+    .. math::
+        h_x^{(top)} = 1
+
+    For the Neumann condition, we set:
+
+    .. math::
+        \rho \frac{\partial h_x^{(top)}}{\partial z} = 1
+
+    which corresponds to $e_y^{(top)} = 1$. At the bottom boundary, there is
+    only a downgoing wave of the form:
+
+    .. math::
+        h_x = H^- \exp (ikz)
+
+    where
+
+    .. math::
+        k = \sqrt{\frac{-i\omega\mu}{\rho}}
+        = (1 - i)\sqrt{\frac{\omega \mu}{2 \rho}}
+
+    So if $\Delta z$ is negative, the downgoing wave decays. From Ampere's law:
+
+    .. math::
+        \begin{align}
+        & ik H^- \exp (ikz) - \frac{e_y}{\rho} = 0 \\
+        \implies & ik h_x - \frac{e_y}{\rho} = 0\\
+        \implies & \frac{\partial h_x}{\partial z} - i k h_x = 0
+        \end{align}
+
+    **Implementing the top boundary condition:**
+
+    For the Dirichlet condition, let $\mathbf{A}$ represent the systems matrix
+    and let $\mathbf{q}$ represent the right-hand side. To set $h_n=1$ at the
+    top of the mesh, we replace $A_{n, n-1}=0$ and set $q_n = A_{n, n}$.
+
+    The Neumann condition corresponds to setting the electric field
+    to 1 at the top node of the mesh. At the top of the mesh,
+    we know that:
+
+    .. math::
+        \rho \bigg ( \frac{-h_{n-1} + 2 h_n - h_{n+1}}{(\Delta z)^2}\bigg )
+        + i \omega \mu h_n =
+        \rho \bigg ( \frac{-h_{n-1} + h_n}{(\Delta z)^2} \bigg )
+        + \rho \bigg ( \frac{h_n - h_{n+1}}{(\Delta z)^2} \bigg )
+        + i \omega \mu h_n = 0
+
+    where $\Delta z$ is the width of the last mesh cell, and $\rho$
+    and $\mu$ are homogeneous within the region. To set the Neumann condition,
+    we use Taylor expansion:
+
+    .. math::
+        h_{n+1} - h_n = \frac{\partial h_n}{\partial z} h = \frac{1}{\rho}
+
+    We then combine the above two expressions and multiply by
+    $\rho \Delta z$ to obtain:
+
+    .. math::
+        \rho \bigg ( \frac{h_{n-1} + h_n}{\Delta z} \bigg )
+        + i \omega \mu \Delta z \, h_n = 1
+
+    The boundary condition is implemented by setting $q_n = 1$.
+
+    **Implementing the bottom boundary condition**
+
+    At the bottom of the mesh, we assume that there is only a downgoing
+    planewave. We know that:
+
+    .. math::
+        \bigg ( \frac{-h_{-1} + 2 h_0 - h_{1}}{(\Delta z)^2} \bigg )
+        + \frac{i \omega \mu}{\rho} h_0
+        = \bigg ( \frac{-h_{-1} + h_0}{(\Delta z)^2} \bigg )
+        + \bigg ( \frac{h_0 - h_{1}}{(\Delta z)^2} \bigg )
+        + \frac{i \omega \mu}{\rho} h_0 = 0
+
+    where $Delta z$ is the width of the first mesh cell, and $\rho$ and $\mu$
+    are homogeneous within the local region. From Taylor expansion:
+
+    .. math::
+        h_{-1} - h_0 = -\frac{\partial h_0}{\partial z} \Delta z
+        = -\Delta z \, j_0
+
+    where $j_0$ is the electric current density at node $0$. Thus:
+
+    .. math::
+        \frac{j_0}{\Delta z}
+        + \bigg ( \frac{h_0 - h_1}{(\Delta z)^2} \bigg )
+        + \frac{i \omega \mu}{\rho} h_0 = 0
+
+    Given a downgoing planewave has the form $h = H^- \, e^{ik(z-z_0)}$,
+    where $k = \sqrt{-i \omega \mu /\rho}$, we know from Ampere's law that:
+
+    .. math::
+        i k h_0 = j_0
+
+    By combining and multiplying through by $\rho \Delta z$ we obtain:
+
+    .. math::
+        ik \rho h_0 + i \omega \mu \Delta z \, h_0 +
+        \rho \bigg ( \frac{h_0 - h_1}{\Delta z} \bigg ) = 0
+
+    Boundary conditions are implemented by replacing the entries of the
+    system matrix $\mathbf{A}$.
+
+    """
+
+    # Extract vertical discretization
+    hz = mesh.h[-1]
+
+    if len(hz) != len(sigma_1d):
+        raise ValueError(
+            "Number of cells in vertical direction must match length of "
+            "'sigma_1d'. Here hz has length {} and sigma_1d has length "
+            "{}".format(len(hz), len(sigma_1d))
+        )
+
+    # Generate extended 1D mesh and conductivity model to solve 1D problem
+    if n_pad == 0:
+        hz_ext = hz
+    else:
+        hz_ext = np.r_[hz[0] * np.ones(n_pad), hz]
+    mesh_1d_ext = TensorMesh([hz_ext], origin=[mesh.origin[-1] - hz[0] * n_pad])
+
+    rho_1d = sigma_1d**-1
+    rho_1d_ext = np.r_[rho_1d[0] * np.ones(n_pad), rho_1d]
+    rho_1d_ext = hz_ext * rho_1d_ext 
+
+    # Could add background susceptibility in future.
+    mu_1d_ext = mesh_1d_ext.average_face_to_cell.T * (hz_ext * mu_0)
+    mu_1d_ext[-1] = hz[-1] * mu_0
+
+    # Generate system matrix
+    w = 2 * np.pi * freq
+    A = mesh_1d_ext.nodal_gradient.T @ (
+        sdiag(rho_1d_ext) @ mesh_1d_ext.nodal_gradient
+    ) + 1j * w * sdiag(mu_1d_ext)
+
+    # Bottom boundary condition
+    k = np.sqrt(-1.j * w * mu_0 / rho_1d_ext[0])
+    A[0, 0] = rho_1d_ext[0] * (1.j * k + 1 / hz[0])  + 1.j * w * mu_0 * hz[0]
+    A[0, 1] = - rho_1d_ext[0] / hz[0]
+
+    # Top boundary condition
+    q = np.zeros(mesh_1d_ext.n_faces, dtype=np.complex128)
+    if top_bc == "neumann":
+        q[-1] = 1
+    else:
+        A[-1, -2] = 0
+        q[-1] = A[-1, -1]
+
+    # Solve and return solution on original vertical discretization
+    Ainv = Solver(A)
+    e_1d = Ainv * q
+    return e_1d[n_pad:]
+
+
+# def project_1d_primary_to_mesh(mesh, u_1d):
 def project_e_1d_to_e_primary(mesh, e_1d):
     """Project 1D electric field solution on nodes to edges of a mesh.
 

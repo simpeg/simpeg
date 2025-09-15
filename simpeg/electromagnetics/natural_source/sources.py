@@ -4,7 +4,6 @@ from ... import maps
 from ..frequency_domain.sources import BaseFDEMSrc
 from ..utils import omega
 from .utils.source_utils import (
-    homo1DModelSource,
     primary_e_1d_solution,
     project_e_1d_to_e_primary,
 )
