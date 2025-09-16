@@ -49,22 +49,6 @@ class TestUnboundOptimizers:
         xopt = opt.minimize(func, x0)
         npt.assert_allclose(xopt, x_true, rtol=TOL)
 
-    # def test_ProjGradient_quadraticBounded(self):
-    #     PG = optimization.ProjectedGradient(debug=True)
-    #     PG.lower, PG.upper = -2, 2
-    #     xopt = PG.minimize(get_quadratic(self.A, self.b), np.array([0, 0]))
-    #     x_true = np.array([2.0, -2.0])
-    #     npt.assert_allclose(xopt, x_true, rtol=0, atol=TOL)
-    #
-    # def test_ProjGradient_quadratic1Bound(self):
-    #     myB = np.array([-5, 1])
-    #     PG = optimization.ProjectedGradient()
-    #     PG.lower, PG.upper = -2, 2
-    #     xopt = PG.minimize(get_quadratic(self.A, myB), np.array([0, 0]))
-    #     x_true = np.array([2.0, -1.0])
-    #     npt.assert_allclose(xopt, x_true, rtol=0, atol=TOL)
-    #
-
 
 def test_NewtonRoot():
     def fun(x, return_g=True):
