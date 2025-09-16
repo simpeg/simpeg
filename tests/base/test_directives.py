@@ -86,6 +86,16 @@ class directivesValidation(unittest.TestCase):
             self.assertTrue(directiveList.validate())
 
 
+def test_directive_list_iterable():
+    directs = [
+        directives.UpdateIRLS(),
+        directives.BetaSchedule(coolingFactor=2, coolingRate=1),
+    ]
+    directives_list = directives.DirectiveList(*directs)
+    for item1, item2 in zip(directives_list, directs):
+        assert item1 is item2
+
+
 class ValidationInInversion(unittest.TestCase):
     def setUp(self):
         mesh = discretize.TensorMesh([4, 4, 4])

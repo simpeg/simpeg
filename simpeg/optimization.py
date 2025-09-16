@@ -1418,21 +1418,22 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
         if (val := kwargs.pop("tolCG", None)) is not None:
             # Deprecated path when tolCG is passed.
             self.tolCG = val
+            cg_atol = val
             cg_rtol = 0.0
-            cg_atol = self.cg_atol
         elif cg_rtol is None and cg_atol is None:
             # Note these defaults match previous settings...
             # but they're not good in general...
             # Ideally they will change to cg_rtol=1E-3 and cg_atol=0.0
             warnings.warn(
                 "The defaults for ProjectedGNCG will change in SimPEG 0.26.0. If you want to maintain the "
-                "previous behavoir, explicitly set 'cg_atol=1E-3' and 'cg_rtol=0.0'.",
+                "previous behavior, explicitly set 'cg_atol=1E-3' and 'cg_rtol=0.0'.",
                 FutureWarning,
                 stacklevel=2,
             )
             cg_atol = 1e-3
             cg_rtol = 0.0
         # defaults for if someone passes just cg_rtol or just cg_atol (to be removed on deprecation removal)
+        # These will likely be the future defaults
         elif cg_atol is None:
             cg_atol = 0.0
         elif cg_rtol is None:
@@ -1587,7 +1588,7 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
 
     stepActiveSet = deprecate_property(
         step_active_set,
-        old_name="stepOffBoundsFact",
+        old_name="stepActiveSet",
         removal_version="0.26.0",
         future_warn=True,
     )

@@ -257,12 +257,12 @@ class DirectiveList(object):
 
     Parameters
     ----------
-    directives : list of simpeg.directives.InversionDirective
-        List of directives.
+    *directives : simpeg.directives.InversionDirective
+        Directives for the inversion.
     inversion : simpeg.inversion.BaseInversion
         The inversion associated with the directives list.
     debug : bool
-        Whether or not to print debugging information.
+        Whether to print debugging information.
 
     """
 
