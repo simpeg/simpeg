@@ -1,69 +1,101 @@
 import re
-import unittest
 import pytest
 
 from simpeg.utils import sdiag
 import numpy as np
+import numpy.testing as npt
 import scipy.sparse as sp
 from simpeg import optimization
 from discretize.tests import get_quadratic, rosenbrock
 
 TOL = 1e-2
 
+OPTIMIZERS = [
+    optimization.GaussNewton,
+    optimization.InexactGaussNewton,
+    optimization.BFGS,
+    optimization.ProjectedGradient,
+    optimization.SteepestDescent,
+    optimization.ProjectedGNCG,
+]
 
-class TestOptimizers(unittest.TestCase):
-    def setUp(self):
-        self.A = sp.identity(2).tocsr()
-        self.b = np.array([-5, -5])
+OPT_KWARGS = {
+    optimization.GaussNewton: {},
+    optimization.InexactGaussNewton: dict(cg_rtol=1e-6, cg_maxiter=100),
+    optimization.BFGS: dict(maxIter=100, tolG=1e-2, maxIterLS=20),
+    optimization.ProjectedGradient: dict(maxIter=100, cg_rtol=1e-6, cg_maxiter=100),
+    optimization.SteepestDescent: dict(maxIter=10000, tolG=1e-5, tolX=1e-8, eps=1e-8),
+    optimization.ProjectedGNCG: dict(cg_rtol=1e-6, cg_maxiter=100),
+}
 
-    def test_GN_rosenbrock(self):
-        GN = optimization.GaussNewton()
-        xopt = GN.minimize(rosenbrock, np.array([0, 0]))
-        x_true = np.array([1.0, 1.0])
-        print("xopt: ", xopt)
-        print("x_true: ", x_true)
-        self.assertTrue(np.linalg.norm(xopt - x_true, 2) < TOL, True)
 
-    def test_GN_quadratic(self):
-        GN = optimization.GaussNewton()
-        xopt = GN.minimize(get_quadratic(self.A, self.b), np.array([0, 0]))
-        x_true = np.array([5.0, 5.0])
-        print("xopt: ", xopt)
-        print("x_true: ", x_true)
-        self.assertTrue(np.linalg.norm(xopt - x_true, 2) < TOL, True)
+@pytest.mark.parametrize("optimizer", OPTIMIZERS)
+@pytest.mark.parametrize(
+    ("func", "x_true", "x0"),
+    [
+        (rosenbrock, np.array([1.0, 1.0]), np.array([0, 0])),
+        (
+            get_quadratic(sp.identity(2).tocsr(), np.array([-5, 5])),
+            np.array([5, -5]),
+            np.zeros(2),
+        ),
+    ],
+    ids=["rosenbrock", "quadratic"],
+)
+class TestUnboundOptimizers:
 
-    def test_ProjGradient_quadraticBounded(self):
-        PG = optimization.ProjectedGradient(debug=True)
-        PG.lower, PG.upper = -2, 2
-        xopt = PG.minimize(get_quadratic(self.A, self.b), np.array([0, 0]))
-        x_true = np.array([2.0, 2.0])
-        print("xopt: ", xopt)
-        print("x_true: ", x_true)
-        self.assertTrue(np.linalg.norm(xopt - x_true, 2) < TOL, True)
+    def test_minimizer(self, optimizer, func, x_true, x0):
+        opt = optimizer(**OPT_KWARGS[optimizer])
+        xopt = opt.minimize(func, x0)
+        npt.assert_allclose(xopt, x_true, rtol=TOL)
 
-    def test_ProjGradient_quadratic1Bound(self):
-        myB = np.array([-5, 1])
-        PG = optimization.ProjectedGradient()
-        PG.lower, PG.upper = -2, 2
-        xopt = PG.minimize(get_quadratic(self.A, myB), np.array([0, 0]))
-        x_true = np.array([2.0, -1.0])
-        print("xopt: ", xopt)
-        print("x_true: ", x_true)
-        self.assertTrue(np.linalg.norm(xopt - x_true, 2) < TOL, True)
+    # def test_ProjGradient_quadraticBounded(self):
+    #     PG = optimization.ProjectedGradient(debug=True)
+    #     PG.lower, PG.upper = -2, 2
+    #     xopt = PG.minimize(get_quadratic(self.A, self.b), np.array([0, 0]))
+    #     x_true = np.array([2.0, -2.0])
+    #     npt.assert_allclose(xopt, x_true, rtol=0, atol=TOL)
+    #
+    # def test_ProjGradient_quadratic1Bound(self):
+    #     myB = np.array([-5, 1])
+    #     PG = optimization.ProjectedGradient()
+    #     PG.lower, PG.upper = -2, 2
+    #     xopt = PG.minimize(get_quadratic(self.A, myB), np.array([0, 0]))
+    #     x_true = np.array([2.0, -1.0])
+    #     npt.assert_allclose(xopt, x_true, rtol=0, atol=TOL)
+    #
 
-    def test_NewtonRoot(self):
-        def fun(x, return_g=True):
-            if return_g:
-                return np.sin(x), sdiag(np.cos(x))
-            return np.sin(x)
 
-        x = np.array([np.pi - 0.3, np.pi + 0.1, 0])
-        xopt = optimization.NewtonRoot(comments=False).root(fun, x)
-        x_true = np.array([np.pi, np.pi, 0])
-        print("Newton Root Finding")
-        print("xopt: ", xopt)
-        print("x_true: ", x_true)
-        self.assertTrue(np.linalg.norm(xopt - x_true, 2) < TOL, True)
+def test_NewtonRoot():
+    def fun(x, return_g=True):
+        if return_g:
+            return np.sin(x), sdiag(np.cos(x))
+        return np.sin(x)
+
+    x = np.array([np.pi - 0.3, np.pi + 0.1, 0])
+    xopt = optimization.NewtonRoot(comments=False).root(fun, x)
+    x_true = np.array([np.pi, np.pi, 0])
+    npt.assert_allclose(xopt, x_true, rtol=0, atol=TOL)
+
+
+@pytest.mark.parametrize(
+    "optimizer", filter(lambda x: issubclass(x, optimization.Bounded), OPTIMIZERS)
+)
+@pytest.mark.parametrize(
+    ("lower", "upper", "x_true", "x0"),
+    [
+        (-2, 2, np.array([2.0, -2.0]), np.zeros(2)),
+        (-2, 8, np.array([5, -2]), np.zeros(2)),
+        (-8, 2, np.array([2, -5]), np.zeros(2)),
+    ],
+    ids=["both active", "lower active", "upper active"],
+)
+class TestBoundedOptimizers:
+    def test_minimizer(self, optimizer, lower, upper, x_true, x0):
+        func = get_quadratic(sp.identity(2).tocsr(), np.array([-5, 5]))
+        opt = optimizer(lower=lower, upper=upper)
+        xopt = opt.minimize(func, x0)
+        npt.assert_allclose(xopt, x_true, rtol=TOL)
 
 
 @pytest.mark.parametrize("lower", [None, 0.0, np.zeros(10)])
@@ -146,6 +178,27 @@ def test_bounded_kwargs_only():
         ),
     ):
         optimization.Bounded(None)
+
+
+@pytest.mark.parametrize(
+    ("lower", "upper"),
+    [
+        (np.zeros(11), None),
+        (None, np.ones(11)),
+        (np.zeros(11), np.ones(10)),
+        (np.zeros(10), np.ones(11)),
+        (np.zeros(11), np.ones(11)),
+    ],
+    ids=["only_lower", "only_upper", "bad_lower", "bad_upper", "both_bad"],
+)
+@pytest.mark.parametrize(
+    "opt_class", [optimization.ProjectedGradient, optimization.ProjectedGNCG]
+)
+def test_bad_bounds(lower, upper, opt_class):
+    m = np.linspace(-9.5, 8.2, 10)
+    opt = opt_class(lower=lower, upper=upper)
+    with pytest.raises(RuntimeError, match="Initial model is not projectable"):
+        opt.startup(m)
 
 
 class TestInexactCGParams:

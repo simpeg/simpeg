@@ -1035,7 +1035,9 @@ class ProjectedGradient(Bounded, InexactCG, Minimize, Remember):
             ]
         )
 
-    def _startup(self, x0):
+    def startup(self, x0):
+        super().startup(x0)
+
         self.explorePG = True
         self.exploreCG = False
         self.stopDoingPG = False
