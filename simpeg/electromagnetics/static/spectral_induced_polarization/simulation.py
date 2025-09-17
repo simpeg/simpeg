@@ -345,6 +345,7 @@ class BaseSIPSimulation(BaseIPSimulation, ColeCole):
         """
         Generate Full sensitivity matrix
         """
+        self.model = m
 
         if self._Jmatrix is not None:
             return self._Jmatrix

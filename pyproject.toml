@@ -22,6 +22,7 @@ dependencies = [
     "discretize>=0.11",
     "geoana>=0.7",
     "libdlf",
+    "typing_extensions; python_version<'3.13'",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -72,6 +73,7 @@ docs = [
     "sphinx",
     "sphinx-gallery>=0.1.13",
     "sphinxcontrib-apidoc",
+    "sphinx-reredirects",
     "pydata-sphinx-theme",
     "nbsphinx",
     "empymod>=2.0.0",
@@ -134,7 +136,7 @@ directory = "coverage_html_report"
 
 [tool.black]
 required-version = '24.3.0'
-target-version = ['py38', 'py39', 'py310', 'py311']
+target-version = ['py310', 'py311', 'py312']
 
 [tool.flake8]
 extend-ignore = [
@@ -256,5 +258,9 @@ rst-roles = [
 # pyproject.toml
 [tool.pytest.ini_options]
 filterwarnings = [
-    "ignore::simpeg.utils.solver_utils.DefaultSolverWarning",
+    "error:You are running a pytest without setting a random seed.*:UserWarning",
+    "error:The `index_dictionary` property has been deprecated:FutureWarning",
+    'error:The `simpeg\.directives\.[a-z_]+` submodule has been deprecated',
+    'error:Casting complex values to real discards the imaginary part',
 ]
+xfail_strict = true

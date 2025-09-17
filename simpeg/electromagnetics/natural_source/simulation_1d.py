@@ -228,8 +228,7 @@ class Simulation1DRecursive(BaseSimulation, ElectricalConductivity, LayerThickne
                     )
                 elif rx.component == "phase":
                     d.append(
-                        (180.0 / np.pi)
-                        * np.arctan(np.imag(Z[i_freq]) / np.real(Z[i_freq]))
+                        (180.0 / np.pi) * np.arctan2(Z[i_freq].imag, Z[i_freq].real)
                     )
 
         return np.array(d)

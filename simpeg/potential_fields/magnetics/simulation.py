@@ -1,6 +1,9 @@
+import hashlib
 import warnings
 import numpy as np
+from numpy.typing import NDArray
 import scipy.sparse as sp
+from functools import cached_property
 from geoana.kernels import (
     prism_fxxy,
     prism_fxxz,
@@ -11,45 +14,18 @@ from geoana.kernels import (
     prism_fzzz,
 )
 from scipy.constants import mu_0
+from scipy.sparse.linalg import LinearOperator, aslinearoperator
 
 from simpeg import utils
 from simpeg.utils import mat_utils, mkvc, sdiag
-from simpeg.utils.code_utils import deprecate_property, validate_string, validate_type
-from simpeg.utils.solver_utils import get_default_solver
+from simpeg.utils.code_utils import validate_string, validate_type
 
-from ...base import BaseMagneticPDESimulation
+from ...base import BaseMagneticPDESimulation, MagneticSusceptibility
 from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
-from .analytics import CongruousMagBC
 from .survey import Survey
+from ... import props
 
-from ._numba_functions import (
-    choclo,
-    _sensitivity_tmi_parallel,
-    _sensitivity_tmi_serial,
-    _sensitivity_mag_parallel,
-    _sensitivity_mag_serial,
-    _forward_tmi_parallel,
-    _forward_tmi_serial,
-    _forward_mag_parallel,
-    _forward_mag_serial,
-    _forward_tmi_2d_mesh_serial,
-    _forward_tmi_2d_mesh_parallel,
-    _forward_mag_2d_mesh_serial,
-    _forward_mag_2d_mesh_parallel,
-    _forward_tmi_derivative_2d_mesh_serial,
-    _forward_tmi_derivative_2d_mesh_parallel,
-    _sensitivity_mag_2d_mesh_serial,
-    _sensitivity_mag_2d_mesh_parallel,
-    _sensitivity_tmi_2d_mesh_serial,
-    _sensitivity_tmi_2d_mesh_parallel,
-    _forward_tmi_derivative_parallel,
-    _forward_tmi_derivative_serial,
-    _sensitivity_tmi_derivative_parallel,
-    _sensitivity_tmi_derivative_serial,
-    _sensitivity_tmi_derivative_2d_mesh_serial,
-    _sensitivity_tmi_derivative_2d_mesh_parallel,
-)
-from ...base import MagneticSusceptibility
+from ._numba import choclo, NUMBA_FUNCTIONS_3D, NUMBA_FUNCTIONS_2D
 
 if choclo is not None:
     CHOCLO_SUPPORTED_COMPONENTS = {
@@ -180,12 +156,6 @@ class Simulation3DIntegral(BasePFSimulation, MagneticSusceptibility):
         If True, the simulation will run in parallel. If False, it will
         run in serial. If ``engine`` is not ``"choclo"`` this argument will be
         ignored.
-    ind_active : np.ndarray of int or bool
-
-        .. deprecated:: 0.23.0
-
-           Argument ``ind_active`` is deprecated in favor of
-           ``active_cells`` and will be removed in SimPEG v0.24.0.
     """
 
     def __init__(
@@ -201,9 +171,7 @@ class Simulation3DIntegral(BasePFSimulation, MagneticSusceptibility):
         self.model_type = model_type
         super().__init__(mesh, engine=engine, numba_parallel=numba_parallel, **kwargs)
 
-        self._G = None
         self._M = None
-        self._gtg_diagonal = None
         self.is_amplitude_data = is_amplitude_data
         self.modelMap = self.chiMap
 
@@ -216,22 +184,6 @@ class Simulation3DIntegral(BasePFSimulation, MagneticSusceptibility):
                 stacklevel=1,
             )
             self.n_processes = None
-
-        if self.engine == "choclo":
-            if self.numba_parallel:
-                self._sensitivity_tmi = _sensitivity_tmi_parallel
-                self._sensitivity_mag = _sensitivity_mag_parallel
-                self._forward_tmi = _forward_tmi_parallel
-                self._forward_mag = _forward_mag_parallel
-                self._forward_tmi_derivative = _forward_tmi_derivative_parallel
-                self._sensitivity_tmi_derivative = _sensitivity_tmi_derivative_parallel
-            else:
-                self._sensitivity_tmi = _sensitivity_tmi_serial
-                self._sensitivity_mag = _sensitivity_mag_serial
-                self._forward_tmi = _forward_tmi_serial
-                self._forward_mag = _forward_mag_serial
-                self._forward_tmi_derivative = _forward_tmi_derivative_serial
-                self._sensitivity_tmi_derivative = _sensitivity_tmi_derivative_serial
 
     @property
     def model_type(self):
@@ -302,26 +254,32 @@ class Simulation3DIntegral(BasePFSimulation, MagneticSusceptibility):
         return fields
 
     @property
-    def G(self):
-        if getattr(self, "_G", None) is None:
-            if self.engine == "choclo":
-                self._G = self._sensitivity_matrix()
-            else:
-                self._G = self.linear_operator()
-
+    def G(self) -> NDArray | np.memmap | LinearOperator:
+        if not hasattr(self, "_G"):
+            match self.engine, self.store_sensitivities:
+                case ("choclo", "forward_only"):
+                    self._G = self._sensitivity_matrix_as_operator()
+                case ("choclo", _):
+                    self._G = self._sensitivity_matrix()
+                case ("geoana", "forward_only"):
+                    msg = (
+                        "Accessing matrix G with "
+                        'store_sensitivities="forward_only" and engine="geoana" '
+                        "hasn't been implemented yet. "
+                        'Choose store_sensitivities="ram" or "disk", '
+                        'or another engine, like "choclo".'
+                    )
+                    raise NotImplementedError(msg)
+                case ("geoana", _):
+                    self._G = self.linear_operator()
         return self._G
-
-    modelType = deprecate_property(
-        model_type, "modelType", "model_type", removal_version="0.18.0", error=True
-    )
 
     @property
     def nD(self):
         """
         Number of data
         """
-        self._nD = self.survey.receiver_locations.shape[0]
-
+        self._nD = self.survey.nD if not self.is_amplitude_data else self.survey.nD // 3
         return self._nD
 
     @property
@@ -335,42 +293,195 @@ class Simulation3DIntegral(BasePFSimulation, MagneticSusceptibility):
 
         return self._tmi_projection
 
+    def getJ(self, m, f=None) -> NDArray[np.float64 | np.float32] | LinearOperator:
+        r"""
+        Sensitivity matrix :math:`\mathbf{J}`.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        (nD, n_params) np.ndarray or scipy.sparse.linalg.LinearOperator.
+            Array or :class:`~scipy.sparse.linalg.LinearOperator` for the
+            :math:`\mathbf{J}` matrix.
+            A :class:`~scipy.sparse.linalg.LinearOperator` will be returned if
+            ``store_sensitivities`` is ``"forward_only"``, otherwise a dense
+            array will be returned.
+
+        Notes
+        -----
+        If ``store_sensitivities`` is ``"ram"`` or ``"disk"``, a dense array
+        for the ``J`` matrix is returned.
+        A :class:`~scipy.sparse.linalg.LinearOperator` is returned if
+        ``store_sensitivities`` is ``"forward_only"``. This object can perform
+        operations like ``J @ m`` or ``J.T @ v`` without allocating the full
+        ``J`` matrix in memory.
+        """
+        if self.is_amplitude_data:
+            msg = (
+                "The `getJ` method is not yet implemented to work with "
+                "`is_amplitude_data`."
+            )
+            raise NotImplementedError(msg)
+
+        # Need to assign the model, so the chiDeriv can be computed (if the
+        # model is None, the chiDeriv is going to be Zero).
+        self.model = m
+        chiDeriv = (
+            self.chiDeriv
+            if not isinstance(self.G, LinearOperator)
+            else aslinearoperator(self.chiDeriv)
+        )
+        return self.G @ chiDeriv
+
     def getJtJdiag(self, m, W=None, f=None):
+        r"""
+        Compute diagonal of :math:`\mathbf{J}^T \mathbf{J}``.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        W : (nD, nD) np.ndarray or scipy.sparse.sparray, optional
+            Diagonal matrix with the square root of the weights. If not None,
+            the function returns the diagonal of
+            :math:`\mathbf{J}^T \mathbf{W}^T \mathbf{W} \mathbf{J}``.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        (nparam) np.ndarray
+            Array with the diagonal of ``J.T @ J``.
+
+        Notes
+        -----
+        If ``store_sensitivities`` is ``"forward_only"``, the ``G`` matrix is
+        never allocated in memory, and the diagonal is obtained by
+        accumulation, computing each element of the ``G`` matrix on the fly.
+
+        This method caches the diagonal ``G.T @ W.T @ W @ G`` and the sha256
+        hash of the diagonal of the ``W`` matrix. This way, if same weights are
+        passed to it, it reuses the cached diagonal so it doesn't need to be
+        recomputed.
+        If new weights are passed, the cache is updated with the latest
+        diagonal of ``G.T @ W.T @ W @ G``.
         """
-        Return the diagonal of JtJ
-        """
+        # Need to assign the model, so the chiDeriv can be computed (if the
+        # model is None, the chiDeriv is going to be Zero).
         self.model = m
 
-        if W is None:
-            W = np.ones(self.survey.nD)
-        else:
-            W = W.diagonal() ** 2
-        if getattr(self, "_gtg_diagonal", None) is None:
-            diag = np.zeros(self.G.shape[1])
-            if not self.is_amplitude_data:
-                for i in range(len(W)):
-                    diag += W[i] * (self.G[i] * self.G[i])
-            else:
+        # We should probably check that W is diagonal. Let's assume it for now.
+        weights = (
+            W.diagonal() ** 2
+            if W is not None
+            else np.ones(self.survey.nD, dtype=np.float64)
+        )
+
+        # Compute gtg (G.T @ W.T @ W @ G) if it's not cached, or if the
+        # weights are not the same.
+        weights_sha256 = hashlib.sha256(weights)
+        use_cached_gtg = (
+            hasattr(self, "_gtg_diagonal")
+            and hasattr(self, "_weights_sha256")
+            and self._weights_sha256.digest() == weights_sha256.digest()
+        )
+        if not use_cached_gtg:
+            self._gtg_diagonal = self._get_gtg_diagonal(weights)
+            self._weights_sha256 = weights_sha256
+
+        # Multiply the gtg_diagonal by the derivative of the mapping
+        diagonal = mkvc(
+            (sdiag(np.sqrt(self._gtg_diagonal)) @ self.chiDeriv).power(2).sum(axis=0)
+        )
+        return diagonal
+
+    def _get_gtg_diagonal(self, weights: NDArray) -> NDArray:
+        """
+        Compute the diagonal of ``G.T @ W.T @ W @ G``.
+
+        Parameters
+        ----------
+        weights : np.ndarray
+            Weights array: diagonal of ``W.T @ W``.
+
+        Returns
+        -------
+        np.ndarray
+        """
+        match (self.engine, self.store_sensitivities, self.is_amplitude_data):
+            case ("geoana", "forward_only", _):
+                msg = (
+                    "Computing the diagonal of `G.T @ G` using "
+                    "`'forward_only'` and `'geoana'` as engine hasn't been "
+                    "implemented yet."
+                )
+                raise NotImplementedError(msg)
+            case ("choclo", "forward_only", True):
+                msg = (
+                    "Computing the diagonal of `G.T @ G` using "
+                    "`'forward_only'` and `is_amplitude_data` hasn't been "
+                    "implemented yet."
+                )
+                raise NotImplementedError(msg)
+            case ("choclo", "forward_only", False):
+                gtg_diagonal = self._gtg_diagonal_without_building_g(weights)
+            case (_, _, False):
+                # In Einstein notation, the j-th element of the diagonal is:
+                #   d_j = w_i * G_{ij} * G_{ij}
+                gtg_diagonal = np.asarray(
+                    np.einsum("i,ij,ij->j", weights, self.G, self.G)
+                )
+            case (_, _, True):
                 ampDeriv = self.ampDeriv
                 Gx = self.G[::3]
                 Gy = self.G[1::3]
                 Gz = self.G[2::3]
-                for i in range(len(W)):
+                gtg_diagonal = np.zeros(self.G.shape[1])
+                for i in range(weights.size):
                     row = (
                         ampDeriv[0, i] * Gx[i]
                         + ampDeriv[1, i] * Gy[i]
                         + ampDeriv[2, i] * Gz[i]
                     )
-                    diag += W[i] * (row * row)
-            self._gtg_diagonal = diag
-        else:
-            diag = self._gtg_diagonal
-        return mkvc((sdiag(np.sqrt(diag)) @ self.chiDeriv).power(2).sum(axis=0))
+                    gtg_diagonal += weights[i] * (row * row)
+        return gtg_diagonal
 
     def Jvec(self, m, v, f=None):
+        """
+        Dot product between sensitivity matrix and a vector.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters. This array is used to compute the ``J``
+            matrix.
+        v : (n_param,) numpy.ndarray
+            Vector used in the matrix-vector multiplication.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        (nD,) numpy.ndarray
+
+        Notes
+        -----
+        If ``store_sensitivities`` is set to ``"forward_only"``, then the
+        matrix `G` is never fully constructed, and the dot product is computed
+        by accumulation, computing the matrix elements on the fly. Otherwise,
+        the full matrix ``G`` is constructed and stored either in memory or
+        disk.
+        """
+        # Need to assign the model, so the chiDeriv can be computed (if the
+        # model is None, the chiDeriv is going to be Zero).
         self.model = m
         dmu_dm_v = self.chiDeriv @ v
-
         Jvec = self.G @ dmu_dm_v.astype(self.sensitivity_dtype, copy=False)
 
         if self.is_amplitude_data:
@@ -378,10 +489,37 @@ class Simulation3DIntegral(BasePFSimulation, MagneticSusceptibility):
             Jvec = Jvec.reshape((-1, 3)).T  # reshape((3, -1), order="F")
             ampDeriv_Jvec = self.ampDeriv * Jvec
             return ampDeriv_Jvec[0] + ampDeriv_Jvec[1] + ampDeriv_Jvec[2]
-        else:
-            return Jvec
+
+        return Jvec
 
     def Jtvec(self, m, v, f=None):
+        """
+        Dot product between transposed sensitivity matrix and a vector.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters. This array is used to compute the ``J``
+            matrix.
+        v : (nD,) numpy.ndarray
+            Vector used in the matrix-vector multiplication.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        (nD,) numpy.ndarray
+
+        Notes
+        -----
+        If ``store_sensitivities`` is set to ``"forward_only"``, then the
+        matrix `G` is never fully constructed, and the dot product is computed
+        by accumulation, computing the matrix elements on the fly. Otherwise,
+        the full matrix ``G`` is constructed and stored either in memory or
+        disk.
+        """
+        # Need to assign the model, so the chiDeriv can be computed (if the
+        # model is None, the chiDeriv is going to be Zero).
         self.model = m
 
         if self.is_amplitude_data:
@@ -729,7 +867,10 @@ class Simulation3DIntegral(BasePFSimulation, MagneticSusceptibility):
                     index_offset + i, index_offset + n_rows, n_components
                 )
                 if component == "tmi":
-                    self._forward_tmi(
+                    forward_func = NUMBA_FUNCTIONS_3D["forward"]["tmi"][
+                        self.numba_parallel
+                    ]
+                    forward_func(
                         receivers,
                         active_nodes,
                         model,
@@ -743,7 +884,10 @@ class Simulation3DIntegral(BasePFSimulation, MagneticSusceptibility):
                     kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
                         CHOCLO_KERNELS[component]
                     )
-                    self._forward_tmi_derivative(
+                    forward_func = NUMBA_FUNCTIONS_3D["forward"]["tmi_derivative"][
+                        self.numba_parallel
+                    ]
+                    forward_func(
                         receivers,
                         active_nodes,
                         model,
@@ -761,7 +905,10 @@ class Simulation3DIntegral(BasePFSimulation, MagneticSusceptibility):
                     )
                 else:
                     kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
-                    self._forward_mag(
+                    forward_func = NUMBA_FUNCTIONS_3D["forward"]["magnetic_component"][
+                        self.numba_parallel
+                    ]
+                    forward_func(
                         receivers,
                         active_nodes,
                         model,
@@ -790,10 +937,8 @@ class Simulation3DIntegral(BasePFSimulation, MagneticSusceptibility):
         # Get regional field
         regional_field = self.survey.source_field.b0
         # Allocate sensitivity matrix
-        if self.model_type == "scalar":
-            n_columns = self.nC
-        else:
-            n_columns = 3 * self.nC
+        scalar_model = self.model_type == "scalar"
+        n_columns = self.nC if scalar_model else 3 * self.nC
         shape = (self.survey.nD, n_columns)
         if self.store_sensitivities == "disk":
             sensitivity_matrix = np.memmap(
@@ -809,7 +954,6 @@ class Simulation3DIntegral(BasePFSimulation, MagneticSusceptibility):
         constant_factor = 1 / 4 / np.pi
         # Start filling the sensitivity matrix
         index_offset = 0
-        scalar_model = self.model_type == "scalar"
         for components, receivers in self._get_components_and_receivers():
             if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
                 raise NotImplementedError(
@@ -823,7 +967,10 @@ class Simulation3DIntegral(BasePFSimulation, MagneticSusceptibility):
                     index_offset + i, index_offset + n_rows, n_components
                 )
                 if component == "tmi":
-                    self._sensitivity_tmi(
+                    sensitivity_func = NUMBA_FUNCTIONS_3D["sensitivity"]["tmi"][
+                        self.numba_parallel
+                    ]
+                    sensitivity_func(
                         receivers,
                         active_nodes,
                         sensitivity_matrix[matrix_slice, :],
@@ -833,10 +980,13 @@ class Simulation3DIntegral(BasePFSimulation, MagneticSusceptibility):
                         scalar_model,
                     )
                 elif component in ("tmi_x", "tmi_y", "tmi_z"):
+                    sensitivity_func = NUMBA_FUNCTIONS_3D["sensitivity"][
+                        "tmi_derivative"
+                    ][self.numba_parallel]
                     kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
                         CHOCLO_KERNELS[component]
                     )
-                    self._sensitivity_tmi_derivative(
+                    sensitivity_func(
                         receivers,
                         active_nodes,
                         sensitivity_matrix[matrix_slice, :],
@@ -852,8 +1002,11 @@ class Simulation3DIntegral(BasePFSimulation, MagneticSusceptibility):
                         scalar_model,
                     )
                 else:
+                    sensitivity_func = NUMBA_FUNCTIONS_3D["sensitivity"][
+                        "magnetic_component"
+                    ][self.numba_parallel]
                     kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
-                    self._sensitivity_mag(
+                    sensitivity_func(
                         receivers,
                         active_nodes,
                         sensitivity_matrix[matrix_slice, :],
@@ -867,6 +1020,212 @@ class Simulation3DIntegral(BasePFSimulation, MagneticSusceptibility):
                     )
             index_offset += n_rows
         return sensitivity_matrix
+
+    def _sensitivity_matrix_as_operator(self):
+        """
+        Create a LinearOperator for the sensitivity matrix G.
+
+        Returns
+        -------
+        scipy.sparse.linalg.LinearOperator
+        """
+        n_columns = self.nC if self.model_type == "scalar" else self.nC * 3
+        shape = (self.survey.nD, n_columns)
+        linear_op = LinearOperator(
+            shape=shape,
+            matvec=self._forward,
+            rmatvec=self._sensitivity_matrix_transpose_dot_vec,
+            dtype=np.float64,
+        )
+        return linear_op
+
+    def _sensitivity_matrix_transpose_dot_vec(self, vector):
+        """
+        Compute ``G.T @ v`` without building ``G``.
+
+        Parameters
+        ----------
+        vector : (nD) numpy.ndarray
+            Vector used in the dot product.
+
+        Returns
+        -------
+        (n_active_cells) or (3 * n_active_cells) numpy.ndarray
+        """
+        # Gather active nodes and the indices of the nodes for each active cell
+        active_nodes, active_cell_nodes = self._get_active_nodes()
+        # Get regional field
+        regional_field = self.survey.source_field.b0
+
+        # Allocate resulting array.
+        scalar_model = self.model_type == "scalar"
+        result = np.zeros(self.nC if scalar_model else 3 * self.nC)
+
+        # Define the constant factor
+        constant_factor = 1 / 4 / np.pi
+
+        # Fill the result array
+        index_offset = 0
+        for components, receivers in self._get_components_and_receivers():
+            if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
+                raise NotImplementedError(
+                    f"Other components besides {CHOCLO_SUPPORTED_COMPONENTS} "
+                    "aren't implemented yet."
+                )
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                vector_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
+                )
+                if component == "tmi":
+                    gt_dot_v_func = NUMBA_FUNCTIONS_3D["gt_dot_v"]["tmi"][
+                        self.numba_parallel
+                    ]
+                    gt_dot_v_func(
+                        receivers,
+                        active_nodes,
+                        active_cell_nodes,
+                        regional_field,
+                        constant_factor,
+                        scalar_model,
+                        vector[vector_slice],
+                        result,
+                    )
+                elif component in ("tmi_x", "tmi_y", "tmi_z"):
+                    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
+                        CHOCLO_KERNELS[component]
+                    )
+                    gt_dot_v_func = NUMBA_FUNCTIONS_3D["gt_dot_v"]["tmi_derivative"][
+                        self.numba_parallel
+                    ]
+                    gt_dot_v_func(
+                        receivers,
+                        active_nodes,
+                        active_cell_nodes,
+                        regional_field,
+                        kernel_xx,
+                        kernel_yy,
+                        kernel_zz,
+                        kernel_xy,
+                        kernel_xz,
+                        kernel_yz,
+                        constant_factor,
+                        scalar_model,
+                        vector[vector_slice],
+                        result,
+                    )
+                else:
+                    kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
+                    gt_dot_v_func = NUMBA_FUNCTIONS_3D["gt_dot_v"][
+                        "magnetic_component"
+                    ][self.numba_parallel]
+                    gt_dot_v_func(
+                        receivers,
+                        active_nodes,
+                        active_cell_nodes,
+                        regional_field,
+                        kernel_x,
+                        kernel_y,
+                        kernel_z,
+                        constant_factor,
+                        scalar_model,
+                        vector[vector_slice],
+                        result,
+                    )
+            index_offset += n_rows
+        return result
+
+    def _gtg_diagonal_without_building_g(self, weights):
+        """
+        Compute the diagonal of ``G.T @ G`` without building the ``G`` matrix.
+
+        Parameters
+        -----------
+        weights : (nD,) array
+            Array with data weights. It should be the diagonal of the ``W``
+            matrix, squared.
+
+        Returns
+        -------
+        (n_active_cells) numpy.ndarray
+        """
+        # Gather active nodes and the indices of the nodes for each active cell
+        active_nodes, active_cell_nodes = self._get_active_nodes()
+        # Get regional field
+        regional_field = self.survey.source_field.b0
+        # Define the constant factor
+        constant_factor = 1 / 4 / np.pi
+
+        # Allocate array for the diagonal
+        scalar_model = self.model_type == "scalar"
+        n_columns = self.nC if scalar_model else 3 * self.nC
+        diagonal = np.zeros(n_columns, dtype=np.float64)
+
+        # Start filling the diagonal array
+        for components, receivers in self._get_components_and_receivers():
+            if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
+                raise NotImplementedError(
+                    f"Other components besides {CHOCLO_SUPPORTED_COMPONENTS} "
+                    "aren't implemented yet."
+                )
+            for component in components:
+                if component == "tmi":
+                    diagonal_gtg_func = NUMBA_FUNCTIONS_3D["diagonal_gtg"]["tmi"][
+                        self.numba_parallel
+                    ]
+                    diagonal_gtg_func(
+                        receivers,
+                        active_nodes,
+                        active_cell_nodes,
+                        regional_field,
+                        constant_factor,
+                        scalar_model,
+                        weights,
+                        diagonal,
+                    )
+                elif component in ("tmi_x", "tmi_y", "tmi_z"):
+                    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
+                        CHOCLO_KERNELS[component]
+                    )
+                    diagonal_gtg_func = NUMBA_FUNCTIONS_3D["diagonal_gtg"][
+                        "tmi_derivative"
+                    ][self.numba_parallel]
+                    diagonal_gtg_func(
+                        receivers,
+                        active_nodes,
+                        active_cell_nodes,
+                        regional_field,
+                        kernel_xx,
+                        kernel_yy,
+                        kernel_zz,
+                        kernel_xy,
+                        kernel_xz,
+                        kernel_yz,
+                        constant_factor,
+                        scalar_model,
+                        weights,
+                        diagonal,
+                    )
+                else:
+                    kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
+                    diagonal_gtg_func = NUMBA_FUNCTIONS_3D["diagonal_gtg"][
+                        "magnetic_component"
+                    ][self.numba_parallel]
+                    diagonal_gtg_func(
+                        receivers,
+                        active_nodes,
+                        active_cell_nodes,
+                        regional_field,
+                        kernel_x,
+                        kernel_y,
+                        kernel_z,
+                        constant_factor,
+                        scalar_model,
+                        weights,
+                        diagonal,
+                    )
+        return diagonal
 
 
 class SimulationEquivalentSourceLayer(
@@ -917,26 +1276,6 @@ class SimulationEquivalentSourceLayer(
             **kwargs,
         )
 
-        if self.engine == "choclo":
-            if self.numba_parallel:
-                self._sensitivity_tmi = _sensitivity_tmi_2d_mesh_parallel
-                self._sensitivity_mag = _sensitivity_mag_2d_mesh_parallel
-                self._forward_tmi = _forward_tmi_2d_mesh_parallel
-                self._forward_mag = _forward_mag_2d_mesh_parallel
-                self._forward_tmi_derivative = _forward_tmi_derivative_2d_mesh_parallel
-                self._sensitivity_tmi_derivative = (
-                    _sensitivity_tmi_derivative_2d_mesh_parallel
-                )
-            else:
-                self._sensitivity_tmi = _sensitivity_tmi_2d_mesh_serial
-                self._sensitivity_mag = _sensitivity_mag_2d_mesh_serial
-                self._forward_tmi = _forward_tmi_2d_mesh_serial
-                self._forward_mag = _forward_mag_2d_mesh_serial
-                self._forward_tmi_derivative = _forward_tmi_derivative_2d_mesh_serial
-                self._sensitivity_tmi_derivative = (
-                    _sensitivity_tmi_derivative_2d_mesh_serial
-                )
-
     def _forward(self, model):
         """
         Forward model the fields of active cells in the mesh on receivers.
@@ -980,7 +1319,10 @@ class SimulationEquivalentSourceLayer(
                     index_offset + i, index_offset + n_rows, n_components
                 )
                 if component == "tmi":
-                    self._forward_tmi(
+                    forward_func = NUMBA_FUNCTIONS_2D["forward"]["tmi"][
+                        self.numba_parallel
+                    ]
+                    forward_func(
                         receivers,
                         cells_bounds_active,
                         self.cell_z_top,
@@ -994,7 +1336,10 @@ class SimulationEquivalentSourceLayer(
                     kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
                         CHOCLO_KERNELS[component]
                     )
-                    self._forward_tmi_derivative(
+                    forward_func = NUMBA_FUNCTIONS_2D["forward"]["tmi_derivative"][
+                        self.numba_parallel
+                    ]
+                    forward_func(
                         receivers,
                         cells_bounds_active,
                         self.cell_z_top,
@@ -1011,8 +1356,11 @@ class SimulationEquivalentSourceLayer(
                         scalar_model,
                     )
                 else:
-                    forward_func = CHOCLO_FORWARD_FUNCS[component]
-                    self._forward_mag(
+                    choclo_forward_func = CHOCLO_FORWARD_FUNCS[component]
+                    forward_func = NUMBA_FUNCTIONS_2D["forward"]["magnetic_component"][
+                        self.numba_parallel
+                    ]
+                    forward_func(
                         receivers,
                         cells_bounds_active,
                         self.cell_z_top,
@@ -1020,7 +1368,7 @@ class SimulationEquivalentSourceLayer(
                         model,
                         fields[vector_slice],
                         regional_field,
-                        forward_func,
+                        choclo_forward_func,
                         scalar_model,
                     )
             index_offset += n_rows
@@ -1039,10 +1387,8 @@ class SimulationEquivalentSourceLayer(
         # Get regional field
         regional_field = self.survey.source_field.b0
         # Allocate sensitivity matrix
-        if self.model_type == "scalar":
-            n_columns = self.nC
-        else:
-            n_columns = 3 * self.nC
+        scalar_model = self.model_type == "scalar"
+        n_columns = self.nC if scalar_model else 3 * self.nC
         shape = (self.survey.nD, n_columns)
         if self.store_sensitivities == "disk":
             sensitivity_matrix = np.memmap(
@@ -1056,7 +1402,6 @@ class SimulationEquivalentSourceLayer(
             sensitivity_matrix = np.empty(shape, dtype=self.sensitivity_dtype)
         # Start filling the sensitivity matrix
         index_offset = 0
-        scalar_model = self.model_type == "scalar"
         for components, receivers in self._get_components_and_receivers():
             if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
                 raise NotImplementedError(
@@ -1070,7 +1415,10 @@ class SimulationEquivalentSourceLayer(
                     index_offset + i, index_offset + n_rows, n_components
                 )
                 if component == "tmi":
-                    self._sensitivity_tmi(
+                    sensitivity_func = NUMBA_FUNCTIONS_2D["sensitivity"]["tmi"][
+                        self.numba_parallel
+                    ]
+                    sensitivity_func(
                         receivers,
                         cells_bounds_active,
                         self.cell_z_top,
@@ -1083,7 +1431,10 @@ class SimulationEquivalentSourceLayer(
                     kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
                         CHOCLO_KERNELS[component]
                     )
-                    self._sensitivity_tmi_derivative(
+                    sensitivity_func = NUMBA_FUNCTIONS_2D["sensitivity"][
+                        "tmi_derivative"
+                    ][self.numba_parallel]
+                    sensitivity_func(
                         receivers,
                         cells_bounds_active,
                         self.cell_z_top,
@@ -1100,7 +1451,10 @@ class SimulationEquivalentSourceLayer(
                     )
                 else:
                     kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
-                    self._sensitivity_mag(
+                    sensitivity_func = NUMBA_FUNCTIONS_2D["sensitivity"][
+                        "magnetic_component"
+                    ][self.numba_parallel]
+                    sensitivity_func(
                         receivers,
                         cells_bounds_active,
                         self.cell_z_top,
@@ -1115,511 +1469,731 @@ class SimulationEquivalentSourceLayer(
             index_offset += n_rows
         return sensitivity_matrix
 
+    def _sensitivity_matrix_transpose_dot_vec(self, vector):
+        """
+        Compute ``G.T @ v`` without building ``G``.
 
-class Simulation3DDifferential(BaseMagneticPDESimulation):
-    """
-    Secondary field approach using differential equations!
-    """
-
-    def __init__(self, mesh, survey=None, **kwargs):
-        super().__init__(mesh, survey=survey, **kwargs)
-
-        Pbc, Pin, self._Pout = self.mesh.get_BC_projections(
-            "neumann", discretization="CC"
-        )
-
-        Dface = self.mesh.face_divergence
-        Mc = sdiag(self.mesh.cell_volumes)
-        self._Div = Mc * Dface * Pin.T.tocsr() * Pin
-
-    @property
-    def survey(self):
-        """The survey for this simulation.
+        Parameters
+        ----------
+        vector : (nD) numpy.ndarray
+            Vector used in the dot product.
 
         Returns
         -------
-        simpeg.potential_fields.magnetics.survey.Survey
+        (n_active_cells) or (3 * n_active_cells) numpy.ndarray
+        """
+        # Get regional field
+        regional_field = self.survey.source_field.b0
+        # Get cells in the 2D mesh and keep only active cells
+        cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
+        # Allocate resulting array
+        scalar_model = self.model_type == "scalar"
+        result = np.zeros(self.nC if scalar_model else 3 * self.nC)
+        # Start filling the result array
+        index_offset = 0
+        for components, receivers in self._get_components_and_receivers():
+            if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
+                raise NotImplementedError(
+                    f"Other components besides {CHOCLO_SUPPORTED_COMPONENTS} "
+                    "aren't implemented yet."
+                )
+            n_components = len(components)
+            n_rows = n_components * receivers.shape[0]
+            for i, component in enumerate(components):
+                vector_slice = slice(
+                    index_offset + i, index_offset + n_rows, n_components
+                )
+                if component == "tmi":
+                    gt_dot_v_func = NUMBA_FUNCTIONS_2D["gt_dot_v"]["tmi"][
+                        self.numba_parallel
+                    ]
+                    gt_dot_v_func(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        regional_field,
+                        scalar_model,
+                        vector[vector_slice],
+                        result,
+                    )
+                elif component in ("tmi_x", "tmi_y", "tmi_z"):
+                    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
+                        CHOCLO_KERNELS[component]
+                    )
+                    gt_dot_v_func = NUMBA_FUNCTIONS_2D["gt_dot_v"]["tmi_derivative"][
+                        self.numba_parallel
+                    ]
+                    gt_dot_v_func(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        regional_field,
+                        kernel_xx,
+                        kernel_yy,
+                        kernel_zz,
+                        kernel_xy,
+                        kernel_xz,
+                        kernel_yz,
+                        scalar_model,
+                        vector[vector_slice],
+                        result,
+                    )
+                else:
+                    kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
+                    gt_dot_v_func = NUMBA_FUNCTIONS_2D["gt_dot_v"][
+                        "magnetic_component"
+                    ][self.numba_parallel]
+                    gt_dot_v_func(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        regional_field,
+                        kernel_x,
+                        kernel_y,
+                        kernel_z,
+                        scalar_model,
+                        vector[vector_slice],
+                        result,
+                    )
+            index_offset += n_rows
+        return result
+
+    def _gtg_diagonal_without_building_g(self, weights):
+        """
+        Compute the diagonal of ``G.T @ G`` without building the ``G`` matrix.
+
+        Parameters
+        -----------
+        weights : (nD,) array
+            Array with data weights. It should be the diagonal of the ``W``
+            matrix, squared.
+
+        Returns
+        -------
+        (n_active_cells) numpy.ndarray
+        """
+        # Get regional field
+        regional_field = self.survey.source_field.b0
+        # Get cells in the 2D mesh and keep only active cells
+        cells_bounds_active = self.mesh.cell_bounds[self.active_cells]
+        # Define the constant factor
+        constant_factor = 1 / 4 / np.pi
+        # Allocate array for the diagonal
+        scalar_model = self.model_type == "scalar"
+        n_columns = self.nC if scalar_model else 3 * self.nC
+        diagonal = np.zeros(n_columns, dtype=np.float64)
+        # Start filling the diagonal array
+        for components, receivers in self._get_components_and_receivers():
+            if not CHOCLO_SUPPORTED_COMPONENTS.issuperset(components):
+                raise NotImplementedError(
+                    f"Other components besides {CHOCLO_SUPPORTED_COMPONENTS} "
+                    "aren't implemented yet."
+                )
+            for component in components:
+                if component == "tmi":
+                    diagonal_gtg_func = NUMBA_FUNCTIONS_2D["diagonal_gtg"]["tmi"][
+                        self.numba_parallel
+                    ]
+                    diagonal_gtg_func(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        regional_field,
+                        constant_factor,
+                        scalar_model,
+                        weights,
+                        diagonal,
+                    )
+                elif component in ("tmi_x", "tmi_y", "tmi_z"):
+                    kernel_xx, kernel_yy, kernel_zz, kernel_xy, kernel_xz, kernel_yz = (
+                        CHOCLO_KERNELS[component]
+                    )
+                    diagonal_gtg_func = NUMBA_FUNCTIONS_2D["diagonal_gtg"][
+                        "tmi_derivative"
+                    ][self.numba_parallel]
+                    diagonal_gtg_func(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        regional_field,
+                        kernel_xx,
+                        kernel_yy,
+                        kernel_zz,
+                        kernel_xy,
+                        kernel_xz,
+                        kernel_yz,
+                        constant_factor,
+                        scalar_model,
+                        weights,
+                        diagonal,
+                    )
+                else:
+                    kernel_x, kernel_y, kernel_z = CHOCLO_KERNELS[component]
+                    diagonal_gtg_func = NUMBA_FUNCTIONS_2D["diagonal_gtg"][
+                        "magnetic_component"
+                    ][self.numba_parallel]
+                    diagonal_gtg_func(
+                        receivers,
+                        cells_bounds_active,
+                        self.cell_z_top,
+                        self.cell_z_bottom,
+                        regional_field,
+                        kernel_x,
+                        kernel_y,
+                        kernel_z,
+                        constant_factor,
+                        scalar_model,
+                        weights,
+                        diagonal,
+                    )
+        return diagonal
+
+
+class Simulation3DDifferential(BaseMagneticPDESimulation):
+    r"""A secondary field simulation for magnetic data.
+
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+    survey : magnetics.survey.Survey
+    mu : float, array_like
+        Magnetic Permeability Model (H/ m). Set this for forward
+        modeling or to fix while inverting for remanence. This is used if
+        ``muMap`` is None.
+    muMap : simpeg.maps.IdentityMap, optional
+        The mapping used to go from the simulation model to ``mu``. Set this
+        to invert for ``mu``.
+    rem : float, array_like
+        Magnetic Polarization :math:`\mu_0 \mathbf{M}` (nT). Set this for forward
+        modeling or to fix remanent magnetization while inverting for permeability.
+        This is used if ``remMap`` is None.
+    remMap : simpeg.maps.IdentityMap, optional
+        The mapping used to go from the simulation model to :math:`\mu_0 \mathbf{M}`.
+        Set this to invert for :math:`\mu_0 \mathbf{M}`.
+    storeJ: bool
+        Whether to store the sensitivity matrix. If set to True
+    solver_dtype: dtype, optional
+        Data type to use for the matrix that gets passed to the ``solver``.
+        Default to `numpy.float64`.
+
+
+    Notes
+    -----
+    This simulation solves for the magnetostatic PDE:
+
+    .. math::
+        \nabla \cdot \Vec{B} = 0
+
+    where the constitutive relation is specified as:
+
+    .. math::
+        \Vec{B} = \mu\Vec{H} + \mu_0\Vec{M_r}
+
+    where :math:`\Vec{M_r}` is a fixed magnetization unaffected by the inducing field
+    and :math:`\mu\Vec{H}` is the induced magnetization.
+    """
+
+    _Ainv = None
+
+    rem, remMap, remDeriv = props.Invertible(
+        "Magnetic Polarization (nT)", optional=True
+    )
+
+    _supported_components = ("tmi", "bx", "by", "bz")
+
+    def __init__(
+        self,
+        mesh,
+        survey=None,
+        mu=None,
+        muMap=None,
+        rem=None,
+        remMap=None,
+        storeJ=False,
+        solver_dtype=np.float64,
+        **kwargs,
+    ):
+        if mu is None:
+            mu = mu_0
+
+        super().__init__(mesh=mesh, survey=survey, mu=mu, muMap=muMap, **kwargs)
+
+        self.rem = rem
+        self.remMap = remMap
+
+        self.storeJ = storeJ
+        self.solver_dtype = solver_dtype
+
+        self._MfMu0i = self.mesh.get_face_inner_product(1.0 / mu_0)
+        self._Div = self.Mcc * self.mesh.face_divergence
+        self._DivT = self._Div.T.tocsr()
+        self._Mf_vec_deriv = self.mesh.get_face_inner_product_deriv(
+            np.ones(self.mesh.n_cells * 3)
+        )(np.ones(self.mesh.n_faces))
+
+        self.solver_opts = {"is_symmetric": True, "is_positive_definite": True}
+
+        self._Jmatrix = None
+        self._stored_fields = None
+
+    @property
+    def survey(self):
+        """The magnetic survey object.
+
+        Returns
+        -------
+        simpeg.potential_fields.magnetics.Survey
         """
         if self._survey is None:
             raise AttributeError("Simulation must have a survey")
         return self._survey
 
     @survey.setter
-    def survey(self, obj):
-        if obj is not None:
-            obj = validate_type("survey", obj, Survey, cast=False)
-        self._survey = obj
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, Survey, cast=False)
+            unsupported_components = {
+                component
+                for source in value.source_list
+                for receiver in source.receiver_list
+                for component in receiver.components
+                if component not in self._supported_components
+            }
+            if unsupported_components:
+                msg = (
+                    f"Found unsupported magnetic components "
+                    f"'{', '.join(c for c in unsupported_components)}' in the survey."
+                    f"The {type(self).__name__} currently supports the following "
+                    f"components: {', '.join(c for c in self._supported_components)}"
+                )
+                raise NotImplementedError(msg)
+        self._survey = value
 
     @property
-    def MfMuI(self):
-        return self._MfMuI
+    def storeJ(self):
+        """Whether to store the sensitivity matrix
+
+        Returns
+        -------
+        bool
+        """
+        return self._storeJ
+
+    @storeJ.setter
+    def storeJ(self, value):
+        self._storeJ = validate_type("storeJ", value, bool)
 
     @property
-    def MfMui(self):
-        return self._MfMui
+    def solver_dtype(self):
+        """
+        Data type used by the solver.
 
-    @property
-    def MfMu0(self):
-        return self._MfMu0
+        Returns
+        -------
+        numpy.dtype
+            Either np.float32 or np.float64
+        """
+        return self._solver_dtype
 
-    def makeMassMatrices(self, m):
-        mu = self.muMap * m
-        self._MfMui = self.mesh.get_face_inner_product(1.0 / mu) / self.mesh.dim
-        # self._MfMui = self.mesh.get_face_inner_product(1./mu)
-        # TODO: this will break if tensor mu
-        self._MfMuI = sdiag(1.0 / self._MfMui.diagonal())
-        self._MfMu0 = self.mesh.get_face_inner_product(1.0 / mu_0) / self.mesh.dim
-        # self._MfMu0 = self.mesh.get_face_inner_product(1/mu_0)
+    @solver_dtype.setter
+    def solver_dtype(self, value):
+        """
+        Set the solver dtype. Must be np.float32 or np.float64.
+        """
+        if value not in (np.float32, np.float64):
+            msg = (
+                f"Invalid `solver_dtype` '{value}'. "
+                "It must be np.float32 or np.float64."
+            )
+            raise ValueError(msg)
+        self._solver_dtype = value
 
+    @cached_property
     @utils.requires("survey")
-    def getB0(self):
+    def _b0(self):
+        # Todo: Experiment with avoiding array of constants
         b0 = self.survey.source_field.b0
-        B0 = np.r_[
+        b0 = np.r_[
             b0[0] * np.ones(self.mesh.nFx),
             b0[1] * np.ones(self.mesh.nFy),
             b0[2] * np.ones(self.mesh.nFz),
         ]
-        return B0
+        return b0
 
-    def getRHS(self, m):
-        r"""
+    @property
+    def _stored_fields(self):
+        return self.__stored_fields
 
-        .. math ::
+    @_stored_fields.setter
+    def _stored_fields(self, value):
+        self.__stored_fields = value
 
-            \mathbf{rhs} =
-                \Div(\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0
-                - \Div\mathbf{B}_0
-                +\diag(v)\mathbf{D} \mathbf{P}_{out}^T \mathbf{B}_{sBC}
+    @_stored_fields.deleter
+    def _stored_fields(self):
+        self.__stored_fields = None
 
-        """
-        B0 = self.getB0()
+    def _getRHS(self, m):
+        self.model = m
 
-        mu = self.muMap * m
-        chi = mu / mu_0 - 1
+        rhs = 0
 
-        # Temporary fix
-        Bbc, Bbc_const = CongruousMagBC(self.mesh, self.survey.source_field.b0, chi)
-        self.Bbc = Bbc
-        self.Bbc_const = Bbc_const
-        # return self._Div*self.MfMuI*self.MfMu0*B0 - self._Div*B0 +
-        # Mc*Dface*self._Pout.T*Bbc
-        return self._Div * self.MfMuI * self.MfMu0 * B0 - self._Div * B0
+        if not np.isscalar(self.mu) or not np.allclose(self.mu, mu_0):
+            rhs += (
+                self._Div * self.MfMuiI * self._MfMu0i * self._b0 - self._Div * self._b0
+            )
 
-    def getA(self, m):
-        r"""
-        GetA creates and returns the A matrix for the Magnetics problem
+        if self.rem is not None:
+            rhs += (
+                self._Div
+                * (
+                    self.MfMuiI
+                    * self.mesh.get_face_inner_product(
+                        self.rem
+                        / np.tile(self.mu * np.ones(self.mesh.n_cells), self.mesh.dim)
+                    )
+                ).diagonal()
+            )
 
-        The A matrix has the form:
+        return rhs
 
-        .. math ::
+    def _getA(self):
+        A = self._Div * self.MfMuiI * self._DivT
 
-            \mathbf{A} =  \Div(\MfMui)^{-1}\Div^{T}
+        A = A.astype(self.solver_dtype)
 
-        """
-        return self._Div * self.MfMuI * self._Div.T.tocsr()
+        return A
 
     def fields(self, m):
+        self.model = m
+
+        if self._stored_fields is None:
+
+            if self._Ainv is None:
+                self._Ainv = self.solver(self._getA(), **self.solver_opts)
+
+            rhs = self._getRHS(m)
+
+            u = self._Ainv * rhs
+            b_field = -self.MfMuiI * self._DivT * u
+
+            if not np.isscalar(self.mu) or not np.allclose(self.mu, mu_0):
+                b_field += self._MfMu0i * self.MfMuiI * self._b0 - self._b0
+
+            if self.rem is not None:
+                b_field += (
+                    self.MfMuiI
+                    * self.mesh.get_face_inner_product(
+                        self.rem
+                        / np.tile(self.mu * np.ones(self.mesh.n_cells), self.mesh.dim)
+                    )
+                ).diagonal()
+
+            fields = {"b": b_field, "u": u}
+            self._stored_fields = fields
+
+        else:
+            fields = self._stored_fields
+
+        return fields
+
+    def dpred(self, m=None, f=None):
+        self.model = m
+        if f is not None:
+            return self._projectFields(f)
+
+        if f is None:
+            f = self.fields(m)
+
+        dpred = self._projectFields(f)
+
+        return dpred
+
+    def magnetic_polarization(self, m=None):
         r"""
-        Return magnetic potential (u) and flux (B)
+        Computes the total magnetic polarization :math:`\mu_0\mathbf{M}`.
 
-        u: defined on the cell center [nC x 1]
-        B: defined on the cell center [nG x 1]
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
 
-        After we compute u, then we update B.
+        Returns
+        -------
+        mu0_m : np.ndarray
+            The magnetic polarization :math:`\mu_0 \mathbf{M}` in nanoteslas (nT), defined on the mesh faces.
+            The result is ordered as a concatenation of the x, y, and z face components
+            (i.e., ``[Mx_faces, My_faces, Mz_faces]``).
 
-        .. math ::
-
-            \mathbf{B}_s =
-                (\MfMui)^{-1}\mathbf{M}^f_{\mu_0^{-1}}\mathbf{B}_0
-                - \mathbf{B}_0
-                - (\MfMui)^{-1}\Div^T \mathbf{u}
 
         """
-        self.makeMassMatrices(m)
-        A = self.getA(m)
-        rhs = self.getRHS(m)
-        Ainv = self.solver(A, **self.solver_opts)
-        u = Ainv * rhs
-        B0 = self.getB0()
-        B = self.MfMuI * self.MfMu0 * B0 - B0 - self.MfMuI * self._Div.T * u
-        Ainv.clean()
+        self.model = m
+        f = self.fields(m)
+        b_field, u = f["b"], f["u"]
+        MfMu0iI = self.mesh.get_face_inner_product(1.0 / mu_0, invert_matrix=True)
 
-        return {"B": B, "u": u}
+        mu0_h = -MfMu0iI * self._DivT * u
+        mu0_m = b_field - mu0_h
 
-    @utils.timeIt
-    def Jvec(self, m, v, u=None):
-        r"""
-        Computing Jacobian multiplied by vector
+        return mu0_m
 
-        By setting our problem as
+    def Jvec(self, m, v, f=None):
+        self.model = m
 
-        .. math ::
+        if f is None:
+            f = self.fields(m)
 
-            \mathbf{C}(\mathbf{m}, \mathbf{u}) = \mathbf{A}\mathbf{u} - \mathbf{rhs} = 0
+        if self.storeJ:
+            J = self.getJ(m, f=f)
+            return J.dot(v)
 
-        And taking derivative w.r.t m
+        return self._Jvec(m, v, f)
 
-        .. math ::
+    def Jtvec(self, m, v, f=None):
+        self.model = m
 
-            \nabla \mathbf{C}(\mathbf{m}, \mathbf{u}) =
-                \nabla_m \mathbf{C}(\mathbf{m}) \delta \mathbf{m} +
-                \nabla_u \mathbf{C}(\mathbf{u}) \delta \mathbf{u} = 0
+        if f is None:
+            f = self.fields(m)
 
-            \frac{\delta \mathbf{u}}{\delta \mathbf{m}} =
-                - [\nabla_u \mathbf{C}(\mathbf{u})]^{-1}\nabla_m \mathbf{C}(\mathbf{m})
+        if self.storeJ:
+            J = self.getJ(m, f=f)
+            return np.asarray(J.T.dot(v))
 
-        With some linear algebra we can have
+        return self._Jtvec(m, v, f)
 
-        .. math ::
+    def getJ(self, m, f=None):
+        self.model = m
+        if self._Jmatrix:
+            return self._Jmatrix
+        if f is None:
+            f = self.fields(m)
+        if m.size < self.survey.nD:
+            J = self._Jvec(m, v=None, f=f)
+        else:
+            J = self._Jtvec(m, v=None, f=f).T
 
-            \nabla_u \mathbf{C}(\mathbf{u}) = \mathbf{A}
+        if self.storeJ:
+            self._Jmatrix = J
+        return J
 
-            \nabla_m \mathbf{C}(\mathbf{m}) =
-                \frac{\partial \mathbf{A}} {\partial \mathbf{m}} (\mathbf{m}) \mathbf{u}
-                - \frac{\partial \mathbf{rhs}(\mathbf{m})}{\partial \mathbf{m}}
+    def _Jtvec(self, m, v, f):
+        b_field, u = f["b"], f["u"]
 
-        .. math ::
+        Q = self._projectFieldsDeriv(b_field)
 
-            \frac{\partial \mathbf{A}}{\partial \mathbf{m}}(\mathbf{m})\mathbf{u} =
-                \frac{\partial \mathbf{\mu}}{\partial \mathbf{m}}
-                \left[\Div \diag (\Div^T \mathbf{u}) \dMfMuI \right]
-
-            \dMfMuI =
-                \diag(\MfMui)^{-1}_{vec}
-                \mathbf{Av}_{F2CC}^T\diag(\mathbf{v})\diag(\frac{1}{\mu^2})
-
-            \frac{\partial \mathbf{rhs}(\mathbf{m})}{\partial \mathbf{m}} =
-                \frac{\partial \mathbf{\mu}}{\partial \mathbf{m}}
-                \left[
-                    \Div \diag(\M^f_{\mu_{0}^{-1}}\mathbf{B}_0) \dMfMuI
-                \right]
-                - \diag(\mathbf{v}) \mathbf{D} \mathbf{P}_{out}^T
-                    \frac{\partial B_{sBC}}{\partial \mathbf{m}}
-
-        In the end,
-
-        .. math ::
-
-            \frac{\delta \mathbf{u}}{\delta \mathbf{m}} =
-            - [ \mathbf{A} ]^{-1}
-            \left[
-                \frac{\partial \mathbf{A}}{\partial \mathbf{m}}(\mathbf{m})\mathbf{u}
-                - \frac{\partial \mathbf{rhs}(\mathbf{m})}{\partial \mathbf{m}}
-            \right]
-
-        A little tricky point here is we are not interested in potential (u), but interested in magnetic flux (B).
-        Thus, we need sensitivity for B. Now we take derivative of B w.r.t m and have
-
-        .. math ::
-
-            \frac{\delta \mathbf{B}} {\delta \mathbf{m}} =
-            \frac{\partial \mathbf{\mu} } {\partial \mathbf{m} }
-            \left[
-                \diag(\M^f_{\mu_{0}^{-1} } \mathbf{B}_0) \dMfMuI  \
-                 - \diag (\Div^T\mathbf{u})\dMfMuI
-            \right ]
-
-             -  (\MfMui)^{-1}\Div^T\frac{\delta\mathbf{u}}{\delta \mathbf{m}}
-
-        Finally we evaluate the above, but we should remember that
-
-        .. note ::
-
-            We only want to evaluate
-
-            .. math ::
-
-                \mathbf{J}\mathbf{v} =
-                    \frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}}\mathbf{v}
-
-            Since forming sensitivity matrix is very expensive in that this
-            monster is "big" and "dense" matrix!!
-
-        """
-        if u is None:
-            u = self.fields(m)
-
-        B, u = u["B"], u["u"]
-        mu = self.muMap * (m)
-        dmu_dm = self.muDeriv
-        # dchidmu = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
-
-        vol = self.mesh.cell_volumes
-        Div = self._Div
-        P = self.survey.projectFieldsDeriv(B)  # Projection matrix
-        B0 = self.getB0()
-
-        MfMuIvec = 1 / self.MfMui.diagonal()
-        dMfMuI = sdiag(MfMuIvec**2) * self.mesh.aveF2CC.T * sdiag(vol * 1.0 / mu**2)
-
-        # A = self._Div*self.MfMuI*self._Div.T
-        # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
-        # C(m,u) = A*m-rhs
-        # dudm = -(dCdu)^(-1)dCdm
-
-        dCdu = self.getA(m)  # = A
-        dCdm_A = Div * (sdiag(Div.T * u) * dMfMuI * dmu_dm)
-        dCdm_RHS1 = Div * (sdiag(self.MfMu0 * B0) * dMfMuI)
-        # temp1 = (Dface * (self._Pout.T * self.Bbc_const * self.Bbc))
-        # dCdm_RHS2v = (sdiag(vol) * temp1) * \
-        #    np.inner(vol, dchidmu * dmu_dm * v)
-
-        # dCdm_RHSv =  dCdm_RHS1*(dmu_dm*v) +  dCdm_RHS2v
-        dCdm_RHSv = dCdm_RHS1 * (dmu_dm * v)
-        dCdm_v = dCdm_A * v - dCdm_RHSv
-
-        Ainv = self.solver(dCdu, **self.solver_opts)
-        sol = Ainv * dCdm_v
-
-        dudm = -sol
-        dBdmv = (
-            sdiag(self.MfMu0 * B0) * (dMfMuI * (dmu_dm * v))
-            - sdiag(Div.T * u) * (dMfMuI * (dmu_dm * v))
-            - self.MfMuI * (Div.T * (dudm))
-        )
-
-        Ainv.clean()
-
-        return mkvc(P * dBdmv)
-
-    @utils.timeIt
-    def Jtvec(self, m, v, u=None):
-        r"""
-        Computing Jacobian^T multiplied by vector.
-
-        .. math ::
-
-            (\frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}})^{T} =
-                \left[
-                    \mathbf{P}_{deriv}\frac{\partial \mathbf{\mu} } {\partial \mathbf{m} }
-                    \left[
-                        \diag(\M^f_{\mu_{0}^{-1} } \mathbf{B}_0) \dMfMuI
-                         - \diag (\Div^T\mathbf{u})\dMfMuI
-                    \right ]
-                \right]^{T}
-                 -
-                 \left[
-                     \mathbf{P}_{deriv}(\MfMui)^{-1} \Div^T
-                     \frac{\delta\mathbf{u}}{\delta \mathbf{m}}
-                 \right]^{T}
-
-        where
-
-        .. math ::
-
-            \mathbf{P}_{derv} = \frac{\partial \mathbf{P}}{\partial\mathbf{B}}
-
-        .. note ::
-
-            Here we only want to compute
-
-            .. math ::
-
-                \mathbf{J}^{T}\mathbf{v} =
-                (\frac{\delta \mathbf{P}\mathbf{B}} {\delta \mathbf{m}})^{T} \mathbf{v}
-
-        """
-        if u is None:
-            u = self.fields(m)
-
-        B, u = u["B"], u["u"]
-        mu = self.mapping * (m)
-        dmu_dm = self.mapping.deriv(m)
-        # dchidmu = sdiag(1 / mu_0 * np.ones(self.mesh.nC))
-
-        vol = self.mesh.cell_volumes
-        Div = self._Div
-        P = self.survey.projectFieldsDeriv(B)  # Projection matrix
-        B0 = self.getB0()
-
-        MfMuIvec = 1 / self.MfMui.diagonal()
-        dMfMuI = sdiag(MfMuIvec**2) * self.mesh.aveF2CC.T * sdiag(vol * 1.0 / mu**2)
-
-        # A = self._Div*self.MfMuI*self._Div.T
-        # RHS = Div*MfMuI*MfMu0*B0 - Div*B0 + Mc*Dface*Pout.T*Bbc
-        # C(m,u) = A*m-rhs
-        # dudm = -(dCdu)^(-1)dCdm
-
-        dCdu = self.getA(m)
-        s = Div * (self.MfMuI.T * (P.T * v))
-
-        Ainv = self.solver(dCdu.T, **self.solver_opts)
-        sol = Ainv * s
-
-        Ainv.clean()
-
-        # dCdm_A = Div * ( sdiag( Div.T * u )* dMfMuI *dmu_dm  )
-        # dCdm_Atsol = ( dMfMuI.T*( sdiag( Div.T * u ) * (Div.T * dmu_dm)) ) * sol
-        dCdm_Atsol = (dmu_dm.T * dMfMuI.T * (sdiag(Div.T * u) * Div.T)) * sol
-
-        # dCdm_RHS1 = Div * (sdiag( self.MfMu0*B0  ) * dMfMuI)
-        # dCdm_RHS1tsol = (dMfMuI.T*( sdiag( self.MfMu0*B0  ) ) * Div.T * dmu_dm) * sol
-        dCdm_RHS1tsol = (dmu_dm.T * dMfMuI.T * (sdiag(self.MfMu0 * B0)) * Div.T) * sol
-
-        # temp1 = (Dface*(self._Pout.T*self.Bbc_const*self.Bbc))
-        # temp1sol = (Dface.T * (sdiag(vol) * sol))
-        # temp2 = self.Bbc_const * (self._Pout.T * self.Bbc).T
-        # dCdm_RHS2v  = (sdiag(vol)*temp1)*np.inner(vol, dchidmu*dmu_dm*v)
-        # dCdm_RHS2tsol = (dmu_dm.T * dchidmu.T * vol) * np.inner(temp2, temp1sol)
-
-        # dCdm_RHSv =  dCdm_RHS1*(dmu_dm*v) +  dCdm_RHS2v
-
-        # temporary fix
-        # dCdm_RHStsol = dCdm_RHS1tsol - dCdm_RHS2tsol
-        dCdm_RHStsol = dCdm_RHS1tsol
-
-        # dCdm_RHSv =  dCdm_RHS1*(dmu_dm*v) +  dCdm_RHS2v
-        # dCdm_v = dCdm_A*v - dCdm_RHSv
-
-        Ctv = dCdm_Atsol - dCdm_RHStsol
-
-        # B = self.MfMuI*self.MfMu0*B0-B0-self.MfMuI*self._Div.T*u
-        # dBdm = d\mudm*dBd\mu
-        # dPBdm^T*v = Atemp^T*P^T*v - Btemp^T*P^T*v - Ctv
-
-        Atemp = sdiag(self.MfMu0 * B0) * (dMfMuI * (dmu_dm))
-        Btemp = sdiag(Div.T * u) * (dMfMuI * (dmu_dm))
-        Jtv = Atemp.T * (P.T * v) - Btemp.T * (P.T * v) - Ctv
-
-        return mkvc(Jtv)
-
-    @property
-    def Qfx(self):
-        if getattr(self, "_Qfx", None) is None:
-            self._Qfx = self.mesh.get_interpolation_matrix(
-                self.survey.receiver_locations, "Fx"
+        if v is None:
+            v = np.eye(Q.shape[0])
+            divt_solve_q = (
+                self._DivT * (self._Ainv * ((Q * self.MfMuiI * -self._DivT).T * v))
+                + Q.T * v
             )
-        return self._Qfx
-
-    @property
-    def Qfy(self):
-        if getattr(self, "_Qfy", None) is None:
-            self._Qfy = self.mesh.get_interpolation_matrix(
-                self.survey.receiver_locations, "Fy"
+            del v
+        else:
+            divt_solve_q = (
+                self._DivT * (self._Ainv * ((-self._Div * (self.MfMuiI.T * (Q.T * v)))))
+                + Q.T * v
             )
-        return self._Qfy
 
-    @property
-    def Qfz(self):
-        if getattr(self, "_Qfz", None) is None:
-            self._Qfz = self.mesh.get_interpolation_matrix(
-                self.survey.receiver_locations, "Fz"
+        mu_vec = np.tile(self.mu * np.ones(self.mesh.n_cells), self.mesh.dim)
+
+        Jtv = 0
+
+        if self.remMap is not None:
+            Mf_rem_deriv = self._Mf_vec_deriv * sp.diags(1 / mu_vec) * self.remDeriv
+            Jtv += (self.MfMuiI * Mf_rem_deriv).T * (divt_solve_q)
+
+        if self.muMap is not None:
+            Jtv += self.MfMuiIDeriv(self._DivT * u, -divt_solve_q, adjoint=True)
+            Jtv += self.MfMuiIDeriv(
+                self._b0, self._MfMu0i.T * (divt_solve_q), adjoint=True
             )
-        return self._Qfz
 
-    def projectFields(self, u):
-        r"""
-        This function projects the fields onto the data space.
-        Especially, here for we use total magnetic intensity (TMI) data,
-        which is common in practice.
-        First we project our B on to data location
+            if self.rem is not None:
+                Mf_r_mui = self.mesh.get_face_inner_product(
+                    self.rem / mu_vec
+                ).diagonal()
+                mu_vec_i_deriv = sp.vstack(
+                    (self.muiDeriv, self.muiDeriv, self.muiDeriv)
+                )
 
-        .. math::
+                Mf_r_mui_deriv = (
+                    self._Mf_vec_deriv * sp.diags(self.rem) * mu_vec_i_deriv
+                )
 
-            \mathbf{B}_{rec} = \mathbf{P} \mathbf{B}
+                Jtv += (
+                    self.MfMuiIDeriv(Mf_r_mui, divt_solve_q, adjoint=True)
+                    + (Mf_r_mui_deriv.T * self.MfMuiI.T) * divt_solve_q
+                )
 
-        then we take the dot product between B and b_0
+        return Jtv
 
-        .. math ::
+    def _Jvec(self, m, v, f):
 
-            \text{TMI} = \vec{B}_s \cdot \hat{B}_0
+        if v is None:
+            v = np.eye(m.shape[0])
 
-        """
-        # TODO: There can be some different tyes of data like |B| or B
-        components = self.survey.components
+        b_field, u = f["b"], f["u"]
 
-        fields = {}
+        Q = self._projectFieldsDeriv(b_field)
+        C = -self.MfMuiI * self._DivT
+
+        db_dm = 0
+        dCmu_dm = 0
+
+        mu_vec = np.tile(self.mu * np.ones(self.mesh.n_cells), self.mesh.dim)
+
+        if self.remMap is not None:
+            Mf_rem_deriv = self._Mf_vec_deriv * sp.diags(1 / mu_vec) * self.remDeriv
+            db_dm += self.MfMuiI * Mf_rem_deriv * v
+
+        if self.muMap is not None:
+            dCmu_dm += self.MfMuiIDeriv(self._DivT @ u, v, adjoint=False)
+            db_dm += self._MfMu0i * self.MfMuiIDeriv(self._b0, v, adjoint=False)
+
+            if self.rem is not None:
+                Mf_r_mui = self.mesh.get_face_inner_product(
+                    self.rem / mu_vec
+                ).diagonal()
+                mu_vec_i_deriv = sp.vstack(
+                    (self.muiDeriv, self.muiDeriv, self.muiDeriv)
+                )
+                Mf_r_mui_deriv = (
+                    self._Mf_vec_deriv * sp.diags(self.rem) * mu_vec_i_deriv
+                )
+                db_dm += self.MfMuiIDeriv(Mf_r_mui, v, adjoint=False) + (
+                    self.MfMuiI * Mf_r_mui_deriv * v
+                )
+
+        Ainv_Ddm = self._Ainv * (self._Div * (-dCmu_dm + db_dm))
+
+        Jv = Q * (C * Ainv_Ddm + (-dCmu_dm + db_dm))
+
+        return Jv
+
+    @cached_property
+    def _Qfx(self):
+        Qfx = self.mesh.get_interpolation_matrix(self.survey.receiver_locations, "Fx")
+        return Qfx
+
+    @cached_property
+    def _Qfy(self):
+        Qfy = self.mesh.get_interpolation_matrix(self.survey.receiver_locations, "Fy")
+        return Qfy
+
+    @cached_property
+    def _Qfz(self):
+        Qfz = self.mesh.get_interpolation_matrix(self.survey.receiver_locations, "Fz")
+        return Qfz
+
+    def _projectFields(self, f):
+
+        rx_list = self.survey.source_field.receiver_list
+        components = []
+        for rx in rx_list:
+            components.extend(rx.components)
+        components = set(components)
+
         if "bx" in components or "tmi" in components:
-            fields["bx"] = self.Qfx * u["B"]
+            bx = self._Qfx * f["b"]
         if "by" in components or "tmi" in components:
-            fields["by"] = self.Qfy * u["B"]
+            by = self._Qfy * f["b"]
         if "bz" in components or "tmi" in components:
-            fields["bz"] = self.Qfz * u["B"]
+            bz = self._Qfz * f["b"]
 
         if "tmi" in components:
-            bx = fields["bx"]
-            by = fields["by"]
-            bz = fields["bz"]
-            # Generate unit vector
-            B0 = self.survey.source_field.b0
-            Bot = np.sqrt(B0[0] ** 2 + B0[1] ** 2 + B0[2] ** 2)
-            box = B0[0] / Bot
-            boy = B0[1] / Bot
-            boz = B0[2] / Bot
-            fields["tmi"] = bx * box + by * boy + bz * boz
+            b0 = self.survey.source_field.b0
+            tmi = np.sqrt(
+                (bx + b0[0]) ** 2 + (by + b0[1]) ** 2 + (bz + b0[2]) ** 2
+            ) - np.sqrt(b0[0] ** 2 + b0[1] ** 2 + b0[2] ** 2)
 
-        return np.concatenate([fields[comp] for comp in components])
+        n_total = 0
+        total_data_list = []
+        for rx in rx_list:
+            data = {}
+            rx_n_locs = rx.locations.shape[0]
+            if "bx" in rx.components:
+                data["bx"] = bx[n_total : n_total + rx_n_locs]
+            if "by" in rx.components:
+                data["by"] = by[n_total : n_total + rx_n_locs]
+            if "bz" in rx.components:
+                data["bz"] = bz[n_total : n_total + rx_n_locs]
+            if "tmi" in rx.components:
+                data["tmi"] = tmi[n_total : n_total + rx_n_locs]
+
+            n_total += rx_n_locs
+
+            total_data_list.append(
+                np.concatenate([data[comp] for comp in rx.components])
+            )
+
+        if len(total_data_list) == 1:
+            return total_data_list[0]
+
+        return np.concatenate(total_data_list, axis=0)
 
     @utils.count
-    def projectFieldsDeriv(self, B):
-        r"""
-        This function projects the fields onto the data space.
-
-        .. math::
-
-            \frac{\partial d_\text{pred}}{\partial \mathbf{B}} = \mathbf{P}
-
-        Especially, this function is for TMI data type
-        """
-
-        components = self.survey.components
-
-        fields = {}
-        if "bx" in components or "tmi" in components:
-            fields["bx"] = self.Qfx
-        if "by" in components or "tmi" in components:
-            fields["by"] = self.Qfy
-        if "bz" in components or "tmi" in components:
-            fields["bz"] = self.Qfz
+    def _projectFieldsDeriv(self, bs):
+        rx_list = self.survey.source_field.receiver_list
+        components = []
+        for rx in rx_list:
+            components.extend(rx.components)
+        components = set(components)
 
         if "tmi" in components:
-            bx = fields["bx"]
-            by = fields["by"]
-            bz = fields["bz"]
-            # Generate unit vector
-            B0 = self.survey.source_field.b0
-            Bot = np.sqrt(B0[0] ** 2 + B0[1] ** 2 + B0[2] ** 2)
-            box = B0[0] / Bot
-            boy = B0[1] / Bot
-            boz = B0[2] / Bot
-            fields["tmi"] = bx * box + by * boy + bz * boz
+            b0 = self.survey.source_field.b0
+            bot = np.sqrt(b0[0] ** 2 + b0[1] ** 2 + b0[2] ** 2)
 
-        return sp.vstack([fields[comp] for comp in components])
+            bx = self._Qfx * bs
+            by = self._Qfy * bs
+            bz = self._Qfz * bs
 
-    def projectFieldsAsVector(self, B):
-        bfx = self.Qfx * B
-        bfy = self.Qfy * B
-        bfz = self.Qfz * B
+            dpred = (
+                np.sqrt((bx + b0[0]) ** 2 + (by + b0[1]) ** 2 + (bz + b0[2]) ** 2) - bot
+            )
 
-        return np.r_[bfx, bfy, bfz]
+            dDhalf_dD = sdiag(1 / (dpred + bot))
 
+            xterm = sdiag(b0[0] + bx) * self._Qfx
+            yterm = sdiag(b0[1] + by) * self._Qfy
+            zterm = sdiag(b0[2] + bz) * self._Qfz
 
-def MagneticsDiffSecondaryInv(mesh, model, data, **kwargs):
-    """
-    Inversion module for MagneticsDiffSecondary
+            Qtmi = dDhalf_dD * (xterm + yterm + zterm)
 
-    """
-    from simpeg import (
-        directives,
-        inversion,
-        objective_function,
-        optimization,
-        regularization,
-    )
+        n_total = 0
+        total_data_list = []
+        for rx in rx_list:
+            data = {}
+            rx_n_locs = rx.locations.shape[0]
+            if "bx" in rx.components:
+                data["bx"] = self._Qfx[n_total : n_total + rx_n_locs][:]
+            if "by" in rx.components:
+                data["by"] = self._Qfy[n_total : n_total + rx_n_locs][:]
+            if "bz" in rx.components:
+                data["bz"] = self._Qfz[n_total : n_total + rx_n_locs][:]
+            if "tmi" in rx.components:
+                data["tmi"] = Qtmi[n_total : n_total + rx_n_locs][:]
 
-    prob = Simulation3DDifferential(mesh, survey=data, mu=model)
+            n_total += rx_n_locs
 
-    miter = kwargs.get("maxIter", 10)
+            total_data_list.append(sp.vstack([data[comp] for comp in rx.components]))
 
-    # Create an optimization program
-    opt = optimization.InexactGaussNewton(maxIter=miter)
-    opt.bfgsH0 = get_default_solver(warn=True)(sp.identity(model.nP), flag="D")
-    # Create a regularization program
-    reg = regularization.WeightedLeastSquares(model)
-    # Create an objective function
-    beta = directives.BetaSchedule(beta0=1e0)
-    obj = objective_function.BaseObjFunction(prob, reg, beta=beta)
-    # Create an inversion object
-    inv = inversion.BaseInversion(obj, opt)
+        if len(total_data_list) == 1:
+            return total_data_list[0]
 
-    return inv, reg
+        return sp.vstack(total_data_list)
+
+    @property
+    def _delete_on_model_update(self):
+        toDelete = super()._delete_on_model_update
+        if self._stored_fields is not None:
+            toDelete = toDelete + ["_stored_fields"]
+        if self.muMap is not None:
+            if self._Ainv is not None:
+                toDelete = toDelete + ["_Ainv"]
+            if self._Jmatrix is not None:
+                toDelete = toDelete + ["_Jmatrix"]
+        return toDelete

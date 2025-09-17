@@ -278,10 +278,10 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
         """
         Generate Full sensitivity matrix
         """
+        self.model = m
         if getattr(self, "_Jmatrix", None) is None:
             if self.verbose:
                 print("Calculating J and storing")
-            self.model = m
             if f is None:
                 f = self.fields(m)
             self._Jmatrix = (self._Jtvec(m, v=None, f=f)).T
@@ -367,16 +367,18 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
             v = self._mini_survey_dataT(v)
             Jtv = np.zeros(m.size, dtype=float)
 
+            # Get dict of flat array slices for each source-receiver pair in the survey
+            survey_slices = survey.get_all_slices()
+
             for iky, ky in enumerate(kys):
                 u_ky = f[:, self._solutionType, iky]
-                count = 0
                 for i_src, src in enumerate(survey.source_list):
                     u_src = u_ky[:, i_src]
                     df_duT_sum = 0
                     df_dmT_sum = 0
                     for rx in src.receiver_list:
-                        my_v = v[count : count + rx.nD]
-                        count += rx.nD
+                        src_rx_slice = survey_slices[src, rx]
+                        my_v = v[src_rx_slice]
                         # wrt f, need possibility wrt m
                         PTv = rx.evalDeriv(src, self.mesh, f, my_v, adjoint=True)
                         df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
@@ -572,23 +574,7 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
         else:
             mesh = self.mesh
             boundary_faces = mesh.boundary_faces
-            boundary_normals = mesh.boundary_face_outward_normals
-            n_bf = len(boundary_faces)
-
-            # Top gets 0 Neumann
-            alpha = np.zeros(n_bf)
-            beta = np.ones(n_bf)
-            gamma = 0
-
-            # assume a source point at the middle of the top of the mesh
-            middle = np.median(mesh.nodes, axis=0)
             top_v = np.max(mesh.nodes[:, -1])
-            source_point = np.r_[middle[:-1], top_v]
-
-            r_vec = boundary_faces - source_point
-            r = np.linalg.norm(r_vec, axis=-1)
-            r_hat = r_vec / r[:, None]
-            r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
 
             if self.surface_faces is None:
                 # determine faces that are on the sides and bottom of the mesh...
@@ -610,11 +596,29 @@ class Simulation2DCellCentered(BaseDCSimulation2D):
             else:
                 not_top = ~self.surface_faces
 
+            n_bf = len(boundary_faces)
+
+            # Top gets 0 Neumann
+            alpha = np.zeros(n_bf)
+            beta = np.ones(n_bf)
+            gamma = 0
+
+            # assume a source point at the middle of the top of the mesh
+            middle = np.median(mesh.nodes, axis=0)
+            source_point = np.r_[middle[:-1], top_v]
+
+            boundary_faces = boundary_faces[not_top]
+            boundary_normals = mesh.boundary_face_outward_normals[not_top]
+            r_vec = boundary_faces - source_point
+            r = np.linalg.norm(r_vec, axis=-1)
+            r_hat = r_vec / r[:, None]  # small stabilizer to avoid divide by zero
+            r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
+
             # use the exponentialy scaled modified bessel function of second kind,
             # (the division will cancel out the scaling)
             # This is more stable for large values of ky * r
             # actual ratio is k1/k0...
-            alpha[not_top] = (ky * k1e(ky * r) / k0e(ky * r) * r_dot_n)[not_top]
+            alpha[not_top] = ky * k1e(ky * r) / k0e(ky * r) * r_dot_n
 
         B, bc = self.mesh.cell_gradient_weak_form_robin(alpha, beta, gamma)
         # bc should always be 0 because gamma was always 0 above
@@ -751,20 +755,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
             mesh = self.mesh
             # calculate alpha, beta, gamma at the boundary faces
             boundary_faces = mesh.boundary_faces
-            boundary_normals = mesh.boundary_face_outward_normals
-            n_bf = len(boundary_faces)
-
-            alpha = np.zeros(n_bf)
-
-            # assume a source point at the middle of the top of the mesh
-            middle = np.median(mesh.nodes, axis=0)
             top_v = np.max(mesh.nodes[:, -1])
-            source_point = np.r_[middle[:-1], top_v]
-
-            r_vec = boundary_faces - source_point
-            r = np.linalg.norm(r_vec, axis=-1)
-            r_hat = r_vec / r[:, None]
-            r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
 
             if self.surface_faces is None:
                 # determine faces that are on the sides and bottom of the mesh...
@@ -786,11 +777,27 @@ class Simulation2DNodal(BaseDCSimulation2D):
             else:
                 not_top = ~self.surface_faces
 
+            n_bf = len(boundary_faces)
+
+            boundary_faces = boundary_faces[not_top]
+            boundary_normals = mesh.boundary_face_outward_normals[not_top]
+
+            alpha = np.zeros(n_bf)
+
+            # assume a source point at the middle of the top of the mesh
+            middle = np.median(mesh.nodes, axis=0)
+            source_point = np.r_[middle[:-1], top_v]
+
+            r_vec = boundary_faces - source_point
+            r = np.linalg.norm(r_vec, axis=-1)
+            r_hat = r_vec / r[:, None]
+            r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
+
             # use the exponentiall scaled modified bessel function of second kind,
             # (the division will cancel out the scaling)
             # This is more stable for large values of ky * r
             # actual ratio is k1/k0...
-            alpha[not_top] = (ky * k1e(ky * r) / k0e(ky * r) * r_dot_n)[not_top]
+            alpha[not_top] = ky * k1e(ky * r) / k0e(ky * r) * r_dot_n
 
             P_bf = self.mesh.project_face_to_boundary_face
 

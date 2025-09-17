@@ -8,7 +8,7 @@ from scipy.stats import multivariate_normal
 from simpeg import regularization
 from simpeg.maps import Wires
 from simpeg.utils import WeightedGaussianMixture, mkvc
-from simpeg.utils.solver_utils import get_default_solver
+from simpeg.utils import get_default_solver
 
 Solver = get_default_solver()
 
@@ -470,20 +470,6 @@ class TestPGI(unittest.TestCase):
             axspherical.set_title("PGI with W")
 
             plt.show()
-
-
-def test_removed_mref():
-    """Test if PGI raises error when accessing removed mref property."""
-    h = [[(2, 2)], [(2, 2)], [(2, 2)]]
-    mesh = discretize.TensorMesh(h)
-    n_components = 1
-    gmm = WeightedGaussianMixture(mesh=mesh, n_components=n_components)
-    samples = np.random.default_rng(seed=42).normal(size=(mesh.n_cells, 2))
-    gmm.fit(samples)
-    pgi = regularization.PGI(mesh=mesh, gmmref=gmm)
-    message = "mref has been removed, please use reference_model."
-    with pytest.raises(NotImplementedError, match=message):
-        pgi.mref
 
 
 class TestCheckWeights:

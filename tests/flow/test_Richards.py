@@ -34,7 +34,6 @@ class BaseRichardsTest(unittest.TestCase):
             hydraulic_conductivity=k_fun,
             water_retention=theta_fun,
             root_finder_tol=1e-6,
-            debug=False,
             boundary_conditions=bc,
             initial_conditions=h,
             do_newton=False,
