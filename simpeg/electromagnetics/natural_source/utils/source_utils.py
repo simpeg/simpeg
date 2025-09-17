@@ -1,3 +1,4 @@
+# noqa: D100
 import numpy as np
 from scipy.constants import mu_0
 from discretize import TensorMesh

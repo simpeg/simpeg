@@ -15,6 +15,7 @@ from discretize.utils import volume_average
 #    Sources    #
 #################
 
+
 # Rename to BasePlanewave
 class Planewave(BaseFDEMSrc):
     """

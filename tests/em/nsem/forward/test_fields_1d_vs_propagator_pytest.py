@@ -1,3 +1,4 @@
+# noqa: D100
 import pytest
 from scipy.constants import mu_0
 import numpy as np
@@ -50,9 +51,7 @@ CASES_LIST_HALFSPACE = [
 
 
 @pytest.mark.parametrize("solution_type, boundary_condition", CASES_LIST_HALFSPACE)
-def test_propagator_fv1d_crosscheck(
-    solution_type, boundary_condition, mesh, mapping
-):
+def test_propagator_fv1d_crosscheck(solution_type, boundary_condition, mesh, mapping):
     """Validate 1d fields against propagator solution."""
     sig_1d = get_model(mesh, "halfspace")
     freq = 100.0
