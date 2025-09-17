@@ -1,5 +1,5 @@
 import numpy as np
-
+from dask.distributed import Future
 from . import (
     BaseSaveGeoH5,
     InversionDirective,
@@ -56,8 +56,11 @@ class ProjectSphericalBounds(InversionDirective):
         self.invProb.model = m
         self.opt.xc = self.invProb.model
 
-        for misfit in self.dmisfit.objfcts:
-            misfit.simulation.model = m
+        if isinstance(self.dmisfit.objfcts[0], Future):
+            self.dmisfit.model = m
+        else:
+            for misfit in self.dmisfit.objfcts:
+                misfit.simulation.model = m
 
     def _reproject(self, m):
         """
@@ -69,6 +72,15 @@ class ProjectSphericalBounds(InversionDirective):
 
         m[self.indices] = vec
         return m
+
+
+def update_map(misfit):
+    if isinstance(misfit.simulation, MetaSimulation):
+        misfit.simulation.simulations[0].chiMap = (
+            SphericalSystem() * misfit.simulation.simulations[0].chiMap
+        )
+    else:
+        misfit.simulation.chiMap = SphericalSystem() * misfit.simulation.chiMap
 
 
 class VectorInversion(InversionDirective):
@@ -90,7 +102,7 @@ class VectorInversion(InversionDirective):
         self, simulations: list, regularizations: ComboObjectiveFunction, **kwargs
     ):
         self.reference_angles = (False, False, False)
-        self.simulations = simulations
+        self.misfits = simulations
         self.regularizations = regularizations
 
         set_kwargs(self, **kwargs)
@@ -98,11 +110,7 @@ class VectorInversion(InversionDirective):
     @property
     def target(self):
         if getattr(self, "_target", None) is None:
-            nD = 0
-            for survey in self.survey:
-                nD += survey.nD
-
-            self._target = nD * self.chifact_target
+            self._target = np.hstack(self.invProb.dpred).shape[0] * self.chifact_target
 
         return self._target
 
@@ -115,10 +123,6 @@ class VectorInversion(InversionDirective):
             reg.model = self.invProb.model
 
         self.reference_model = reg.reference_model
-
-        for dmisfit in self.dmisfit.objfcts:
-            if getattr(dmisfit.simulation, "coordinate_system", None) is not None:
-                dmisfit.simulation.coordinate_system = self.mode
 
     def endIter(self):
 
@@ -217,20 +221,12 @@ class VectorInversion(InversionDirective):
             self.opt.upper[indices[nC:]] = np.inf
 
             updates = {}
-            for simulation in self.simulations:
-                if isinstance(simulation, MetaSimulation):
+            for misfit in self.misfits:
 
-                    if hasattr(self.dmisfit, "client"):
-                        updates[simulation] = (
-                            "chiMap",
-                            SphericalSystem() * simulation.simulations[0].chiMap,
-                        )
-                    else:
-                        simulation.simulations[0].chiMap = (
-                            SphericalSystem() * simulation.simulations[0].chiMap
-                        )
+                if isinstance(misfit, Future):
+                    updates[misfit] = ("", update_map)
                 else:
-                    simulation.chiMap = SphericalSystem() * simulation.chiMap
+                    update_map(misfit)
 
             if hasattr(self.dmisfit, "client"):
                 self.dmisfit.broadcast_updates(updates)

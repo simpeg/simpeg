@@ -4,7 +4,7 @@ from ..objective_function import (
     _validate_multiplier,
     _check_length_objective_funcs_multipliers,
 )
-
+from typing import Callable
 import numpy as np
 
 from dask.distributed import Client, Future
@@ -100,6 +100,9 @@ def _setter_broadcast(objfct, key, value):
     """
     Broadcast a value to all workers.
     """
+    if isinstance(value, Callable):
+        value = value(objfct)
+
     if hasattr(objfct, key):
         setattr(objfct, key, value)
 
@@ -565,3 +568,24 @@ class DistributedComboMisfits(ComboObjectiveFunction):
             residuals += client.gather(future_residuals)
 
         return residuals
+
+    def broadcast_updates(self, updates: dict):
+        """
+        Set the attributes of the objective functions and simulations
+        """
+        stores = []
+        client = self.client
+
+        for fun, (key, value) in updates.items():
+            worker = client.who_has(fun)[fun.key]
+            stores.append(
+                client.submit(
+                    _setter_broadcast,
+                    fun,
+                    key,
+                    value,
+                    workers=worker,
+                )
+            )
+
+        self.client.gather(stores)  # blocking call to ensure all models were stored
