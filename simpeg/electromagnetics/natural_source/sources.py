@@ -15,7 +15,7 @@ from discretize.utils import volume_average
 #    Sources    #
 #################
 
-
+# Rename to BasePlanewave
 class Planewave(BaseFDEMSrc):
     """
     Source class for the 1D and pseudo-3D problems.
