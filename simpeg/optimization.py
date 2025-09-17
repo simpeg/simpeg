@@ -347,7 +347,7 @@ class Minimize(object):
         self._callback = value
 
     @timeIt
-    def minimize(self, evalFunction, x0):
+    def minimize(self, evalFunction, x0) -> np.ndarray:
         """minimize(evalFunction, x0)
 
         Minimizes the function (evalFunction) starting at the location x0.
@@ -1522,11 +1522,11 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
         # active set, (if that gradient points away from the limits.)
 
         self.cg_count = 0
-        Active = self.activeSet(self.xc)
-        Inactive = 1 - Active
+        active = self.activeSet(self.xc)
+        inactive = ~active
 
         step = np.zeros(self.g.size)
-        resid = Inactive * (-self.g)
+        resid = inactive * (-self.g)
 
         r = resid  # - Inactive * (self.H * step)#  step is zero
 
@@ -1546,7 +1546,7 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
                 print(f"CG Iteration: {count}, residual norm: {r_norm}")
             count += 1
 
-            q = (1 - Active) * (self.H * p)
+            q = inactive * (self.H * p)
 
             alpha = sold / (np.dot(p, q))
 
@@ -1569,22 +1569,31 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
 
         # Also include the gradient for cells on the boundary
         # if that gradient would move them away from the boundary.
-        if self.step_active_set and sum(Inactive) != self.xc.size:
-            rhs_a = Active * -self.g
+        # aka, active and not bound.
+        bound = self.bindingSet(self.xc)
+        active_not_bound = active & (~bound)
+        if self.step_active_set and np.any(active_not_bound):
+            rhs_a = active_not_bound * -self.g
 
-            if np.any(rhs_a):
-                # reasonable guess at the step length for the gradient on the
-                # active cell boundaries. Basically scale it to have the same
-                # maximum as the cg step on the cells that are not on the
-                # boundary.
-                dm_i = max(abs(step))
-                dm_a = max(abs(rhs_a))
+            # active means x == boundary
+            # bound means x == boundary and g == 0  or -g points beyond boundary
+            # active and not bound means
+            # x == boundary and g neq 0 and g points inside
+            # so can safely discard a non-zero check on
+            # if np.any(rhs_a)
 
-                # add the active set's gradients.
-                step += self.active_set_grad_scale * (rhs_a * dm_i / dm_a)
+            # reasonable guess at the step length for the gradient on the
+            # active cell boundaries. Basically scale it to have the same
+            # maximum as the cg step on the cells that are not on the
+            # boundary.
+            dm_i = max(abs(step))
+            dm_a = max(abs(rhs_a))
+
+            # add the active set's gradients.
+            step += self.active_set_grad_scale * (rhs_a * dm_i / dm_a)
 
         # Only keep search directions going in the right direction
-        step[self.bindingSet(self.xc)] = 0
+        step[bound] = 0
 
         return step
 

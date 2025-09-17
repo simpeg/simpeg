@@ -1,6 +1,7 @@
 import re
 import pytest
 
+from simpeg.optimization import ProjectedGNCG
 from simpeg.utils import sdiag
 import numpy as np
 import numpy.testing as npt
@@ -80,6 +81,31 @@ class TestBoundedOptimizers:
         opt = optimizer(lower=lower, upper=upper)
         xopt = opt.minimize(func, x0)
         npt.assert_allclose(xopt, x_true, rtol=TOL)
+
+
+@pytest.mark.parametrize(
+    ("x0", "bounded"),
+    [(np.array([8, 2]), False), (np.array([4, 0]), True)],
+    ids=["active not bound", "active and bound"],
+)
+def test_projected_gncg_active_not_bound_branch(x0, bounded):
+    # tests designed to test the branches of the
+    # projected gncg when a point is in the active set but not in the binding set.
+    func = get_quadratic(sp.identity(2).tocsr(), np.array([-5, 5]))
+    opt = ProjectedGNCG(upper=8, lower=0)
+    _, g = func(x0, return_g=True, return_H=False)
+
+    opt.g = g
+    active = opt.activeSet(x0)
+    bound = opt.bindingSet(x0)
+
+    # assert that the initial point is what we intend to hit the correct branch
+    # in the minimizer.
+    assert not np.any(active & ~bound) is bounded
+
+    xopt = opt.minimize(func, x0)
+    x_true = np.array([5, 0])
+    npt.assert_allclose(xopt, x_true, rtol=TOL)
 
 
 @pytest.mark.parametrize("lower", [None, 0.0, np.zeros(10)])
