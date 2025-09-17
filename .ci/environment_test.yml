@@ -3,7 +3,7 @@ channels:
   - conda-forge
 dependencies:
   - numpy>=1.22
-  - scipy>=1.8
+  - scipy>=1.12
   - pymatsolver>=0.3
   - matplotlib-base
   - discretize>=0.11
