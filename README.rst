@@ -48,7 +48,7 @@ The vision is to create a package for finite volume simulation with applications
 
 You are welcome to join our forum and engage with people who use and develop SimPEG at: https://simpeg.discourse.group/.
 
-Weekly meetings are open to all. They are generally held on Wednesdays at 15:00 PM PDT. Please see the calendar (`GCAL <https://calendar.google.com/calendar/b/0?cid=ZHVhamYzMWlibThycWdkZXM5NTdoYXV2MnNAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ>`_, `ICAL <https://calendar.google.com/calendar/ical/duajf31ibm8rqgdes957hauv2s%40group.calendar.google.com/public/basic.ics>`_) for information on the next meeting.
+Weekly meetings are open to all. They are generally held on Wednesdays at 3:00 PM PDT. Please see the calendar (`GCAL <https://calendar.google.com/calendar/b/0?cid=ZHVhamYzMWlibThycWdkZXM5NTdoYXV2MnNAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ>`_, `ICAL <https://calendar.google.com/calendar/ical/duajf31ibm8rqgdes957hauv2s%40group.calendar.google.com/public/basic.ics>`_) for information on the next meeting.
 
 Overview Video
 ==============
@@ -120,9 +120,8 @@ Meetings
 SimPEG hosts weekly meetings for users to interact with each other,
 for developers to discuss upcoming changes to the code base, and for
 discussing topics related to geophysics in general.
-Currently our meetings are held every Wednesday, alternating between
-a mornings (10:30 am pacific time) and afternoons (3:00 pm pacific time)
-on even numbered Wednesdays. Find more info on our
+Currently our meetings are held every Wednesday at 3:00 PM PDT.
+Find more info on our
 `Mattermost <https://mattermost.softwareunderground.org/simpeg>`_.
 
 
