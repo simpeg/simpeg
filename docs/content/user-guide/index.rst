@@ -24,6 +24,7 @@ For details on the available classes and functions in SimPEG, please visit the
   :caption: How to Guide
 
   how-to-guide/choosing-solvers
+  how-to-guide/move-mesh-to-survey.rst
 
 .. toctree::
   :glob:
