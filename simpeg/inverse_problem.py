@@ -1,8 +1,8 @@
+import textwrap
+
 import numpy as np
 import scipy.sparse as sp
 import gc
-
-from discretize.utils import Identity
 
 from .data_misfit import BaseDataMisfit
 from .regularization import BaseRegularization, WeightedLeastSquares, Sparse
@@ -15,9 +15,10 @@ from .utils import (
     validate_float,
     validate_type,
     validate_ndarray_with_shape,
+    get_logger,
 )
 from .version import __version__ as simpeg_version
-from .utils.solver_utils import get_default_solver
+from .utils import get_default_solver
 
 
 class BaseInvProblem:
@@ -32,6 +33,7 @@ class BaseInvProblem:
         debug=False,
         counter=None,
         print_version=True,
+        init_bfgs=True,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -48,6 +50,7 @@ class BaseInvProblem:
         self.counter = counter
         self.model = None
         self.print_version = print_version
+        self.init_bfgs = init_bfgs
         # TODO: Remove: (and make iteration printers better!)
         self.opt.parent = self
         self.reg.parent = self
@@ -178,8 +181,17 @@ class BaseInvProblem:
                 delattr(self, prop)
         self._model = value
 
+    @property
+    def init_bfgs(self):
+        """Initialize BFGS minimizers with the inverse of the regularization's Hessian."""
+        return self._init_bfgs
+
+    @init_bfgs.setter
+    def init_bfgs(self, value):
+        self._init_bfgs = validate_type("init_bfgs", value, bool)
+
     @call_hooks("startup")
-    def startup(self, m0, init_bfgsH0=True):
+    def startup(self, m0):
         """startup(m0)
 
         Called when inversion is first starting.
@@ -205,24 +217,35 @@ class BaseInvProblem:
 
         self.model = m0
 
-        if (
-            isinstance(self.opt, BFGS)
-            and isinstance(self.opt.bfgsH0, Identity)
-            and init_bfgsH0
-        ):
-            solver = get_default_solver()
-            print(
-                """
-                    simpeg.InvProblem is setting bfgsH0 to the inverse of the reg.deriv2.
-                    ***Done using the default solver {} with the `is_symmetric=True` set.***
-                    """.format(
-                    solver.__name__
-                )
-            )
+        if self.init_bfgs and isinstance(self.opt, BFGS):
+            logger = get_logger()
 
+            sim = None  # Find the first sim in data misfits that has a non None solver attribute
+            for objfct in self.dmisfit.objfcts:
+                if (
+                    isinstance(objfct, BaseDataMisfit)
+                    and getattr(objfct.simulation, "solver", None) is not None
+                ):
+                    sim = objfct.simulation
+                    break
+            if sim is not None:
+                solver = sim.solver
+                solver_opts = sim.solver_opts
+                msg = f"""
+                    simpeg.InvProblem is setting bfgsH0 to the inverse of the reg.deriv2
+                    using the same solver as the {sim.__class__.__name__} simulation with the 'is_symmetric=True` option set.
+                    """
+            else:
+                solver = get_default_solver()
+                msg = f"""
+                    simpeg.InvProblem is setting bfgsH0 to the inverse of the reg.deriv2.
+                    using the default solver {solver.__name__} with the 'is_symmetric=True` option set.
+                    """
+                solver_opts = dict(is_symmetric=True)
+
+            logger.info(textwrap.dedent(msg))
             self.opt.bfgsH0 = solver(
-                sp.csr_matrix(self.reg.deriv2(self.model)),
-                is_symmetric=True,
+                sp.csr_matrix(self.reg.deriv2(self.model)), **solver_opts
             )
 
     @property

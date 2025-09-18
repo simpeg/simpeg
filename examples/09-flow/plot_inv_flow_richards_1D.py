@@ -71,7 +71,6 @@ def run(plotIt=True):
         initial_conditions=h,
         do_newton=False,
         method="mixed",
-        debug=False,
     )
     prob.time_steps = [(5, 25, 1.1), (60, 40)]
 

@@ -1,4 +1,3 @@
-import warnings
 import discretize
 import numpy as np
 import scipy.sparse as sp
@@ -35,9 +34,13 @@ class BaseVRMSimulation(BaseSimulation):
         refinement_factor=None,
         refinement_distance=None,
         active_cells=None,
-        indActive=None,
         **kwargs,
     ):
+        # Deprecate indActive argument
+        if kwargs.pop("indActive", None) is not None:
+            raise TypeError(
+                "'indActive' was removed in SimPEG v0.24.0, please use 'active_cells' instead."
+            )
         self.mesh = mesh
         super().__init__(survey=survey, **kwargs)
 
@@ -52,22 +55,6 @@ class BaseVRMSimulation(BaseSimulation):
                 * np.arange(1, refinement_factor + 1)
             )
         self.refinement_distance = refinement_distance
-
-        # Deprecate indActive argument
-        if indActive is not None:
-            if active_cells is not None:
-                raise TypeError(
-                    "Cannot pass both 'active_cells' and 'indActive'."
-                    "'indActive' has been deprecated and will be removed in "
-                    " SimPEG v0.24.0, please use 'active_cells' instead.",
-                )
-            warnings.warn(
-                "'indActive' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'active_cells' instead.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            active_cells = indActive
 
         if active_cells is None:
             active_cells = np.ones(self.mesh.n_cells, dtype=bool)
@@ -160,8 +147,7 @@ class BaseVRMSimulation(BaseSimulation):
         "indActive",
         "active_cells",
         removal_version="0.24.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     def _getH0matrix(self, xyz, pp):
