@@ -2,7 +2,6 @@
 Injection and interpolation map classes.
 """
 
-import warnings
 import discretize
 import numpy as np
 import scipy.sparse as sp
@@ -22,13 +21,18 @@ class Mesh2Mesh(IdentityMap):
     """
     Takes a model on one mesh are translates it to another mesh.
     """
-
-    def __init__(self, meshes, active_faceslls=None, indActive=None, **kwargs):
+    def __init__(self, meshes, active_cells=None, **kwargs):
         # Sanity checks for the meshes parameter
         try:
             mesh, mesh2 = meshes
         except TypeError:
             raise TypeError("Couldn't unpack 'meshes' into two meshes.")
+
+        # Deprecate indActive argument
+        if kwargs.pop("indActive", None) is not None:
+            raise TypeError(
+                "'indActive' was removed in SimPEG v0.24.0, please use 'active_cells' instead.",
+            )
 
         super().__init__(mesh=mesh, **kwargs)
 
@@ -40,23 +44,7 @@ class Mesh2Mesh(IdentityMap):
                 + "Both meshes must have the same dimension."
             )
 
-        # Deprecate indActive argument
-        if indActive is not None:
-            if active_faceslls is not None:
-                raise TypeError(
-                    "Cannot pass both 'active_faceslls' and 'indActive'."
-                    "'indActive' has been deprecated and will be removed in "
-                    " SimPEG v0.24.0, please use 'active_faceslls' instead.",
-                )
-            warnings.warn(
-                "'indActive' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'active_faceslls' instead.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            active_faceslls = indActive
-
-        self.active_faceslls = active_faceslls
+        self.active_cells = active_cells
 
     # reset to not accepted None for mesh
     @IdentityMap.mesh.setter
@@ -80,28 +68,27 @@ class Mesh2Mesh(IdentityMap):
         )
 
     @property
-    def active_faceslls(self):
+    def active_cells(self):
         """Active indices on target mesh.
 
         Returns
         -------
         (mesh.n_cells) numpy.ndarray of bool or none
         """
-        return self._active_faceslls
+        return self._active_cells
 
-    @active_faceslls.setter
-    def active_faceslls(self, value):
+    @active_cells.setter
+    def active_cells(self, value):
         if value is not None:
-            value = validate_active_indices("active_faceslls", value, self.mesh.n_cells)
-        self._active_faceslls = value
+            value = validate_active_indices("active_cells", value, self.mesh.n_cells)
+        self._active_cells = value
 
     indActive = deprecate_property(
-        active_faceslls,
+        active_cells,
         "indActive",
-        "active_faceslls",
+        "active_cells",
         removal_version="0.24.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     @property
@@ -109,8 +96,8 @@ class Mesh2Mesh(IdentityMap):
         if getattr(self, "_P", None) is None:
             self._P = self.mesh2.get_interpolation_matrix(
                 (
-                    self.mesh.cell_centers[self.active_faceslls, :]
-                    if self.active_faceslls is not None
+                    self.mesh.cell_centers[self.active_cells, :]
+                    if self.active_cells is not None
                     else self.mesh.cell_centers
                 ),
                 "CC",
@@ -121,8 +108,8 @@ class Mesh2Mesh(IdentityMap):
     @property
     def shape(self):
         """Number of parameters in the model."""
-        if self.active_faceslls is not None:
-            return (self.active_faceslls.sum(), self.mesh2.nC)
+        if self.active_cells is not None:
+            return (self.active_cells.sum(), self.mesh2.nC)
         return (self.mesh.nC, self.mesh2.nC)
 
     @property
@@ -160,75 +147,42 @@ class InjectActiveCells(IdentityMap):
     ----------
     mesh : discretize.BaseMesh
         A discretize mesh
-    active_faceslls : numpy.ndarray
+    active_cells : numpy.ndarray
         Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
     value_inactive : float or numpy.ndarray
         The physical property value assigned to all inactive cells in the mesh
-    indActive : numpy.ndarray
-
-        .. deprecated:: 0.23.0
-
-           Argument ``indActive`` is deprecated in favor of ``active_faceslls`` and will
-           be removed in SimPEG v0.24.0.
-
-    valInactive : float or numpy.ndarray
-
-        .. deprecated:: 0.23.0
-
-           Argument ``valInactive`` is deprecated in favor of ``value_inactive`` and
-           will be removed in SimPEG v0.24.0.
-
     """
 
     def __init__(
         self,
         mesh,
-        active_faceslls=None,
+        active_cells=None,
         value_inactive=0.0,
         nC=None,
-        indActive=None,
-        valInactive=0.0,
+        **kwargs,
     ):
         self.mesh = mesh
         self.nC = nC or mesh.nC
 
         # Deprecate indActive argument
-        if indActive is not None:
-            if active_faceslls is not None:
-                raise TypeError(
-                    "Cannot pass both 'active_faceslls' and 'indActive'."
-                    "'indActive' has been deprecated and will be removed in "
-                    " SimPEG v0.24.0, please use 'active_faceslls' instead.",
-                )
-            warnings.warn(
-                "'indActive' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'active_faceslls' instead.",
-                FutureWarning,
-                stacklevel=2,
+        if kwargs.pop("indActive", None) is not None:
+            raise TypeError(
+                "'indActive' was removed in SimPEG v0.24.0, please use 'active_cells' instead."
             )
-            active_faceslls = indActive
 
         # Deprecate valInactive argument
-        if not isinstance(valInactive, Number) or valInactive != 0.0:
-            if not isinstance(value_inactive, Number) or value_inactive != 0.0:
-                raise TypeError(
-                    "Cannot pass both 'value_inactive' and 'valInactive'."
-                    "'valInactive' has been deprecated and will be removed in "
-                    " SimPEG v0.24.0, please use 'value_inactive' instead.",
-                )
-            warnings.warn(
-                "'valInactive' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'value_inactive' instead.",
-                FutureWarning,
-                stacklevel=2,
+        if kwargs.pop("valInactive", None) is not None:
+            raise TypeError(
+                "'valInactive' was removed in SimPEG v0.24.0, please use 'value_inactive' instead."
             )
-            value_inactive = valInactive
+        if kwargs:  # TODO Remove this when removing kwargs argument.
+            raise TypeError("Unsupported keyword argument " + kwargs.popitem()[0])
 
-        self.active_faceslls = active_faceslls
-        self._nP = np.sum(self.active_faceslls)
+        self.active_cells = active_cells
+        self._nP = np.sum(self.active_cells)
 
-        self.P = sp.eye(self.nC, format="csr")[:, self.active_faceslls]
+        self.P = sp.eye(self.nC, format="csr")[:, self.active_cells]
 
         self.value_inactive = value_inactive
 
@@ -252,7 +206,7 @@ class InjectActiveCells(IdentityMap):
             "value_inactive", value, shape=(n_inactive,)
         )
         value_inactive = np.zeros(self.nC, dtype=float)
-        value_inactive[~self.active_faceslls] = value
+        value_inactive[~self.active_cells] = value
         self._value_inactive = value_inactive
 
     valInactive = deprecate_property(
@@ -260,34 +214,33 @@ class InjectActiveCells(IdentityMap):
         "valInactive",
         "value_inactive",
         removal_version="0.24.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     @property
-    def active_faceslls(self):
+    def active_cells(self):
         """
+        A boolean array representing the active values in the map's output array.
 
         Returns
         -------
         numpy.ndarray of bool
 
         """
-        return self._active_faceslls
+        return self._active_cells
 
-    @active_faceslls.setter
-    def active_faceslls(self, value):
+    @active_cells.setter
+    def active_cells(self, value):
         if value is not None:
-            value = validate_active_indices("active_faceslls", value, self.nC)
-        self._active_faceslls = value
+            value = validate_active_indices("active_cells", value, self.nC)
+        self._active_cells = value
 
     indActive = deprecate_property(
-        active_faceslls,
+        active_cells,
         "indActive",
-        "active_faceslls",
+        "active_cells",
         removal_version="0.24.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     @property
@@ -312,7 +265,7 @@ class InjectActiveCells(IdentityMap):
         int
             Number of parameters the model acts on; i.e. the number of active cells
         """
-        return int(self.active_faceslls.sum())
+        return int(self.active_cells.sum())
 
     def _transform(self, m):
         if m.ndim > 1:

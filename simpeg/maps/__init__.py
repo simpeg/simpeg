@@ -13,6 +13,7 @@ from ._injection import Mesh2Mesh, InjectActiveCells, InjectActiveFaces, InjectA
 from ._property_maps import (
     ChiMap,
     ComplexMap,
+    EffectiveSusceptibilityMap,
     ExpMap,
     LogisticSigmoidMap,
     LogMap,

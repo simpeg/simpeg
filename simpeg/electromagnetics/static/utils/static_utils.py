@@ -197,12 +197,10 @@ def pseudo_locations(survey, wenner_tolerance=0.1, **kwargs):
     if not isinstance(survey, dc.Survey):
         raise TypeError(f"Input must be instance of {dc.Survey}, not {type(survey)}")
 
-    if len(kwargs) > 0:
-        warnings.warn(
-            "The keyword arguments of this function have been deprecated."
+    if kwargs:
+        raise TypeError(
+            "The keyword arguments of this function have been removed."
             " All of the necessary information is now in the DC survey class",
-            DeprecationWarning,
-            stacklevel=2,
         )
 
     # Pre-allocate
@@ -571,11 +569,6 @@ def plot_pseudosection(
         The axis object that holds the plot
 
     """
-
-    removed_kwargs = ["dim", "y_values", "sameratio", "survey_type"]
-    for kwarg in removed_kwargs:
-        if kwarg in kwargs:
-            raise TypeError(r"The {kwarg} keyword has been removed.")
     if len(kwargs) > 0:
         warnings.warn(
             f"plot_pseudosection unused kwargs: {list(kwargs.keys())}", stacklevel=2
@@ -1597,9 +1590,7 @@ def gettopoCC(mesh, ind_active, option="top"):
         raise NotImplementedError(f"{type(mesh)} mesh is not supported.")
 
 
-def drapeTopotoLoc(
-    mesh, pts, active_cells=None, option="top", topo=None, ind_active=None
-):
+def drapeTopotoLoc(mesh, pts, active_cells=None, option="top", topo=None, **kwargs):
     """Drape locations right below discretized surface topography
 
     This function projects the set of locations provided to the discrete
@@ -1620,28 +1611,15 @@ def drapeTopotoLoc(
     topo : (n, dim) numpy.ndarray
         Surface topography. Can be used if an active indices array cannot be provided
         for the input parameter 'ind_active'
-    ind_active : numpy.ndarray of int or bool, optional
-
-        .. deprecated:: 0.23.0
-
-           Argument ``ind_active`` is deprecated in favor of ``active_cells``
-           and will be removed in SimPEG v0.24.0.
     """
-    # Deprecate ind_active argument
-    if ind_active is not None:
-        if active_cells is not None:
-            raise TypeError(
-                "Cannot pass both 'active_cells' and 'ind_active'."
-                "'ind_active' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'active_cells' instead.",
-            )
-        warnings.warn(
-            "'ind_active' has been deprecated and will be removed in "
-            " SimPEG v0.24.0, please use 'active_cells' instead.",
-            FutureWarning,
-            stacklevel=2,
+
+    # Deprecate indActive argument
+    if kwargs.pop("indActive", None) is not None:
+        raise TypeError(
+            "'indActive' was removed in SimPEG v0.24.0, please use 'active_cells' instead."
         )
-        active_cells = ind_active
+    if kwargs:  # TODO Remove this when removing kwargs argument.
+        raise TypeError("Unsupported keyword argument " + kwargs.popitem()[0])
 
     if isinstance(mesh, discretize.CurvilinearMesh):
         raise ValueError("Curvilinear mesh is not supported.")
