@@ -18,7 +18,7 @@ class BaseRichardsTest(unittest.TestCase):
     def setUp(self):
         mesh = self.get_mesh()
         params = richards.empirical.HaverkampParams().celia1990
-        k_fun, theta_fun = richards.empirical.haverkamp(mesh, **params)
+        k_fun, theta_fun = richards.empirical.haverkamp(**params)
 
         self.setup_maps(mesh, k_fun, theta_fun)
         bc, h = self.get_conditions(mesh)
@@ -288,7 +288,7 @@ class RichardsTests3D(BaseRichardsTest):
 def test_bad_mesh_type():
     mesh = discretize.CylindricalMesh([3, 3, 3])
     params = richards.empirical.HaverkampParams().celia1990
-    k_fun, theta_fun = richards.empirical.haverkamp(mesh, **params)
+    k_fun, theta_fun = richards.empirical.haverkamp(**params)
 
     msg = "mesh must be an instance of TensorMesh or TreeMesh, not CylindricalMesh"
     with pytest.raises(TypeError, match=msg):
