@@ -14,9 +14,11 @@ For details on the available classes and functions in SimPEG, please visit the
   :maxdepth: 1
   :caption: Getting Started
 
+  getting-started/about-simpeg.rst
   getting-started/big_picture
   getting-started/installing
   getting-started/contributing/index.rst
+  getting-started/citing.rst
 
 .. toctree::
   :glob:
