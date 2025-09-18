@@ -257,12 +257,12 @@ class DirectiveList(object):
 
     Parameters
     ----------
-    directives : list of simpeg.directives.InversionDirective
-        List of directives.
+    *directives : simpeg.directives.InversionDirective
+        Directives for the inversion.
     inversion : simpeg.inversion.BaseInversion
         The inversion associated with the directives list.
     debug : bool
-        Whether or not to print debugging information.
+        Whether to print debugging information.
 
     """
 
@@ -333,8 +333,11 @@ class DirectiveList(object):
             getattr(r, ruleType)()
 
     def validate(self):
-        [directive.validate(self) for directive in self.dList]
+        [directive.validate(self) for directive in self]
         return True
+
+    def __iter__(self):
+        return iter(self.dList)
 
 
 class BaseBetaEstimator(InversionDirective):

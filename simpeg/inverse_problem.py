@@ -4,7 +4,7 @@ import gc
 from .data_misfit import BaseDataMisfit
 from .regularization import BaseRegularization, WeightedLeastSquares, Sparse
 from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
-from .optimization import Minimize
+from .optimization import Minimize, BFGS
 from .utils import (
     call_hooks,
     timeIt,
@@ -29,6 +29,7 @@ class BaseInvProblem:
         debug=False,
         counter=None,
         print_version=True,
+        init_bfgs=True,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -45,6 +46,7 @@ class BaseInvProblem:
         self.counter = counter
         self.model = None
         self.print_version = print_version
+        self.init_bfgs = init_bfgs
         # TODO: Remove: (and make iteration printers better!)
         self.opt.parent = self
         self.reg.parent = self
@@ -175,6 +177,15 @@ class BaseInvProblem:
                 delattr(self, prop)
         self._model = value
 
+    @property
+    def init_bfgs(self):
+        """Initialize BFGS minimizers with the inverse of the regularization's Hessian."""
+        return self._init_bfgs
+
+    @init_bfgs.setter
+    def init_bfgs(self, value):
+        self._init_bfgs = validate_type("init_bfgs", value, bool)
+
     @call_hooks("startup")
     def startup(self, m0):
         """startup(m0)
@@ -203,38 +214,40 @@ class BaseInvProblem:
         self.model = m0
 
         set_default = True
-        for objfct in self.dmisfit.objfcts:
-            if (
-                isinstance(objfct, BaseDataMisfit)
-                and getattr(objfct.simulation, "solver", None) is not None
-            ):
-                solver = objfct.simulation.solver
-                solver_opts = objfct.simulation.solver_opts
+
+        if self.init_bfgs and isinstance(self.opt, BFGS):
+            for objfct in self.dmisfit.objfcts:
+                if (
+                    isinstance(objfct, BaseDataMisfit)
+                    and getattr(objfct.simulation, "solver", None) is not None
+                ):
+                    solver = objfct.simulation.solver
+                    solver_opts = objfct.simulation.solver_opts
+                    print(
+                        """
+                            simpeg.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
+                            ***Done using same Solver, and solver_opts as the {} problem***
+                            """.format(
+                            objfct.simulation.__class__.__name__
+                        )
+                    )
+                    set_default = False
+                    break
+            if set_default:
+                solver = get_default_solver()
                 print(
                     """
                         simpeg.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
-                        ***Done using same Solver, and solver_opts as the {} problem***
+                        ***Done using the default solver {} and no solver_opts.***
                         """.format(
-                        objfct.simulation.__class__.__name__
+                        solver.__name__
                     )
                 )
-                set_default = False
-                break
-        if set_default:
-            solver = get_default_solver()
-            print(
-                """
-                    simpeg.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
-                    ***Done using the default solver {} and no solver_opts.***
-                    """.format(
-                    solver.__name__
-                )
-            )
-            solver_opts = {}
+                solver_opts = {}
 
-        self.opt.bfgsH0 = solver(
-            sp.csr_matrix(self.reg.deriv2(self.model)), **solver_opts
-        )
+            self.opt.bfgsH0 = solver(
+                sp.csr_matrix(self.reg.deriv2(self.model)), **solver_opts
+            )
 
     @property
     def warmstart(self):

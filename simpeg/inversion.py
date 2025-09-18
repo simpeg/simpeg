@@ -1,7 +1,7 @@
 import numpy as np
 
-from .optimization import IterationPrinters, StoppingCriteria
-from .directives import DirectiveList
+from .optimization import IterationPrinters, StoppingCriteria, InexactGaussNewton
+from .directives import DirectiveList, UpdatePreconditioner
 from .utils import timeIt, Counter, validate_type, validate_string
 
 
@@ -107,6 +107,11 @@ class BaseInversion(object):
         Runs the inversion!
 
         """
+        if isinstance(self.opt, InexactGaussNewton) and any(
+            isinstance(drctv, UpdatePreconditioner) for drctv in self.directiveList
+        ):
+            self.invProb.init_bfgs = False
+
         self.invProb.startup(m0)
         self.directiveList.call("initialize")
         print("model has any nan: {:b}".format(np.any(np.isnan(self.invProb.model))))
