@@ -202,12 +202,14 @@ class BaseInvProblem:
         if self.print_version:
             print(f"\nRunning inversion with SimPEG v{simpeg_version}")
 
+        logger = get_logger()
+
         for fct in self.reg.objfcts:
             if (
                 hasattr(fct, "reference_model")
                 and getattr(fct, "reference_model", None) is None
             ):
-                print(
+                logger.info(
                     "simpeg.InvProblem will set Regularization.reference_model to m0."
                 )
                 fct.reference_model = m0
@@ -218,7 +220,6 @@ class BaseInvProblem:
         self.model = m0
 
         if self.init_bfgs and isinstance(self.opt, BFGS):
-            logger = get_logger()
 
             sim = None  # Find the first sim in data misfits that has a non None solver attribute
             for objfct in self.dmisfit.objfcts:

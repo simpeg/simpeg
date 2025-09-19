@@ -25,19 +25,21 @@ class SimilarityMeasureInversionPrinters:
     }
     phi_d = {
         "title": "phi_d",
-        "value": lambda M: [f"{elem:1.2e}" for elem in M.parent.phi_d_list],
+        "value": lambda M: [f"{elem:1.2e}" for elem in M.parent.dmisfit._last_obj_vals],
         "width": 26,
         "format": lambda v: f"{v!s}",
     }
     phi_m = {
         "title": "phi_m",
-        "value": lambda M: [f"{elem:1.2e}" for elem in M.parent.phi_m_list],
+        "value": lambda M: [
+            f"{elem:1.2e}" for elem in M.parent.reg._last_obj_vals[:-1]
+        ],
         "width": 26,
         "format": lambda v: f"{v!s}",
     }
     phi_sim = {
         "title": "phi_sim",
-        "value": lambda M: M.parent.phi_sim,
+        "value": lambda M: M.parent.reg._last_obj_vals[-1],
         "width": 10,
         "format": lambda v: f"{v:1.2e}",
     }
@@ -104,13 +106,9 @@ class SimilarityMeasureInversionDirective(InversionDirective):
 
     def endIter(self):
         # compute attribute values
-        phi_d = []
-        for dmis in self.dmisfit.objfcts:
-            phi_d.append(dmis(self.opt.xc))
+        phi_d = self.dmisfit._last_obj_vals
 
-        phi_m = []
-        for reg in self.reg.objfcts:
-            phi_m.append(reg(self.opt.xc))
+        phi_m = self.reg._last_obj_vals
 
         # pass attributes values to invProb
         self.invProb.phi_d_list = phi_d
