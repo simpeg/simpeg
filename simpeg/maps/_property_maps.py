@@ -3,6 +3,7 @@ Maps that transform physical properties from one space to another.
 """
 
 import warnings
+from numbers import Real
 import numpy as np
 import scipy.sparse as sp
 from scipy.sparse.linalg import LinearOperator
@@ -552,6 +553,53 @@ class ChiMap(IdentityMap):
             to their corresponding magnetic susceptibility values.
         """
         return m / mu_0 - 1
+
+
+class EffectiveSusceptibilityMap(IdentityMap):
+    r"""Effective susceptibility Map
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        The number of parameters accepted by the mapping is set to equal the number
+        of mesh cells.
+    nP : int
+        Set the number of parameters accepted by the mapping directly. Used if the
+        number of parameters is known. Used generally when the number of parameters
+        is not equal to the number of cells in a mesh.
+    ambient_field_magnitude : float
+        The magnitude of the ambient geomagnetic field in nT.
+
+    Notes
+    -----
+    This map converts effective susceptibility values (:math:`\chi_\text{eff}`) into magnetic
+    polarization (:math:`\mathbf{I}`):
+
+    .. math::
+        \mathbf{I} = \mu_0 \mathbf{M} = \chi_\text{eff} \lVert \mathbf{B}_0 \rVert
+
+    where :math:`\mathbf{M}` is the magnetization vector, and
+    :math:`\lVert \mathbf{B}_0 \rVert` is the magnitude of the ambient field in nT.
+    """
+
+    def __init__(self, ambient_field_magnitude, mesh=None, nP=None, **kwargs):
+        super().__init__(mesh=mesh, nP=nP, **kwargs)
+        if not isinstance(ambient_field_magnitude, Real):
+            raise TypeError(
+                "ambient_field_magnitude must be a float (or int convertible to float)"
+            )
+        self.ambient_field_magnitude = ambient_field_magnitude
+
+    def _transform(self, m):
+        return m * self.ambient_field_magnitude
+
+    def deriv(self, m, v=None):
+        if v is not None:
+            return self.ambient_field_magnitude * v
+        return self.ambient_field_magnitude * sp.eye(self.nP)
+
+    def inverse(self, m):
+        return m / self.ambient_field_magnitude
 
 
 class MuRelative(IdentityMap):

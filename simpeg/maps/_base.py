@@ -1178,11 +1178,24 @@ class Wires(object):
 
 
 class TileMap(IdentityMap):
-    """
-    Mapping for tiled inversion.
+    """Mapping for tiled inversion.
 
     Uses volume averaging to map a model defined on a global mesh to the
     local mesh. Everycell in the local mesh must also be in the global mesh.
+
+    Parameters
+    ----------
+    global_mesh : discretize.TreeMesh
+        Global TreeMesh defining the entire domain.
+    global_active : numpy.ndarray of bool or int
+        Defines the active cells in the global mesh.
+    local_mesh : discretize.TreeMesh
+        Local TreeMesh for the simulation.
+    tol : float, optional
+        Tolerance to avoid zero division
+    components : int, optional
+        Number of components in the model. E.g. a vector model in 3D would have 3
+        components.
     """
 
     def __init__(
@@ -1194,21 +1207,6 @@ class TileMap(IdentityMap):
         components=1,
         **kwargs,
     ):
-        """
-        Parameters
-        ----------
-        global_mesh : discretize.TreeMesh
-            Global TreeMesh defining the entire domain.
-        global_active : numpy.ndarray of bool or int
-            Defines the active cells in the global mesh.
-        local_mesh : discretize.TreeMesh
-            Local TreeMesh for the simulation.
-        tol : float, optional
-            Tolerance to avoid zero division
-        components : int, optional
-            Number of components in the model. E.g. a vector model in 3D would have 3
-            components.
-        """
         super().__init__(mesh=None, **kwargs)
         self._global_mesh = validate_type(
             "global_mesh", global_mesh, discretize.TreeMesh, cast=False
