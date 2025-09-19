@@ -1,4 +1,3 @@
-import warnings
 import numpy as np
 from simpeg import (
     maps,
@@ -20,7 +19,7 @@ def spectral_ip_mappings(
     is_log_eta=True,
     is_log_tau=True,
     is_log_c=True,
-    indActive=None,
+    **kwargs,
 ):
     """
     Generates Mappings for Spectral Induced Polarization Simulation.
@@ -38,21 +37,14 @@ def spectral_ip_mappings(
 
     TODO: Illustrate input and output variables
     """
+
     # Deprecate indActive argument
-    if indActive is not None:
-        if active_cells is not None:
-            raise TypeError(
-                "Cannot pass both 'active_cells' and 'indActive'."
-                "'indActive' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'active_cells' instead.",
-            )
-        warnings.warn(
-            "'indActive' has been deprecated and will be removed in "
-            " SimPEG v0.24.0, please use 'active_cells' instead.",
-            FutureWarning,
-            stacklevel=2,
+    if kwargs.pop("indActive", None) is not None:
+        raise TypeError(
+            "'indActive' was removed in SimPEG v0.24.0, please use 'active_cells' instead."
         )
-        active_cells = indActive
+    if kwargs:  # TODO Remove this when removing kwargs argument.
+        raise TypeError("Unsupported keyword argument " + kwargs.popitem()[0])
 
     if active_cells is None:
         active_cells = np.ones(mesh.nC, dtype=bool)

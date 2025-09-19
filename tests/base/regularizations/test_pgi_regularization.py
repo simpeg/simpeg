@@ -472,20 +472,6 @@ class TestPGI(unittest.TestCase):
             plt.show()
 
 
-def test_removed_mref():
-    """Test if PGI raises error when accessing removed mref property."""
-    h = [[(2, 2)], [(2, 2)], [(2, 2)]]
-    mesh = discretize.TensorMesh(h)
-    n_components = 1
-    gmm = WeightedGaussianMixture(mesh=mesh, n_components=n_components)
-    samples = np.random.default_rng(seed=42).normal(size=(mesh.n_cells, 2))
-    gmm.fit(samples)
-    pgi = regularization.PGI(mesh=mesh, gmmref=gmm)
-    message = "mref has been removed, please use reference_model."
-    with pytest.raises(NotImplementedError, match=message):
-        pgi.mref
-
-
 class TestCheckWeights:
     """Test the ``WeightedGaussianMixture._check_weights`` method."""
 

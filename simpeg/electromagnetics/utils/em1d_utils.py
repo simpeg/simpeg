@@ -222,7 +222,7 @@ def LogUniform(f, chi_inf=0.05, del_chi=0.05, tau1=1e-5, tau2=1e-2):
 
 
 def get_splined_dlf_points(filt, v_min, v_max):
-    """
+    """Get the splined points used for the digital linear filter.
 
     Parameters
     ----------
