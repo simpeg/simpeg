@@ -14,7 +14,6 @@ API
 
     RandomSeed
     MinimizeCallable
-    HFunc
 
 """
 
