@@ -440,7 +440,7 @@ class Minimize(object):
 
     @property
     def callback(self) -> Optional[Callable[[np.ndarray], Any]]:
-        """
+        """A used defined callback function.
 
         Returns
         -------
