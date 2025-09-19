@@ -476,14 +476,12 @@ class Minimize(object):
                 ) -> (
                     float
                     | tuple[float, numpy.ndarray]
-                    | tuple[float, callable]
-                    | tuple[float, numpy.ndarray, callable]
+                    | tuple[float, LinearOperator]
+                    | tuple[float, numpy.ndarray, LinearOperator]
                 )
 
-            That will optionally return the gradient as a `numpy.ndarray` and a callable function
-            representing the operation of multiplying the Hessian times a vector::
-
-                H_func(v: numpy.ndarray) -> numpy.ndarray
+            That will optionally return the gradient as a ``numpy.ndarray`` and the Hessian as any class
+            that supports matrix vector multiplication using the `*` operator.
 
         x0 : numpy.ndarray
             Initial guess.

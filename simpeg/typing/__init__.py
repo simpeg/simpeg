@@ -22,6 +22,7 @@ import numpy as np
 import numpy.typing as npt
 from typing import Union, TypeAlias
 from collections.abc import Callable
+from scipy.sparse.linalg import LinearOperator
 
 RandomSeed: TypeAlias = Union[
     int,
@@ -30,8 +31,7 @@ RandomSeed: TypeAlias = Union[
     np.random.BitGenerator,
     np.random.Generator,
 ]
-
-RandomSeed.__doc__ = """
+"""
 A ``typing.Union`` for random seeds and Numpy's random number generators.
 
 These type of variables can be used throughout ``simpeg`` to control random
@@ -50,21 +50,16 @@ Examples
 ...     ...
 """
 
-HFunc: TypeAlias = Callable[[np.ndarray], np.ndarray]
-HFunc.__doc__ = """
-The callable expected for the Hessian function for minimization operations.
-
-Represents the operation of multiplying the Hessian by a vector.
-"""
-
 MinimizeCallable: TypeAlias = Callable[
     [np.ndarray, bool, bool],
-    float | tuple[float, np.ndarray | HFunc] | tuple[float, np.ndarray, HFunc],
+    float
+    | tuple[float, np.ndarray | LinearOperator]
+    | tuple[float, np.ndarray, LinearOperator],
 ]
-MinimizeCallable.__doc__ = """
+"""
 The callable expected for the minimization operations.
 
-The function should signature should look like::
+The function's signature should look like::
 
     func(x: numpy.ndarray, return_g: bool, return_H: bool)
 
@@ -72,7 +67,7 @@ It should output up to three values ordered as::
 
     f_val : float
     gradient : numpy.ndarray
-    H_func : HFunc
+    H : LinearOperator
 
 `f_val` is always returned, `gradient` is returned if `return_g`, and `H_func` is returned if `return_H`.
 `f_val` should always be the first value returned, `gradient` will always be the second, and `H_func` will
