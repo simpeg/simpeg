@@ -416,6 +416,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         self.objfcts = objfcts
         self._multipliers = multipliers
         self._unpack_on_add = unpack_on_add
+        self._last_obj_vals = [np.nan] * len(objfcts)
 
     def __len__(self):
         return len(self.multipliers)
@@ -454,6 +455,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     def __call__(self, m, f=None):
         """Evaluate the objective functions for a given model."""
         fct = 0.0
+        obj_vals = []
         for i, phi in enumerate(self):
             multiplier, objfct = phi
             if multiplier == 0.0:  # don't evaluate the fct
@@ -463,6 +465,8 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             else:
                 objective_func_value = objfct(m)
             fct += multiplier * objective_func_value
+            obj_vals.append(objective_func_value)
+        self._last_obj_vals = obj_vals
         return fct
 
     def deriv(self, m, f=None):

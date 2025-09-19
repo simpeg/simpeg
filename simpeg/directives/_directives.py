@@ -32,6 +32,7 @@ from ..utils import (
     Zero,
     eigenvalue_by_power_iteration,
     validate_string,
+    get_logger,
 )
 from ..utils.code_utils import (
     deprecate_property,
@@ -659,7 +660,8 @@ class BetaSchedule(InversionDirective):
         self._coolingRate = validate_integer("coolingRate", value, min_val=1)
 
     def endIter(self):
-        if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
+        it = self.opt.iter
+        if 0 < it < self.opt.maxIter and it % self.coolingRate == 0:
             if self.verbose:
                 print(
                     "BetaSchedule is cooling Beta. Iteration: {0:d}".format(
@@ -1164,6 +1166,12 @@ class TargetMisfit(InversionDirective):
             )
         self._phi_d_star = value
         self._target = None
+
+    def initialize(self):
+        logger = get_logger()
+        logger.info(
+            f"Directive {self.__class__.__name__}: Target data misfit is {self.target}"
+        )
 
     def endIter(self):
         if self.invProb.phi_d < self.target:
