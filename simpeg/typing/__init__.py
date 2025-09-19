@@ -13,12 +13,15 @@ API
    :toctree: generated/
 
     RandomSeed
+    MinimizeCallable
+    HFunc
 
 """
 
 import numpy as np
 import numpy.typing as npt
 from typing import Union, TypeAlias
+from collections.abc import Callable
 
 RandomSeed: TypeAlias = Union[
     int,
@@ -45,4 +48,34 @@ Examples
 >>> def my_function(seed: RandomSeed = None):
 ...     rng = np.random.default_rng(seed=seed)
 ...     ...
+"""
+
+HFunc: TypeAlias = Callable[[np.ndarray], np.ndarray]
+HFunc.__doc__ = """
+The callable expected for the Hessian function for minimization operations.
+
+Represents the operation of multiplying the Hessian by a vector.
+"""
+
+MinimizeCallable: TypeAlias = Callable[
+    [np.ndarray, bool, bool],
+    float | tuple[float, np.ndarray | HFunc] | tuple[float, np.ndarray, HFunc],
+]
+MinimizeCallable.__doc__ = """
+The callable expected for the minimization operations.
+
+The function should signature should look like::
+
+    func(x: numpy.ndarray, return_g: bool, return_H: bool)
+
+It should output up to three values ordered as::
+
+    f_val : float
+    gradient : numpy.ndarray
+    H_func : HFunc
+
+`f_val` is always returned, `gradient` is returned if `return_g`, and `H_func` is returned if `return_H`.
+`f_val` should always be the first value returned, `gradient` will always be the second, and `H_func` will
+always be the last. If `return_g == return_H == False`, then only the single argument `f_val` is
+returned.
 """
