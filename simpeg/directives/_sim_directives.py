@@ -11,9 +11,9 @@ from ._directives import InversionDirective, SaveOutputEveryIteration
 #                                                                             #
 ###############################################################################
 class SimilarityMeasureInversionPrinters:
-    betas = {
+    beta = {
         "title": "betas",
-        "value": lambda M: ["{:.2e}".format(elem) for elem in M.parent.betas],
+        "value": lambda M: [f"{elem:1.2e}" for elem in M.parent.betas],
         "width": 26,
         "format": lambda v: f"{v!s}",
     }
@@ -23,15 +23,15 @@ class SimilarityMeasureInversionPrinters:
         "width": 10,
         "format": lambda v: f"{v:1.2e}",
     }
-    phi_d_list = {
+    phi_d = {
         "title": "phi_d",
-        "value": lambda M: ["{:.2e}".format(elem) for elem in M.parent.phi_d_list],
+        "value": lambda M: [f"{elem:1.2e}" for elem in M.parent.phi_d_list],
         "width": 26,
         "format": lambda v: f"{v!s}",
     }
-    phi_m_list = {
+    phi_m = {
         "title": "phi_m",
-        "value": lambda M: ["{:.2e}".format(elem) for elem in M.parent.phi_m_list],
+        "value": lambda M: [f"{elem:1.2e}" for elem in M.parent.phi_m_list],
         "width": 26,
         "format": lambda v: f"{v!s}",
     }
@@ -40,12 +40,6 @@ class SimilarityMeasureInversionPrinters:
         "value": lambda M: M.parent.phi_sim,
         "width": 10,
         "format": lambda v: f"{v:1.2e}",
-    }
-    iterationCG = {
-        "title": "iterCG",
-        "value": lambda M: M.cg_count,
-        "width": 10,
-        "format": lambda v: f"{v:3d}",
     }
 
 
@@ -62,13 +56,15 @@ class SimilarityMeasureInversionDirective(InversionDirective):
 
     printers = [
         IterationPrinters.iteration,
-        SimilarityMeasureInversionPrinters.betas,
+        SimilarityMeasureInversionPrinters.beta,
         SimilarityMeasureInversionPrinters.lambd,
         IterationPrinters.f,
-        SimilarityMeasureInversionPrinters.phi_d_list,
-        SimilarityMeasureInversionPrinters.phi_m_list,
+        SimilarityMeasureInversionPrinters.phi_d,
+        SimilarityMeasureInversionPrinters.phi_m,
         SimilarityMeasureInversionPrinters.phi_sim,
-        SimilarityMeasureInversionPrinters.iterationCG,
+        IterationPrinters.iterationCG,
+        IterationPrinters.iteration_CG_rel_residual,
+        IterationPrinters.iteration_CG_abs_residual,
     ]
 
     def initialize(self):
