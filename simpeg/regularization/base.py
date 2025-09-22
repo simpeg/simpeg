@@ -739,7 +739,7 @@ class Smallness(BaseRegularization):
 
             \phi_m (\mathbf{m}) =
             \left\lVert
-            \mathbf{W} \, \mu(\mathbf{f_m})
+            \mathbf{W} \, \mathbf{f_m}
             \right\rVert^2
 
         Thus, the derivative with respect to the model is:
