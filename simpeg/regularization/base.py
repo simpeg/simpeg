@@ -502,23 +502,65 @@ class Smallness(BaseRegularization):
 
     Notes
     -----
-    We define the regularization function (objective function) for smallness as:
+    In case no mapping or reference model is used, we define the regularization function
+    (objective function) for smallness as:
 
     .. math::
 
         \phi (m) = \int_\Omega \, w(\mathbf{r}) \,
-        \left\lVert
-        \mu(m(\mathbf{r})) - \mu(m^\text{ref}(\mathbf{r}))
-        \right\rVert^2 \, d\mathbf{r}
+        \left\lvert
+        m(\mathbf{r}) - m^\text{ref}(\mathbf{r})
+        \right\rvert^2 \,
+        d\mathbf{r}
 
-    where :math:`m(\mathbf{r})` is the model, :math:`m^\text{ref}(\mathbf{r})`
-    is the reference model, :math:`\mu` is the mapping function, and
-    :math:`w(\mathbf{r})` is a user-defined weighting function.
+    where :math:`m(\mathbf{r})` is the model, :math:`m^\text{ref}(\mathbf{r})` is the
+    reference model, and :math:`w(\mathbf{r})` is a user-defined weighting function.
 
     For the implementation within SimPEG, the regularization function and its
     variables must be discretized onto a `mesh`. The discretized approximation
     for the regularization function (objective function) is expressed in linear
     form as:
+
+    .. math::
+
+        \phi (\mathbf{m}) = \sum_i \tilde{w}_i \,
+        \left\lvert \,
+        m_i - m_i^\text{ref} \,
+        \right\rvert^2
+
+    where :math:`m_i \in \mathbf{m}` are the discrete model parameter values defined on
+    the mesh, and :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting
+    constants that:
+
+    1. account for cell dimensions in the discretization, and
+    2. apply any user-defined weighting.
+
+    This is equivalent to an objective function of the form:
+
+    .. math::
+
+        \phi (\mathbf{m}) =
+        \left\lVert
+        \mathbf{W} \left[ \mathbf{m} - \mathbf{m}^\text{ref} \right]
+        \right\rVert^2
+
+    where :math:`\mathbf{m}` is the model vector, :math:`\mathbf{m}^\text{ref}` is the
+    reference model vector, and :math:`\mathbf{W}` is the weighting matrix,
+
+    **Mapping function**
+
+    In case make use of a mapping function :math:`\mu` that maps values of the model
+    into a different space, then the regularization function for smallness gets defined
+    as:
+
+    .. math::
+
+        \phi (m) = \int_\Omega \, w(\mathbf{r}) \,
+        \left\lvert m(\mathbf{r}))
+        \mu(m(\mathbf{r})) - \mu(m^\text{ref}(\mathbf{r}))
+        \right\rvert^2 \, d\mathbf{r}
+
+    In a discretized form, the previous equation is expressed as:
 
     .. math::
 
@@ -528,31 +570,17 @@ class Smallness(BaseRegularization):
         \mu(m_i) - \mu(m_i^\text{ref}) \,
         \right\rvert^2
 
-    where :math:`m_i \in \mathbf{m}` are the discrete model parameter values
-    defined on the mesh, :math:`\mu` is the mapping function, and
-    :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting
-    constants that:
-
-    1. account for cell dimensions in the discretization and
-    2. apply any user-defined weighting. This is equivalent to an objective
-       function of the form:
+    And in matrix form:
 
     .. math::
 
         \phi (\mathbf{m}) =
         \left\lVert
         \mathbf{W} \left[ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \right]
-        \right\rVert^2
+        \right\rVert^2.
 
-    where
 
-    - :math:`\mathbf{m}^\text{ref}` is a reference model (set using
-      ``reference_model``),
-    - :math:`\mu` is the mapping function, and
-    - :math:`\mathbf{W}` is the weighting matrix.
-
-    Custom weights and the weighting matrix
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    **Custom weights and the weighting matrix**
 
     Let :math:`\mathbf{w_1, \; w_2, \; w_3, \; ...}` each represent an optional set of
     custom cell weights. The weighting applied within the objective function is given by:
