@@ -18,15 +18,16 @@ class SmoothnessFullGradient(BaseRegularization):
     ----------
     mesh : discretize.BaseMesh
         The mesh object to use for regularization. The mesh should either have
-        a `cell_gradient` or a `stencil_cell_gradient` defined.
+        a ``cell_gradient`` or a ``stencil_cell_gradient`` defined.
     alphas : (mesh.dim,) or (mesh.n_cells, mesh.dim) array_like of float, optional.
-        The weights of the regularization for each axis. This can be defined for each cell
-        in the mesh. Default is uniform weights equal to the smallest edge length squared.
+        The weights of the regularization for each axis. This can be defined
+        for each cell in the mesh. Default is uniform weights equal to the
+        smallest edge length squared.
     reg_dirs : (mesh.dim, mesh.dim) or (mesh.n_cells, mesh.dim, mesh.dim) array_like of float
-        Matrix or list of matrices whose columns represent the regularization directions.
-        Each matrix should be orthonormal. Default is Identity.
+        Matrix or list of matrices whose columns represent the regularization
+        directions. Each matrix should be orthonormal. Default is Identity.
     ortho_check : bool, optional
-        Whether to check `reg_dirs` for orthogonality.
+        Whether to check ``reg_dirs`` for orthogonality.
     **kwargs
         Keyword arguments passed to the parent class ``BaseRegularization``.
 
@@ -41,19 +42,23 @@ class SmoothnessFullGradient(BaseRegularization):
 
     We can instead create a measure that smooths twice as much in the 1st dimension
     than it does in the second dimension.
+
     >>> reg = SmoothnessFullGradient(mesh, [2, 1])
 
-    The `alphas` parameter can also be indepenant for each cell. Here we set all cells
-    lower than 0.5 in the x2 to twice as much in the first dimension
-    otherwise it is uniform smoothing.
+    The ``alphas`` parameter can also be independent for each cell. Here we set
+    all cells lower than 0.5 in the ``x2`` to twice as much in the first
+    dimension otherwise it is uniform smoothing.
+
     >>> alphas = np.ones((mesh.n_cells, mesh.dim))
     >>> alphas[mesh.cell_centers[:, 1] < 0.5] = [2, 1]
     >>> reg = SmoothnessFullGradient(mesh, alphas)
 
-    We can also rotate the axis in which we want to preferentially smooth. Say we want to
-    smooth twice as much along the +x1,+x2 diagonal as we do along the -x1,+x2 diagonal,
-    effectively rotating our smoothing 45 degrees. Note and the columns of the matrix
-    represent the directional vectors (not the rows).
+    We can also rotate the axis in which we want to preferentially smooth. Say
+    we want to smooth twice as much along the +x1,+x2 diagonal as we do along
+    the -x1,+x2 diagonal, effectively rotating our smoothing 45 degrees. Note
+    and the columns of the matrix represent the directional vectors (not the
+    rows).
+
     >>> sqrt2 = np.sqrt(2)
     >>> reg_dirs = np.array([
     ...     [sqrt2, -sqrt2],
@@ -63,20 +68,25 @@ class SmoothnessFullGradient(BaseRegularization):
 
     Notes
     -----
-    The regularization object is the discretized form of the continuous regularization
+    The regularization object is the discretized form of the continuous
+    regularization
 
-    ..math:
-       f(m) = \int_V \nabla m \cdot \mathbf{a} \nabla m \hspace{5pt} \partial V
+    .. math::
 
-    The tensor quantity `a` is used to represent the potential preferential directions of
-    regularization. `a` must be symmetric positive semi-definite with an eigendecomposition of:
+       f(m) = \int_V \nabla m \cdot \mathbf{a} \nabla m \, \text{d} V
 
-    ..math:
+    The tensor quantity :math:`\mathbf{a}` is used to represent the potential
+    preferential directions of regularization. :math:`\mathbf{a}` must be
+    symmetric positive semi-definite with an eigendecomposition of:
+
+    .. math::
+
       \mathbf{a} = \mathbf{Q}\mathbf{L}\mathbf{Q}^{-1}
 
-    `Q` is then the regularization directions ``reg_dirs``, and `L` is represents the weighting
-    along each direction, with ``alphas`` along its diagonal. These are multiplied to form the
-    anisotropic alpha used for rotated gradients.
+    :math:`\mathbf{Q}` is then the regularization directions ``reg_dirs``, and
+    :math:`\mathbf{L}` is represents the weighting
+    along each direction, with ``alphas`` along its diagonal. These are
+    multiplied to form the anisotropic alpha used for rotated gradients.
     """
 
     def __init__(self, mesh, alphas=None, reg_dirs=None, ortho_check=True, **kwargs):

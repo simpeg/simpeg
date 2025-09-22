@@ -14,25 +14,20 @@ class Survey(BaseTimeSurvey):
         List of SimPEG spectral IP sources
     survey_geometry : {"surface", "borehole", "general"}
         Survey geometry.
-    survey_type : {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
-        Survey type.
     """
 
     _n_pulse = 2
     _T = 8.0
 
-    def __init__(
-        self,
-        source_list=None,
-        survey_geometry="surface",
-        survey_type="dipole-dipole",
-        **kwargs
-    ):
-        if source_list is None:
-            raise AttributeError("Survey cannot be instantiated without sources")
+    def __init__(self, source_list, survey_geometry="surface", **kwargs):
+        if kwargs.pop("survey_type", None) is not None:
+            raise TypeError(
+                "Argument 'survey_type' has been removed in SimPEG 0.24.0. Types of sources and"
+                "their corresponding receivers are obtained from their respective classes, without "
+                "the need to specify the survey type.",
+            )
         super(Survey, self).__init__(source_list, **kwargs)
         self.survey_geometry = survey_geometry
-        self.survey_type = survey_type
 
     @property
     def n_pulse(self):
@@ -58,7 +53,7 @@ class Survey(BaseTimeSurvey):
 
     @property
     def survey_geometry(self):
-        """Survey geometry; one of {"surface", "borehole", "general"}
+        """Survey geometry
 
         Returns
         -------
@@ -75,22 +70,20 @@ class Survey(BaseTimeSurvey):
 
     @property
     def survey_type(self):
-        """Survey type; one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
-
-        Returns
-        -------
-        str
-            Survey type; one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
         """
-        return self._survey_type
+        ``survey_type`` has been removed.
+
+        .. important:
+
+            The `survey_type` property has been removed. Types of sources and
+            their corresponding receivers are obtained from their respective
+            classes, without the need to specify the survey type.
+        """
+        raise AttributeError("'survey_type' has been removed.")
 
     @survey_type.setter
     def survey_type(self, var):
-        self._survey_type = validate_string(
-            "survey_type",
-            var,
-            ("dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"),
-        )
+        raise AttributeError("'survey_type' has been removed.")
 
     @property
     def n_locations(self):

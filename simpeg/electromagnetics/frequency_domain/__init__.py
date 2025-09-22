@@ -1,10 +1,28 @@
-"""
+r"""
 ==============================================================================
 Frequency-Domain EM (:mod:`simpeg.electromagnetics.frequency_domain`)
 ==============================================================================
 .. currentmodule:: simpeg.electromagnetics.frequency_domain
 
-About ``frequency_domain``
+The ``frequency_domain`` module contains functionality for solving Maxwell's equations
+in the frequency-domain for controlled sources. Where a :math:`+i\omega t`
+Fourier convention is used, this module is used to solve problems of the form:
+
+.. math::
+    \begin{align}
+    \nabla \times \vec{E} + i\omega \vec{B} &= - i \omega \vec{S}_m \\
+    \nabla \times \vec{H} - \vec{J} &= \vec{S}_e
+    \end{align}
+
+where the constitutive relations between fields and fluxes are given by:
+
+* :math:`\vec{J} = (\sigma + i \omega \varepsilon) \vec{E}`
+* :math:`\vec{B} = \mu \vec{H}`
+
+and:
+
+* :math:`\vec{S}_m` represents a magnetic source term
+* :math:`\vec{S}_e` represents a current source term
 
 Simulations
 ===========

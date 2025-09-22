@@ -1,7 +1,9 @@
+import discretize.base
 import numpy as np
 import scipy.sparse as sp
 from scipy import constants
 from ... import utils, props
+from ...utils import validate_type
 
 
 def _get_projections(u):
@@ -34,11 +36,18 @@ class NonLinearModel(props.HasModel):
     """A non linear model that has dependence on the fields and a model"""
 
     counter = None  #: A simpeg.utils.Counter object
-    mesh = None  #: A discretize Mesh
 
     def __init__(self, mesh, **kwargs):
         self.mesh = mesh
         super(NonLinearModel, self).__init__(**kwargs)
+
+    @property
+    def mesh(self):
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, value):
+        self._mesh = validate_type("mesh", value, discretize.base.BaseMesh, cast=False)
 
     @property
     def nP(self):
@@ -100,7 +109,7 @@ class Haverkamp_theta(BaseWaterRetention):
         alphaMap=None,
         beta=3.96,
         betaMap=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(mesh=mesh, **kwargs)
         self.theta_r = theta_r
@@ -224,7 +233,7 @@ class Haverkamp_k(BaseHydraulicConductivity):
         AMap=None,
         gamma=4.74,
         gammaMap=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(mesh=mesh, **kwargs)
         self.Ks = Ks
@@ -292,7 +301,7 @@ def haverkamp(mesh, **kwargs):
         Haverkamp_theta,
         ["Ks", "A", "gamma"],
         ["alpha", "beta", "theta_r", "theta_s"],
-        **kwargs
+        **kwargs,
     )
 
 
@@ -344,7 +353,7 @@ class Vangenuchten_theta(BaseWaterRetention):
         nMap=None,
         alpha=0.036,
         alphaMap=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(mesh=mesh, **kwargs)
         self.theta_r = theta_r
@@ -499,7 +508,7 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         nMap=None,
         alpha=0.036,
         alphaMap=None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(mesh=mesh, **kwargs)
         self.Ks = Ks
@@ -807,7 +816,7 @@ def van_genuchten(mesh, **kwargs):
         Vangenuchten_theta,
         ["alpha", "n", "Ks", "I"],
         ["alpha", "n", "theta_r", "theta_s"],
-        **kwargs
+        **kwargs,
     )
 
 

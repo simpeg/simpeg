@@ -6,34 +6,60 @@ from ..utils import omega
 
 
 class FieldsFDEM(Fields):
-    r"""
-    Fancy Field Storage for a FDEM survey. Only one field type is stored for
-    each problem, the rest are computed. The fields object acts like an array
-    and is indexed by
+    r"""Base class for storing FDEM fields.
+
+    FDEM fields classes are used to store the discrete solution of the fields for a
+    corresponding FDEM simulation; see :class:`.BaseFDEMSimulation`.
+    Only one field type (e.g. ``'e'``, ``'j'``, ``'h'``, or ``'b'``) is stored, but certain field types
+    can be rapidly computed and returned on the fly. The field type that is stored and the
+    field types that can be returned depend on the formulation used by the associated simulation class.
+    Once a field object has been created, the individual fields can be accessed; see the example below.
+
+    Parameters
+    ----------
+    simulation : .BaseFDEMSimulation
+        The FDEM simulation object used to compute the discrete field solution.
+
+    Example
+    -------
+    We want to access the fields for a discrete solution with :math:`\mathbf{e}` discretized
+    to edges and :math:`\mathbf{b}` discretized to faces. To extract the fields for all sources:
 
     .. code-block:: python
 
-        f = problem.fields(m)
-        e = f[source_list,'e']
-        b = f[source_list,'b']
-
-    If accessing all sources for a given field, use the :code:`:`
-
-    .. code-block:: python
-
-        f = problem.fields(m)
+        f = simulation.fields(m)
         e = f[:,'e']
         b = f[:,'b']
 
-    The array returned will be size (``nE`` or ``nF``, ``nSrcs`` :math:`\times`
-    ``nFrequencies``)
+    The array ``e`` returned will have shape (`n_edges`, `n_sources`). And the array ``b``
+    returned will have shape (`n_faces`, `n_sources`). We can also extract the fields for
+    a subset of the source list used for the simulation as follows:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        e = f[source_list,'e']
+        b = f[source_list,'b']
+
     """
 
-    knownFields = {}
-    _dtype = complex
+    def __init__(self, simulation):
+        dtype = complex
+        super().__init__(simulation=simulation, dtype=dtype)
 
     def _GLoc(self, fieldType):
-        """Grid location of the fieldType"""
+        """Return grid locations of the fieldType.
+
+        Parameters
+        ----------
+        fieldType : str
+            The field type.
+
+        Returns
+        -------
+        str
+            The grid locations. One of {``'CC'``, ``'N'``, ``'E'``, ``'F'``}.
+        """
         return self.aliasFields[fieldType][1]
 
     def _e(self, solution, source_list):
@@ -295,28 +321,66 @@ class FieldsFDEM(Fields):
 
 
 class Fields3DElectricField(FieldsFDEM):
-    """
-    Fields object for Simulation3DElectricField.
+    r"""Fields class for storing 3D total electric field solutions.
 
-    :param discretize.base.BaseMesh mesh: mesh
-    :param simpeg.electromagnetics.frequency_domain.SurveyFDEM.Survey survey: survey
+    This class stores the total electric field solution computed using a
+    :class:`.frequency_domain.Simulation3DElectricField`
+    simulation object. This class can be used to extract the following quantities:
+
+    * ``'e'``, ``'ePrimary'``, ``'eSecondary'`` and ``'j'`` on mesh edges.
+    * ``'h'``, ``'b'``, ``'bPrimary'`` and ``'bSecondary'`` on mesh faces.
+    * ``'charge'`` on mesh nodes.
+    * ``'charge_density'`` at cell centers.
+
+    See the example below to learn how fields can be extracted from a
+    ``Fields3DElectricField`` object.
+
+    Parameters
+    ----------
+    simulation : .frequency_domain.Simulation3DElectricField
+        The FDEM simulation object associated with the fields.
+
+    Example
+    -------
+    The ``Fields3DElectricField`` object stores the total electric field solution
+    on mesh edges. To extract the discrete electric fields and magnetic flux
+    densities for all sources:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        e = f[:, 'e']
+        b = f[:, 'b']
+
+    The array ``e`` returned will have shape (`n_edges`, `n_sources`). And the array ``b``
+    returned will have shape (`n_faces`, `n_sources`). We can also extract the fields for
+    a subset of the source list used for the simulation as follows:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        e = f[source_list,'e']
+        b = f[source_list,'b']
     """
 
-    knownFields = {"eSolution": "E"}
-    aliasFields = {
-        "e": ["eSolution", "E", "_e"],
-        "ePrimary": ["eSolution", "E", "_ePrimary"],
-        "eSecondary": ["eSolution", "E", "_eSecondary"],
-        "b": ["eSolution", "F", "_b"],
-        "bPrimary": ["eSolution", "F", "_bPrimary"],
-        "bSecondary": ["eSolution", "F", "_bSecondary"],
-        "j": ["eSolution", "E", "_j"],
-        "h": ["eSolution", "F", "_h"],
-        "charge": ["eSolution", "N", "_charge"],
-        "charge_density": ["eSolution", "CC", "_charge_density"],
-    }
+    def __init__(self, simulation):
+        super().__init__(simulation=simulation)
+        self._knownFields = {"eSolution": "E"}
+        self._aliasFields = {
+            "e": ["eSolution", "E", "_e"],
+            "ePrimary": ["eSolution", "E", "_ePrimary"],
+            "eSecondary": ["eSolution", "E", "_eSecondary"],
+            "b": ["eSolution", "F", "_b"],
+            "bPrimary": ["eSolution", "F", "_bPrimary"],
+            "bSecondary": ["eSolution", "F", "_bSecondary"],
+            "j": ["eSolution", "E", "_j"],
+            "h": ["eSolution", "F", "_h"],
+            "charge": ["eSolution", "N", "_charge"],
+            "charge_density": ["eSolution", "CC", "_charge_density"],
+        }
 
     def startup(self):
+        # Docstring inherited from parent.
         self._edgeCurl = self.simulation.mesh.edge_curl
         self._aveE2CCV = self.simulation.mesh.aveE2CCV
         self._aveF2CCV = self.simulation.mesh.aveF2CCV
@@ -623,28 +687,67 @@ class Fields3DElectricField(FieldsFDEM):
 
 
 class Fields3DMagneticFluxDensity(FieldsFDEM):
-    """
-    Fields object for Simulation3DMagneticFluxDensity.
+    r"""Fields class for storing 3D total magnetic flux density solutions.
 
-    :param discretize.base.BaseMesh mesh: mesh
-    :param simpeg.electromagnetics.frequency_domain.SurveyFDEM.Survey survey: survey
+    This class stores the total magnetic flux density solution computed using a
+    :class:`.frequency_domain.Simulation3DMagneticFluxDensity`
+    simulation object. This class can be used to extract the following quantities:
+
+    * ``'b'``, ``'bPrimary'``, ``'bSecondary'`` and ``'h'`` on mesh faces.
+    * ``'e'``, ``'ePrimary'``, ``'eSecondary'`` and ``'j'`` on mesh edges.
+    * ``'charge'`` on mesh nodes.
+    * ``'charge_density'`` at cell centers.
+
+    See the example below to learn how fields can be extracted from a
+    ``Fields3DMagneticFluxDensity`` object.
+
+    Parameters
+    ----------
+    simulation : .frequency_domain.Simulation3DMagneticFluxDensity
+        The FDEM simulation object associated with the fields.
+
+    Example
+    -------
+    The ``Fields3DMagneticFluxDensity`` object stores the total magnetic flux density solution
+    on mesh faces. To extract the discrete electric fields and magnetic flux
+    densities for all sources:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        e = f[:, 'e']
+        b = f[:, 'b']
+
+    The array ``e`` returned will have shape (`n_edges`, `n_sources`). And the array ``b``
+    returned will have shape (`n_faces`, `n_sources`). We can also extract the fields for
+    a subset of the source list used for the simulation as follows:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        e = f[source_list, 'e']
+        b = f[source_list, 'b']
+
     """
 
-    knownFields = {"bSolution": "F"}
-    aliasFields = {
-        "b": ["bSolution", "F", "_b"],
-        "bPrimary": ["bSolution", "F", "_bPrimary"],
-        "bSecondary": ["bSolution", "F", "_bSecondary"],
-        "e": ["bSolution", "E", "_e"],
-        "ePrimary": ["bSolution", "E", "_ePrimary"],
-        "eSecondary": ["bSolution", "E", "_eSecondary"],
-        "j": ["bSolution", "E", "_j"],
-        "h": ["bSolution", "F", "_h"],
-        "charge": ["bSolution", "N", "_charge"],
-        "charge_density": ["bSolution", "CC", "_charge_density"],
-    }
+    def __init__(self, simulation):
+        super().__init__(simulation=simulation)
+        self._knownFields = {"bSolution": "F"}
+        self._aliasFields = {
+            "b": ["bSolution", "F", "_b"],
+            "bPrimary": ["bSolution", "F", "_bPrimary"],
+            "bSecondary": ["bSolution", "F", "_bSecondary"],
+            "e": ["bSolution", "E", "_e"],
+            "ePrimary": ["bSolution", "E", "_ePrimary"],
+            "eSecondary": ["bSolution", "E", "_eSecondary"],
+            "j": ["bSolution", "E", "_j"],
+            "h": ["bSolution", "F", "_h"],
+            "charge": ["bSolution", "N", "_charge"],
+            "charge_density": ["bSolution", "CC", "_charge_density"],
+        }
 
     def startup(self):
+        # Docstring inherited from parent.
         self._edgeCurl = self.simulation.mesh.edge_curl
         self._MeSigma = self.simulation.MeSigma
         self._MeSigmaI = self.simulation.MeSigmaI
@@ -953,28 +1056,65 @@ class Fields3DMagneticFluxDensity(FieldsFDEM):
 
 
 class Fields3DCurrentDensity(FieldsFDEM):
-    """
-    Fields object for Simulation3DCurrentDensity.
+    r"""Fields class for storing 3D current density solutions.
 
-    :param discretize.base.BaseMesh mesh: mesh
-    :param simpeg.electromagnetics.frequency_domain.SurveyFDEM.Survey survey: survey
+    This class stores the total current density solution computed using a
+    :class:`.frequency_domain.Simulation3DCurrentDensity`
+    simulation object. This class can be used to extract the following quantities:
+
+    * ``'j'``, ``'jPrimary'``, ``'jSecondary'`` and ``'e'`` on mesh faces.
+    * ``'h'``, ``'hPrimary'``, ``'hSecondary'`` and ``'b'`` on mesh edges.
+    * ``'charge'`` and ``'charge_density'`` at cell centers.
+
+    See the example below to learn how fields can be extracted from a
+    ``Fields3DCurrentDensity`` object.
+
+    Parameters
+    ----------
+    simulation : .frequency_domain.Simulation3DCurrentDensity
+        The FDEM simulation object associated with the fields.
+
+    Example
+    -------
+    The ``Fields3DCurrentDensity`` object stores the total current density solution
+    on mesh faces. To extract the discrete current density and magnetic field:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        j = f[:, 'j']
+        h = f[:, 'h']
+
+    The array ``j`` returned will have shape (`n_faces`, `n_sources`). And the array ``h``
+    returned will have shape (`n_edges`, `n_sources`). We can also extract the fields for
+    a subset of the source list used for the simulation as follows:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        j = f[source_list, 'j']
+        h = f[source_list, 'h']
+
     """
 
-    knownFields = {"jSolution": "F"}
-    aliasFields = {
-        "j": ["jSolution", "F", "_j"],
-        "jPrimary": ["jSolution", "F", "_jPrimary"],
-        "jSecondary": ["jSolution", "F", "_jSecondary"],
-        "h": ["jSolution", "E", "_h"],
-        "hPrimary": ["jSolution", "E", "_hPrimary"],
-        "hSecondary": ["jSolution", "E", "_hSecondary"],
-        "e": ["jSolution", "F", "_e"],
-        "b": ["jSolution", "E", "_b"],
-        "charge": ["bSolution", "CC", "_charge"],
-        "charge_density": ["bSolution", "CC", "_charge_density"],
-    }
+    def __init__(self, simulation):
+        super().__init__(simulation=simulation)
+        self._knownFields = {"jSolution": "F"}
+        self._aliasFields = {
+            "j": ["jSolution", "F", "_j"],
+            "jPrimary": ["jSolution", "F", "_jPrimary"],
+            "jSecondary": ["jSolution", "F", "_jSecondary"],
+            "h": ["jSolution", "E", "_h"],
+            "hPrimary": ["jSolution", "E", "_hPrimary"],
+            "hSecondary": ["jSolution", "E", "_hSecondary"],
+            "e": ["jSolution", "F", "_e"],
+            "b": ["jSolution", "E", "_b"],
+            "charge": ["jSolution", "CC", "_charge"],
+            "charge_density": ["jSolution", "CC", "_charge_density"],
+        }
 
     def startup(self):
+        # Docstring inherited from parent.
         self._edgeCurl = self.simulation.mesh.edge_curl
         self._MeMu = self.simulation.MeMu
         self._MeMuI = self.simulation.MeMuI
@@ -1344,28 +1484,65 @@ class Fields3DCurrentDensity(FieldsFDEM):
 
 
 class Fields3DMagneticField(FieldsFDEM):
-    """
-    Fields object for Simulation3DMagneticField.
+    r"""Fields class for storing 3D magnetic field solutions.
 
-    :param discretize.base.BaseMesh mesh: mesh
-    :param simpeg.electromagnetics.frequency_domain.SurveyFDEM.Survey survey: survey
+    This class stores the total magnetic field solution computed using a
+    :class:`.frequency_domain.Simulation3DMagneticField`
+    simulation object. This class can be used to extract the following quantities:
+
+    * ``'h'``, ``'hPrimary'``, ``'hSecondary'`` and ``'b'`` on mesh edges.
+    * ``'j'``, ``'jPrimary'``, ``'jSecondary'`` and ``'e'`` on mesh faces.
+    * ``'charge'`` and ``'charge_density'`` at cell centers.
+
+    See the example below to learn how fields can be extracted from a
+    ``Fields3DMagneticField`` object.
+
+    Parameters
+    ----------
+    simulation : .frequency_domain.Simulation3DMagneticField
+        The FDEM simulation object associated with the fields.
+
+    Example
+    -------
+    The ``Fields3DMagneticField`` object stores the total magnetic field solution
+    on mesh edges. To extract the discrete current density and magnetic field:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        j = f[:, 'j']
+        h = f[:, 'h']
+
+    The array ``j`` returned will have shape (`n_faces`, `n_sources`). And the array ``h``
+    returned will have shape (`n_edges`, `n_sources`). We can also extract the fields for
+    a subset of the source list used for the simulation as follows:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        j = f[source_list, 'j']
+        h = f[source_list, 'h']
+
     """
 
-    knownFields = {"hSolution": "E"}
-    aliasFields = {
-        "h": ["hSolution", "E", "_h"],
-        "hPrimary": ["hSolution", "E", "_hPrimary"],
-        "hSecondary": ["hSolution", "E", "_hSecondary"],
-        "j": ["hSolution", "F", "_j"],
-        "jPrimary": ["hSolution", "F", "_jPrimary"],
-        "jSecondary": ["hSolution", "F", "_jSecondary"],
-        "e": ["hSolution", "CCV", "_e"],
-        "b": ["hSolution", "CCV", "_b"],
-        "charge": ["hSolution", "CC", "_charge"],
-        "charge_density": ["hSolution", "CC", "_charge_density"],
-    }
+    def __init__(self, simulation):
+        super().__init__(simulation=simulation)
+        self._knownFields = {"hSolution": "E"}
+        self._aliasFields = {
+            "h": ["hSolution", "E", "_h"],
+            "hPrimary": ["hSolution", "E", "_hPrimary"],
+            "hSecondary": ["hSolution", "E", "_hSecondary"],
+            "j": ["hSolution", "F", "_j"],
+            "jPrimary": ["hSolution", "F", "_jPrimary"],
+            "jSecondary": ["hSolution", "F", "_jSecondary"],
+            "e": ["hSolution", "CCV", "_e"],
+            "b": ["hSolution", "CCV", "_b"],
+            "charge": ["hSolution", "CC", "_charge"],
+            "charge_density": ["hSolution", "CC", "_charge_density"],
+        }
 
     def startup(self):
+        # Docstring inherited from parent.
         self._edgeCurl = self.simulation.mesh.edge_curl
         self._MeMu = self.simulation.MeMu
         self._MeMuDeriv = self.simulation.MeMuDeriv

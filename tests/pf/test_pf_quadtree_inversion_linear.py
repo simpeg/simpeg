@@ -209,7 +209,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 survey=grav_survey,
                 rhoMap=self.idenMap_active,
                 store_sensitivities="ram",
-                ind_active=self.active_cells,
+                active_cells=self.active_cells,
             )
 
             # Already defined
@@ -243,7 +243,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 survey=mag_survey,
                 chiMap=self.idenMap_active,
                 store_sensitivities="ram",
-                ind_active=self.active_cells,
+                active_cells=self.active_cells,
             )
 
             # Already defined
@@ -291,11 +291,10 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=beta)
 
             # Build directives
-            IRLS = directives.Update_IRLS(
+            IRLS = directives.UpdateIRLS(
                 f_min_change=1e-3,
                 max_irls_iterations=30,
-                beta_tol=1e-1,
-                beta_search=False,
+                misfit_tolerance=1e-1,
             )
             sensitivity_weights = directives.UpdateSensitivityWeights()
             update_Jacobi = directives.UpdatePreconditioner()
@@ -421,7 +420,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         grav_survey = gravity.Survey(grav_srcField)
 
         self.assertRaises(
-            AttributeError,
+            ValueError,
             gravity.SimulationEquivalentSourceLayer,
             mesh3D,
             0.0,
@@ -458,7 +457,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
             -5.0 * np.ones(self.mesh.nC),
             survey=grav_survey,
             rhoMap=subset_idenMap,
-            ind_active=ind_active,
+            active_cells=ind_active,
         )
 
         print("Z_TOP OR Z_BOTTOM LENGTH MATCHING NACTIVE-CELLS ERROR TEST PASSED.")

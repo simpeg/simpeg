@@ -1,1 +1,0 @@
-.. automodule:: SimPEG.flow.richards

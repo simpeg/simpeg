@@ -141,7 +141,7 @@ def test_first_derivatives(dim, alphas, reg_dirs):
     def func(x):
         return reg(x), reg.deriv(x)
 
-    check_derivative(func, np.ones(mesh.n_cells), plotIt=False)
+    check_derivative(func, np.ones(mesh.n_cells), plotIt=False, random_seed=7641)
 
 
 @pytest.mark.parametrize(
@@ -156,7 +156,7 @@ def test_second_derivatives(dim, alphas, reg_dirs):
     def func(x):
         return reg.deriv(x), lambda v: reg.deriv2(x, v)
 
-    check_derivative(func, np.ones(mesh.n_cells), plotIt=False)
+    check_derivative(func, np.ones(mesh.n_cells), plotIt=False, random_seed=5876231)
 
 
 @pytest.mark.parametrize("with_active_cells", [True, False])

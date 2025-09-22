@@ -1,0 +1,36 @@
+jobs:
+  - job:
+    pool:
+      vmImage: "ubuntu-latest"
+    displayName: Upload to Codecov
+    steps:
+      # Checkout simpeg repo. Codecov needs the repo in the file system for
+      # uploading coverage reports.
+      - checkout: self
+        displayName: "Checkout repository"
+
+      - task: DownloadPipelineArtifact@2
+        inputs:
+          patterns: "coverage-*/coverage-*.xml"
+        displayName: "Download coverage artifacts"
+
+      - bash: ls -la $(Pipeline.Workspace)/coverage-*/coverage-*.xml
+        displayName: "List downloaded coverage artifacts"
+
+      - bash: |
+          cp $(Pipeline.Workspace)/coverage-*/coverage-*.xml .
+          ls -la
+        displayName: "Copy coverage files"
+
+      - bash: |
+          curl -Os https://uploader.codecov.io/latest/linux/codecov
+          chmod +x codecov
+        displayName: "Install codecov cli"
+
+      - bash: |
+          cc_file_args=()
+          for report in coverage-*.xml; do
+              cc_file_args+=( " --file " "$report" )
+          done
+          ./codecov --verbose upload-process "$cc_file_args"
+        displayName: "Upload coverage to codecov.io"

@@ -18,10 +18,10 @@ def JvecAdjointTest_1D(sigmaHalf, formulation="PrimSec"):
 
     # Define a receiver for each data type as a list
     receivers_list = [
-        nsem.receivers.PointNaturalSource(component="real"),
-        nsem.receivers.PointNaturalSource(component="imag"),
-        nsem.receivers.PointNaturalSource(component="app_res"),
-        nsem.receivers.PointNaturalSource(component="phase"),
+        nsem.receivers.Impedance([[]], component="real"),
+        nsem.receivers.Impedance([[]], component="imag"),
+        nsem.receivers.Impedance([[]], component="app_res"),
+        nsem.receivers.Impedance([[]], component="phase"),
     ]
 
     # Use a list to define the planewave source at each frequency and assign receivers
@@ -50,9 +50,9 @@ def JvecAdjointTest_1D(sigmaHalf, formulation="PrimSec"):
     m = np.r_[sigma_model, layer_thicknesses]
     u = simulation.fields(m)
 
-    np.random.seed(1983)
-    v = np.random.rand(survey.nD)
-    w = np.random.rand(len(m))
+    rng = np.random.default_rng(seed=1983)
+    v = rng.uniform(size=survey.nD)
+    w = rng.uniform(size=len(m))
 
     vJw = v.dot(simulation.Jvec(m, w, u))
     wJtv = w.dot(simulation.Jtvec(m, v, u))
@@ -80,14 +80,10 @@ def JvecAdjointTest(sigmaHalf, formulation="PrimSec"):
     m = sigma
     u = problem.fields(m)
 
-    np.random.seed(1983)
-    v = np.random.rand(
-        survey.nD,
-    )
+    rng = np.random.default_rng(seed=1983)
+    v = rng.uniform(size=survey.nD)
     # print problem.PropMap.PropModel.nP
-    w = np.random.rand(
-        problem.mesh.nC,
-    )
+    w = rng.uniform(size=problem.mesh.nC)
 
     vJw = v.ravel().dot(problem.Jvec(m, w, u))
     wJtv = w.ravel().dot(problem.Jtvec(m, v, u))

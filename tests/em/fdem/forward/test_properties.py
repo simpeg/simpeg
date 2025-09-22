@@ -44,12 +44,13 @@ def test_source_properties_validation():
     # LineCurrent
     with pytest.raises(TypeError):
         fdem.sources.LineCurrent([], frequency, location=["a", "b", "c"])
+    rng = np.random.default_rng(seed=42)
+    random_locations = rng.normal(size=(5, 3, 2))
     with pytest.raises(ValueError):
-        fdem.sources.LineCurrent([], frequency, location=np.random.rand(5, 3, 2))
+        fdem.sources.LineCurrent([], frequency, location=random_locations)
+    random_locations = rng.normal(size=(5, 3))
     with pytest.raises(ValueError):
-        fdem.sources.LineCurrent(
-            [], frequency, location=np.random.rand(5, 3), current=0.0
-        )
+        fdem.sources.LineCurrent([], frequency, location=random_locations, current=0.0)
 
 
 def test_bad_source_type():

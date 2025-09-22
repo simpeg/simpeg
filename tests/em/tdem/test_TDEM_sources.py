@@ -1,4 +1,3 @@
-import pytest
 import unittest
 
 import numpy as np
@@ -6,7 +5,6 @@ import scipy.sparse as sp
 from discretize.tests import check_derivative
 from numpy.testing import assert_array_almost_equal
 from simpeg.electromagnetics.time_domain.sources import (
-    CircularLoop,
     ExponentialWaveform,
     HalfSineWaveform,
     PiecewiseLinearWaveform,
@@ -73,7 +71,7 @@ class TestRampOffWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
-        assert check_derivative(f, t0, dx=dt, plotIt=False)
+        assert check_derivative(f, t0, dx=dt, plotIt=False, random_seed=5421)
 
 
 class TestVTEMWaveform(unittest.TestCase):
@@ -115,7 +113,7 @@ class TestVTEMWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
-        assert check_derivative(f, t0, dx=dt, plotIt=False)
+        assert check_derivative(f, t0, dx=dt, plotIt=False, random_seed=643)
 
 
 class TestTrapezoidWaveform(unittest.TestCase):
@@ -157,7 +155,7 @@ class TestTrapezoidWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
-        assert check_derivative(f, t0, dx=dt, plotIt=False)
+        assert check_derivative(f, t0, dx=dt, plotIt=False, random_seed=5277)
 
 
 class TestTriangularWaveform(unittest.TestCase):
@@ -195,7 +193,7 @@ class TestTriangularWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
-        assert check_derivative(f, t0, dx=dt, plotIt=False)
+        assert check_derivative(f, t0, dx=dt, plotIt=False, random_seed=874)
 
 
 class TestQuarterSineRampOnWaveform(unittest.TestCase):
@@ -268,7 +266,7 @@ class TestQuarterSineRampOnWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
-        assert check_derivative(f, t0, dx=dt, plotIt=False)
+        assert check_derivative(f, t0, dx=dt, plotIt=False, random_seed=7564)
 
     def test_waveform_without_plateau_derivative(self):
         # Test the waveform derivative at points between the time_nodes
@@ -290,7 +288,7 @@ class TestQuarterSineRampOnWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
-        assert check_derivative(f, t0, dx=dt, plotIt=False)
+        assert check_derivative(f, t0, dx=dt, plotIt=False, random_seed=12)
 
     def test_waveform_negative_plateau_derivative(self):
         # Test the waveform derivative at points between the time_nodes
@@ -312,7 +310,7 @@ class TestQuarterSineRampOnWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
-        assert check_derivative(f, t0, dx=dt, plotIt=False)
+        assert check_derivative(f, t0, dx=dt, plotIt=False, random_seed=52)
 
 
 class TestHalfSineWaveform(unittest.TestCase):
@@ -372,7 +370,7 @@ class TestHalfSineWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
-        assert check_derivative(f, t0, dx=dt, plotIt=False)
+        assert check_derivative(f, t0, dx=dt, plotIt=False, random_seed=5)
 
     def test_waveform_without_plateau_derivative(self):
         # Test the waveform derivative at points between the time_nodes
@@ -392,7 +390,7 @@ class TestHalfSineWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
-        assert check_derivative(f, t0, dx=dt, plotIt=False)
+        assert check_derivative(f, t0, dx=dt, plotIt=False, random_seed=6)
 
 
 class TestPiecewiseLinearWaveform(unittest.TestCase):
@@ -430,7 +428,7 @@ class TestPiecewiseLinearWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
-        assert check_derivative(f, t0, dx=dt, plotIt=False)
+        assert check_derivative(f, t0, dx=dt, plotIt=False, random_seed=11)
 
 
 class TestExponentialWaveform(unittest.TestCase):
@@ -520,25 +518,9 @@ class TestExponentialWaveform(unittest.TestCase):
         )
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
-        assert check_derivative(f, t0, dx=dt, plotIt=False)
+        assert check_derivative(f, t0, dx=dt, plotIt=False, random_seed=5555)
 
 
 def test_simple_source():
     waveform = StepOffWaveform()
     assert waveform.eval(0.0) == 1.0
-
-
-def test_removal_circular_loop_n():
-    """
-    Test if passing the N argument to CircularLoop raises an error
-    """
-    msg = "'N' property has been removed. Please use 'n_turns'."
-    with pytest.raises(TypeError, match=msg):
-        CircularLoop(
-            [],
-            waveform=StepOffWaveform(),
-            location=np.array([0.0, 0.0, 0.0]),
-            radius=1.0,
-            current=0.5,
-            N=2,
-        )

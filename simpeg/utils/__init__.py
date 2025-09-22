@@ -11,6 +11,17 @@ Many of the utilities are imported from `discretize.utils`. See that package's
 documentation for many details on items.
 
 
+Logger
+======
+Function to fetch the SimPEG logger. It can be used to stream messages to the logger,
+and to temporarily adjust its configuration (e.g. change log level).
+
+.. autosummary::
+  :toctree: generated/
+
+  get_logger
+
+
 Counter Utility Functions
 =========================
 
@@ -76,6 +87,7 @@ Model Utility Functions
   :toctree: generated/
 
   depth_weighting
+  distance_weighting
   model_builder.add_block
   model_builder.create_2_layer_model
   model_builder.create_block_in_wholespace
@@ -141,10 +153,29 @@ Many of the functions here are used internally to SimPEG and have minimal docume
   validate_direction
   validate_active_indices
 
+Solver utilities
+----------------
+Functions to get and set the default solver meant to be used in PDE simulations.
+
+.. autosummary::
+  :toctree: generated/
+
+  get_default_solver
+  set_default_solver
+
+Custom warnings
+---------------
+List of custom warnings used in SimPEG.
+
+.. autosummary::
+  :toctree: generated/
+
+  PerformanceWarning
 """
 
 from discretize.utils.interpolation_utils import interpolation_matrix
 
+from .logger import get_logger
 from .code_utils import (
     mem_profile_class,
     hook,
@@ -225,7 +256,7 @@ from .coord_utils import (
     rotation_matrix_from_normals,
     rotate_points_from_normals,
 )
-from .model_utils import depth_weighting
+from .model_utils import depth_weighting, distance_weighting
 from .plot_utils import plot2Ddata, plotLayer, plot_1d_layer_model
 from .io_utils import download
 from .pgi_utils import (
@@ -235,46 +266,5 @@ from .pgi_utils import (
     GaussianMixtureWithNonlinearRelationships,
     GaussianMixtureWithNonlinearRelationshipsWithPrior,
 )
-
-# Deprecated imports
-interpmat = deprecate_function(
-    interpolation_matrix, "interpmat", removal_version="0.19.0", error=True
-)
-
-from .code_utils import (
-    memProfileWrapper,
-    setKwargs,
-    printTitles,
-    printLine,
-    checkStoppers,
-    printStoppers,
-    printDone,
-    callHooks,
-    dependentProperty,
-    asArray_N_x_Dim,
-)
-from .mat_utils import (
-    sdInv,
-    getSubArray,
-    inv3X3BlockDiagonal,
-    inv2X2BlockDiagonal,
-    makePropertyTensor,
-    invPropertyTensor,
-    diagEst,
-    uniqueRows,
-)
-from .mesh_utils import (
-    meshTensor,
-    closestPoints,
-    ExtractCoreMesh,
-)
-from .curv_utils import (
-    volTetra,
-    faceInfo,
-    indexCube,
-    exampleLrmGrid,
-)
-from .coord_utils import (
-    rotatePointsFromNormals,
-    rotationMatrixFromNormals,
-)
+from .solver_utils import get_default_solver, set_default_solver
+from .warnings import PerformanceWarning

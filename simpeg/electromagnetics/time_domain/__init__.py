@@ -1,10 +1,28 @@
-"""
+r"""
 ==============================================================================
 Time-Domain EM (:mod:`simpeg.electromagnetics.time_domain`)
 ==============================================================================
 .. currentmodule:: simpeg.electromagnetics.time_domain
 
-About ``time_domain``
+The ``time_domain`` module contains functionality for solving Maxwell's equations
+in the time-domain for controlled sources. Here, electric displacement is ignored,
+and functionality is used to solve:
+
+.. math::
+    \begin{align}
+    \nabla \times \vec{e} + \frac{\partial \vec{b}}{\partial t} &= -\frac{\partial \vec{s}_m}{\partial t} \\
+    \nabla \times \vec{h} - \vec{j} &= \vec{s}_e
+    \end{align}
+
+where the constitutive relations between fields and fluxes are given by:
+
+* :math:`\vec{j} = \sigma \vec{e}`
+* :math:`\vec{b} = \mu \vec{h}`
+
+and:
+
+* :math:`\vec{s}_m` represents a magnetic source term
+* :math:`\vec{s}_e` represents a current source term
 
 Simulations
 ===========

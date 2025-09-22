@@ -161,7 +161,9 @@ active_map = maps.InjectActiveCells(mesh, ind_active, air_value)
 model = np.r_[
     background_value, pipe_value, rc, dr, 0.0, 1.0, zc, dz
 ]  # add dummy values for phi
-parametric_map = maps.ParametricBlock(mesh, indActive=ind_active, epsilon=1e-10, p=8.0)
+parametric_map = maps.ParametricBlock(
+    mesh, active_cells=ind_active, epsilon=1e-10, p=8.0
+)
 
 # Define a single mapping from model to mesh
 model_map = active_map * parametric_map

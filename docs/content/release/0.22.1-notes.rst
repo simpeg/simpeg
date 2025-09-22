@@ -1,0 +1,35 @@
+.. _0.22.1_notes:
+
+===========================
+SimPEG 0.22.1 Release Notes
+===========================
+
+July 5th, 2024
+
+.. contents:: Highlights
+    :depth: 2
+
+Updates
+=======
+
+This patch release includes and improvement in one of the import lines, fixing
+an bug that was making importing frequency domain modules in :mod:`simpeg` to
+fail when working with :mod:`matplotlib` ``>=3.9.0``.
+
+It also enables the version warning banner in PyData Sphinx theme, allowing
+users to quickly notice if the docs they are reading are not the latest ones.
+
+Contributors
+============
+
+- `@santisoler <https://github.com/santisoler>`__
+
+Pull Requests
+=============
+
+-  Configure version warning banner in Sphinx by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1501
+-  Improve imports in natural source utils by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1503
+-  Deploy to TestPyPI only on nightly builds by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1509

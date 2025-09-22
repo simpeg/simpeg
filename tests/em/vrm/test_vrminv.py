@@ -58,7 +58,7 @@ class VRM_inversion_tests(unittest.TestCase):
         Survey.t_active = np.zeros(Survey.nD, dtype=bool)
         Survey.set_active_interval(-1e6, 1e6)
         Problem = vrm.Simulation3DLinear(meshObj, survey=Survey, refinement_factor=2)
-        dobs = Problem.make_synthetic_data(mod)
+        dobs = Problem.make_synthetic_data(mod, random_seed=40)
         Survey.noise_floor = 1e-11
 
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=Problem)

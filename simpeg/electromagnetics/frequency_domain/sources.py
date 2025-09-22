@@ -14,7 +14,6 @@ from ...utils import (
     validate_direction,
     validate_integer,
 )
-from ...utils.code_utils import deprecate_property
 
 from ..utils import omega
 from ..utils import segmented_line_current_source_term, line_through_faces
@@ -473,7 +472,9 @@ class MagDipole(BaseFDEMSrc):
         return self.__dipole
 
     def _srcFct(self, obsLoc, coordinates="cartesian"):
-        return self._dipole.vector_potential(obsLoc, coordinates=coordinates)
+        out = self._dipole.vector_potential(obsLoc, coordinates=coordinates)
+        out[np.isnan(out)] = 0
+        return out
 
     def bPrimary(self, simulation):
         """Compute primary magnetic flux density.
@@ -683,7 +684,9 @@ class MagDipole_Bfield(MagDipole):
                 location=self.location,
                 moment=self.moment,
             )
-        return self._dipole.magnetic_flux_density(obsLoc, coordinates=coordinates)
+        out = self._dipole.magnetic_flux_density(obsLoc, coordinates=coordinates)
+        out[np.isnan(out)] = 0
+        return out
 
     def bPrimary(self, simulation):
         """
@@ -769,10 +772,6 @@ class CircularLoop(MagDipole):
         **kwargs,
     ):
         kwargs.pop("moment", None)
-
-        # Raise error on deprecated arguments
-        if (key := "N") in kwargs.keys():
-            raise TypeError(f"'{key}' property has been removed. Please use 'n_turns'.")
         self.n_turns = n_turns
 
         super().__init__(
@@ -869,11 +868,9 @@ class CircularLoop(MagDipole):
                 radius=self.radius,
                 current=self.current,
             )
-        return self.n_turns * self._loop.vector_potential(obsLoc, coordinates)
-
-    N = deprecate_property(
-        n_turns, "N", "n_turns", removal_version="0.19.0", error=True
-    )
+        out = self._loop.vector_potential(obsLoc, coordinates)
+        out[np.isnan(out)] = 0
+        return self.n_turns * out
 
 
 class PrimSecSigma(BaseFDEMSrc):

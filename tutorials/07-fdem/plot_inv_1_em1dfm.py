@@ -270,9 +270,7 @@ update_Jacobi = directives.UpdatePreconditioner()
 save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
 
 # Directive for the IRLS
-update_IRLS = directives.Update_IRLS(
-    max_irls_iterations=30, minGNiter=1, coolEpsFact=1.5, update_beta=True
-)
+update_IRLS = directives.UpdateIRLS(max_irls_iterations=30, irls_cooling_factor=1.5)
 
 # Updating the preconditionner if it is model dependent.
 update_jacobi = directives.UpdatePreconditioner()

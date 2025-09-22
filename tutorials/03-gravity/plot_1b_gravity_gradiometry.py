@@ -211,7 +211,7 @@ simulation = gravity.simulation.Simulation3DIntegral(
     survey=survey,
     mesh=mesh,
     rhoMap=model_map,
-    ind_active=ind_active,
+    active_cells=ind_active,
     store_sensitivities="forward_only",
     engine="choclo",
 )

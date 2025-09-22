@@ -2,7 +2,6 @@ import numpy as np
 from discretize import TensorMesh
 from simpeg.electromagnetics import natural_source as nsem
 from simpeg import maps
-from pymatsolver import Pardiso
 import unittest
 
 
@@ -27,18 +26,14 @@ class FiniteVolume1DTest(unittest.TestCase):
         self.frequencies = np.logspace(-2, 1, 30)
 
         rx_list = [
-            nsem.receivers.PointNaturalSource(
+            nsem.receivers.Impedance(
                 [[0]], orientation="xy", component="apparent_resistivity"
             ),
-            nsem.receivers.PointNaturalSource(
-                [[0]], orientation="xy", component="phase"
-            ),
-            nsem.receivers.PointNaturalSource(
+            nsem.receivers.Impedance([[0]], orientation="xy", component="phase"),
+            nsem.receivers.Impedance(
                 [[0]], orientation="yx", component="apparent_resistivity"
             ),
-            nsem.receivers.PointNaturalSource(
-                [[0]], orientation="yx", component="phase"
-            ),
+            nsem.receivers.Impedance([[0]], orientation="yx", component="phase"),
         ]
         # simulation
         src_list = [
@@ -50,14 +45,12 @@ class FiniteVolume1DTest(unittest.TestCase):
         if formulation == "e":
             return nsem.simulation.Simulation1DElectricField(
                 mesh=self.mesh,
-                solver=Pardiso,
                 survey=self.survey,
                 sigmaMap=maps.IdentityMap(),
             )
         elif formulation == "h":
             return nsem.simulation.Simulation1DMagneticField(
                 mesh=self.mesh,
-                solver=Pardiso,
                 survey=self.survey,
                 sigmaMap=maps.IdentityMap(),
             )

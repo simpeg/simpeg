@@ -1,3 +1,4 @@
+import pytest
 import unittest
 import numpy as np
 import discretize
@@ -13,8 +14,6 @@ class VRM_fwd_tests(unittest.TestCase):
     seed = 518936
 
     def test_predict_dipolar(self):
-        np.random.seed(self.seed)
-
         h = [0.05, 0.05]
         meshObj = discretize.TensorMesh((h, h, h), x0="CCC")
 
@@ -26,8 +25,9 @@ class VRM_fwd_tests(unittest.TestCase):
         times = np.logspace(-4, -2, 3)
         waveObj = vrm.waveforms.SquarePulse(delt=0.02)
 
-        phi = np.random.uniform(-np.pi, np.pi)
-        psi = np.random.uniform(-np.pi, np.pi)
+        rng = np.random.default_rng(seed=self.seed)
+        phi = rng.uniform(low=-np.pi, high=np.pi)
+        psi = rng.uniform(low=-np.pi, high=np.pi)
         R = 2.0
         loc_rx = (
             R * np.c_[np.sin(phi) * np.cos(psi), np.sin(phi) * np.sin(psi), np.cos(phi)]
@@ -43,8 +43,9 @@ class VRM_fwd_tests(unittest.TestCase):
             vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="z")
         )
 
-        alpha = np.random.uniform(0, np.pi)
-        beta = np.random.uniform(-np.pi, np.pi)
+        rng = np.random.default_rng(seed=self.seed)
+        alpha = rng.uniform(low=0, high=np.pi)
+        beta = rng.uniform(low=-np.pi, high=np.pi)
         loc_tx = [0.0, 0.0, 0.0]
         Src = vrm.sources.CircLoop(
             receiver_list, loc_tx, 25.0, np.r_[alpha, beta], 1.0, waveObj
@@ -94,8 +95,6 @@ class VRM_fwd_tests(unittest.TestCase):
         computed.
         """
 
-        np.random.seed(self.seed)
-
         h = [0.5, 0.5]
         meshObj = discretize.TensorMesh((h, h, h), x0="CCC")
 
@@ -107,8 +106,9 @@ class VRM_fwd_tests(unittest.TestCase):
         times = np.logspace(-4, -2, 3)
         waveObj = vrm.waveforms.SquarePulse(delt=0.02)
 
-        phi = np.random.uniform(-np.pi, np.pi)
-        psi = np.random.uniform(-np.pi, np.pi)
+        rng = np.random.default_rng(seed=self.seed)
+        phi = rng.uniform(low=-np.pi, high=np.pi)
+        psi = rng.uniform(low=-np.pi, high=np.pi)
         Rrx = 3.0
         loc_rx = (
             Rrx
@@ -125,8 +125,9 @@ class VRM_fwd_tests(unittest.TestCase):
             vrm.receivers.Point(loc_rx, times=times, field_type="dhdt", orientation="z")
         )
 
-        alpha = np.random.uniform(0, np.pi)
-        beta = np.random.uniform(-np.pi, np.pi)
+        rng = np.random.default_rng(seed=self.seed)
+        alpha = rng.uniform(low=0, high=np.pi)
+        beta = rng.uniform(low=-np.pi, high=np.pi)
         Rtx = 4.0
         loc_tx = (
             Rtx
@@ -424,8 +425,6 @@ class VRM_fwd_tests(unittest.TestCase):
         are correct.
         """
 
-        np.random.seed(self.seed)
-
         h1 = [0.25, 0.25]
         meshObj_Tensor = discretize.TensorMesh((h1, h1, h1), x0="CCN")
 
@@ -439,8 +438,9 @@ class VRM_fwd_tests(unittest.TestCase):
         times = np.array([1e-3])
         waveObj = vrm.waveforms.SquarePulse(delt=0.02)
 
-        phi = np.random.uniform(-np.pi, np.pi)
-        psi = np.random.uniform(-np.pi, np.pi)
+        rng = np.random.default_rng(seed=self.seed)
+        phi = rng.uniform(low=-np.pi, high=np.pi)
+        psi = rng.uniform(low=-np.pi, high=np.pi)
         R = 5.0
         loc_rx = (
             R * np.c_[np.sin(phi) * np.cos(psi), np.sin(phi) * np.sin(psi), np.cos(phi)]
@@ -522,6 +522,65 @@ class VRM_fwd_tests(unittest.TestCase):
         Test = np.all(Err < 1e-6)
 
         self.assertTrue(Test)
+
+
+class TestDeprecatedIndActive:
+    """Test deprecated ``indActive`` argument in viscous remanent mag simulations."""
+
+    CLASSES = (
+        vrm.BaseVRMSimulation,
+        vrm.Simulation3DLinear,
+        vrm.Simulation3DLogUniform,
+    )
+    OLD_NAME = "indActive"
+    NEW_NAME = "active_cells"
+
+    @pytest.fixture
+    def mesh(self):
+        """Sample mesh."""
+        return discretize.TensorMesh([10, 10, 10], "CCN")
+
+    @pytest.fixture
+    def active_cells(self, mesh):
+        """Sample active cells for the mesh."""
+        active_cells = np.ones(mesh.n_cells, dtype=bool)
+        active_cells[0] = False
+        return active_cells
+
+    @pytest.mark.parametrize("simulation", CLASSES)
+    def test_error_argument(self, mesh, active_cells, simulation):
+        """
+        Test if error is raised after passing ``indActive`` to the constructor.
+        """
+        msg = (
+            "'indActive' was removed in SimPEG v0.24.0, "
+            "please use 'active_cells' instead."
+        )
+        with pytest.raises(TypeError, match=msg):
+            simulation(mesh, indActive=active_cells)
+
+    @pytest.mark.parametrize("simulation", CLASSES)
+    def test_error_accessing_property(self, mesh, active_cells, simulation):
+        """
+        Test error when trying to access the ``indActive`` property.
+        """
+        sim = simulation(mesh, active_cells=active_cells)
+        msg = f"{self.OLD_NAME} has been removed, please use {self.NEW_NAME}"
+        with pytest.raises(NotImplementedError, match=msg):
+            sim.indActive
+
+    @pytest.mark.parametrize("simulation", CLASSES)
+    def test_error_setter(self, mesh, active_cells, simulation):
+        """
+        Test error when trying to set the ``indActive`` property.
+        """
+        sim = simulation(mesh, active_cells=active_cells)
+        # Define new active cells to pass to the setter
+        new_active_cells = active_cells.copy()
+        new_active_cells[-4:] = False
+        msg = f"{self.OLD_NAME} has been removed, please use {self.NEW_NAME}"
+        with pytest.raises(NotImplementedError, match=msg):
+            sim.indActive = new_active_cells
 
 
 if __name__ == "__main__":
