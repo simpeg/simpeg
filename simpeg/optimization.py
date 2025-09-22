@@ -1,5 +1,7 @@
+import warnings
+
 import numpy as np
-import scipy
+import numpy.typing as npt
 import scipy.sparse as sp
 
 from pymatsolver import Solver, Diagonal, SolverCG
@@ -13,26 +15,14 @@ from .utils import (
     print_line,
     print_stoppers,
     print_done,
+    validate_float,
+    validate_integer,
+    validate_type,
+    validate_ndarray_with_shape,
+    deprecate_property,
 )
 
 norm = np.linalg.norm
-
-
-# Create a flag if the installed version of SciPy is newer or equal to 1.12.0
-# (Used to choose whether to pass `tol` or `rtol` to the solvers. See #1516).
-class Version:
-    def __init__(self, version):
-        self.version = version
-
-    def as_tuple(self) -> tuple[int, int]:
-        major, minor = tuple(int(p) for p in self.version.split(".")[:2])
-        return (major, minor)
-
-    def __ge__(self, other):
-        return self.as_tuple() >= other.as_tuple()
-
-
-SCIPY_1_12 = Version(scipy.__version__) >= Version("1.12.0")
 
 
 __all__ = [
@@ -248,6 +238,22 @@ class IterationPrinters(object):
         "format": "%3d",
     }
 
+    iteration_CG_rel_residual = {
+        "title": "CG |Ax-b|/|b|",
+        "value": lambda M: M.cg_rel_resid,
+        "width": 15,
+        "format": "%1.2e",
+        # "format": lambda v: f"{v:1.2e}",
+    }
+
+    iteration_CG_abs_residual = {
+        "title": "CG |Ax-b|",
+        "value": lambda M: M.cg_abs_resid,
+        "width": 11,
+        "format": "%1.2e",
+        # "format": lambda v: f"{v:1.2e}",
+    }
+
 
 class Minimize(object):
     """
@@ -341,7 +347,7 @@ class Minimize(object):
         self._callback = value
 
     @timeIt
-    def minimize(self, evalFunction, x0):
+    def minimize(self, evalFunction, x0) -> np.ndarray:
         """minimize(evalFunction, x0)
 
         Minimizes the function (evalFunction) starting at the location x0.
@@ -440,7 +446,11 @@ class Minimize(object):
         self.iterLS = 0
         self.stopNextIteration = False
 
-        x0 = self.projection(x0)  # ensure that we start of feasible.
+        try:
+            x0 = self.projection(x0)  # ensure that we start of feasible.
+        except Exception as err:
+            raise RuntimeError("Initial model is not projectable") from err
+
         self.x0 = x0
         self.xc = x0
         self.f_last = np.nan
@@ -778,17 +788,240 @@ class Remember(object):
                 self._rememberList[param[0]].append(param[1](self))
 
 
-class ProjectedGradient(Minimize, Remember):
+class Bounded(object):
+    """Mixin class for bounded minimizers
+
+    Parameters
+    ----------
+    lower, upper : float or numpy.ndarray, optional
+        The lower and upper bounds.
+    """
+
+    def __init__(
+        self,
+        *,
+        lower: None | float | npt.NDArray[np.float64],
+        upper: None | float | npt.NDArray[np.float64] = None,
+        **kwargs,
+    ):
+        self.lower = lower
+        self.upper = upper
+        super().__init__(**kwargs)
+
+    @property
+    def lower(self) -> None | float | npt.NDArray[np.float64]:
+        """The lower bound value.
+
+        Returns
+        -------
+        lower : None, float, numpy.ndarray
+        """
+        return self._lower
+
+    @lower.setter
+    def lower(self, value):
+        if value is not None:
+            try:
+                value = validate_float("lower", value)
+            except TypeError:
+                value = validate_ndarray_with_shape("lower", value, shape=("*",))
+        self._lower = value
+
+    @property
+    def upper(self) -> None | float | npt.NDArray[np.float64]:
+        """The upper bound value.
+
+        Returns
+        -------
+        upper : None, float, numpy.ndarray
+        """
+        return self._upper
+
+    @upper.setter
+    def upper(self, value):
+        if value is not None:
+            try:
+                value = validate_float("upper", value)
+            except TypeError:
+                value = validate_ndarray_with_shape("upper", value, shape=("*",))
+        self._upper = value
+
+    @count
+    def projection(self, x: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+        """projection(x)
+
+        Make sure we are feasible.
+
+        """
+        if self.lower is not None:
+            x = np.maximum(x, self.lower)
+        if self.upper is not None:
+            x = np.minimum(x, self.upper)
+        return x
+
+    @count
+    def activeSet(self, x: npt.NDArray[np.float64]) -> npt.NDArray[bool]:
+        """activeSet(x)
+
+        If we are on a bound
+
+        """
+        out = np.zeros(x.shape, dtype=bool)
+        if self.lower is not None:
+            out |= x <= self.lower
+        if self.upper is not None:
+            out |= x >= self.upper
+        return out
+
+    @count
+    def inactiveSet(self, x: npt.NDArray[np.float64]) -> npt.NDArray[bool]:
+        """inactiveSet(x)
+
+        The free variables.
+
+        """
+        return np.logical_not(self.activeSet(x))
+
+    @count
+    def bindingSet(self, x: npt.NDArray[np.float64]) -> npt.NDArray[bool]:
+        """bindingSet(x)
+
+        If we are on a bound and the negative gradient points away from the
+        feasible set.
+
+        Optimality condition. (Satisfies Kuhn-Tucker) MoreToraldo91
+
+        """
+        out = np.zeros(x.shape, dtype=bool)
+        if self.lower is not None:
+            out |= (x <= self.lower) & (self.g >= 0)
+        if self.upper is not None:
+            out |= (x >= self.upper) & (self.g <= 0)
+        return out
+
+
+class InexactCG(object):
+    """Mixin to hold common parameters for a CG solver.
+
+    Parameters
+    ----------
+    cg_rtol : float, optional
+        Relative tolerance stopping condition on the CG residual
+    cg_atol : float, optional
+        Absolute tolerance stopping condition on the CG residual
+    cg_maxiter : int, optional
+        Maximum number of CG iterations to perform
+
+    Notes
+    -----
+
+    The convergence check for CG is:
+    >>> norm(A @ x_k - b) <= max(cg_rtol * norm(A @ x_0 - b), cg_atol)
+
+    See Also
+    --------
+    scipy.sparse.linalg.cg
+
+    """
+
+    def __init__(
+        self,
+        *,
+        cg_rtol: float = 1e-1,
+        cg_atol: float = 0,
+        cg_maxiter: int = 5,
+        **kwargs,
+    ):
+
+        if (val := kwargs.pop("tolCG", None)) is not None:
+            self.tolCG = val  # Deprecated cg_rtol
+        else:
+            self.cg_rtol = cg_rtol
+        self.cg_atol = cg_atol
+
+        if (val := kwargs.pop("maxIterCG", None)) is not None:
+            self.maxIterCG = val
+        else:
+            self.cg_maxiter = cg_maxiter
+
+        super().__init__(**kwargs)
+
+    @property
+    def cg_atol(self) -> float:
+        """Absolute tolerance for inner CG iterations.
+
+        CG iterations are terminated if:
+        >>> norm(A @ x_k - b) <= max(cg_rtol * norm(A @ x_0 - b), cg_atol)
+
+        or if the maximum number of CG iterations is reached.
+
+        Returns
+        -------
+        float
+
+        See Also
+        --------
+        cg_rtol, scipy.sparse.linalg.cg
+        """
+        return self._cg_atol
+
+    @cg_atol.setter
+    def cg_atol(self, value):
+        self._cg_atol = validate_float("cg_atol", value, min_val=0, inclusive_min=True)
+
+    @property
+    def cg_rtol(self) -> float:
+        """Relative tolerance for inner CG iterations.
+
+        CG iterations are terminated if:
+        >>> norm(A @ x_k - b) <= max(cg_rtol * norm(A @ x_0 - b), cg_atol)
+
+        or if the maximum number of CG iterations is reached.
+
+        Returns
+        -------
+        float
+
+        See Also
+        --------
+        cg_rtol, scipy.sparse.linalg.cg
+        """
+        return self._cg_rtol
+
+    @cg_rtol.setter
+    def cg_rtol(self, value):
+        self._cg_rtol = validate_float("cg_rtol", value, min_val=0, inclusive_min=True)
+
+    @property
+    def cg_maxiter(self) -> int:
+        """Maximum number of CG iterations.
+        Returns
+        -------
+        int
+        """
+        return self._cg_maxiter
+
+    @cg_maxiter.setter
+    def cg_maxiter(self, value):
+        self._cg_maxiter = validate_integer("cg_maxiter", value, min_val=1)
+
+    maxIterCG = deprecate_property(
+        cg_maxiter, old_name="maxIterCG", removal_version="0.26.0", future_warn=True
+    )
+    tolCG = deprecate_property(
+        cg_rtol, old_name="tolCG", removal_version="0.26.0", future_warn=True
+    )
+
+
+class ProjectedGradient(Bounded, InexactCG, Minimize, Remember):
     name = "Projected Gradient"
 
-    maxIterCG = 5
-    tolCG = 1e-1
-
-    lower = -np.inf
-    upper = np.inf
-
-    def __init__(self, **kwargs):
-        super(ProjectedGradient, self).__init__(**kwargs)
+    def __init__(
+        self, *, lower=-np.inf, upper=np.inf, cg_rtol=1e-1, cg_maxiter=5, **kwargs
+    ):
+        super().__init__(
+            lower=lower, upper=upper, cg_rtol=cg_rtol, cg_maxiter=cg_maxiter, **kwargs
+        )
 
         self.stoppers.append(StoppingCriteria.bindingSet)
         self.stoppersLS.append(StoppingCriteria.bindingSet_LS)
@@ -802,12 +1035,8 @@ class ProjectedGradient(Minimize, Remember):
             ]
         )
 
-    def _startup(self, x0):
-        # ensure bound vectors are the same size as the model
-        if not isinstance(self.lower, np.ndarray):
-            self.lower = np.ones_like(x0) * self.lower
-        if not isinstance(self.upper, np.ndarray):
-            self.upper = np.ones_like(x0) * self.upper
+    def startup(self, x0):
+        super().startup(x0)
 
         self.explorePG = True
         self.exploreCG = False
@@ -817,47 +1046,6 @@ class ProjectedGradient(Minimize, Remember):
         self.comment = ""
 
         self.aSet_prev = self.activeSet(x0)
-
-    @count
-    def projection(self, x):
-        """projection(x)
-
-        Make sure we are feasible.
-
-        """
-        return np.median(np.c_[self.lower, x, self.upper], axis=1)
-
-    @count
-    def activeSet(self, x):
-        """activeSet(x)
-
-        If we are on a bound
-
-        """
-        return np.logical_or(x == self.lower, x == self.upper)
-
-    @count
-    def inactiveSet(self, x):
-        """inactiveSet(x)
-
-        The free variables.
-
-        """
-        return np.logical_not(self.activeSet(x))
-
-    @count
-    def bindingSet(self, x):
-        """bindingSet(x)
-
-        If we are on a bound and the negative gradient points away from the
-        feasible set.
-
-        Optimality condition. (Satisfies Kuhn-Tucker) MoreToraldo91
-
-        """
-        bind_up = np.logical_and(x == self.lower, self.g >= 0)
-        bind_low = np.logical_and(x == self.upper, self.g <= 0)
-        return np.logical_or(bind_up, bind_low)
 
     @timeIt
     def findSearchDirection(self):
@@ -911,11 +1099,13 @@ class ProjectedGradient(Minimize, Remember):
                 (shape[1], shape[1]), reduceHess, dtype=self.xc.dtype
             )
 
-            # Choose `rtol` or `tol` argument based on installed scipy version
-            tol_key = "rtol" if SCIPY_1_12 else "tol"
-
-            inp = {tol_key: self.tolCG, "maxiter": self.maxIterCG}
-            p, info = sp.linalg.cg(operator, -Z.T * self.g, **inp)
+            p, info = sp.linalg.cg(
+                operator,
+                -Z.T * self.g,
+                rtol=self.cg_rtol,
+                atol=self.cg_atol,
+                maxiter=self.cg_maxiter,
+            )
             p = Z * p  # bring up to full size
             # aSet_after = self.activeSet(self.xc+p)
         return p
@@ -957,9 +1147,6 @@ class ProjectedGradient(Minimize, Remember):
 class BFGS(Minimize, Remember):
     name = "BFGS"
     nbfgs = 10
-
-    def __init__(self, **kwargs):
-        Minimize.__init__(self, **kwargs)
 
     @property
     def bfgsH0(self):
@@ -1042,7 +1229,7 @@ class GaussNewton(Minimize, Remember):
         return Solver(self.H) * (-self.g)
 
 
-class InexactGaussNewton(BFGS, Minimize, Remember):
+class InexactGaussNewton(InexactCG, BFGS):
     r"""
     Minimizes using CG as the inexact solver of
 
@@ -1059,13 +1246,21 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
 
     """
 
-    def __init__(self, **kwargs):
-        Minimize.__init__(self, **kwargs)
+    def __init__(
+        self,
+        *,
+        cg_rtol: float = 1e-1,
+        cg_atol: float = 0.0,
+        cg_maxiter: int = 5,
+        **kwargs,
+    ):
+        super().__init__(
+            cg_rtol=cg_rtol, cg_atol=cg_atol, cg_maxiter=cg_maxiter, **kwargs
+        )
+
+        self._was_default_hinv = False
 
     name = "Inexact Gauss Newton"
-
-    maxIterCG = 5
-    tolCG = 1e-1
 
     @property
     def approxHinv(self):
@@ -1081,7 +1276,9 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
             M = sp.linalg.LinearOperator(
                 (self.xc.size, self.xc.size), self.bfgs, dtype=self.xc.dtype
             )
+            self._was_default_hinv = True
             return M
+        self._was_default_hinv = False
         return _approxHinv
 
     @approxHinv.setter
@@ -1090,12 +1287,19 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
 
     @timeIt
     def findSearchDirection(self):
-        # Choose `rtol` or `tol` argument based on installed scipy version
-        tol_key = "rtol" if SCIPY_1_12 else "tol"
-        inp = {tol_key: self.tolCG, "maxiter": self.maxIterCG}
-        Hinv = SolverCG(self.H, M=self.approxHinv, **inp)
+        Hinv = SolverCG(
+            self.H,
+            M=self.approxHinv,
+            rtol=self.cg_rtol,
+            atol=self.cg_atol,
+            maxiter=self.cg_maxiter,
+        )
         p = Hinv * (-self.g)
         return p
+
+    def _doEndIteration_BFGS(self, xt):
+        if self._was_default_hinv:
+            super()._doEndIteration_BFGS(xt)
 
 
 class SteepestDescent(Minimize, Remember):
@@ -1200,65 +1404,109 @@ class NewtonRoot(object):
         return x
 
 
-class ProjectedGNCG(BFGS, Minimize, Remember):
-    def __init__(self, **kwargs):
-        Minimize.__init__(self, **kwargs)
+class ProjectedGNCG(Bounded, InexactGaussNewton):
+    def __init__(
+        self,
+        *,
+        lower: None | float | npt.NDArray[np.float64] = -np.inf,
+        upper: None | float | npt.NDArray[np.float64] = np.inf,
+        cg_maxiter: int = 5,
+        cg_rtol: float = None,
+        cg_atol: float = None,
+        step_active_set: bool = True,
+        active_set_grad_scale: float = 1e-2,
+        **kwargs,
+    ):
+        if (val := kwargs.pop("tolCG", None)) is not None:
+            # Deprecated path when tolCG is passed.
+            self.tolCG = val
+            cg_atol = val
+            cg_rtol = 0.0
+        elif cg_rtol is None and cg_atol is None:
+            # Note these defaults match previous settings...
+            # but they're not good in general...
+            # Ideally they will change to cg_rtol=1E-3 and cg_atol=0.0
+            warnings.warn(
+                "The defaults for ProjectedGNCG will change in SimPEG 0.26.0. If you want to maintain the "
+                "previous behavior, explicitly set 'cg_atol=1E-3' and 'cg_rtol=0.0'.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            cg_atol = 1e-3
+            cg_rtol = 0.0
+        # defaults for if someone passes just cg_rtol or just cg_atol (to be removed on deprecation removal)
+        # These will likely be the future defaults
+        elif cg_atol is None:
+            cg_atol = 0.0
+        elif cg_rtol is None:
+            cg_rtol = 1e-3
+
+        if (val := kwargs.pop("stepActiveSet", None)) is not None:
+            self.stepActiveSet = val
+        else:
+            self.step_active_set = step_active_set
+
+        if (val := kwargs.pop("stepOffBoundsFact", None)) is not None:
+            self.stepOffBoundsFact = val
+        else:
+            self.active_set_grad_scale = active_set_grad_scale
+
+        super().__init__(
+            lower=lower,
+            upper=upper,
+            cg_maxiter=cg_maxiter,
+            cg_rtol=cg_rtol,
+            cg_atol=cg_atol,
+            **kwargs,
+        )
+
+        # initialize some tracking parameters
+        self.cg_count = 0
+        self.cg_abs_resid = np.inf
+        self.cg_rel_resid = np.inf
+
+        self.printers.extend(
+            [
+                IterationPrinters.iterationCG,
+                IterationPrinters.iteration_CG_rel_residual,
+                IterationPrinters.iteration_CG_abs_residual,
+            ]
+        )
 
     name = "Projected GNCG"
 
-    maxIterCG = 5
-    tolCG = 1e-1
-    cg_count = 0
-    stepOffBoundsFact = 1e-2  # perturbation of the inactive set off the bounds
-    stepActiveset = True
-    lower = -np.inf
-    upper = np.inf
+    @property
+    def step_active_set(self) -> bool:
+        """Whether to include the active set's gradient in the step direction.
 
-    def _startup(self, x0):
-        # ensure bound vectors are the same size as the model
-        if not isinstance(self.lower, np.ndarray):
-            self.lower = np.ones_like(x0) * self.lower
-        if not isinstance(self.upper, np.ndarray):
-            self.upper = np.ones_like(x0) * self.upper
-
-    @count
-    def projection(self, x):
-        """projection(x)
-
-        Make sure we are feasible.
-
+        Returns
+        -------
+        bool
         """
-        return np.median(np.c_[self.lower, x, self.upper], axis=1)
+        return self._step_active_set
 
-    @count
-    def activeSet(self, x):
-        """activeSet(x)
-
-        If we are on a bound
-
-        """
-        return np.logical_or(x <= self.lower, x >= self.upper)
+    @step_active_set.setter
+    def step_active_set(self, value: bool):
+        self._step_active_set = validate_type("step_active_set", value, bool)
 
     @property
-    def approxHinv(self):
+    def active_set_grad_scale(self) -> float:
+        """Scalar to apply to the active set's gradient
+
+        if `step_active_set` is `True`, then the active set's gradient is multiplied by this value
+        when including it in the search direction.
+
+        Returns
+        -------
+        float
         """
-        The approximate Hessian inverse is used to precondition CG.
+        return self._active_set_grad_scale
 
-        Default uses BFGS, with an initial H0 of *bfgsH0*.
-
-        Must be a scipy.sparse.linalg.LinearOperator
-        """
-        _approxHinv = getattr(self, "_approxHinv", None)
-        if _approxHinv is None:
-            M = sp.linalg.LinearOperator(
-                (self.xc.size, self.xc.size), self.bfgs, dtype=self.xc.dtype
-            )
-            return M
-        return _approxHinv
-
-    @approxHinv.setter
-    def approxHinv(self, value):
-        self._approxHinv = value
+    @active_set_grad_scale.setter
+    def active_set_grad_scale(self, value: float):
+        self._active_set_grad_scale = validate_float(
+            "active_set_grad_scale", value, min_val=0, inclusive_min=True
+        )
 
     @timeIt
     def findSearchDirection(self):
@@ -1266,58 +1514,107 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
         findSearchDirection()
         Finds the search direction based on projected CG
         """
+        # remember, "active" means cell with values equal to the limit
+        # "inactive" are cells with values inside the limits.
+
+        # The basic logic of this method is to do CG iterations only
+        # on the inactive set, then also add a scaled gradient for the
+        # active set, (if that gradient points away from the limits.)
+
         self.cg_count = 0
-        Active = self.activeSet(self.xc)
-        temp = sum((np.ones_like(self.xc.size) - Active))
+        active = self.activeSet(self.xc)
+        inactive = ~active
 
         step = np.zeros(self.g.size)
-        resid = -(1 - Active) * self.g
+        resid = inactive * (-self.g)
 
-        r = resid - (1 - Active) * (self.H * step)
+        r = resid  # - Inactive * (self.H * step)#  step is zero
 
         p = self.approxHinv * r
 
         sold = np.dot(r, p)
 
         count = 0
+        r_norm0 = norm(r)
 
-        while np.all([np.linalg.norm(r) > self.tolCG, count < self.maxIterCG]):
+        atol = max(self.cg_rtol * norm(r_norm0), self.cg_atol)
+        if self.debug:
+            print(f"CG Target tolerance: {atol}")
+        r_norm = r_norm0
+        while r_norm > atol and count < self.cg_maxiter:
+            if self.debug:
+                print(f"CG Iteration: {count}, residual norm: {r_norm}")
             count += 1
 
-            q = (1 - Active) * (self.H * p)
+            q = inactive * (self.H * p)
 
             alpha = sold / (np.dot(p, q))
 
             step += alpha * p
 
             r -= alpha * q
+            r_norm = norm(r)
 
             h = self.approxHinv * r
 
             snew = np.dot(r, h)
 
-            p = h + (snew / sold * p)
+            p = h + (snew / sold) * p
 
             sold = snew
             # End CG Iterations
-        self.cg_count += count
+        self.cg_count = count
+        self.cg_abs_resid = r_norm
+        self.cg_rel_resid = r_norm / r_norm0
 
-        # Take a gradient step on the active cells if exist
-        if temp != self.xc.size:
-            rhs_a = (Active) * -self.g
+        # Also include the gradient for cells on the boundary
+        # if that gradient would move them away from the boundary.
+        # aka, active and not bound.
+        bound = self.bindingSet(self.xc)
+        active_not_bound = active & (~bound)
+        if self.step_active_set and np.any(active_not_bound):
+            rhs_a = active_not_bound * -self.g
 
+            # active means x == boundary
+            # bound means x == boundary and g == 0  or -g points beyond boundary
+            # active and not bound means
+            # x == boundary and g neq 0 and g points inside
+            # so can safely discard a non-zero check on
+            # if np.any(rhs_a)
+
+            # reasonable guess at the step length for the gradient on the
+            # active cell boundaries. Basically scale it to have the same
+            # maximum as the cg step on the cells that are not on the
+            # boundary.
             dm_i = max(abs(step))
             dm_a = max(abs(rhs_a))
 
-            # perturb inactive set off of bounds so that they are included
-            # in the step
-            step = step + self.stepOffBoundsFact * (rhs_a * dm_i / dm_a)
+            # add the active set's gradients.
+            step += self.active_set_grad_scale * (rhs_a * dm_i / dm_a)
 
-        # Only keep gradients going in the right direction on the active
-        # set
-        indx = ((self.xc <= self.lower) & (step < 0)) | (
-            (self.xc >= self.upper) & (step > 0)
-        )
-        step[indx] = 0.0
+        # Only keep search directions going in the right direction
+        step[bound] = 0
 
         return step
+
+    stepActiveSet = deprecate_property(
+        step_active_set,
+        old_name="stepActiveSet",
+        removal_version="0.26.0",
+        future_warn=True,
+    )
+
+    stepOffBoundsFact = deprecate_property(
+        active_set_grad_scale,
+        old_name="stepOffBoundsFact",
+        removal_version="0.26.0",
+        future_warn=True,
+    )
+
+    # This was the weird part from before... the default tolerance was used as an absolute tolerance...
+    tolCG = deprecate_property(
+        InexactGaussNewton.cg_atol,
+        old_name="tolCG",
+        removal_version="0.26.0",
+        future_warn=True,
+    )

@@ -219,7 +219,7 @@ class InjectActiveCells(IdentityMap):
 
     @property
     def active_cells(self):
-        """
+        """A boolean array representing the active values in the map's output array.
 
         Returns
         -------
