@@ -239,7 +239,7 @@ reg = reg_rho + reg_t
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.
-opt = optimization.InexactGaussNewton(maxIter=50, maxIterCG=30)
+opt = optimization.InexactGaussNewton(maxIter=50, cg_maxiter=30)
 
 # Define the inverse problem
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
