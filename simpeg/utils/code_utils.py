@@ -1,4 +1,5 @@
 import types
+
 import numpy as np
 from functools import wraps
 import warnings
@@ -933,7 +934,9 @@ def validate_float(
         return var
 
 
-def validate_list_of_types(property_name, var, class_type, ensure_unique=False):
+def validate_list_of_types(
+    property_name, var, class_type, ensure_unique=False, min_n=0, max_n=None
+):
     """Validate list of instances of a certain class
 
     Parameters
@@ -946,6 +949,8 @@ def validate_list_of_types(property_name, var, class_type, ensure_unique=False):
         Class type(s) that are allowed in the list
     ensure_unique : bool, optional
         Checks if all items in the var are unique items.
+    min_n, max_n : int, optional
+        Minimum and maximum supported list length. Defaults accept any length list.
 
     Returns
     -------
@@ -959,8 +964,20 @@ def validate_list_of_types(property_name, var, class_type, ensure_unique=False):
     else:
         raise TypeError(f"{property_name!r} must be a list of {class_type}")
 
-    is_true = [isinstance(x, class_type) for x in var]
-    if np.all(is_true):
+    if max_n is not None:
+        if min_n == max_n and len(var) != max_n:
+            raise ValueError(
+                f"{property_name!r} must have exactly {min_n} item{'s' if min_n != 1 else ''}."
+            )
+        elif len(var) > max_n:
+            raise ValueError(
+                f"{property_name!r} must have at most {max_n} item{'s' if max_n != 1 else ''}."
+            )
+    if len(var) < min_n:
+        raise ValueError(
+            f"{property_name!r} must have at least {min_n} item{'s' if min_n != 1 else ''}."
+        )
+    if all(isinstance(x, class_type) for x in var):
         if ensure_unique and len(set(var)) != len(var):
             raise ValueError(
                 f"The {property_name!r} list must be unique. Cannot re-use items"
@@ -1262,38 +1279,3 @@ def validate_active_indices(property_name, index_arr, n_cells):
     if index_arr.shape != (n_cells,):
         raise ValueError(f"Input 'active_cells' must have shape {(n_cells,)}")
     return index_arr
-
-
-###############################################################
-#                      DEPRECATIONS
-###############################################################
-memProfileWrapper = deprecate_function(
-    mem_profile_class, "memProfileWrapper", removal_version="0.18.0", error=True
-)
-setKwargs = deprecate_function(
-    set_kwargs, "setKwargs", removal_version="0.18.0", error=True
-)
-printTitles = deprecate_function(
-    print_titles, "printTitles", removal_version="0.18.0", error=True
-)
-printLine = deprecate_function(
-    print_line, "printLine", removal_version="0.18.0", error=True
-)
-printStoppers = deprecate_function(
-    print_stoppers, "printStoppers", removal_version="0.18.0", error=True
-)
-checkStoppers = deprecate_function(
-    check_stoppers, "checkStoppers", removal_version="0.18.0", error=True
-)
-printDone = deprecate_function(
-    print_done, "printDone", removal_version="0.18.0", error=True
-)
-callHooks = deprecate_function(
-    call_hooks, "callHooks", removal_version="0.18.0", error=True
-)
-dependentProperty = deprecate_function(
-    dependent_property, "dependentProperty", removal_version="0.18.0", error=True
-)
-asArray_N_x_Dim = deprecate_function(
-    as_array_n_by_dim, "asArray_N_x_Dim", removal_version="0.19.0", error=True
-)

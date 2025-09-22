@@ -150,6 +150,18 @@ def test_list_validation():
             "ListProperty", ["Hello", "Hello", "Hello"], str, ensure_unique=True
         )
 
+    # list is not long enough:
+    with pytest.raises(ValueError, match=r"'ListProperty' must have at least.*"):
+        validate_list_of_types("ListProperty", [1, 2, 3, 4], int, min_n=5)
+
+    # list is too long:
+    with pytest.raises(ValueError, match=r"'ListProperty' must have at most.*"):
+        validate_list_of_types("ListProperty", [1, 2, 3, 4], int, max_n=2)
+
+    # item is not an exact length
+    with pytest.raises(ValueError, match=r"'ListProperty' must have exactly.*"):
+        validate_list_of_types("ListProperty", [1, 2, 3, 4], int, min_n=3, max_n=3)
+
 
 def test_location_validation():
     # simple valid location

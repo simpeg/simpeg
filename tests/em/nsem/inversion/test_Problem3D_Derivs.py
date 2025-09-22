@@ -51,7 +51,7 @@ def test_Jtjdiag_clearing(model_simulation_tuple):
 
 def test_Jmatrix(model_simulation_tuple):
     model, simulation = model_simulation_tuple
-    rng = np.random.default_rng(4421)
+    rng = np.random.default_rng(4422)
     # create random vector
     vec = rng.standard_normal(simulation.survey.nD)
 

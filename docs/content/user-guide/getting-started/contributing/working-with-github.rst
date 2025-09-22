@@ -3,7 +3,7 @@
 Working with Git and GitHub
 ---------------------------
 
-.. image:: https://github.githubassets.com/images/modules/logos_page/Octocat.png
+.. image:: https://octodex.github.com/images/original.png
     :align: right
     :width: 100
     :target: https://github.com
@@ -25,7 +25,7 @@ There are two ways you can clone a repository:
 
 2. Using a desktop client such as SourceTree_ or GitKraken_.
 
-   .. image:: ../../../images/sourceTreeSimPEG.png
+   .. image:: ../../../../images/sourceTreeSimPEG.png
        :align: center
        :width: 400
        :target: https://www.sourcetreeapp.com/
@@ -34,7 +34,7 @@ There are two ways you can clone a repository:
    it is also handy to set up the remote account so it remembers your github_
    user name and password
 
-   .. image:: ../../../images/sourceTreeRemote.png
+   .. image:: ../../../../images/sourceTreeRemote.png
        :align: center
        :width: 400
 

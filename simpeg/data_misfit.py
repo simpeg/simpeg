@@ -225,9 +225,14 @@ class BaseDataMisfit(L2ObjectiveFunction):
         (n_data, ) numpy.ndarray
             The data residual vector.
         """
-        if self.data is None:
-            raise Exception("data must be set before a residual can be calculated.")
-        return self.simulation.residual(m, self.data.dobs, f=f)
+        dpred = self.simulation.dpred(m, f=f)
+        if np.isnan(dpred).any() or np.isinf(dpred).any():
+            msg = (
+                f"The `{type(self.simulation).__name__}.dpred()` method "
+                "returned an array that contains `nan`s and/or `inf`s."
+            )
+            raise ValueError(msg)
+        return dpred - self.data.dobs
 
 
 class L2DataMisfit(BaseDataMisfit):
@@ -266,7 +271,10 @@ class L2DataMisfit(BaseDataMisfit):
         """Evaluate the residual for a given model."""
 
         R = self.W * self.residual(m, f=f)
-        return np.vdot(R, R)
+        # Imaginary part is always zero, even for complex data, as it takes the
+        # complex-conjugate dot-product. Ensure it returns a float
+        # (``np.vdot(R, R).real`` is the same as ``np.linalg.norm(R)**2``).
+        return np.vdot(R, R).real
 
     @timeIt
     def deriv(self, m, f=None):

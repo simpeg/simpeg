@@ -13,10 +13,10 @@ import pytest
 
 def create_survey(freq):
     receivers_list = [
-        nsem.receivers.PointNaturalSource(component="real"),
-        nsem.receivers.PointNaturalSource(component="imag"),
-        nsem.receivers.PointNaturalSource(component="app_res"),
-        nsem.receivers.PointNaturalSource(component="phase"),
+        nsem.receivers.Impedance([[]], component="real"),
+        nsem.receivers.Impedance([[]], component="imag"),
+        nsem.receivers.Impedance([[]], component="app_res"),
+        nsem.receivers.Impedance([[]], component="phase"),
     ]
 
     source_list = [nsem.sources.Planewave(receivers_list, f) for f in freq]
@@ -30,7 +30,7 @@ def true_solution(freq, sigma_half):
         -np.sqrt(np.pi * freq * mu_0 / sigma_half),
         -np.sqrt(np.pi * freq * mu_0 / sigma_half),
         1 / sigma_half,
-        45.0,
+        -135.0,
     ]
 
     return soln
@@ -71,10 +71,8 @@ class TestRecursiveForward(unittest.TestCase):
     "rx_class",
     [
         ns_rx.Impedance,
-        ns_rx.PointNaturalSource,
         ns_rx.Admittance,
         ns_rx.Tipper,
-        ns_rx.Point3DTipper,
         ns_rx.ApparentConductivity,
     ],
 )
@@ -84,7 +82,7 @@ def test_incorrect_rx_types(rx_class):
     source = nsem.sources.Planewave(rx, frequency=10)
     survey = nsem.Survey(source)
     # make sure that only these exact classes do not issue warnings.
-    if rx_class in [ns_rx.Impedance, ns_rx.PointNaturalSource]:
+    if rx_class is ns_rx.Impedance:
         with warnings.catch_warnings():
             warnings.simplefilter("error")
             nsem.Simulation1DRecursive(survey=survey)
