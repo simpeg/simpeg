@@ -1097,7 +1097,8 @@ class SmoothnessFirstOrder(BaseRegularization):
 
         .. math::
 
-            \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{G_x}
+            \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} =
+            \mathbf{G_x} \frac{\partial \mu(\mathbf{m})}{\partial \mathbf{m}}
 
         where :math:`\mathbf{G_x}` is the partial cell gradient operator along x
         (i.e. the x-derivative).
