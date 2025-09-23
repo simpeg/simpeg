@@ -859,13 +859,13 @@ class SmoothnessFirstOrder(BaseRegularization):
 
     .. math::
         \phi (\mathbf{m}) = \Big \| \mathbf{W G_x}
-        \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
+        \big [ \mathbf{m} - \mathbf{m}^\text{ref} \big ] \Big \|^2
 
     This functionality is used by setting a reference model with the `reference_model`
     property, and by setting the `reference_model_in_smooth` parameter to ``True``.
 
 
-    **Mapping function**
+    **Mapping function:**
 
     In case make use of a mapping function :math:`\mu` that maps values of the model
     into a different space, then the regularization function for first-order smoothness
@@ -876,7 +876,7 @@ class SmoothnessFirstOrder(BaseRegularization):
         \phi (m) = \int_\Omega \, w(\mathbf{r}) \,
         \left\lvert
         \frac{\partial}{\partial x}
-        \left[ \mu(m) - \mu^\text{ref}(m) \right]
+        \left[ \mu(m) - \mu(m^\text{ref}) \right]
         \right\rvert^2 \, d\mathbf{r}
 
     In matrix form, the previous equation is expressed as:
