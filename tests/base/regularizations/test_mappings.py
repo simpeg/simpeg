@@ -31,7 +31,7 @@ def model(tensor_mesh):
 
 @pytest.fixture
 def reference_model(tensor_mesh):
-    return np.full(tensor_mesh.n_cells, fill_value=2.0)
+    return np.random.default_rng(seed=5959).uniform(size=tensor_mesh.n_cells)
 
 
 class TestMappingInSmallness:
