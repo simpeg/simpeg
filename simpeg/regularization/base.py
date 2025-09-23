@@ -1079,14 +1079,16 @@ class SmoothnessFirstOrder(BaseRegularization):
         """
         dfm_dl = (
             self.mapping * m - self.mapping * self.reference_model
-            if self.reference_model is not None
+            if self.reference_model is not None and self.reference_model_in_smooth
             else self.mapping * m
         )
+
         if self.units is not None and self.units.lower() == "radian":
             return (
                 utils.mat_utils.coterminal(self.cell_gradient.sign() @ dfm_dl)
                 / self._cell_distances
             )
+
         return self.cell_gradient @ dfm_dl
 
     def f_m_deriv(self, m) -> csr_matrix:
