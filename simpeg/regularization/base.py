@@ -802,48 +802,94 @@ class SmoothnessFirstOrder(BaseRegularization):
     along the x-direction as:
 
     .. math::
-        \phi (m) = \int_\Omega \, w(r) \,
-        \bigg [ \frac{\partial m}{\partial x} \bigg ]^2 \, dv
 
-    where :math:`m(r)` is the model and :math:`w(r)` is a user-defined weighting function.
+        \phi (m) = \int_\Omega \, w(\mathbf{r}) \,
+        \left\lvert
+        \frac{\partial m(\mathbf{r})}{\partial x}
+        \right\rvert^2 \, d\mathbf{r}
 
-    For implementation within SimPEG, the regularization function and its variables
-    must be discretized onto a `mesh`. The discretized approximation for the regularization
-    function (objective function) is expressed in linear form as:
+    where :math:`m(\mathbf{r})` is the model, and :math:`w(\mathbf{r})` is
+    a user-defined weighting function.
+
+    For the implementation within SimPEG, the regularization function and its
+    variables must be discretized onto a `mesh`. The discretized approximation
+    for the regularization function (objective function) is expressed in linear
+    form as:
 
     .. math::
-        \phi (\mathbf{m}) = \sum_i
-        \tilde{w}_i \, \bigg | \, \frac{\partial m_i}{\partial x} \, \bigg |^2
 
-    where :math:`m_i \in \mathbf{m}` are the discrete model parameter values defined on the mesh
-    and :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting constants that
-    1) account for cell dimensions in the discretization and 2) apply any user-defined weighting.
+        \phi (\mathbf{m}) = \sum_i \tilde{w}_i \,
+        \left\lvert \,
+        \frac{\partial m_i}{\partial x} \,
+        \right\rvert^2
+
+    where :math:`m_i \in \mathbf{m}` are the discrete model parameter values defined on
+    the mesh, and :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting
+    constants that:
+
+    1. account for cell dimensions in the discretization, and
+    2. apply any user-defined weighting.
+
     This is equivalent to an objective function of the form:
 
     .. math::
-        \phi (\mathbf{m}) = \Big \| \mathbf{W \, G_x m } \, \Big \|^2
+
+        \phi (\mathbf{m}) =
+        \left\lVert
+        \mathbf{W} \mathbf{G_x} \mathbf{m}
+        \right\rVert^2
 
     where
 
-        - :math:`\mathbf{G_x}` is the partial cell gradient operator along the x-direction, and
-        - :math:`\mathbf{W}` is the weighting matrix.
+    where :math:`\mathbf{m}` is the model vector,
+    :math:`\mathbf{G_x}` is the partial cell gradient operator along the x-direction,
+    and :math:`\mathbf{W}` is the weighting matrix.
 
-    Note that since :math:`\mathbf{G_x}` maps from cell centers to x-faces,
-    :math:`\mathbf{W}` is an operator that acts on variables living on x-faces.
+    .. note::
+
+        Note that since :math:`\mathbf{G_x}` maps from cell centers to x-faces,
+        :math:`\mathbf{W}` is an operator that acts on variables living on x-faces.
+
 
     **Reference model in smoothness:**
 
-    Gradients/interfaces within a discrete reference model :math:`\mathbf{m}^{(ref)}` can be
-    preserved by including the reference model the regularization.
+    Gradients/interfaces within a discrete reference model :math:`\mathbf{m}^{(ref)}`
+    can be preserved by including the reference model the regularization.
     In this case, the objective function becomes:
 
     .. math::
         \phi (\mathbf{m}) = \Big \| \mathbf{W G_x}
         \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
-    This functionality is used by setting a reference model with the
-    `reference_model` property, and by setting the `reference_model_in_smooth` parameter
-    to ``True``.
+    This functionality is used by setting a reference model with the `reference_model`
+    property, and by setting the `reference_model_in_smooth` parameter to ``True``.
+
+
+    **Mapping function**
+
+    In case make use of a mapping function :math:`\mu` that maps values of the model
+    into a different space, then the regularization function for first-order smoothness
+    along the x-direction as:
+
+    .. math::
+
+        \phi (m) = \int_\Omega \, w(\mathbf{r}) \,
+        \left\lvert
+        \frac{\partial}{\partial x}
+        \left[ \mu(m) - \mu^\text{ref}(m) \right]
+        \right\rvert^2 \, d\mathbf{r}
+
+    In matrix form, the previous equation is expressed as:
+
+    .. math::
+
+        \phi (\mathbf{m}) =
+        \left\lVert
+        \mathbf{W}
+        \mathbf{G_x}
+        \left[ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \right]
+        \right\rVert^2.
+
 
     **Custom weights and the weighting matrix:**
 
@@ -973,11 +1019,13 @@ class SmoothnessFirstOrder(BaseRegularization):
         the regularization kernel function is given by:
 
         .. math::
-            \mathbf{f_m}(\mathbf{m}) = \mathbf{G_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
+            \mathbf{f_m}(\mathbf{m}) =
+            \mathbf{G_x} \left[ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \right]
 
-        where :math:`\mathbf{G_x}` is the partial cell gradient operator along the x-direction
-        (i.e. x-derivative), :math:`\mathbf{m}` are the discrete model parameters defined on the
-        mesh and :math:`\mathbf{m}^{(ref)}` is the reference model (optional).
+        where :math:`\mathbf{G_x}` is the partial cell gradient operator along the
+        x-direction (i.e. x-derivative), :math:`\mathbf{m}` are the discrete model
+        parameters defined on the mesh, :math:`\mathbf{m}^{(ref)}` is the reference
+        model (optional), and :math:`\mu` is the mapping function.
         Similarly for smoothness along y and z.
 
         Parameters
@@ -996,27 +1044,41 @@ class SmoothnessFirstOrder(BaseRegularization):
         is given by:
 
         .. math::
-            \phi_m (\mathbf{m}) =
-            \Big \| \mathbf{W G_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
+
+            \phi (\mathbf{m}) =
+            \left\lVert
+            \mathbf{W}
+            \mathbf{G_x}
+            \left[ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \right]
+            \right\rVert^2.
 
         where :math:`\mathbf{m}` are the discrete model parameters (model),
-        :math:`\mathbf{m}^{(ref)}` is the reference model, :math:`\mathbf{G_x}` is the partial
-        cell gradient operator along the x-direction (i.e. x-derivative), and :math:`\mathbf{W}` is
-        the weighting matrix. Similar for smoothness along y and z.
+        :math:`\mathbf{m}^{(ref)}` is the reference model, :math:`\mathbf{G_x}` is the
+        partial cell gradient operator along the x-direction (i.e. x-derivative),
+        :math:`\mu` is the mapping function, and :math:`\mathbf{W}` is the weighting
+        matrix.
+        Similar for smoothness along y and z.
         See the :class:`SmoothnessFirstOrder` class documentation for more detail.
 
         We define the regularization kernel function :math:`\mathbf{f_m}` as:
 
         .. math::
-            \mathbf{f_m}(\mathbf{m}) = \mathbf{G_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
 
-        such that
+            \mathbf{f_m}(\mathbf{m}) =
+            \mathbf{G_x} \left[ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \right]
+
+        such that:
 
         .. math::
-            \phi_m (\mathbf{m}) = \Big \| \mathbf{W \, f_m} \Big \|^2
-        """
-        dfm_dl = self.mapping * self._delta_m(m)
 
+            \phi_m(\mathbf{m}) = \lVert \mathbf{W \, f_m} \rVert^2.
+
+        """
+        dfm_dl = (
+            self.mapping * m - self.mapping * self.reference_model
+            if self.reference_model is not None
+            else self.mapping * m
+        )
         if self.units is not None and self.units.lower() == "radian":
             return (
                 utils.mat_utils.coterminal(self.cell_gradient.sign() @ dfm_dl)
@@ -1031,6 +1093,7 @@ class SmoothnessFirstOrder(BaseRegularization):
         regularization kernel function with respect to the model is given by:
 
         .. math::
+
             \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{G_x}
 
         where :math:`\mathbf{G_x}` is the partial cell gradient operator along x
@@ -1052,31 +1115,44 @@ class SmoothnessFirstOrder(BaseRegularization):
         is given by:
 
         .. math::
-            \phi_m (\mathbf{m}) =
-            \Big \| \mathbf{W G_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
+
+            \phi (\mathbf{m}) =
+            \left\lVert
+            \mathbf{W}
+            \mathbf{G_x}
+            \left[ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \right]
+            \right\rVert^2.
+
 
         where :math:`\mathbf{m}` are the discrete model parameters (model),
-        :math:`\mathbf{m}^{(ref)}` is the reference model, :math:`\mathbf{G_x}` is the partial
-        cell gradient operator along the x-direction (i.e. x-derivative), and :math:`\mathbf{W}` is
-        the weighting matrix. Similar for smoothness along y and z.
+        :math:`\mathbf{m}^{(ref)}` is the reference model, :math:`\mathbf{G_x}` is the
+        partial cell gradient operator along the x-direction (i.e. x-derivative),
+        :math:`\mu` is the mapping function, and :math:`\mathbf{W}` is the weighting
+        matrix.
+        Similar for smoothness along y and z.
         See the :class:`SmoothnessFirstOrder` class documentation for more detail.
 
         We define the regularization kernel function :math:`\mathbf{f_m}` as:
 
         .. math::
-            \mathbf{f_m}(\mathbf{m}) = \mathbf{G_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
 
-        such that
+            \mathbf{f_m}(\mathbf{m}) =
+            \mathbf{G_x} \left[ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \right]
+
+        such that:
 
         .. math::
-            \phi_m (\mathbf{m}) = \Big \| \mathbf{W \, f_m} \Big \|^2
+
+            \phi_m(\mathbf{m}) = \lVert \mathbf{W \, f_m} \rVert^2.
 
         The derivative with respect to the model is therefore:
 
         .. math::
-            \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{G_x}
+
+            \frac{\partial \mathbf{f_m}}{\partial \mu(\mathbf{m})}
+            = \mathbf{G_x} \frac{\partial \mu(\mathbf{m})}{\partial \mathbf{m}}
         """
-        return self.cell_gradient @ self.mapping.deriv(self._delta_m(m))
+        return self.cell_gradient @ self.mapping.deriv(m)
 
     @property
     def W(self) -> csr_matrix:
