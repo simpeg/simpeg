@@ -851,13 +851,17 @@ class SmoothnessFirstOrder(BaseRegularization):
 
     **Reference model in smoothness:**
 
-    Gradients/interfaces within a discrete reference model :math:`\mathbf{m}^{(ref)}`
+    Gradients/interfaces within a discrete reference model :math:`\mathbf{m}^\text{ref}`
     can be preserved by including the reference model the regularization.
     In this case, the objective function becomes:
 
     .. math::
-        \phi (\mathbf{m}) = \Big \| \mathbf{W G_x}
-        \big [ \mathbf{m} - \mathbf{m}^\text{ref} \big ] \Big \|^2
+
+        \phi(\mathbf{m}) =
+            \lVert
+            \mathbf{W G_x}
+            \left[ \mathbf{m} - \mathbf{m}^\text{ref} \right]
+            \rVert^2
 
     This functionality is used by setting a reference model with the `reference_model`
     property, and by setting the `reference_model_in_smooth` parameter to ``True``.
@@ -872,10 +876,10 @@ class SmoothnessFirstOrder(BaseRegularization):
     .. math::
 
         \phi (m) = \int_\Omega \, w(\mathbf{r}) \,
-        \left\lvert
+        \lvert
         \frac{\partial}{\partial x}
         \left[ \mu(m) - \mu(m^\text{ref}) \right]
-        \right\rvert^2 \, d\mathbf{r}
+        \rvert^2 \, d\mathbf{r}
 
     In matrix form, the previous equation is expressed as:
 
@@ -1017,6 +1021,7 @@ class SmoothnessFirstOrder(BaseRegularization):
         the regularization kernel function is given by:
 
         .. math::
+
             \mathbf{f_m}(\mathbf{m}) =
             \mathbf{G_x} \left[ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \right]
 
@@ -1044,14 +1049,14 @@ class SmoothnessFirstOrder(BaseRegularization):
         .. math::
 
             \phi (\mathbf{m}) =
-            \left\lVert
+            \lVert
             \mathbf{W}
             \mathbf{G_x}
             \left[ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \right]
-            \right\rVert^2.
+            \rVert^2.
 
         where :math:`\mathbf{m}` are the discrete model parameters (model),
-        :math:`\mathbf{m}^{(ref)}` is the reference model, :math:`\mathbf{G_x}` is the
+        :math:`\mathbf{m}^\text{ref}` is the reference model, :math:`\mathbf{G_x}` is the
         partial cell gradient operator along the x-direction (i.e. x-derivative),
         :math:`\mu` is the mapping function, and :math:`\mathbf{W}` is the weighting
         matrix.
