@@ -8,7 +8,7 @@ from discretize import TensorMesh
 from scipy.sparse import diags
 
 from simpeg.maps import IdentityMap, LinearMap, LogMap
-from simpeg.regularization import Smallness
+from simpeg.regularization import Smallness, SmoothnessFirstOrder
 
 
 @pytest.fixture
@@ -95,3 +95,153 @@ class TestMappingInSmallness:
             2 * (1 / model) * volume_weights * (np.log(model) - np.log(reference_model))
         )
         np.testing.assert_allclose(reg.deriv(model), expected_gradient)
+
+
+@pytest.mark.parametrize(
+    "use_reference_model", [True, False], ids=["m_ref", "no m_ref"]
+)
+class TestMappingInSmoothnessFirstOrder:
+    """
+    Test mapping in SmoothnessFirstOrder regularization.
+    """
+
+    def get_regularization(
+        self,
+        mesh,
+        active_cells,
+        reference_model,
+        use_reference_model,
+        orientation,
+        **kwargs,
+    ):
+        """Return instance of SmoothnessFirstOrder"""
+        if use_reference_model:
+            reg = SmoothnessFirstOrder(
+                mesh=mesh,
+                active_cells=active_cells,
+                orientation=orientation,
+                reference_model=reference_model,
+                reference_model_in_smooth=True,
+                **kwargs,
+            )
+        else:
+            reg = SmoothnessFirstOrder(
+                mesh=mesh,
+                active_cells=active_cells,
+                orientation=orientation,
+                **kwargs,
+            )
+        return reg
+
+    @pytest.mark.parametrize("orientation", ["x", "y", "z"])
+    def test_default_mapping(
+        self,
+        tensor_mesh,
+        active_cells,
+        model,
+        reference_model,
+        use_reference_model,
+        orientation,
+    ):
+        """
+        Test regularization using the default (identity) mapping.
+        """
+        reg = self.get_regularization(
+            mesh=tensor_mesh,
+            active_cells=active_cells,
+            orientation=orientation,
+            reference_model=reference_model,
+            use_reference_model=use_reference_model,
+        )
+
+        # Test call
+        gradients = getattr(reg.regularization_mesh, f"cell_gradient_{orientation}")
+        model_diff = model - reference_model if use_reference_model else model
+        r = reg.W @ gradients @ model_diff
+        expected = r.T @ r
+        np.testing.assert_allclose(reg(model), expected)
+
+        # Test deriv
+        expected_gradient = 2 * gradients.T @ reg.W.T @ reg.W @ gradients @ model_diff
+        np.testing.assert_allclose(reg.deriv(model), expected_gradient, atol=1e-10)
+
+    @pytest.mark.parametrize("orientation", ["x", "y", "z"])
+    def test_linear_mapping(
+        self,
+        tensor_mesh,
+        active_cells,
+        model,
+        reference_model,
+        use_reference_model,
+        orientation,
+    ):
+        """
+        Test regularization using a linear mapping.
+        """
+        n_active_cells = active_cells.sum()
+        a = np.full(n_active_cells, 3.5)
+        a_matrix = diags(a)
+        linear_mapping = LinearMap(a_matrix, b=None)
+        reg = self.get_regularization(
+            mesh=tensor_mesh,
+            active_cells=active_cells,
+            orientation=orientation,
+            reference_model=reference_model,
+            use_reference_model=use_reference_model,
+            mapping=linear_mapping,
+        )
+        assert reg.mapping is linear_mapping
+
+        # Test call
+        gradients = getattr(reg.regularization_mesh, f"cell_gradient_{orientation}")
+        model_diff = (
+            a * model - a * reference_model if use_reference_model else a * model
+        )
+        r = reg.W @ gradients @ model_diff
+        expected = r.T @ r
+        np.testing.assert_allclose(reg(model), expected)
+
+        # Test deriv
+        f_m_deriv = gradients @ a_matrix
+        expected_gradient = 2 * f_m_deriv.T @ reg.W.T @ reg.W @ gradients @ model_diff
+        np.testing.assert_allclose(reg.deriv(model), expected_gradient, atol=1e-10)
+
+    @pytest.mark.parametrize("orientation", ["x", "y", "z"])
+    def test_nonlinear_mapping(
+        self,
+        tensor_mesh,
+        active_cells,
+        model,
+        reference_model,
+        use_reference_model,
+        orientation,
+    ):
+        """
+        Test regularization using a non-linear mapping.
+        """
+        log_mapping = LogMap()
+        reg = self.get_regularization(
+            mesh=tensor_mesh,
+            active_cells=active_cells,
+            orientation=orientation,
+            reference_model=reference_model,
+            use_reference_model=use_reference_model,
+            mapping=log_mapping,
+        )
+        assert reg.mapping is log_mapping
+
+        # Test call
+        gradients = getattr(reg.regularization_mesh, f"cell_gradient_{orientation}")
+        model_diff = (
+            np.log(model) - np.log(reference_model)
+            if use_reference_model
+            else np.log(model)
+        )
+        r = reg.W @ gradients @ model_diff
+        expected = r.T @ r
+        np.testing.assert_allclose(reg(model), expected)
+
+        # Test deriv
+        f_m_deriv = gradients @ diags(1 / model)
+        expected_gradient = 2 * f_m_deriv.T @ reg.W.T @ reg.W @ gradients @ model_diff
+        np.testing.assert_allclose(reg.deriv(model), expected_gradient, atol=1e-10)
