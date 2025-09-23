@@ -556,7 +556,7 @@ class Smallness(BaseRegularization):
     .. math::
 
         \phi (m) = \int_\Omega \, w(\mathbf{r}) \,
-        \left\lvert m(\mathbf{r}))
+        \left\lvert
         \mu(m(\mathbf{r})) - \mu(m^\text{ref}(\mathbf{r}))
         \right\rvert^2 \, d\mathbf{r}
 
