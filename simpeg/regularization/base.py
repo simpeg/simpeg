@@ -839,8 +839,6 @@ class SmoothnessFirstOrder(BaseRegularization):
         \mathbf{W} \mathbf{G_x} \mathbf{m}
         \right\rVert^2
 
-    where
-
     where :math:`\mathbf{m}` is the model vector,
     :math:`\mathbf{G_x}` is the partial cell gradient operator along the x-direction,
     and :math:`\mathbf{W}` is the weighting matrix.
