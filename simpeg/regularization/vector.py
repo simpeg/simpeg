@@ -389,10 +389,13 @@ class BaseAmplitude(BaseVectorRegularization):
         (n_cells, ) numpy.ndarray
             The amplitudes of the vectors for the model provided.
         """
+        dm = (
+            self.mapping * m - self.mapping * self.reference_model
+            if self.reference_model is not None
+            else self.mapping * m
+        )
         return np.linalg.norm(
-            (self.mapping * self._delta_m(m)).reshape(
-                (self.regularization_mesh.nC, self.n_comp), order="F"
-            ),
+            dm.reshape((self.regularization_mesh.nC, self.n_comp), order="F"),
             axis=1,
         )
 
@@ -416,7 +419,11 @@ class BaseAmplitude(BaseVectorRegularization):
         (n_param, ) numpy.ndarray
             Gradient of the regularization function evaluated for the model provided.
         """
-        d_m = self._delta_m(m)
+        dm = (
+            self.mapping * m - self.mapping * self.reference_model
+            if self.reference_model is not None
+            else self.mapping * m
+        )
 
         return (
             2
@@ -424,7 +431,7 @@ class BaseAmplitude(BaseVectorRegularization):
             * (
                 self.W.T
                 @ self.W
-                @ (self.f_m_deriv(m) @ d_m).reshape((-1, self.n_comp), order="F")
+                @ (self.f_m_deriv(m) @ dm).reshape((-1, self.n_comp), order="F")
             ).flatten(order="F")
         )
 
@@ -924,7 +931,8 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
         numpy.ndarray
             The regularization kernel function evaluated for the model provided.
         """
-        fm = self.cell_gradient * (self.mapping * self._delta_m(m)).reshape(
+        d_m = self.mapping * m - self.mapping * self.reference_model
+        fm = self.cell_gradient * (self.mapping * d_m).reshape(
             (self.regularization_mesh.nC, self.n_comp), order="F"
         )
 
@@ -953,9 +961,7 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
         scipy.sparse.csr_matrix
             The derivative of the regularization kernel function.
         """
-        return sp.block_diag([self.cell_gradient] * self.n_comp) @ self.mapping.deriv(
-            self._delta_m(m)
-        )
+        return sp.block_diag([self.cell_gradient] * self.n_comp) @ self.mapping.deriv(m)
 
     @property
     def W(self):
