@@ -5,13 +5,15 @@ import discretize
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib import ticker
-import warnings
 from ..resistivity import sources, receivers
 from .. import resistivity as dc
 from ....utils import (
     mkvc,
     model_builder,
     define_plane_from_points,
+    get_discrete_topography,
+    shift_to_discrete_topography,
+    deprecate_function,
 )
 from ....utils.io_utils import (  # noqa: F401
     read_dcip2d_ubc,
@@ -19,6 +21,13 @@ from ....utils.io_utils import (  # noqa: F401
     read_dcip3d_ubc,
     write_dcip3d_ubc,
 )
+try:
+    from warnings import deprecated
+except ImportError:
+    # Use the deprecated decorator provided by typing_extensions (which
+    # supports older versions of Python) if it cannot be imported from
+    # warnings.
+    from typing_extensions import deprecated
 
 from ....utils.plot_utils import plot_1d_layer_model  # noqa: F401
 
@@ -1521,10 +1530,17 @@ def r_unit(p1, p2):
     return vec, r
 
 
+@deprecated( 
+    "The `gettopoCC` function is deprecated, " 
+    "and will be removed in SimPEG v0.26.0. " 
+    "This functionality has been replaced by the "
+    "'get_discrete_topography' function, which can be imported from"
+    "simpeg.utils", 
+    category=FutureWarning, 
+)
 def gettopoCC(mesh, ind_active, option="top"):
     """
     Generate surface topography from active indices of mesh.
-
     Parameters
     ----------
     mesh : discretize.TensorMesh or discretize.TreeMesh
@@ -1534,7 +1550,6 @@ def gettopoCC(mesh, ind_active, option="top"):
     option : {"top", "center"}
         Use string to specify if the surface passes through the
         tops or cell centers of surface cells.
-
     Returns
     -------
     (n, dim) numpy.ndarray
@@ -1590,12 +1605,18 @@ def gettopoCC(mesh, ind_active, option="top"):
         raise NotImplementedError(f"{type(mesh)} mesh is not supported.")
 
 
+@deprecated( 
+    "The `drapeTopotoLoc` function is deprecated, " 
+    "and will be removed in SimPEG v0.26.0. " 
+    "This functionality has been replaced by the "
+    "'shift_to_discrete_topography' function, which can be imported from"
+    "simpeg.utils", 
+    category=FutureWarning, 
+)
 def drapeTopotoLoc(mesh, pts, active_cells=None, option="top", topo=None, **kwargs):
     """Drape locations right below discretized surface topography
-
     This function projects the set of locations provided to the discrete
     surface topography.
-
     Parameters
     ----------
     mesh : discretize.TensorMesh or discretize.TreeMesh
@@ -1711,22 +1732,29 @@ def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
 
 
 def closestPointsGrid(grid, pts, dim=2):
-    """Move a list of points to the closest points on a grid.
+    """Return indices of closest gridded points for a set of input points.
 
     Parameters
     ----------
     grid : (n, dim) numpy.ndarray
-        A gridded set of points
+        A gridded set of points.
     pts : (m, dim) numpy.ndarray
-        Points being projected to gridded locations
+        Points being projected to gridded locations.
     dim : int, default=2
-        Dimension of the points
+        Dimension of the points.
 
     Returns
     -------
-    (m) numpy.ndarray
-        indices for the closest gridded location for all *pts* supplied.
+    (n,) numpy.ndarray
+        Indices of the closest gridded points for all *pts* supplied.
     """
+
+    warnings.warn(
+        "closestPointsGrid is now deprecated. It will be removed in SimPEG version 0.26.0.",
+        FutureWarning,
+        stacklevel=2,
+    )
+
     if dim == 1:
         nodeInds = np.asarray(
             [np.abs(pt - grid).argmin() for pt in pts.tolist()], dtype=int
@@ -1836,3 +1864,4 @@ def gen_3d_survey_from_2d_lines(
         line_inds=line_inds,
     )
     return IO_3d, survey_3d
+
