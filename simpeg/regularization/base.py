@@ -1094,8 +1094,8 @@ class SmoothnessFirstOrder(BaseRegularization):
     def f_m_deriv(self, m) -> csr_matrix:
         r"""Derivative of the regularization kernel function.
 
-        For first-order smoothness regularization in the x-direction, the derivative of the
-        regularization kernel function with respect to the model is given by:
+        For first-order smoothness regularization in the x-direction, the derivative of
+        the regularization kernel function with respect to the model is given by:
 
         .. math::
 
@@ -1103,7 +1103,7 @@ class SmoothnessFirstOrder(BaseRegularization):
             \mathbf{G_x} \frac{\partial \mu(\mathbf{m})}{\partial \mathbf{m}}
 
         where :math:`\mathbf{G_x}` is the partial cell gradient operator along x
-        (i.e. the x-derivative).
+        (i.e. the x-derivative), and :math:`\mu` is the mapping function.
 
         Parameters
         ----------
