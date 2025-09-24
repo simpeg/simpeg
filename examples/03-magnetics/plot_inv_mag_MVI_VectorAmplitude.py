@@ -170,7 +170,7 @@ dmis.W = 1.0 / data_object.standard_deviation
 
 # The optimization scheme
 opt = optimization.ProjectedGNCG(
-    maxIter=20, lower=-10, upper=10.0, maxIterLS=20, maxIterCG=20, tolCG=1e-4
+    maxIter=20, lower=-10, upper=10.0, maxIterLS=20, cg_maxiter=20, cg_rtol=1e-3
 )
 
 # The inverse problem

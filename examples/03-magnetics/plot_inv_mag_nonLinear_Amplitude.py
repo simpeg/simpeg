@@ -243,7 +243,7 @@ reg.reference_model = np.zeros(nC)
 
 # Specify how the optimization will proceed, set susceptibility bounds to inf
 opt = optimization.ProjectedGNCG(
-    maxIter=20, lower=-np.inf, upper=np.inf, maxIterLS=20, maxIterCG=20, tolCG=1e-3
+    maxIter=20, lower=-np.inf, upper=np.inf, maxIterLS=20, cg_maxiter=20, cg_rtol=1e-3
 )
 
 # Define misfit function (obs-calc)
@@ -367,7 +367,7 @@ dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_obj)
 
 # Add directives to the inversion
 opt = optimization.ProjectedGNCG(
-    maxIter=30, lower=0.0, upper=1.0, maxIterLS=20, maxIterCG=20, tolCG=1e-3
+    maxIter=30, lower=0.0, upper=1.0, maxIterLS=20, cg_maxiter=20, cg_rtol=1e-3
 )
 
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
