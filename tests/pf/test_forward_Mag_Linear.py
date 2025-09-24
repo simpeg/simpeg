@@ -896,7 +896,7 @@ class TestsMagSimulation:
 
 
 def test_removed_modeltype():
-    """Test if accesing removed modelType property raises error."""
+    """Test if accessing removed modelType property raises error."""
     h = [[(2, 2)], [(2, 2)], [(2, 2)]]
     mesh = discretize.TensorMesh(h)
     receiver_location = np.array([[0, 0, 100]])
@@ -907,8 +907,8 @@ def test_removed_modeltype():
     survey = mag.Survey(background_field)
     mapping = maps.IdentityMap(mesh, nP=mesh.n_cells)
     sim = mag.Simulation3DIntegral(mesh, survey=survey, chiMap=mapping)
-    message = "modelType has been removed, please use model_type."
-    with pytest.raises(NotImplementedError, match=message):
+    message = "has no attribute 'modelType'"
+    with pytest.raises(AttributeError, match=message):
         sim.modelType
 
 

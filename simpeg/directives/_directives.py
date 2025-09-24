@@ -1,8 +1,11 @@
+from abc import ABCMeta, abstractmethod
 from typing import TYPE_CHECKING
+
+from datetime import datetime
+import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
-import os
 import scipy.sparse as sp
 from ..typing import RandomSeed
 from ..data_misfit import BaseDataMisfit
@@ -11,7 +14,6 @@ from ..maps import IdentityMap, Wires
 from ..regularization import (
     WeightedLeastSquares,
     BaseRegularization,
-    BaseSparse,
     Smallness,
     Sparse,
     SparseSmallness,
@@ -32,7 +34,6 @@ from ..utils import (
     validate_string,
 )
 from ..utils.code_utils import (
-    deprecate_class,
     deprecate_property,
     validate_type,
     validate_integer,
@@ -71,9 +72,6 @@ class InversionDirective:
     _dmisfitPair = [BaseDataMisfit, ComboObjectiveFunction]
 
     def __init__(self, inversion=None, dmisfit=None, reg=None, verbose=False, **kwargs):
-        # Raise error on deprecated arguments
-        if (key := "debug") in kwargs.keys():
-            raise TypeError(f"'{key}' property has been removed. Please use 'verbose'.")
         self.inversion = inversion
         self.dmisfit = dmisfit
         self.reg = reg
@@ -93,10 +91,6 @@ class InversionDirective:
     @verbose.setter
     def verbose(self, value):
         self._verbose = validate_type("verbose", value, bool)
-
-    debug = deprecate_property(
-        verbose, "debug", "verbose", removal_version="0.19.0", error=True
-    )
 
     @property
     def inversion(self):
@@ -263,12 +257,12 @@ class DirectiveList(object):
 
     Parameters
     ----------
-    directives : list of simpeg.directives.InversionDirective
-        List of directives.
+    *directives : simpeg.directives.InversionDirective
+        Directives for the inversion.
     inversion : simpeg.inversion.BaseInversion
         The inversion associated with the directives list.
     debug : bool
-        Whether or not to print debugging information.
+        Whether to print debugging information.
 
     """
 
@@ -339,8 +333,11 @@ class DirectiveList(object):
             getattr(r, ruleType)()
 
     def validate(self):
-        [directive.validate(self) for directive in self.dList]
+        [directive.validate(self) for directive in self]
         return True
+
+    def __iter__(self):
+        return iter(self.dList)
 
 
 class BaseBetaEstimator(InversionDirective):
@@ -358,12 +355,6 @@ class BaseBetaEstimator(InversionDirective):
         Random seed used for random sampling. It can either be an int,
         a predefined Numpy random number generator, or any valid input to
         ``numpy.random.default_rng``.
-    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
-
-        .. deprecated:: 0.23.0
-
-           Argument ``seed`` is deprecated in favor of ``random_seed`` and will
-           be removed in SimPEG v0.24.0.
 
     """
 
@@ -371,27 +362,16 @@ class BaseBetaEstimator(InversionDirective):
         self,
         beta0_ratio=1.0,
         random_seed: RandomSeed | None = None,
-        seed: RandomSeed | None = None,
         **kwargs,
     ):
+        # Deprecate seed argument
+        if kwargs.pop("seed", None) is not None:
+            raise TypeError(
+                "'seed' has been removed in "
+                " SimPEG v0.24.0, please use 'random_seed' instead.",
+            )
         super().__init__(**kwargs)
         self.beta0_ratio = beta0_ratio
-
-        # Deprecate seed argument
-        if seed is not None:
-            if random_seed is not None:
-                raise TypeError(
-                    "Cannot pass both 'random_seed' and 'seed'."
-                    "'seed' has been deprecated and will be removed in "
-                    " SimPEG v0.24.0, please use 'random_seed' instead.",
-                )
-            warnings.warn(
-                "'seed' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'random_seed' instead.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            random_seed = seed
         self.random_seed = random_seed
 
     @property
@@ -446,8 +426,7 @@ class BaseBetaEstimator(InversionDirective):
         "seed",
         "random_seed",
         removal_version="0.24.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
 
@@ -469,12 +448,6 @@ class BetaEstimateMaxDerivative(BaseBetaEstimator):
         Random seed used for random sampling. It can either be an int,
         a predefined Numpy random number generator, or any valid input to
         ``numpy.random.default_rng``.
-    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
-
-        .. deprecated:: 0.23.0
-
-           Argument ``seed`` is deprecated in favor of ``random_seed`` and will
-           be removed in SimPEG v0.24.0.
 
     Notes
     -----
@@ -549,12 +522,6 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
         Random seed used for random sampling. It can either be an int,
         a predefined Numpy random number generator, or any valid input to
         ``numpy.random.default_rng``.
-    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
-
-        .. deprecated:: 0.23.0
-
-           Argument ``seed`` is deprecated in favor of ``random_seed`` and will
-           be removed in SimPEG v0.24.0.
 
     Notes
     -----
@@ -588,12 +555,9 @@ class BetaEstimate_ByEig(BaseBetaEstimator):
         beta0_ratio=1.0,
         n_pw_iter=4,
         random_seed: RandomSeed | None = None,
-        seed: RandomSeed | None = None,
         **kwargs,
     ):
-        super().__init__(
-            beta0_ratio=beta0_ratio, random_seed=random_seed, seed=seed, **kwargs
-        )
+        super().__init__(beta0_ratio=beta0_ratio, random_seed=random_seed, **kwargs)
         self.n_pw_iter = n_pw_iter
 
     @property
@@ -718,28 +682,17 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
         alpha0_ratio=1.0,
         n_pw_iter=4,
         random_seed: RandomSeed | None = None,
-        seed: RandomSeed | None = None,
         **kwargs,
     ):
+        # Deprecate seed argument
+        if kwargs.pop("seed", None) is not None:
+            raise TypeError(
+                "'seed' has been removed in "
+                " SimPEG v0.24.0, please use 'random_seed' instead.",
+            )
         super().__init__(**kwargs)
         self.alpha0_ratio = alpha0_ratio
         self.n_pw_iter = n_pw_iter
-
-        # Deprecate seed argument
-        if seed is not None:
-            if random_seed is not None:
-                raise TypeError(
-                    "Cannot pass both 'random_seed' and 'seed'."
-                    "'seed' has been deprecated and will be removed in "
-                    " SimPEG v0.24.0, please use 'random_seed' instead.",
-                )
-            warnings.warn(
-                "'seed' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'random_seed' instead.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            random_seed = seed
         self.random_seed = random_seed
 
     @property
@@ -799,8 +752,7 @@ class AlphasSmoothEstimate_ByEig(InversionDirective):
         "seed",
         "random_seed",
         removal_version="0.24.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     def initialize(self):
@@ -883,28 +835,17 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
         chi0_ratio=None,
         n_pw_iter=4,
         random_seed: RandomSeed | None = None,
-        seed: RandomSeed | None = None,
         **kwargs,
     ):
+        # Deprecate seed argument
+        if kwargs.pop("seed", None) is not None:
+            raise TypeError(
+                "'seed' has been removed in "
+                " SimPEG v0.24.0, please use 'random_seed' instead.",
+            )
         super().__init__(**kwargs)
         self.chi0_ratio = chi0_ratio
         self.n_pw_iter = n_pw_iter
-
-        # Deprecate seed argument
-        if seed is not None:
-            if random_seed is not None:
-                raise TypeError(
-                    "Cannot pass both 'random_seed' and 'seed'."
-                    "'seed' has been deprecated and will be removed in "
-                    " SimPEG v0.24.0, please use 'random_seed' instead.",
-                )
-            warnings.warn(
-                "'seed' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'random_seed' instead.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            random_seed = seed
         self.random_seed = random_seed
 
     @property
@@ -964,8 +905,7 @@ class ScalingMultipleDataMisfits_ByEig(InversionDirective):
         "seed",
         "random_seed",
         removal_version="0.24.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     def initialize(self):
@@ -1697,40 +1637,75 @@ class MultiTargetMisfits(InversionDirective):
                 print("All targets have been reached")
 
 
-class SaveEveryIteration(InversionDirective):
+class SaveEveryIteration(InversionDirective, metaclass=ABCMeta):
     """SaveEveryIteration
 
-    This directive saves an array at each iteration. The default
-    directory is the current directory and the models are saved as
-    ``InversionModel-YYYY-MM-DD-HH-MM-iter.npy``
+    This directive saves information at each iteration.
+
+    Parameters
+    ----------
+    directory : pathlib.Path or str, optional
+        The directory to store output information to, defaults to current directory.
+    name : str, optional
+        Root of the filename to be saved, commonly this will get iteration specific
+        details appended to it.
+    on_disk : bool, optional
+        Whether this directive will save a log file to disk.
     """
 
-    def __init__(self, directory=".", name="InversionModel", **kwargs):
+    def __init__(self, directory=".", name="InversionModel", on_disk=True, **kwargs):
+        self._on_disk = validate_type("on_disk", on_disk, bool)
+
         super().__init__(**kwargs)
-        self.directory = directory
+        if self.on_disk:
+            self.directory = directory
+        else:
+            self.directory = None
         self.name = name
+        self._time_string_format = "%Y-%m-%d-%H-%M"
+        self._iter_format = "03d"
+        self._iter_string = "###"
+        self._start_time = self._time_string_format
+
+    def initialize(self):
+        self._start_time = datetime.now().strftime(self._time_string_format)
+        if opt := getattr(self, "opt", None):
+            max_digit = len(str(opt.maxIter))
+            self._iter_format = f"0{max_digit}d"
 
     @property
-    def directory(self):
+    def on_disk(self) -> bool:
+        """Whether this object stores information to `file_abs_path`."""
+        return self._on_disk
+
+    @on_disk.setter
+    def on_disk(self, value):
+        self._on_disk = validate_type("on_disk", value, bool)
+
+    @property
+    def directory(self) -> pathlib.Path:
         """Directory to save results in.
 
         Returns
         -------
-        str
+        pathlib.Path
         """
+        if not self.on_disk:
+            raise AttributeError(
+                f"'{type(self).__qualname__}.directory' is only available if saving to disk."
+            )
         return self._directory
 
     @directory.setter
     def directory(self, value):
-        value = validate_string("directory", value)
-        fullpath = os.path.abspath(os.path.expanduser(value))
-
-        if not os.path.isdir(fullpath):
-            os.mkdir(fullpath)
+        if value is None and self.on_disk:
+            raise ValueError("Directory is not optional if 'on_disk==True'.")
+        if value is not None:
+            value = validate_type("directory", value, pathlib.Path).resolve()
         self._directory = value
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Root of the filename to be saved.
 
         Returns
@@ -1744,74 +1719,164 @@ class SaveEveryIteration(InversionDirective):
         self._name = validate_string("name", value)
 
     @property
-    def fileName(self):
-        if getattr(self, "_fileName", None) is None:
-            from datetime import datetime
+    def _time_iter_file_name(self) -> pathlib.Path:
+        time_string = self._start_time
+        if not getattr(self, "opt", None):
+            iter_string = "###"
+        else:
+            itr = getattr(self.opt, "iter", 0)
+            iter_string = f"{itr:{self._iter_format}}"
 
-            self._fileName = "{0!s}-{1!s}".format(
-                self.name, datetime.now().strftime("%Y-%m-%d-%H-%M")
+        return pathlib.Path(f"{self.name}_{time_string}_{iter_string}")
+
+    @property
+    def _time_file_name(self) -> pathlib.Path:
+        return pathlib.Path(f"{self.name}_{self._start_time}")
+
+    def _mkdir_and_check_output_file(self, should_exist=False):
+        """
+        Use this to ensure a directory exists, and to check if file_abs_path exists.
+        Issues a warning if the output file exists but should not,
+        or if it doesn't exist but does.
+
+        Parameters
+        ----------
+        should_exist : bool, optional
+            Whether file_abs_path should exist.
+        """
+        self.directory.mkdir(exist_ok=True)
+        fp = self.file_abs_path
+        exists = fp.exists()
+        if exists and not should_exist:
+            warnings.warn(f"Overwriting file {fp}", UserWarning, stacklevel=2)
+        if not exists and should_exist:
+            warnings.warn(
+                f"File {fp} was not found, creating a new one.",
+                UserWarning,
+                stacklevel=2,
             )
-        return self._fileName
+
+    @property
+    def fileName(self):
+        warnings.warn(
+            "'fileName' has been deprecated and will be removed in SimPEG 0.26.0 use 'file_abs_path'",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.file_abs_path.stem
+
+    @property
+    @abstractmethod
+    def file_abs_path(self) -> pathlib.Path:
+        """The absolute path to the saved output file.
+
+        Returns
+        -------
+        pathlib.Path
+        """
 
 
 class SaveModelEveryIteration(SaveEveryIteration):
-    """SaveModelEveryIteration
+    """Saves the inversion model at the end of every iteration to a directory
+
+    Parameters
+    ----------
+    directory : pathlib.Path or str, optional
+        The directory to store output information to, defaults to current directory.
+    name : str, optional
+        Root of the filename to be saved, defaults to ``'InversionModel'``
+
+    Notes
+    -----
 
     This directive saves the model as a numpy array at each iteration. The
-    default directory is the current directoy and the models are saved as
-    ``InversionModel-YYYY-MM-DD-HH-MM-iter.npy``
+    default directory is the current directory and the models are saved as
+    `name` + ``'_YYYY-MM-DD-HH-MM_iter.npy'``
     """
 
+    def __init__(self, **kwargs):
+        if "on_disk" in kwargs:
+            msg = (
+                f"The 'on_disk' argument is ignored by the '{type(self).__name__}' "
+                "directive, it's always True."
+            )
+            warnings.warn(msg, UserWarning, stacklevel=2)
+            kwargs.pop("on_disk")
+        super().__init__(on_disk=True, **kwargs)
+
     def initialize(self):
+        super().initialize()
         print(
-            "simpeg.SaveModelEveryIteration will save your models as: "
-            "'{0!s}###-{1!s}.npy'".format(self.directory + os.path.sep, self.fileName)
+            f"{type(self).__qualname__} will save your models as: "
+            f"'{self.file_abs_path}'"
         )
-
-    def endIter(self):
-        np.save(
-            "{0!s}{1:03d}-{2!s}".format(
-                self.directory + os.path.sep, self.opt.iter, self.fileName
-            ),
-            self.opt.xc,
-        )
-
-
-class SaveOutputEveryIteration(SaveEveryIteration):
-    """SaveOutputEveryIteration"""
-
-    def __init__(self, save_txt=True, **kwargs):
-        super().__init__(**kwargs)
-
-        self.save_txt = save_txt
 
     @property
-    def save_txt(self):
-        """Whether to save the output as a text file.
+    def on_disk(self) -> bool:
+        """This class always saves to disk.
 
         Returns
         -------
         bool
         """
-        return self._save_txt
+        return True
 
-    @save_txt.setter
-    def save_txt(self, value):
-        self._save_txt = validate_type("save_txt", value, bool)
+    @on_disk.setter
+    def on_disk(self, value):  # noqa: F811
+        """This class always saves to disk."""
+        msg = (
+            f"Cannot modify value of 'on_disk' for {type(self).__name__}' directive. "
+            "It's always True."
+        )
+        raise AttributeError(msg)
+
+    @property
+    def file_abs_path(self) -> pathlib.Path:
+        return self.directory / self._time_iter_file_name.with_suffix(".npy")
+
+    def endIter(self):
+        self._mkdir_and_check_output_file(should_exist=False)
+        np.save(self.file_abs_path, self.opt.xc)
+
+
+class SaveOutputEveryIteration(SaveEveryIteration):
+    """Keeps track of the objective function values.
+
+    Parameters
+    ----------
+    on_disk : bool, optional
+        Whether this directive additionally stores the log to a text file.
+    directory : pathlib.Path, optional
+        The directory to store output information to if `on_disk`, defaults to current directory.
+    name : str, optional
+        The root name of the file to save to, will append the inversion start time to this value.
+    """
+
+    def __init__(self, on_disk=True, **kwargs):
+        if (save_txt := kwargs.pop("save_txt", None)) is not None:
+            self.save_txt = save_txt
+            on_disk = self.save_txt
+        super().__init__(on_disk=on_disk, **kwargs)
 
     def initialize(self):
-        if self.save_txt is True:
+        super().initialize()
+        if self.on_disk:
+            fp = self.file_abs_path
             print(
-                "simpeg.SaveOutputEveryIteration will save your inversion "
-                "progress as: '###-{0!s}.txt'".format(self.fileName)
+                f"'{type(self).__qualname__}' will save your inversion "
+                f"progress to: '{fp}'"
             )
-            f = open(self.fileName + ".txt", "w")
-            header = "  #     beta     phi_d     phi_m   phi_m_small     phi_m_smoomth_x     phi_m_smoomth_y     phi_m_smoomth_z      phi\n"
-            f.write(header)
-            f.close()
+            self._mkdir_and_check_output_file(should_exist=False)
+            with open(fp, "w") as f:
+                f.write(f"{self._header}\n")
+        self._initialize_lists()
 
+    @property
+    def _header(self):
+        return "  #     beta     phi_d     phi_m   phi_m_small     phi_m_smoomth_x     phi_m_smoomth_y     phi_m_smoomth_z      phi"
+
+    def _initialize_lists(self):
         # Create a list of each
-
         self.beta = []
         self.phi_d = []
         self.phi_m = []
@@ -1820,6 +1885,19 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         self.phi_m_smooth_y = []
         self.phi_m_smooth_z = []
         self.phi = []
+
+    @property
+    def file_abs_path(self) -> pathlib.Path | None:
+        """The absolute path to the saved log file."""
+        if self.on_disk:
+            return self.directory / self._time_file_name.with_suffix(".txt")
+
+    save_txt = deprecate_property(
+        SaveEveryIteration.on_disk,
+        "save_txt",
+        removal_version="0.26.0",
+        future_warn=True,
+    )
 
     def endIter(self):
         phi_s, phi_x, phi_y, phi_z = 0, 0, 0, 0
@@ -1848,26 +1926,35 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         self.phi_m_smooth_z.append(phi_z)
         self.phi.append(self.opt.f)
 
-        if self.save_txt:
-            f = open(self.fileName + ".txt", "a")
-            f.write(
-                " {0:3d} {1:1.4e} {2:1.4e} {3:1.4e} {4:1.4e} {5:1.4e} "
-                "{6:1.4e}  {7:1.4e}  {8:1.4e}\n".format(
-                    self.opt.iter,
-                    self.beta[self.opt.iter - 1],
-                    self.phi_d[self.opt.iter - 1],
-                    self.phi_m[self.opt.iter - 1],
-                    self.phi_m_small[self.opt.iter - 1],
-                    self.phi_m_smooth_x[self.opt.iter - 1],
-                    self.phi_m_smooth_y[self.opt.iter - 1],
-                    self.phi_m_smooth_z[self.opt.iter - 1],
-                    self.phi[self.opt.iter - 1],
+        if self.on_disk:
+            self._mkdir_and_check_output_file(should_exist=True)
+            with open(self.file_abs_path, "a") as f:
+                f.write(
+                    " {0:3d} {1:1.4e} {2:1.4e} {3:1.4e} {4:1.4e} {5:1.4e} "
+                    "{6:1.4e}  {7:1.4e}  {8:1.4e}\n".format(
+                        self.opt.iter,
+                        self.beta[-1],
+                        self.phi_d[-1],
+                        self.phi_m[-1],
+                        self.phi_m_small[-1],
+                        self.phi_m_smooth_x[-1],
+                        self.phi_m_smooth_y[-1],
+                        self.phi_m_smooth_z[-1],
+                        self.phi[-1],
+                    )
                 )
-            )
-            f.close()
 
-    def load_results(self):
-        results = np.loadtxt(self.fileName + str(".txt"), comments="#")
+    def load_results(self, file_name=None):
+        if file_name is None:
+            if not self.on_disk:
+                raise TypeError(
+                    f"'file_name' is a required argument if '{type(self).__qualname__}.on_disk' is `False`"
+                )
+            file_name = self.file_abs_path
+        results = np.loadtxt(file_name, comments="#")
+        if results.shape[1] != 9:
+            raise ValueError(f"{file_name} does not have valid results")
+
         self.beta = results[:, 1]
         self.phi_d = results[:, 2]
         self.phi_m = results[:, 3]
@@ -1875,12 +1962,11 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         self.phi_m_smooth_x = results[:, 5]
         self.phi_m_smooth_y = results[:, 6]
         self.phi_m_smooth_z = results[:, 7]
+        self.f = results[:, 8]
 
         self.phi_m_smooth = (
             self.phi_m_smooth_x + self.phi_m_smooth_y + self.phi_m_smooth_z
         )
-
-        self.f = results[:, 7]
 
         self.target_misfit = self.invProb.dmisfit.simulation.survey.nD
         self.i_target = None
@@ -1998,36 +2084,47 @@ class SaveOutputEveryIteration(SaveEveryIteration):
 
 
 class SaveOutputDictEveryIteration(SaveEveryIteration):
-    """
-    Saves inversion parameters at every iteration.
+    """Saves inversion parameters to a dictionary at every iteration.
+
+    At the end of every iteration, information about the current iteration is
+    saved to the `outDict` property of this object.
+
+    Parameters
+    ----------
+    on_disk : bool, optional
+        Whether to also save the parameters to an `npz` file at the end of each iteration.
+    directory : pathlib.Path or str, optional
+        Directory to save inversion parameters to if `on_disk`, defaults to current directory.
+    name : str, optional
+        Root name of the output file. The inversion start time and the iteration are appended to this.
     """
 
     # Initialize the output dict
-    def __init__(self, saveOnDisk=False, **kwargs):
-        super().__init__(**kwargs)
-        self.saveOnDisk = saveOnDisk
+    def __init__(self, on_disk=False, **kwargs):
+        if (save_on_disk := kwargs.pop("saveOnDisk", None)) is not None:
+            self.saveOnDisk = save_on_disk
+            on_disk = self.saveOnDisk
+        super().__init__(on_disk=on_disk, **kwargs)
+
+    saveOnDisk = deprecate_property(
+        SaveEveryIteration.on_disk,
+        "saveOnDisk",
+        removal_version="0.26.0",
+        future_warn=True,
+    )
 
     @property
-    def saveOnDisk(self):
-        """Whether to save the output dict to disk.
-
-        Returns
-        -------
-        bool
-        """
-        return self._saveOnDisk
-
-    @saveOnDisk.setter
-    def saveOnDisk(self, value):
-        self._saveOnDisk = validate_type("saveOnDisk", value, bool)
+    def file_abs_path(self) -> pathlib.Path | None:
+        if self.on_disk:
+            return self.directory / self._time_iter_file_name.with_suffix(".npz")
 
     def initialize(self):
+        super().initialize()
         self.outDict = {}
-        if self.saveOnDisk:
+        if self.on_disk:
             print(
-                "simpeg.SaveOutputDictEveryIteration will save your inversion progress as dictionary: '###-{0!s}.npz'".format(
-                    self.fileName
-                )
+                f"'{type(self).__qualname__}' will save your inversion progress as a dictionary to: "
+                f"'{self.file_abs_path}'"
             )
 
     def endIter(self):
@@ -2065,370 +2162,11 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
                     iterDict[reg_name + ".norm"] = norm
 
         # Save the file as a npz
-        if self.saveOnDisk:
-            np.savez("{:03d}-{:s}".format(self.opt.iter, self.fileName), iterDict)
+        if self.on_disk:
+            self._mkdir_and_check_output_file(should_exist=False)
+            np.savez(self.file_abs_path, iterDict)
 
         self.outDict[self.opt.iter] = iterDict
-
-
-@deprecate_class(removal_version="0.24.0", error=False)
-class Update_IRLS(InversionDirective):
-    f_old = 0
-    f_min_change = 1e-2
-    beta_tol = 1e-1
-    beta_ratio_l2 = None
-    prctile = 100
-    chifact_start = 1.0
-    chifact_target = 1.0
-
-    # Solving parameter for IRLS (mode:2)
-    irls_iteration = 0
-    minGNiter = 1
-    iterStart = 0
-    sphericalDomain = False
-
-    # Beta schedule
-    ComboObjFun = False
-    mode = 1
-    coolEpsOptimized = True
-    coolEps_p = True
-    coolEps_q = True
-    floorEps_p = 1e-8
-    floorEps_q = 1e-8
-    coolEpsFact = 1.2
-    silent = False
-    fix_Jmatrix = False
-
-    def __init__(
-        self,
-        max_irls_iterations=20,
-        update_beta=True,
-        beta_search=False,
-        coolingFactor=2.0,
-        coolingRate=1,
-        **kwargs,
-    ):
-        super().__init__(**kwargs)
-        self.max_irls_iterations = max_irls_iterations
-        self.update_beta = update_beta
-        self.beta_search = beta_search
-        self.coolingFactor = coolingFactor
-        self.coolingRate = coolingRate
-
-    @property
-    def max_irls_iterations(self):
-        """Maximum irls iterations.
-
-        Returns
-        -------
-        int
-        """
-        return self._max_irls_iterations
-
-    @max_irls_iterations.setter
-    def max_irls_iterations(self, value):
-        self._max_irls_iterations = validate_integer(
-            "max_irls_iterations", value, min_val=0
-        )
-
-    @property
-    def coolingFactor(self):
-        """Beta is divided by this value every `coolingRate` iterations.
-
-        Returns
-        -------
-        float
-        """
-        return self._coolingFactor
-
-    @coolingFactor.setter
-    def coolingFactor(self, value):
-        self._coolingFactor = validate_float(
-            "coolingFactor", value, min_val=0.0, inclusive_min=False
-        )
-
-    @property
-    def coolingRate(self):
-        """Cool after this number of iterations.
-
-        Returns
-        -------
-        int
-        """
-        return self._coolingRate
-
-    @coolingRate.setter
-    def coolingRate(self, value):
-        self._coolingRate = validate_integer("coolingRate", value, min_val=1)
-
-    @property
-    def update_beta(self):
-        """Whether to update beta.
-
-        Returns
-        -------
-        bool
-        """
-        return self._update_beta
-
-    @update_beta.setter
-    def update_beta(self, value):
-        self._update_beta = validate_type("update_beta", value, bool)
-
-    @property
-    def beta_search(self):
-        """Whether to do a beta search.
-
-        Returns
-        -------
-        bool
-        """
-        return self._beta_search
-
-    @beta_search.setter
-    def beta_search(self, value):
-        self._beta_search = validate_type("beta_search", value, bool)
-
-    @property
-    def target(self):
-        if getattr(self, "_target", None) is None:
-            nD = 0
-            for survey in self.survey:
-                nD += survey.nD
-
-            self._target = nD * self.chifact_target
-
-        return self._target
-
-    @target.setter
-    def target(self, val):
-        self._target = val
-
-    @property
-    def start(self):
-        if getattr(self, "_start", None) is None:
-            if isinstance(self.survey, list):
-                self._start = 0
-                for survey in self.survey:
-                    self._start += survey.nD * self.chifact_start
-
-            else:
-                self._start = self.survey.nD * self.chifact_start
-        return self._start
-
-    @start.setter
-    def start(self, val):
-        self._start = val
-
-    def initialize(self):
-        if self.mode == 1:
-            self.norms = []
-            for reg in self.reg.objfcts:
-                if not isinstance(reg, Sparse):
-                    continue
-                self.norms.append(reg.norms)
-                reg.norms = [2.0 for obj in reg.objfcts]
-                reg.model = self.invProb.model
-
-        # Update the model used by the regularization
-        for reg in self.reg.objfcts:
-            if not isinstance(reg, Sparse):
-                continue
-
-            reg.model = self.invProb.model
-
-        if self.sphericalDomain:
-            self.angleScale()
-
-    def endIter(self):
-        if self.sphericalDomain:
-            self.angleScale()
-
-        # Check if misfit is within the tolerance, otherwise scale beta
-        if np.all(
-            [
-                np.abs(1.0 - self.invProb.phi_d / self.target) > self.beta_tol,
-                self.update_beta,
-                self.mode != 1,
-            ]
-        ):
-            ratio = self.target / self.invProb.phi_d
-
-            if ratio > 1:
-                ratio = np.mean([2.0, ratio])
-            else:
-                ratio = np.mean([0.75, ratio])
-
-            self.invProb.beta = self.invProb.beta * ratio
-
-            if np.all([self.mode != 1, self.beta_search]):
-                print("Beta search step")
-                # self.update_beta = False
-                # Re-use previous model and continue with new beta
-                self.invProb.model = self.reg.objfcts[0].model
-                self.opt.xc = self.reg.objfcts[0].model
-                self.opt.iter -= 1
-                return
-
-        elif np.all([self.mode == 1, self.opt.iter % self.coolingRate == 0]):
-            self.invProb.beta = self.invProb.beta / self.coolingFactor
-
-        # After reaching target misfit with l2-norm, switch to IRLS (mode:2)
-        if np.all([self.invProb.phi_d < self.start, self.mode == 1]):
-            self.start_irls()
-
-        # Only update after GN iterations
-        if np.all(
-            [(self.opt.iter - self.iterStart) % self.minGNiter == 0, self.mode != 1]
-        ):
-            if self.stopping_criteria():
-                self.opt.stopNextIteration = True
-                return
-
-            # Print to screen
-            for reg in self.reg.objfcts:
-                if not isinstance(reg, Sparse):
-                    continue
-
-                for obj in reg.objfcts:
-                    if isinstance(reg, (Sparse, BaseSparse)):
-                        obj.irls_threshold = obj.irls_threshold / self.coolEpsFact
-
-            self.irls_iteration += 1
-
-            # Reset the regularization matrices so that it is
-            # recalculated for current model. Do it to all levels of comboObj
-            for reg in self.reg.objfcts:
-                if not isinstance(reg, Sparse):
-                    continue
-
-                reg.update_weights(reg.model)
-
-            self.update_beta = True
-            self.invProb.phi_m_last = self.reg(self.invProb.model)
-
-    def start_irls(self):
-        if not self.silent:
-            print(
-                "Reached starting chifact with l2-norm regularization:"
-                + " Start IRLS steps..."
-            )
-
-        self.mode = 2
-
-        if getattr(self.opt, "iter", None) is None:
-            self.iterStart = 0
-        else:
-            self.iterStart = self.opt.iter
-
-        self.invProb.phi_m_last = self.reg(self.invProb.model)
-
-        # Either use the supplied irls_threshold, or fix base on distribution of
-        # model values
-        for reg in self.reg.objfcts:
-            if not isinstance(reg, Sparse):
-                continue
-
-            for obj in reg.objfcts:
-                threshold = np.percentile(
-                    np.abs(obj.mapping * obj._delta_m(self.invProb.model)), self.prctile
-                )
-                if isinstance(obj, SmoothnessFirstOrder):
-                    threshold /= reg.regularization_mesh.base_length
-
-                obj.irls_threshold = threshold
-
-        # Re-assign the norms supplied by user l2 -> lp
-        for reg, norms in zip(self.reg.objfcts, self.norms):
-            if not isinstance(reg, Sparse):
-                continue
-            reg.norms = norms
-
-        # Save l2-model
-        self.invProb.l2model = self.invProb.model.copy()
-
-        # Print to screen
-        for reg in self.reg.objfcts:
-            if not isinstance(reg, Sparse):
-                continue
-            if not self.silent:
-                print("irls_threshold " + str(reg.objfcts[0].irls_threshold))
-
-    def angleScale(self):
-        """
-        Update the scales used by regularization for the
-        different block of models
-        """
-        # Currently implemented for MVI-S only
-        max_p = []
-        for reg in self.reg.objfcts[0].objfcts:
-            f_m = abs(reg.f_m(reg.model))
-            max_p += [np.max(f_m)]
-
-        max_p = np.asarray(max_p).max()
-
-        max_s = [np.pi, np.pi]
-
-        for reg, var in zip(self.reg.objfcts[1:], max_s):
-            for obj in reg.objfcts:
-                # TODO Need to make weights_shapes a public method
-                obj.set_weights(
-                    angle_scale=np.ones(obj._weights_shapes[0]) * max_p / var
-                )
-
-    def validate(self, directiveList):
-        dList = directiveList.dList
-        self_ind = dList.index(self)
-        lin_precond_ind = [isinstance(d, UpdatePreconditioner) for d in dList]
-
-        if any(lin_precond_ind):
-            assert lin_precond_ind.index(True) > self_ind, (
-                "The directive 'UpdatePreconditioner' must be after Update_IRLS "
-                "in the directiveList"
-            )
-        else:
-            warnings.warn(
-                "Without a Linear preconditioner, convergence may be slow. "
-                "Consider adding `Directives.UpdatePreconditioner` to your "
-                "directives list",
-                stacklevel=2,
-            )
-        return True
-
-    def stopping_criteria(self):
-        """
-        Check for stopping criteria of max_irls_iteration or minimum change.
-        """
-        phim_new = 0
-        for reg in self.reg.objfcts:
-            if isinstance(reg, (Sparse, BaseSparse)):
-                reg.model = self.invProb.model
-                phim_new += reg(reg.model)
-
-        # Check for maximum number of IRLS cycles1
-        if self.irls_iteration == self.max_irls_iterations:
-            if not self.silent:
-                print(
-                    "Reach maximum number of IRLS cycles:"
-                    + " {0:d}".format(self.max_irls_iterations)
-                )
-            return True
-
-        # Check if the function has changed enough
-        f_change = np.abs(self.f_old - phim_new) / (self.f_old + 1e-12)
-        if np.all(
-            [
-                f_change < self.f_min_change,
-                self.irls_iteration > 1,
-                np.abs(1.0 - self.invProb.phi_d / self.target) < self.beta_tol,
-            ]
-        ):
-            print("Minimum decrease in regularization." + "End of IRLS")
-            return True
-
-        self.f_old = phim_new
-
-        return False
 
 
 class UpdatePreconditioner(InversionDirective):
@@ -2670,20 +2408,6 @@ class UpdateSensitivityWeights(InversionDirective):
         normalization_method="maximum",
         **kwargs,
     ):
-        # Raise errors on deprecated arguments
-        if (key := "everyIter") in kwargs.keys():
-            raise TypeError(
-                f"'{key}' property has been removed. Please use 'every_iteration'.",
-            )
-        if (key := "threshold") in kwargs.keys():
-            raise TypeError(
-                f"'{key}' property has been removed. Please use 'threshold_value'.",
-            )
-        if (key := "normalization") in kwargs.keys():
-            raise TypeError(
-                f"'{key}' property has been removed. "
-                "Please define normalization using 'normalization_method'.",
-            )
 
         super().__init__(**kwargs)
 
@@ -2709,14 +2433,6 @@ class UpdateSensitivityWeights(InversionDirective):
     def every_iteration(self, value):
         self._every_iteration = validate_type("every_iteration", value, bool)
 
-    everyIter = deprecate_property(
-        every_iteration,
-        "everyIter",
-        "every_iteration",
-        removal_version="0.20.0",
-        error=True,
-    )
-
     @property
     def threshold_value(self):
         """Threshold value used to set minimum weighting value.
@@ -2741,14 +2457,6 @@ class UpdateSensitivityWeights(InversionDirective):
     @threshold_value.setter
     def threshold_value(self, value):
         self._threshold_value = validate_float("threshold_value", value, min_val=0.0)
-
-    threshold = deprecate_property(
-        threshold_value,
-        "threshold",
-        "threshold_value",
-        removal_version="0.20.0",
-        error=True,
-    )
 
     @property
     def threshold_method(self):
@@ -2801,14 +2509,6 @@ class UpdateSensitivityWeights(InversionDirective):
             self._normalization_method = validate_string(
                 "normalization_method", value, string_list=["minimum", "maximum"]
             )
-
-    normalization = deprecate_property(
-        normalization_method,
-        "normalization",
-        "normalization_method",
-        removal_version="0.20.0",
-        error=True,
-    )
 
     def initialize(self):
         """Compute sensitivity weights upon starting the inversion."""
