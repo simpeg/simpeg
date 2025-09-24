@@ -105,34 +105,6 @@ class TestMappingInSmoothnessFirstOrder:
     Test mapping in SmoothnessFirstOrder regularization.
     """
 
-    def get_regularization(
-        self,
-        mesh,
-        active_cells,
-        reference_model,
-        use_reference_model,
-        orientation,
-        **kwargs,
-    ):
-        """Return instance of SmoothnessFirstOrder"""
-        if use_reference_model:
-            reg = SmoothnessFirstOrder(
-                mesh=mesh,
-                active_cells=active_cells,
-                orientation=orientation,
-                reference_model=reference_model,
-                reference_model_in_smooth=True,
-                **kwargs,
-            )
-        else:
-            reg = SmoothnessFirstOrder(
-                mesh=mesh,
-                active_cells=active_cells,
-                orientation=orientation,
-                **kwargs,
-            )
-        return reg
-
     @pytest.mark.parametrize("orientation", ["x", "y", "z"])
     def test_default_mapping(
         self,
@@ -146,12 +118,12 @@ class TestMappingInSmoothnessFirstOrder:
         """
         Test regularization using the default (identity) mapping.
         """
-        reg = self.get_regularization(
+        reg = SmoothnessFirstOrder(
             mesh=tensor_mesh,
             active_cells=active_cells,
             orientation=orientation,
             reference_model=reference_model,
-            use_reference_model=use_reference_model,
+            reference_model_in_smooth=use_reference_model,
         )
 
         # Test call
@@ -182,12 +154,12 @@ class TestMappingInSmoothnessFirstOrder:
         a = np.full(n_active_cells, 3.5)
         a_matrix = diags(a)
         linear_mapping = LinearMap(a_matrix, b=None)
-        reg = self.get_regularization(
+        reg = SmoothnessFirstOrder(
             mesh=tensor_mesh,
             active_cells=active_cells,
             orientation=orientation,
             reference_model=reference_model,
-            use_reference_model=use_reference_model,
+            reference_model_in_smooth=use_reference_model,
             mapping=linear_mapping,
         )
         assert reg.mapping is linear_mapping
@@ -220,12 +192,12 @@ class TestMappingInSmoothnessFirstOrder:
         Test regularization using a non-linear mapping.
         """
         log_mapping = LogMap()
-        reg = self.get_regularization(
+        reg = SmoothnessFirstOrder(
             mesh=tensor_mesh,
             active_cells=active_cells,
             orientation=orientation,
             reference_model=reference_model,
-            use_reference_model=use_reference_model,
+            reference_model_in_smooth=use_reference_model,
             mapping=log_mapping,
         )
         assert reg.mapping is log_mapping
