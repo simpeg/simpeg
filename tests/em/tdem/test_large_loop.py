@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 # import matplotlib.pyplot as plt
 
@@ -10,35 +11,17 @@ from simpeg import maps
 from simpeg.utils.solver_utils import get_default_solver
 
 
-def test_large_loop():
-    Solver = get_default_solver()
+Solver = get_default_solver()
 
-    # conductivity values
-    rho_back = 500
-    sigma_air = 1e-8
-    sigma_back = 1 / rho_back
+# conductivity values
+rho_back = 500
+sigma_air = 1e-8
+sigma_back = 1 / rho_back
 
-    # transmitter
-    tx_halfwidth = 50
-    tx_z = 0.5  # put slightly above the surface
-    tx_points = np.array(
-        [
-            [-tx_halfwidth, -tx_halfwidth, tx_z],
-            [tx_halfwidth, -tx_halfwidth, tx_z],
-            [tx_halfwidth, tx_halfwidth, tx_z],
-            [-tx_halfwidth, tx_halfwidth, tx_z],
-            [-tx_halfwidth, -tx_halfwidth, tx_z],  # close the loop
-        ]
-    )
+current = 2
 
-    # receiver times
-    rx_times = 1e-3 * np.logspace(-1, 1, 30)
 
-    rx_x = np.r_[20]  # np.linspace(-100, 100, 10)
-    rx_y = np.r_[20]  # np.linspace(-100, 100, 10)
-    rx_z = np.r_[0]
-
-    rx_locs = discretize.utils.ndgrid(rx_x, rx_y, rx_z)
+def setup_mesh_model(tx_halfwidth=50):
 
     # design a tensor mesh
     cell_size = 20
@@ -78,6 +61,23 @@ def test_large_loop():
     model = sigma_air * np.ones(mesh.n_cells)
     model[mesh.cell_centers[:, 2] < 0] = sigma_back
 
+    return mesh, model
+
+
+def setup_survey(rx_locs, rx_times, tx_halfwidth=50, tx_z=0.5):
+    # transmitter
+    tx_halfwidth = 50
+    tx_z = 0.5  # put slightly above the surface
+    tx_points = np.array(
+        [
+            [-tx_halfwidth, -tx_halfwidth, tx_z],
+            [tx_halfwidth, -tx_halfwidth, tx_z],
+            [tx_halfwidth, tx_halfwidth, tx_z],
+            [-tx_halfwidth, tx_halfwidth, tx_z],
+            [-tx_halfwidth, -tx_halfwidth, tx_z],  # close the loop
+        ]
+    )
+
     # define survey for 3D simulation
     dbdt_receivers = [
         tdem.receivers.PointMagneticFluxTimeDerivative(
@@ -93,7 +93,7 @@ def test_large_loop():
     ]
 
     waveform = tdem.sources.StepOffWaveform()
-    current = 2
+
     src = tdem.sources.LineCurrent(
         receiver_list=b_receivers + dbdt_receivers,
         location=tx_points,
@@ -104,6 +104,11 @@ def test_large_loop():
 
     survey = tdem.Survey([src])
 
+    return survey
+
+
+def setup_simulation(mesh, survey, simulation_type="EB"):
+
     nsteps = 20
     time_steps = [
         (3e-6, nsteps),
@@ -113,13 +118,42 @@ def test_large_loop():
         (3e-4, nsteps + 6),
     ]
 
-    simulation = tdem.simulation.Simulation3DMagneticFluxDensity(
-        mesh=mesh,
-        survey=survey,
-        time_steps=time_steps,
-        solver=Solver,
-        sigmaMap=maps.IdentityMap(mesh),
-    )
+    if simulation_type == "EB":
+        simulation = tdem.simulation.Simulation3DMagneticFluxDensity(
+            mesh=mesh,
+            survey=survey,
+            time_steps=time_steps,
+            solver=Solver,
+            sigmaMap=maps.IdentityMap(mesh),
+        )
+    elif simulation_type == "HJ":
+        simulation = tdem.simulation.Simulation3DMagneticField(
+            mesh=mesh,
+            survey=survey,
+            time_steps=time_steps,
+            solver=Solver,
+            sigmaMap=maps.IdentityMap(mesh),
+        )
+    return simulation
+
+
+@pytest.mark.parametrize("simulation_type", ["EB", "HJ"])
+def test_large_loop(simulation_type):
+
+    tx_halfwidth = 50
+
+    # receiver times
+    rx_times = 1e-3 * np.logspace(-1, 1, 30)
+
+    rx_x = np.r_[20]  # np.linspace(-100, 100, 10)
+    rx_y = np.r_[20]  # np.linspace(-100, 100, 10)
+    rx_z = np.r_[0]
+
+    rx_locs = discretize.utils.ndgrid(rx_x, rx_y, rx_z)
+
+    mesh, model = setup_mesh_model(tx_halfwidth=tx_halfwidth)
+    survey = setup_survey(rx_locs=rx_locs, rx_times=rx_times, tx_halfwidth=tx_halfwidth)
+    simulation = setup_simulation(mesh, survey, simulation_type)
 
     fields = simulation.fields(model)
     dpred_numeric = simulation.dpred(model, f=fields)
@@ -140,7 +174,7 @@ def test_large_loop():
     waveform = tdem.sources.StepOffWaveform()
     src1d = tdem.sources.LineCurrent(
         receiver_list=b_receivers1d + dbdt_receivers1d,
-        location=tx_points,
+        location=survey.source_list[0].location,
         waveform=waveform,
         srcType="inductive",
     )
