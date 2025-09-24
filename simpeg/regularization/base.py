@@ -1131,8 +1131,8 @@ class SmoothnessFirstOrder(BaseRegularization):
 
 
         where :math:`\mathbf{m}` are the discrete model parameters (model),
-        :math:`\mathbf{m}^{(ref)}` is the reference model, :math:`\mathbf{G_x}` is the
-        partial cell gradient operator along the x-direction (i.e. x-derivative),
+        :math:`\mathbf{m}^\text{ref}` is the reference model, :math:`\mathbf{G_x}` is
+        the partial cell gradient operator along the x-direction (i.e. x-derivative),
         :math:`\mu` is the mapping function, and :math:`\mathbf{W}` is the weighting
         matrix.
         Similar for smoothness along y and z.
@@ -1249,45 +1249,92 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
     smoothness along the x-direction as:
 
     .. math::
-        \phi (m) = \int_\Omega \, w(r) \,
-        \bigg [ \frac{\partial^2 m}{\partial x^2} \bigg ]^2 \, dv
 
-    where :math:`m(r)` is the model and :math:`w(r)` is a user-defined weighting function.
+        \phi (m) = \int_\Omega \, w(\mathbf{r}) \,
+        \left\lvert
+        \frac{\partial^2 m(\mathbf{r})}{\partial x^2}
+        \right\rvert^2 \, d\mathbf{r}
 
-    For implementation within SimPEG, the regularization function and its variables
-    must be discretized onto a `mesh`. The discretized approximation for the regularization
-    function (objective function) is expressed in linear form as:
+    where :math:`m(\mathbf{r})` is the model, and :math:`w(\mathbf{r})` is
+    a user-defined weighting function.
+
+    For the implementation within SimPEG, the regularization function and its
+    variables must be discretized onto a `mesh`. The discretized approximation
+    for the regularization function (objective function) is expressed in linear
+    form as:
 
     .. math::
-        \phi (\mathbf{m}) = \sum_i
-        \tilde{w}_i \, \bigg | \, \frac{\partial^2 m_i}{\partial x^2} \, \bigg |^2
 
-    where :math:`m_i \in \mathbf{m}` are the discrete model parameter values defined on the
-    mesh and :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting constants that
-    1) account for cell dimensions in the discretization and 2) apply any user-defined weighting.
+        \phi (\mathbf{m}) = \sum_i \tilde{w}_i \,
+        \left\lvert \,
+        \frac{\partial^2 m_i}{\partial x^2} \,
+        \right\rvert^2
+
+    where :math:`m_i \in \mathbf{m}` are the discrete model parameter values defined on
+    the mesh, and :math:`\tilde{w}_i \in \mathbf{\tilde{w}}` are amalgamated weighting
+    constants that:
+
+    1. account for cell dimensions in the discretization, and
+    2. apply any user-defined weighting.
+
     This is equivalent to an objective function of the form:
 
     .. math::
-        \phi (\mathbf{m}) = \big \| \mathbf{W \, L_x \, m } \, \big \|^2
 
-    where
+        \phi (\mathbf{m}) =
+        \left\lVert
+        \mathbf{W} \mathbf{L_x} \mathbf{m}
+        \right\rVert^2
 
-        - :math:`\mathbf{L_x}` is a second-order derivative operator with respect to :math:`x`, and
-        - :math:`\mathbf{W}` is the weighting matrix.
+    where :math:`\mathbf{m}` is the model vector,
+    :math:`\mathbf{L_x}` is the second-order derivative operator with respect to
+    :math:`x`, and :math:`\mathbf{W}` is the weighting matrix.
+
 
     **Reference model in smoothness:**
 
-    Second-order smoothness within a discrete reference model :math:`\mathbf{m}^{(ref)}` can be
-    preserved by including the reference model the smoothness regularization function.
+    Second-order smoothness within a discrete reference model
+    :math:`\mathbf{m}^\text{ref}` can be preserved by including the reference model the
+    smoothness regularization function.
     In this case, the objective function becomes:
 
     .. math::
-        \phi (\mathbf{m}) = \Big \| \mathbf{W L_x}
-        \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
 
-    This functionality is used by setting a reference model with the
-    `reference_model` property, and by setting the `reference_model_in_smooth` parameter
-    to ``True``.
+        \phi(\mathbf{m}) =
+            \lVert
+            \mathbf{W L_x}
+            \left[ \mathbf{m} - \mathbf{m}^\text{ref} \right]
+            \rVert^2
+
+    This functionality is used by setting a reference model with the `reference_model`
+    property, and by setting the `reference_model_in_smooth` parameter to ``True``.
+
+
+    **Mapping function:**
+
+    In case make use of a mapping function :math:`\mu` that maps values of the model
+    into a different space, then the regularization function for second-order smoothness
+    along the x-direction as:
+
+    .. math::
+
+        \phi (m) = \int_\Omega \, w(\mathbf{r}) \,
+        \lvert
+        \frac{\partial^2}{\partial x^2}
+        \left[ \mu(m) - \mu(m^\text{ref}) \right]
+        t\rvert^2 \, d\mathbf{r}
+
+    In matrix form, the previous equation is expressed as:
+
+    .. math::
+
+        \phi (\mathbf{m}) =
+        \lVert
+        \mathbf{W}
+        \mathbf{L_x}
+        \left[ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \right]
+        \right\rVert^2.
+
 
     **Custom weights and the weighting matrix:**
 
@@ -1323,11 +1370,14 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         the regularization kernel function is given by:
 
         .. math::
-            \mathbf{f_m}(\mathbf{m}) = \mathbf{L_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
 
-        where where :math:`\mathbf{m}` are the discrete model parameters (model),
-        :math:`\mathbf{m}^{(ref)}` is the reference model (optional), :math:`\mathbf{L_x}`
-        is the discrete second order x-derivative operator.
+            \mathbf{f_m}(\mathbf{m}) =
+            \mathbf{L_x} \left[ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \right]
+
+        where :math:`\mathbf{L_x}` is the discrete second order x-derivative operator,
+        :math:`\mathbf{m}` are the discrete model parameters defined on the mesh,
+        :math:`\mathbf{m}^{(ref)}` is the reference model (optional), and :math:`\mu` is
+        the mapping function.
 
         Parameters
         ----------
@@ -1345,26 +1395,39 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         is given by:
 
         .. math::
-            \phi_m (\mathbf{m}) =
-            \Big \| \mathbf{W L_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
+
+            \phi(\mathbf{m}) =
+            \lVert
+            \mathbf{W}
+            \mathbf{L_x}
+            \left[ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \right]
+            \rVert^2.
 
         where :math:`\mathbf{m}` are the discrete model parameters (model),
-        :math:`\mathbf{m}^{(ref)}` is the reference model, :math:`\mathbf{L_x}` is the
-        second-order x-derivative operator, and :math:`\mathbf{W}` is
-        the weighting matrix. Similar for smoothness along y and z.
+        :math:`\mathbf{m}^\text{ref}` is the reference model, :math:`\mathbf{L_x}` is
+        the second-order x-derivative operator, :math:`\mu` is the mapping function, and
+        :math:`\mathbf{W}` is the weighting matrix.
+        Similar for smoothness along y and z.
         See the :class:`SmoothnessSecondOrder` class documentation for more detail.
 
         We define the regularization kernel function :math:`\mathbf{f_m}` as:
 
         .. math::
-            \mathbf{f_m}(\mathbf{m}) = \mathbf{L_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
+
+            \mathbf{f_m}(\mathbf{m}) =
+            \mathbf{L_x} \left[ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \right]
 
         such that
 
         .. math::
-            \phi_m (\mathbf{m}) = \Big \| \mathbf{W \, f_m} \Big \|^2
+
+            \phi_m(\mathbf{m}) = \lVert \mathbf{W \, f_m} \rVert^2.
         """
-        dfm_dl = self.mapping * self._delta_m(m)
+        dfm_dl = (
+            self.mapping * m - self.mapping * self.reference_model
+            if self.reference_model is not None and self.reference_model_in_smooth
+            else self.mapping * m
+        )
 
         if self.units is not None and self.units.lower() == "radian":
             return self.cell_gradient.T @ (
@@ -1383,9 +1446,12 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         regularization kernel function with respect to the model is given by:
 
         .. math::
-            \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{L_x}
 
-        where :math:`\mathbf{L_x}` is the second-order derivative operator with respect to x.
+            \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} =
+            \mathbf{L_x} \frac{\partial \mu(\mathbf{m})}{\partial \mathbf{m}}
+
+        where :math:`\mathbf{L_x}` is the second-order derivative operator with respect
+        to x, and :math:`\mu` is the mapping function.
 
         Parameters
         ----------
@@ -1403,35 +1469,42 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
         is given by:
 
         .. math::
-            \phi_m (\mathbf{m}) =
-            \Big \| \mathbf{W L_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ] \Big \|^2
+
+            \phi (\mathbf{m}) =
+            \left\lVert
+            \mathbf{W}
+            \mathbf{L_x}
+            \left[ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \right]
+            \right\rVert^2.
 
         where :math:`\mathbf{m}` are the discrete model parameters (model),
-        :math:`\mathbf{m}^{(ref)}` is the reference model, :math:`\mathbf{L_x}` is the
-        second-order x-derivative operator, and :math:`\mathbf{W}` is
-        the weighting matrix. Similar for smoothness along y and z.
+        :math:`\mathbf{m}^\text{ref}` is the reference model, :math:`\mathbf{L_x}` is
+        the second-order x-derivative operator, :math:`\mu` is the mapping function and
+        :math:`\mathbf{W}` is the weighting matrix.
+        Similar for smoothness along y and z.
         See the :class:`SmoothnessSecondOrder` class documentation for more detail.
 
         We define the regularization kernel function :math:`\mathbf{f_m}` as:
 
         .. math::
-            \mathbf{f_m}(\mathbf{m}) = \mathbf{L_x} \big [ \mathbf{m} - \mathbf{m}^{(ref)} \big ]
+
+            \mathbf{f_m}(\mathbf{m}) =
+            \mathbf{L_x} \left[ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \right]
 
         such that
 
         .. math::
-            \phi_m (\mathbf{m}) = \Big \| \mathbf{W \, f_m} \Big \|^2
+
+            \phi_m(\mathbf{m}) = \lVert \mathbf{W \, f_m} \rVert^2.
 
         The derivative of the regularization kernel function with respect to the model is:
 
         .. math::
-            \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}} = \mathbf{L_x}
+
+            \frac{\partial \mathbf{f_m}}{\partial \mathbf{m}}
+            = \mathbf{L_x} \frac{\partial \mu(\mathbf{m})}{\partial \mathbf{m}}
         """
-        return (
-            self.cell_gradient.T
-            @ self.cell_gradient
-            @ self.mapping.deriv(self._delta_m(m))
-        )
+        return self.cell_gradient.T @ self.cell_gradient @ self.mapping.deriv(m)
 
     @property
     def W(self) -> csr_matrix:
