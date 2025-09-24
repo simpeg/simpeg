@@ -1,7 +1,6 @@
 import re
 import pytest
 
-from simpeg.optimization import ProjectedGNCG
 from simpeg.utils import sdiag
 import numpy as np
 import numpy.testing as npt
@@ -51,6 +50,19 @@ class TestUnboundOptimizers:
         npt.assert_allclose(xopt, x_true, rtol=TOL)
 
 
+@pytest.mark.parametrize("optimizer", OPTIMIZERS)
+class TestNanInit:
+
+    def test_nan(self, optimizer):
+        opt = optimizer(maxIter=0)
+        with pytest.raises(ValueError, match=re.escape("x0 has a nan.")):
+            opt.minimize(rosenbrock, np.array([np.nan, 0.0]))
+
+    def test_no_nan(self, optimizer):
+        opt = optimizer(maxIter=0)
+        opt.minimize(rosenbrock, np.array([0.0, 0.0]))
+
+
 def test_NewtonRoot():
     def fun(x, return_g=True):
         if return_g:
@@ -92,7 +104,7 @@ def test_projected_gncg_active_not_bound_branch(x0, bounded):
     # tests designed to test the branches of the
     # projected gncg when a point is in the active set but not in the binding set.
     func = get_quadratic(sp.identity(2).tocsr(), np.array([-5, 5]))
-    opt = ProjectedGNCG(upper=8, lower=0)
+    opt = optimization.ProjectedGNCG(upper=8, lower=0)
     _, g = func(x0, return_g=True, return_H=False)
 
     opt.g = g
