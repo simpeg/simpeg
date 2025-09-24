@@ -931,7 +931,11 @@ class AmplitudeSmoothnessFirstOrder(SparseSmoothness, BaseAmplitude):
         numpy.ndarray
             The regularization kernel function evaluated for the model provided.
         """
-        d_m = self.mapping * m - self.mapping * self.reference_model
+        d_m = (
+            self.mapping * m - self.mapping * self.reference_model
+            if self.reference_model is not None
+            else self.mapping * m
+        )
         fm = self.cell_gradient * (self.mapping * d_m).reshape(
             (self.regularization_mesh.nC, self.n_comp), order="F"
         )
