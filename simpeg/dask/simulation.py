@@ -1,6 +1,7 @@
 from ..simulation import BaseSimulation as Sim
 
 from dask import array
+from dask.distributed import get_client
 import numpy as np
 from multiprocessing import cpu_count
 
@@ -63,28 +64,28 @@ def getJtJdiag(self, m, W=None, f=None):
 Sim.getJtJdiag = getJtJdiag
 
 
-def __init__(
-    self,
-    survey=None,
-    sensitivity_path="./sensitivity/",
-    counter=None,
-    verbose=False,
-    chunk_format="row",
-    max_ram=16,
-    max_chunk_size=128,
-    **kwargs,
-):
-    _old_init(
-        self,
-        survey=survey,
-        sensitivity_path=sensitivity_path,
-        counter=counter,
-        verbose=verbose,
-        **kwargs,
-    )
-    self.chunk_format = chunk_format
-    self.max_ram = max_ram
-    self.max_chunk_size = max_chunk_size
+# def __init__(
+#     self,
+#     survey=None,
+#     sensitivity_path="./sensitivity/",
+#     counter=None,
+#     verbose=False,
+#     chunk_format="row",
+#     max_ram=16,
+#     max_chunk_size=128,
+#     **kwargs,
+# ):
+#     _old_init(
+#         self,
+#         survey=survey,
+#         sensitivity_path=sensitivity_path,
+#         counter=counter,
+#         verbose=verbose,
+#         **kwargs,
+#     )
+#     self.chunk_format = chunk_format
+#     self.max_ram = max_ram
+#     self.max_chunk_size = max_chunk_size
 
 
 def Jvec(self, m, v, **_):
@@ -132,13 +133,17 @@ def Jmatrix(self):
 Sim.Jmatrix = Jmatrix
 
 
-def n_threads(self, client=None):
+def n_threads(self, client=None, worker=None):
     """
     Number of threads used by Dask
     """
     if getattr(self, "_n_threads", None) is None:
         if client:
-            self._n_threads = client.nthreads()[self.worker[0]]
+            n_threads = client.nthreads()
+            if not worker:
+                self._n_threads = list(n_threads.values())[0]
+            else:
+                self._n_threads = n_threads[self.worker[0]]
         else:
             self._n_threads = cpu_count()
 
@@ -148,38 +153,58 @@ def n_threads(self, client=None):
 Sim.n_threads = n_threads
 
 
-# TODO: Make dpred parallel
-def dpred(self, m=None, f=None):
-    r"""Predicted data for the model provided.
-
-    Parameters
-    ----------
-    m : (n_param,) numpy.ndarray
-        The model parameters.
-    f : simpeg.fields.Fields, optional
-        If provided, will be used to compute the predicted data
-        without recalculating the fields.
-
-    Returns
-    -------
-    (n_data, ) numpy.ndarray
-        The predicted data vector.
+def _get_client_worker(self) -> tuple:
     """
-    if self.survey is None:
-        raise AttributeError(
-            "The survey has not yet been set and is required to compute "
-            "data. Please set the survey for the simulation: "
-            "simulation.survey = survey"
-        )
+    Get the Dask client and worker if they exist.
+    """
+    try:
+        client = get_client()
+    except ValueError:
+        client = None
 
-    if f is None:
-        if m is None:
-            m = self.model
+    try:
+        worker = self.worker
+    except AttributeError:
+        worker = None
 
-        f = self.fields(m)
+    return client, worker
 
-    data = Data(self.survey)
-    for src in self.survey.source_list:
-        for rx in src.receiver_list:
-            data[src, rx] = rx.eval(src, self.mesh, f)
-    return mkvc(data)
+
+Sim._get_client_worker = _get_client_worker
+
+
+# TODO: Make dpred parallel
+# def dpred(self, m=None, f=None):
+#     r"""Predicted data for the model provided.
+#
+#     Parameters
+#     ----------
+#     m : (n_param,) numpy.ndarray
+#         The model parameters.
+#     f : simpeg.fields.Fields, optional
+#         If provided, will be used to compute the predicted data
+#         without recalculating the fields.
+#
+#     Returns
+#     -------
+#     (n_data, ) numpy.ndarray
+#         The predicted data vector.
+#     """
+#     if self.survey is None:
+#         raise AttributeError(
+#             "The survey has not yet been set and is required to compute "
+#             "data. Please set the survey for the simulation: "
+#             "simulation.survey = survey"
+#         )
+#
+#     if f is None:
+#         if m is None:
+#             m = self.model
+#
+#         f = self.fields(m)
+#
+#     data = Data(self.survey)
+#     for src in self.survey.source_list:
+#         for rx in src.receiver_list:
+#             data[src, rx] = rx.eval(src, self.mesh, f)
+#     return mkvc(data)
