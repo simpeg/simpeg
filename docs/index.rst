@@ -15,7 +15,8 @@ estimation for geophysical applications.
 :ref:`Install <installing>` |
 `GitHub Repository <https://github.com/simpeg/simpeg>`_ |
 `Bugs and Issues <https://github.com/simpeg/simpeg/issues>`_ |
-`SimPEG website <https://simpeg.xyz/>`_
+`SimPEG website <https://simpeg.xyz/>`_ |
+`License <https://github.com/simpeg/simpeg/blob/main/LICENSE>`_
 
 .. grid:: 1 2 1 2
     :margin: 5 5 0 0
