@@ -983,8 +983,12 @@ class SmoothnessFirstOrder(BaseRegularization):
         dfm_dl = self.mapping * self._delta_m(m)
 
         if self.units is not None and self.units.lower() == "radian":
+            # Cannot use the self.cell_gradient.sign() with rotated gradients, as partial
+            # gradients are fractional distances
             return (
-                utils.mat_utils.coterminal(self.cell_gradient.sign() @ dfm_dl)
+                utils.mat_utils.coterminal(
+                    (self.cell_gradient @ dfm_dl) * self._cell_distances
+                )
                 / self._cell_distances
             )
         return self.cell_gradient @ dfm_dl
