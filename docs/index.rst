@@ -34,7 +34,7 @@ estimation for geophysical applications.
             :ref-type: ref
             :click-parent:
             :color: primary
-            :outline:
+            :shadow:
             :expand:
 
     .. grid-item-card:: :fas:`book` User Tutorials
@@ -47,7 +47,7 @@ estimation for geophysical applications.
         .. button-link:: https://simpeg.xyz/user-tutorials
             :click-parent:
             :color: primary
-            :outline:
+            :shadow:
             :expand:
 
             Checkout the User Tutorials :octicon:`link-external`
@@ -62,7 +62,7 @@ estimation for geophysical applications.
         .. button-ref:: api
             :ref-type: ref
             :color: primary
-            :outline:
+            :shadow:
             :expand:
 
     .. grid-item-card:: :fas:`comments` Contact
@@ -75,7 +75,7 @@ estimation for geophysical applications.
         .. button-link:: https://mattermost.softwareunderground.org/simpeg
             :click-parent:
             :color: primary
-            :outline:
+            :shadow:
             :expand:
 
             Join our Mattermost channel :octicon:`link-external`
