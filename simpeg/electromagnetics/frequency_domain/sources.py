@@ -476,6 +476,21 @@ class MagDipole(BaseFDEMSrc):
         out[np.isnan(out)] = 0
         return out
 
+    def _get_grids(self, simulation):
+        if simulation._formulation == "EB":
+            gridX = simulation.mesh.gridEx
+            gridY = simulation.mesh.gridEy
+            gridZ = simulation.mesh.gridEz
+            # C = simulation.mesh.edge_curl
+
+        elif simulation._formulation == "HJ":
+            gridX = simulation.mesh.gridFx
+            gridY = simulation.mesh.gridFy
+            gridZ = simulation.mesh.gridFz
+            # C = simulation.MeI * simulation.mesh.edge_curl.T * simulation.Mf
+
+        return gridX, gridY, gridZ
+
     def bPrimary(self, simulation):
         """Compute primary magnetic flux density.
 
@@ -492,40 +507,37 @@ class MagDipole(BaseFDEMSrc):
         numpy.ndarray
             Primary magnetic flux density
         """
-        formulation = simulation._formulation
         coordinates = "cartesian"
 
-        if formulation == "EB":
-            gridX = simulation.mesh.gridEx
-            gridY = simulation.mesh.gridEy
-            gridZ = simulation.mesh.gridEz
+        gridX, gridY, gridZ = self._get_grids(simulation)
+
+        if simulation._formulation == "EB":
             C = simulation.mesh.edge_curl
 
-        elif formulation == "HJ":
-            gridX = simulation.mesh.gridFx
-            gridY = simulation.mesh.gridFy
-            gridZ = simulation.mesh.gridFz
-            C = simulation.MeI * simulation.mesh.edge_curl.T * simulation.Mf
+            if simulation.mesh._meshType == "CYL":
+                coordinates = "cylindrical"
 
-        if simulation.mesh._meshType == "CYL":
-            coordinates = "cylindrical"
+                if simulation.mesh.is_symmetric is True:
+                    if not (
+                        np.linalg.norm(self.orientation - np.r_[0.0, 0.0, 1.0]) < 1e-6
+                    ):
+                        raise AssertionError(
+                            "for cylindrical symmetry, the dipole must be oriented"
+                            " in the Z direction"
+                        )
+                    a = self._srcFct(gridY)[:, 1]
 
-            if simulation.mesh.is_symmetric is True:
-                if not (np.linalg.norm(self.orientation - np.r_[0.0, 0.0, 1.0]) < 1e-6):
-                    raise AssertionError(
-                        "for cylindrical symmetry, the dipole must be oriented"
-                        " in the Z direction"
-                    )
-                a = self._srcFct(gridY)[:, 1]
+                    return C * a
 
-                return C * a
+            ax = self._srcFct(gridX, coordinates)[:, 0]
+            ay = self._srcFct(gridY, coordinates)[:, 1]
+            az = self._srcFct(gridZ, coordinates)[:, 2]
+            a = np.concatenate((ax, ay, az))
 
-        ax = self._srcFct(gridX, coordinates)[:, 0]
-        ay = self._srcFct(gridY, coordinates)[:, 1]
-        az = self._srcFct(gridZ, coordinates)[:, 2]
-        a = np.concatenate((ax, ay, az))
+            return C * a
 
-        return C * a
+        elif simulation._formulation == "HJ":
+            return self.mu * self.hPrimary(simulation)
 
     def hPrimary(self, simulation):
         """Compute primary magnetic field.
@@ -556,8 +568,24 @@ class MagDipole(BaseFDEMSrc):
                     out.append(h_rx @ rx.orientation)
                 self._1d_h = out
             return self._1d_h
-        b = self.bPrimary(simulation)
-        return 1.0 / self.mu * b
+
+        if simulation._formulation == "EB":
+            b = self.bPrimary(simulation)
+            return (
+                1.0 / self.mu * b
+            )  # same as MfI * Mfmui * b (mu primary must be a scalar)
+
+        elif simulation._formulation == "HJ":
+            gridX, gridY, gridZ = self._get_grids(simulation)
+
+            coordinates = "cartesian"
+
+            ax = self._srcFct(gridX, coordinates)[:, 0]
+            ay = self._srcFct(gridY, coordinates)[:, 1]
+            az = self._srcFct(gridZ, coordinates)[:, 2]
+            a = simulation.Mf * np.concatenate((ax, ay, az))
+
+            return 1.0 / self.mu * simulation.MeI * simulation.mesh.edge_curl.T * a
 
     def s_m(self, simulation):
         """Magnetic source term (s_m)
@@ -573,10 +601,13 @@ class MagDipole(BaseFDEMSrc):
             Magnetic source term on mesh.
         """
 
-        b_p = self.bPrimary(simulation)
-        if simulation._formulation == "HJ":
-            b_p = simulation.Me * b_p
-        return -1j * omega(self.frequency) * b_p
+        if simulation._formulation == "EB":
+            b_p = self.bPrimary(simulation)
+            return -1j * omega(self.frequency) * b_p
+        elif simulation._formulation == "HJ":
+            h_p = self.hPrimary(simulation)
+            MeMu = simulation.MeMu
+            return -1j * omega(self.frequency) * MeMu * h_p
 
     def s_e(self, simulation):
         """Electric source term (s_e)
