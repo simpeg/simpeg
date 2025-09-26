@@ -133,15 +133,7 @@ be exploited through inheritance of base classes, and differences can be
 expressed through subtype polymorphism. Please look at the documentation here
 for more in-depth information.
 
-
-.. include:: ../../../CITATION.rst
-
-Authors
--------
-
-.. include:: ../../../AUTHORS.rst
-
 License
 -------
 
-.. include:: ../../../LICENSE
+.. include:: ../../../../LICENSE
