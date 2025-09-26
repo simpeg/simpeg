@@ -476,21 +476,6 @@ class MagDipole(BaseFDEMSrc):
         out[np.isnan(out)] = 0
         return out
 
-    def _get_grids(self, simulation):
-        if simulation._formulation == "EB":
-            gridX = simulation.mesh.gridEx
-            gridY = simulation.mesh.gridEy
-            gridZ = simulation.mesh.gridEz
-            # C = simulation.mesh.edge_curl
-
-        elif simulation._formulation == "HJ":
-            gridX = simulation.mesh.gridFx
-            gridY = simulation.mesh.gridFy
-            gridZ = simulation.mesh.gridFz
-            # C = simulation.MeI * simulation.mesh.edge_curl.T * simulation.Mf
-
-        return gridX, gridY, gridZ
-
     def bPrimary(self, simulation):
         """Compute primary magnetic flux density.
 
@@ -509,8 +494,6 @@ class MagDipole(BaseFDEMSrc):
         """
         coordinates = "cartesian"
 
-        gridX, gridY, gridZ = self._get_grids(simulation)
-
         if simulation._formulation == "EB":
             C = simulation.mesh.edge_curl
 
@@ -525,15 +508,11 @@ class MagDipole(BaseFDEMSrc):
                             "for cylindrical symmetry, the dipole must be oriented"
                             " in the Z direction"
                         )
-                    a = self._srcFct(gridY)[:, 1]
-
+                    a = self._srcFct(simulation.mesh.edges_y, coordinates)[:, 1]
                     return C * a
 
-            ax = self._srcFct(gridX, coordinates)[:, 0]
-            ay = self._srcFct(gridY, coordinates)[:, 1]
-            az = self._srcFct(gridZ, coordinates)[:, 2]
-            a = np.concatenate((ax, ay, az))
-
+            avec = self._srcFct(simulation.mesh.edges, coordinates)
+            a = simulation.mesh.project_edge_vector(avec)
             return C * a
 
         elif simulation._formulation == "HJ":
@@ -576,16 +555,25 @@ class MagDipole(BaseFDEMSrc):
             )  # same as MfI * Mfmui * b (mu primary must be a scalar)
 
         elif simulation._formulation == "HJ":
-            gridX, gridY, gridZ = self._get_grids(simulation)
-
             coordinates = "cartesian"
+            if simulation.mesh._meshType == "CYL":
+                coordinates = "cylindrical"
+                if simulation.mesh.is_symmetric is True:
+                    raise AssertionError(
+                        "for cylindrical symmetry, you must use the EB formulation for the simulation"
+                    )
 
-            ax = self._srcFct(gridX, coordinates)[:, 0]
-            ay = self._srcFct(gridY, coordinates)[:, 1]
-            az = self._srcFct(gridZ, coordinates)[:, 2]
-            a = simulation.Mf * np.concatenate((ax, ay, az))
+            avec = self._srcFct(simulation.mesh.faces, coordinates)
+            a = simulation.mesh.project_face_vector(avec)
 
-            return 1.0 / self.mu * simulation.MeI * simulation.mesh.edge_curl.T * a
+            return (
+                1.0
+                / self.mu
+                * simulation.MeI
+                * simulation.mesh.edge_curl.T
+                * simulation.Mf
+                * a
+            )
 
     def s_m(self, simulation):
         """Magnetic source term (s_m)
