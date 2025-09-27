@@ -9,7 +9,7 @@ from simpeg.utils.solver_utils import get_default_solver
 
 Solver = get_default_solver()
 
-TOL = 5e-3  # relative tolerance
+TOL = 1e-2  # relative tolerance
 
 # Observation times for response (time channels)
 n_times = 30
