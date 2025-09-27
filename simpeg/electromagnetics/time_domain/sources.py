@@ -1317,8 +1317,7 @@ class MagDipole(BaseTDEMSrc):
             return 1 / self.mu * self._bSrc(simulation)
 
         elif simulation._formulation == "HJ":
-            avec = self._aSrc(simulation.mesh.faces)
-            a = simulation.mesh.project_face_vector(avec)
+            a = self._aSrc(simulation)
 
             a_boundary = mkvc(self._srcFct(simulation.mesh.boundary_edges))
             a_bc = simulation.mesh.boundary_edge_vector_integral * a_boundary
