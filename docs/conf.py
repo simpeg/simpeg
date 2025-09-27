@@ -44,6 +44,7 @@ extensions = [
     "sphinx.ext.coverage",
     "sphinx.ext.doctest",
     "sphinx.ext.extlinks",
+    "sphinx_design",
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
     "sphinx_gallery.gen_gallery",
