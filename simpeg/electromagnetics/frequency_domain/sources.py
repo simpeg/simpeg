@@ -566,6 +566,9 @@ class MagDipole(BaseFDEMSrc):
             avec = self._srcFct(simulation.mesh.faces, coordinates)
             a = simulation.mesh.project_face_vector(avec)
 
+            a_boundary = mkvc(self._srcFct(simulation.mesh.boundary_edges))
+            a_bc = simulation.mesh.boundary_edge_vector_integral * a_boundary
+
             return (
                 1.0
                 / self.mu
@@ -573,6 +576,7 @@ class MagDipole(BaseFDEMSrc):
                 * simulation.mesh.edge_curl.T
                 * simulation.Mf
                 * a
+                - 1 / self.mu * simulation.MeI * a_bc
             )
 
     def s_m(self, simulation):
