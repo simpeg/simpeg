@@ -1,5 +1,7 @@
 import warnings
 
+from discretize.utils import mkvc
+
 import numpy as np
 from geoana.em.static import CircularLoopWholeSpace, MagneticDipoleWholeSpace
 from scipy.constants import mu_0
@@ -1232,27 +1234,23 @@ class MagDipole(BaseTDEMSrc):
 
     def _aSrc(self, simulation):
         coordinates = "cartesian"
-        if simulation._formulation == "EB":
-            gridX = simulation.mesh.gridEx
-            gridY = simulation.mesh.gridEy
-            gridZ = simulation.mesh.gridEz
-
-        elif simulation._formulation == "HJ":
-            gridX = simulation.mesh.gridFx
-            gridY = simulation.mesh.gridFy
-            gridZ = simulation.mesh.gridFz
 
         if simulation.mesh._meshType == "CYL":
             coordinates = "cylindrical"
             if simulation.mesh.is_symmetric:
-                return self._srcFct(gridY)[:, 1]
+                if simulation._formulation != "EB":
+                    raise AssertionError(
+                        "For cylindrical symmtery, we must use the EB formulation of Maxwell's equations"
+                    )
+                return self._srcFct(simulation.mesh.edges, coordinates)[:, 1]
 
-        ax = self._srcFct(gridX, coordinates)[:, 0]
-        ay = self._srcFct(gridY, coordinates)[:, 1]
-        az = self._srcFct(gridZ, coordinates)[:, 2]
-        a = np.concatenate((ax, ay, az))
+        if simulation._formulation == "EB":
+            avec = self._srcFct(simulation.mesh.edges, coordinates)
+            return simulation.mesh.project_edge_vector(avec)
 
-        return a
+        elif simulation._formulation == "HJ":
+            avec = self._srcFct(simulation.mesh.faces, coordinates)
+            return simulation.mesh.project_face_vector(avec)
 
     def _getAmagnetostatic(self, simulation):
         if simulation._formulation == "EB":
@@ -1309,11 +1307,31 @@ class MagDipole(BaseTDEMSrc):
     def _bSrc(self, simulation):
         if simulation._formulation == "EB":
             C = simulation.mesh.edge_curl
+            return C * self._aSrc(simulation)
 
         elif simulation._formulation == "HJ":
-            C = simulation.MeI * simulation.mesh.edge_curl.T * simulation.Mf
+            return self.mu * self._hSrc(simulation)
 
-        return C * self._aSrc(simulation)
+    def _hSrc(self, simulation):
+        if simulation._formulation == "EB":
+            return 1 / self.mu * self._bSrc(simulation)
+
+        elif simulation._formulation == "HJ":
+            avec = self._aSrc(simulation.mesh.faces)
+            a = simulation.mesh.project_face_vector(avec)
+
+            a_boundary = mkvc(self._srcFct(simulation.mesh.boundary_edges))
+            a_bc = simulation.mesh.boundary_edge_vector_integral * a_boundary
+
+            return (
+                1.0
+                / self.mu
+                * simulation.MeI
+                * simulation.mesh.edge_curl.T
+                * simulation.Mf
+                * a
+                - 1 / self.mu * simulation.MeI * a_bc
+            )
 
     def bInitial(self, simulation):
         """Compute initial magnetic flux density.
@@ -1365,11 +1383,7 @@ class MagDipole(BaseTDEMSrc):
 
         if self.waveform.has_initial_fields is False:
             return Zero()
-        # if simulation._formulation == 'EB':
-        #     return simulation.MfMui * self.bInitial(simulation)
-        # elif simulation._formulation == 'HJ':
-        #     return simulation.MeMuI * self.bInitial(simulation)
-        return 1.0 / self.mu * self.bInitial(simulation)
+        return self._hSrc(simulation)
 
     def s_m(self, simulation, time):
         """Magnetic source term (s_m) at a given time
