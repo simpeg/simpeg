@@ -6,7 +6,6 @@ import warnings
 from numbers import Real
 import numpy as np
 import scipy.sparse as sp
-from scipy.sparse.linalg import LinearOperator
 from scipy.constants import mu_0
 from scipy.special import expit, logit
 from discretize.utils import mkvc, sdiag, rotation_matrix_from_normals
@@ -1001,17 +1000,8 @@ class ComplexMap(IdentityMap):
 
         """
         nC = self.shape[0]
-        shp = (nC, nC * 2)
-
-        def fwd(v):
-            return v[:nC] + v[nC:] * 1j
-
-        def adj(v):
-            return np.r_[v.real, v.imag]
-
         if v is not None:
-            return LinearOperator(shp, matvec=fwd, rmatvec=adj) * v
-        # return LinearOperator(shp, matvec=fwd, rmatvec=adj)
+            return v[:nC] + v[nC:] * 1j
         return sp.diags([1, 1j], [0, nC], [nC, 2 * nC])
 
 
