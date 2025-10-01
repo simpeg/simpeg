@@ -949,6 +949,18 @@ class ComplexMap(IdentityMap):
         where :math:`\mathbf{I}` is the identity matrix of shape (*nP/2*, *nP/2*) and
         :math:`j = \sqrt{-1}`.
 
+        .. important::
+
+            Calculating the transpose of the derivative of the
+            :class:`~simpeg.maps.ComplexMap` as follows doesn't return the adjoint of
+            the matrix, but its transpose:
+
+            .. code:: python
+
+                complex_map = ComplexMap(...)
+                derivative = complex_map.deriv(m)
+                derivative.T  # this is not the adjoint
+
         Parameters
         ----------
         m : (nP) numpy.ndarray
