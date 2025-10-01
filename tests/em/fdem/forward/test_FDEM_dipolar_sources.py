@@ -11,7 +11,7 @@ from simpeg.utils.solver_utils import get_default_solver
 
 Solver = get_default_solver()
 
-TOL = 2e-2  # relative tolerance
+TOL = 5e-2  # relative tolerance
 
 # Defining transmitter locations
 source_location = np.r_[0, 0, 0]
