@@ -2324,7 +2324,7 @@ class UpdateSensitivityWeights(InversionDirective):
     .. important::
 
         This directive **requires** that the map for the regularization function is
-        either :class:`simpeg.maps.Wires` or :class:`simpeg.maps.Identity`. In other
+        either :class:`simpeg.maps.Wires` or :class:`simpeg.maps.IdentityMap`. In other
         words, the sensitivity weighting cannot be applied for parametric inversion. In
         addition, the simulation(s) connected to the inverse problem **must** have
         a ``getJ`` or ``getJtJdiag`` method.
