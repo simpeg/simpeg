@@ -3,7 +3,7 @@ from .....electromagnetics.static.resistivity.simulation import Simulation3DNoda
 from ....simulation import getJtJdiag, Jvec, Jtvec, Jmatrix
 
 from .....utils import Zero
-from dask.distributed import get_client
+
 import dask.array as da
 import numpy as np
 from scipy import sparse as sp
@@ -163,22 +163,23 @@ def getSourceTerm(self):
             source_list = self.survey.source_list
 
         indices = np.arange(len(source_list))
-        try:
 
-            client = get_client()
-            sim = client.scatter(self, workers=self.worker)
-            future_list = client.scatter(source_list, workers=self.worker)
-            indices = np.array_split(indices, self.n_threads(client=client))
+        client, worker = self._get_client_worker()
+
+        if client:
+            sim = client.scatter(self, workers=worker)
+            future_list = client.scatter(source_list, workers=worker)
+            indices = np.array_split(
+                indices, self.n_threads(client=client, worker=worker)
+            )
             blocks = []
             for ind in indices:
                 blocks.append(
-                    client.submit(
-                        source_eval, sim, future_list, ind, workers=self.worker
-                    )
+                    client.submit(source_eval, sim, future_list, ind, workers=worker)
                 )
 
             blocks = sp.hstack(client.gather(blocks))
-        except ValueError:
+        else:
             blocks = source_eval(self, source_list, indices)
 
         self._q = blocks

@@ -7,7 +7,7 @@ from ..objective_function import (
 from typing import Callable
 import numpy as np
 
-from dask.distributed import Client, Future
+from dask.distributed import Client, Future, get_client
 from ..data_misfit import L2DataMisfit
 
 from simpeg.utils import validate_list_of_types
@@ -145,9 +145,7 @@ def _validate_type_or_future_of_type(
 ):
 
     if workers is None:
-        workers = [
-            (worker.worker_address,) for worker in client.cluster.workers.values()
-        ]
+        workers = [(worker,) for worker in client.nthreads()]
 
     objects = validate_list_of_types(
         property_name, objects, obj_type, ensure_unique=True
@@ -262,6 +260,9 @@ class DistributedComboMisfits(ComboObjectiveFunction):
 
     @client.setter
     def client(self, client):
+        if client is None:
+            client = get_client()
+
         if not isinstance(client, Client):
             raise TypeError("client must be a dask.distributed.Client")
 
@@ -278,6 +279,23 @@ class DistributedComboMisfits(ComboObjectiveFunction):
     def workers(self, workers):
         if not isinstance(workers, list | type(None)):
             raise TypeError("workers must be a list of strings")
+
+        available_workers = [(worker,) for worker in self.client.nthreads()]
+
+        if workers is None:
+            workers = available_workers
+
+        if not isinstance(workers, list) or not all(
+            isinstance(w, tuple) for w in workers
+        ):
+            raise TypeError("Workers must be a list of tuple[str].")
+
+        invalid_workers = [w for w in workers if w not in available_workers]
+        if invalid_workers:
+            raise ValueError(
+                f"The following workers are not available: {invalid_workers}. "
+                f"Available workers are: {available_workers}."
+            )
 
         self._workers = workers
 

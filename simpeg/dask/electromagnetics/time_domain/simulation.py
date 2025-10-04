@@ -9,7 +9,7 @@ from ...simulation import getJtJdiag, Jvec, Jtvec, Jmatrix
 import numpy as np
 import scipy.sparse as sp
 from dask import array, delayed
-from dask.distributed import get_client
+
 
 from time import time
 from simpeg.dask.utils import get_parallel_blocks
@@ -89,10 +89,7 @@ def compute_J(self, m, f=None):
     if f is None:
         f, Ainv = self.fields(m=m, return_Ainv=True)
 
-    try:
-        client = get_client()
-    except ValueError:
-        client = None
+    client, worker = self._get_client_worker()
 
     ftype = self._fieldType + "Solution"
     sens_name = self.sensitivity_path[:-5]
@@ -118,7 +115,7 @@ def compute_J(self, m, f=None):
     blocks = get_parallel_blocks(
         self.survey.source_list,
         compute_row_size,
-        thread_count=self.n_threads(client=client),
+        thread_count=self.n_threads(client=client, worker=worker),
     )
     fields_array = f[:, ftype, :]
 
@@ -126,14 +123,14 @@ def compute_J(self, m, f=None):
         fields_array = fields_array[:, np.newaxis, :]
 
     times_field_derivs, Jmatrix = compute_field_derivs(
-        self, f, blocks, Jmatrix, fields_array.shape, client
+        self, f, blocks, Jmatrix, fields_array.shape
     )
 
     ATinv_df_duT_v = [[] for _ in blocks]
 
     if client:
-        fields_array = client.scatter(fields_array, workers=self.worker)
-        sim = client.scatter(self, workers=self.worker)
+        fields_array = client.scatter(fields_array, workers=worker)
+        sim = client.scatter(self, workers=worker)
     else:
         delayed_compute_rows = delayed(compute_rows)
         sim = self
@@ -161,7 +158,7 @@ def compute_J(self, m, f=None):
             )
 
         if client:
-            field_derivatives = client.scatter(ATinv_df_duT_v, workers=self.worker)
+            field_derivatives = client.scatter(ATinv_df_duT_v, workers=worker)
         else:
             field_derivatives = ATinv_df_duT_v
 
@@ -181,7 +178,7 @@ def compute_J(self, m, f=None):
                         field_derivatives,
                         fields_array,
                         time_mask,
-                        workers=self.worker,
+                        workers=worker,
                     )
                 )
             else:
@@ -267,17 +264,19 @@ def evaluate_receivers(block, mesh, time_mesh, fields, fields_array):
     return np.hstack(data)
 
 
-def compute_field_derivs(self, fields, blocks, Jmatrix, fields_shape, client):
+def compute_field_derivs(self, fields, blocks, Jmatrix, fields_shape):
     """
     Compute the derivative of the fields
     """
     delayed_chunks = []
 
+    client, worker = self._get_client_worker()
+
     if client:
-        mesh = client.scatter(self.mesh, workers=self.worker)
-        time_mesh = client.scatter(self.time_mesh, workers=self.worker)
-        fields = client.scatter(fields, workers=self.worker)
-        source_list = client.scatter(self.survey.source_list, workers=self.worker)
+        mesh = client.scatter(self.mesh, workers=worker)
+        time_mesh = client.scatter(self.time_mesh, workers=worker)
+        fields = client.scatter(fields, workers=worker)
+        source_list = client.scatter(self.survey.source_list, workers=worker)
     else:
         mesh = self.mesh
         time_mesh = self.time_mesh
@@ -300,7 +299,7 @@ def compute_field_derivs(self, fields, blocks, Jmatrix, fields_shape, client):
                     time_mesh,
                     fields,
                     self.model.size,
-                    workers=self.worker,
+                    workers=worker,
                 )
             )
         else:
@@ -537,10 +536,7 @@ def dpred(self, m=None, f=None):
             "simulation.survey = survey"
         )
 
-    try:
-        client = get_client()
-    except ValueError:
-        client = None
+    client, worker = self._get_client_worker()
 
     if f is None:
         f = self.fields(m)
@@ -548,13 +544,14 @@ def dpred(self, m=None, f=None):
     delayed_chunks = []
 
     source_block = np.array_split(
-        np.arange(len(self.survey.source_list)), self.n_threads(client=client)
+        np.arange(len(self.survey.source_list)),
+        self.n_threads(client=client, worker=worker),
     )
     if client:
-        mesh = client.scatter(self.mesh, workers=self.worker)
-        time_mesh = client.scatter(self.time_mesh, workers=self.worker)
-        fields = client.scatter(f, workers=self.worker)
-        source_list = client.scatter(self.survey.source_list, workers=self.worker)
+        mesh = client.scatter(self.mesh, workers=worker)
+        time_mesh = client.scatter(self.time_mesh, workers=worker)
+        fields = client.scatter(f, workers=worker)
+        source_list = client.scatter(self.survey.source_list, workers=worker)
     else:
         mesh = self.mesh
         time_mesh = self.time_mesh
@@ -575,7 +572,7 @@ def dpred(self, m=None, f=None):
                     mesh,
                     time_mesh,
                     fields,
-                    workers=self.worker,
+                    workers=worker,
                 )
             )
         else:

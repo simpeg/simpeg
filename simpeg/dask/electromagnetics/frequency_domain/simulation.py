@@ -7,7 +7,6 @@ import numpy as np
 import scipy.sparse as sp
 
 from dask import array, compute, delayed
-from dask.distributed import get_client
 from simpeg.dask.utils import get_parallel_blocks
 from simpeg.electromagnetics.natural_source.sources import PlanewaveXYPrimary
 import zarr
@@ -104,20 +103,17 @@ def getSourceTerm(self, freq, source=None):
 
     if source is None:
 
-        try:
-            client = get_client()
-            sim = client.scatter(self, workers=self.worker)
-        except ValueError:
-            client = None
-            sim = self
-
+        client, worker = self._get_client_worker()
         source_list = self.survey.get_sources_by_frequency(freq)
         source_blocks = np.array_split(
-            np.arange(len(source_list)), self.n_threads(client=client)
+            np.arange(len(source_list)), self.n_threads(client=client, worker=worker)
         )
 
         if client:
-            source_list = client.scatter(source_list, workers=self.worker)
+            sim = client.scatter(self, workers=self.worker)
+            source_list = client.scatter(source_list, workers=worker)
+        else:
+            sim = self
 
         block_compute = []
 
@@ -127,9 +123,7 @@ def getSourceTerm(self, freq, source=None):
 
             if client:
                 block_compute.append(
-                    client.submit(
-                        source_eval, sim, source_list, block, workers=self.worker
-                    )
+                    client.submit(source_eval, sim, source_list, block, workers=worker)
                 )
             else:
                 block_compute.append(source_eval(sim, source_list, block))
@@ -221,12 +215,7 @@ def compute_J(self, m, f=None):
     fields_array = f[:, self._solutionType]
     blocks_receiver_derivs = []
 
-    try:
-        client = get_client()
-        worker = self.worker
-    except ValueError:
-        client = None
-        worker = None
+    client, worker = self._get_client_worker()
 
     if client:
         fields_array = client.scatter(f[:, self._solutionType], workers=worker)

@@ -1,7 +1,7 @@
 import numpy as np
 
 from ...potential_fields.base import BasePFSimulation as Sim
-from dask.distributed import get_client
+
 import os
 from dask import delayed, array, config
 from dask.diagnostics import ProgressBar
@@ -60,13 +60,10 @@ def linear_operator(self):
     )
     block_split = np.array_split(self.survey.receiver_locations, n_blocks)
 
-    try:
-        client = get_client()
-    except ValueError:
-        client = None
+    client, worker = self._get_client_worker()
 
     if client:
-        sim = client.scatter(self, workers=self.worker)
+        sim = client.scatter(self, workers=worker)
     else:
         delayed_compute = delayed(block_compute)
 
@@ -79,7 +76,7 @@ def linear_operator(self):
                     sim,
                     block,
                     self.survey.components,
-                    workers=self.worker,
+                    workers=worker,
                 )
             )
         else:
