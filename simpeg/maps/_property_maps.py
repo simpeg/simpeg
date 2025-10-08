@@ -959,7 +959,7 @@ class ComplexMap(IdentityMap):
 
                 complex_map = ComplexMap(...)
                 derivative = complex_map.deriv(m)
-                derivative.T  # this is not the adjoint
+                derivative.T  # this is not the complex adjoint
 
         Parameters
         ----------
