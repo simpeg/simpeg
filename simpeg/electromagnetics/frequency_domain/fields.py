@@ -1128,6 +1128,7 @@ class Fields3DCurrentDensity(FieldsFDEM):
         self._nC = self.simulation.mesh.nC
         self._MeI = self.simulation.MeI
         self._MfI = self.simulation.MfI
+        self._faceDiv = self.simulation.mesh.face_divergence
 
     def _GLoc(self, fieldType):
         if fieldType in ["h", "hSecondary", "hPrimary", "b"]:
@@ -1556,6 +1557,7 @@ class Fields3DMagneticField(FieldsFDEM):
         self._nC = self.simulation.mesh.nC
         self._MfI = self.simulation.MfI
         self._MeI = self.simulation.MeI
+        self._faceDiv = self.simulation.mesh.face_divergence
 
     def _GLoc(self, fieldType):
         if fieldType in ["h", "hSecondary", "hPrimary", "b"]:
