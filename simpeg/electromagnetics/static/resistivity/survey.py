@@ -285,9 +285,9 @@ class Survey(BaseSurvey):
             unique_electrodes, inv = np.unique(
                 np.vstack((loc_a, loc_b, loc_m, loc_n)), return_inverse=True, axis=0
             )
-            inv_a, inv = inv[:len(loc_a)], inv[len(loc_a):]
-            inv_b, inv = inv[:len(loc_b)], inv[len(loc_b):]
-            inv_m, inv_n = inv[:len(loc_m)], inv[len(loc_m):]
+            inv_a, inv = inv[: len(loc_a)], inv[len(loc_a) :]
+            inv_b, inv = inv[: len(loc_b)], inv[len(loc_b) :]
+            inv_m, inv_n = inv[: len(loc_m)], inv[len(loc_m) :]
 
             electrodes_shifted = shift_to_discrete_topography(
                 mesh,
