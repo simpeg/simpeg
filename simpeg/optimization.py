@@ -1,10 +1,89 @@
+"""
+========================================================
+SimPEG Optimizers (:mod:`simpeg.optimization`)
+========================================================
+.. currentmodule:: simpeg.optimization
+
+Optimizers
+==========
+
+These optimizers are available within SimPEG for use during inversion.
+
+Unbound Optimizers
+------------------
+
+These optimizers all work on unbound minimization functions.
+
+.. autosummary::
+  :toctree: generated/
+
+  SteepestDescent
+  BFGS
+  GaussNewton
+  InexactGaussNewton
+
+Box Bounded Optimizers
+----------------------
+These optimizers support box bound constraints on the model parameters
+
+.. autosummary::
+  :toctree: generated/
+
+  ProjectedGradient
+  ProjectedGNCG
+
+Root Finding
+------------
+.. autosummary::
+  :toctree: generated/
+
+  NewtonRoot
+
+Minimization Base Classes
+===========================
+
+These classes are usually inherited or used by the optimization algorithms
+above to control their execution.
+
+Base Minimizer
+--------------
+.. autosummary::
+  :toctree: generated/
+
+  Minimize
+
+
+Minimizer Mixins
+----------------
+.. autosummary::
+  :toctree: generated/
+
+  Remember
+  Bounded
+  InexactCG
+
+Iteration Printers and Stoppers
+-------------------------------
+.. autosummary::
+  :toctree: generated/
+
+  IterationPrinters
+  StoppingCriteria
+
+"""
+
 import warnings
+from collections.abc import Callable
+from typing import Any, Optional
 
 import numpy as np
 import numpy.typing as npt
 import scipy.sparse as sp
+from discretize.utils import Identity
 
-from pymatsolver import Solver, Diagonal, SolverCG
+from pymatsolver import Solver, SolverCG
+
+from .typing import MinimizeCallable
 from .utils import (
     call_hooks,
     check_stoppers,
@@ -33,6 +112,7 @@ __all__ = [
     "GaussNewton",
     "InexactGaussNewton",
     "ProjectedGradient",
+    "ProjectedGNCG",
     "NewtonRoot",
     "StoppingCriteria",
     "IterationPrinters",
@@ -130,128 +210,153 @@ class StoppingCriteria(object):
 class IterationPrinters(object):
     """docstring for IterationPrinters"""
 
-    iteration = {"title": "#", "value": lambda M: M.iter, "width": 5, "format": "%3d"}
-    f = {"title": "f", "value": lambda M: M.f, "width": 10, "format": "%1.2e"}
+    iteration = {
+        "title": "#",
+        "value": lambda M: M.iter,
+        "width": 5,
+        "format": lambda v: f"{v:3d}",
+    }
+    f = {
+        "title": "f",
+        "value": lambda M: M.f,
+        "width": 10,
+        "format": lambda v: f"{v:1.2e}",
+    }
     norm_g = {
         "title": "|proj(x-g)-x|",
-        "value": lambda M: norm(M.projection(M.xc - M.g) - M.xc),
+        "value": lambda M: (
+            None if M.iter == 0 else norm(M.projection(M.xc - M.g) - M.xc)
+        ),
         "width": 15,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
-    totalLS = {"title": "LS", "value": lambda M: M.iterLS, "width": 5, "format": "%d"}
+    totalLS = {
+        "title": "LS",
+        "value": lambda M: None if M.iter == 0 else M.iterLS,
+        "width": 5,
+        "format": lambda v: f"{v:d}",
+    }
 
     iterationLS = {
         "title": "#",
         "value": lambda M: (M.iter, M.iterLS),
         "width": 5,
-        "format": "%3d.%d",
+        "format": lambda v: f"{v[0]:3d}.{v[1]:d}",
     }
-    LS_ft = {"title": "ft", "value": lambda M: M._LS_ft, "width": 10, "format": "%1.2e"}
-    LS_t = {"title": "t", "value": lambda M: M._LS_t, "width": 10, "format": "%0.5f"}
+    LS_ft = {
+        "title": "ft",
+        "value": lambda M: M._LS_ft,
+        "width": 10,
+        "format": lambda v: f"{v:1.2e}",
+    }
+    LS_t = {
+        "title": "t",
+        "value": lambda M: M._LS_t,
+        "width": 10,
+        "format": lambda v: f"{v:0.5f}",
+    }
     LS_armijoGoldstein = {
         "title": "f + alp*g.T*p",
         "value": lambda M: M.f + M.LSreduction * M._LS_descent,
         "width": 16,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
     LS_WolfeCurvature = {
         "title": "alp*g.T*p",
         "str": "%d :    ft     = %1.4e >= alp*descent     = %1.4e",
         "value": lambda M: M.LScurvature * M._LS_descent,
         "width": 16,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
 
     itType = {
         "title": "itType",
         "value": lambda M: M._itType,
         "width": 8,
-        "format": "%s",
+        "format": lambda v: f"{v:s}",
     }
     aSet = {
         "title": "aSet",
-        "value": lambda M: np.sum(M.activeSet(M.xc)),
+        "value": lambda M: None if M.iter == 0 else np.sum(M.activeSet(M.xc)),
         "width": 8,
-        "format": "%d",
+        "format": lambda v: f"{v:d}",
     }
     bSet = {
         "title": "bSet",
-        "value": lambda M: np.sum(M.bindingSet(M.xc)),
+        "value": lambda M: None if M.iter == 0 else np.sum(M.bindingSet(M.xc)),
         "width": 8,
-        "format": "%d",
+        "format": lambda v: f"{v:d}",
     }
     comment = {
         "title": "Comment",
         "value": lambda M: M.comment,
         "width": 12,
-        "format": "%s",
+        "format": lambda v: f"{v:s}",
     }
 
     beta = {
         "title": "beta",
         "value": lambda M: M.parent.beta,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
     phi_d = {
         "title": "phi_d",
         "value": lambda M: M.parent.phi_d,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
     phi_m = {
         "title": "phi_m",
         "value": lambda M: M.parent.phi_m,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
 
     phi_s = {
         "title": "phi_s",
         "value": lambda M: M.parent.phi_s,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
     phi_x = {
         "title": "phi_x",
         "value": lambda M: M.parent.phi_x,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
     phi_y = {
         "title": "phi_y",
         "value": lambda M: M.parent.phi_y,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
     phi_z = {
         "title": "phi_z",
         "value": lambda M: M.parent.phi_z,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
 
     iterationCG = {
-        "title": "iterCG",
-        "value": lambda M: M.cg_count,
+        "title": "iter_CG",
+        "value": lambda M: getattr(M, "cg_count", None),
         "width": 10,
-        "format": "%3d",
+        "format": lambda v: f"{v:d}",
     }
 
     iteration_CG_rel_residual = {
         "title": "CG |Ax-b|/|b|",
-        "value": lambda M: M.cg_rel_resid,
+        "value": lambda M: getattr(M, "cg_rel_resid", None),
         "width": 15,
-        "format": "%1.2e",
-        # "format": lambda v: f"{v:1.2e}",
+        "format": lambda v: f"{v:1.2e}",
     }
 
     iteration_CG_abs_residual = {
         "title": "CG |Ax-b|",
-        "value": lambda M: M.cg_abs_resid,
+        "value": lambda M: getattr(M, "cg_abs_resid", None),
         "width": 11,
-        "format": "%1.2e",
-        # "format": lambda v: f"{v:1.2e}",
+        "format": lambda v: f"{v:1.2e}",
     }
 
 
@@ -334,74 +439,71 @@ class Minimize(object):
             ]
 
     @property
-    def callback(self):
+    def callback(self) -> Optional[Callable[[np.ndarray], Any]]:
+        """A used defined callback function.
+
+        Returns
+        -------
+        None or Callable[[np.ndarray], Any]
+            The optional user supplied callback function accepting the current iteration
+            value as an input.
+        """
         return getattr(self, "_callback", None)
 
     @callback.setter
-    def callback(self, value):
+    def callback(self, value: Callable[[np.ndarray], Any]):
         if self.callback is not None:
             print(
-                "The callback on the {0!s} Optimization was "
-                "replaced.".format(self.__class__.__name__)
+                f"The callback on the {self.__class__.__name__} minimizer was replaced."
             )
         self._callback = value
 
     @timeIt
-    def minimize(self, evalFunction, x0) -> np.ndarray:
+    def minimize(self, evalFunction: MinimizeCallable, x0: np.ndarray) -> np.ndarray:
         """minimize(evalFunction, x0)
 
         Minimizes the function (evalFunction) starting at the location x0.
 
-        :param callable evalFunction: function handle that evaluates: f, g, H = F(x)
-        :param numpy.ndarray x0: starting location
-        :rtype: numpy.ndarray
-        :return: x, the last iterate of the optimization algorithm
+        Parameters
+        ----------
+        evalFunction : callable
+            The objective function to be minimized::
 
-        evalFunction is a function handle::
+                evalFunction(
+                    x: numpy.ndarray,
+                    return_g: bool,
+                    return_H: bool
+                ) -> (
+                    float
+                    | tuple[float, numpy.ndarray]
+                    | tuple[float, LinearOperator]
+                    | tuple[float, numpy.ndarray, LinearOperator]
+                )
 
-            (f[, g][, H]) = evalFunction(x, return_g=False, return_H=False )
+            That will optionally return the gradient as a ``numpy.ndarray`` and the Hessian as any class
+            that supports matrix vector multiplication using the `*` operator.
 
-            def evalFunction(x, return_g=False, return_H=False):
-                out = (f,)
-                if return_g:
-                    out += (g,)
-                if return_H:
-                    out += (H,)
-                return out if len(out) > 1 else out[0]
+        x0 : numpy.ndarray
+            Initial guess.
 
-
-        The algorithm for general minimization is as follows::
-
-            startup(x0)
-            printInit()
-
-            while True:
-                doStartIteration()
-                f, g, H = evalFunction(xc)
-                printIter()
-                if stoppingCriteria(): break
-                p = findSearchDirection()
-                p = scaleSearchDirection(p)
-                xt, passLS = modifySearchDirection(p)
-                if not passLS:
-                    xt, caught = modifySearchDirectionBreak(p)
-                    if not caught: return xc
-                doEndIteration(xt)
-
-            print_done()
-            finish()
-            return xc
+        Returns
+        -------
+        x_min : numpy.ndarray
+            The last iterate of the optimization algorithm.
         """
         self.evalFunction = evalFunction
         self.startup(x0)
         self.printInit()
 
-        if self.print_type != "ubc":
-            print("x0 has any nan: {:b}".format(np.any(np.isnan(x0))))
+        if np.any(np.isnan(x0)):
+            raise ValueError("x0 has a nan.")
+        self.f = evalFunction(
+            self.xc, return_g=False, return_H=False
+        )  # will stash the fields objects
+        self.printIter()
         while True:
             self.doStartIteration()
             self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
-            self.printIter()
             if self.stoppingCriteria():
                 break
             self.searchDirection = self.findSearchDirection()
@@ -427,9 +529,8 @@ class Minimize(object):
         return self.xc
 
     @call_hooks("startup")
-    def startup(self, x0):
-        """
-        **startup** is called at the start of any new minimize call.
+    def startup(self, x0: np.ndarray) -> None:
+        """Called at the start of any new minimize call.
 
         This will set::
 
@@ -437,9 +538,10 @@ class Minimize(object):
             xc = x0
             iter = iterLS = 0
 
-        :param numpy.ndarray x0: initial x
-        :rtype: None
-        :return: None
+        Parameters
+        ----------
+        x0 : numpy.ndarray
+            initial x
         """
 
         self.iter = 0
@@ -458,24 +560,20 @@ class Minimize(object):
 
     @count
     @call_hooks("doStartIteration")
-    def doStartIteration(self):
-        """doStartIteration()
-
-        **doStartIteration** is called at the start of each minimize
-        iteration.
-
-        :rtype: None
-        :return: None
-        """
+    def doStartIteration(self) -> None:
+        """Called at the start of each minimize iteration."""
         pass
 
-    def printInit(self, inLS=False):
-        """
-        **printInit** is called at the beginning of the optimization
-        routine.
+    def printInit(self, inLS: bool = False) -> None:
+        """Called at the beginning of the optimization routine.
 
         If there is a parent object, printInit will check for a
         parent.printInit function and call that.
+
+        Parameters
+        ----------
+        inLS : bool
+            Whether this is being called from a line search.
 
         """
         pad = " " * 10 if inLS else ""
@@ -483,9 +581,13 @@ class Minimize(object):
         print_titles(self, self.printers if not inLS else self.printersLS, name, pad)
 
     @call_hooks("printIter")
-    def printIter(self, inLS=False):
-        """
-        **printIter** is called directly after function evaluations.
+    def printIter(self, inLS: bool = False) -> None:
+        """Called directly after function evaluations.
+
+        Parameters
+        ----------
+        inLS : bool
+            Whether this is being called from a line search.
 
         If there is a parent object, printIter will check for a
         parent.printIter function and call that.
@@ -494,12 +596,16 @@ class Minimize(object):
         pad = " " * 10 if inLS else ""
         print_line(self, self.printers if not inLS else self.printersLS, pad=pad)
 
-    def printDone(self, inLS=False):
-        """
-        **printDone** is called at the end of the optimization routine.
+    def printDone(self, inLS: bool = False) -> None:
+        """Called at the end of the optimization routine.
 
         If there is a parent object, printDone will check for a
         parent.printDone function and call that.
+
+        Parameters
+        ----------
+        inLS : bool
+            Whether this is being called from a line search.
 
         """
         pad = " " * 10 if inLS else ""
@@ -520,7 +626,6 @@ class Minimize(object):
                     self.printers,
                     pad=pad,
                 )
-                print(self.print_target)
             except AttributeError:
                 print_done(
                     self,
@@ -531,18 +636,11 @@ class Minimize(object):
             print_stoppers(self, stoppers, pad="", stop=stop, done=done)
 
     @call_hooks("finish")
-    def finish(self):
-        """finish()
-
-        **finish** is called at the end of the optimization.
-
-        :rtype: None
-        :return: None
-
-        """
+    def finish(self) -> None:
+        """Called at the end of the optimization."""
         pass
 
-    def stoppingCriteria(self, inLS=False):
+    def stoppingCriteria(self, inLS: bool = False) -> bool:
         if self.iter == 0:
             self.f0 = self.f
             self.g0 = self.g
@@ -550,63 +648,70 @@ class Minimize(object):
 
     @timeIt
     @call_hooks("projection")
-    def projection(self, p):
-        """projection(p)
+    def projection(self, p: np.ndarray) -> np.ndarray:
+        """Projects a model onto bounds (if given)
 
-        projects the search direction.
+        By default, no projection is applied.
 
-        by default, no projection is applied.
+        Parameters
+        ----------
+        p : numpy.ndarray
+            The model to project
 
-        :param numpy.ndarray p: searchDirection
-        :rtype: numpy.ndarray
-        :return: p, projected search direction
+        Returns
+        -------
+        numpy.ndarray
+            The projected model.
         """
         return p
 
     @timeIt
-    def findSearchDirection(self):
-        """findSearchDirection()
+    def findSearchDirection(self) -> np.ndarray:
+        """Return the direction to search along for a minimum value.
 
-        **findSearchDirection** should return an approximation of:
+        Returns
+        -------
+        numpy.ndarray
+            The search direction.
+
+        Notes
+        -----
+        This should usually return an approximation of:
 
         .. math::
 
-            H p = - g
-
-        Where you are solving for the search direction, p
+            p = - H^{-1} g
 
         The default is:
 
         .. math::
 
-            H = I
-
             p = - g
 
-        And corresponds to SteepestDescent.
+        Corresponding to the steepest descent direction
 
         The latest function evaluations are present in::
 
             self.f, self.g, self.H
-
-        :rtype: numpy.ndarray
-        :return: p, Search Direction
         """
         return -self.g
 
     @count
-    def scaleSearchDirection(self, p):
-        """scaleSearchDirection(p)
+    def scaleSearchDirection(self, p: np.ndarray) -> np.ndarray:
+        """Scales the search direction if appropriate.
 
-        **scaleSearchDirection** should scale the search direction if
-        appropriate.
+        Set the parameter ``maxStep`` in the minimize object, to scale back
+        the search direction to a maximum size.
 
-        Set the parameter **maxStep** in the minimize object, to scale back
-        the gradient to a maximum size.
+        Parameters
+        ----------
+        p : numpy.ndarray
+            The current search direction.
 
-        :param numpy.ndarray p: searchDirection
-        :rtype: numpy.ndarray
-        :return: p, Scaled Search Direction
+        Returns
+        -------
+        numpy.ndarray
+            The scaled search direction.
         """
 
         if self.maxStep < np.abs(p.max()):
@@ -616,12 +721,21 @@ class Minimize(object):
     nameLS = "Armijo linesearch"  #: The line-search name
 
     @timeIt
-    def modifySearchDirection(self, p):
-        """modifySearchDirection(p)
+    def modifySearchDirection(self, p: np.ndarray) -> np.ndarray:
+        """Changes the search direction based on some sort of linesearch or trust-region criteria.
 
-        **modifySearchDirection** changes the search direction based on
-        some sort of linesearch or trust-region criteria.
+        Parameters
+        ----------
+        p : numpy.ndarray
+            The current search direction.
 
+        Returns
+        -------
+        numpy.ndarray
+            The modified search direction.
+
+        Notes
+        -----
         By default, an Armijo backtracking linesearch is preformed with the
         following parameters:
 
@@ -632,11 +746,7 @@ class Minimize(object):
         If the linesearch is completed, and a descent direction is found,
         passLS is returned as True.
 
-        Else, a modifySearchDirectionBreak call is preformed.
-
-        :param numpy.ndarray p: searchDirection
-        :rtype: tuple
-        :return: (xt, passLS) numpy.ndarray, bool
+        Else, a `modifySearchDirectionBreak` call is preformed.
         """
         # Projected Armijo linesearch
         self._LS_t = 1.0
@@ -672,11 +782,8 @@ class Minimize(object):
         return self._LS_xt, self.iterLS < self.maxIterLS
 
     @count
-    def modifySearchDirectionBreak(self, p):
-        """modifySearchDirectionBreak(p)
-
-        Code is called if modifySearchDirection fails
-        to find a descent direction.
+    def modifySearchDirectionBreak(self, p: np.ndarray) -> np.ndarray:
+        """Called if modifySearchDirection fails to find a descent direction.
 
         The search direction is passed as input and
         this function must pass back both a new searchDirection,
@@ -685,9 +792,18 @@ class Minimize(object):
         By default, no additional work is done, and the
         evalFunction returns a False indicating the break was not caught.
 
-        :param numpy.ndarray p: searchDirection
-        :rtype: tuple
-        :return: (xt, breakCaught) numpy.ndarray, bool
+        Parameters
+        ----------
+        p : numpy.ndarray
+            The failed search direction.
+
+        Returns
+        -------
+        xt : numpy.ndarray
+            An alternative search direction to use.
+        was_caught : bool
+            Whether the break was caught. The minimization algorithm will
+            break early if ``not was_caught``.
         """
         self.printDone(inLS=True)
         print("The linesearch got broken. Boo.")
@@ -695,24 +811,26 @@ class Minimize(object):
 
     @count
     @call_hooks("doEndIteration")
-    def doEndIteration(self, xt):
-        """doEndIteration(xt)
-
-        **doEndIteration** is called at the end of each minimize iteration.
+    def doEndIteration(self, xt: np.ndarray) -> None:
+        """Operation called at the end of each minimize iteration.
 
         By default, function values and x locations are shuffled to store 1
         past iteration in memory.
 
-        self.xc must be updated in this code.
-
-        :param numpy.ndarray xt: tested new iterate that ensures a descent direction.
-        :rtype: None
-        :return: None
+        Parameters
+        ----------
+        xt : numpy.ndarray
+            An accepted model at the end of each iteration.
         """
         # store old values
         self.f_last = self.f
+        if hasattr(self, "_LS_ft"):
+            self.f = self._LS_ft
+
+        # the current iterate, `self.xc`, must be set in this function if overridden in a base class
         self.x_last, self.xc = self.xc, xt
         self.iter += 1
+        self.printIter()  # before callbacks (from directives...)
         if self.debug:
             self.printDone()
 
@@ -1156,12 +1274,7 @@ class BFGS(Minimize, Remember):
         Must be a simpeg.Solver
         """
         if getattr(self, "_bfgsH0", None) is None:
-            print(
-                """
-                Default solver: Diagonal is being used in bfgsH0
-                """
-            )
-            self._bfgsH0 = Diagonal(sp.identity(self.xc.size))
+            self._bfgsH0 = Identity()
         return self._bfgsH0
 
     @bfgsH0.setter
