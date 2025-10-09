@@ -1,5 +1,7 @@
 import warnings
 
+from discretize.utils import mkvc
+
 import numpy as np
 from geoana.em.static import (
     CircularLoopWholeSpace,
@@ -10,7 +12,6 @@ from scipy.constants import mu_0
 
 from ...utils import Zero, sdiag
 from ...utils.code_utils import (
-    deprecate_property,
     validate_callable,
     validate_direction,
     validate_float,
@@ -532,18 +533,6 @@ class TriangularWaveform(TrapezoidWaveform):
     """
 
     def __init__(self, start_time, off_time, peak_time, **kwargs):
-        if kwargs.get("startTime", None):
-            AttributeError(
-                "startTime will be deprecated in 0.17.0. Please update your code to use start_time instead",
-            )
-        if kwargs.get("peak_time", None):
-            AttributeError(
-                "peak_time will be deprecated in 0.17.0. Please update your code to use peak_time instead",
-            )
-        if kwargs.get("offTime", None):
-            AttributeError(
-                "offTime will be deprecated in 0.17.0. Please update your code to use off_time instead",
-            )
 
         ramp_on = np.r_[start_time, peak_time]
         ramp_off = np.r_[peak_time, off_time]
@@ -1249,27 +1238,23 @@ class MagDipole(BaseTDEMSrc):
 
     def _aSrc(self, simulation):
         coordinates = "cartesian"
-        if simulation._formulation == "EB":
-            gridX = simulation.mesh.gridEx
-            gridY = simulation.mesh.gridEy
-            gridZ = simulation.mesh.gridEz
-
-        elif simulation._formulation == "HJ":
-            gridX = simulation.mesh.gridFx
-            gridY = simulation.mesh.gridFy
-            gridZ = simulation.mesh.gridFz
 
         if simulation.mesh._meshType == "CYL":
             coordinates = "cylindrical"
             if simulation.mesh.is_symmetric:
-                return self._srcFct(gridY)[:, 1]
+                if simulation._formulation != "EB":
+                    raise AssertionError(
+                        "For cylindrical symmtery, we must use the EB formulation of Maxwell's equations"
+                    )
+                return self._srcFct(simulation.mesh.edges, coordinates)[:, 1]
 
-        ax = self._srcFct(gridX, coordinates)[:, 0]
-        ay = self._srcFct(gridY, coordinates)[:, 1]
-        az = self._srcFct(gridZ, coordinates)[:, 2]
-        a = np.concatenate((ax, ay, az))
+        if simulation._formulation == "EB":
+            avec = self._srcFct(simulation.mesh.edges, coordinates)
+            return simulation.mesh.project_edge_vector(avec)
 
-        return a
+        elif simulation._formulation == "HJ":
+            avec = self._srcFct(simulation.mesh.faces, coordinates)
+            return simulation.mesh.project_face_vector(avec)
 
     def _getAmagnetostatic(self, simulation):
         if simulation._formulation == "EB":
@@ -1326,11 +1311,30 @@ class MagDipole(BaseTDEMSrc):
     def _bSrc(self, simulation):
         if simulation._formulation == "EB":
             C = simulation.mesh.edge_curl
+            return C * self._aSrc(simulation)
 
         elif simulation._formulation == "HJ":
-            C = simulation.mesh.edge_curl.T
+            return self.mu * self._hSrc(simulation)
 
-        return C * self._aSrc(simulation)
+    def _hSrc(self, simulation):
+        if simulation._formulation == "EB":
+            return 1 / self.mu * self._bSrc(simulation)
+
+        elif simulation._formulation == "HJ":
+            a = self._aSrc(simulation)
+
+            a_boundary = mkvc(self._srcFct(simulation.mesh.boundary_edges))
+            a_bc = simulation.mesh.boundary_edge_vector_integral * a_boundary
+
+            return (
+                1.0
+                / self.mu
+                * simulation.MeI
+                * simulation.mesh.edge_curl.T
+                * simulation.Mf
+                * a
+                - 1 / self.mu * simulation.MeI * a_bc
+            )
 
     def bInitial(self, simulation):
         """Compute initial magnetic flux density.
@@ -1382,11 +1386,7 @@ class MagDipole(BaseTDEMSrc):
 
         if self.waveform.has_initial_fields is False:
             return Zero()
-        # if simulation._formulation == 'EB':
-        #     return simulation.MfMui * self.bInitial(simulation)
-        # elif simulation._formulation == 'HJ':
-        #     return simulation.MeMuI * self.bInitial(simulation)
-        return 1.0 / self.mu * self.bInitial(simulation)
+        return self._hSrc(simulation)
 
     def s_m(self, simulation, time):
         """Magnetic source term (s_m) at a given time
@@ -1493,16 +1493,10 @@ class CircularLoop(MagDipole):
         if location is None:
             location = np.r_[0.0, 0.0, 0.0]
 
-        if "moment" in kwargs:
-            kwargs.pop("moment")
-
-        # Raise error on deprecated arguments
-        if (key := "N") in kwargs.keys():
-            raise TypeError(f"'{key}' property has been removed. Please use 'n_turns'.")
         self.n_turns = n_turns
 
         BaseTDEMSrc.__init__(
-            self, receiver_list=receiver_list, location=location, moment=None, **kwargs
+            self, receiver_list=receiver_list, location=location, **kwargs
         )
 
         self.orientation = orientation
@@ -1598,10 +1592,6 @@ class CircularLoop(MagDipole):
         out = self._loop.vector_potential(obsLoc, coordinates)
         out[np.isnan(out)] = 0
         return self.n_turns * out
-
-    N = deprecate_property(
-        n_turns, "N", "n_turns", removal_version="0.19.0", error=True
-    )
 
 
 class LineCurrent(BaseTDEMSrc):

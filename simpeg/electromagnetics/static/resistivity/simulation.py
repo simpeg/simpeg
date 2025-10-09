@@ -112,6 +112,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return f
 
     def getJ(self, m, f=None):
+        self.model = m
         if getattr(self, "_Jmatrix", None) is None:
             if f is None:
                 f = self.fields(m)

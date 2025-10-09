@@ -592,7 +592,7 @@ def test_rx_loc_shapes(rx_class, n_locs1, n_locs2, orientation, component):
 
     sim.sigmaMap = maps.IdentityMap(nP=1)
     # make sure forming J works
-    J = sim.getJ(np.ones(1))["ds"]
+    J = sim.getJ(np.ones(1))
     assert J.shape == (n_d, 1)
 
     # and all of its values are the same too:
