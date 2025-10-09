@@ -4,8 +4,10 @@ from ...potential_fields.base import BasePFSimulation as Sim
 
 import os
 from dask import delayed, array, config
+
 from dask.diagnostics import ProgressBar
 from ..utils import compute_chunk_sizes
+import zarr
 
 
 _chunk_format = "row"
@@ -27,9 +29,12 @@ def chunk_format(self, other):
 def dpred(self, m=None, f=None):
     if m is not None:
         self.model = m
-    if f is not None:
-        return f
-    return self.fields(self.model)
+    if f is None:
+        f = self.fields(self.model)
+
+    if isinstance(f, array.Array):
+        return np.asarray(f)
+    return f
 
 
 def residual(self, m, dobs, f=None):
@@ -53,9 +58,23 @@ def storage_formatter(
     chunk_format="rows",
     sens_name: str = "./sensitivities.zarr",
     max_chunk_size: float = 256,
+    compute: bool = True,
 ):
+    """
+    Format the storage of the sensitivity matrix.
+
+    :param rows: List of dask arrays representing blocks of the sensitivity matrix.
+    :param device: Storage option, either "forward_only", "disk", or "memory".
+    :param chunk_format: Chunking format for disk storage, either "row", "equal
+        or "auto".
+    :param sens_name: File path to store the sensitivity matrix if device is "disk".
+    :param max_chunk_size: Maximum chunk size in MiB for disk storage.
+    :param compute: If True, compute the dask array before returning.
+    """
 
     if device == "forward_only":
+        if compute:
+            return np.hstack(rows)
         return array.concatenate(rows)
     elif device == "disk":
         stack = array.vstack(rows)
@@ -75,9 +94,20 @@ def storage_formatter(
             config.set({"array.chunk-size": f"{max_chunk_size}MiB"})
             stack = stack.rechunk({0: -1, 1: "auto"})
 
-        return array.to_zarr(stack, sens_name, return_stored=True, overwrite=True)
+        return array.to_zarr(
+            stack, sens_name, compute=False, return_stored=False, overwrite=True
+        )
     else:
-        return np.vstack(rows)
+        if compute:
+            return np.vstack(rows)
+
+        return array.vstack(rows)
+
+
+def set_orthogonal_selection(row, Jmatrix, count):
+    n_rows = row.shape[0]
+    Jmatrix[count : count + n_rows, :] = row
+    return None
 
 
 def linear_operator(self):
@@ -131,17 +161,40 @@ def linear_operator(self):
             )
 
     if client:
-        future = client.submit(
-            storage_formatter,
-            rows,
-            device=self.store_sensitivities,
-            chunk_format=self.chunk_format,
-            sens_name=self.sensitivity_path,
-            max_chunk_size=self.max_chunk_size,
-            workers=worker,
-        )
+
+        if self.store_sensitivities == "disk":
+            Jmatrix = zarr.open(
+                self.sensitivity_path,
+                mode="w",
+                shape=(self.survey.nD, n_cells),
+                chunks=(self.max_chunk_size, n_cells),
+            )
+
+            count = 0
+            future = []
+            for row, block in zip(rows, block_split):
+                row_chunks = block.shape[0]
+                future.append(
+                    client.submit(set_orthogonal_selection, row, Jmatrix, count)
+                )
+
+                count += row_chunks
+
+        else:
+            future = client.submit(
+                storage_formatter,
+                rows,
+                device=self.store_sensitivities,
+                chunk_format=self.chunk_format,
+                sens_name=self.sensitivity_path,
+                max_chunk_size=self.max_chunk_size,
+                workers=worker,
+            )
+
         kernel = client.gather(future)
+
     else:
+
         with ProgressBar():
             kernel = storage_formatter(
                 rows,
@@ -149,7 +202,11 @@ def linear_operator(self):
                 chunk_format=self.chunk_format,
                 sens_name=self.sensitivity_path,
                 max_chunk_size=self.max_chunk_size,
+                compute=False,
             ).compute()
+
+    if self.store_sensitivities == "disk" and os.path.exists(self.sensitivity_path):
+        kernel = array.from_zarr(self.sensitivity_path)
 
     return kernel
 
