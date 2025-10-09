@@ -104,4 +104,6 @@ def test_dipolar_fields(simulation_type, field_test, mur, orientation="Z"):
     elif field_test == "hPrimary":
         analytic = projection(dipole.magnetic_field(grid))
 
+    print(f"{numeric=}")
+    print(f"{analytic=}")
     assert np.abs(np.mean((numeric / analytic)) - 1) < TOL
