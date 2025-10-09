@@ -140,12 +140,12 @@ class VectorInversion(InversionDirective):
                 indices.append(mapping.indices)
 
             amplitude = np.linalg.norm(np.vstack(vec_model), axis=0)
-            upper_bound = np.hstack(upper_bound)
-            upper_bound = np.max(upper_bound[~np.isinf(upper_bound)])
+            upper_bound = np.linalg.norm(np.vstack(upper_bound), axis=0)
             out_bound = amplitude > upper_bound
 
             if np.any(out_bound):
                 scale = upper_bound / amplitude
+
                 for ind in indices:
                     vec = model[ind]
                     vec[out_bound] *= scale[out_bound]
