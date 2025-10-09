@@ -37,8 +37,6 @@ class TestDeprecatedFunctions:
         """
         Test deprecation warning for `drapeTopotoLoc`.
         """
-        old_name = "drapeTopotoLoc"
-        new_name = "shift_to_discrete_topography"
         msg = (
             "The `drapeTopotoLoc` function is deprecated, "
             "and will be removed in SimPEG v0.26.0. "
@@ -53,8 +51,6 @@ class TestDeprecatedFunctions:
         """
         Test deprecation warning for `drapeTopotoLoc`.
         """
-        old_name = "gettopoCC"
-        new_name = "get_discrete_topography"
         msg = (
             "The `gettopoCC` function is deprecated, "
             "and will be removed in SimPEG v0.26.0. "
