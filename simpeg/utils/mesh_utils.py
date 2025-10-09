@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.spatial import cKDTree
-import warnings
 
 from discretize import TensorMesh
 
