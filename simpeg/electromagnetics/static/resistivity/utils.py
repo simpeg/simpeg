@@ -98,8 +98,8 @@ def _mini_pole_pole(survey, verbose=False):
         np.r_[AM, AN, BM, BN], axis=0, return_inverse=True
     )
 
-    inv_AM, pole_pole_inv = pole_pole_inv[: len(AM)], pole_pole_inv[len(AM) :]
-    inv_AN, pole_pole_inv = pole_pole_inv[: len(AN)], pole_pole_inv[len(AN) :]
+    inv_AM, pole_pole_inv = pole_pole_inv[:len(AM)], pole_pole_inv[len(AM):]
+    inv_AN, pole_pole_inv = pole_pole_inv[:len(AN)], pole_pole_inv[len(AN):]
     inv_BM, inv_BN = pole_pole_inv[: len(BM)], pole_pole_inv[len(BM) :]
 
     if verbose:

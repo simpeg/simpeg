@@ -10,7 +10,7 @@ from ..utils import static_utils
 
 
 class Survey(BaseSurvey):
-    """DC/IP survey class
+    """DC/IP survey class.
 
     Parameters
     ----------
@@ -37,7 +37,7 @@ class Survey(BaseSurvey):
 
     @property
     def survey_geometry(self):
-        """Survey geometry
+        """Survey geometry.
 
         Returns
         -------
@@ -76,7 +76,7 @@ class Survey(BaseSurvey):
     @property
     def locations_a(self):
         """
-        Locations of the positive (+) current electrodes in the survey
+        Locations of the positive (+) current electrodes in the survey.
 
         Returns
         -------
@@ -90,7 +90,7 @@ class Survey(BaseSurvey):
     @property
     def locations_b(self):
         """
-        Locations of the negative (-) current electrodes in the survey
+        Locations of the negative (-) current electrodes in the survey.
 
         Returns
         -------
@@ -104,7 +104,7 @@ class Survey(BaseSurvey):
     @property
     def locations_m(self):
         """
-        Locations of the positive (+) potential electrodes in the survey
+        Locations of the positive (+) potential electrodes in the survey.
 
         Returns
         -------
@@ -118,7 +118,7 @@ class Survey(BaseSurvey):
     @property
     def locations_n(self):
         """
-        Locations of the negative (-) potential electrodes in the survey
+        Locations of the negative (-) potential electrodes in the survey.
 
         Returns
         -------
@@ -132,7 +132,7 @@ class Survey(BaseSurvey):
     @property
     def unique_electrode_locations(self):
         """
-        Unique locations of the A, B, M, N electrodes
+        Unique locations of the A, B, M, N electrodes.
 
         Returns
         -------
@@ -169,7 +169,7 @@ class Survey(BaseSurvey):
         space_type="halfspace",
     ):
         """
-        Set and return the geometric factor for all data
+        Set and return the geometric factor for all data.
 
         Parameters
         ----------
@@ -239,7 +239,7 @@ class Survey(BaseSurvey):
         self,
         mesh,
         active_cells,
-        option="top",
+        topo_cell_cutoff="top",
         topography=None,
         force=False,
         shift_horizontal=True,
@@ -254,7 +254,7 @@ class Survey(BaseSurvey):
             The mesh on which the discretized fields are computed
         active_cells : numpy.ndarray of int or bool
             Active topography cells
-        topo_cell_cutoff :{"top", "center"}
+        topo_cell_cutoff : {"top", "center"}
             Define topography at tops of cells or cell centers.
         topography : (n, dim) numpy.ndarray, default = ``None``
             Surface topography
@@ -263,7 +263,7 @@ class Survey(BaseSurvey):
         shift_horizontal : bool
             When True, locations are shifted horizontally to lie vertically over cell
             centers. When False, the original horizontal locations are preserved.
-        option : 
+        option : {"top", "center"}
             Argument ``option`` is deprecated in favor of ``topo_cell_cutoff``
             and will be removed in SimPEG v0.27.0.
         ind_active : numpy.ndarray of int or bool, optional
@@ -274,7 +274,6 @@ class Survey(BaseSurvey):
                and will be removed in SimPEG v0.25.0.
 
         """
-
         if option is not None:
             topo_cell_cutoff = option
 
@@ -286,15 +285,15 @@ class Survey(BaseSurvey):
             unique_electrodes, inv = np.unique(
                 np.vstack((loc_a, loc_b, loc_m, loc_n)), return_inverse=True, axis=0
             )
-            inv_a, inv = inv[: len(loc_a)], inv[len(loc_a) :]
-            inv_b, inv = inv[: len(loc_b)], inv[len(loc_b) :]
-            inv_m, inv_n = inv[: len(loc_m)], inv[len(loc_m) :]
+            inv_a, inv = inv[:len(loc_a)], inv[len(loc_a):]
+            inv_b, inv = inv[:len(loc_b)], inv[len(loc_b):]
+            inv_m, inv_n = inv[:len(loc_m)], inv[len(loc_m):]
 
             electrodes_shifted = shift_to_discrete_topography(
                 mesh,
                 unique_electrodes,
                 active_cells=active_cells,
-                topo_cell_cutoff=option,
+                topo_cell_cutoff=topo_cell_cutoff,
                 shift_horizontal=shift_horizontal,
             )
             a_shifted = electrodes_shifted[inv_a]

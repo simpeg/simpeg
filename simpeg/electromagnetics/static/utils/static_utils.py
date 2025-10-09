@@ -21,6 +21,7 @@ from ....utils.io_utils import (  # noqa: F401
     read_dcip3d_ubc,
     write_dcip3d_ubc,
 )
+
 try:
     from warnings import deprecated
 except ImportError:
@@ -1530,13 +1531,13 @@ def r_unit(p1, p2):
     return vec, r
 
 
-@deprecated( 
-    "The `gettopoCC` function is deprecated, " 
-    "and will be removed in SimPEG v0.26.0. " 
+@deprecated(
+    "The `gettopoCC` function is deprecated, "
+    "and will be removed in SimPEG v0.26.0. "
     "This functionality has been replaced by the "
     "'get_discrete_topography' function, which can be imported from"
-    "simpeg.utils", 
-    category=FutureWarning, 
+    "simpeg.utils",
+    category=FutureWarning,
 )
 def gettopoCC(mesh, ind_active, option="top"):
     """
@@ -1605,13 +1606,13 @@ def gettopoCC(mesh, ind_active, option="top"):
         raise NotImplementedError(f"{type(mesh)} mesh is not supported.")
 
 
-@deprecated( 
-    "The `drapeTopotoLoc` function is deprecated, " 
-    "and will be removed in SimPEG v0.26.0. " 
+@deprecated(
+    "The `drapeTopotoLoc` function is deprecated, "
+    "and will be removed in SimPEG v0.26.0. "
     "This functionality has been replaced by the "
     "'shift_to_discrete_topography' function, which can be imported from"
-    "simpeg.utils", 
-    category=FutureWarning, 
+    "simpeg.utils",
+    category=FutureWarning,
 )
 def drapeTopotoLoc(mesh, pts, active_cells=None, option="top", topo=None, **kwargs):
     """Drape locations right below discretized surface topography
@@ -1864,4 +1865,3 @@ def gen_3d_survey_from_2d_lines(
         line_inds=line_inds,
     )
     return IO_3d, survey_3d
-
