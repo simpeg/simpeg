@@ -1,5 +1,3 @@
-import numpy as np
-
 from .optimization import IterationPrinters, StoppingCriteria, InexactGaussNewton
 from .directives import DirectiveList, UpdatePreconditioner
 from .utils import timeIt, Counter, validate_type, validate_string
@@ -114,7 +112,6 @@ class BaseInversion(object):
 
         self.invProb.startup(m0)
         self.directiveList.call("initialize")
-        print("model has any nan: {:b}".format(np.any(np.isnan(self.invProb.model))))
         self.m = self.opt.minimize(self.invProb.evalFunction, self.invProb.model)
         self.directiveList.call("finish")
 

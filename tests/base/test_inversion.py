@@ -41,7 +41,7 @@ def inversion(request):
 
 
 @pytest.mark.parametrize("dlist", [[], [smp_drcs.UpdatePreconditioner()]])
-def test_bfgs_init_logic(inversion, dlist, capsys):
+def test_bfgs_init_logic(inversion, dlist, caplog, info_logging):
     dlist = smp_drcs.DirectiveList(*dlist, inversion=inversion)
     inversion.directiveList = dlist
 
@@ -52,18 +52,18 @@ def test_bfgs_init_logic(inversion, dlist, capsys):
 
     m0 = np.zeros(10)
     inversion.run(m0)
-    captured = capsys.readouterr()
+    captured = caplog.text
 
     if isinstance(inv_prb.opt, smp_opt.InexactGaussNewton) and any(
         isinstance(dr, smp_drcs.UpdatePreconditioner) for dr in dlist
     ):
         assert not inv_prb.init_bfgs
-        assert "bfgsH0" not in captured.out
+        assert "bfgsH0" not in captured
     elif isinstance(inv_prb.opt, (smp_opt.BFGS, smp_opt.InexactGaussNewton)):
         assert inv_prb.init_bfgs
-        assert "bfgsH0" in captured.out
+        assert "bfgsH0" in captured
     else:
         assert inv_prb.init_bfgs  # defaults to True even if opt would not use it.
         assert (
-            "bfgsH0" not in captured.out
+            "bfgsH0" not in captured
         )  # But shouldn't say anything if it doesn't use it.
