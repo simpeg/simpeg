@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 name = 'simpeg'
 description = "SimPEG: Simulation and Parameter Estimation in Geophysics"
 readme = 'README.rst'
-requires-python = '>=3.10'
+requires-python = '>=3.11'
 authors = [
   {name = 'SimPEG developers', email = 'rowanc1@gmail.com'},
 ]
