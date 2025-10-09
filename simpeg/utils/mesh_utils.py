@@ -140,18 +140,18 @@ def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top"):
     active_cells : numpy.ndarray of bool or int
         Active cells index; i.e. indices of cells below surface
     topo_cell_cutoff : {"top", "center"}
-        String to specify the cutoff for ground cells and the locations of the discrete
-        topography. For "top", ground cells lie entirely below the surface topography and the
-        discrete topography is defined on the top faces of surface cells.
-        For "center", only the cell centers must lie below the surface topograpy and the
-        discrete topography is defined at the centers of surface cells.
+        String to specify the cutoff for ground cells and the locations of
+        the discrete topography. For "top", ground cells lie entirely below
+        the surface topography and the discrete topography is defined on the
+        top faces of surface cells. For "center", only the cell centers must
+        lie below the surface topograpy and the discrete topography is defined
+        at the centers of surface cells.
 
     Returns
     -------
     (n, dim) numpy.ndarray
         Discrete topography locations; i.e. xy[z].
     """
-
     if mesh._meshType == "TENSOR":
         if mesh.dim == 3:
             mesh2D = TensorMesh([mesh.h[0], mesh.h[1]], mesh.x0[:2])
@@ -224,11 +224,11 @@ def shift_to_discrete_topography(
         Index array for all cells lying below the surface topography.
     topo_cell_cutoff : {"top", "center"}
         String to specify the cutoff for ground cells and the locations of the discrete
-        topography. For "top", ground cells lie entirely below the surface topography and the
-        discrete topography is defined on the top faces of surface cells.
-        For "center", only the cell centers must lie below the surface topograpy and the
-        discrete topography is defined at the centers of surface cells. The topography is
-        defined using the 'topo' input parameter.
+        topography. For "top", ground cells lie entirely below the surface topography
+        and the discrete topography is defined on the top faces of surface cells.
+        For "center", only the cell centers must lie below the surface topograpy and
+        the discrete topography is defined at the centers of surface cells.
+        The topography is defined using the 'topo' input parameter.
     heights : float or (n,) numpy.ndarray, optional
         Height(s) relative to the true surface topography. Used to preserve flight
         heights or borehole depths.
@@ -241,7 +241,6 @@ def shift_to_discrete_topography(
     (n, dim) numpy.ndarray
         The set of points shifted relative to the discretize surface topography.
     """
-
     if mesh._meshType != "TENSOR" and mesh._meshType != "TREE":
         raise NotImplementedError(
             "shift_to_discrete_topography only supported for TensorMesh and TreeMesh'."
@@ -249,7 +248,10 @@ def shift_to_discrete_topography(
 
     if not isinstance(heights, (int, float)) and len(pts) != len(heights):
         raise ValueError(
-            "If supplied as a `numpy.ndarray`, the number of heights must equal the number of points."
+            (
+                "If supplied as a `numpy.ndarray`, the number of heights must ",
+                "equal the number of points.",
+            )
         )
 
     discrete_topography = get_discrete_topography(
@@ -262,58 +264,22 @@ def shift_to_discrete_topography(
     else:
         has_elevation = False
         horizontal_pts = pts.squeeze()  # in case (n, 1) array
-    
-    topo_inds = _closest_grid_indices(discrete_topography[:, :-1], horizontal_pts, dim=mesh.dim-1)
-    
+
+    topo_inds = _closest_grid_indices(
+        discrete_topography[:, :-1], horizontal_pts, dim=mesh.dim - 1
+    )
+
     if shift_horizontal:
         if has_elevation:
             cell_inds = mesh.point2index(pts)
-            out = np.c_[mesh.cell_centers[cell_inds, :-1], discrete_topography[topo_inds, -1]]
+            out = np.c_[
+                mesh.cell_centers[cell_inds, :-1], discrete_topography[topo_inds, -1]
+            ]
         else:
             out = discrete_topography[topo_inds, :]
     else:
         out = np.c_[horizontal_pts, discrete_topography[topo_inds, -1]]
 
     out[:, -1] += heights
-
-    
-
-
-
-    # if mesh.dim == 2:
-    #     # if shape is (*, 1) or (*, 2) just grab first column
-    #     if pts.ndim == 2 and pts.shape[1] in [1, 2]:
-    #         pts = pts[:, 0]
-    #     if pts.ndim > 1:
-    #         raise ValueError("pts should be 1d array")
-    # elif mesh.dim == 3:
-    #     if pts.shape[1] not in [2, 3]:
-    #         raise ValueError("shape of pts should be (x, 3) or (x, 2)")
-    #     # just grab the xy locations in the first two columns
-    #     pts = pts[:, :2]
-    # else:
-    #     raise ValueError("Unsupported mesh dimension")
-
-
-    # if mesh.dim == 3:
-    #     uniqXYlocs, topoCC = get_discrete_topography(
-    #         mesh, active_cells, topo_cell_cutoff=topo_cell_cutoff
-    #     )
-    #     inds = _closest_grid_indices(uniqXYlocs, pts)
-    #     if shift_horizontal:
-    #         out = np.c_[uniqXYlocs[inds, :], topoCC[inds]]
-    #     else:
-    #         out = np.c_[pts, topoCC[inds]]
-    # else:
-    #     uniqXlocs, topoCC = get_discrete_topography(
-    #         mesh, active_cells, topo_cell_cutoff=topo_cell_cutoff
-    #     )
-    #     inds = _closest_grid_indices(uniqXlocs, pts, dim=1)
-    #     if shift_horizontal:
-    #         out = np.c_[uniqXlocs[inds], topoCC[inds]]
-    #     else:
-    #         out = np.c_[pts, topoCC[inds]]
-
-    # out[:, -1] += heights
 
     return out
