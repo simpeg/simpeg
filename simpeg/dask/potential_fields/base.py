@@ -47,11 +47,48 @@ def block_compute(sim, rows, components):
     return np.vstack(block)
 
 
+def storage_formatter(
+    rows: list[np.ndarray],
+    device: str,
+    chunk_format="rows",
+    sens_name: str = "./sensitivities.zarr",
+    max_chunk_size: float = 256,
+):
+
+    if device == "forward_only":
+        return array.concatenate(rows)
+    elif device == "disk":
+        stack = array.vstack(rows)
+        # Chunking options
+        if chunk_format == "row":
+            config.set({"array.chunk-size": f"{max_chunk_size}MiB"})
+            # Autochunking by rows is faster and more memory efficient for
+            # very large problems sensitivty and forward calculations
+            stack = stack.rechunk({0: "auto", 1: -1})
+        elif chunk_format == "equal":
+            # Manual chunks for equal number of blocks along rows and columns.
+            # Optimal for Jvec and Jtvec operations
+            row_chunk, col_chunk = compute_chunk_sizes(*stack.shape, max_chunk_size)
+            stack = stack.rechunk((row_chunk, col_chunk))
+        else:
+            # Auto chunking by columns is faster for Inversions
+            config.set({"array.chunk-size": f"{max_chunk_size}MiB"})
+            stack = stack.rechunk({0: -1, 1: "auto"})
+
+        return array.to_zarr(stack, sens_name, return_stored=True, overwrite=True)
+    else:
+        return np.vstack(rows)
+
+
 def linear_operator(self):
     forward_only = self.store_sensitivities == "forward_only"
     n_cells = self.nC
     if getattr(self, "model_type", None) == "vector":
         n_cells *= 3
+
+    if self.store_sensitivities == "disk" and os.path.exists(self.sensitivity_path):
+        kernel = array.from_zarr(self.sensitivity_path)
+        return kernel
 
     n_components = len(self.survey.components)
     n_blocks = np.ceil(
@@ -94,56 +131,26 @@ def linear_operator(self):
             )
 
     if client:
-        if forward_only:
-            return np.hstack(client.gather(rows))
-        return np.vstack(client.gather(rows))
-
-    if forward_only:
-        stack = array.concatenate(rows)
+        future = client.submit(
+            storage_formatter,
+            rows,
+            device=self.store_sensitivities,
+            chunk_format=self.chunk_format,
+            sens_name=self.sensitivity_path,
+            max_chunk_size=self.max_chunk_size,
+            workers=worker,
+        )
+        kernel = client.gather(future)
     else:
-        stack = array.vstack(rows)
-        # Chunking options
-        if self.chunk_format == "row":
-            config.set({"array.chunk-size": f"{self.max_chunk_size}MiB"})
-            # Autochunking by rows is faster and more memory efficient for
-            # very large problems sensitivty and forward calculations
-            stack = stack.rechunk({0: "auto", 1: -1})
-        elif self.chunk_format == "equal":
-            # Manual chunks for equal number of blocks along rows and columns.
-            # Optimal for Jvec and Jtvec operations
-            row_chunk, col_chunk = compute_chunk_sizes(
-                *stack.shape, self.max_chunk_size
-            )
-            stack = stack.rechunk((row_chunk, col_chunk))
-        else:
-            # Auto chunking by columns is faster for Inversions
-            config.set({"array.chunk-size": f"{self.max_chunk_size}MiB"})
-            stack = stack.rechunk({0: -1, 1: "auto"})
-
-    if self.store_sensitivities == "disk":
-        sens_name = os.path.join(self.sensitivity_path, "sensitivity.zarr")
-        if os.path.exists(sens_name):
-            kernel = array.from_zarr(sens_name)
-            if np.all(
-                np.r_[
-                    np.any(np.r_[kernel.chunks[0]] == stack.chunks[0]),
-                    np.any(np.r_[kernel.chunks[1]] == stack.chunks[1]),
-                    np.r_[kernel.shape] == np.r_[stack.shape],
-                ]
-            ):
-                # Check that loaded kernel matches supplied data and mesh
-                print("Zarr file detected with same shape and chunksize ... re-loading")
-                return kernel
-
-        print("Writing Zarr file to disk")
         with ProgressBar():
-            print("Saving kernel to zarr: " + sens_name)
-            kernel = array.to_zarr(
-                stack, sens_name, compute=True, return_stored=True, overwrite=True
-            )
+            kernel = storage_formatter(
+                rows,
+                device=self.store_sensitivities,
+                chunk_format=self.chunk_format,
+                sens_name=self.sensitivity_path,
+                max_chunk_size=self.max_chunk_size,
+            ).compute()
 
-    with ProgressBar():
-        kernel = stack.compute()
     return kernel
 
 
