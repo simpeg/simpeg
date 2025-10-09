@@ -3,8 +3,7 @@ Version compatibility
 
 SimPEG follows the time-window based policy for support of Python and Numpy
 versions introduced in `NEP29
-<https://numpy.org/neps/nep-0029-deprecation_policy.html>`_. In summary, SimPEG
-will support:
+<https://numpy.org/neps/nep-0029-deprecation_policy.html>`_. In summary, SimPEG supports:
 
 - all minor versions of Python released in the **prior 42 months** before
   a SimPEG release, and
