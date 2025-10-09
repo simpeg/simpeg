@@ -2,7 +2,7 @@ import numpy as np
 from ..regularization import BaseSimilarityMeasure
 from ..utils import eigenvalue_by_power_iteration
 from ..optimization import IterationPrinters, StoppingCriteria
-from ._directives import InversionDirective, SaveEveryIteration
+from ._directives import InversionDirective, SaveOutputEveryIteration
 
 
 ###############################################################################
@@ -11,41 +11,37 @@ from ._directives import InversionDirective, SaveEveryIteration
 #                                                                             #
 ###############################################################################
 class SimilarityMeasureInversionPrinters:
-    betas = {
+    beta = {
         "title": "betas",
-        "value": lambda M: ["{:.2e}".format(elem) for elem in M.parent.betas],
+        "value": lambda M: [f"{elem:1.2e}" for elem in M.parent.betas],
         "width": 26,
-        "format": "%s",
+        "format": lambda v: f"{v!s}",
     }
     lambd = {
         "title": "lambda",
         "value": lambda M: M.parent.lambd,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
-    phi_d_list = {
+    phi_d = {
         "title": "phi_d",
-        "value": lambda M: ["{:.2e}".format(elem) for elem in M.parent.phi_d_list],
+        "value": lambda M: [f"{elem:1.2e}" for elem in M.parent.dmisfit._last_obj_vals],
         "width": 26,
-        "format": "%s",
+        "format": lambda v: f"{v!s}",
     }
-    phi_m_list = {
+    phi_m = {
         "title": "phi_m",
-        "value": lambda M: ["{:.2e}".format(elem) for elem in M.parent.phi_m_list],
+        "value": lambda M: [
+            f"{elem:1.2e}" for elem in M.parent.reg._last_obj_vals[:-1]
+        ],
         "width": 26,
-        "format": "%s",
+        "format": lambda v: f"{v!s}",
     }
     phi_sim = {
         "title": "phi_sim",
-        "value": lambda M: M.parent.phi_sim,
+        "value": lambda M: M.parent.reg._last_obj_vals[-1],
         "width": 10,
-        "format": "%1.2e",
-    }
-    iterationCG = {
-        "title": "iterCG",
-        "value": lambda M: M.cg_count,
-        "width": 10,
-        "format": "%3d",
+        "format": lambda v: f"{v:1.2e}",
     }
 
 
@@ -62,13 +58,15 @@ class SimilarityMeasureInversionDirective(InversionDirective):
 
     printers = [
         IterationPrinters.iteration,
-        SimilarityMeasureInversionPrinters.betas,
+        SimilarityMeasureInversionPrinters.beta,
         SimilarityMeasureInversionPrinters.lambd,
         IterationPrinters.f,
-        SimilarityMeasureInversionPrinters.phi_d_list,
-        SimilarityMeasureInversionPrinters.phi_m_list,
+        SimilarityMeasureInversionPrinters.phi_d,
+        SimilarityMeasureInversionPrinters.phi_m,
         SimilarityMeasureInversionPrinters.phi_sim,
-        SimilarityMeasureInversionPrinters.iterationCG,
+        IterationPrinters.iterationCG,
+        IterationPrinters.iteration_CG_rel_residual,
+        IterationPrinters.iteration_CG_abs_residual,
     ]
 
     def initialize(self):
@@ -108,13 +106,9 @@ class SimilarityMeasureInversionDirective(InversionDirective):
 
     def endIter(self):
         # compute attribute values
-        phi_d = []
-        for dmis in self.dmisfit.objfcts:
-            phi_d.append(dmis(self.opt.xc))
+        phi_d = self.dmisfit._last_obj_vals
 
-        phi_m = []
-        for reg in self.reg.objfcts:
-            phi_m.append(reg(self.opt.xc))
+        phi_m = self.reg._last_obj_vals
 
         # pass attributes values to invProb
         self.invProb.phi_d_list = phi_d
@@ -125,32 +119,18 @@ class SimilarityMeasureInversionDirective(InversionDirective):
         self.invProb.lambd = self.reg.multipliers[-1]
 
 
-class SimilarityMeasureSaveOutputEveryIteration(SaveEveryIteration):
+class SimilarityMeasureSaveOutputEveryIteration(SaveOutputEveryIteration):
     """
     SaveOutputEveryIteration for Joint Inversions.
     Saves information on the tradeoff parameters, data misfits, regularizations,
     coupling term, number of CG iterations, and value of cost function.
     """
 
-    header = None
-    save_txt = True
-    betas = None
-    phi_d = None
-    phi_m = None
-    phi_sim = None
-    phi = None
+    @property
+    def _header(self):
+        return "  #          betas            lambda         joint_phi_d                joint_phi_m            phi_sim       iterCG     phi    "
 
-    def initialize(self):
-        if self.save_txt is True:
-            print(
-                "CrossGradientSaveOutputEveryIteration will save your inversion "
-                "progress as: '###-{0!s}.txt'".format(self.fileName)
-            )
-            f = open(self.fileName + ".txt", "w")
-            self.header = "  #          betas            lambda         joint_phi_d                joint_phi_m            phi_sim       iterCG     phi    \n"
-            f.write(self.header)
-            f.close()
-
+    def _initialize_lists(self):
         # Create a list of each
         self.betas = []
         self.lambd = []
@@ -160,38 +140,47 @@ class SimilarityMeasureSaveOutputEveryIteration(SaveEveryIteration):
         self.phi_sim = []
 
     def endIter(self):
-        self.betas.append(["{:.2e}".format(elem) for elem in self.invProb.betas])
-        self.phi_d.append(["{:.3e}".format(elem) for elem in self.invProb.phi_d_list])
-        self.phi_m.append(["{:.3e}".format(elem) for elem in self.invProb.phi_m_list])
-        self.lambd.append("{:.2e}".format(self.invProb.lambd))
+        self.betas.append(self.invProb.betas)
+        self.phi_d.append(self.invProb.phi_d_list)
+        self.phi_m.append(self.invProb.phi_m_list)
+        self.lambd.append(self.invProb.lambd)
         self.phi_sim.append(self.invProb.phi_sim)
         self.phi.append(self.opt.f)
 
-        if self.save_txt:
-            f = open(self.fileName + ".txt", "a")
-            i = self.opt.iter
-            f.write(
-                " {0:2d}  {1}  {2}  {3}  {4}  {5:1.4e}  {6:d}  {7:1.4e}\n".format(
-                    i,
-                    self.betas[i - 1],
-                    self.lambd[i - 1],
-                    self.phi_d[i - 1],
-                    self.phi_m[i - 1],
-                    self.phi_sim[i - 1],
-                    self.opt.cg_count,
-                    self.phi[i - 1],
+        if self.on_disk:
+            self._mkdir_and_check_output_file(should_exist=True)
+            with open(self.file_abs_path, "a") as f:
+                f.write(
+                    " {0:2d}  {1}  {2:.2e}  {3}  {4}  {5:1.4e}  {6:d}  {7:1.4e}\n".format(
+                        self.opt.iter,
+                        [f"{el:.2e}" for el in self.betas[-1]],
+                        self.lambd[-1],
+                        [f"{el:.3e}" for el in self.phi_d[-1]],
+                        [f"{el:.3e}" for el in self.phi_m[-1]],
+                        self.phi_sim[-1],
+                        self.opt.cg_count,
+                        self.phi[-1],
+                    )
                 )
-            )
-            f.close()
 
-    def load_results(self):
-        results = np.loadtxt(self.fileName + str(".txt"), comments="#")
+    def load_results(self, file_name=None):
+        if file_name is None:
+            if not self.on_disk:
+                raise TypeError(
+                    f"'file_name' is a required argument if '{type(self).__qualname__}.on_disk' is `False`"
+                )
+            file_name = self.file_abs_path
+        results = np.loadtxt(file_name, comments="#")
+
+        if results.shape[1] != 8:
+            raise ValueError(f"{file_name} does not have valid results")
+
         self.betas = results[:, 1]
         self.lambd = results[:, 2]
         self.phi_d = results[:, 3]
         self.phi_m = results[:, 4]
         self.phi_sim = results[:, 5]
-        self.f = results[:, 7]
+        self.phi = results[:, 7]
 
 
 class PairedBetaEstimate_ByEig(InversionDirective):

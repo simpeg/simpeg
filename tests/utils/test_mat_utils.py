@@ -124,8 +124,8 @@ class TestEigenvalues(unittest.TestCase):
         print("Eigenvalue Utils for a mixed ComboObjectiveFunction is validated.")
 
 
-class TestDeprecatedSeed:
-    """Test deprecation of ``seed`` argument."""
+class TestRemovedSeed:
+    """Test removed ``seed`` argument."""
 
     @pytest.fixture
     def mock_objfun(self):
@@ -140,48 +140,16 @@ class TestDeprecatedSeed:
 
         return MockObjectiveFunction
 
-    def get_message_duplicated_error(self, old_name, new_name, version="v0.24.0"):
-        msg = (
-            f"Cannot pass both '{new_name}' and '{old_name}'."
-            f"'{old_name}' has been deprecated and will be removed in "
-            f" SimPEG {version}, please use '{new_name}' instead."
-        )
-        return msg
-
-    def get_message_deprecated_warning(self, old_name, new_name, version="v0.24.0"):
-        msg = (
-            f"'{old_name}' has been deprecated and will be removed in "
-            f" SimPEG {version}, please use '{new_name}' instead."
-        )
-        return msg
-
-    def test_warning_argument(self, mock_objfun):
+    def test_error_argument(self, mock_objfun):
         """
-        Test if warning is raised after passing ``seed``.
+        Test if error is raised after passing ``seed``.
         """
-        msg = self.get_message_deprecated_warning("seed", "random_seed")
+        msg = "got an unexpected keyword argument 'seed'"
         n_params = 5
         combo = mock_objfun(nP=n_params) + 3.0 * mock_objfun(nP=n_params)
         model = np.ones(n_params)
-        with pytest.warns(FutureWarning, match=msg):
-            result_seed = eigenvalue_by_power_iteration(
-                combo_objfct=combo, model=model, seed=42
-            )
-        # Ensure that using `seed` and `random_seed` generate the same output
-        result_random_seed = eigenvalue_by_power_iteration(
-            combo_objfct=combo, model=model, random_seed=42
-        )
-        np.testing.assert_allclose(result_seed, result_random_seed)
-
-    def test_error_duplicated_argument(self):
-        """
-        Test error after passing ``seed`` and ``random_seed``.
-        """
-        msg = self.get_message_duplicated_error("seed", "random_seed")
         with pytest.raises(TypeError, match=msg):
-            eigenvalue_by_power_iteration(
-                combo_objfct=None, model=None, random_seed=42, seed=42
-            )
+            eigenvalue_by_power_iteration(combo_objfct=combo, model=model, seed=42)
 
 
 if __name__ == "__main__":

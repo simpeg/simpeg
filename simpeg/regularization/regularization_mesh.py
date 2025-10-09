@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 
-from simpeg.utils.code_utils import deprecate_property, validate_active_indices
+from simpeg.utils.code_utils import validate_active_indices
 
 from .. import props, utils
 
@@ -517,28 +517,6 @@ class RegularizationMesh(props.BaseSimPEG):
                     self.Pafz.T * self.mesh.cell_gradient_z * self.Pac
                 )
         return self._cell_gradient_z
-
-    cellDiffx = deprecate_property(
-        cell_gradient_x,
-        "cellDiffx",
-        "cell_gradient_x",
-        "0.19.0",
-        error=True,
-    )
-    cellDiffy = deprecate_property(
-        cell_gradient_y,
-        "cellDiffy",
-        "cell_gradient_y",
-        "0.19.0",
-        error=True,
-    )
-    cellDiffz = deprecate_property(
-        cell_gradient_z,
-        "cellDiffz",
-        "cell_gradient_z",
-        "0.19.0",
-        error=True,
-    )
 
     @property
     def cell_distances_x(self) -> np.ndarray:

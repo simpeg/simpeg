@@ -71,10 +71,8 @@ class TestRecursiveForward(unittest.TestCase):
     "rx_class",
     [
         ns_rx.Impedance,
-        ns_rx.PointNaturalSource,
         ns_rx.Admittance,
         ns_rx.Tipper,
-        ns_rx.Point3DTipper,
         ns_rx.ApparentConductivity,
     ],
 )
@@ -84,7 +82,7 @@ def test_incorrect_rx_types(rx_class):
     source = nsem.sources.Planewave(rx, frequency=10)
     survey = nsem.Survey(source)
     # make sure that only these exact classes do not issue warnings.
-    if rx_class in [ns_rx.Impedance, ns_rx.PointNaturalSource]:
+    if rx_class is ns_rx.Impedance:
         with warnings.catch_warnings():
             warnings.simplefilter("error")
             nsem.Simulation1DRecursive(survey=survey)

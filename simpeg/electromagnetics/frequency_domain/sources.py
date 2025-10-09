@@ -14,7 +14,6 @@ from ...utils import (
     validate_direction,
     validate_integer,
 )
-from ...utils.code_utils import deprecate_property
 
 from ..utils import omega
 from ..utils import segmented_line_current_source_term, line_through_faces
@@ -360,6 +359,12 @@ class MagDipole(BaseFDEMSrc):
         \mathbf{M_{\sigma}^e} \mathbf{e^S} =
         -\mathbf{C}^T \mathbf{{M_{\mu^{-1}}^f}^S} \mathbf{b^P}}
 
+    To obtain $\mathbf{b^P}$, we compute it by taking the curl of the vector potential due to a point dipole. This is provided by :py:meth:`geoana.em.static.MagneticDipoleWholeSpace.vector_potential`. Specifically,
+
+    .. math::
+
+        \vec{B}^P = \nabla \times \vec{A}
+
     Parameters
     ----------
     receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
@@ -493,40 +498,31 @@ class MagDipole(BaseFDEMSrc):
         numpy.ndarray
             Primary magnetic flux density
         """
-        formulation = simulation._formulation
         coordinates = "cartesian"
 
-        if formulation == "EB":
-            gridX = simulation.mesh.gridEx
-            gridY = simulation.mesh.gridEy
-            gridZ = simulation.mesh.gridEz
+        if simulation._formulation == "EB":
             C = simulation.mesh.edge_curl
 
-        elif formulation == "HJ":
-            gridX = simulation.mesh.gridFx
-            gridY = simulation.mesh.gridFy
-            gridZ = simulation.mesh.gridFz
-            C = simulation.mesh.edge_curl.T
+            if simulation.mesh._meshType == "CYL":
+                coordinates = "cylindrical"
 
-        if simulation.mesh._meshType == "CYL":
-            coordinates = "cylindrical"
+                if simulation.mesh.is_symmetric is True:
+                    if not (
+                        np.linalg.norm(self.orientation - np.r_[0.0, 0.0, 1.0]) < 1e-6
+                    ):
+                        raise AssertionError(
+                            "for cylindrical symmetry, the dipole must be oriented"
+                            " in the Z direction"
+                        )
+                    a = self._srcFct(simulation.mesh.edges_y, coordinates)[:, 1]
+                    return C * a
 
-            if simulation.mesh.is_symmetric is True:
-                if not (np.linalg.norm(self.orientation - np.r_[0.0, 0.0, 1.0]) < 1e-6):
-                    raise AssertionError(
-                        "for cylindrical symmetry, the dipole must be oriented"
-                        " in the Z direction"
-                    )
-                a = self._srcFct(gridY)[:, 1]
+            avec = self._srcFct(simulation.mesh.edges, coordinates)
+            a = simulation.mesh.project_edge_vector(avec)
+            return C * a
 
-                return C * a
-
-        ax = self._srcFct(gridX, coordinates)[:, 0]
-        ay = self._srcFct(gridY, coordinates)[:, 1]
-        az = self._srcFct(gridZ, coordinates)[:, 2]
-        a = np.concatenate((ax, ay, az))
-
-        return C * a
+        elif simulation._formulation == "HJ":
+            return self.mu * self.hPrimary(simulation)
 
     def hPrimary(self, simulation):
         """Compute primary magnetic field.
@@ -557,8 +553,37 @@ class MagDipole(BaseFDEMSrc):
                     out.append(h_rx @ rx.orientation)
                 self._1d_h = out
             return self._1d_h
-        b = self.bPrimary(simulation)
-        return 1.0 / self.mu * b
+
+        if simulation._formulation == "EB":
+            b = self.bPrimary(simulation)
+            return (
+                1.0 / self.mu * b
+            )  # same as MfI * Mfmui * b (mu primary must be a scalar)
+
+        elif simulation._formulation == "HJ":
+            coordinates = "cartesian"
+            if simulation.mesh._meshType == "CYL":
+                coordinates = "cylindrical"
+                if simulation.mesh.is_symmetric is True:
+                    raise AssertionError(
+                        "for cylindrical symmetry, you must use the EB formulation for the simulation"
+                    )
+
+            avec = self._srcFct(simulation.mesh.faces, coordinates)
+            a = simulation.mesh.project_face_vector(avec)
+
+            a_boundary = mkvc(self._srcFct(simulation.mesh.boundary_edges))
+            a_bc = simulation.mesh.boundary_edge_vector_integral * a_boundary
+
+            return (
+                1.0
+                / self.mu
+                * simulation.MeI
+                * simulation.mesh.edge_curl.T
+                * simulation.Mf
+                * a
+                - 1 / self.mu * simulation.MeI * a_bc
+            )
 
     def s_m(self, simulation):
         """Magnetic source term (s_m)
@@ -574,10 +599,13 @@ class MagDipole(BaseFDEMSrc):
             Magnetic source term on mesh.
         """
 
-        b_p = self.bPrimary(simulation)
-        if simulation._formulation == "HJ":
-            b_p = simulation.Me * b_p
-        return -1j * omega(self.frequency) * b_p
+        if simulation._formulation == "EB":
+            b_p = self.bPrimary(simulation)
+            return -1j * omega(self.frequency) * b_p
+        elif simulation._formulation == "HJ":
+            h_p = self.hPrimary(simulation)
+            MeMu = simulation.MeMu
+            return -1j * omega(self.frequency) * MeMu * h_p
 
     def s_e(self, simulation):
         """Electric source term (s_e)
@@ -773,10 +801,6 @@ class CircularLoop(MagDipole):
         **kwargs,
     ):
         kwargs.pop("moment", None)
-
-        # Raise error on deprecated arguments
-        if (key := "N") in kwargs.keys():
-            raise TypeError(f"'{key}' property has been removed. Please use 'n_turns'.")
         self.n_turns = n_turns
 
         super().__init__(
@@ -876,10 +900,6 @@ class CircularLoop(MagDipole):
         out = self._loop.vector_potential(obsLoc, coordinates)
         out[np.isnan(out)] = 0
         return self.n_turns * out
-
-    N = deprecate_property(
-        n_turns, "N", "n_turns", removal_version="0.19.0", error=True
-    )
 
 
 class PrimSecSigma(BaseFDEMSrc):
