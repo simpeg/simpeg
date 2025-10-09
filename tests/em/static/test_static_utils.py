@@ -33,20 +33,19 @@ class TestDeprecatedFunctions:
         active_cells[0] = False
         return active_cells
 
-    def get_message_deprecated_warning(self, old_name, new_name, version="0.26.0"):
-        msg = (
-            f"{old_name} has been deprecated, please use {new_name}."
-            f" It will be removed in version {version} of SimPEG."
-        )
-        return msg
-
     def test_drape_topo_warning(self, mesh, points, active_cells):
         """
         Test deprecation warning for `drapeTopotoLoc`.
         """
         old_name = "drapeTopotoLoc"
         new_name = "shift_to_discrete_topography"
-        msg = self.get_message_deprecated_warning(old_name, new_name)
+        msg = (
+            "The `drapeTopotoLoc` function is deprecated, "
+            "and will be removed in SimPEG v0.26.0. "
+            "This functionality has been replaced by the "
+            "'shift_to_discrete_topography' function, which can be imported from"
+            "simpeg.utils"
+        )
         with pytest.warns(FutureWarning, match=msg):
             drapeTopotoLoc(mesh, points, active_cells=active_cells)
 
@@ -56,7 +55,13 @@ class TestDeprecatedFunctions:
         """
         old_name = "gettopoCC"
         new_name = "get_discrete_topography"
-        msg = self.get_message_deprecated_warning(old_name, new_name)
+        msg = (
+            "The `gettopoCC` function is deprecated, "
+            "and will be removed in SimPEG v0.26.0. "
+            "This functionality has been replaced by the "
+            "'get_discrete_topography' function, which can be imported from"
+            "simpeg.utils"
+        )
         with pytest.warns(FutureWarning, match=msg):
             gettopoCC(mesh, active_cells)
 
