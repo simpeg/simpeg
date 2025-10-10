@@ -103,3 +103,6 @@ def test_BH_dipole():
     rms = np.sqrt(np.mean(diff**2))
     maxabs = np.max(np.abs(dpred_b))
     assert rms < maxabs * TOL
+
+    # Check if an element-wise passes too
+    np.testing.assert_allclose(dpred_h, dpred_b, rtol=TOL)
