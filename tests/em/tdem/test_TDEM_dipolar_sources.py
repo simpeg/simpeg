@@ -98,13 +98,8 @@ def test_BH_dipole():
     fields_h = simulation_h.fields(model)
     dpred_h = simulation_h.dpred(model, f=fields_h)
 
-    assert (
-        np.abs(
-            np.mean(dpred_b[: len(time_channels)] / dpred_h[: len(time_channels)]) - 1
-        )
-        < TOL
-    )
-    assert np, (
-        abs(np.mean(dpred_b[len(time_channels) :] / dpred_h[len(time_channels) :]) - 1)
-        < TOL
-    )
+    # Check that the rms is below a tolerance
+    diff = dpred_h - dpred_b
+    rms = np.sqrt(np.mean(diff**2))
+    maxabs = np.max(np.abs(dpred_b))
+    assert rms < maxabs * TOL
