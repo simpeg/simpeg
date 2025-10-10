@@ -1,6 +1,6 @@
 parameters:
   os : ['ubuntu-latest']
-  py_vers: ['3.10']
+  py_vers: ['3.11']
   test: ['tests/em/fdem/forward/test_FDEM_dipolar_sources.py',
          # 'tests/base tests/flow tests/seis tests/utils',
          # 'tests/meta',
