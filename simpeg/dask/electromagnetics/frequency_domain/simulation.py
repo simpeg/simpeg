@@ -270,7 +270,6 @@ def compute_J(self, m, f=None):
             addresses_chunks,
             client,
             worker,
-            store_sensitivities=self.store_sensitivities,
         )
 
     for A in Ainv.values():
@@ -295,7 +294,6 @@ def parallel_block_compute(
     addresses,
     client,
     worker=None,
-    store_sensitivities="disk",
 ):
     m_size = m.size
     block_stack = sp.hstack(blocks_receiver_derivs).toarray()
@@ -354,11 +352,8 @@ def parallel_block_compute(
     else:
         block = compute(array.vstack(block_delayed))[0]
 
-    if store_sensitivities == "disk":
-        Jmatrix.set_orthogonal_selection(
-            (indices, slice(None)),
-            block,
-        )
+    if isinstance(Jmatrix, zarr.Array):
+        Jmatrix.set_orthogonal_selection((indices, slice(None)), block)
     else:
         # Dask process to compute row and store
         Jmatrix[indices, :] = block

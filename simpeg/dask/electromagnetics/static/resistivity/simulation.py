@@ -4,6 +4,7 @@ from ....simulation import getJtJdiag, Jvec, Jtvec, Jmatrix
 
 from .....utils import Zero
 
+import os
 import dask.array as da
 import numpy as np
 from scipy import sparse as sp
@@ -42,23 +43,29 @@ def compute_J(self, m, f=None):
 
     f, Ainv = self.fields(m=m, return_Ainv=True)
 
-    m_size = m.size
+    n_cells = m.size
     row_chunks = int(
         np.ceil(
             float(self.survey.nD)
-            / np.ceil(float(m_size) * self.survey.nD * 8.0 * 1e-6 / self.max_chunk_size)
+            / np.ceil(
+                float(n_cells) * self.survey.nD * 8.0 * 1e-6 / self.max_chunk_size
+            )
         )
     )
 
     if self.store_sensitivities == "disk":
+
+        if os.path.exists(self.sensitivity_path):
+            return da.from_zarr(self.sensitivity_path)
+
         Jmatrix = zarr.open(
-            self.sensitivity_path + "J.zarr",
+            self.sensitivity_path,
             mode="w",
-            shape=(self.survey.nD, m_size),
-            chunks=(row_chunks, m_size),
+            shape=(self.survey.nD, n_cells),
+            chunks=(self.max_chunk_size, n_cells),
         )
     else:
-        Jmatrix = np.zeros((self.survey.nD, m_size), dtype=np.float32)
+        Jmatrix = np.zeros((self.survey.nD, n_cells), dtype=np.float32)
 
     blocks = []
     count = 0
@@ -92,7 +99,7 @@ def compute_J(self, m, f=None):
                     du_dmT += df_dmT
 
                 #
-                du_dmT = du_dmT.T.reshape((-1, m_size))
+                du_dmT = du_dmT.T.reshape((-1, n_cells))
 
                 if len(blocks) == 0:
                     blocks = du_dmT
@@ -130,7 +137,7 @@ def compute_J(self, m, f=None):
 
     if self.store_sensitivities == "disk":
         del Jmatrix
-        self._Jmatrix = da.from_zarr(self.sensitivity_path + "J.zarr")
+        self._Jmatrix = da.from_zarr(self.sensitivity_path)
     else:
         self._Jmatrix = Jmatrix
 

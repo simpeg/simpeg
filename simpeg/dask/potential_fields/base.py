@@ -3,10 +3,10 @@ import numpy as np
 from ...potential_fields.base import BasePFSimulation as Sim
 
 import os
-from dask import delayed, array, config
+from dask import delayed, array, compute
 
 from dask.diagnostics import ProgressBar
-from ..utils import compute_chunk_sizes
+
 import zarr
 
 
@@ -41,7 +41,7 @@ def residual(self, m, dobs, f=None):
     return self.dpred(m, f=f) - dobs
 
 
-def block_compute(sim, rows, components):
+def block_compute(sim, rows, components, j_matrix, count):
     block = []
     for row in rows:
         block.append(sim.evaluate_integral(row, components))
@@ -49,16 +49,14 @@ def block_compute(sim, rows, components):
     if sim.store_sensitivities == "forward_only":
         return np.hstack(block)
 
-    return np.vstack(block)
+    values = np.vstack(block)
+    return storage_formatter(values, count, j_matrix)
 
 
 def storage_formatter(
-    rows: list[np.ndarray],
-    device: str,
-    chunk_format="rows",
-    sens_name: str = "./sensitivities.zarr",
-    max_chunk_size: float = 256,
-    compute: bool = True,
+    rows: np.ndarray,
+    count: int,
+    j_matrix: zarr.Array | None = None,
 ):
     """
     Format the storage of the sensitivity matrix.
@@ -72,42 +70,14 @@ def storage_formatter(
     :param compute: If True, compute the dask array before returning.
     """
 
-    if device == "forward_only":
-        if compute:
-            return np.hstack(rows)
-        return array.concatenate(rows)
-    elif device == "disk":
-        stack = array.vstack(rows)
-        # Chunking options
-        if chunk_format == "row":
-            config.set({"array.chunk-size": f"{max_chunk_size}MiB"})
-            # Autochunking by rows is faster and more memory efficient for
-            # very large problems sensitivty and forward calculations
-            stack = stack.rechunk({0: "auto", 1: -1})
-        elif chunk_format == "equal":
-            # Manual chunks for equal number of blocks along rows and columns.
-            # Optimal for Jvec and Jtvec operations
-            row_chunk, col_chunk = compute_chunk_sizes(*stack.shape, max_chunk_size)
-            stack = stack.rechunk((row_chunk, col_chunk))
-        else:
-            # Auto chunking by columns is faster for Inversions
-            config.set({"array.chunk-size": f"{max_chunk_size}MiB"})
-            stack = stack.rechunk({0: -1, 1: "auto"})
-
-        return array.to_zarr(
-            stack, sens_name, compute=False, return_stored=False, overwrite=True
+    if isinstance(j_matrix, zarr.Array):
+        j_matrix.set_orthogonal_selection(
+            (np.arange(count, count + rows.shape[0]), slice(None)),
+            rows.astype(np.float32),
         )
-    else:
-        if compute:
-            return np.vstack(rows)
+        return None
 
-        return array.vstack(rows)
-
-
-def set_orthogonal_selection(row, Jmatrix, count):
-    n_rows = row.shape[0]
-    Jmatrix[count : count + n_rows, :] = row
-    return None
+    return rows
 
 
 def linear_operator(self):
@@ -116,9 +86,19 @@ def linear_operator(self):
     if getattr(self, "model_type", None) == "vector":
         n_cells *= 3
 
-    if self.store_sensitivities == "disk" and os.path.exists(self.sensitivity_path):
-        kernel = array.from_zarr(self.sensitivity_path)
-        return kernel
+    if self.store_sensitivities == "disk":
+
+        if os.path.exists(self.sensitivity_path):
+            return array.from_zarr(self.sensitivity_path)
+
+        Jmatrix = zarr.open(
+            self.sensitivity_path,
+            mode="w",
+            shape=(self.survey.nD, n_cells),
+            chunks=(self.max_chunk_size, n_cells),
+        )
+    else:
+        Jmatrix = None
 
     n_components = len(self.survey.components)
     n_blocks = np.ceil(
@@ -135,80 +115,46 @@ def linear_operator(self):
         delayed_compute = delayed(block_compute)
 
     rows = []
+    count = 0
     for block in block_split:
         if client:
-            rows.append(
-                client.submit(
-                    block_compute,
-                    sim,
-                    block,
-                    self.survey.components,
-                    workers=worker,
-                )
-            )
-        else:
-            chunk = delayed_compute(self, block, self.survey.components)
-            rows.append(
-                array.from_delayed(
-                    chunk,
-                    dtype=self.sensitivity_dtype,
-                    shape=(
-                        (len(block) * n_components,)
-                        if forward_only
-                        else (len(block) * n_components, n_cells)
-                    ),
-                )
-            )
-
-    if client:
-
-        if self.store_sensitivities == "disk":
-            Jmatrix = zarr.open(
-                self.sensitivity_path,
-                mode="w",
-                shape=(self.survey.nD, n_cells),
-                chunks=(self.max_chunk_size, n_cells),
-            )
-
-            count = 0
-            future = []
-            for row, block in zip(rows, block_split):
-                row_chunks = block.shape[0]
-                future.append(
-                    client.submit(set_orthogonal_selection, row, Jmatrix, count)
-                )
-
-                count += row_chunks
-
-        else:
-            future = client.submit(
-                storage_formatter,
-                rows,
-                device=self.store_sensitivities,
-                chunk_format=self.chunk_format,
-                sens_name=self.sensitivity_path,
-                max_chunk_size=self.max_chunk_size,
+            row = client.submit(
+                block_compute,
+                sim,
+                block,
+                self.survey.components,
+                Jmatrix,
+                count,
                 workers=worker,
             )
 
-        kernel = client.gather(future)
+        else:
+            chunk = delayed_compute(self, block, self.survey.components, Jmatrix, count)
+            row = array.from_delayed(
+                chunk,
+                dtype=self.sensitivity_dtype,
+                shape=(
+                    (len(block) * n_components,)
+                    if forward_only
+                    else (len(block) * n_components, n_cells)
+                ),
+            )
+        count += block.shape[0]
+        rows.append(row)
 
+    if client:
+        kernel = client.gather(rows)
     else:
-
         with ProgressBar():
-            kernel = storage_formatter(
-                rows,
-                device=self.store_sensitivities,
-                chunk_format=self.chunk_format,
-                sens_name=self.sensitivity_path,
-                max_chunk_size=self.max_chunk_size,
-                compute=False,
-            ).compute()
+            kernel = compute(rows)[0]
 
     if self.store_sensitivities == "disk" and os.path.exists(self.sensitivity_path):
-        kernel = array.from_zarr(self.sensitivity_path)
+        return array.from_zarr(self.sensitivity_path)
 
-    return kernel
+    if forward_only:
+        return np.hstack(kernel)
+
+    return np.vstack(kernel)
 
 
 def compute_J(self, _, f=None):
@@ -219,6 +165,7 @@ def compute_J(self, _, f=None):
 def Jmatrix(self):
     if getattr(self, "_Jmatrix", None) is None:
         self._Jmatrix = self.compute_J(self.model)
+
     return self._Jmatrix
 
 
