@@ -1,11 +1,13 @@
 # noqa: D100
 import numpy as np
 from scipy.constants import mu_0
+import scipy.sparse as sp
 from discretize import TensorMesh
 from discretize.utils import sdiag
 
-from ....utils import mkvc
+from ....utils import mkvc, get_default_solver
 from .solutions_1d import get1DEfields
+from .analytic_1d import getEHfields
 from pymatsolver import Solver
 
 
@@ -214,7 +216,9 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
 #     return eBG_bp
 
 
-def primary_e_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=500):
+def primary_e_1d_solution(
+        mesh, sigma_1d, freq, top_bc="dirichlet", bot_bc="dirichlet", n_pad=500
+    ):
     r"""Compute 1D electric field solution on nodes.
 
     Parameters
@@ -413,45 +417,50 @@ def primary_e_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=500):
         )
 
     # Generate extended 1D mesh and conductivity model to solve 1D problem
-    if n_pad == 0:
-        hz_ext = hz
+    hz_ext = np.pad(hz, (n_pad, 0), mode='edge')
+    mesh_ext = TensorMesh([hz_ext], origin=[mesh.origin[-1] - hz[0] * n_pad])
+    sigma_1d_ext = np.pad(sigma_1d, (n_pad, 0), mode='edge')
+    
+    # Solve the 1D problem for electric fields on nodes/faces
+    G = mesh_ext.nodal_gradient
+    M_e_mui = mesh_ext.get_edge_inner_product(mu_0, invert_model=True)
+    M_f_sigma = mesh_ext.get_face_inner_product(sigma_1d_ext)
+
+    omega = 2 * np.pi * freq
+    
+    A = G.T @ M_e_mui @ G + 1j * omega * M_f_sigma
+
+    fixed_nodes = np.zeros(mesh_ext.n_nodes, dtype=bool)
+    e_fixed = []
+    if bot_bc == "dirichlet":
+        Ed, Eu, Hd, Hu = getEHfields(mesh_ext, sigma_1d_ext, freq, mesh.nodes_x)
+        e_tot = Ed + Eu
+        e_tot /= e_tot[-1]
+        fixed_nodes[0] = True
+        e_fixed.append(e_tot[0])
     else:
-        hz_ext = np.r_[hz[0] * np.ones(n_pad), hz]
-    mesh_1d_ext = TensorMesh([hz_ext], origin=[mesh.origin[-1] - hz[0] * n_pad])
-
-    sigma_1d_ext = np.r_[
-        sigma_1d[0] * np.ones(n_pad),
-        sigma_1d,
-    ]
-    sigma_1d_ext = mesh_1d_ext.average_face_to_cell.T * (hz_ext * sigma_1d_ext)
-    sigma_1d_ext[-1] = hz[-1] * sigma_1d[-1]  # Needed for top BC
-
-    # Could add background susceptibility in future.
-    mui_1d_ext = hz_ext / mu_0
-
-    # Generate system matrix
-    w = 2 * np.pi * freq
-    A = mesh_1d_ext.nodal_gradient.T @ (
-        sdiag(mui_1d_ext) @ mesh_1d_ext.nodal_gradient
-    ) + 1j * w * sdiag(sigma_1d_ext)
-
-    # Bottom boundary condition
-    k = np.sqrt(-1.0j * w * mu_0 * sigma_1d_ext[0])
-    A[0, 0] = 1.0 / (mu_0 * hz[0]) + 1j * k / mu_0 + 1j * w * hz[0] * sigma_1d[0]
-    A[0, 1] = -1 / (mu_0 * hz[0])
-
-    # Top boundary condition
-    q = np.zeros(mesh_1d_ext.n_faces, dtype=np.complex128)
-    if top_bc == "neumann":
-        q[-1] = -1j * w
+        # for bottom robin boundary condition
+        k_bot = np.sqrt(-1.0j * omega * mu_0 * sigma_1d_ext[0])
+        A[0, 0] += 1j * k_bot/mu_0
+        
+    q = np.zeros(mesh_ext.n_nodes, dtype=np.complex128)
+    if top_bc == "dirichlet":
+        fixed_nodes[-1] = True
+        e_fixed.append(1.0)
     else:
-        A[-1, -2] = 0
-        q[-1] = A[-1, -1]
+        q[-1] = -1j * omega
 
-    # Solve and return solution on original vertical discretization
-    Ainv = Solver(A)
-    e_1d = Ainv * q
-    return e_1d[n_pad:]
+    P_fixed = sp.eye(mesh_ext.n_nodes, format='csc')[:, fixed_nodes]
+    P_free = sp.eye(mesh_ext.n_nodes, format='csc')[:, ~fixed_nodes]
+    q_free = P_free.T @ (q - A @ (P_fixed @ e_fixed))
+    A_free = P_free.T @ A @ P_free
+
+    Ainv = get_default_solver()(A_free)
+    e_1d = P_free @ (Ainv @ q_free) + P_fixed @ e_fixed
+    # Return solution along original vertical discretization
+    if n_pad != 0:
+        e_1d = e_1d[n_pad:]
+    return e_1d
 
 
 def primary_h_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=500):
