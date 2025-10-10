@@ -1,4 +1,6 @@
 import gc
+import os
+import shutil
 
 from ....electromagnetics.frequency_domain.simulation import BaseFDEMSimulation as Sim
 from ....utils import Zero
@@ -199,6 +201,9 @@ def compute_J(self, m, f=None):
     m_size = m.size
 
     if self.store_sensitivities == "disk":
+        if os.path.exists(self.sensitivity_path):
+            shutil.rmtree(self.sensitivity_path)
+
         Jmatrix = zarr.open(
             self.sensitivity_path,
             mode="w",

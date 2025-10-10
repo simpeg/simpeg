@@ -3,7 +3,7 @@ from .....electromagnetics.static.resistivity.simulation import Simulation3DNoda
 from ....simulation import getJtJdiag, Jvec, Jtvec, Jmatrix
 
 from .....utils import Zero
-
+import shutil
 import os
 import dask.array as da
 import numpy as np
@@ -56,7 +56,7 @@ def compute_J(self, m, f=None):
     if self.store_sensitivities == "disk":
 
         if os.path.exists(self.sensitivity_path):
-            return da.from_zarr(self.sensitivity_path)
+            shutil.rmtree(self.sensitivity_path)
 
         Jmatrix = zarr.open(
             self.sensitivity_path,
