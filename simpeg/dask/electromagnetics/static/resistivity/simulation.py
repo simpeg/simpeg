@@ -62,7 +62,7 @@ def compute_J(self, m, f=None):
             self.sensitivity_path,
             mode="w",
             shape=(self.survey.nD, n_cells),
-            chunks=(self.max_chunk_size, n_cells),
+            chunks=(row_chunks, n_cells),
         )
     else:
         Jmatrix = np.zeros((self.survey.nD, n_cells), dtype=np.float32)

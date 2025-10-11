@@ -92,23 +92,6 @@ def compute_J(self, m, f=None):
     ftype = self._fieldType + "Solution"
     n_cells = m.size
 
-    if self.store_sensitivities == "disk":
-
-        if os.path.exists(self.sensitivity_path):
-            shutil.rmtree(self.sensitivity_path)
-
-        Jmatrix = zarr.open(
-            self.sensitivity_path,
-            mode="w",
-            shape=(self.survey.nD, n_cells),
-            chunks=(self.max_chunk_size, n_cells),
-        )
-    else:
-        Jmatrix = np.zeros((self.survey.nD, n_cells), dtype=np.float64)
-
-        if client:
-            Jmatrix = client.scatter(Jmatrix, workers=worker)
-
     simulation_times = np.r_[0, np.cumsum(self.time_steps)] + self.t0
     data_times = self.survey.source_list[0].receiver_list[0].times
     compute_row_size = np.ceil(self.max_chunk_size / (m.shape[0] * 8.0 * 1e-6))
@@ -121,6 +104,25 @@ def compute_J(self, m, f=None):
 
     if len(self.survey.source_list) == 1:
         fields_array = fields_array[:, np.newaxis, :]
+
+    if self.store_sensitivities == "disk":
+        chunk_size = np.median(
+            [np.sum([len(chunk[1][1]) for chunk in block]) for block in blocks]
+        ).astype(int)
+        if os.path.exists(self.sensitivity_path):
+            shutil.rmtree(self.sensitivity_path)
+
+        Jmatrix = zarr.open(
+            self.sensitivity_path,
+            mode="w",
+            shape=(self.survey.nD, n_cells),
+            chunks=(chunk_size, n_cells),
+        )
+    else:
+        Jmatrix = np.zeros((self.survey.nD, n_cells), dtype=np.float64)
+
+        if client:
+            Jmatrix = client.scatter(Jmatrix, workers=worker)
 
     times_field_derivs = compute_field_derivs(
         self, f, blocks, Jmatrix, fields_array.shape
