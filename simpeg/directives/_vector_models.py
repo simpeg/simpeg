@@ -124,6 +124,12 @@ class VectorInversion(InversionDirective):
 
         self.reference_model = reg.reference_model
 
+        upper_bound = []
+        for reg in self.regularizations.objfcts:
+            upper_bound.append(reg.mapping * self.opt.upper)
+
+        self.upper_bound = np.linalg.norm(np.vstack(upper_bound), axis=0) / 3**0.5
+
     def endIter(self):
 
         model = self.invProb.model.copy()
@@ -132,24 +138,24 @@ class VectorInversion(InversionDirective):
         if self.mode == "cartesian":
             vec_model = []
             indices = []
-            upper_bound = []
             for reg in self.regularizations.objfcts:
                 vec_model.append(reg.mapping * model)
-                upper_bound.append(reg.mapping * self.opt.upper)
                 mapping = reg.mapping.deriv(np.zeros(reg.mapping.shape[1]))
                 indices.append(mapping.indices)
 
             amplitude = np.linalg.norm(np.vstack(vec_model), axis=0)
-            upper_bound = np.linalg.norm(np.vstack(upper_bound), axis=0)
-            out_bound = amplitude > upper_bound
+            out_bound = amplitude > self.upper_bound
 
             if np.any(out_bound):
-                scale = upper_bound / amplitude
+                scale = self.upper_bound / amplitude
 
                 for ind in indices:
                     vec = model[ind]
                     vec[out_bound] *= scale[out_bound]
                     model[ind] = vec
+
+                    self.opt.upper[ind[out_bound]] *= scale[out_bound]
+                    self.opt.lower[ind[out_bound]] *= scale[out_bound]
 
                 self.invProb.model = model
                 self.opt.xc = model
@@ -165,19 +171,16 @@ class VectorInversion(InversionDirective):
             vec_ref = []
             indices = []
             mappings = []
-            upper_bound = []
             for reg in self.regularizations.objfcts:
                 mappings.append(reg.mapping)
                 vec_model.append(reg.mapping * model)
                 vec_ref.append(reg.mapping * reg.reference_model)
-                upper_bound.append(reg.mapping * self.opt.upper)
                 mapping = reg.mapping.deriv(np.zeros(reg.mapping.shape[1]))
                 indices.append(mapping.indices)
 
             indices = np.hstack(indices)
             nC = mapping.shape[0]
             vec_model = cartesian2spherical(np.vstack(vec_model).T)
-            upper_bound = np.linalg.norm(np.vstack(upper_bound), axis=0)
             vec_ref = cartesian2spherical(np.vstack(vec_ref).T).flatten()
             model[indices] = vec_model.flatten()
 
@@ -222,7 +225,7 @@ class VectorInversion(InversionDirective):
                 np.asarray([0, -np.inf, -np.inf]), np.ones(nC)
             )
             self.opt.upper[indices] = np.r_[
-                upper_bound, np.ones_like(indices[nC:]) * np.inf
+                self.upper_bound, np.ones_like(indices[nC:]) * np.inf
             ]
 
             updates = {}
