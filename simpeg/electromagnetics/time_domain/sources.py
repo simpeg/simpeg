@@ -1921,29 +1921,15 @@ class LineCurrent(BaseTDEMSrc):
     def _aInitial(self, simulation):
         if self.srcType == "inductive":
             # for an inductive source, use the Biot Savart law (from geoana) to compute the vector potential
+            line_current = LineCurrentWholeSpace(self.location)
             if simulation._formulation == "EB":
-                vector_potential = np.zeros(simulation.mesh.n_edges)
-
-                for i in range(self.location.shape[0] - 1):
-                    line_current = LineCurrentWholeSpace(self.location[i : i + 2, :])
-
-                    ax = line_current.vector_potential(simulation.mesh.edges_x)[:, 0]
-                    ay = line_current.vector_potential(simulation.mesh.edges_y)[:, 1]
-                    az = line_current.vector_potential(simulation.mesh.edges_z)[:, 2]
-
-                    vector_potential += np.r_[ax, ay, az]
-
+                vector_potential = simulation.mesh.project_edge_vector(
+                    line_current.vector_potential(simulation.mesh.edges)
+                )
             elif simulation._formulation == "HJ":
-                vector_potential = np.zeros(simulation.mesh.n_faces)
-
-                for i in range(self.location.shape[0] - 1):
-                    line_current = LineCurrentWholeSpace(self.location[i : i + 2, :])
-
-                    ax = line_current.vector_potential(simulation.mesh.faces_x)[:, 0]
-                    ay = line_current.vector_potential(simulation.mesh.faces_y)[:, 1]
-                    az = line_current.vector_potential(simulation.mesh.faces_z)[:, 2]
-
-                    vector_potential += np.r_[ax, ay, az]
+                vector_potential = simulation.mesh.project_face_vector(
+                    line_current.vector_potential(simulation.mesh.faces)
+                )
             return self.current * vector_potential
         else:
             # if a grounded source, solve the MMR problem
@@ -1989,8 +1975,29 @@ class LineCurrent(BaseTDEMSrc):
         if self.waveform.has_initial_fields is False:
             return Zero()
 
-        b = self.bInitial(simulation)
-        return simulation.MeMuI * b
+        if simulation._formulation == "EB":
+            return 1 / self.mu * self.bInitial(simulation)
+        elif simulation._formulation == "HJ":
+            a = self._aInitial(simulation)
+
+            if self.srcType == "inductive":
+                line_current = LineCurrentWholeSpace(self.location)
+                a_boundary = mkvc(
+                    line_current.vector_potential(simulation.mesh.boundary_edges)
+                )
+                a_bc = simulation.mesh.boundary_edge_vector_integral * a_boundary
+
+                return (
+                    1.0
+                    / self.mu
+                    * simulation.MeI
+                    * simulation.mesh.edge_curl.T
+                    * simulation.Mf
+                    * a
+                    - 1 / self.mu * simulation.MeI * a_bc
+                )
+            else:
+                return simulation.mesh.edge_curl.T * a
 
     def hInitialDeriv(self, simulation, v, adjoint=False, f=None):
         """Compute derivative of intitial magnetic field times a vector
@@ -2036,11 +2043,12 @@ class LineCurrent(BaseTDEMSrc):
         if self.waveform.has_initial_fields is False:
             return Zero()
 
-        a = self._aInitial(simulation)
         if simulation._formulation == "EB":
+            a = self._aInitial(simulation)
             return simulation.mesh.edge_curl * a
         elif simulation._formulation == "HJ":
-            return simulation.mesh.edge_curl.T * a
+            # return simulation.mesh.edge_curl.T * a
+            return self.mu * self.hInitial(simulation)
 
     def bInitialDeriv(self, simulation, v, adjoint=False, f=None):
         """Compute derivative of intitial magnetic flux density times a vector

@@ -20,6 +20,8 @@ sigma_back = 1 / rho_back
 
 current = 2
 
+REL_TOL = 0.35
+
 
 def setup_mesh_model(tx_halfwidth=50):
 
@@ -115,7 +117,11 @@ def setup_simulation(mesh, survey, simulation_type="EB"):
         (1e-5, nsteps),
         (3e-5, nsteps),
         (1e-4, nsteps),
-        (3e-4, nsteps + 6),
+        (3e-4, nsteps + 4),
+        # (1e-3, nsteps),
+        # (3e-3, nsteps+4),
+        # (1e-2, nsteps-18),
+        # (3e-2, nsteps)
     ]
 
     if simulation_type == "EB":
@@ -143,7 +149,7 @@ def test_large_loop(simulation_type):
     tx_halfwidth = 50
 
     # receiver times
-    rx_times = 1e-3 * np.logspace(-1, 1, 30)
+    rx_times = 1e-3 * np.logspace(-1, 2, 30)
 
     rx_x = np.r_[20]  # np.linspace(-100, 100, 10)
     rx_y = np.r_[20]  # np.linspace(-100, 100, 10)
@@ -193,4 +199,4 @@ def test_large_loop(simulation_type):
     #     ax[i].loglog(rx_times, np.abs(dpred_numeric[i*n_times:(i+1)*n_times]), label="numeric")
     #     ax[i].loglog(rx_times, np.abs(dpred_numeric[i*n_times:(i+1)*n_times] - dpred1d[i*n_times:(i+1)*n_times]), label="diff")
 
-    assert np.all(np.abs(dpred_numeric - dpred1d) / np.abs(dpred1d) < 0.35)
+    assert np.all(np.abs(dpred_numeric - dpred1d) / np.abs(dpred1d) < REL_TOL)
