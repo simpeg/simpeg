@@ -199,4 +199,4 @@ def test_large_loop(simulation_type):
     #     ax[i].loglog(rx_times, np.abs(dpred_numeric[i*n_times:(i+1)*n_times]), label="numeric")
     #     ax[i].loglog(rx_times, np.abs(dpred_numeric[i*n_times:(i+1)*n_times] - dpred1d[i*n_times:(i+1)*n_times]), label="diff")
 
-    assert np.all(np.abs(dpred_numeric - dpred1d) / np.abs(dpred1d) < REL_TOL)
+    np.testing.assert_allclose(dpred_numeric, dpred1d, rtol=REL_TOL)
