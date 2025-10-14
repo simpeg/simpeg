@@ -2,6 +2,7 @@
 Test functions in model_builder.
 """
 
+import re
 import pytest
 import numpy as np
 import discretize
@@ -37,6 +38,9 @@ class TestRemovalSeedProperty:
 
 
 class TestGetIndicesBlock:
+    """
+    Test the ``get_indices_block`` function.
+    """
 
     block_cells_per_dim = 2
 
@@ -63,6 +67,36 @@ class TestGetIndicesBlock:
 
     @pytest.mark.parametrize("ndim", [1, 2, 3])
     def test_get_indices_block(self, ndim):
+        """Test the funciton returns the right indices."""
         mesh, p0, p1 = self.get_mesh_and_block_corners(ndim)
         indices = get_indices_block(p0, p1, mesh.cell_centers)
         assert len(indices) == self.block_cells_per_dim**ndim
+
+    def test_invalid_p0_p1(self):
+        # Dummy mesh (not really used)
+        hx = [(2.0, 10)]
+        mesh = discretize.TensorMesh([hx])
+
+        # Define block corners with different amount of elements
+        p0 = np.array([1.0, 2.0, 3.0, 4.0])
+        p1 = np.array([10.0, 11.0, 12.0])
+
+        msg = re.escape("Dimension mismatch between `p0` and `p1`.")
+        with pytest.raises(ValueError, match=msg):
+            get_indices_block(p0, p1, mesh.cell_centers)
+
+    def test_invalid_mesh_dimensions(self):
+        # Define a 2d mesh
+        hx = [(2.0, 10)]
+        mesh = discretize.TensorMesh([hx, hx])
+
+        # Define block corners in 3d
+        p0 = np.array([1.0, 2.0, 3.0])
+        p1 = np.array([2.0, 3.0, 4.0])
+
+        msg = re.escape(
+            "Dimension mismatch between `cell_centers` and dimensions of "
+            "block corners."
+        )
+        with pytest.raises(ValueError, match=msg):
+            get_indices_block(p0, p1, mesh.cell_centers)
