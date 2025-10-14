@@ -61,49 +61,62 @@ def get_indices_block(p0, p1, cell_centers):
         cell_centers = cell_centers.cell_centers
 
     # Validation: p0 and p1 live in the same dimensional space
-    assert len(p0) == len(p1), "Dimension mismatch. len(p0) != len(p1)"
+    if len(p0) != len(p1):
+        msg = (
+            "Dimension mismatch between `p0` and `p1`. "
+            f"`p0` has {len(p0)} elements, while "
+            f"`p1` has {len(p0)} elements. "
+            "They should have the same amount of elements."
+        )
+        raise ValueError(msg)
 
     # Validation: mesh and points live in the same dimensional space
-    dimMesh = np.size(cell_centers[0, :])
-    assert len(p0) == dimMesh, "Dimension mismatch. len(p0) != dimMesh"
+    mesh_ndim = len(p0)
+    if cell_centers.size % mesh_ndim != 0:
+        msg = (
+            "Dimension mismatch between `cell_centers` and dimensions of block "
+            "corners. "
+            f"The `cell_centers` have {cell_centers.size} elements that don't match "
+            f"the expected number of dimensions of the block corners ({len(p0)})."
+        )
+        raise ValueError(msg)
 
-    for ii in range(len(p0)):
-        p0[ii], p1[ii] = np.min([p0[ii], p1[ii]]), np.max([p0[ii], p1[ii]])
+    # Redefine the block corners to ensure they are correctly defined as min and max
+    p0_new = [min(p0[i], p1[i]) for i in range(mesh_ndim)]
+    p1_new = [max(p0[i], p1[i]) for i in range(mesh_ndim)]
 
-    if dimMesh == 1:
+    if mesh_ndim == 1:
         # Define the reference points
-        x1 = p0[0]
-        x2 = p1[0]
+        (x1,) = p0_new
+        (x2,) = p1_new
 
-        indX = (x1 <= cell_centers[:, 0]) & (cell_centers[:, 0] <= x2)
+        x_centers = cell_centers
+        indX = (x1 <= x_centers) & (x_centers <= x2)
         (ind,) = np.where(indX)
 
-    elif dimMesh == 2:
+    elif mesh_ndim == 2:
         # Define the reference points
-        x1 = p0[0]
-        y1 = p0[1]
+        x1, y1 = p0_new
+        x2, y2 = p1_new
 
-        x2 = p1[0]
-        y2 = p1[1]
-
-        indX = (x1 <= cell_centers[:, 0]) & (cell_centers[:, 0] <= x2)
-        indY = (y1 <= cell_centers[:, 1]) & (cell_centers[:, 1] <= y2)
+        x_centers = cell_centers[:, 0]
+        y_centers = cell_centers[:, 1]
+        indX = (x1 <= x_centers) & (x_centers <= x2)
+        indY = (y1 <= y_centers) & (y_centers <= y2)
 
         (ind,) = np.where(indX & indY)
 
-    elif dimMesh == 3:
+    elif mesh_ndim == 3:
         # Define the points
-        x1 = p0[0]
-        y1 = p0[1]
-        z1 = p0[2]
+        x1, y1, z1 = p0_new
+        x2, y2, z2 = p1_new
 
-        x2 = p1[0]
-        y2 = p1[1]
-        z2 = p1[2]
-
-        indX = (x1 <= cell_centers[:, 0]) & (cell_centers[:, 0] <= x2)
-        indY = (y1 <= cell_centers[:, 1]) & (cell_centers[:, 1] <= y2)
-        indZ = (z1 <= cell_centers[:, 2]) & (cell_centers[:, 2] <= z2)
+        x_centers = cell_centers[:, 0]
+        y_centers = cell_centers[:, 1]
+        z_centers = cell_centers[:, 2]
+        indX = (x1 <= x_centers) & (x_centers <= x2)
+        indY = (y1 <= y_centers) & (y_centers <= y2)
+        indZ = (z1 <= z_centers) & (z_centers <= z2)
 
         (ind,) = np.where(indX & indY & indZ)
 
