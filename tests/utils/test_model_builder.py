@@ -3,7 +3,9 @@ Test functions in model_builder.
 """
 
 import pytest
-from simpeg.utils.model_builder import create_random_model
+import numpy as np
+import discretize
+from simpeg.utils.model_builder import create_random_model, get_indices_block
 
 
 class TestRemovalSeedProperty:
@@ -32,3 +34,35 @@ class TestRemovalSeedProperty:
         msg = "Invalid arguments 'foo', 'bar'."
         with pytest.raises(TypeError, match=msg):
             create_random_model(shape, **kwargs)
+
+
+class TestGetIndicesBlock:
+
+    block_cells_per_dim = 2
+
+    def get_mesh_and_block_corners(self, ndims):
+
+        p0_template = [-4, 2, -10]
+        if ndims == 1:
+            origin = "C"
+            p0 = np.array(p0_template[:1])
+        elif ndims == 2:
+            origin = "CC"
+            p0 = np.array(p0_template[:2])
+        else:
+            origin = "CCN"
+            p0 = np.array(p0_template)
+
+        cell_size = 2.0
+        hx = [(cell_size, 10)]
+        h = [hx for _ in range(ndims)]
+        mesh = discretize.TensorMesh(h, origin=origin)
+
+        p1 = np.array([c + self.block_cells_per_dim * cell_size for c in p0])
+        return (mesh, p0, p1)
+
+    @pytest.mark.parametrize("ndim", [1, 2, 3])
+    def test_get_indices_block(self, ndim):
+        mesh, p0, p1 = self.get_mesh_and_block_corners(ndim)
+        indices = get_indices_block(p0, p1, mesh.cell_centers)
+        assert len(indices) == self.block_cells_per_dim**ndim
