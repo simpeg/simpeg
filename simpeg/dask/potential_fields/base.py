@@ -62,12 +62,11 @@ def storage_formatter(
     Format the storage of the sensitivity matrix.
 
     :param rows: List of dask arrays representing blocks of the sensitivity matrix.
-    :param device: Storage option, either "forward_only", "disk", or "memory".
-    :param chunk_format: Chunking format for disk storage, either "row", "equal
-        or "auto".
-    :param sens_name: File path to store the sensitivity matrix if device is "disk".
-    :param max_chunk_size: Maximum chunk size in MiB for disk storage.
-    :param compute: If True, compute the dask array before returning.
+    :param count: Current row count offset.
+    :param j_matrix: Zarr array to store the sensitivity matrix on disk, if applicable
+
+    :return: If j_matrix is provided, returns None after storing the rows; otherwise,
+    returns the stacked rows as a NumPy array.
     """
 
     if isinstance(j_matrix, zarr.Array):
