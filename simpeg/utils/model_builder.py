@@ -52,7 +52,7 @@ def get_indices_block(p0, p1, cell_centers):
 
     Returns
     -------
-    tuple of int
+    array of int
         Indices of the cells whose center lie within the specified block
 
     """
@@ -76,7 +76,7 @@ def get_indices_block(p0, p1, cell_centers):
         x2 = p1[0]
 
         indX = (x1 <= cell_centers[:, 0]) & (cell_centers[:, 0] <= x2)
-        ind = np.where(indX)
+        (ind,) = np.where(indX)
 
     elif dimMesh == 2:
         # Define the reference points
@@ -89,7 +89,7 @@ def get_indices_block(p0, p1, cell_centers):
         indX = (x1 <= cell_centers[:, 0]) & (cell_centers[:, 0] <= x2)
         indY = (y1 <= cell_centers[:, 1]) & (cell_centers[:, 1] <= y2)
 
-        ind = np.where(indX & indY)
+        (ind,) = np.where(indX & indY)
 
     elif dimMesh == 3:
         # Define the points
@@ -105,7 +105,7 @@ def get_indices_block(p0, p1, cell_centers):
         indY = (y1 <= cell_centers[:, 1]) & (cell_centers[:, 1] <= y2)
         indZ = (z1 <= cell_centers[:, 2]) & (cell_centers[:, 2] <= z2)
 
-        ind = np.where(indX & indY & indZ)
+        (ind,) = np.where(indX & indY & indZ)
 
     # Return a tuple
     return ind
@@ -220,7 +220,7 @@ def get_indices_sphere(center, radius, cell_centers):
 
     Returns
     -------
-    tuple of int
+    array of int
         Indices of the cells whose center lie within the specified sphere
 
     """
