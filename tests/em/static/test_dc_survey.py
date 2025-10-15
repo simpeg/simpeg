@@ -3,7 +3,9 @@ Tests for resistivity (DC) survey objects.
 """
 
 import pytest
+import numpy as np
 
+from discretize import TensorMesh
 from simpeg.electromagnetics.static.resistivity import Survey
 from simpeg.electromagnetics.static.resistivity import sources
 from simpeg.electromagnetics.static.resistivity import receivers
@@ -14,26 +16,46 @@ class TestRemovedSourceType:
     Tests after removing the source_type argument and property.
     """
 
-    def test_warning_after_argument(self):
+    def test_error_after_argument(self):
         """
-        Test warning after passing source_type as argument to the constructor.
+        Test error after passing ``source_type`` as argument to the constructor.
         """
-        msg = "Argument 'survey_type' is ignored and will be removed in future"
-        with pytest.warns(FutureWarning, match=msg):
-            survey = Survey(source_list=[], survey_type="dipole-dipole")
-        # Check if the object doesn't have a `_survey_type` attribute
-        assert not hasattr(survey, "_survey_type")
+        msg = "Argument 'survey_type' has been removed"
+        with pytest.raises(TypeError, match=msg):
+            Survey(source_list=[], survey_type="dipole-dipole")
 
-    def test_warning_removed_property(self):
+    def test_error_removed_property(self):
         """
-        Test if warning is raised when accessing the survey_type property.
+        Test if error is raised when accessing the ``survey_type`` property.
         """
         survey = Survey(source_list=[])
-        msg = "Property 'survey_type' has been removed."
-        with pytest.warns(FutureWarning, match=msg):
+        msg = "'survey_type' has been removed."
+        with pytest.raises(AttributeError, match=msg):
             survey.survey_type
-        with pytest.warns(FutureWarning, match=msg):
+        with pytest.raises(AttributeError, match=msg):
             survey.survey_type = "dipole-dipole"
+
+
+class TestDeprecatedIndActive:
+    """
+    Test the deprecated ``ind_active`` argument in ``drape_electrodes_on_topography``.
+    """
+
+    @pytest.fixture
+    def mesh(self):
+        return TensorMesh((5, 5, 5))
+
+    def test_error(self, mesh):
+        """
+        Test if error is raised after passing ``ind_active`` as argument.
+        """
+        survey = Survey(source_list=[])
+        msg = "got an unexpected keyword argument 'ind_active'"
+        active_cells = np.ones(mesh.n_cells, dtype=bool)
+        with pytest.raises(TypeError, match=msg):
+            survey.drape_electrodes_on_topography(
+                mesh, active_cells, ind_active=active_cells
+            )
 
 
 def test_repr():

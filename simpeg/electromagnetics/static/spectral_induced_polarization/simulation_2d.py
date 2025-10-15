@@ -17,6 +17,8 @@ class BaseSIPSimulation2D(BaseSIPSimulation):
         Generate Full sensitivity matrix
         """
 
+        self.model = m
+
         if self.verbose:
             print(">> Compute Sensitivity matrix")
 

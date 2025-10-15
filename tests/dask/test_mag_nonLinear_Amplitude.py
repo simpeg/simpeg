@@ -150,8 +150,8 @@ class AmpProblemTest(unittest.TestCase):
             lower=-np.inf,
             upper=np.inf,
             maxIterLS=5,
-            maxIterCG=5,
-            tolCG=1e-3,
+            cg_maxiter=5,
+            cg_rtol=1e-3,
         )
 
         # Define misfit function (obs-calc)
@@ -242,7 +242,7 @@ class AmpProblemTest(unittest.TestCase):
 
         # Add directives to the inversion
         opt = optimization.ProjectedGNCG(
-            maxIter=10, lower=0.0, upper=1.0, maxIterLS=5, maxIterCG=5, tolCG=1e-3
+            maxIter=10, lower=0.0, upper=1.0, maxIterLS=5, cg_maxiter=5, cg_rtol=1e-3
         )
 
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)

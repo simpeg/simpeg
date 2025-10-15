@@ -279,8 +279,8 @@ class QuadTreeLinProblemTest(unittest.TestCase):
                 lower=-1.0,
                 upper=1.0,
                 maxIterLS=5,
-                maxIterCG=20,
-                tolCG=1e-4,
+                cg_maxiter=20,
+                cg_rtol=1e-3,
             )
 
             invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=beta)
@@ -415,7 +415,7 @@ class QuadTreeLinProblemTest(unittest.TestCase):
         grav_survey = gravity.Survey(grav_srcField)
 
         self.assertRaises(
-            AttributeError,
+            ValueError,
             gravity.SimulationEquivalentSourceLayer,
             mesh3D,
             0.0,

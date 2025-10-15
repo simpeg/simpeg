@@ -6,7 +6,6 @@ import unittest
 import discretize
 from simpeg.electromagnetics import time_domain as tdem
 from simpeg import maps, tests
-from pymatsolver import Pardiso
 
 
 class TestGroundedSourceTDEM_j(unittest.TestCase):
@@ -76,7 +75,6 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
             time_steps=time_steps,
             mu=mu,
             sigmaMap=maps.ExpMap(mesh),
-            solver=Pardiso,
         )
         survey = tdem.Survey([src])
 
@@ -97,9 +95,8 @@ class TestGroundedSourceTDEM_j(unittest.TestCase):
         m0 = np.log(self.sigma) + rng.uniform(size=self.mesh.nC)
         self.prob.model = m0
 
-        np.random.seed(10)  # use seed for check_derivative
         return tests.check_derivative(
-            deriv_fct, np.log(self.sigma), num=3, plotIt=False
+            deriv_fct, np.log(self.sigma), num=3, plotIt=False, random_seed=521
         )
 
     def test_deriv_phi(self):

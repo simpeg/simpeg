@@ -3,7 +3,6 @@ import numpy as np
 import discretize
 from simpeg import maps, tests
 from simpeg.electromagnetics import time_domain as tdem
-from pymatsolver import Pardiso as Solver
 
 plotIt = False
 
@@ -60,7 +59,6 @@ def setUp_TDEM(prbtype="ElectricField", rxcomp="ElectricFieldx", src_z=0.0):
     prb = getattr(tdem, "Simulation3D{}".format(prbtype))(
         mesh, survey=survey, time_steps=time_steps, sigmaMap=mapping
     )
-    prb.solver = Solver
 
     return prb, m, mesh
 
@@ -78,8 +76,9 @@ class TDEM_DerivTests(unittest.TestCase):
 
             print("test_Jvec_{prbtype}_{rxcomp}".format(prbtype=prbtype, rxcomp=rxcomp))
 
-            np.random.seed(10)  # use seed for check_derivative
-            tests.check_derivative(derChk, m, plotIt=False, num=2, eps=1e-20)
+            tests.check_derivative(
+                derChk, m, plotIt=False, num=2, eps=1e-20, random_seed=52135
+            )
 
         def test_Jvec_e_dbzdt(self):
             self.JvecTest("ElectricField", "MagneticFluxTimeDerivativez")

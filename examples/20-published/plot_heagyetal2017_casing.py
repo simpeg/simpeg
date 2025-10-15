@@ -36,15 +36,6 @@ from simpeg import utils, maps, tests
 from simpeg.electromagnetics import frequency_domain as FDEM, mu_0
 from simpeg.utils.io_utils import download
 
-# try:
-#     from pymatsolver import MumpsSolver as Solver
-#     print('using MumpsSolver')
-# except ImportError:
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import SolverLU as Solver
-
 import numpy as np
 import scipy.sparse as sp
 import time
@@ -349,7 +340,6 @@ class PrimSecCasingExample(object):
             )
             primaryProblem.mu = self.muModel
 
-            primaryProblem.solver = Solver
             self._primaryProblem = primaryProblem
 
             print("... done building primary problem")
@@ -575,7 +565,6 @@ class PrimSecCasingExample(object):
         if mapping is None:
             mapping = [("sigma", maps.IdentityMap(self.meshs))]
         sec_problem = FDEM.Simulation3DElectricField(self.meshs, sigmaMap=mapping)
-        sec_problem.solver = Solver
         print("... done setting up secondary problem")
         return sec_problem
 
@@ -675,8 +664,6 @@ class PrimSecCasingExample(object):
     def plotSecondarySource(self, primaryFields, saveFig=False):
         # get source term
         secondaryProblem = self.setupSecondaryProblem(mapping=self.mapping)
-        secondaryProblem.solver = Solver
-        self.primaryProblem.solver = Solver
         secondaryProblem.model = self.mtrue
         secondarySurvey = self.setupSecondarySurvey(
             self.primaryProblem, self.primarySurvey, self.primaryMap2meshs

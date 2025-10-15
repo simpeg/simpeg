@@ -35,7 +35,10 @@ class FieldsTest(unittest.TestCase):
         source_list = [Src0, Src1, Src2, Src3, Src4]
 
         mysurvey = survey.BaseSurvey(source_list=source_list)
-        sim = simulation.BaseSimulation(mesh=mesh, survey=mysurvey)
+        sim = simulation.BaseSimulation(survey=mysurvey)
+        # insert a mesh into the simulation (required for the Fields objects)
+        # This should likely be moved to a BasePDESimulation test.
+        sim.mesh = mesh
         self.D = data.Data(mysurvey)
         self.F = fields.Fields(
             sim,
@@ -44,7 +47,6 @@ class FieldsTest(unittest.TestCase):
         )
         self.Src0 = Src0
         self.Src1 = Src1
-        self.mesh = mesh
         self.XYZ = XYZ
         self.simulation = sim
 
@@ -159,7 +161,10 @@ class FieldsTest_Alias(unittest.TestCase):
 
         source_list = [Src0, Src1, Src2, Src3, Src4]
         mysurvey = survey.BaseSurvey(source_list=source_list)
-        sim = simulation.BaseSimulation(mesh=mesh, survey=mysurvey)
+        sim = simulation.BaseSimulation(survey=mysurvey)
+        # insert a mesh into the simulation (required for the Fields objects)
+        # This should likely be moved to a BasePDESimulation test.
+        sim.mesh = mesh
         self.F = fields.Fields(
             sim,
             knownFields={"e": "E"},
@@ -167,7 +172,6 @@ class FieldsTest_Alias(unittest.TestCase):
         )
         self.Src0 = Src0
         self.Src1 = Src1
-        self.mesh = mesh
         self.XYZ = XYZ
         self.simulation = sim
 
@@ -250,14 +254,16 @@ class FieldsTest_Time(unittest.TestCase):
         source_list = [Src0, Src1, Src2, Src3, Src4]
         mysurvey = survey.BaseSurvey(source_list=source_list)
         sim = simulation.BaseTimeSimulation(
-            mesh, time_steps=[(10.0, 3), (20.0, 2)], survey=mysurvey
+            time_steps=[(10.0, 3), (20.0, 2)], survey=mysurvey
         )
+        # insert a mesh into the simulation (required for the Fields objects)
+        # This should likely be moved to a BasePDESimulation test.
+        sim.mesh = mesh
         self.F = fields.TimeFields(
             simulation=sim, knownFields={"phi": "CC", "e": "E", "b": "F"}
         )
         self.Src0 = Src0
         self.Src1 = Src1
-        self.mesh = mesh
         self.XYZ = XYZ
 
     def test_contains(self):
@@ -375,8 +381,11 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
         source_list = [Src0, Src1, Src2, Src3, Src4]
         mysurvey = survey.BaseSurvey(source_list=source_list)
         sim = simulation.BaseTimeSimulation(
-            mesh, time_steps=[(10.0, 3), (20.0, 2)], survey=mysurvey
+            time_steps=[(10.0, 3), (20.0, 2)], survey=mysurvey
         )
+        # insert a mesh into the simulation (required for the Fields objects)
+        # This should likely be moved to a BasePDESimulation test.
+        sim.mesh = mesh
 
         def alias(b, srcInd, timeInd):
             return self.F.mesh.edge_curl.T * b + timeInd
@@ -386,7 +395,6 @@ class FieldsTest_Time_Aliased(unittest.TestCase):
         )
         self.Src0 = Src0
         self.Src1 = Src1
-        self.mesh = mesh
         self.XYZ = XYZ
         self.simulation = sim
 

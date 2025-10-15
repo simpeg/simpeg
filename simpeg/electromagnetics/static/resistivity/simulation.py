@@ -112,6 +112,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return f
 
     def getJ(self, m, f=None):
+        self.model = m
         if getattr(self, "_Jmatrix", None) is None:
             if f is None:
                 f = self.fields(m)
@@ -215,7 +216,6 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
             if isinstance(v, Data):
                 v = v.dobs
             v = self._mini_survey_dataT(v)
-            v = Data(survey, v)
             Jtv = np.zeros(m.size)
         else:
             # This is for forming full sensitivity matrix
@@ -223,13 +223,17 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
             istrt = int(0)
             iend = int(0)
 
+        # Get dict of flat array slices for each source-receiver pair in the survey
+        survey_slices = survey.get_all_slices()
+
         for source in survey.source_list:
             u_source = f[source, self._solutionType].copy()
             for rx in source.receiver_list:
                 # wrt f, need possibility wrt m
                 if v is not None:
+                    src_rx_slice = survey_slices[source, rx]
                     PTv = rx.evalDeriv(
-                        source, self.mesh, f, v[source, rx], adjoint=True
+                        source, self.mesh, f, v[src_rx_slice], adjoint=True
                     )
                 else:
                     PTv = rx.evalDeriv(source, self.mesh, f).toarray().T
@@ -284,8 +288,8 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return self._q
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        toDelete = super().deleteTheseOnModelUpdate
+    def _delete_on_model_update(self):
+        toDelete = super()._delete_on_model_update
         return toDelete + ["_Jmatrix", "_gtgdiag"]
 
     def _mini_survey_data(self, d_mini):

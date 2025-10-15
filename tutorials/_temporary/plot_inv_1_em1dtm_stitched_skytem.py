@@ -18,7 +18,6 @@ import tarfile
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 from discretize import TensorMesh
-from pymatsolver import PardisoSolver
 
 from simpeg.utils import mkvc
 from simpeg import (
@@ -224,12 +223,11 @@ simulation = em1d.simulation.StitchedEM1DTMSimulation(
     thicknesses=thicknesses,
     sigmaMap=mapping,
     topo=topo,
-    Solver=PardisoSolver,
 )
 
 # simulation = em1d.simulation.StitchedEM1DTMSimulation(
 #     survey=survey, thicknesses=thicknesses, sigmaMap=mapping,
-#     topo=topo, parallel=True, n_cpu=4, verbose=True, Solver=PardisoSolver
+#     topo=topo, parallel=True, n_cpu=4, verbose=True
 # )
 
 
@@ -286,7 +284,7 @@ reg.mrefInSmooth = False
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.
-opt = optimization.InexactGaussNewton(maxIter=40, maxIterCG=20)
+opt = optimization.InexactGaussNewton(maxIter=40, cg_maxiter=20)
 
 # Define the inverse problem
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)

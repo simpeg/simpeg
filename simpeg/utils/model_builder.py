@@ -418,10 +418,11 @@ def create_layers_model(cell_centers, layer_tops, layer_values):
 
 def create_random_model(
     shape,
-    seed: RandomSeed | None = 1000,
+    random_seed: RandomSeed | None = 1000,
     anisotropy=None,
     its=100,
     bounds=None,
+    **kwargs,
 ):
     """
     Create random model by convolving a kernel with a uniformly distributed random model.
@@ -429,8 +430,9 @@ def create_random_model(
     Parameters
     ----------
     shape : int or tuple of int
-        Shape of the model. Can define a vector of size (n_cells) or define the dimensions of a tensor
-    seed : None or :class:`~simpeg.typing.RandomSeed`, optional
+        Shape of the model. Can define a vector of size (n_cells) or define the
+        dimensions of a tensor.
+    random_seed : None or :class:`~simpeg.typing.RandomSeed`, optional
         Random seed for random uniform model that is convolved with the kernel.
         It can either be an int, a predefined Numpy random number generator, or
         any valid input to ``numpy.random.default_rng``.
@@ -458,13 +460,18 @@ def create_random_model(
     >>> plt.show()
 
     """
+    if kwargs:
+        args = ", ".join([f"'{key}'" for key in kwargs])
+        raise TypeError(f"Invalid arguments {args}.")
+    # ---
+
     if bounds is None:
         bounds = [0, 1]
 
     if isinstance(shape, int):
         shape = (shape,)  # make it a tuple for consistency
 
-    rng = np.random.default_rng(seed=seed)
+    rng = np.random.default_rng(seed=random_seed)
     mr = rng.random(size=shape)
     if anisotropy is None:
         if len(shape) == 1:

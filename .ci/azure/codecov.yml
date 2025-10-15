@@ -22,13 +22,15 @@ jobs:
           ls -la
         displayName: "Copy coverage files"
 
-      - script: |
+      - bash: |
           curl -Os https://uploader.codecov.io/latest/linux/codecov
           chmod +x codecov
         displayName: "Install codecov cli"
 
-      - script: |
+      - bash: |
+          cc_file_args=()
           for report in coverage-*.xml; do
-            ./codecov --verbose upload-process -f "$report"
+              cc_file_args+=( " --file " "$report" )
           done
+          ./codecov --verbose upload-process "$cc_file_args"
         displayName: "Upload coverage to codecov.io"

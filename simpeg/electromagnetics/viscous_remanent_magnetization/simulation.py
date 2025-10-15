@@ -1,4 +1,3 @@
-import warnings
 import discretize
 import numpy as np
 import scipy.sparse as sp
@@ -35,10 +34,15 @@ class BaseVRMSimulation(BaseSimulation):
         refinement_factor=None,
         refinement_distance=None,
         active_cells=None,
-        indActive=None,
         **kwargs,
     ):
-        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        # Deprecate indActive argument
+        if kwargs.pop("indActive", None) is not None:
+            raise TypeError(
+                "'indActive' was removed in SimPEG v0.24.0, please use 'active_cells' instead."
+            )
+        self.mesh = mesh
+        super().__init__(survey=survey, **kwargs)
 
         if refinement_distance is None:
             if refinement_factor is None:
@@ -52,34 +56,29 @@ class BaseVRMSimulation(BaseSimulation):
             )
         self.refinement_distance = refinement_distance
 
-        # Deprecate indActive argument
-        if indActive is not None:
-            if active_cells is not None:
-                raise TypeError(
-                    "Cannot pass both 'active_cells' and 'indActive'."
-                    "'indActive' has been deprecated and will be removed in "
-                    " SimPEG v0.24.0, please use 'active_cells' instead.",
-                )
-            warnings.warn(
-                "'indActive' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'active_cells' instead.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            active_cells = indActive
-
         if active_cells is None:
             active_cells = np.ones(self.mesh.n_cells, dtype=bool)
         self.active_cells = active_cells
 
-    @BaseSimulation.mesh.setter
+    @property
+    def mesh(self):
+        """Mesh for the integral VRM simulations.
+
+        Returns
+        -------
+        discretize.TensorMesh or discretize.TreeMesh
+            3D Mesh on which the forward problem is discretized.
+        """
+        return self._mesh
+
+    @mesh.setter
     def mesh(self, value):
         value = validate_type(
             "mesh", value, (discretize.TensorMesh, discretize.TreeMesh), cast=False
         )
         if value.dim != 3:
             raise ValueError(
-                f"Mesh must be 3D tensor or 3D tree. Current mesh is {value.dim}"
+                f"{type(self).__name__} mesh must be 3D, received a {value.dim}D mesh."
             )
         self._mesh = value
 
@@ -148,8 +147,7 @@ class BaseVRMSimulation(BaseSimulation):
         "indActive",
         "active_cells",
         removal_version="0.24.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     def _getH0matrix(self, xyz, pp):

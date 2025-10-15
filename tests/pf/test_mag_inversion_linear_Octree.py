@@ -125,9 +125,9 @@ class MagInvLinProblemTest(unittest.TestCase):
             lower=0.0,
             upper=10.0,
             maxIterLS=5,
-            maxIterCG=20,
-            tolCG=1e-4,
-            stepOffBoundsFact=1e-4,
+            cg_maxiter=20,
+            cg_rtol=1e-3,
+            active_set_grad_scale=1e-4,
         )
 
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e6)
