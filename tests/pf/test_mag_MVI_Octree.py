@@ -135,7 +135,7 @@ class MVIProblemTest(unittest.TestCase):
 
         # Add directives to the inversion
         opt = optimization.ProjectedGNCG(
-            maxIter=10, lower=-10, upper=10.0, maxIterLS=5, maxIterCG=5, tolCG=1e-4
+            maxIter=10, lower=-10, upper=10.0, maxIterLS=5, cg_maxiter=5, cg_rtol=1e-3
         )
 
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -198,9 +198,9 @@ class MVIProblemTest(unittest.TestCase):
             lower=Lbound,
             upper=Ubound,
             maxIterLS=5,
-            maxIterCG=5,
-            tolCG=1e-3,
-            stepOffBoundsFact=1e-3,
+            cg_maxiter=5,
+            cg_rtol=1e-3,
+            active_set_grad_scale=1e-3,
         )
         opt.approxHinv = None
 
