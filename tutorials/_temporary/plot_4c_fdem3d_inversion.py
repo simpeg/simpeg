@@ -321,9 +321,9 @@ reg = regularization.WeightedLeastSquares(
 # Define how the optimization problem is solved. Here we will use a projected
 # Gauss-Newton approach that employs the conjugate gradient solver.
 # opt = optimization.ProjectedGNCG(
-#    maxIterCG=5, tolCG=1e-2, lower=-10, upper=5
+#    cg_maxiter=5, cg_rtol=1e-2, lower=-10, upper=5
 #    )
-opt = optimization.InexactGaussNewton(maxIterCG=5, tolCG=1e-2)
+opt = optimization.InexactGaussNewton(cg_maxiter=5, cg_rtol=1e-2)
 
 # Here we define the inverse problem that is to be solved
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)

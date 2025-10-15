@@ -243,7 +243,7 @@ dmis.W = 1.0 / data_object.standard_deviation
 
 # Add directives to the inversion
 opt = optimization.ProjectedGNCG(
-    maxIter=10, lower=-10, upper=10.0, maxIterLS=20, maxIterCG=20, tolCG=1e-4
+    maxIter=10, lower=-10, upper=10.0, maxIterLS=20, cg_maxiter=20, cg_rtol=1e-3
 )
 
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -334,9 +334,9 @@ opt = optimization.ProjectedGNCG(
     lower=lower_bound,
     upper=upper_bound,
     maxIterLS=20,
-    maxIterCG=30,
-    tolCG=1e-3,
-    stepOffBoundsFact=1e-3,
+    cg_maxiter=30,
+    cg_rtol=1e-3,
+    active_set_grad_scale=1e-3,
 )
 opt.approxHinv = None
 
