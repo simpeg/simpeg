@@ -149,6 +149,7 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
     eBG_bp = np.hstack((eBG_px, eBG_py))
     return eBG_bp
 
+
 # def homo3DModelSource(mesh, model, freq):
 #     """
 #     Function that estimates 1D analytic background fields from a 3D model.
