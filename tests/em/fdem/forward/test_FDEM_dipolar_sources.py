@@ -11,7 +11,7 @@ from simpeg.utils.solver_utils import get_default_solver
 
 Solver = get_default_solver()
 
-TOL = 5e-2  # relative tolerance
+TOL = 2e-2  # relative tolerance
 
 # Defining transmitter locations
 source_location = np.r_[0, 0, 0]
@@ -104,4 +104,8 @@ def test_dipolar_fields(simulation_type, field_test, mur, orientation="Z"):
     elif field_test == "hPrimary":
         analytic = projection(dipole.magnetic_field(grid))
 
-    assert np.abs(np.mean((numeric / analytic)) - 1) < TOL
+    # Check that the rms is below a tolerance
+    diff = analytic - numeric
+    rms = np.sqrt(np.mean(diff**2))
+    maxabs = np.max(np.abs(analytic))
+    assert rms < maxabs * TOL
