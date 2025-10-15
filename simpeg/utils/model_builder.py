@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 import scipy.ndimage as ndi
 import scipy.sparse as sp
@@ -6,6 +7,7 @@ from scipy.spatial import Delaunay
 from discretize.base import BaseMesh
 
 from ..typing import RandomSeed
+from ..utils.warnings import BreakingChangeWarning
 
 
 def add_block(cell_centers, model, p0, p1, prop_value):
@@ -119,6 +121,31 @@ def get_indices_block(p0, p1, cell_centers):
         indZ = (z1 <= z_centers) & (z_centers <= z2)
 
         (ind,) = np.where(indX & indY & indZ)
+
+    # Warn users about the breaking change introduced in the return of this function
+    msg = (
+        "Since SimPEG v0.25.0, the 'get_indices_block' function returns a single array "
+        "with the cell indices, instead of a tuple with a single element. "
+        "This means that we don't need to unpack the tuple anymore to access to the "
+        "cell indices."
+        "\n"
+        "If you were using this function as in:"
+        "\n\n"
+        "    ind = get_indices_block(p0, p1, mesh.cell_centers)[0]"
+        "\n\n"
+        "Make sure you update it to:"
+        "\n\n"
+        "    ind = get_indices_block(p0, p1, mesh.cell_centers)"
+        "\n\n"
+        "To hide this warning, add this to your script or notebook:"
+        "\n"
+        "\n    import warnings"
+        "\n    from simpeg.utils.warnings import BreakingChangeWarning"
+        "\n"
+        "\n    warnings.filterwarnings(action='ignore', category=BreakingChangeWarning)"
+        "\n"
+    )
+    warnings.warn(msg, BreakingChangeWarning, stacklevel=2)
 
     # Return a tuple
     return ind
