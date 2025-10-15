@@ -199,14 +199,63 @@ class RampOffWaveform(BaseWaveform):
 
     """
 
-    def __init__(self, off_time=0.0, **kwargs):
-        super().__init__(off_time=off_time, has_initial_fields=True, **kwargs)
+    def __init__(self, ramp_end=0.0, ramp_start=0.0, **kwargs):
+        if (off_time := kwargs.pop("off_time", None)) is not None:
+            ramp_end = off_time
+        self.ramp_start = ramp_start
+        self.ramp_end = ramp_end
+        super().__init__(off_time=ramp_end, has_initial_fields=True, **kwargs)
+
+    @property
+    def ramp_start(self):
+        """Ramp start time
+
+        Sets the time the ramp off begins.
+
+        Returns
+        -------
+        float
+            The start time of the ramp off for the waveform
+        """
+        return self._ramp_start
+
+    @ramp_start.setter
+    def ramp_start(self, value):
+        self._ramp_start = validate_float("ramp_start", value)
+
+    @property
+    def ramp_end(self):
+        """Ramp end time, when the current is off.
+
+        Sets the time the ramp off ends.
+
+        Returns
+        -------
+        float
+            The end time of the ramp off for the waveform
+        """
+        return self._ramp_end
+
+    @ramp_end.setter
+    def ramp_end(self, value):
+        """ "off-time of the source"""
+        self._ramp_end = validate_float("ramp_end", value, min_val=self.ramp_start)
+
+    @property
+    def off_time(self):
+        return self._ramp_end
+
+    @off_time.setter
+    def off_time(self, value):
+        self.ramp_end = value
 
     def eval(self, time):  # noqa: A003
-        if abs(time - 0.0) < self.epsilon:
+        dt = time - self.ramp_start
+        if dt < self.epsilon:
             return 1.0
-        elif time < self.off_time:
-            return -1.0 / self.off_time * (time - self.off_time)
+        elif time < self.ramp_end:
+            ramp_width = self.ramp_end - self.ramp_start
+            return 1 - dt / ramp_width
         else:
             return 0.0
 
@@ -214,8 +263,10 @@ class RampOffWaveform(BaseWaveform):
         t = np.asarray(time, dtype=float)
         out = np.zeros_like(t)
 
-        if self.off_time > 0:
-            out[(t < self.off_time) & (t >= self.epsilon)] = -1.0 / self.off_time
+        ramp_width = self.ramp_end - self.ramp_start
+        out[(t < self.ramp_end) & ((t - self.ramp_start) >= self.epsilon)] = (
+            -1.0 / ramp_width
+        )
 
         if out.ndim == 0:
             out = out.item()
@@ -223,7 +274,7 @@ class RampOffWaveform(BaseWaveform):
 
     @property
     def time_nodes(self):
-        return np.r_[0.0, self.off_time]
+        return np.r_[self.ramp_start, self.ramp_end]
 
 
 class RawWaveform(BaseWaveform):
