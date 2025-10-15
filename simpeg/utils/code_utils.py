@@ -257,9 +257,13 @@ def print_line(obj, printers, pad=""):
     """
     values = ""
     for printer in printers:
-        values += ("{{:^{0:d}}}".format(printer["width"])).format(
-            printer["format"] % printer["value"](obj)
-        )
+        value = printer["value"](obj)
+        format_string = f"^{printer['width']}s"
+        if value is not None:
+            formatted_val = printer["format"](value)
+        else:
+            formatted_val = ""
+        values += f"{formatted_val:{format_string}}"
     print(pad + values)
 
 
@@ -316,12 +320,12 @@ def print_stoppers(obj, stoppers, pad="", stop="STOP!", done="DONE!"):
     done : str, default: "DONE!"
         String for statement when stopping criterian not encountered
     """
-    print(pad + "{0!s}{1!s}{2!s}".format("-" * 25, stop, "-" * 25))
+    print(pad + "-" * 25 + stop + "-" * 25)
     for stopper in stoppers:
         l = stopper["left"](obj)
         r = stopper["right"](obj)
         print(pad + stopper["str"] % (l <= r, l, r))
-    print(pad + "{0!s}{1!s}{2!s}".format("-" * 25, done, "-" * 25))
+    print(pad + "-" * 25 + done + "-" * 25)
 
 
 def call_hooks(match, mainFirst=False):
@@ -374,17 +378,15 @@ def call_hooks(match, mainFirst=False):
 
                 return out
 
-        extra = """
-            If you have things that also need to run in the method {0!s}, you can create a method::
+        extra = f"""
+            If you have things that also need to run in the method {match}, you can create a method::
 
-                def _{1!s}*(self, ... ):
+                def _{match}*(self, ... ):
                     pass
 
-            Where the * can be any string. If present, _{2!s}* will be called at the start of the default {3!s} call.
+            Where the * can be any string. If present, _{match}* will be called at the start of the default {match} call.
             You may also completely overwrite this function.
-        """.format(
-            match, match, match, match
-        )
+        """
         doc = wrapper.__doc__
         wrapper.__doc__ = ("" if doc is None else doc) + extra
         return wrapper
@@ -1279,38 +1281,3 @@ def validate_active_indices(property_name, index_arr, n_cells):
     if index_arr.shape != (n_cells,):
         raise ValueError(f"Input 'active_cells' must have shape {(n_cells,)}")
     return index_arr
-
-
-###############################################################
-#                      DEPRECATIONS
-###############################################################
-memProfileWrapper = deprecate_function(
-    mem_profile_class, "memProfileWrapper", removal_version="0.18.0", error=True
-)
-setKwargs = deprecate_function(
-    set_kwargs, "setKwargs", removal_version="0.18.0", error=True
-)
-printTitles = deprecate_function(
-    print_titles, "printTitles", removal_version="0.18.0", error=True
-)
-printLine = deprecate_function(
-    print_line, "printLine", removal_version="0.18.0", error=True
-)
-printStoppers = deprecate_function(
-    print_stoppers, "printStoppers", removal_version="0.18.0", error=True
-)
-checkStoppers = deprecate_function(
-    check_stoppers, "checkStoppers", removal_version="0.18.0", error=True
-)
-printDone = deprecate_function(
-    print_done, "printDone", removal_version="0.18.0", error=True
-)
-callHooks = deprecate_function(
-    call_hooks, "callHooks", removal_version="0.18.0", error=True
-)
-dependentProperty = deprecate_function(
-    dependent_property, "dependentProperty", removal_version="0.18.0", error=True
-)
-asArray_N_x_Dim = deprecate_function(
-    as_array_n_by_dim, "asArray_N_x_Dim", removal_version="0.19.0", error=True
-)

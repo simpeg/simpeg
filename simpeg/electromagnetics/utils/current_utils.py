@@ -511,11 +511,3 @@ def line_through_faces(
                 )
 
     return current
-
-
-def getSourceTermLineCurrentPolygon(xorig, hx, hy, hz, px, py, pz):
-    """getSourceTermLineCurrentPolygon is deprecated. Use :func:`segmented_line_current_source_term`"""
-    raise NotImplementedError(
-        "getSourceTermLineCurrentPolygon has been deprecated and will be"
-        "removed in SimPEG 0.17.0. Please use segmented_line_current_source_term.",
-    )

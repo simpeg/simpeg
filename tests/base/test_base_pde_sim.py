@@ -814,7 +814,7 @@ def test_bad_derivative_stash():
         sim.MeSigmaDeriv(u, v)
 
 
-def test_solver_defaults(caplog):
+def test_solver_defaults(caplog, info_logging):
     mesh = discretize.TensorMesh([2, 2, 2])
     sim = BasePDESimulation(mesh)
     # Check that logging.info was created
