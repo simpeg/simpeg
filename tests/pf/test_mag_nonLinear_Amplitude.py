@@ -84,7 +84,7 @@ class AmpProblemTest(unittest.TestCase):
             np.r_[-20, -20, -10],
             np.r_[20, 20, 25],
             mesh.gridCC,
-        )[0]
+        )
 
         # Assign magnetization value, inducing field strength will
         # be applied in by the :class:`simpeg.PF.Magnetics` problem

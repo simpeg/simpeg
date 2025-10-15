@@ -120,7 +120,7 @@ ind = utils.model_builder.get_indices_block(
     np.r_[-10, -10, -30],
     np.r_[10, 10, -10],
     mesh.gridCC,
-)[0]
+)
 
 # Assign magnetization values
 model[ind] = 0.3
