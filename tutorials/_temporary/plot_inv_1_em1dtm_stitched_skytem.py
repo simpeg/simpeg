@@ -284,7 +284,7 @@ reg.mrefInSmooth = False
 
 # Define how the optimization problem is solved. Here we will use an inexact
 # Gauss-Newton approach that employs the conjugate gradient solver.
-opt = optimization.InexactGaussNewton(maxIter=40, maxIterCG=20)
+opt = optimization.InexactGaussNewton(maxIter=40, cg_maxiter=20)
 
 # Define the inverse problem
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
