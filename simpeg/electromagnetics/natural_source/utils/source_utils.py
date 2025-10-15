@@ -746,47 +746,49 @@ def primary_h_1d_solution(
         h_1d = h_1d[n_pad:]
     return h_1d
 
-
-# def project_1d_primary_to_mesh(mesh, u_1d):
-def project_e_1d_to_e_primary(mesh, e_1d):
-    """Project 1D electric field solution on nodes to edges of a mesh.
+def project_1d_fields_to_mesh_edges(mesh, u_1d):
+    """Project 1D nodal field solution to edges of a mesh.
 
     Parameters
     ----------
     mesh : discretize.base.BaseTensorMesh
         A 1d, 2d or 3d tensor mesh or tree mesh.
-    e_1d : np.ndarray
-        1D electric field solution along the vertical discretization.
+    u_1d : np.ndarray
+        1D field solution along the vertical discretization of the input mesh.
 
     Returns
     -------
     numpy.ndarray (n_edges, n_polarization)
-        Electric fields on the edges of the mesh for each polarization.
+        Fields on the edges of the mesh for each polarization.
     """
-    if mesh.dim == 1:
-        return e_1d
+    if len(u_1d) != mesh.n_edges_per_direction[mesh.dim-1]:
+        raise ValueError("Length of u_1d must match number of vertical edges in mesh.")
 
+    if mesh.dim == 1:
+        return u_1d
+
+    # Vertical 1D discretization
     hz = mesh.h[-1]
     mesh_1d = TensorMesh([hz], origin=[mesh.origin[-1]])
 
-    # Incident E-field polarized along x-direction
-    ep_x = (
+    # Field polarized along x-direction
+    u_x = (
         mesh_1d.get_interpolation_matrix(mesh.edges_x[:, -1], location_type="nodes")
-        @ e_1d
+        @ u_1d
     )
 
     if mesh.dim == 2:
-        return np.r_[ep_x, np.zeros(mesh.n_edges_y)]
+        return np.r_[u_x, np.zeros(mesh.n_edges_y)]
 
-    elif mesh.dim == 3:
+    else:
 
-        ep_x = np.r_[ep_x, np.zeros(mesh.n_edges_y + mesh.n_edges_z)]
-
-        # Incident E-field polarized along y-direction
-        ep_y = (
+        # Field polarized along y-direction
+        u_y = (
             mesh_1d.get_interpolation_matrix(mesh.edges_y[:, 2], location_type="nodes")
-            @ e_1d
+            @ u_1d
         )
-        ep_y = np.r_[np.zeros(mesh.n_edges_x), ep_y, np.zeros(mesh.n_edges_z)]
 
-        return np.c_[ep_x, ep_y]
+        u_x = np.r_[u_x, np.zeros(mesh.n_edges_y + mesh.n_edges_z)]
+        u_y = np.r_[np.zeros(mesh.n_edges_x), u_y, np.zeros(mesh.n_edges_z)]
+
+        return np.c_[u_x, u_y]
