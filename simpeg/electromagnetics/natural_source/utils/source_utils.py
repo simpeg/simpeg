@@ -1,19 +1,15 @@
 # noqa: D100
 import numpy as np
 from scipy.constants import mu_0
-import scipy.sparse as sp
 from discretize import TensorMesh
-from discretize.utils import sdiag
 
 from ....utils import mkvc, get_default_solver
 from .solutions_1d import get1DEfields
 from .analytic_1d import getEHfields
-from pymatsolver import Solver
 
 
 def homo1DModelSource(mesh, freq, sigma_1d):
-    """
-    Function that calculates and return background fields.
+    """Function that calculates and return background fields.
 
     Parameters
     ----------
@@ -84,8 +80,7 @@ def homo1DModelSource(mesh, freq, sigma_1d):
 
 
 def analytic1DModelSource(mesh, freq, sigma_1d):
-    """
-    Function that calculates and return background fields.
+    """Function that calculates and return background fields.
 
     Parameters
     ----------
@@ -154,7 +149,6 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
     eBG_bp = np.hstack((eBG_px, eBG_py))
     return eBG_bp
 
-
 # def homo3DModelSource(mesh, model, freq):
 #     """
 #     Function that estimates 1D analytic background fields from a 3D model.
@@ -217,8 +211,8 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
 
 
 def primary_e_1d_solution(
-        mesh, sigma_1d, freq, top_bc="dirichlet", bot_bc="dirichlet", n_pad=500
-    ):
+    mesh, sigma_1d, freq, top_bc="dirichlet", bot_bc="dirichlet", n_pad=500
+):
     r"""Compute 1D electric field solution on nodes.
 
     Parameters
@@ -421,9 +415,9 @@ def primary_e_1d_solution(
         )
 
     # Generate extended 1D mesh and conductivity model to solve 1D problem
-    hz_ext = np.pad(hz, (n_pad, 0), mode='edge')
+    hz_ext = np.pad(hz, (n_pad, 0), mode="edge")
     mesh_ext = TensorMesh([hz_ext], origin=[mesh.origin[-1] - hz[0] * n_pad])
-    sigma_1d_ext = np.pad(sigma_1d, (n_pad, 0), mode='edge')
+    sigma_1d_ext = np.pad(sigma_1d, (n_pad, 0), mode="edge")
 
     # Generate the system matrix
     G = mesh_ext.nodal_gradient
@@ -438,23 +432,25 @@ def primary_e_1d_solution(
     # Impose boundary conditions
     q = np.zeros(mesh_ext.n_faces, dtype=np.complex128)
 
-    if bot_bc == 'dirichlet':
+    if bot_bc == "dirichlet":
         e_d, e_u, h_d, h_u = getEHfields(mesh_ext, sigma_1d_ext, freq, mesh.nodes_x)
         e_tot = e_d + e_u
         q[0] = A[0, 0] * e_tot[0]
-        A[0, 1] = 0.
-    elif bot_bc == 'robin':
-        k = np.sqrt(-1.j * w * mu_0 * sigma_1d[0])
-        A[0, 0] = 1. / (mu_0 * hz[0]) + 1.j * k / mu_0 + 1.j * w * hz[0] * sigma_1d[0]
-        A[0, 1] = -1. / (mu_0 * hz[0])
+        A[0, 1] = 0.0
+    elif bot_bc == "robin":
+        k = np.sqrt(-1.0j * w * mu_0 * sigma_1d[0])
+        A[0, 0] = (
+            1.0 / (mu_0 * hz[0]) + 1.0j * k / mu_0 + 1.0j * w * hz[0] * sigma_1d[0]
+        )
+        A[0, 1] = -1.0 / (mu_0 * hz[0])
     else:
         raise ValueError("'bot_bc' must be one of {'dirichlet', 'robin'}.")
 
-    if top_bc == 'dirichlet':
+    if top_bc == "dirichlet":
         A[-1, -2] = 0
         q[-1] = A[-1, -1]
-    elif top_bc == 'neumann':
-        q[-1] = -1.j * w
+    elif top_bc == "neumann":
+        q[-1] = -1.0j * w
     else:
         raise ValueError("'top_bc' must be one of {'dirichlet', 'neumann'}.")
 
@@ -463,7 +459,7 @@ def primary_e_1d_solution(
     e_1d = Ainv @ q
 
     # Approach 2
-    # 
+    #
     # fixed_nodes = np.zeros(mesh_ext.n_nodes, dtype=bool)
     # e_fixed = []
     # if bot_bc == "dirichlet":
@@ -476,7 +472,7 @@ def primary_e_1d_solution(
     #     # for bottom robin boundary condition
     #     k_bot = np.sqrt(-1.0j * omega * mu_0 * sigma_1d_ext[0])
     #     A[0, 0] += 1j * k_bot/mu_0
-        
+
     # q = np.zeros(mesh_ext.n_nodes, dtype=np.complex128)
     # if top_bc == "dirichlet":
     #     fixed_nodes[-1] = True
@@ -498,7 +494,7 @@ def primary_e_1d_solution(
 
 
 def primary_h_1d_solution(
-    mesh, sigma_1d, freq, top_bc="dirichlet", bot_bc='dirichlet', n_pad=500
+    mesh, sigma_1d, freq, top_bc="dirichlet", bot_bc="dirichlet", n_pad=500
 ):
     r"""Compute 1D magnetic field solution on nodes.
 
@@ -704,34 +700,34 @@ def primary_h_1d_solution(
         )
 
     # Generate extended 1D mesh and resistivity model to solve 1D problem
-    hz_ext = np.pad(hz, (n_pad, 0), mode='edge')
+    hz_ext = np.pad(hz, (n_pad, 0), mode="edge")
     mesh_ext = TensorMesh([hz_ext], origin=[mesh.origin[-1] - hz[0] * n_pad])
-    rho_1d_ext = np.pad(1./sigma_1d, (n_pad, 0), mode='edge')
+    rho_1d_ext = np.pad(1.0 / sigma_1d, (n_pad, 0), mode="edge")
 
     # Generate the system matrix
     G = mesh_ext.nodal_gradient
     M_e_rho = mesh_ext.get_edge_inner_product(rho_1d_ext)
     M_f_mu = mesh_ext.get_face_inner_product(mu_0)
-    
+
     w = 2 * np.pi * freq
     A = G.T @ M_e_rho @ G + 1j * w * M_f_mu
 
     # Impose boundary conditions
     q = np.zeros(mesh_ext.n_faces, dtype=np.complex128)
 
-    if bot_bc == 'dirichlet':
-        e_d, e_u, h_d, h_u = getEHfields(mesh_ext, 1/rho_1d_ext, freq, mesh.nodes_x)
+    if bot_bc == "dirichlet":
+        e_d, e_u, h_d, h_u = getEHfields(mesh_ext, 1 / rho_1d_ext, freq, mesh.nodes_x)
         h_tot = h_d + h_u
         q[0] = A[0, 0] * h_tot[0]
-        A[0, 1] = 0.
-    elif bot_bc == 'robin':
+        A[0, 1] = 0.0
+    elif bot_bc == "robin":
         k = np.sqrt(-1.0j * w * mu_0 / rho_1d_ext[0])
         A[0, 0] = rho_1d_ext[0] * (1.0j * k + 1 / hz[0]) + 1.0j * w * mu_0 * hz[0]
         A[0, 1] = -rho_1d_ext[0] / hz[0]
     else:
         raise ValueError("'bot_bc' must be one of {'dirichlet', 'robin'}.")
 
-    if top_bc == 'dirichlet':
+    if top_bc == "dirichlet":
         A[-1, -2] = 0
         q[-1] = A[-1, -1]
     elif top_bc == "neumann":
@@ -745,6 +741,7 @@ def primary_h_1d_solution(
     if n_pad != 0:
         h_1d = h_1d[n_pad:]
     return h_1d
+
 
 def project_1d_fields_to_mesh_edges(mesh, u_1d):
     """Project 1D nodal field solution to edges of a mesh.
@@ -761,7 +758,7 @@ def project_1d_fields_to_mesh_edges(mesh, u_1d):
     numpy.ndarray (n_edges, n_polarization)
         Fields on the edges of the mesh for each polarization.
     """
-    if len(u_1d) != mesh.n_edges_per_direction[mesh.dim-1]:
+    if len(u_1d) != mesh.n_edges_per_direction[mesh.dim - 1]:
         raise ValueError("Length of u_1d must match number of vertical edges in mesh.")
 
     if mesh.dim == 1:
