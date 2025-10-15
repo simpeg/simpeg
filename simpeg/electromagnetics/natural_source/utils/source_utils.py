@@ -235,6 +235,10 @@ def primary_e_1d_solution(
         to 1 at the top of the mesh. Use "neumann" to implement a boundary
         condition such that the magnetic field is equal to 1 at the top of
         the mesh.
+    bot_bc : string {"dirichlet", "robin"}
+        Assumes only a downgoing wave at the bottom boundary. Use "dirichlet"
+        to set the value directly from the semi-analytic propagator matrix
+        solution. Use "robin" to set the boundary condition discretely.
     n_pad : int
         Number of padding cells added to the bottom of discrete 1D solution.
         This ensures accuracy of the 1D solution at the bottom of the mesh
@@ -420,50 +424,82 @@ def primary_e_1d_solution(
     hz_ext = np.pad(hz, (n_pad, 0), mode='edge')
     mesh_ext = TensorMesh([hz_ext], origin=[mesh.origin[-1] - hz[0] * n_pad])
     sigma_1d_ext = np.pad(sigma_1d, (n_pad, 0), mode='edge')
-    
-    # Solve the 1D problem for electric fields on nodes/faces
+
+    # Generate the system matrix
     G = mesh_ext.nodal_gradient
     M_e_mui = mesh_ext.get_edge_inner_product(mu_0, invert_model=True)
     M_f_sigma = mesh_ext.get_face_inner_product(sigma_1d_ext)
 
-    omega = 2 * np.pi * freq
-    
-    A = G.T @ M_e_mui @ G + 1j * omega * M_f_sigma
+    w = 2 * np.pi * freq
+    A = G.T @ M_e_mui @ G + 1j * w * M_f_sigma
 
-    fixed_nodes = np.zeros(mesh_ext.n_nodes, dtype=bool)
-    e_fixed = []
-    if bot_bc == "dirichlet":
-        Ed, Eu, Hd, Hu = getEHfields(mesh_ext, sigma_1d_ext, freq, mesh.nodes_x)
-        e_tot = Ed + Eu
-        e_tot /= e_tot[-1]
-        fixed_nodes[0] = True
-        e_fixed.append(e_tot[0])
+    # Approach 1
+
+    # Impose boundary conditions
+    q = np.zeros(mesh_ext.n_faces, dtype=np.complex128)
+
+    if bot_bc == 'dirichlet':
+        e_d, e_u, h_d, h_u = getEHfields(mesh_ext, sigma_1d_ext, freq, mesh.nodes_x)
+        e_tot = e_d + e_u
+        q[0] = A[0, 0] * e_tot[0]
+        A[0, 1] = 0.
+    elif bot_bc == 'robin':
+        k = np.sqrt(-1.j * w * mu_0 * sigma_1d[0])
+        A[0, 0] = 1. / (mu_0 * hz[0]) + 1.j * k / mu_0 + 1.j * w * hz[0] * sigma_1d[0]
+        A[0, 1] = -1. / (mu_0 * hz[0])
     else:
-        # for bottom robin boundary condition
-        k_bot = np.sqrt(-1.0j * omega * mu_0 * sigma_1d_ext[0])
-        A[0, 0] += 1j * k_bot/mu_0
+        raise ValueError("'bot_bc' must be one of {'dirichlet', 'robin'}.")
+
+    if top_bc == 'dirichlet':
+        A[-1, -2] = 0
+        q[-1] = A[-1, -1]
+    elif top_bc == 'neumann':
+        q[-1] = -1.j * w
+    else:
+        raise ValueError("'top_bc' must be one of {'dirichlet', 'neumann'}.")
+
+    # Solve and return along original discretization
+    Ainv = get_default_solver()(A)
+    e_1d = Ainv @ q
+
+    # Approach 2
+    # 
+    # fixed_nodes = np.zeros(mesh_ext.n_nodes, dtype=bool)
+    # e_fixed = []
+    # if bot_bc == "dirichlet":
+    #     Ed, Eu, Hd, Hu = getEHfields(mesh_ext, sigma_1d_ext, freq, mesh.nodes_x)
+    #     e_tot = Ed + Eu
+    #     e_tot /= e_tot[-1]
+    #     fixed_nodes[0] = True
+    #     e_fixed.append(e_tot[0])
+    # else:
+    #     # for bottom robin boundary condition
+    #     k_bot = np.sqrt(-1.0j * omega * mu_0 * sigma_1d_ext[0])
+    #     A[0, 0] += 1j * k_bot/mu_0
         
-    q = np.zeros(mesh_ext.n_nodes, dtype=np.complex128)
-    if top_bc == "dirichlet":
-        fixed_nodes[-1] = True
-        e_fixed.append(1.0)
-    else:
-        q[-1] = -1j * omega
+    # q = np.zeros(mesh_ext.n_nodes, dtype=np.complex128)
+    # if top_bc == "dirichlet":
+    #     fixed_nodes[-1] = True
+    #     e_fixed.append(1.0)
+    # else:
+    #     q[-1] = -1j * omega
 
-    P_fixed = sp.eye(mesh_ext.n_nodes, format='csc')[:, fixed_nodes]
-    P_free = sp.eye(mesh_ext.n_nodes, format='csc')[:, ~fixed_nodes]
-    q_free = P_free.T @ (q - A @ (P_fixed @ e_fixed))
-    A_free = P_free.T @ A @ P_free
+    # P_fixed = sp.eye(mesh_ext.n_nodes, format='csc')[:, fixed_nodes]
+    # P_free = sp.eye(mesh_ext.n_nodes, format='csc')[:, ~fixed_nodes]
+    # q_free = P_free.T @ (q - A @ (P_fixed @ e_fixed))
+    # A_free = P_free.T @ A @ P_free
 
-    Ainv = get_default_solver()(A_free)
-    e_1d = P_free @ (Ainv @ q_free) + P_fixed @ e_fixed
-    # Return solution along original vertical discretization
+    # Ainv = get_default_solver()(A_free)
+    # e_1d = P_free @ (Ainv @ q_free) + P_fixed @ e_fixed
+
     if n_pad != 0:
         e_1d = e_1d[n_pad:]
     return e_1d
 
 
-def primary_h_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=500):
+def primary_h_1d_solution(
+    mesh, sigma_1d, freq, top_bc="dirichlet", bot_bc='dirichlet', n_pad=500
+):
     r"""Compute 1D magnetic field solution on nodes.
 
     Parameters
@@ -480,6 +516,10 @@ def primary_h_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=500):
         to 1 at the top of the mesh. Use "neumann" to implement a boundary
         condition such that the electric field is equal to 1 at the top of
         the mesh.
+    bot_bc : string {"dirichlet", "robin"}
+        Assumes only a downgoing wave at the bottom boundary. Use "dirichlet"
+        to set the value directly from the semi-analytic propagator matrix
+        solution. Use "robin" to set the boundary condition discretely.
     n_pad : int
         Number of padding cells added to the bottom of discrete 1D solution.
         This ensures accuracy of the 1D solution at the bottom of the mesh
@@ -663,44 +703,48 @@ def primary_h_1d_solution(mesh, sigma_1d, freq, top_bc="dirichlet", n_pad=500):
             "{}".format(len(hz), len(sigma_1d))
         )
 
-    # Generate extended 1D mesh and conductivity model to solve 1D problem
-    if n_pad == 0:
-        hz_ext = hz
-    else:
-        hz_ext = np.r_[hz[0] * np.ones(n_pad), hz]
-    mesh_1d_ext = TensorMesh([hz_ext], origin=[mesh.origin[-1] - hz[0] * n_pad])
+    # Generate extended 1D mesh and resistivity model to solve 1D problem
+    hz_ext = np.pad(hz, (n_pad, 0), mode='edge')
+    mesh_ext = TensorMesh([hz_ext], origin=[mesh.origin[-1] - hz[0] * n_pad])
+    rho_1d_ext = np.pad(1./sigma_1d, (n_pad, 0), mode='edge')
 
-    rho_1d = sigma_1d**-1
-    rho_1d_ext = np.r_[rho_1d[0] * np.ones(n_pad), rho_1d]
-    rho_1d_ext = hz_ext * rho_1d_ext
-
-    # Could add background susceptibility in future.
-    mu_1d_ext = mesh_1d_ext.average_face_to_cell.T * (hz_ext * mu_0)
-    mu_1d_ext[-1] = hz[-1] * mu_0
-
-    # Generate system matrix
+    # Generate the system matrix
+    G = mesh_ext.nodal_gradient
+    M_e_rho = mesh_ext.get_edge_inner_product(rho_1d_ext)
+    M_f_mu = mesh_ext.get_face_inner_product(mu_0)
+    
     w = 2 * np.pi * freq
-    A = mesh_1d_ext.nodal_gradient.T @ (
-        sdiag(rho_1d_ext) @ mesh_1d_ext.nodal_gradient
-    ) + 1j * w * sdiag(mu_1d_ext)
+    A = G.T @ M_e_rho @ G + 1j * w * M_f_mu
 
-    # Bottom boundary condition
-    k = np.sqrt(-1.0j * w * mu_0 / rho_1d_ext[0])
-    A[0, 0] = rho_1d_ext[0] * (1.0j * k + 1 / hz[0]) + 1.0j * w * mu_0 * hz[0]
-    A[0, 1] = -rho_1d_ext[0] / hz[0]
+    # Impose boundary conditions
+    q = np.zeros(mesh_ext.n_faces, dtype=np.complex128)
 
-    # Top boundary condition
-    q = np.zeros(mesh_1d_ext.n_faces, dtype=np.complex128)
-    if top_bc == "neumann":
-        q[-1] = 1
+    if bot_bc == 'dirichlet':
+        e_d, e_u, h_d, h_u = getEHfields(mesh_ext, 1/rho_1d_ext, freq, mesh.nodes_x)
+        h_tot = h_d + h_u
+        q[0] = A[0, 0] * h_tot[0]
+        A[0, 1] = 0.
+    elif bot_bc == 'robin':
+        k = np.sqrt(-1.0j * w * mu_0 / rho_1d_ext[0])
+        A[0, 0] = rho_1d_ext[0] * (1.0j * k + 1 / hz[0]) + 1.0j * w * mu_0 * hz[0]
+        A[0, 1] = -rho_1d_ext[0] / hz[0]
     else:
+        raise ValueError("'bot_bc' must be one of {'dirichlet', 'robin'}.")
+
+    if top_bc == 'dirichlet':
         A[-1, -2] = 0
         q[-1] = A[-1, -1]
+    elif top_bc == "neumann":
+        q[-1] = 1
+    else:
+        raise ValueError("'top_bc' must be one of {'dirichlet', 'neumann'}.")
 
-    # Solve and return solution on original vertical discretization
-    Ainv = Solver(A)
-    e_1d = Ainv * q
-    return e_1d[n_pad:]
+    # Solve and return along original discretization
+    Ainv = get_default_solver()(A)
+    h_1d = Ainv @ q
+    if n_pad != 0:
+        h_1d = h_1d[n_pad:]
+    return h_1d
 
 
 # def project_1d_primary_to_mesh(mesh, u_1d):
