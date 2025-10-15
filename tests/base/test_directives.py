@@ -126,7 +126,7 @@ class ValidationInInversion(unittest.TestCase):
 
         # Add directives to the inversion
         opt = optimization.ProjectedGNCG(
-            maxIter=2, lower=-10.0, upper=10.0, maxIterCG=2
+            maxIter=2, lower=-10.0, upper=10.0, cg_maxiter=2
         )
 
         self.model = m

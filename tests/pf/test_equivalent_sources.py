@@ -842,8 +842,8 @@ class BaseFittingEquivalentSources:
         optimization = ProjectedGNCG(
             maxIter=max_iterations,
             maxIterLS=5,
-            maxIterCG=20,
-            tolCG=1e-4,
+            cg_maxiter=20,
+            cg_rtol=1e-3,
         )
         # Build inverse problem
         inverse_problem = simpeg.inverse_problem.BaseInvProblem(

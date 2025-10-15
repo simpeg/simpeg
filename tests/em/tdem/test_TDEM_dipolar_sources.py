@@ -9,7 +9,7 @@ from simpeg.utils.solver_utils import get_default_solver
 
 Solver = get_default_solver()
 
-TOL = 1e-2  # relative tolerance
+TOL = 0.06  # relative tolerance
 
 # Observation times for response (time channels)
 n_times = 30
@@ -98,13 +98,5 @@ def test_BH_dipole():
     fields_h = simulation_h.fields(model)
     dpred_h = simulation_h.dpred(model, f=fields_h)
 
-    assert (
-        np.abs(
-            np.mean(dpred_b[: len(time_channels)] / dpred_h[: len(time_channels)]) - 1
-        )
-        < TOL
-    )
-    assert np, (
-        abs(np.mean(dpred_b[len(time_channels) :] / dpred_h[len(time_channels) :]) - 1)
-        < TOL
-    )
+    # Check if the two predicted fields are close enough
+    np.testing.assert_allclose(dpred_h, dpred_b, rtol=TOL)

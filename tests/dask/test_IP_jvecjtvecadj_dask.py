@@ -101,7 +101,7 @@ class IPProblemTests2DN(unittest.TestCase):
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=5, maxIter=1, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=5
+            maxIterLS=5, maxIter=1, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=5
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -176,7 +176,7 @@ class IPProblemTestsCC(unittest.TestCase):
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -251,7 +251,7 @@ class IPProblemTestsN(unittest.TestCase):
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -329,7 +329,7 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -414,7 +414,7 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
