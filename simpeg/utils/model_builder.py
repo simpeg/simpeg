@@ -140,7 +140,7 @@ def get_indices_block(p0, p1, cell_centers):
         "To hide this warning, add this to your script or notebook:"
         "\n"
         "\n    import warnings"
-        "\n    from simpeg.utils.warnings import BreakingChangeWarning"
+        "\n    from simpeg.utils import BreakingChangeWarning"
         "\n"
         "\n    warnings.filterwarnings(action='ignore', category=BreakingChangeWarning)"
         "\n"
