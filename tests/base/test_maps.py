@@ -939,6 +939,96 @@ class TestParametric(RemovedIndActive):
             mapping.indActive = active_cells
 
 
+class TestParametricDeriv:
+    """
+    Test the ``deriv`` method of parametric maps.
+
+
+    Test if ``map.deriv(m) @ v`` is equivalent to ``map.deriv(m, v=v)``.
+    """
+
+    @pytest.fixture
+    def mesh_2d(self):
+        """Sample mesh."""
+        h = 10
+        return discretize.TensorMesh([h, h], "CC")
+
+    @pytest.fixture
+    def mesh_3d(self):
+        """Sample mesh."""
+        h = 10
+        return discretize.TensorMesh([h, h, h], "CCN")
+
+    @pytest.fixture
+    def cyl_mesh(self):
+        """Sample cylindrical mesh."""
+        return discretize.CylindricalMesh([4, 6, 5])
+
+    @pytest.mark.parametrize(
+        "map_class",
+        [
+            maps.ParametricBlock,
+            maps.ParametricBlockInLayer,
+            maps.ParametricEllipsoid,
+            maps.ParametricLayer,
+            maps.ParametricPolyMap,
+        ],
+    )
+    def test_deriv_mesh_3d(self, mesh_3d, map_class):
+        """
+        Test maps on a 3d mesh.
+        """
+        kwargs = {}
+        if map_class is maps.ParametricPolyMap:
+            kwargs["order"] = [1, 1]
+        mapping = map_class(mesh_3d, **kwargs)
+        model_size = mapping.shape[1]
+        rng = np.random.default_rng(seed=48)
+        model = rng.uniform(size=model_size)
+        v = rng.uniform(size=model_size)
+        derivative = mapping.deriv(model)
+        np.testing.assert_allclose(derivative @ v, mapping.deriv(model, v=v))
+
+    def test_deriv_mesh_2d(self, mesh_2d):
+        """
+        Test maps on a 2d mesh.
+        """
+        mapping = maps.ParametricCircleMap(mesh_2d)
+        model_size = mapping.shape[1]
+        rng = np.random.default_rng(seed=48)
+        model = rng.uniform(size=model_size)
+        v = rng.uniform(size=model_size)
+        derivative = mapping.deriv(model)
+        np.testing.assert_allclose(derivative @ v, mapping.deriv(model, v=v))
+
+    def test_deriv_cyl_mesh(self, cyl_mesh):
+        """
+        Test maps on a cylindrical mesh.
+        """
+        mapping = maps.ParametricCasingAndLayer(cyl_mesh)
+        model_size = mapping.shape[1]
+        rng = np.random.default_rng(seed=48)
+        model = rng.uniform(size=model_size)
+        v = rng.uniform(size=model_size)
+        derivative = mapping.deriv(model)
+        np.testing.assert_allclose(derivative @ v, mapping.deriv(model, v=v))
+
+
+def test_deriv_SelfConsistentEffectiveMedium():
+    """
+    Test deriv method of ``SelfConsistentEffectiveMedium``.
+    """
+    h = 10
+    mesh = discretize.TensorMesh([h, h, h], "CCN")
+    mapping = maps.SelfConsistentEffectiveMedium(mesh, sigma0=1, sigma1=2)
+    model_size = mapping.shape[1]
+    rng = np.random.default_rng(seed=48)
+    model = rng.uniform(size=model_size)
+    v = rng.uniform(size=model_size)
+    derivative = mapping.deriv(model)
+    np.testing.assert_allclose(derivative @ v, mapping.deriv(model, v=v), rtol=1e-6)
+
+
 class TestComplexMapDerivative:
     """
     Test deriv method of ComplexMap.
