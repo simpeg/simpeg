@@ -353,11 +353,11 @@ def primary_e_1d_solution(
     # e_1d = Ainv @ q
 
     # Approach 2
-    
+
     fixed_nodes = np.zeros(mesh_ext.n_nodes, dtype=bool)
     e_fixed = []
     q = np.zeros(mesh_ext.n_nodes, dtype=np.complex128)
-    
+
     # Bottom BC
     if bot_bc == "dirichlet":
         e_d, e_u, h_d, h_u = getEHfields(mesh_ext, sigma_1d_ext, freq, mesh.nodes_x)
