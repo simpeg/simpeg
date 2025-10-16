@@ -6,7 +6,6 @@ import warnings
 from numbers import Real
 import numpy as np
 import scipy.sparse as sp
-from scipy.sparse.linalg import LinearOperator
 from scipy.constants import mu_0
 from scipy.special import expit, logit
 from discretize.utils import mkvc, sdiag, rotation_matrix_from_normals
@@ -950,6 +949,18 @@ class ComplexMap(IdentityMap):
         where :math:`\mathbf{I}` is the identity matrix of shape (*nP/2*, *nP/2*) and
         :math:`j = \sqrt{-1}`.
 
+        .. important::
+
+            Calculating the transpose of the derivative of the
+            :class:`~simpeg.maps.ComplexMap` as follows doesn't return the adjoint of
+            the matrix, but its transpose:
+
+            .. code:: python
+
+                complex_map = ComplexMap(...)
+                derivative = complex_map.deriv(m)
+                derivative.T  # this is not the complex adjoint
+
         Parameters
         ----------
         m : (nP) numpy.ndarray
@@ -1001,17 +1012,9 @@ class ComplexMap(IdentityMap):
 
         """
         nC = self.shape[0]
-        shp = (nC, nC * 2)
-
-        def fwd(v):
-            return v[:nC] + v[nC:] * 1j
-
-        def adj(v):
-            return np.r_[v.real, v.imag]
-
         if v is not None:
-            return LinearOperator(shp, matvec=fwd, rmatvec=adj) * v
-        return LinearOperator(shp, matvec=fwd, rmatvec=adj)
+            return v[:nC] + v[nC:] * 1j
+        return sp.diags([1, 1j], [0, nC], [nC, 2 * nC])
 
 
 class SelfConsistentEffectiveMedium(IdentityMap):
@@ -1503,13 +1506,16 @@ class SelfConsistentEffectiveMedium(IdentityMap):
     def _transform(self, m):
         return self._sc2phaseEMTSpheroidstransform(m)
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
         """
         Derivative of the effective conductivity with respect to the
         volume fraction of phase 2 material
         """
         sige = self._transform(m)
-        return self._sc2phaseEMTSpheroidstransformDeriv(sige, m)
+        derivative = self._sc2phaseEMTSpheroidstransformDeriv(sige, m)
+        if v is not None:
+            return derivative @ v
+        return derivative
 
     def inverse(self, sige):
         """
