@@ -1112,6 +1112,7 @@ def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
     simpeg.electromagnetics.static.resistivity.Survey
         A DC survey object.
     """
+
     def xy_2_r(x1, x2, y1, y2):
         r = np.sqrt(np.sum((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0))
         return r
