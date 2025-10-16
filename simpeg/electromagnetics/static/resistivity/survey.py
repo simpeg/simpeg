@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 
 from ....utils.code_utils import validate_string
 
@@ -244,7 +245,6 @@ class Survey(BaseSurvey):
         force=False,
         shift_horizontal=True,
         option=None,
-        ind_active=None,
     ):
         """Shift electrode locations to discrete surface topography.
 
@@ -264,17 +264,19 @@ class Survey(BaseSurvey):
             When True, locations are shifted horizontally to lie vertically over cell
             centers. When False, the original horizontal locations are preserved.
         option : {"top", "center"}
-            Argument ``option`` is deprecated in favor of ``topo_cell_cutoff``
-            and will be removed in SimPEG v0.27.0.
-        ind_active : numpy.ndarray of int or bool, optional
 
-            .. deprecated:: 0.23.0
+            .. deprecated:: 0.25.0
 
-               Argument ``ind_active`` is deprecated in favor of ``active_cells``
-               and will be removed in SimPEG v0.25.0.
+               Argument ``option`` is deprecated in favor of ``topo_cell_cutoff``
+               and will be removed in SimPEG v0.27.0.
 
         """
         if option is not None:
+            msg = (
+                "Argument ``option`` is deprecated in favor of ``topo_cell_cutoff`` "
+                "and will be removed in SimPEG v0.27.0."
+            )
+            warnings.warn(msg, FutureWarning)
             topo_cell_cutoff = option
 
         if self.survey_geometry == "surface":

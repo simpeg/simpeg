@@ -12,9 +12,7 @@ from simpeg.electromagnetics.static.resistivity import receivers
 
 
 class TestRemovedSourceType:
-    """
-    Tests after removing the source_type argument and property.
-    """
+    """Tests after removing the source_type argument and property."""
 
     def test_error_after_argument(self):
         """
@@ -36,32 +34,40 @@ class TestRemovedSourceType:
             survey.survey_type = "dipole-dipole"
 
 
-class TestDeprecatedIndActive:
-    """
-    Test the deprecated ``ind_active`` argument in ``drape_electrodes_on_topography``.
-    """
+class TestDeprecatedOption:
+    """Test the deprecated ``option`` argument in ``drape_electrodes_on_topography``."""
 
     @pytest.fixture
     def mesh(self):
         return TensorMesh((5, 5, 5))
 
     def test_error(self, mesh):
-        """
-        Test if error is raised after passing ``ind_active`` as argument.
-        """
-        survey = Survey(source_list=[])
-        msg = "got an unexpected keyword argument 'ind_active'"
+        """Test if error is raised after passing ``option`` as argument."""
+        receivers_list = [
+            receivers.Dipole(
+                locations_m=[[1, 2, 3], [4, 5, 6]],
+                locations_n=[[7, 8, 9], [10, 11, 12]],
+            )
+        ]
+        sources_list = [
+            sources.Dipole(
+                receivers_list, location_a=[0.5, 1.5, 2.5], location_b=[4.5, 5.5, 6.5]
+            )
+        ]
+        survey = Survey(source_list=sources_list)
+        msg = (
+            "Argument ``option`` is deprecated in favor of ``topo_cell_cutoff`` "
+            "and will be removed in SimPEG v0.27.0."
+        )
         active_cells = np.ones(mesh.n_cells, dtype=bool)
-        with pytest.raises(TypeError, match=msg):
+        with pytest.warns(FutureWarning, match=msg):
             survey.drape_electrodes_on_topography(
-                mesh, active_cells, ind_active=active_cells
+                mesh, active_cells, topo_cell_cutoff=None, option="top"
             )
 
 
 def test_repr():
-    """
-    Test the __repr__ method of the survey.
-    """
+    """Test the __repr__ method of the survey."""
     receivers_list = [
         receivers.Dipole(
             locations_m=[[1, 2, 3], [4, 5, 6]], locations_n=[[7, 8, 9], [10, 11, 12]]

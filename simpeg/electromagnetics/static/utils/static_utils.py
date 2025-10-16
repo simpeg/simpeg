@@ -1112,7 +1112,6 @@ def generate_dcip_survey(endl, survey_type, a, b, n, dim=3, **kwargs):
     simpeg.electromagnetics.static.resistivity.Survey
         A DC survey object.
     """
-
     def xy_2_r(x1, x2, y1, y2):
         r = np.sqrt(np.sum((x2 - x1) ** 2.0 + (y2 - y1) ** 2.0))
         return r
@@ -1290,11 +1289,11 @@ def generate_dcip_sources_line(
     end_points : numpy.array
         Horizontal end points [x1, x2] or [x1, x2, y1, y2]
     topo : (n, dim) numpy.ndarray
-        Define survey topography
+        Define survey topography.
     num_rx_per_src : int
-        Maximum number of receivers per souces
+        Maximum number of receivers per souces.
     station_spacing : float
-        Distance between stations
+        Distance between stations.
 
     Returns
     -------
@@ -1418,19 +1417,18 @@ def xy_2_lineID(dc_survey):
     Read DC survey class and append line ID.
     Assumes that the locations are listed in the order
     they were collected. May need to generalize for random
-    point locations, but will be more expensive
+    point locations, but will be more expensive.
 
     Parameters
     ----------
     dc_survey : dict
-        Vectors of station location
+        Vectors of station location.
 
     Returns
     -------
     numpy.ndarray
-        LineID Vector of integers
+        LineID Vector of integers.
     """
-
     # Compute unit vector between two points
     nstn = dc_survey.nSrc
 
@@ -1533,18 +1531,20 @@ def r_unit(p1, p2):
     "simpeg.utils",
     category=FutureWarning,
 )
-def gettopoCC(mesh, ind_active, option="top"):
+def gettopoCC(mesh, active_cells, option="top"):
     """
     Generate surface topography from active indices of mesh.
+
     Parameters
     ----------
     mesh : discretize.TensorMesh or discretize.TreeMesh
         A tensor or tree mesh
-    ind_active : numpy.ndarray of bool or int
+    active_cells : numpy.ndarray of bool or int
         Active cells index; i.e. indices of cells below surface
     option : {"top", "center"}
         Use string to specify if the surface passes through the
         tops or cell centers of surface cells.
+
     Returns
     -------
     (n, dim) numpy.ndarray
@@ -1554,7 +1554,7 @@ def gettopoCC(mesh, ind_active, option="top"):
         if mesh.dim == 3:
             mesh2D = discretize.TensorMesh([mesh.h[0], mesh.h[1]], mesh.x0[:2])
             zc = mesh.cell_centers[:, 2]
-            ACTIND = ind_active.reshape(
+            ACTIND = active_cells.reshape(
                 (mesh.vnC[0] * mesh.vnC[1], mesh.vnC[2]), order="F"
             )
             ZC = zc.reshape((mesh.vnC[0] * mesh.vnC[1], mesh.vnC[2]), order="F")
@@ -1574,7 +1574,7 @@ def gettopoCC(mesh, ind_active, option="top"):
         elif mesh.dim == 2:
             mesh1D = discretize.TensorMesh([mesh.h[0]], [mesh.x0[0]])
             yc = mesh.cell_centers[:, 1]
-            ACTIND = ind_active.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
+            ACTIND = active_cells.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
             YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
             topoCC = np.zeros(YC.shape[0])
             for i in range(YC.shape[0]):
@@ -1589,7 +1589,7 @@ def gettopoCC(mesh, ind_active, option="top"):
             return mesh1D, topoCC
 
     elif mesh._meshType == "TREE":
-        inds = mesh.get_boundary_cells(ind_active, direction="zu")[0]
+        inds = mesh.get_boundary_cells(active_cells, direction="zu")[0]
 
         if option == "top":
             dz = mesh.h_gridded[inds, -1] * 0.5
@@ -1617,34 +1617,25 @@ def drapeTopotoLoc(mesh, pts, active_cells=None, option="top", topo=None, **kwar
     Parameters
     ----------
     mesh : discretize.TensorMesh or discretize.TreeMesh
-        A 2D tensor or tree mesh
+        A 2D tensor or tree mesh.
     pts : (n, dim) numpy.ndarray
         The set of points being projected to the discretize surface topography
     active_cells : numpy.ndarray of int or bool, optional
         Index array for all cells lying below the surface topography.
-        Surface topography can be specified using the 'ind_active' or
+        Surface topography can be specified using the 'active_cells' or
         'topo' input parameters.
     option : {"top", "center"}
         Define whether the cell center or entire cell of actice cells must be below
         the topography. The topography is defined using the 'topo' input parameter.
     topo : (n, dim) numpy.ndarray
         Surface topography. Can be used if an active indices array cannot be provided
-        for the input parameter 'ind_active'
+        for the input parameter 'active_cells'.
 
     Returns
     -------
     (n, dim) numpy.ndarray
         The discrete topography locations.
     """
-    # Deprecate indActive argument
-    if kwargs.pop("indActive", None) is not None:
-        raise TypeError(
-            "'indActive' was removed in SimPEG v0.24.0, "
-            "please use 'active_cells' instead."
-        )
-    if kwargs:  # TODO Remove this when removing kwargs argument.
-        raise TypeError("Unsupported keyword argument " + kwargs.popitem()[0])
-
     if isinstance(mesh, discretize.CurvilinearMesh):
         raise ValueError("Curvilinear mesh is not supported.")
 
@@ -1687,25 +1678,24 @@ def drapeTopotoLoc(mesh, pts, active_cells=None, option="top", topo=None, **kwar
 
 
 def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
-    """Generate random topography
+    """Generate random topography.
 
     Parameters
     ----------
     mesh : discretize.BaseMesh
-        A 2D or 3D mesh
+        A 2D or 3D mesh.
     zmin : float
-        Minimum topography [m]
+        Minimum topography [m].
     zmax : float
-        Maximum topography [m]
+        Maximum topography [m].
     seed : int, default=``None``
-        Set the seed for the random generated model or leave as ``None``
+        Set the seed for the random generated model or leave as ``None``.
     its : int, default=100
-        Number of smoothing iterations after convolutions
+        Number of smoothing iterations after convolutions.
     anisotropy : (3, n) numpy.ndarray, default=``None``
         Apply a (3, n) blurring kernel that is used or leave as ``None``
         in the case of isotropy.
     """
-
     if isinstance(mesh, discretize.CurvilinearMesh):
         raise ValueError("Curvilinear mesh is not supported.")
 
@@ -1790,27 +1780,28 @@ def gen_3d_survey_from_2d_lines(
     Parameters
     ----------
     survey_type : str
-        Survey type. Choose one of {'dipole-dipole', 'pole-dipole', 'dipole-pole', 'pole-pole', 'gradient'}
+        Survey type. Choose one of {'dipole-dipole', 'pole-dipole',
+        'dipole-pole', 'pole-pole', 'gradient'}.
     a : int
-        pole seperation
+        pole seperation.
     b : int
-        dipole separation
+        dipole separation.
     n_spacing : int
-        number of receiver dipoles per source
+        number of receiver dipoles per source.
     n_lines : int, default=5
-        Number of survey lines
+        Number of survey lines.
     line_length : float, default=200.
         Line length
     line_spacing : float, default=20.
-        Line spacing
+        Line spacing.
     x0, y0, z0 : float, default=0.
-        The origin for the 3D survey
+        The origin for the 3D survey.
     src_offset_y : float, default=0.
-        Source y offset
+        Source y offset.
     dim : int, default=3
-        Define 2D or 3D survey
+        Define 2D or 3D survey.
     is_IO : bool, default=``True``
-        If ``True``, is an IO class
+        If ``True``, is an IO class.
 
     Returns
     -------
