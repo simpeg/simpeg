@@ -571,9 +571,9 @@ class Simulation3DNodal(BaseDCSimulation):
                 if v.ndim > 1:
                     u = u[:, None]
                 if not adjoint:
-                    out += (u * (self._MBC_sigma @ v)).squeeze()
+                    out += u * (self._MBC_sigma @ v)
                 else:
-                    out += (self._MBC_sigma.T @ (u * v)).squeeze()
+                    out += self._MBC_sigma.T @ (u * v)
         return out
 
     def setBC(self):
