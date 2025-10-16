@@ -1,6 +1,7 @@
 # noqa: D100
 import numpy as np
 from scipy.constants import mu_0
+import scipy.sparse as sp
 from discretize import TensorMesh
 
 from ....utils import mkvc, get_default_solver
@@ -430,64 +431,70 @@ def primary_e_1d_solution(
 
     # Approach 1
 
-    # Impose boundary conditions
-    q = np.zeros(mesh_ext.n_faces, dtype=np.complex128)
+    # # Impose boundary conditions
+    # q = np.zeros(mesh_ext.n_faces, dtype=np.complex128)
 
+    # if bot_bc == "dirichlet":
+    #     e_d, e_u, h_d, h_u = getEHfields(mesh_ext, sigma_1d_ext, freq, mesh.nodes_x)
+    #     e_tot = e_d + e_u
+    #     q[0] = A[0, 0] * e_tot[0]
+    #     A[0, 1] = 0.0
+    # elif bot_bc == "robin":
+    #     k = np.sqrt(-1.0j * w * mu_0 * sigma_1d[0])
+    #     A[0, 0] = (
+    #         1.0 / (mu_0 * hz[0]) + 1.0j * k / mu_0 + 1.0j * w * hz[0] * sigma_1d[0]
+    #     )
+    #     A[0, 1] = -1.0 / (mu_0 * hz[0])
+    # else:
+    #     raise ValueError("'bot_bc' must be one of {'dirichlet', 'robin'}.")
+
+    # if top_bc == "dirichlet":
+    #     A[-1, -2] = 0
+    #     q[-1] = A[-1, -1]
+    # elif top_bc == "neumann":
+    #     q[-1] = -1.0j * w
+    # else:
+    #     raise ValueError("'top_bc' must be one of {'dirichlet', 'neumann'}.")
+
+    # # Solve and return along original discretization
+    # Ainv = get_default_solver()(A)
+    # e_1d = Ainv @ q
+
+    # Approach 2
+    
+    fixed_nodes = np.zeros(mesh_ext.n_nodes, dtype=bool)
+    e_fixed = []
+    q = np.zeros(mesh_ext.n_nodes, dtype=np.complex128)
+    
+    # Bottom BC
     if bot_bc == "dirichlet":
         e_d, e_u, h_d, h_u = getEHfields(mesh_ext, sigma_1d_ext, freq, mesh.nodes_x)
         e_tot = e_d + e_u
-        q[0] = A[0, 0] * e_tot[0]
-        A[0, 1] = 0.0
+        e_tot /= e_tot[-1]
+        fixed_nodes[0] = True
+        e_fixed.append(e_tot[0])
     elif bot_bc == "robin":
-        k = np.sqrt(-1.0j * w * mu_0 * sigma_1d[0])
-        A[0, 0] = (
-            1.0 / (mu_0 * hz[0]) + 1.0j * k / mu_0 + 1.0j * w * hz[0] * sigma_1d[0]
-        )
-        A[0, 1] = -1.0 / (mu_0 * hz[0])
+        k_bot = np.sqrt(-1.0j * w * mu_0 * sigma_1d_ext[0])
+        A[0, 0] += 1j * k_bot / mu_0
     else:
         raise ValueError("'bot_bc' must be one of {'dirichlet', 'robin'}.")
 
+    # Top BC
     if top_bc == "dirichlet":
-        A[-1, -2] = 0
-        q[-1] = A[-1, -1]
+        fixed_nodes[-1] = True
+        e_fixed.append(1.0)
     elif top_bc == "neumann":
-        q[-1] = -1.0j * w
+        q[-1] = -1j * w
     else:
         raise ValueError("'top_bc' must be one of {'dirichlet', 'neumann'}.")
 
-    # Solve and return along original discretization
-    Ainv = get_default_solver()(A)
-    e_1d = Ainv @ q
+    P_fixed = sp.eye(mesh_ext.n_nodes, format='csc')[:, fixed_nodes]
+    P_free = sp.eye(mesh_ext.n_nodes, format='csc')[:, ~fixed_nodes]
+    q_free = P_free.T @ (q - A @ (P_fixed @ e_fixed))
+    A_free = P_free.T @ A @ P_free
 
-    # Approach 2
-    #
-    # fixed_nodes = np.zeros(mesh_ext.n_nodes, dtype=bool)
-    # e_fixed = []
-    # if bot_bc == "dirichlet":
-    #     Ed, Eu, Hd, Hu = getEHfields(mesh_ext, sigma_1d_ext, freq, mesh.nodes_x)
-    #     e_tot = Ed + Eu
-    #     e_tot /= e_tot[-1]
-    #     fixed_nodes[0] = True
-    #     e_fixed.append(e_tot[0])
-    # else:
-    #     # for bottom robin boundary condition
-    #     k_bot = np.sqrt(-1.0j * omega * mu_0 * sigma_1d_ext[0])
-    #     A[0, 0] += 1j * k_bot/mu_0
-
-    # q = np.zeros(mesh_ext.n_nodes, dtype=np.complex128)
-    # if top_bc == "dirichlet":
-    #     fixed_nodes[-1] = True
-    #     e_fixed.append(1.0)
-    # else:
-    #     q[-1] = -1j * omega
-
-    # P_fixed = sp.eye(mesh_ext.n_nodes, format='csc')[:, fixed_nodes]
-    # P_free = sp.eye(mesh_ext.n_nodes, format='csc')[:, ~fixed_nodes]
-    # q_free = P_free.T @ (q - A @ (P_fixed @ e_fixed))
-    # A_free = P_free.T @ A @ P_free
-
-    # Ainv = get_default_solver()(A_free)
-    # e_1d = P_free @ (Ainv @ q_free) + P_fixed @ e_fixed
+    Ainv = get_default_solver()(A_free)
+    e_1d = P_free @ (Ainv @ q_free) + P_fixed @ e_fixed
 
     if n_pad != 0:
         e_1d = e_1d[n_pad:]
@@ -703,42 +710,86 @@ def primary_h_1d_solution(
     # Generate extended 1D mesh and resistivity model to solve 1D problem
     hz_ext = np.pad(hz, (n_pad, 0), mode="edge")
     mesh_ext = TensorMesh([hz_ext], origin=[mesh.origin[-1] - hz[0] * n_pad])
-    rho_1d_ext = np.pad(1.0 / sigma_1d, (n_pad, 0), mode="edge")
+    sigma_1d_ext = np.pad(sigma_1d, (n_pad, 0), mode="edge")
 
     # Generate the system matrix
     G = mesh_ext.nodal_gradient
-    M_e_rho = mesh_ext.get_edge_inner_product(rho_1d_ext)
+    M_e_rho = mesh_ext.get_edge_inner_product(sigma_1d_ext, invert_model=True)
     M_f_mu = mesh_ext.get_face_inner_product(mu_0)
 
     w = 2 * np.pi * freq
     A = G.T @ M_e_rho @ G + 1j * w * M_f_mu
 
-    # Impose boundary conditions
-    q = np.zeros(mesh_ext.n_faces, dtype=np.complex128)
+    # Approach 1
 
+    # # Impose boundary conditions
+    # rho_1d_ext = 1/sigma_1d_ext
+    # q = np.zeros(mesh_ext.n_faces, dtype=np.complex128)
+
+    # if bot_bc == "dirichlet":
+    #     e_d, e_u, h_d, h_u = getEHfields(mesh_ext, 1 / rho_1d_ext, freq, mesh.nodes_x)
+    #     h_tot = h_d + h_u
+    #     q[0] = A[0, 0] * h_tot[0]
+    #     A[0, 1] = 0.0
+    # elif bot_bc == "robin":
+    #     k = np.sqrt(-1.0j * w * mu_0 * rho_1d_ext[0])
+    #     A[0, 0] = rho_1d_ext[0] * (1.0j * k + 1 / hz[0]) + 1.0j * w * mu_0 * hz[0]
+    #     A[0, 1] = -rho_1d_ext[0] / hz[0]
+    # else:
+    #     raise ValueError("'bot_bc' must be one of {'dirichlet', 'robin'}.")
+
+    # if top_bc == "dirichlet":
+    #     A[-1, -2] = 0
+    #     q[-1] = A[-1, -1]
+    # elif top_bc == "neumann":
+    #     q[-1] = 1.
+    # else:
+    #     raise ValueError("'top_bc' must be one of {'dirichlet', 'neumann'}.")
+
+    # # Solve and return along original discretization
+    # Ainv = get_default_solver()(A)
+    # h_1d = Ainv @ q
+    # if n_pad != 0:
+    #     h_1d = h_1d[n_pad:]
+    # return h_1d
+
+    # Approach 2
+
+    fixed_nodes = np.zeros(mesh_ext.n_nodes, dtype=bool)
+    h_fixed = []
+    q = np.zeros(mesh_ext.n_nodes, dtype=np.complex128)
+
+    # Bottom BC
     if bot_bc == "dirichlet":
-        e_d, e_u, h_d, h_u = getEHfields(mesh_ext, 1 / rho_1d_ext, freq, mesh.nodes_x)
+        e_d, e_u, h_d, h_u = getEHfields(mesh_ext, sigma_1d_ext, freq, mesh.nodes_x)
         h_tot = h_d + h_u
-        q[0] = A[0, 0] * h_tot[0]
-        A[0, 1] = 0.0
+        h_tot /= h_tot[-1]
+        fixed_nodes[0] = True
+        h_fixed.append(h_tot[0])
     elif bot_bc == "robin":
-        k = np.sqrt(-1.0j * w * mu_0 / rho_1d_ext[0])
-        A[0, 0] = rho_1d_ext[0] * (1.0j * k + 1 / hz[0]) + 1.0j * w * mu_0 * hz[0]
-        A[0, 1] = -rho_1d_ext[0] / hz[0]
+        # WRONG
+        k_bot = np.sqrt(-1.0j * w * mu_0 * sigma_1d_ext[0])
+        A[0, 0] += 1j * k_bot / sigma_1d[0]
     else:
         raise ValueError("'bot_bc' must be one of {'dirichlet', 'robin'}.")
 
+    # Top BC
     if top_bc == "dirichlet":
-        A[-1, -2] = 0
-        q[-1] = A[-1, -1]
+        fixed_nodes[-1] = True
+        h_fixed.append(1.0)
     elif top_bc == "neumann":
-        q[-1] = 1
+        q[-1] = 1.
     else:
         raise ValueError("'top_bc' must be one of {'dirichlet', 'neumann'}.")
 
-    # Solve and return along original discretization
-    Ainv = get_default_solver()(A)
-    h_1d = Ainv @ q
+    P_fixed = sp.eye(mesh_ext.n_nodes, format='csc')[:, fixed_nodes]
+    P_free = sp.eye(mesh_ext.n_nodes, format='csc')[:, ~fixed_nodes]
+    q_free = P_free.T @ (q - A @ (P_fixed @ h_fixed))
+    A_free = P_free.T @ A @ P_free
+
+    Ainv = get_default_solver()(A_free)
+    h_1d = P_free @ (Ainv @ q_free) + P_fixed @ h_fixed
+
     if n_pad != 0:
         h_1d = h_1d[n_pad:]
     return h_1d
