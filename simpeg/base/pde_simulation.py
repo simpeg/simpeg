@@ -12,7 +12,7 @@ from scipy.constants import mu_0
 from ..utils import validate_type, get_default_solver, get_logger, PerformanceWarning
 
 
-def __inner_mat_mul_op(M, u, v=None, adjoint=False):
+def _inner_mat_mul_op(M, u, v=None, adjoint=False):
     u = np.squeeze(u)
     if sp.issparse(M):
         if v is not None:
@@ -239,9 +239,7 @@ def with_property_mass_matrices(property_name):
                     self, f"{arg.lower()}Deriv"
                 )
                 setattr(self, stash_name, M_prop_deriv)
-            return __inner_mat_mul_op(
-                getattr(self, stash_name), u, v=v, adjoint=adjoint
-            )
+            return _inner_mat_mul_op(getattr(self, stash_name), u, v=v, adjoint=adjoint)
 
         setattr(cls, f"Mcc{arg}Deriv", MccDeriv_prop)
 
@@ -261,9 +259,7 @@ def with_property_mass_matrices(property_name):
                     * getattr(self, f"{arg.lower()}Deriv")
                 )
                 setattr(self, stash_name, M_prop_deriv)
-            return __inner_mat_mul_op(
-                getattr(self, stash_name), u, v=v, adjoint=adjoint
-            )
+            return _inner_mat_mul_op(getattr(self, stash_name), u, v=v, adjoint=adjoint)
 
         setattr(cls, f"Mn{arg}Deriv", MnDeriv_prop)
 
@@ -293,9 +289,7 @@ def with_property_mass_matrices(property_name):
                 else:
                     setattr(self, stash_name, (M_deriv_func, prop_deriv))
 
-            return __inner_mat_mul_op(
-                getattr(self, stash_name), u, v=v, adjoint=adjoint
-            )
+            return _inner_mat_mul_op(getattr(self, stash_name), u, v=v, adjoint=adjoint)
 
         setattr(cls, f"Mf{arg}Deriv", MfDeriv_prop)
 
@@ -324,9 +318,7 @@ def with_property_mass_matrices(property_name):
                     setattr(self, stash_name, M_prop_deriv)
                 else:
                     setattr(self, stash_name, (M_deriv_func, prop_deriv))
-            return __inner_mat_mul_op(
-                getattr(self, stash_name), u, v=v, adjoint=adjoint
-            )
+            return _inner_mat_mul_op(getattr(self, stash_name), u, v=v, adjoint=adjoint)
 
         setattr(cls, f"Me{arg}Deriv", MeDeriv_prop)
 
