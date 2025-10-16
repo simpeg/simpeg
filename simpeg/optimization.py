@@ -1,9 +1,89 @@
-from __future__ import annotations
-import numpy as np
-import scipy
-import scipy.sparse as sp
+"""
+========================================================
+SimPEG Optimizers (:mod:`simpeg.optimization`)
+========================================================
+.. currentmodule:: simpeg.optimization
 
-from .utils.solver_utils import SolverWrapI, Solver, SolverDiag
+Optimizers
+==========
+
+These optimizers are available within SimPEG for use during inversion.
+
+Unbound Optimizers
+------------------
+
+These optimizers all work on unbound minimization functions.
+
+.. autosummary::
+  :toctree: generated/
+
+  SteepestDescent
+  BFGS
+  GaussNewton
+  InexactGaussNewton
+
+Box Bounded Optimizers
+----------------------
+These optimizers support box bound constraints on the model parameters
+
+.. autosummary::
+  :toctree: generated/
+
+  ProjectedGradient
+  ProjectedGNCG
+
+Root Finding
+------------
+.. autosummary::
+  :toctree: generated/
+
+  NewtonRoot
+
+Minimization Base Classes
+===========================
+
+These classes are usually inherited or used by the optimization algorithms
+above to control their execution.
+
+Base Minimizer
+--------------
+.. autosummary::
+  :toctree: generated/
+
+  Minimize
+
+
+Minimizer Mixins
+----------------
+.. autosummary::
+  :toctree: generated/
+
+  Remember
+  Bounded
+  InexactCG
+
+Iteration Printers and Stoppers
+-------------------------------
+.. autosummary::
+  :toctree: generated/
+
+  IterationPrinters
+  StoppingCriteria
+
+"""
+
+import warnings
+from collections.abc import Callable
+from typing import Any, Optional
+
+import numpy as np
+import numpy.typing as npt
+import scipy.sparse as sp
+from discretize.utils import Identity
+
+from pymatsolver import Solver, SolverCG
+
+from .typing import MinimizeCallable
 from .utils import (
     call_hooks,
     check_stoppers,
@@ -14,26 +94,14 @@ from .utils import (
     print_line,
     print_stoppers,
     print_done,
+    validate_float,
+    validate_integer,
+    validate_type,
+    validate_ndarray_with_shape,
+    deprecate_property,
 )
 
 norm = np.linalg.norm
-
-
-# Create a flag if the installed version of SciPy is newer or equal to 1.12.0
-# (Used to choose whether to pass `tol` or `rtol` to the solvers. See #1516).
-class Version:
-    def __init__(self, version):
-        self.version = version
-
-    def as_tuple(self) -> tuple[int, int]:
-        major, minor = tuple(int(p) for p in self.version.split(".")[:2])
-        return (major, minor)
-
-    def __ge__(self, other):
-        return self.as_tuple() >= other.as_tuple()
-
-
-SCIPY_1_12 = Version(scipy.__version__) >= Version("1.12.0")
 
 
 __all__ = [
@@ -44,12 +112,11 @@ __all__ = [
     "GaussNewton",
     "InexactGaussNewton",
     "ProjectedGradient",
+    "ProjectedGNCG",
     "NewtonRoot",
     "StoppingCriteria",
     "IterationPrinters",
 ]
-
-SolverICG = SolverWrapI(sp.linalg.cg, checkAccuracy=False)
 
 
 class StoppingCriteria(object):
@@ -143,112 +210,153 @@ class StoppingCriteria(object):
 class IterationPrinters(object):
     """docstring for IterationPrinters"""
 
-    iteration = {"title": "#", "value": lambda M: M.iter, "width": 5, "format": "%3d"}
-    f = {"title": "f", "value": lambda M: M.f, "width": 10, "format": "%1.2e"}
+    iteration = {
+        "title": "#",
+        "value": lambda M: M.iter,
+        "width": 5,
+        "format": lambda v: f"{v:3d}",
+    }
+    f = {
+        "title": "f",
+        "value": lambda M: M.f,
+        "width": 10,
+        "format": lambda v: f"{v:1.2e}",
+    }
     norm_g = {
         "title": "|proj(x-g)-x|",
-        "value": lambda M: norm(M.projection(M.xc - M.g) - M.xc),
+        "value": lambda M: (
+            None if M.iter == 0 else norm(M.projection(M.xc - M.g) - M.xc)
+        ),
         "width": 15,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
-    totalLS = {"title": "LS", "value": lambda M: M.iterLS, "width": 5, "format": "%d"}
+    totalLS = {
+        "title": "LS",
+        "value": lambda M: None if M.iter == 0 else M.iterLS,
+        "width": 5,
+        "format": lambda v: f"{v:d}",
+    }
 
     iterationLS = {
         "title": "#",
         "value": lambda M: (M.iter, M.iterLS),
         "width": 5,
-        "format": "%3d.%d",
+        "format": lambda v: f"{v[0]:3d}.{v[1]:d}",
     }
-    LS_ft = {"title": "ft", "value": lambda M: M._LS_ft, "width": 10, "format": "%1.2e"}
-    LS_t = {"title": "t", "value": lambda M: M._LS_t, "width": 10, "format": "%0.5f"}
+    LS_ft = {
+        "title": "ft",
+        "value": lambda M: M._LS_ft,
+        "width": 10,
+        "format": lambda v: f"{v:1.2e}",
+    }
+    LS_t = {
+        "title": "t",
+        "value": lambda M: M._LS_t,
+        "width": 10,
+        "format": lambda v: f"{v:0.5f}",
+    }
     LS_armijoGoldstein = {
         "title": "f + alp*g.T*p",
         "value": lambda M: M.f + M.LSreduction * M._LS_descent,
         "width": 16,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
     LS_WolfeCurvature = {
         "title": "alp*g.T*p",
         "str": "%d :    ft     = %1.4e >= alp*descent     = %1.4e",
         "value": lambda M: M.LScurvature * M._LS_descent,
         "width": 16,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
 
     itType = {
         "title": "itType",
         "value": lambda M: M._itType,
         "width": 8,
-        "format": "%s",
+        "format": lambda v: f"{v:s}",
     }
     aSet = {
         "title": "aSet",
-        "value": lambda M: np.sum(M.activeSet(M.xc)),
+        "value": lambda M: None if M.iter == 0 else np.sum(M.activeSet(M.xc)),
         "width": 8,
-        "format": "%d",
+        "format": lambda v: f"{v:d}",
     }
     bSet = {
         "title": "bSet",
-        "value": lambda M: np.sum(M.bindingSet(M.xc)),
+        "value": lambda M: None if M.iter == 0 else np.sum(M.bindingSet(M.xc)),
         "width": 8,
-        "format": "%d",
+        "format": lambda v: f"{v:d}",
     }
     comment = {
         "title": "Comment",
         "value": lambda M: M.comment,
         "width": 12,
-        "format": "%s",
+        "format": lambda v: f"{v:s}",
     }
 
     beta = {
         "title": "beta",
         "value": lambda M: M.parent.beta,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
     phi_d = {
         "title": "phi_d",
-        "value": lambda M: M.parent.phi_d * M.parent.opt.factor,
+        "value": lambda M: M.parent.phi_d,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
     phi_m = {
         "title": "phi_m",
-        "value": lambda M: M.parent.phi_m * M.parent.opt.factor,
+        "value": lambda M: M.parent.phi_m,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
 
     phi_s = {
         "title": "phi_s",
-        "value": lambda M: M.parent.phi_s * M.parent.opt.factor,
+        "value": lambda M: M.parent.phi_s,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
     phi_x = {
         "title": "phi_x",
-        "value": lambda M: M.parent.phi_x * M.parent.opt.factor,
+        "value": lambda M: M.parent.phi_x,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
     phi_y = {
         "title": "phi_y",
-        "value": lambda M: M.parent.phi_y * M.parent.opt.factor,
+        "value": lambda M: M.parent.phi_y,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
     phi_z = {
         "title": "phi_z",
-        "value": lambda M: M.parent.phi_z * M.parent.opt.factor,
+        "value": lambda M: M.parent.phi_z,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
 
     iterationCG = {
-        "title": "iterCG",
-        "value": lambda M: M.cg_count,
+        "title": "iter_CG",
+        "value": lambda M: getattr(M, "cg_count", None),
         "width": 10,
-        "format": "%3d",
+        "format": lambda v: f"{v:d}",
+    }
+
+    iteration_CG_rel_residual = {
+        "title": "CG |Ax-b|/|b|",
+        "value": lambda M: getattr(M, "cg_rel_resid", None),
+        "width": 15,
+        "format": lambda v: f"{v:1.2e}",
+    }
+
+    iteration_CG_abs_residual = {
+        "title": "CG |Ax-b|",
+        "value": lambda M: getattr(M, "cg_abs_resid", None),
+        "width": 11,
+        "format": lambda v: f"{v:1.2e}",
     }
 
 
@@ -271,6 +379,7 @@ class Minimize(object):
     tolX = 1e-1  #: Tolerance on norm(x) movement
     tolG = 1e-1  #: Tolerance on gradient norm
     eps = 1e-5  #: Small value
+    require_decrease = True  #: Require decrease in the objective function. If False, we will still take a step when the linesearch fails
 
     stopNextIteration = False  #: Stops the optimization program nicely.
     use_WolfeCurvature = False  #: add the Wolfe Curvature criteria for line search
@@ -285,7 +394,6 @@ class Minimize(object):
     parent = None  #: This is the parent of the optimization routine.
 
     print_type = None
-    factor = 1.0
 
     def __init__(self, **kwargs):
         set_kwargs(self, **kwargs)
@@ -306,7 +414,6 @@ class Minimize(object):
         ]
 
         if self.print_type == "ubc":
-            self.factor = 2.0
             self.stoppers = [StoppingCriteria.iteration]
             self.printers = [
                 IterationPrinters.iteration,
@@ -332,74 +439,71 @@ class Minimize(object):
             ]
 
     @property
-    def callback(self):
+    def callback(self) -> Optional[Callable[[np.ndarray], Any]]:
+        """A used defined callback function.
+
+        Returns
+        -------
+        None or Callable[[np.ndarray], Any]
+            The optional user supplied callback function accepting the current iteration
+            value as an input.
+        """
         return getattr(self, "_callback", None)
 
     @callback.setter
-    def callback(self, value):
+    def callback(self, value: Callable[[np.ndarray], Any]):
         if self.callback is not None:
             print(
-                "The callback on the {0!s} Optimization was "
-                "replaced.".format(self.__class__.__name__)
+                f"The callback on the {self.__class__.__name__} minimizer was replaced."
             )
         self._callback = value
 
     @timeIt
-    def minimize(self, evalFunction, x0):
+    def minimize(self, evalFunction: MinimizeCallable, x0: np.ndarray) -> np.ndarray:
         """minimize(evalFunction, x0)
 
         Minimizes the function (evalFunction) starting at the location x0.
 
-        :param callable evalFunction: function handle that evaluates: f, g, H = F(x)
-        :param numpy.ndarray x0: starting location
-        :rtype: numpy.ndarray
-        :return: x, the last iterate of the optimization algorithm
+        Parameters
+        ----------
+        evalFunction : callable
+            The objective function to be minimized::
 
-        evalFunction is a function handle::
+                evalFunction(
+                    x: numpy.ndarray,
+                    return_g: bool,
+                    return_H: bool
+                ) -> (
+                    float
+                    | tuple[float, numpy.ndarray]
+                    | tuple[float, LinearOperator]
+                    | tuple[float, numpy.ndarray, LinearOperator]
+                )
 
-            (f[, g][, H]) = evalFunction(x, return_g=False, return_H=False )
+            That will optionally return the gradient as a ``numpy.ndarray`` and the Hessian as any class
+            that supports matrix vector multiplication using the `*` operator.
 
-            def evalFunction(x, return_g=False, return_H=False):
-                out = (f,)
-                if return_g:
-                    out += (g,)
-                if return_H:
-                    out += (H,)
-                return out if len(out) > 1 else out[0]
+        x0 : numpy.ndarray
+            Initial guess.
 
-
-        The algorithm for general minimization is as follows::
-
-            startup(x0)
-            printInit()
-
-            while True:
-                doStartIteration()
-                f, g, H = evalFunction(xc)
-                printIter()
-                if stoppingCriteria(): break
-                p = findSearchDirection()
-                p = scaleSearchDirection(p)
-                xt, passLS = modifySearchDirection(p)
-                if not passLS:
-                    xt, caught = modifySearchDirectionBreak(p)
-                    if not caught: return xc
-                doEndIteration(xt)
-
-            print_done()
-            finish()
-            return xc
+        Returns
+        -------
+        x_min : numpy.ndarray
+            The last iterate of the optimization algorithm.
         """
         self.evalFunction = evalFunction
         self.startup(x0)
         self.printInit()
 
-        if self.print_type != "ubc":
-            print("x0 has any nan: {:b}".format(np.any(np.isnan(x0))))
+        if np.any(np.isnan(x0)):
+            raise ValueError("x0 has a nan.")
+        self.f = evalFunction(
+            self.xc, return_g=False, return_H=False
+        )  # will stash the fields objects
+        self.printIter()
         while True:
             self.doStartIteration()
             self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
-            self.printIter()
             if self.stoppingCriteria():
                 break
             self.searchDirection = self.findSearchDirection()
@@ -409,9 +513,12 @@ class Minimize(object):
             p = self.scaleSearchDirection(self.searchDirection)
             xt, passLS = self.modifySearchDirection(p)
             if not passLS:
-                xt, caught = self.modifySearchDirectionBreak(p)
-                if not caught:
-                    return self.xc
+                if self.require_decrease is True:
+                    xt, caught = self.modifySearchDirectionBreak(p)
+                    if not caught:
+                        return self.xc
+                else:
+                    print("Linesearch failed. Stepping anyways...")
             self.doEndIteration(xt)
             if self.stopNextIteration:
                 break
@@ -422,9 +529,8 @@ class Minimize(object):
         return self.xc
 
     @call_hooks("startup")
-    def startup(self, x0):
-        """
-        **startup** is called at the start of any new minimize call.
+    def startup(self, x0: np.ndarray) -> None:
+        """Called at the start of any new minimize call.
 
         This will set::
 
@@ -432,16 +538,21 @@ class Minimize(object):
             xc = x0
             iter = iterLS = 0
 
-        :param numpy.ndarray x0: initial x
-        :rtype: None
-        :return: None
+        Parameters
+        ----------
+        x0 : numpy.ndarray
+            initial x
         """
 
         self.iter = 0
         self.iterLS = 0
         self.stopNextIteration = False
 
-        x0 = self.projection(x0)  # ensure that we start of feasible.
+        try:
+            x0 = self.projection(x0)  # ensure that we start of feasible.
+        except Exception as err:
+            raise RuntimeError("Initial model is not projectable") from err
+
         self.x0 = x0
         self.xc = x0
         self.f_last = np.nan
@@ -449,24 +560,20 @@ class Minimize(object):
 
     @count
     @call_hooks("doStartIteration")
-    def doStartIteration(self):
-        """doStartIteration()
-
-        **doStartIteration** is called at the start of each minimize
-        iteration.
-
-        :rtype: None
-        :return: None
-        """
+    def doStartIteration(self) -> None:
+        """Called at the start of each minimize iteration."""
         pass
 
-    def printInit(self, inLS=False):
-        """
-        **printInit** is called at the beginning of the optimization
-        routine.
+    def printInit(self, inLS: bool = False) -> None:
+        """Called at the beginning of the optimization routine.
 
         If there is a parent object, printInit will check for a
         parent.printInit function and call that.
+
+        Parameters
+        ----------
+        inLS : bool
+            Whether this is being called from a line search.
 
         """
         pad = " " * 10 if inLS else ""
@@ -474,9 +581,13 @@ class Minimize(object):
         print_titles(self, self.printers if not inLS else self.printersLS, name, pad)
 
     @call_hooks("printIter")
-    def printIter(self, inLS=False):
-        """
-        **printIter** is called directly after function evaluations.
+    def printIter(self, inLS: bool = False) -> None:
+        """Called directly after function evaluations.
+
+        Parameters
+        ----------
+        inLS : bool
+            Whether this is being called from a line search.
 
         If there is a parent object, printIter will check for a
         parent.printIter function and call that.
@@ -485,12 +596,16 @@ class Minimize(object):
         pad = " " * 10 if inLS else ""
         print_line(self, self.printers if not inLS else self.printersLS, pad=pad)
 
-    def printDone(self, inLS=False):
-        """
-        **printDone** is called at the end of the optimization routine.
+    def printDone(self, inLS: bool = False) -> None:
+        """Called at the end of the optimization routine.
 
         If there is a parent object, printDone will check for a
         parent.printDone function and call that.
+
+        Parameters
+        ----------
+        inLS : bool
+            Whether this is being called from a line search.
 
         """
         pad = " " * 10 if inLS else ""
@@ -511,7 +626,6 @@ class Minimize(object):
                     self.printers,
                     pad=pad,
                 )
-                print(self.print_target)
             except AttributeError:
                 print_done(
                     self,
@@ -522,18 +636,11 @@ class Minimize(object):
             print_stoppers(self, stoppers, pad="", stop=stop, done=done)
 
     @call_hooks("finish")
-    def finish(self):
-        """finish()
-
-        **finish** is called at the end of the optimization.
-
-        :rtype: None
-        :return: None
-
-        """
+    def finish(self) -> None:
+        """Called at the end of the optimization."""
         pass
 
-    def stoppingCriteria(self, inLS=False):
+    def stoppingCriteria(self, inLS: bool = False) -> bool:
         if self.iter == 0:
             self.f0 = self.f
             self.g0 = self.g
@@ -541,63 +648,70 @@ class Minimize(object):
 
     @timeIt
     @call_hooks("projection")
-    def projection(self, p):
-        """projection(p)
+    def projection(self, p: np.ndarray) -> np.ndarray:
+        """Projects a model onto bounds (if given)
 
-        projects the search direction.
+        By default, no projection is applied.
 
-        by default, no projection is applied.
+        Parameters
+        ----------
+        p : numpy.ndarray
+            The model to project
 
-        :param numpy.ndarray p: searchDirection
-        :rtype: numpy.ndarray
-        :return: p, projected search direction
+        Returns
+        -------
+        numpy.ndarray
+            The projected model.
         """
         return p
 
     @timeIt
-    def findSearchDirection(self):
-        """findSearchDirection()
+    def findSearchDirection(self) -> np.ndarray:
+        """Return the direction to search along for a minimum value.
 
-        **findSearchDirection** should return an approximation of:
+        Returns
+        -------
+        numpy.ndarray
+            The search direction.
+
+        Notes
+        -----
+        This should usually return an approximation of:
 
         .. math::
 
-            H p = - g
-
-        Where you are solving for the search direction, p
+            p = - H^{-1} g
 
         The default is:
 
         .. math::
 
-            H = I
-
             p = - g
 
-        And corresponds to SteepestDescent.
+        Corresponding to the steepest descent direction
 
         The latest function evaluations are present in::
 
             self.f, self.g, self.H
-
-        :rtype: numpy.ndarray
-        :return: p, Search Direction
         """
         return -self.g
 
     @count
-    def scaleSearchDirection(self, p):
-        """scaleSearchDirection(p)
+    def scaleSearchDirection(self, p: np.ndarray) -> np.ndarray:
+        """Scales the search direction if appropriate.
 
-        **scaleSearchDirection** should scale the search direction if
-        appropriate.
+        Set the parameter ``maxStep`` in the minimize object, to scale back
+        the search direction to a maximum size.
 
-        Set the parameter **maxStep** in the minimize object, to scale back
-        the gradient to a maximum size.
+        Parameters
+        ----------
+        p : numpy.ndarray
+            The current search direction.
 
-        :param numpy.ndarray p: searchDirection
-        :rtype: numpy.ndarray
-        :return: p, Scaled Search Direction
+        Returns
+        -------
+        numpy.ndarray
+            The scaled search direction.
         """
 
         if self.maxStep < np.abs(p.max()):
@@ -607,12 +721,21 @@ class Minimize(object):
     nameLS = "Armijo linesearch"  #: The line-search name
 
     @timeIt
-    def modifySearchDirection(self, p):
-        """modifySearchDirection(p)
+    def modifySearchDirection(self, p: np.ndarray) -> np.ndarray:
+        """Changes the search direction based on some sort of linesearch or trust-region criteria.
 
-        **modifySearchDirection** changes the search direction based on
-        some sort of linesearch or trust-region criteria.
+        Parameters
+        ----------
+        p : numpy.ndarray
+            The current search direction.
 
+        Returns
+        -------
+        numpy.ndarray
+            The modified search direction.
+
+        Notes
+        -----
         By default, an Armijo backtracking linesearch is preformed with the
         following parameters:
 
@@ -623,11 +746,7 @@ class Minimize(object):
         If the linesearch is completed, and a descent direction is found,
         passLS is returned as True.
 
-        Else, a modifySearchDirectionBreak call is preformed.
-
-        :param numpy.ndarray p: searchDirection
-        :rtype: tuple
-        :return: (xt, passLS) numpy.ndarray, bool
+        Else, a `modifySearchDirectionBreak` call is preformed.
         """
         # Projected Armijo linesearch
         self._LS_t = 1.0
@@ -663,11 +782,8 @@ class Minimize(object):
         return self._LS_xt, self.iterLS < self.maxIterLS
 
     @count
-    def modifySearchDirectionBreak(self, p):
-        """modifySearchDirectionBreak(p)
-
-        Code is called if modifySearchDirection fails
-        to find a descent direction.
+    def modifySearchDirectionBreak(self, p: np.ndarray) -> np.ndarray:
+        """Called if modifySearchDirection fails to find a descent direction.
 
         The search direction is passed as input and
         this function must pass back both a new searchDirection,
@@ -676,9 +792,18 @@ class Minimize(object):
         By default, no additional work is done, and the
         evalFunction returns a False indicating the break was not caught.
 
-        :param numpy.ndarray p: searchDirection
-        :rtype: tuple
-        :return: (xt, breakCaught) numpy.ndarray, bool
+        Parameters
+        ----------
+        p : numpy.ndarray
+            The failed search direction.
+
+        Returns
+        -------
+        xt : numpy.ndarray
+            An alternative search direction to use.
+        was_caught : bool
+            Whether the break was caught. The minimization algorithm will
+            break early if ``not was_caught``.
         """
         self.printDone(inLS=True)
         print("The linesearch got broken. Boo.")
@@ -686,24 +811,26 @@ class Minimize(object):
 
     @count
     @call_hooks("doEndIteration")
-    def doEndIteration(self, xt):
-        """doEndIteration(xt)
-
-        **doEndIteration** is called at the end of each minimize iteration.
+    def doEndIteration(self, xt: np.ndarray) -> None:
+        """Operation called at the end of each minimize iteration.
 
         By default, function values and x locations are shuffled to store 1
         past iteration in memory.
 
-        self.xc must be updated in this code.
-
-        :param numpy.ndarray xt: tested new iterate that ensures a descent direction.
-        :rtype: None
-        :return: None
+        Parameters
+        ----------
+        xt : numpy.ndarray
+            An accepted model at the end of each iteration.
         """
         # store old values
         self.f_last = self.f
+        if hasattr(self, "_LS_ft"):
+            self.f = self._LS_ft
+
+        # the current iterate, `self.xc`, must be set in this function if overridden in a base class
         self.x_last, self.xc = self.xc, xt
         self.iter += 1
+        self.printIter()  # before callbacks (from directives...)
         if self.debug:
             self.printDone()
 
@@ -779,17 +906,240 @@ class Remember(object):
                 self._rememberList[param[0]].append(param[1](self))
 
 
-class ProjectedGradient(Minimize, Remember):
+class Bounded(object):
+    """Mixin class for bounded minimizers
+
+    Parameters
+    ----------
+    lower, upper : float or numpy.ndarray, optional
+        The lower and upper bounds.
+    """
+
+    def __init__(
+        self,
+        *,
+        lower: None | float | npt.NDArray[np.float64],
+        upper: None | float | npt.NDArray[np.float64] = None,
+        **kwargs,
+    ):
+        self.lower = lower
+        self.upper = upper
+        super().__init__(**kwargs)
+
+    @property
+    def lower(self) -> None | float | npt.NDArray[np.float64]:
+        """The lower bound value.
+
+        Returns
+        -------
+        lower : None, float, numpy.ndarray
+        """
+        return self._lower
+
+    @lower.setter
+    def lower(self, value):
+        if value is not None:
+            try:
+                value = validate_float("lower", value)
+            except TypeError:
+                value = validate_ndarray_with_shape("lower", value, shape=("*",))
+        self._lower = value
+
+    @property
+    def upper(self) -> None | float | npt.NDArray[np.float64]:
+        """The upper bound value.
+
+        Returns
+        -------
+        upper : None, float, numpy.ndarray
+        """
+        return self._upper
+
+    @upper.setter
+    def upper(self, value):
+        if value is not None:
+            try:
+                value = validate_float("upper", value)
+            except TypeError:
+                value = validate_ndarray_with_shape("upper", value, shape=("*",))
+        self._upper = value
+
+    @count
+    def projection(self, x: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+        """projection(x)
+
+        Make sure we are feasible.
+
+        """
+        if self.lower is not None:
+            x = np.maximum(x, self.lower)
+        if self.upper is not None:
+            x = np.minimum(x, self.upper)
+        return x
+
+    @count
+    def activeSet(self, x: npt.NDArray[np.float64]) -> npt.NDArray[bool]:
+        """activeSet(x)
+
+        If we are on a bound
+
+        """
+        out = np.zeros(x.shape, dtype=bool)
+        if self.lower is not None:
+            out |= x <= self.lower
+        if self.upper is not None:
+            out |= x >= self.upper
+        return out
+
+    @count
+    def inactiveSet(self, x: npt.NDArray[np.float64]) -> npt.NDArray[bool]:
+        """inactiveSet(x)
+
+        The free variables.
+
+        """
+        return np.logical_not(self.activeSet(x))
+
+    @count
+    def bindingSet(self, x: npt.NDArray[np.float64]) -> npt.NDArray[bool]:
+        """bindingSet(x)
+
+        If we are on a bound and the negative gradient points away from the
+        feasible set.
+
+        Optimality condition. (Satisfies Kuhn-Tucker) MoreToraldo91
+
+        """
+        out = np.zeros(x.shape, dtype=bool)
+        if self.lower is not None:
+            out |= (x <= self.lower) & (self.g >= 0)
+        if self.upper is not None:
+            out |= (x >= self.upper) & (self.g <= 0)
+        return out
+
+
+class InexactCG(object):
+    """Mixin to hold common parameters for a CG solver.
+
+    Parameters
+    ----------
+    cg_rtol : float, optional
+        Relative tolerance stopping condition on the CG residual
+    cg_atol : float, optional
+        Absolute tolerance stopping condition on the CG residual
+    cg_maxiter : int, optional
+        Maximum number of CG iterations to perform
+
+    Notes
+    -----
+
+    The convergence check for CG is:
+    >>> norm(A @ x_k - b) <= max(cg_rtol * norm(A @ x_0 - b), cg_atol)
+
+    See Also
+    --------
+    scipy.sparse.linalg.cg
+
+    """
+
+    def __init__(
+        self,
+        *,
+        cg_rtol: float = 1e-1,
+        cg_atol: float = 0,
+        cg_maxiter: int = 5,
+        **kwargs,
+    ):
+
+        if (val := kwargs.pop("tolCG", None)) is not None:
+            self.tolCG = val  # Deprecated cg_rtol
+        else:
+            self.cg_rtol = cg_rtol
+        self.cg_atol = cg_atol
+
+        if (val := kwargs.pop("maxIterCG", None)) is not None:
+            self.maxIterCG = val
+        else:
+            self.cg_maxiter = cg_maxiter
+
+        super().__init__(**kwargs)
+
+    @property
+    def cg_atol(self) -> float:
+        """Absolute tolerance for inner CG iterations.
+
+        CG iterations are terminated if:
+        >>> norm(A @ x_k - b) <= max(cg_rtol * norm(A @ x_0 - b), cg_atol)
+
+        or if the maximum number of CG iterations is reached.
+
+        Returns
+        -------
+        float
+
+        See Also
+        --------
+        cg_rtol, scipy.sparse.linalg.cg
+        """
+        return self._cg_atol
+
+    @cg_atol.setter
+    def cg_atol(self, value):
+        self._cg_atol = validate_float("cg_atol", value, min_val=0, inclusive_min=True)
+
+    @property
+    def cg_rtol(self) -> float:
+        """Relative tolerance for inner CG iterations.
+
+        CG iterations are terminated if:
+        >>> norm(A @ x_k - b) <= max(cg_rtol * norm(A @ x_0 - b), cg_atol)
+
+        or if the maximum number of CG iterations is reached.
+
+        Returns
+        -------
+        float
+
+        See Also
+        --------
+        cg_rtol, scipy.sparse.linalg.cg
+        """
+        return self._cg_rtol
+
+    @cg_rtol.setter
+    def cg_rtol(self, value):
+        self._cg_rtol = validate_float("cg_rtol", value, min_val=0, inclusive_min=True)
+
+    @property
+    def cg_maxiter(self) -> int:
+        """Maximum number of CG iterations.
+        Returns
+        -------
+        int
+        """
+        return self._cg_maxiter
+
+    @cg_maxiter.setter
+    def cg_maxiter(self, value):
+        self._cg_maxiter = validate_integer("cg_maxiter", value, min_val=1)
+
+    maxIterCG = deprecate_property(
+        cg_maxiter, old_name="maxIterCG", removal_version="0.26.0", future_warn=True
+    )
+    tolCG = deprecate_property(
+        cg_rtol, old_name="tolCG", removal_version="0.26.0", future_warn=True
+    )
+
+
+class ProjectedGradient(Bounded, InexactCG, Minimize, Remember):
     name = "Projected Gradient"
 
-    maxIterCG = 5
-    tolCG = 1e-1
-
-    lower = -np.inf
-    upper = np.inf
-
-    def __init__(self, **kwargs):
-        super(ProjectedGradient, self).__init__(**kwargs)
+    def __init__(
+        self, *, lower=-np.inf, upper=np.inf, cg_rtol=1e-1, cg_maxiter=5, **kwargs
+    ):
+        super().__init__(
+            lower=lower, upper=upper, cg_rtol=cg_rtol, cg_maxiter=cg_maxiter, **kwargs
+        )
 
         self.stoppers.append(StoppingCriteria.bindingSet)
         self.stoppersLS.append(StoppingCriteria.bindingSet_LS)
@@ -803,12 +1153,8 @@ class ProjectedGradient(Minimize, Remember):
             ]
         )
 
-    def _startup(self, x0):
-        # ensure bound vectors are the same size as the model
-        if not isinstance(self.lower, np.ndarray):
-            self.lower = np.ones_like(x0) * self.lower
-        if not isinstance(self.upper, np.ndarray):
-            self.upper = np.ones_like(x0) * self.upper
+    def startup(self, x0):
+        super().startup(x0)
 
         self.explorePG = True
         self.exploreCG = False
@@ -818,47 +1164,6 @@ class ProjectedGradient(Minimize, Remember):
         self.comment = ""
 
         self.aSet_prev = self.activeSet(x0)
-
-    @count
-    def projection(self, x):
-        """projection(x)
-
-        Make sure we are feasible.
-
-        """
-        return np.median(np.c_[self.lower, x, self.upper], axis=1)
-
-    @count
-    def activeSet(self, x):
-        """activeSet(x)
-
-        If we are on a bound
-
-        """
-        return np.logical_or(x == self.lower, x == self.upper)
-
-    @count
-    def inactiveSet(self, x):
-        """inactiveSet(x)
-
-        The free variables.
-
-        """
-        return np.logical_not(self.activeSet(x))
-
-    @count
-    def bindingSet(self, x):
-        """bindingSet(x)
-
-        If we are on a bound and the negative gradient points away from the
-        feasible set.
-
-        Optimality condition. (Satisfies Kuhn-Tucker) MoreToraldo91
-
-        """
-        bind_up = np.logical_and(x == self.lower, self.g >= 0)
-        bind_low = np.logical_and(x == self.upper, self.g <= 0)
-        return np.logical_or(bind_up, bind_low)
 
     @timeIt
     def findSearchDirection(self):
@@ -912,11 +1217,13 @@ class ProjectedGradient(Minimize, Remember):
                 (shape[1], shape[1]), reduceHess, dtype=self.xc.dtype
             )
 
-            # Choose `rtol` or `tol` argument based on installed scipy version
-            tol_key = "rtol" if SCIPY_1_12 else "tol"
-
-            inp = {tol_key: self.tolCG, "maxiter": self.maxIterCG}
-            p, info = sp.linalg.cg(operator, -Z.T * self.g, **inp)
+            p, info = sp.linalg.cg(
+                operator,
+                -Z.T * self.g,
+                rtol=self.cg_rtol,
+                atol=self.cg_atol,
+                maxiter=self.cg_maxiter,
+            )
             p = Z * p  # bring up to full size
             # aSet_after = self.activeSet(self.xc+p)
         return p
@@ -959,9 +1266,6 @@ class BFGS(Minimize, Remember):
     name = "BFGS"
     nbfgs = 10
 
-    def __init__(self, **kwargs):
-        Minimize.__init__(self, **kwargs)
-
     @property
     def bfgsH0(self):
         """
@@ -970,12 +1274,7 @@ class BFGS(Minimize, Remember):
         Must be a simpeg.Solver
         """
         if getattr(self, "_bfgsH0", None) is None:
-            print(
-                """
-                Default solver: SolverDiag is being used in bfgsH0
-                """
-            )
-            self._bfgsH0 = SolverDiag(sp.identity(self.xc.size))
+            self._bfgsH0 = Identity()
         return self._bfgsH0
 
     @bfgsH0.setter
@@ -1043,7 +1342,7 @@ class GaussNewton(Minimize, Remember):
         return Solver(self.H) * (-self.g)
 
 
-class InexactGaussNewton(BFGS, Minimize, Remember):
+class InexactGaussNewton(InexactCG, BFGS):
     r"""
     Minimizes using CG as the inexact solver of
 
@@ -1060,13 +1359,21 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
 
     """
 
-    def __init__(self, **kwargs):
-        Minimize.__init__(self, **kwargs)
+    def __init__(
+        self,
+        *,
+        cg_rtol: float = 1e-1,
+        cg_atol: float = 0.0,
+        cg_maxiter: int = 5,
+        **kwargs,
+    ):
+        super().__init__(
+            cg_rtol=cg_rtol, cg_atol=cg_atol, cg_maxiter=cg_maxiter, **kwargs
+        )
+
+        self._was_default_hinv = False
 
     name = "Inexact Gauss Newton"
-
-    maxIterCG = 5
-    tolCG = 1e-1
 
     @property
     def approxHinv(self):
@@ -1082,7 +1389,9 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
             M = sp.linalg.LinearOperator(
                 (self.xc.size, self.xc.size), self.bfgs, dtype=self.xc.dtype
             )
+            self._was_default_hinv = True
             return M
+        self._was_default_hinv = False
         return _approxHinv
 
     @approxHinv.setter
@@ -1091,12 +1400,19 @@ class InexactGaussNewton(BFGS, Minimize, Remember):
 
     @timeIt
     def findSearchDirection(self):
-        # Choose `rtol` or `tol` argument based on installed scipy version
-        tol_key = "rtol" if SCIPY_1_12 else "tol"
-        inp = {tol_key: self.tolCG, "maxiter": self.maxIterCG}
-        Hinv = SolverICG(self.H, M=self.approxHinv, **inp)
+        Hinv = SolverCG(
+            self.H,
+            M=self.approxHinv,
+            rtol=self.cg_rtol,
+            atol=self.cg_atol,
+            maxiter=self.cg_maxiter,
+        )
         p = Hinv * (-self.g)
         return p
+
+    def _doEndIteration_BFGS(self, xt):
+        if self._was_default_hinv:
+            super()._doEndIteration_BFGS(xt)
 
 
 class SteepestDescent(Minimize, Remember):
@@ -1201,65 +1517,109 @@ class NewtonRoot(object):
         return x
 
 
-class ProjectedGNCG(BFGS, Minimize, Remember):
-    def __init__(self, **kwargs):
-        Minimize.__init__(self, **kwargs)
+class ProjectedGNCG(Bounded, InexactGaussNewton):
+    def __init__(
+        self,
+        *,
+        lower: None | float | npt.NDArray[np.float64] = -np.inf,
+        upper: None | float | npt.NDArray[np.float64] = np.inf,
+        cg_maxiter: int = 5,
+        cg_rtol: float = None,
+        cg_atol: float = None,
+        step_active_set: bool = True,
+        active_set_grad_scale: float = 1e-2,
+        **kwargs,
+    ):
+        if (val := kwargs.pop("tolCG", None)) is not None:
+            # Deprecated path when tolCG is passed.
+            self.tolCG = val
+            cg_atol = val
+            cg_rtol = 0.0
+        elif cg_rtol is None and cg_atol is None:
+            # Note these defaults match previous settings...
+            # but they're not good in general...
+            # Ideally they will change to cg_rtol=1E-3 and cg_atol=0.0
+            warnings.warn(
+                "The defaults for ProjectedGNCG will change in SimPEG 0.26.0. If you want to maintain the "
+                "previous behavior, explicitly set 'cg_atol=1E-3' and 'cg_rtol=0.0'.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            cg_atol = 1e-3
+            cg_rtol = 0.0
+        # defaults for if someone passes just cg_rtol or just cg_atol (to be removed on deprecation removal)
+        # These will likely be the future defaults
+        elif cg_atol is None:
+            cg_atol = 0.0
+        elif cg_rtol is None:
+            cg_rtol = 1e-3
+
+        if (val := kwargs.pop("stepActiveSet", None)) is not None:
+            self.stepActiveSet = val
+        else:
+            self.step_active_set = step_active_set
+
+        if (val := kwargs.pop("stepOffBoundsFact", None)) is not None:
+            self.stepOffBoundsFact = val
+        else:
+            self.active_set_grad_scale = active_set_grad_scale
+
+        super().__init__(
+            lower=lower,
+            upper=upper,
+            cg_maxiter=cg_maxiter,
+            cg_rtol=cg_rtol,
+            cg_atol=cg_atol,
+            **kwargs,
+        )
+
+        # initialize some tracking parameters
+        self.cg_count = 0
+        self.cg_abs_resid = np.inf
+        self.cg_rel_resid = np.inf
+
+        self.printers.extend(
+            [
+                IterationPrinters.iterationCG,
+                IterationPrinters.iteration_CG_rel_residual,
+                IterationPrinters.iteration_CG_abs_residual,
+            ]
+        )
 
     name = "Projected GNCG"
 
-    maxIterCG = 5
-    tolCG = 1e-1
-    cg_count = 0
-    stepOffBoundsFact = 1e-2  # perturbation of the inactive set off the bounds
-    stepActiveset = True
-    lower = -np.inf
-    upper = np.inf
+    @property
+    def step_active_set(self) -> bool:
+        """Whether to include the active set's gradient in the step direction.
 
-    def _startup(self, x0):
-        # ensure bound vectors are the same size as the model
-        if not isinstance(self.lower, np.ndarray):
-            self.lower = np.ones_like(x0) * self.lower
-        if not isinstance(self.upper, np.ndarray):
-            self.upper = np.ones_like(x0) * self.upper
-
-    @count
-    def projection(self, x):
-        """projection(x)
-
-        Make sure we are feasible.
-
+        Returns
+        -------
+        bool
         """
-        return np.median(np.c_[self.lower, x, self.upper], axis=1)
+        return self._step_active_set
 
-    @count
-    def activeSet(self, x):
-        """activeSet(x)
-
-        If we are on a bound
-
-        """
-        return np.logical_or(x <= self.lower, x >= self.upper)
+    @step_active_set.setter
+    def step_active_set(self, value: bool):
+        self._step_active_set = validate_type("step_active_set", value, bool)
 
     @property
-    def approxHinv(self):
+    def active_set_grad_scale(self) -> float:
+        """Scalar to apply to the active set's gradient
+
+        if `step_active_set` is `True`, then the active set's gradient is multiplied by this value
+        when including it in the search direction.
+
+        Returns
+        -------
+        float
         """
-        The approximate Hessian inverse is used to precondition CG.
+        return self._active_set_grad_scale
 
-        Default uses BFGS, with an initial H0 of *bfgsH0*.
-
-        Must be a scipy.sparse.linalg.LinearOperator
-        """
-        _approxHinv = getattr(self, "_approxHinv", None)
-        if _approxHinv is None:
-            M = sp.linalg.LinearOperator(
-                (self.xc.size, self.xc.size), self.bfgs, dtype=self.xc.dtype
-            )
-            return M
-        return _approxHinv
-
-    @approxHinv.setter
-    def approxHinv(self, value):
-        self._approxHinv = value
+    @active_set_grad_scale.setter
+    def active_set_grad_scale(self, value: float):
+        self._active_set_grad_scale = validate_float(
+            "active_set_grad_scale", value, min_val=0, inclusive_min=True
+        )
 
     @timeIt
     def findSearchDirection(self):
@@ -1267,58 +1627,107 @@ class ProjectedGNCG(BFGS, Minimize, Remember):
         findSearchDirection()
         Finds the search direction based on projected CG
         """
+        # remember, "active" means cell with values equal to the limit
+        # "inactive" are cells with values inside the limits.
+
+        # The basic logic of this method is to do CG iterations only
+        # on the inactive set, then also add a scaled gradient for the
+        # active set, (if that gradient points away from the limits.)
+
         self.cg_count = 0
-        Active = self.activeSet(self.xc)
-        temp = sum((np.ones_like(self.xc.size) - Active))
+        active = self.activeSet(self.xc)
+        inactive = ~active
 
         step = np.zeros(self.g.size)
-        resid = -(1 - Active) * self.g
+        resid = inactive * (-self.g)
 
-        r = resid - (1 - Active) * (self.H * step)
+        r = resid  # - Inactive * (self.H * step)#  step is zero
 
         p = self.approxHinv * r
 
         sold = np.dot(r, p)
 
         count = 0
+        r_norm0 = norm(r)
 
-        while np.all([np.linalg.norm(r) > self.tolCG, count < self.maxIterCG]):
+        atol = max(self.cg_rtol * norm(r_norm0), self.cg_atol)
+        if self.debug:
+            print(f"CG Target tolerance: {atol}")
+        r_norm = r_norm0
+        while r_norm > atol and count < self.cg_maxiter:
+            if self.debug:
+                print(f"CG Iteration: {count}, residual norm: {r_norm}")
             count += 1
 
-            q = (1 - Active) * (self.H * p)
+            q = inactive * (self.H * p)
 
             alpha = sold / (np.dot(p, q))
 
             step += alpha * p
 
             r -= alpha * q
+            r_norm = norm(r)
 
             h = self.approxHinv * r
 
             snew = np.dot(r, h)
 
-            p = h + (snew / sold * p)
+            p = h + (snew / sold) * p
 
             sold = snew
             # End CG Iterations
-        self.cg_count += count
+        self.cg_count = count
+        self.cg_abs_resid = r_norm
+        self.cg_rel_resid = r_norm / r_norm0
 
-        # Take a gradient step on the active cells if exist
-        if temp != self.xc.size:
-            rhs_a = (Active) * -self.g
+        # Also include the gradient for cells on the boundary
+        # if that gradient would move them away from the boundary.
+        # aka, active and not bound.
+        bound = self.bindingSet(self.xc)
+        active_not_bound = active & (~bound)
+        if self.step_active_set and np.any(active_not_bound):
+            rhs_a = active_not_bound * -self.g
 
+            # active means x == boundary
+            # bound means x == boundary and g == 0  or -g points beyond boundary
+            # active and not bound means
+            # x == boundary and g neq 0 and g points inside
+            # so can safely discard a non-zero check on
+            # if np.any(rhs_a)
+
+            # reasonable guess at the step length for the gradient on the
+            # active cell boundaries. Basically scale it to have the same
+            # maximum as the cg step on the cells that are not on the
+            # boundary.
             dm_i = max(abs(step))
             dm_a = max(abs(rhs_a))
 
-            # perturb inactive set off of bounds so that they are included
-            # in the step
-            step = step + self.stepOffBoundsFact * (rhs_a * dm_i / dm_a)
+            # add the active set's gradients.
+            step += self.active_set_grad_scale * (rhs_a * dm_i / dm_a)
 
-        # Only keep gradients going in the right direction on the active
-        # set
-        indx = ((self.xc <= self.lower) & (step < 0)) | (
-            (self.xc >= self.upper) & (step > 0)
-        )
-        step[indx] = 0.0
+        # Only keep search directions going in the right direction
+        step[bound] = 0
 
         return step
+
+    stepActiveSet = deprecate_property(
+        step_active_set,
+        old_name="stepActiveSet",
+        removal_version="0.26.0",
+        future_warn=True,
+    )
+
+    stepOffBoundsFact = deprecate_property(
+        active_set_grad_scale,
+        old_name="stepOffBoundsFact",
+        removal_version="0.26.0",
+        future_warn=True,
+    )
+
+    # This was the weird part from before... the default tolerance was used as an absolute tolerance...
+    tolCG = deprecate_property(
+        InexactGaussNewton.cg_atol,
+        old_name="tolCG",
+        removal_version="0.26.0",
+        future_warn=True,
+    )

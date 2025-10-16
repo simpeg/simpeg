@@ -16,8 +16,8 @@ class TestReport(unittest.TestCase):
                 "numpy",
                 "scipy",
                 "matplotlib",
-                "empymod",
                 "geoana",
+                "libdlf",
             ],
             # Optional packages.
             optional=[

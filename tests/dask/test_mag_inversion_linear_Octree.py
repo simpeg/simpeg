@@ -107,13 +107,17 @@ class MagInvLinProblemTest(unittest.TestCase):
             self.mesh,
             survey=survey,
             chiMap=idenMap,
-            ind_active=actv,
+            active_cells=actv,
             store_sensitivities="ram",
             chunk_format="equal",
         )
         self.sim = sim
         data = sim.make_synthetic_data(
-            self.model, relative_error=0.0, noise_floor=1.0, add_noise=True
+            self.model,
+            relative_error=0.0,
+            noise_floor=1.0,
+            add_noise=True,
+            random_seed=40,
         )
 
         # Create a regularization
@@ -135,9 +139,9 @@ class MagInvLinProblemTest(unittest.TestCase):
             lower=0.0,
             upper=10.0,
             maxIterLS=5,
-            maxIterCG=10,
-            tolCG=1e-4,
-            stepOffBoundsFact=1e-4,
+            cg_maxiter=10,
+            cg_rtol=1e-3,
+            active_set_grad_scale=1e-4,
         )
 
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e6)
@@ -145,7 +149,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Here is where the norms are applied
         # Use pick a treshold parameter empirically based on the distribution of
         #  model parameters
-        IRLS = directives.Update_IRLS()
+        IRLS = directives.UpdateIRLS()
         update_Jacobi = directives.UpdatePreconditioner()
         sensitivity_weights = directives.UpdateSensitivityWeights()
         self.inv = inversion.BaseInversion(

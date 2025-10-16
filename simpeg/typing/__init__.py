@@ -13,35 +13,24 @@ API
    :toctree: generated/
 
     RandomSeed
+    MinimizeCallable
 
 """
 
-from __future__ import annotations
 import numpy as np
 import numpy.typing as npt
-from typing import Union
+from typing import Union, TypeAlias
+from collections.abc import Callable
+from scipy.sparse.linalg import LinearOperator
 
-# Use try and except to support Python<3.10
-try:
-    from typing import TypeAlias
-
-    RandomSeed: TypeAlias = Union[
-        int,
-        npt.NDArray[np.int_],
-        np.random.SeedSequence,
-        np.random.BitGenerator,
-        np.random.Generator,
-    ]
-except ImportError:
-    RandomSeed = Union[
-        int,
-        npt.NDArray[np.int_],
-        np.random.SeedSequence,
-        np.random.BitGenerator,
-        np.random.Generator,
-    ]
-
-RandomSeed.__doc__ = """
+RandomSeed: TypeAlias = Union[
+    int,
+    npt.NDArray[np.int_],
+    np.random.SeedSequence,
+    np.random.BitGenerator,
+    np.random.Generator,
+]
+"""
 A ``typing.Union`` for random seeds and Numpy's random number generators.
 
 These type of variables can be used throughout ``simpeg`` to control random
@@ -58,4 +47,29 @@ Examples
 >>> def my_function(seed: RandomSeed = None):
 ...     rng = np.random.default_rng(seed=seed)
 ...     ...
+"""
+
+MinimizeCallable: TypeAlias = Callable[
+    [np.ndarray, bool, bool],
+    float
+    | tuple[float, np.ndarray | LinearOperator]
+    | tuple[float, np.ndarray, LinearOperator],
+]
+"""
+The callable expected for the minimization operations.
+
+The function's signature should look like::
+
+    func(x: numpy.ndarray, return_g: bool, return_H: bool)
+
+It should output up to three values ordered as::
+
+    f_val : float
+    gradient : numpy.ndarray
+    H : LinearOperator
+
+`f_val` is always returned, `gradient` is returned if `return_g`, and `H_func` is returned if `return_H`.
+`f_val` should always be the first value returned, `gradient` will always be the second, and `H_func` will
+always be the last. If `return_g == return_H == False`, then only the single argument `f_val` is
+returned.
 """

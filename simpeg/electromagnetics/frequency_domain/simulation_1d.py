@@ -127,7 +127,27 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
         return self._project_to_data(v)
 
-    def getJ(self, m, f=None):
+    def _getJ(self, m, f=None):
+        """Build Jacobian matrix by blocks.
+
+        This method builds the Jacobian matrix by blocks, each block for a particular
+        invertible property (receiver height, conductivity, permeability, layer
+        thickness). Each block of the Jacobian matrix is stored within a dictionary.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        dict
+            Dictionary containing the blocks of the Jacobian matrix for the invertible
+            properties. The keys of the dictionary can be `"dh"`, `"ds"`, `"dmu"`, and
+            `"dthick"`.
+        """
         self.model = m
         if getattr(self, "_J", None) is None:
             self._J = {}
@@ -174,9 +194,9 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
                 rTE = rTE[i_freq]
                 rTE = np.take_along_axis(rTE, inv_lambs, axis=1)
-                v_dh_temp = (C0s_dh * rTE) @ self._fhtfilt.j0 + (
-                    C1s_dh * rTE
-                ) @ self._fhtfilt.j1
+                v_dh_temp = ((C0s_dh * rTE) @ self._fhtfilt.j0).real + (
+                    (C1s_dh * rTE) @ self._fhtfilt.j1
+                ).real
                 v_dh_temp += W @ v_dh_temp
                 # need to re-arange v_dh as it's currently (n_data x 1)
                 # however it already contains all the relevant information...
@@ -244,6 +264,44 @@ class Simulation1DLayered(BaseEM1DSimulation):
                     self._J["dthick"] = self._project_to_data(v_dthick)
         return self._J
 
+    def getJ(self, m, f=None):
+        r"""Get the Jacobian matrix.
+
+        This method generates and stores the full Jacobian matrix for the
+        model provided. I.e.:
+
+        .. math::
+            \mathbf{J} = \dfrac{\partial f(\mu(\mathbf{m}))}{\partial \mathbf{m}}
+
+        where :math:`f()` is the forward modelling function, :math:`\mu()` is the
+        mapping, and :math:`\mathbf{m}` is the model vector.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        f : Ignored
+            Not used, present here for API consistency by convention.
+
+        Returns
+        -------
+        (n_data, n_param) numpy.ndarray
+            The full Jacobian matrix.
+        """
+        Js = self._getJ(m, f=f)
+        # Map parameters with their corresponding derivatives
+        param_and_derivs = {
+            "dh": self.hDeriv,
+            "ds": self.sigmaDeriv,
+            "dmu": self.muDeriv,
+            "dthick": self.thicknessesDeriv,
+        }
+
+        # Compute J matrix
+        J = sum(Js[param] @ param_and_derivs[param] for param in Js)
+
+        return J
+
     def _project_to_data(self, v):
         i_dat = 0
         i_v = 0
@@ -288,6 +346,10 @@ class Simulation1DLayered(BaseEM1DSimulation):
                     out[i_dat:i_dat_p1] = v_slice.real
                 elif rx.component == "imag":
                     out[i_dat:i_dat_p1] = v_slice.imag
+                else:
+                    raise NotImplementedError(
+                        f"receiver component {rx.component} not implemented."
+                    )
                 i_dat = i_dat_p1
                 i_v = i_v_p1
         return out

@@ -1,3 +1,4 @@
+import pytest
 import unittest
 import numpy as np
 import discretize
@@ -521,6 +522,65 @@ class VRM_fwd_tests(unittest.TestCase):
         Test = np.all(Err < 1e-6)
 
         self.assertTrue(Test)
+
+
+class TestDeprecatedIndActive:
+    """Test deprecated ``indActive`` argument in viscous remanent mag simulations."""
+
+    CLASSES = (
+        vrm.BaseVRMSimulation,
+        vrm.Simulation3DLinear,
+        vrm.Simulation3DLogUniform,
+    )
+    OLD_NAME = "indActive"
+    NEW_NAME = "active_cells"
+
+    @pytest.fixture
+    def mesh(self):
+        """Sample mesh."""
+        return discretize.TensorMesh([10, 10, 10], "CCN")
+
+    @pytest.fixture
+    def active_cells(self, mesh):
+        """Sample active cells for the mesh."""
+        active_cells = np.ones(mesh.n_cells, dtype=bool)
+        active_cells[0] = False
+        return active_cells
+
+    @pytest.mark.parametrize("simulation", CLASSES)
+    def test_error_argument(self, mesh, active_cells, simulation):
+        """
+        Test if error is raised after passing ``indActive`` to the constructor.
+        """
+        msg = (
+            "'indActive' was removed in SimPEG v0.24.0, "
+            "please use 'active_cells' instead."
+        )
+        with pytest.raises(TypeError, match=msg):
+            simulation(mesh, indActive=active_cells)
+
+    @pytest.mark.parametrize("simulation", CLASSES)
+    def test_error_accessing_property(self, mesh, active_cells, simulation):
+        """
+        Test error when trying to access the ``indActive`` property.
+        """
+        sim = simulation(mesh, active_cells=active_cells)
+        msg = f"{self.OLD_NAME} has been removed, please use {self.NEW_NAME}"
+        with pytest.raises(NotImplementedError, match=msg):
+            sim.indActive
+
+    @pytest.mark.parametrize("simulation", CLASSES)
+    def test_error_setter(self, mesh, active_cells, simulation):
+        """
+        Test error when trying to set the ``indActive`` property.
+        """
+        sim = simulation(mesh, active_cells=active_cells)
+        # Define new active cells to pass to the setter
+        new_active_cells = active_cells.copy()
+        new_active_cells[-4:] = False
+        msg = f"{self.OLD_NAME} has been removed, please use {self.NEW_NAME}"
+        with pytest.raises(NotImplementedError, match=msg):
+            sim.indActive = new_active_cells
 
 
 if __name__ == "__main__":

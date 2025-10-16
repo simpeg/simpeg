@@ -359,6 +359,7 @@ class BaseSIPSimulation(BaseIPSimulation):
         """
         Generate Full sensitivity matrix
         """
+        self.model = m
 
         if self._Jmatrix is not None:
             return self._Jmatrix
@@ -603,7 +604,7 @@ class BaseSIPSimulation(BaseIPSimulation):
             return Jtv
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_update(self):
         toDelete = [
             "_etaDeriv_store",
             "_tauiDeriv_store",

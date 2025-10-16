@@ -1,8 +1,27 @@
-from .mat_utils import mkvc
+import warnings
+from typing import Literal, Optional
+
+import discretize
 import numpy as np
+import scipy.sparse as sp
 from scipy.interpolate import griddata
 from scipy.spatial import cKDTree
-import scipy.sparse as sp
+from scipy.spatial.distance import cdist
+
+from .mat_utils import mkvc
+
+try:
+    import numba
+    from numba import njit, prange
+except ImportError:
+    numba = None
+
+    # Define dummy njit decorator
+    def njit(*args, **kwargs):
+        return lambda f: f
+
+    # Define dummy prange function
+    prange = range
 
 
 def surface_layer_index(mesh, topo, index=0):
@@ -150,3 +169,174 @@ def depth_weighting(
         wz = wz[active_cells]
 
     return wz / np.nanmax(wz)
+
+
+@njit(parallel=True)
+def _distance_weighting_numba(
+    cell_centers: np.ndarray,
+    reference_locs: np.ndarray,
+    threshold: float,
+    exponent: float = 2.0,
+) -> np.ndarray:
+    r"""
+    distance weighting kernel in numba.
+
+    If numba is not installed, this will work as a regular for loop.
+
+    Parameters
+    ----------
+    cell_centers : np.ndarray
+        cell centers of the mesh.
+    reference_locs : (n, ndim) numpy.ndarray
+        The coordinate of the reference location, usually the receiver locations,
+        for the distance weighting.
+        A 2d array, with multiple reference locations, where each row should
+        contain the coordinates of a single location point in the following
+        order: _x_, _y_, _z_ (for 3D meshes) or _x_, _z_ (for 2D meshes).
+    threshold : float
+        Threshold parameters used in the distance weighting.
+    exponent : float, optional
+        Exponent parameter for distance weighting.
+        The exponent should match the natural decay power of the potential
+        field. For example, for gravity acceleration, set it to 2; for magnetic
+        fields, to 3.
+
+    Returns
+    -------
+    (n_active) numpy.ndarray
+        Normalized distance weights for the mesh at every active cell as
+        a 1d-array.
+    """
+    n_active_cells = cell_centers.shape[0]
+    n_reference_locs = len(reference_locs)
+
+    distance_weights = np.zeros(n_active_cells)
+    for j in prange(n_active_cells):
+        cell_center = cell_centers[j]
+        for i in range(n_reference_locs):
+            reference_loc = reference_locs[i]
+            distance = np.sqrt(((cell_center - reference_loc) ** 2).sum())
+            distance_weights[j] += (distance + threshold) ** (-2 * exponent)
+
+    distance_weights = np.sqrt(distance_weights)
+    distance_weights /= np.nanmax(distance_weights)
+    return distance_weights
+
+
+def distance_weighting(
+    mesh: discretize.base.BaseMesh,
+    reference_locs: np.ndarray,
+    active_cells: Optional[np.ndarray] = None,
+    exponent: Optional[float] = 2.0,
+    threshold: Optional[float] = None,
+    engine: Literal["numba", "scipy"] = "numba",
+    cdist_opts: Optional[dict] = None,
+):
+    r"""
+    Construct diagonal elements of a distance weighting matrix
+
+    Builds the model weights following the distance weighting strategy, a method
+    to generate weights based on the distance between mesh cell centers and some
+    reference location(s).
+    Use these weights in regularizations to counteract the natural decay of
+    potential field data with distance.
+
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        Discretized model space.
+    reference_locs : (n, ndim) numpy.ndarray
+        The coordinate of the reference location, usually the receiver locations,
+        for the distance weighting.
+        A 2d array, with multiple reference locations, where each row should
+        contain the coordinates of a single location point in the following
+        order: _x_, _y_, _z_ (for 3D meshes) or _x_, _z_ (for 2D meshes).
+    active_cells : (mesh.n_cells) numpy.ndarray of bool, optional
+        Index vector for the active cells on the mesh.
+        If ``None``, every cell will be assumed to be active.
+    exponent : float or None, optional
+        Exponent parameter for distance weighting.
+        The exponent should match the natural decay power of the potential
+        field. For example, for gravity acceleration, set it to 2; for magnetic
+        fields, to 3.
+    threshold : float or None, optional
+        Threshold parameters used in the distance weighting.
+        If ``None``, it will be set to half of the smallest cell width.
+    engine: str, 'numba' or 'scipy'
+        Pick between a ``scipy.spatial.distance.cdist`` computation (memory
+        intensive) or `for` loop implementation, parallelized with numba if
+        available. Default to ``"numba"``.
+    cdist_opts: dict, optional
+        Only valid with ``engine=="scipy"``. Options to pass to
+        ``scipy.spatial.distance.cdist``. Default to None.
+
+    Returns
+    -------
+    (n_active) numpy.ndarray
+        Normalized distance weights for the mesh at every active cell as
+        a 1d-array.
+    """
+
+    active_cells = (
+        np.ones(mesh.n_cells, dtype=bool) if active_cells is None else active_cells
+    )
+
+    # Default threshold value
+    if threshold is None:
+        threshold = 0.5 * mesh.h_gridded.min()
+
+    reference_locs = np.atleast_2d(reference_locs)
+    cell_centers = mesh.cell_centers[active_cells]
+
+    # address 1D case
+    if mesh.dim == 1:
+        cell_centers = cell_centers.reshape(-1, 1)
+        reference_locs = reference_locs.reshape(-1, 1)
+
+    if reference_locs.shape[1] != mesh.dim:
+        raise ValueError(
+            f"Invalid 'reference_locs' with shape '{reference_locs.shape}'. "
+            "The number of columns of the reference_locs array should match "
+            f"the dimensions of the mesh ({mesh.dim})."
+        )
+
+    if engine == "numba" and cdist_opts is not None:
+        raise TypeError(
+            "The `cdist_opts` is valid only when engine is 'scipy'."
+            "The current engine is 'numba'."
+        )
+
+    if engine == "numba":
+        if numba is None:
+            warnings.warn(
+                "Numba is not installed. Distance computations will be slower.",
+                stacklevel=2,
+            )
+        distance_weights = _distance_weighting_numba(
+            cell_centers,
+            reference_locs,
+            exponent=exponent,
+            threshold=threshold,
+        )
+
+    elif engine == "scipy":
+        warnings.warn(
+            "``scipy.spatial.distance.cdist`` computations can be memory intensive. "
+            "Consider switching to `engine='numba'` "
+            "if you run into memory overflow issues.",
+            stacklevel=2,
+        )
+        cdist_opts = cdist_opts or dict()
+        distance = cdist(cell_centers, reference_locs, **cdist_opts)
+
+        distance_weights = (((distance + threshold) ** exponent) ** -2).sum(axis=1)
+
+        distance_weights = distance_weights**0.5
+        distance_weights /= np.nanmax(distance_weights)
+
+    else:
+        raise ValueError(
+            f"Invalid engine '{engine}'. Engine should be either 'scipy' or 'numba'."
+        )
+
+    return distance_weights

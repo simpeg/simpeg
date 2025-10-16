@@ -5,7 +5,7 @@ from ..frequency_domain.survey import Survey
 from ...data import Data as BaseData
 from ...utils import mkvc
 from .sources import PlanewaveXYPrimary
-from .receivers import PointNaturalSource, Point3DTipper
+from .receivers import Impedance, Tipper
 from .utils.plot_utils import DataNSEMPlotMethods
 
 #########
@@ -80,12 +80,13 @@ class Data(BaseData, DataNSEMPlotMethods):
             ("tzy", complex),
         ]
 
+        survey_slices = self.survey.get_all_slices()
         for src in self.survey.source_list:
             # Temp array for all the receivers of the source.
             # Note: needs to be written more generally,
             # using diffterent rxTypes and not all the data at the locations
             # Assume the same locs for all RX
-            locs = src.receiver_list[0].locations
+            locs = src.receiver_list[0].locations_e
             if locs.shape[1] == 1:
                 locs = np.hstack((np.array([[0.0, 0.0]]), locs))
             elif locs.shape[1] == 2:
@@ -100,7 +101,7 @@ class Data(BaseData, DataNSEMPlotMethods):
             ).view(dtRI)
             # Get the type and the value for the DataNSEM object as a list
             typeList = [
-                [rx.orientation, rx.component, self[src, rx]]
+                [rx.orientation, rx.component, self.dobs[survey_slices[src, rx]]]
                 for rx in src.receiver_list
             ]
             # Insert the values to the temp array
@@ -185,32 +186,40 @@ class Data(BaseData, DataNSEMPlotMethods):
                     if dFreq[rxType].dtype.name in "complex128":
                         if "t" in rxType:
                             receiver_list.append(
-                                Point3DTipper(locs, rxType[1:3], "real")
+                                Tipper(locs, orientation=rxType[1:3], component="real")
                             )
                             dataList.append(dFreq[rxType][notNaNind].real.copy())
                             receiver_list.append(
-                                Point3DTipper(locs, rxType[1:3], "imag")
+                                Tipper(locs, orientation=rxType[1:3], component="imag")
                             )
                             dataList.append(dFreq[rxType][notNaNind].imag.copy())
                         elif "z" in rxType:
                             receiver_list.append(
-                                PointNaturalSource(locs, rxType[1:3], "real")
+                                Impedance(
+                                    locs, orientation=rxType[1:3], component="real"
+                                )
                             )
                             dataList.append(dFreq[rxType][notNaNind].real.copy())
                             receiver_list.append(
-                                PointNaturalSource(locs, rxType[1:3], "imag")
+                                Impedance(
+                                    locs, orientation=rxType[1:3], component="imag"
+                                )
                             )
                             dataList.append(dFreq[rxType][notNaNind].imag.copy())
                     else:
                         component = "real" if "r" in rxType else "imag"
                         if "z" in rxType:
                             receiver_list.append(
-                                PointNaturalSource(locs, rxType[1:3], component)
+                                Impedance(
+                                    locs, orientation=rxType[1:3], component=component
+                                )
                             )
                             dataList.append(dFreq[rxType][notNaNind].copy())
                         if "t" in rxType:
                             receiver_list.append(
-                                Point3DTipper(locs, rxType[1:3], component)
+                                Tipper(
+                                    locs, orientation=rxType[1:3], component=component
+                                )
                             )
                             dataList.append(dFreq[rxType][notNaNind].copy())
 

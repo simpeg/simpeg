@@ -1,3 +1,4 @@
+from copy import deepcopy
 import numpy as np
 import unittest
 import discretize
@@ -7,6 +8,13 @@ import scipy.sparse as sp
 from simpeg import maps, models, utils
 from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
 import inspect
+
+from simpeg.maps._parametric import (
+    BaseParametric,
+    ParametricLayer,
+    ParametricBlock,
+    ParametricEllipsoid,
+)
 
 TOL = 1e-14
 
@@ -24,6 +32,7 @@ REMOVED_IGNORE = [
 MAPS_TO_EXCLUDE_2D = [
     "ComboMap",
     "ActiveCells",
+    "EffectiveSusceptibilityMap",
     "InjectActiveCells",
     "LogMap",
     "LinearMap",
@@ -51,6 +60,7 @@ MAPS_TO_EXCLUDE_2D = [
 MAPS_TO_EXCLUDE_3D = [
     "ComboMap",
     "ActiveCells",
+    "EffectiveSusceptibilityMap",
     "InjectActiveCells",
     "LogMap",
     "LinearMap",
@@ -184,63 +194,30 @@ class MapTests(unittest.TestCase):
     def test_ParametricCasingAndLayer(self):
         mapping = maps.ParametricCasingAndLayer(self.meshCyl)
         m = np.r_[-2.0, 1.0, 6.0, 2.0, -0.1, 0.2, 0.5, 0.2, -0.2, 0.2]
-        self.assertTrue(mapping.test(m=m))
+        self.assertTrue(mapping.test(m=m, random_seed=42))
 
     def test_ParametricBlock2D(self):
         mesh = discretize.TensorMesh([np.ones(30), np.ones(20)], x0=np.array([-15, -5]))
         mapping = maps.ParametricBlock(mesh)
         # val_background,val_block, block_x0, block_dx, block_y0, block_dy
         m = np.r_[-2.0, 1.0, -5, 10, 5, 4]
-        self.assertTrue(mapping.test(m=m))
+        self.assertTrue(mapping.test(m=m, random_seed=42))
 
     def test_transforms_logMap_reciprocalMap(self):
-        # Note that log/reciprocal maps can be kinda finicky, so we are being
-        # explicit about the random seed.
-
-        v2 = np.r_[
-            0.40077291, 0.1441044, 0.58452314, 0.96323738, 0.01198519, 0.79754415
-        ]
-        dv2 = np.r_[
-            0.80653921, 0.13132446, 0.4901117, 0.03358737, 0.65473762, 0.44252488
-        ]
-        v3 = np.r_[
-            0.96084865,
-            0.34385186,
-            0.39430044,
-            0.81671285,
-            0.65929109,
-            0.2235217,
-            0.87897526,
-            0.5784033,
-            0.96876393,
-            0.63535864,
-            0.84130763,
-            0.22123854,
-        ]
-        dv3 = np.r_[
-            0.96827838,
-            0.26072111,
-            0.45090749,
-            0.10573893,
-            0.65276365,
-            0.15646586,
-            0.51679682,
-            0.23071984,
-            0.95106218,
-            0.14201845,
-            0.25093564,
-            0.3732866,
-        ]
 
         mapping = maps.LogMap(self.mesh2)
-        self.assertTrue(mapping.test(m=v2, dx=dv2))
+        self.assertTrue(mapping.test(random_seed=42))
         mapping = maps.LogMap(self.mesh3)
-        self.assertTrue(mapping.test(m=v3, dx=dv3))
+        self.assertTrue(mapping.test(random_seed=42))
 
         mapping = maps.ReciprocalMap(self.mesh2)
-        self.assertTrue(mapping.test(m=v2, dx=dv2))
+        self.assertTrue(mapping.test(random_seed=42))
         mapping = maps.ReciprocalMap(self.mesh3)
-        self.assertTrue(mapping.test(m=v3, dx=dv3))
+        self.assertTrue(mapping.test(random_seed=42))
+
+    def test_EffectiveSusceptibilityMap(self):
+        mapping = maps.EffectiveSusceptibilityMap(50000.0, mesh=self.mesh3)
+        self.assertTrue(mapping.test(random_seed=42))
 
     def test_Mesh2MeshMap(self):
         mapping = maps.Mesh2Mesh([self.mesh22, self.mesh2])
@@ -373,7 +350,9 @@ class MapTests(unittest.TestCase):
     def test_ParametricPolyMap(self):
         M2 = discretize.TensorMesh([np.ones(10), np.ones(10)], "CN")
         mParamPoly = maps.ParametricPolyMap(M2, 2, logSigma=True, normal="Y")
-        self.assertTrue(mParamPoly.test(m=np.r_[1.0, 1.0, 0.0, 0.0, 0.0]))
+        self.assertTrue(
+            mParamPoly.test(m=np.r_[1.0, 1.0, 0.0, 0.0, 0.0], random_seed=42)
+        )
 
     def test_ParametricSplineMap(self):
         M2 = discretize.TensorMesh([np.ones(10), np.ones(10)], "CN")
@@ -386,7 +365,8 @@ class MapTests(unittest.TestCase):
         block = maps.ParametricBlock(M1)
         self.assertTrue(
             block.test(
-                m=np.hstack([np.random.rand(2), np.r_[M1.x0, 2 * M1.h[0].min()]])
+                m=np.hstack([np.random.rand(2), np.r_[M1.x0, 2 * M1.h[0].min()]]),
+                random_seed=42,
             )
         )
 
@@ -400,7 +380,8 @@ class MapTests(unittest.TestCase):
                         np.r_[M2.x0[0], 2 * M2.h[0].min()],
                         np.r_[M2.x0[1], 4 * M2.h[1].min()],
                     ]
-                )
+                ),
+                random_seed=42,
             )
         )
 
@@ -415,7 +396,8 @@ class MapTests(unittest.TestCase):
                         np.r_[M3.x0[1], 4 * M3.h[1].min()],
                         np.r_[M3.x0[2], 5 * M3.h[2].min()],
                     ]
-                )
+                ),
+                random_seed=42,
             )
         )
 
@@ -430,7 +412,8 @@ class MapTests(unittest.TestCase):
                         np.r_[M2.x0[0], 2 * M2.h[0].min()],
                         np.r_[M2.x0[1], 4 * M2.h[1].min()],
                     ]
-                )
+                ),
+                random_seed=42,
             )
         )
 
@@ -445,7 +428,8 @@ class MapTests(unittest.TestCase):
                         np.r_[M3.x0[1], 4 * M3.h[1].min()],
                         np.r_[M3.x0[2], 5 * M3.h[2].min()],
                     ]
-                )
+                ),
+                random_seed=42,
             )
         )
 
@@ -471,8 +455,8 @@ class MapTests(unittest.TestCase):
 
         self.assertTrue(np.all(summap0 * m0 == summap1 * m0))
 
-        self.assertTrue(summap0.test(m=m0))
-        self.assertTrue(summap1.test(m=m0))
+        self.assertTrue(summap0.test(m=m0, random_seed=42))
+        self.assertTrue(summap1.test(m=m0, random_seed=42))
 
     def test_surject_units(self):
         M2 = discretize.TensorMesh([np.ones(10), np.ones(20)], "CC")
@@ -486,7 +470,7 @@ class MapTests(unittest.TestCase):
 
         self.assertTrue(np.all(m1[unit1] == 0))
         self.assertTrue(np.all(m1[unit2] == 1))
-        self.assertTrue(surject_units.test(m=m0))
+        self.assertTrue(surject_units.test(m=m0, random_seed=42))
 
     def test_Projection(self):
         nP = 10
@@ -634,16 +618,14 @@ class TestSCEMT(unittest.TestCase):
     def test_sphericalInclusions(self):
         mesh = discretize.TensorMesh([4, 5, 3])
         mapping = maps.SelfConsistentEffectiveMedium(mesh, sigma0=1e-1, sigma1=1.0)
-        m = np.random.default_rng(seed=0).random(mesh.n_cells)
-        mapping.test(m=m, dx=0.05 * np.ones(mesh.n_cells), num=3)
+        mapping.test(num=3, random_seed=42)
 
     def test_spheroidalInclusions(self):
         mesh = discretize.TensorMesh([4, 3, 2])
         mapping = maps.SelfConsistentEffectiveMedium(
             mesh, sigma0=1e-1, sigma1=1.0, alpha0=0.8, alpha1=0.9, rel_tol=1e-8
         )
-        m = np.abs(np.random.rand(mesh.nC))
-        mapping.test(m=m, dx=0.05 * np.ones(mesh.n_cells), num=3)
+        mapping.test(num=3, random_seed=42)
 
 
 @pytest.mark.parametrize(
@@ -770,6 +752,363 @@ def test_linearity():
 
     assert all(m.is_linear for m in linear_maps)
     assert all(not m.is_linear for m in non_linear_maps)
+
+
+class RemovedIndActive:
+    """Base class to test removed ``actInd`` and ``indActive`` arguments in maps."""
+
+    @pytest.fixture
+    def mesh(self):
+        """Sample mesh."""
+        return discretize.TensorMesh([np.ones(10), np.ones(10)], "CN")
+
+    @pytest.fixture
+    def active_cells(self, mesh):
+        """Sample active cells for the mesh."""
+        active_cells = np.ones(mesh.n_cells, dtype=bool)
+        active_cells[0] = False
+        return active_cells
+
+    def get_message_removed_error(self, old_name, new_name, version="v0.24.0"):
+        msg = (
+            f"'{old_name}' was removed in "
+            f"SimPEG {version}, please use '{new_name}' instead."
+        )
+        return msg
+
+
+class TestParametricPolyMap(RemovedIndActive):
+    """Test removed ``actInd`` in ParametricPolyMap."""
+
+    def test_error_argument(self, mesh, active_cells):
+        """
+        Test if error is raised after passing ``actInd`` to the constructor.
+        """
+        msg = "Unsupported keyword argument actInd"
+        with pytest.raises(TypeError, match=msg):
+            maps.ParametricPolyMap(mesh, 2, actInd=active_cells)
+
+    def test_error_accessing_property(self, mesh, active_cells):
+        """
+        Test error when trying to access the ``actInd`` property.
+        """
+        mapping = maps.ParametricPolyMap(mesh, 2, active_cells=active_cells)
+        msg = "actInd has been removed, please use active_cells"
+        with pytest.raises(NotImplementedError, match=msg):
+            mapping.actInd
+
+    def test_error_setter(self, mesh, active_cells):
+        """
+        Test error when trying to set the ``actInd`` property.
+        """
+        mapping = maps.ParametricPolyMap(mesh, 2, active_cells=active_cells)
+        msg = "actInd has been removed, please use active_cells"
+        with pytest.raises(NotImplementedError, match=msg):
+            mapping.actInd = active_cells
+
+
+class TestMesh2Mesh(RemovedIndActive):
+    """Test removed ``indActive`` in ``Mesh2Mesh``."""
+
+    @pytest.fixture
+    def meshes(self, mesh):
+        return [mesh, deepcopy(mesh)]
+
+    def test_error_argument(self, meshes, active_cells):
+        """
+        Test if error is raised after passing ``indActive`` to the constructor.
+        """
+        msg = self.get_message_removed_error("indActive", "active_cells")
+        with pytest.raises(TypeError, match=msg):
+            maps.Mesh2Mesh(meshes, indActive=active_cells)
+
+    def test_error_accessing_property(self, meshes, active_cells):
+        """
+        Test error when trying to access the ``indActive`` property.
+        """
+        mapping = maps.Mesh2Mesh(meshes, active_cells=active_cells)
+        msg = "indActive has been removed, please use active_cells"
+        with pytest.raises(NotImplementedError, match=msg):
+            mapping.indActive
+
+    def test_warning_setter(self, meshes, active_cells):
+        """
+        Test warning when trying to set the ``indActive`` property.
+        """
+        mapping = maps.Mesh2Mesh(meshes, active_cells=active_cells)
+        msg = "indActive has been removed, please use active_cells"
+        with pytest.raises(NotImplementedError, match=msg):
+            mapping.indActive = active_cells
+
+
+class TestInjectActiveCells(RemovedIndActive):
+    """Test removed ``indActive`` and ``valInactive`` in ``InjectActiveCells``."""
+
+    def test_indactive_error_argument(self, mesh, active_cells):
+        """
+        Test if error is raised after passing ``indActive`` to the constructor.
+        """
+        msg = self.get_message_removed_error("indActive", "active_cells")
+        with pytest.raises(TypeError, match=msg):
+            maps.InjectActiveCells(mesh, indActive=active_cells)
+
+    def test_indactive_error_accessing_property(self, mesh, active_cells):
+        """
+        Test error when trying to access the ``indActive`` property.
+        """
+        mapping = maps.InjectActiveCells(mesh, active_cells=active_cells)
+        msg = "indActive has been removed, please use active_cells"
+        with pytest.raises(NotImplementedError, match=msg):
+            mapping.indActive
+
+    def test_indactive_error_setter(self, mesh, active_cells):
+        """
+        Test error when trying to set the ``indActive`` property.
+        """
+        mapping = maps.InjectActiveCells(mesh, active_cells=active_cells)
+        msg = "indActive has been removed, please use active_cells"
+        with pytest.raises(NotImplementedError, match=msg):
+            mapping.indActive = active_cells
+
+    @pytest.mark.parametrize("value_inactive", (3.14, np.array([1])))
+    def test_valinactive_error_argument(self, mesh, active_cells, value_inactive):
+        """
+        Test if error is raised after passing ``valInactive`` to the constructor.
+        """
+        msg = self.get_message_removed_error("valInactive", "value_inactive")
+        with pytest.raises(TypeError, match=msg):
+            maps.InjectActiveCells(
+                mesh, active_cells=active_cells, valInactive=value_inactive
+            )
+
+    def test_valinactive_error_accessing_property(self, mesh, active_cells):
+        """
+        Test error when trying to access the ``valInactive`` property.
+        """
+        mapping = maps.InjectActiveCells(
+            mesh, active_cells=active_cells, value_inactive=3.14
+        )
+        msg = "valInactive has been removed, please use value_inactive"
+        with pytest.raises(NotImplementedError, match=msg):
+            mapping.valInactive
+
+    def test_valinactive_error_setter(self, mesh, active_cells):
+        """
+        Test error when trying to set the ``valInactive`` property.
+        """
+        mapping = maps.InjectActiveCells(
+            mesh, active_cells=active_cells, value_inactive=3.14
+        )
+        msg = "valInactive has been removed, please use value_inactive"
+        with pytest.raises(NotImplementedError, match=msg):
+            mapping.valInactive = 4.5
+
+
+class TestParametric(RemovedIndActive):
+    """Test removed ``indActive`` in parametric mappings."""
+
+    CLASSES = (BaseParametric, ParametricLayer, ParametricBlock, ParametricEllipsoid)
+
+    @pytest.mark.parametrize("map_class", CLASSES)
+    def test_indactive_error_argument(self, mesh, active_cells, map_class):
+        """
+        Test if error is raised after passing ``indActive`` to the constructor.
+        """
+        msg = self.get_message_removed_error("indActive", "active_cells")
+        with pytest.raises(TypeError, match=msg):
+            map_class(mesh, indActive=active_cells)
+
+    @pytest.mark.parametrize("map_class", CLASSES)
+    def test_indactive_error_accessing_property(self, mesh, active_cells, map_class):
+        """
+        Test error when trying to access the ``indActive`` property.
+        """
+        mapping = map_class(mesh, active_cells=active_cells)
+        msg = "indActive has been removed, please use active_cells"
+        with pytest.raises(NotImplementedError, match=msg):
+            mapping.indActive
+
+    @pytest.mark.parametrize("map_class", CLASSES)
+    def test_indactive_error_setter(self, mesh, active_cells, map_class):
+        """
+        Test error when trying to set the ``indActive`` property.
+        """
+        mapping = map_class(mesh, active_cells=active_cells)
+        msg = "indActive has been removed, please use active_cells"
+        with pytest.raises(NotImplementedError, match=msg):
+            mapping.indActive = active_cells
+
+
+class TestParametricDeriv:
+    """
+    Test the ``deriv`` method of parametric maps.
+
+
+    Test if ``map.deriv(m) @ v`` is equivalent to ``map.deriv(m, v=v)``.
+    """
+
+    @pytest.fixture
+    def mesh_2d(self):
+        """Sample mesh."""
+        h = 10
+        return discretize.TensorMesh([h, h], "CC")
+
+    @pytest.fixture
+    def mesh_3d(self):
+        """Sample mesh."""
+        h = 10
+        return discretize.TensorMesh([h, h, h], "CCN")
+
+    @pytest.fixture
+    def cyl_mesh(self):
+        """Sample cylindrical mesh."""
+        return discretize.CylindricalMesh([4, 6, 5])
+
+    @pytest.mark.parametrize(
+        "map_class",
+        [
+            maps.ParametricBlock,
+            maps.ParametricBlockInLayer,
+            maps.ParametricEllipsoid,
+            maps.ParametricLayer,
+            maps.ParametricPolyMap,
+        ],
+    )
+    def test_deriv_mesh_3d(self, mesh_3d, map_class):
+        """
+        Test maps on a 3d mesh.
+        """
+        kwargs = {}
+        if map_class is maps.ParametricPolyMap:
+            kwargs["order"] = [1, 1]
+        mapping = map_class(mesh_3d, **kwargs)
+        model_size = mapping.shape[1]
+        rng = np.random.default_rng(seed=48)
+        model = rng.uniform(size=model_size)
+        v = rng.uniform(size=model_size)
+        derivative = mapping.deriv(model)
+        np.testing.assert_allclose(derivative @ v, mapping.deriv(model, v=v))
+
+    def test_deriv_mesh_2d(self, mesh_2d):
+        """
+        Test maps on a 2d mesh.
+        """
+        mapping = maps.ParametricCircleMap(mesh_2d)
+        model_size = mapping.shape[1]
+        rng = np.random.default_rng(seed=48)
+        model = rng.uniform(size=model_size)
+        v = rng.uniform(size=model_size)
+        derivative = mapping.deriv(model)
+        np.testing.assert_allclose(derivative @ v, mapping.deriv(model, v=v))
+
+    def test_deriv_cyl_mesh(self, cyl_mesh):
+        """
+        Test maps on a cylindrical mesh.
+        """
+        mapping = maps.ParametricCasingAndLayer(cyl_mesh)
+        model_size = mapping.shape[1]
+        rng = np.random.default_rng(seed=48)
+        model = rng.uniform(size=model_size)
+        v = rng.uniform(size=model_size)
+        derivative = mapping.deriv(model)
+        np.testing.assert_allclose(derivative @ v, mapping.deriv(model, v=v))
+
+
+def test_deriv_SelfConsistentEffectiveMedium():
+    """
+    Test deriv method of ``SelfConsistentEffectiveMedium``.
+    """
+    h = 10
+    mesh = discretize.TensorMesh([h, h, h], "CCN")
+    mapping = maps.SelfConsistentEffectiveMedium(mesh, sigma0=1, sigma1=2)
+    model_size = mapping.shape[1]
+    rng = np.random.default_rng(seed=48)
+    model = rng.uniform(size=model_size)
+    v = rng.uniform(size=model_size)
+    derivative = mapping.deriv(model)
+    np.testing.assert_allclose(derivative @ v, mapping.deriv(model, v=v), rtol=1e-6)
+
+
+class TestComplexMapDerivative:
+    """
+    Test deriv method of ComplexMap.
+    """
+
+    @pytest.fixture
+    def mesh(self):
+        return discretize.TensorMesh([4])
+
+    @pytest.fixture
+    def active_cells(self, mesh):
+        return mesh.cell_centers < 0.5
+
+    def test_deriv(self, mesh, active_cells):
+        """
+        Test the deriv method.
+
+        Since the mapping is linear, the derivative matrix times a vector should return
+        the same as evaluating the mapping on the same vector.
+        """
+        n_cells = mesh.n_cells
+        n_active_cells = np.sum(active_cells)
+        mapping = maps.ComplexMap(nP=n_active_cells * 2)
+        m = np.random.default_rng(seed=12).uniform(size=n_cells)
+        derivative = mapping.deriv(m)
+        expected = mapping * m
+        np.testing.assert_allclose(expected, derivative @ m)
+
+    def test_deriv_with_vector(self, mesh, active_cells):
+        """
+        Test the deriv method with a ``v`` argument.
+
+        Since the mapping is linear, the derivative matrix times a vector should return
+        the same as evaluating the mapping on the same vector.
+        """
+        n_cells = mesh.n_cells
+        n_active_cells = np.sum(active_cells)
+        mapping = maps.ComplexMap(nP=n_active_cells * 2)
+        rng = np.random.default_rng(seed=12)
+        m = rng.uniform(size=n_cells)
+        v = rng.uniform(size=n_cells)
+        derivative = mapping.deriv(m, v=v)
+        expected = mapping * v
+        np.testing.assert_allclose(expected, derivative)
+
+    def test_deriv_within_combo(self, mesh, active_cells):
+        """
+        Test the deriv method when being called within a ``ComboMap``.
+        """
+        n_cells = mesh.n_cells
+        n_active_cells = np.sum(active_cells)
+        inject_map = maps.InjectActiveCells(
+            mesh, active_cells=active_cells, value_inactive=0
+        )
+        complex_map = maps.ComplexMap(nP=n_active_cells * 2)
+        mapping = inject_map * complex_map
+        rng = np.random.default_rng(seed=12)
+        m = rng.uniform(size=n_cells)
+        expected = mapping * m
+        derivative = mapping.deriv(m)
+        np.testing.assert_allclose(expected, derivative @ m)
+
+    def test_deriv_within_combo_with_vector(self, mesh, active_cells):
+        """
+        Test the deriv method when being called within a ``ComboMap`` and ``v`` as an
+        array.
+        """
+        n_cells = mesh.n_cells
+        n_active_cells = np.sum(active_cells)
+        inject_map = maps.InjectActiveCells(
+            mesh, active_cells=active_cells, value_inactive=0
+        )
+        complex_map = maps.ComplexMap(nP=n_active_cells * 2)
+        mapping = inject_map * complex_map
+        rng = np.random.default_rng(seed=12)
+        m = rng.uniform(size=n_cells)
+        v = rng.uniform(size=n_cells)
+        derivative = mapping.deriv(m, v=v)
+        expected = mapping * v
+        np.testing.assert_allclose(expected, derivative)
 
 
 if __name__ == "__main__":

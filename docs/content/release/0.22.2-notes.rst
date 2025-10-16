@@ -1,0 +1,41 @@
+.. _0.22.2_notes:
+
+===========================
+SimPEG 0.22.2 Release Notes
+===========================
+
+September 11th, 2024
+
+.. contents:: Highlights
+    :depth: 2
+
+Updates
+=======
+
+This patch release includes a few fixes: SciPy solvers can now be used
+with newer versions of SciPy (``>=1.14``), we fixed a bug in one of the methods
+of the Gaussian Mixture Models used in PGI, we included a fix on one of the
+internal validation functions, and we also applied some minor improvements to
+the documentation pages.
+
+Contributors
+============
+
+- `@prisae <https://github.com/prisae>`__
+- `@santisoler <https://github.com/santisoler>`__
+
+Pull Requests
+=============
+
+-  Minor fixes to disclaimer in ``pgi_utils.py`` by `@prisae <https://github.com/prisae>`__ in
+   https://github.com/simpeg/simpeg/pull/1512
+-  Fix misuse of the ``requires`` decorator in ``code_utils.py`` by
+   `@prisae <https://github.com/prisae>`__ in https://github.com/simpeg/simpeg/pull/1513
+-  Use lowercase simpeg in a few missing docstrings by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1519
+-  Pass ``rtol`` to SciPy solvers for SciPy>=1.12 by `@prisae <https://github.com/prisae>`__ in
+   https://github.com/simpeg/simpeg/pull/1517
+-  Fix ``validate_ndarray_with_shape`` by `@prisae <https://github.com/prisae>`__ in
+   https://github.com/simpeg/simpeg/pull/1523
+-  Fix bug in GMM’s ``_check_weights`` by `@santisoler <https://github.com/santisoler>`__ in
+   https://github.com/simpeg/simpeg/pull/1526

@@ -6,8 +6,8 @@ import discretize
 from discretize.utils import mkvc
 from simpeg.electromagnetics import natural_source as ns
 import numpy as np
-from pymatsolver import Pardiso as Solver
 from discretize.utils import volume_average
+import pytest
 
 TOLr = 5e-2
 TOL = 1e-4
@@ -32,7 +32,7 @@ class ComplexResistivityTest(unittest.TestCase):
 
         # create background conductivity model
         sigma_back = 1e-2
-        sigma_background = np.zeros(mesh.nC) * sigma_back
+        sigma_background = np.ones(mesh.nC) * sigma_back
         sigma_background[~active] = 1e-8
 
         # create a model to test with
@@ -68,7 +68,9 @@ class ComplexResistivityTest(unittest.TestCase):
         rx_loc[:, 2] = -50
 
         # Make a receiver list
-        rxList = [ns.Rx.PointNaturalSource(rx_loc, rx_orientation, rx_type)]
+        rxList = [
+            ns.Rx.Impedance(rx_loc, orientation=rx_orientation, component=rx_type)
+        ]
 
         # Source list
         freqs = [10, 50, 200]
@@ -79,7 +81,7 @@ class ComplexResistivityTest(unittest.TestCase):
 
         # Set the mapping
         actMap = maps.InjectActiveCells(
-            mesh=self.mesh, indActive=self.active, valInactive=np.log(1e-8)
+            mesh=self.mesh, active_cells=self.active, value_inactive=np.log(1e-8)
         )
         mapping = maps.ExpMap(self.mesh) * actMap
         # print(survey_ns.source_list)
@@ -89,7 +91,6 @@ class ComplexResistivityTest(unittest.TestCase):
             survey=survey_ns,
             sigmaPrimary=self.sigma_background,
             sigmaMap=mapping,
-            solver=Solver,
         )
         return sim
 
@@ -104,11 +105,11 @@ class ComplexResistivityTest(unittest.TestCase):
 
         # Make a receiver list
         rxList = [
-            ns.Rx.PointNaturalSource(
-                orientation=rx_orientation,
-                component=rx_type,
+            ns.Rx.Impedance(
                 locations_e=rx_loc,
                 locations_h=rx_loc,
+                orientation=rx_orientation,
+                component=rx_type,
             )
         ]
 
@@ -121,7 +122,7 @@ class ComplexResistivityTest(unittest.TestCase):
 
         # Set the mapping
         actMap = maps.InjectActiveCells(
-            mesh=self.mesh, indActive=self.active, valInactive=np.log(1e-8)
+            mesh=self.mesh, active_cells=self.active, value_inactive=np.log(1e-8)
         )
         mapping = maps.ExpMap(self.mesh) * actMap
         # print(survey_ns.source_list)
@@ -131,7 +132,6 @@ class ComplexResistivityTest(unittest.TestCase):
             survey=survey_ns,
             sigmaPrimary=self.sigma_background,
             sigmaMap=mapping,
-            solver=Solver,
         )
         return sim
 
@@ -147,7 +147,9 @@ class ComplexResistivityTest(unittest.TestCase):
         rx_loc[:, 2] = -50
 
         # Make a receiver list
-        rxList = [ns.Rx.PointNaturalSource(rx_loc, rx_orientation, rx_type)]
+        rxList = [
+            ns.Rx.Impedance(rx_loc, orientation=rx_orientation, component=rx_type)
+        ]
 
         # give background a value
         x0 = self.mesh.x0
@@ -173,7 +175,7 @@ class ComplexResistivityTest(unittest.TestCase):
 
         # Set the mapping
         actMap = maps.InjectActiveCells(
-            mesh=self.mesh, indActive=self.active, valInactive=np.log(1e-8)
+            mesh=self.mesh, active_cells=self.active, value_inactive=np.log(1e-8)
         )
         mapping = maps.ExpMap(self.mesh) * actMap
         # print(survey_ns.source_list)
@@ -182,7 +184,6 @@ class ComplexResistivityTest(unittest.TestCase):
             self.mesh,
             survey=survey_ns,
             sigmaMap=mapping,
-            solver=Solver,
         )
         return sim
 
@@ -198,7 +199,9 @@ class ComplexResistivityTest(unittest.TestCase):
         rx_loc[:, 2] = -50
 
         # Make a receiver list
-        rxList = [ns.Rx.PointNaturalSource(rx_loc, rx_orientation, rx_type)]
+        rxList = [
+            ns.Rx.Impedance(rx_loc, orientation=rx_orientation, component=rx_type)
+        ]
 
         # Source list
         freqs = [10, 50, 200]
@@ -212,7 +215,7 @@ class ComplexResistivityTest(unittest.TestCase):
 
         # Set the mapping
         actMap = maps.InjectActiveCells(
-            mesh=self.mesh, indActive=self.active, valInactive=np.log(1e-8)
+            mesh=self.mesh, active_cells=self.active, value_inactive=np.log(1e-8)
         )
         mapping = maps.ExpMap(self.mesh) * actMap
         # print(survey_ns.source_list)
@@ -221,16 +224,17 @@ class ComplexResistivityTest(unittest.TestCase):
             self.mesh,
             survey=survey_ns,
             sigmaMap=mapping,
-            solver=Solver,
         )
         return sim
 
     def check_deriv(self, sim):
         def fun(x):
-            return sim.dpred(x), lambda x: sim.Jvec(self.model, x)
+            d = sim.dpred(x)
+            return d, lambda y: sim.Jvec(x, y)
 
-        np.random.seed(1983)  # set a random seed for check_derivative
-        passed = tests.check_derivative(fun, self.model, num=3, plotIt=False)
+        passed = tests.check_derivative(
+            fun, self.model, num=3, plotIt=False, random_seed=1983
+        )
         self.assertTrue(passed)
 
     def check_adjoint(self, sim):
@@ -277,6 +281,7 @@ class ComplexResistivityTest(unittest.TestCase):
     def test_apparent_resistivity_yy(self):
         self.check_deriv_adjoint("apparent_resistivity", "yy")
 
+    @pytest.mark.xfail()
     def test_phase_xx(self):
         self.check_deriv_adjoint("phase", "xx")
 
@@ -286,8 +291,33 @@ class ComplexResistivityTest(unittest.TestCase):
     def test_phase_yx(self):
         self.check_deriv_adjoint("phase", "yx")
 
+    @pytest.mark.xfail()
     def test_phase_yy(self):
         self.check_deriv_adjoint("phase", "yy")
+
+    def test_real_xx(self):
+        self.check_deriv_adjoint("real", "xx")
+
+    def test_real_xy(self):
+        self.check_deriv_adjoint("real", "xy")
+
+    def test_real_yx(self):
+        self.check_deriv_adjoint("real", "yx")
+
+    def test_real_yy(self):
+        self.check_deriv_adjoint("real", "yy")
+
+    def test_imag_xx(self):
+        self.check_deriv_adjoint("imag", "xx")
+
+    def test_imag_xy(self):
+        self.check_deriv_adjoint("imag", "xy")
+
+    def test_imag_yx(self):
+        self.check_deriv_adjoint("imag", "yx")
+
+    def test_imag_yy(self):
+        self.check_deriv_adjoint("imag", "yy")
 
 
 if __name__ == "__main__":

@@ -14,11 +14,6 @@ from simpeg import utils
 import numpy as np
 import matplotlib.pyplot as plt
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import Solver
-
 
 def run(plotIt=True):
     """
@@ -61,11 +56,19 @@ def run(plotIt=True):
     # Make a receiver list
     receiver_list = []
     for rx_orientation in ["xx", "xy", "yx", "yy"]:
-        receiver_list.append(NSEM.Rx.PointNaturalSource(rx_loc, rx_orientation, "real"))
-        receiver_list.append(NSEM.Rx.PointNaturalSource(rx_loc, rx_orientation, "imag"))
+        receiver_list.append(
+            NSEM.Rx.Impedance(rx_loc, orientation=rx_orientation, component="real")
+        )
+        receiver_list.append(
+            NSEM.Rx.Impedance(rx_loc, orientation=rx_orientation, component="imag")
+        )
     for rx_orientation in ["zx", "zy"]:
-        receiver_list.append(NSEM.Rx.Point3DTipper(rx_loc, rx_orientation, "real"))
-        receiver_list.append(NSEM.Rx.Point3DTipper(rx_loc, rx_orientation, "imag"))
+        receiver_list.append(
+            NSEM.Rx.Tipper(rx_loc, orientation=rx_orientation, component="real")
+        )
+        receiver_list.append(
+            NSEM.Rx.Tipper(rx_loc, orientation=rx_orientation, component="imag")
+        )
 
     # Source list
     source_list = [
@@ -79,7 +82,6 @@ def run(plotIt=True):
     problem = NSEM.Simulation3DPrimarySecondary(
         M,
         survey=survey,
-        solver=Solver,
         sigma=sig,
         sigmaPrimary=sigBG,
         forward_only=True,

@@ -47,8 +47,8 @@ docs/_build/
 docs/warnings.txt
 docs/content/api/generated/*
 .DS_Store
-docs/content/examples/*
-docs/content/tutorials/*
+docs/content/user-guide/examples/*
+docs/content/user-guide/tutorials/*
 docs/modules/*
 docs/sg_execution_times.rst
 .vscode/*

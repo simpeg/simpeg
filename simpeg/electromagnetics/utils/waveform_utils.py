@@ -119,6 +119,6 @@ def convolve_with_waveform(func, waveform, times, fargs=None, fkwargs=None):
             # just do not evaluate the integral at negative times...
             a = np.maximum(a, 0.0)
             b = np.maximum(b, 0.0)
-            val, _ = integrate.quadrature(integral, a, b, tol=0.0, maxiter=500, args=t)
+            val = integrate.quad(integral, a, b, epsabs=0.0, limit=500, args=t)[0]
             out[it] -= val
     return out

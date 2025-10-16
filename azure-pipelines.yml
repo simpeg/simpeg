@@ -42,6 +42,12 @@ stages:
     jobs:
       - template: .ci/azure/test.yml
 
+  - stage: Codecov
+    dependsOn: Testing
+    condition: succeededOrFailed()
+    jobs:
+      - template: .ci/azure/codecov.yml
+
   - stage: Docs
     dependsOn:
       - StyleChecks

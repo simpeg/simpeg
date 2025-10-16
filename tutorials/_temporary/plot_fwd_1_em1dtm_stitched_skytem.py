@@ -18,7 +18,6 @@ import os
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 from discretize import TensorMesh
-from pymatsolver import PardisoSolver
 
 from simpeg import maps
 from simpeg.utils import mkvc
@@ -265,7 +264,6 @@ simulation = em1d.simulation.StitchedEM1DTMSimulation(
     parallel=False,
     n_cpu=2,
     verbose=True,
-    Solver=PardisoSolver,
 )
 
 # simulation.model = sounding_models
