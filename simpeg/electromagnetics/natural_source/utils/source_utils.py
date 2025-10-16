@@ -589,7 +589,7 @@ def project_1d_fields_to_mesh_edges(mesh, u_1d):
     numpy.ndarray (n_edges, n_polarization)
         Fields on the edges of the mesh for each polarization.
     """
-    if len(u_1d) != mesh.n_edges_per_direction[mesh.dim - 1]:
+    if len(u_1d) != len(mesh.h[-1])+1:
         raise ValueError("Length of u_1d must match number of vertical edges in mesh.")
 
     if mesh.dim == 1:
