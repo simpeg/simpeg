@@ -13,6 +13,7 @@ from ....utils import (
     validate_active_indices,
 )
 from ....base import BaseElectricalPDESimulation
+from ....base.pde_simulation import _inner_mat_mul_op
 from ....data import Data
 
 from .survey import Survey
@@ -707,14 +708,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
                 self._MBC_sigma = {}
             if ky not in self._MBC_sigma:
                 self._MBC_sigma[ky] = self._AvgBC[ky] @ self.sigmaDeriv
-            if not isinstance(u, Zero):
-                u = u.flatten()
-                if v.ndim > 1:
-                    u = u[:, None]
-                if not adjoint:
-                    out += u * (self._MBC_sigma[ky] @ v)
-                else:
-                    out += self._MBC_sigma[ky].T @ (u * v)
+            out += _inner_mat_mul_op(self._MBC_sigma[ky], u, v, adjoint)
         return out
 
     def getRHS(self, ky):
