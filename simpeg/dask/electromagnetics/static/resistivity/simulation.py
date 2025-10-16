@@ -58,7 +58,7 @@ def dask_getJ(self, m, f=None):
             ind = 0
             for _ in range(n_block_col):
                 ATinvdf_duT = da.asarray(
-                    (self.Ainv * df_duT[:, ind : ind + n_col]).squeeze()
+                    self.Ainv * df_duT[:, ind : ind + n_col]
                 ).rechunk((nrows, n_col))
 
                 dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
