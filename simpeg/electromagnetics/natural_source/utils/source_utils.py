@@ -27,7 +27,6 @@ def homo1DModelSource(mesh, freq, sigma_1d):
     numpy.ndarray (n_edges, 2)
         E fields for the background model at both polarizations with shape.
     """
-
     # Get a 1d solution for a halfspace background
     if mesh.dim == 1:
         mesh1d = mesh
@@ -380,8 +379,8 @@ def primary_e_1d_solution(
     else:
         raise ValueError("'top_bc' must be one of {'dirichlet', 'neumann'}.")
 
-    P_fixed = sp.eye(mesh_ext.n_nodes, format='csc')[:, fixed_nodes]
-    P_free = sp.eye(mesh_ext.n_nodes, format='csc')[:, ~fixed_nodes]
+    P_fixed = sp.eye(mesh_ext.n_nodes, format="csc")[:, fixed_nodes]
+    P_free = sp.eye(mesh_ext.n_nodes, format="csc")[:, ~fixed_nodes]
     q_free = P_free.T @ (q - A @ (P_fixed @ e_fixed))
     A_free = P_free.T @ A @ P_free
 
@@ -558,12 +557,12 @@ def primary_h_1d_solution(
         fixed_nodes[-1] = True
         h_fixed.append(1.0)
     elif top_bc == "neumann":
-        q[-1] = 1.
+        q[-1] = 1.0
     else:
         raise ValueError("'top_bc' must be one of {'dirichlet', 'neumann'}.")
 
-    P_fixed = sp.eye(mesh_ext.n_nodes, format='csc')[:, fixed_nodes]
-    P_free = sp.eye(mesh_ext.n_nodes, format='csc')[:, ~fixed_nodes]
+    P_fixed = sp.eye(mesh_ext.n_nodes, format="csc")[:, fixed_nodes]
+    P_free = sp.eye(mesh_ext.n_nodes, format="csc")[:, ~fixed_nodes]
     q_free = P_free.T @ (q - A @ (P_fixed @ h_fixed))
     A_free = P_free.T @ A @ P_free
 
