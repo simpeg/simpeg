@@ -4,14 +4,6 @@ import warnings
 from .survey import BaseSurvey
 from .utils import mkvc, validate_ndarray_with_shape, validate_float, validate_type
 
-try:
-    from warnings import deprecated
-except ImportError:
-    # Use the deprecated decorator provided by typing_extensions (which
-    # supports older versions of Python) if it cannot be imported from
-    # warnings.
-    from typing_extensions import deprecated
-
 
 __all__ = ["Data", "SyntheticData"]
 
@@ -291,53 +283,6 @@ class Data:
             The shape of the array containing the observed data
         """
         return self.dobs.shape
-
-    @property
-    @deprecated(
-        "The `index_dictionary` property has been deprecated. "
-        "Use the `get_slice()` or `get_all_slices()` methods provided "
-        "by the Survey object instead."
-        "This property will be removed in SimPEG v0.25.0.",
-        category=FutureWarning,
-    )
-    def index_dictionary(self):
-        """Dictionary for indexing data by sources and receiver.
-
-        FULL DESCRIPTION REQUIRED
-
-        Returns
-        -------
-        dict
-            Dictionary for indexing data by source and receiver
-
-        Examples
-        --------
-        NEED EXAMPLE (1D TEM WOULD BE GOOD)
-
-        """
-        if getattr(self, "_index_dictionary", None) is None:
-            if self.survey is None:
-                raise Exception(
-                    "To set or get values by source-receiver pairs, a survey must "
-                    "first be set. `data.survey = survey`"
-                )
-
-            # create an empty dict
-            self._index_dictionary = {}
-
-            # create an empty dict associated with each source
-            for src in self.survey.source_list:
-                self._index_dictionary[src] = {}
-
-            # loop over sources and find the associated data indices
-            indBot, indTop = 0, 0
-            for src in self.survey.source_list:
-                for rx in src.receiver_list:
-                    indTop += rx.nD
-                    self._index_dictionary[src][rx] = np.arange(indBot, indTop)
-                    indBot += rx.nD
-
-        return self._index_dictionary
 
     ##########################
     # Methods
