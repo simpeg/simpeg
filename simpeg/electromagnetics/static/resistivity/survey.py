@@ -276,7 +276,7 @@ class Survey(BaseSurvey):
                 "Argument ``option`` is deprecated in favor of ``topo_cell_cutoff`` "
                 "and will be removed in SimPEG v0.27.0."
             )
-            warnings.warn(msg, FutureWarning)
+            warnings.warn(msg, FutureWarning, stacklevel=2)
             topo_cell_cutoff = option
 
         if self.survey_geometry == "surface":
