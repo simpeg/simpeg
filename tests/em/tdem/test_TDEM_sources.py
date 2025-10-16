@@ -1,5 +1,7 @@
 import unittest
+import re
 
+import pytest
 import numpy as np
 import scipy.sparse as sp
 from discretize.tests import check_derivative
@@ -36,26 +38,20 @@ class TestStepOffWaveform(unittest.TestCase):
         assert_array_almost_equal(result, expected)
 
 
-class TestRampOffWaveform(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.times = np.linspace(start=0, stop=1e-2, num=11)
+@pytest.mark.parametrize("ramp_start", [-1e-3, 0, 1e-3])
+@pytest.mark.parametrize("ramp_end", [1e-2, 5e-3])
+class TestRampOffWaveform:
+    times = np.linspace(start=-1e-2, stop=2e-2, num=31)
 
-    def test_waveform_with_whole_offtime(self):
-        ramp_off = RampOffWaveform(off_time=1e-2)
+    def test_waveform_evaluate(self, ramp_start, ramp_end):
+        ramp_off = RampOffWaveform(ramp_start=ramp_start, ramp_end=ramp_end)
         result = [ramp_off.eval(t) for t in self.times]
-        expected = np.array([1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0])
+        expected = np.interp(self.times, ramp_off.time_nodes, [1, 0])
         assert_array_almost_equal(result, expected)
 
-    def test_waveform_with_partial_off_time(self):
-        ramp_off = RampOffWaveform(off_time=5e-3)
-        result = [ramp_off.eval(t) for t in self.times]
-        expected = np.array([1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-        assert_array_almost_equal(result, expected)
-
-    def test_waveform_derivative(self):
+    def test_waveform_derivative(self, ramp_start, ramp_end):
         # Test the waveform derivative at points between the time_nodes
-        wave = RampOffWaveform(off_time=1e-2)
+        wave = RampOffWaveform(ramp_start=ramp_start, ramp_end=ramp_end)
 
         def f(t):
             wave_eval = np.array([wave.eval(ti) for ti in t])
@@ -72,6 +68,27 @@ class TestRampOffWaveform(unittest.TestCase):
         dt = np.min(np.diff(t0)) * 0.5 * np.ones_like(t0)
 
         assert check_derivative(f, t0, dx=dt, plotIt=False, random_seed=5421)
+
+
+@pytest.mark.parametrize("attr", ["ramp_end", "off_time"])
+def test_ramp_off_time_is_ramp_end(attr):
+    t_off = 0.01
+    ramp = RampOffWaveform(**{attr: t_off})
+    assert ramp.ramp_end == t_off
+    assert ramp.off_time == t_off
+
+    t2_off = 0.02
+    setattr(ramp, attr, t2_off)
+    assert ramp.ramp_end == t2_off
+    assert ramp.off_time == t2_off
+
+
+def test_ramp_off_bad_end():
+    with pytest.raises(
+        ValueError,
+        match=re.escape("'ramp_end' must be a value in the range [0.1, inf]"),
+    ):
+        RampOffWaveform(ramp_start=0.1, ramp_end=0.0)
 
 
 class TestVTEMWaveform(unittest.TestCase):
