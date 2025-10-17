@@ -170,6 +170,7 @@ List of custom warnings used in SimPEG.
 .. autosummary::
   :toctree: generated/
 
+  BreakingChangeWarning
   PerformanceWarning
 """
 
@@ -267,4 +268,4 @@ from .pgi_utils import (
     GaussianMixtureWithNonlinearRelationshipsWithPrior,
 )
 from .solver_utils import get_default_solver, set_default_solver
-from .warnings import PerformanceWarning
+from .warnings import BreakingChangeWarning, PerformanceWarning
