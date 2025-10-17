@@ -1746,8 +1746,17 @@ def genTopography(mesh, zmin, zmax, seed=None, its=100, anisotropy=None):
         raise Exception("Only works for 2D and 3D models")
 
 
+@deprecated(
+    "The `closestPointsGrid` function is now deprecated. "
+    "It will be removed in SimPEG v0.27.0.",
+    category=FutureWarning,
+)
 def closestPointsGrid(grid, pts, dim=2):
     """Return indices of closest gridded points for a set of input points.
+
+    .. deprecated:: 0.25.0
+
+        ``closestPointsGrid`` will be removed in SimPEG v0.27.0.
 
     Parameters
     ----------
@@ -1763,12 +1772,6 @@ def closestPointsGrid(grid, pts, dim=2):
     (n,) numpy.ndarray
         Indices of the closest gridded points for all *pts* supplied.
     """
-    warnings.warn(
-        "closestPointsGrid is now deprecated. It will be removed in SimPEG version 0.26.0.",
-        FutureWarning,
-        stacklevel=2,
-    )
-
     if dim == 1:
         nodeInds = np.asarray(
             [np.abs(pt - grid).argmin() for pt in pts.tolist()], dtype=int
