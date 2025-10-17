@@ -858,10 +858,10 @@ class SmoothnessFirstOrder(BaseRegularization):
     .. math::
 
         \phi(\mathbf{m}) =
-            \lVert
+            \left\lVert
             \mathbf{W G_x}
             \left[ \mathbf{m} - \mathbf{m}^\text{ref} \right]
-            \rVert^2
+            \right\rVert^2
 
     This functionality is used by setting a reference model with the `reference_model`
     property, and by setting the `reference_model_in_smooth` parameter to ``True``.
@@ -876,10 +876,10 @@ class SmoothnessFirstOrder(BaseRegularization):
     .. math::
 
         \phi (m) = \int_\Omega \, w(\mathbf{r}) \,
-        \lvert
+        \left\lvert
         \frac{\partial}{\partial x}
         \left[ \mu(m) - \mu(m^\text{ref}) \right]
-        \rvert^2 \, d\mathbf{r}
+        \right\rvert^2 \, d\mathbf{r}
 
     In matrix form, the previous equation is expressed as:
 
@@ -1301,10 +1301,10 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
     .. math::
 
         \phi(\mathbf{m}) =
-            \lVert
+            \left\lVert
             \mathbf{W L_x}
             \left[ \mathbf{m} - \mathbf{m}^\text{ref} \right]
-            \rVert^2
+            \right\rVert^2
 
     This functionality is used by setting a reference model with the `reference_model`
     property, and by setting the `reference_model_in_smooth` parameter to ``True``.
@@ -1319,17 +1319,17 @@ class SmoothnessSecondOrder(SmoothnessFirstOrder):
     .. math::
 
         \phi (m) = \int_\Omega \, w(\mathbf{r}) \,
-        \lvert
+        \left\lvert
         \frac{\partial^2}{\partial x^2}
         \left[ \mu(m) - \mu(m^\text{ref}) \right]
-        t\rvert^2 \, d\mathbf{r}
+        \right\rvert^2 \, d\mathbf{r}
 
     In matrix form, the previous equation is expressed as:
 
     .. math::
 
         \phi (\mathbf{m}) =
-        \lVert
+        \left\lVert
         \mathbf{W}
         \mathbf{L_x}
         \left[ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \right]
