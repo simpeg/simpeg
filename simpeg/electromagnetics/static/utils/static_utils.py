@@ -1536,6 +1536,12 @@ def gettopoCC(mesh, active_cells, option="top"):
     """
     Generate surface topography from active indices of mesh.
 
+    .. deprecated:: 0.25.0
+
+        ``gettopoCC`` will be removed in SimPEG v0.27.0.
+        Please, use the :func:`simpeg.utils.get_discrete_topography` function
+        instead.
+
     Parameters
     ----------
     mesh : discretize.TensorMesh or discretize.TreeMesh
@@ -1614,6 +1620,12 @@ def drapeTopotoLoc(mesh, pts, active_cells=None, option="top", topo=None, **kwar
 
     This function projects the set of locations provided to the discrete
     surface topography.
+
+    .. deprecated:: 0.25.0
+
+        ``drapeTopotoLoc`` will be removed in SimPEG v0.27.0.
+        Please, use the :func:`simpeg.utils.shift_to_discrete_topography` function
+        instead.
 
     Parameters
     ----------
