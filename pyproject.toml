@@ -263,5 +263,6 @@ filterwarnings = [
     "error:The `index_dictionary` property has been deprecated:FutureWarning",
     'error:The `simpeg\.directives\.[a-z_]+` submodule has been deprecated',
     'error:Casting complex values to real discards the imaginary part',
+    'ignore::simpeg.utils.BreakingChangeWarning',
 ]
 xfail_strict = true
