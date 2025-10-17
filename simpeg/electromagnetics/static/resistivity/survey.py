@@ -264,6 +264,7 @@ class Survey(BaseSurvey):
             When True, locations are shifted horizontally to lie vertically over cell
             centers. When False, the original horizontal locations are preserved.
         option : {"top", "center"}
+            Define topography at tops of cells or cell centers.
 
             .. deprecated:: 0.25.0
 
