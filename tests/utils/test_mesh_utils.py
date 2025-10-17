@@ -116,11 +116,3 @@ def test_size_errors():
 
     with pytest.raises(ValueError):
         shift_to_discrete_topography(mesh, pts, active_cells, heights=heights)
-
-
-# mesh_type = "tensor"
-# dim = 3
-# option = "top"
-# shift_horizontal = True
-# heights = 0.0
-# test_function_success(mesh_type, dim, option, shift_horizontal, heights)
