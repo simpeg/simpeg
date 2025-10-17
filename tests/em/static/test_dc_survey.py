@@ -41,8 +41,8 @@ class TestDeprecatedOption:
     def mesh(self):
         return TensorMesh((5, 5, 5))
 
-    def test_error(self, mesh):
-        """Test if error is raised after passing ``option`` as argument."""
+    def test_warning(self, mesh):
+        """Test if warning is raised after passing ``option`` as argument."""
         receivers_list = [
             receivers.Dipole(
                 locations_m=[[1, 2, 3], [4, 5, 6]],
@@ -61,9 +61,7 @@ class TestDeprecatedOption:
         )
         active_cells = np.ones(mesh.n_cells, dtype=bool)
         with pytest.warns(FutureWarning, match=msg):
-            survey.drape_electrodes_on_topography(
-                mesh, active_cells, topo_cell_cutoff=None, option="top"
-            )
+            survey.drape_electrodes_on_topography(mesh, active_cells, option="top")
 
 
 def test_repr():
