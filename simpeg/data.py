@@ -374,12 +374,11 @@ class SyntheticData(Data):
         Notes
         --------
         This array should be indexing the data object
-        using the a tuple of the survey's sources and receivers.
+        using a tuple of the survey's sources and receivers.
 
         >>> data = Data(survey)
         >>> for src in survey.source_list:
         ...     for rx in src.receiver_list:
-        ...         index = data.index_dictionary(src, rx)
         ...         data.dclean[src, rx] = datum
 
         """
