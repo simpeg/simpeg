@@ -78,6 +78,8 @@ Mesh Utility Functions
   :toctree: generated/
 
   surface2inds
+  get_discrete_topography
+  shift_to_discrete_topography
 
 
 Model Utility Functions
@@ -242,6 +244,8 @@ from .mesh_utils import (
     closest_points_index,
     extract_core_mesh,
     surface2inds,
+    get_discrete_topography,
+    shift_to_discrete_topography,
 )
 from .curv_utils import (
     volume_tetrahedron,
