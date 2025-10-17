@@ -1532,7 +1532,7 @@ def r_unit(p1, p2):
     "simpeg.utils",
     category=FutureWarning,
 )
-def gettopoCC(mesh, active_cells, option="top"):
+def gettopoCC(mesh, ind_active, option="top"):
     """
     Generate surface topography from active indices of mesh.
 
@@ -1546,7 +1546,7 @@ def gettopoCC(mesh, active_cells, option="top"):
     ----------
     mesh : discretize.TensorMesh or discretize.TreeMesh
         A tensor or tree mesh
-    active_cells : numpy.ndarray of bool or int
+    ind_active : numpy.ndarray of bool or int
         Active cells index; i.e. indices of cells below surface
     option : {"top", "center"}
         Use string to specify if the surface passes through the
@@ -1561,7 +1561,7 @@ def gettopoCC(mesh, active_cells, option="top"):
         if mesh.dim == 3:
             mesh2D = discretize.TensorMesh([mesh.h[0], mesh.h[1]], mesh.x0[:2])
             zc = mesh.cell_centers[:, 2]
-            ACTIND = active_cells.reshape(
+            ACTIND = ind_active.reshape(
                 (mesh.vnC[0] * mesh.vnC[1], mesh.vnC[2]), order="F"
             )
             ZC = zc.reshape((mesh.vnC[0] * mesh.vnC[1], mesh.vnC[2]), order="F")
@@ -1581,7 +1581,7 @@ def gettopoCC(mesh, active_cells, option="top"):
         elif mesh.dim == 2:
             mesh1D = discretize.TensorMesh([mesh.h[0]], [mesh.x0[0]])
             yc = mesh.cell_centers[:, 1]
-            ACTIND = active_cells.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
+            ACTIND = ind_active.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
             YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
             topoCC = np.zeros(YC.shape[0])
             for i in range(YC.shape[0]):
@@ -1596,7 +1596,7 @@ def gettopoCC(mesh, active_cells, option="top"):
             return mesh1D, topoCC
 
     elif mesh._meshType == "TREE":
-        inds = mesh.get_boundary_cells(active_cells, direction="zu")[0]
+        inds = mesh.get_boundary_cells(ind_active, direction="zu")[0]
 
         if option == "top":
             dz = mesh.h_gridded[inds, -1] * 0.5
