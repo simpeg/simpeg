@@ -1678,18 +1678,39 @@ def drapeTopotoLoc(mesh, pts, active_cells=None, option="top", topo=None, **kwar
         active_cells = discretize.utils.active_from_xyz(mesh, topo)
 
     if mesh._meshType == "TENSOR":
-        meshtemp, topoCC = gettopoCC(mesh, active_cells, option=option)
+        # Ignore FutureWarning coming from gettopoCC's deprecation
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message="The `gettopoCC` function is deprecated",
+                category=FutureWarning,
+            )
+            meshtemp, topoCC = gettopoCC(mesh, active_cells, option=option)
         inds = meshtemp.closest_points_index(pts)
         topo = topoCC[inds]
         out = np.c_[pts, topo]
 
     elif mesh._meshType == "TREE":
         if mesh.dim == 3:
-            uniqXYlocs, topoCC = gettopoCC(mesh, active_cells, option=option)
+            # Ignore FutureWarning coming from gettopoCC's deprecation
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message="The `gettopoCC` function is deprecated",
+                    category=FutureWarning,
+                )
+                uniqXYlocs, topoCC = gettopoCC(mesh, active_cells, option=option)
             inds = closestPointsGrid(uniqXYlocs, pts)
             out = np.c_[uniqXYlocs[inds, :], topoCC[inds]]
         else:
-            uniqXlocs, topoCC = gettopoCC(mesh, active_cells, option=option)
+            # Ignore FutureWarning coming from gettopoCC's deprecation
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message="The `gettopoCC` function is deprecated",
+                    category=FutureWarning,
+                )
+                uniqXlocs, topoCC = gettopoCC(mesh, active_cells, option=option)
             inds = closestPointsGrid(uniqXlocs, pts, dim=1)
             out = np.c_[uniqXlocs[inds], topoCC[inds]]
     else:
