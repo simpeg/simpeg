@@ -1526,7 +1526,7 @@ def r_unit(p1, p2):
 
 @deprecated(
     "The `gettopoCC` function is deprecated, "
-    "and will be removed in SimPEG v0.26.0. "
+    "and will be removed in SimPEG v0.27.0. "
     "This functionality has been replaced by the "
     "'get_discrete_topography' function, which can be imported from"
     "simpeg.utils",
@@ -1603,7 +1603,7 @@ def gettopoCC(mesh, active_cells, option="top"):
 
 @deprecated(
     "The `drapeTopotoLoc` function is deprecated, "
-    "and will be removed in SimPEG v0.26.0. "
+    "and will be removed in SimPEG v0.27.0. "
     "This functionality has been replaced by the "
     "'shift_to_discrete_topography' function, which can be imported from"
     "simpeg.utils",
