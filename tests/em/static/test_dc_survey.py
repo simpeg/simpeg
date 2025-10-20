@@ -52,7 +52,8 @@ class TestDeprecatedArgsDrapeElectrodes:
     def mesh(self):
         return TensorMesh((5, 5, 5))
 
-    def test_warning(self, mesh):
+    @pytest.fixture
+    def survey(self):
         """Test if warning is raised after passing ``option`` as argument."""
         receivers_list = [
             receivers.Dipole(
