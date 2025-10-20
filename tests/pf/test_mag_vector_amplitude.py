@@ -75,15 +75,15 @@ class MVIProblemTest(unittest.TestCase):
         # Convert the inclination declination to vector in Cartesian
         M_xyz = utils.mat_utils.dip_azimuth2cartesian(M[0], M[1])
 
-        # Get the indicies of the magnetized block
-        ind = utils.model_builder.get_indices_block(
+        # Get the indices of the magnetized block
+        indices = utils.model_builder.get_indices_block(
             np.r_[-20, -20, -10],
             np.r_[20, 20, 25],
             mesh.gridCC,
-        )[0]
+        )
 
         # Assign magnetization values
-        model[ind, :] = np.kron(np.ones((ind.shape[0], 1)), M_xyz * 0.05)
+        model[indices, :] = np.kron(np.ones((indices.size, 1)), M_xyz * 0.05)
 
         # Remove air cells
         self.model = model[actv, :]
