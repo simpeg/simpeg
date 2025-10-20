@@ -141,7 +141,7 @@ def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top"):
         the discrete topography. For "top", ground cells lie entirely below
         the surface topography and the discrete topography is defined on the
         top faces of surface cells. For "center", only the cell centers must
-        lie below the surface topograpy and the discrete topography is defined
+        lie below the surface topography and the discrete topography is defined
         at the centers of surface cells.
 
     Returns
@@ -212,7 +212,7 @@ def shift_to_discrete_topography(
 
     Parameters
     ----------
-    mesh : TensorMesh or discretize.TreeMesh
+    mesh : discretize.TensorMesh or discretize.TreeMesh
         The mesh (2D or 3D) defining the discrete domain.
     pts : (n, dim) numpy.ndarray
         The original set of points being shifted relative to the discretize
@@ -223,7 +223,7 @@ def shift_to_discrete_topography(
         String to specify the cutoff for ground cells and the locations of the discrete
         topography. For "top", ground cells lie entirely below the surface topography
         and the discrete topography is defined on the top faces of surface cells.
-        For "center", only the cell centers must lie below the surface topograpy and
+        For "center", only the cell centers must lie below the surface topography and
         the discrete topography is defined at the centers of surface cells.
         The topography is defined using the 'topo' input parameter.
     heights : float or (n,) numpy.ndarray, optional
