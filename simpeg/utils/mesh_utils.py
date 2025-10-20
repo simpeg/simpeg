@@ -262,9 +262,7 @@ def shift_to_discrete_topography(
         has_elevation = False
         horizontal_pts = pts.squeeze()  # in case (n, 1) array
 
-    topo_inds = _closest_grid_indices(
-        discrete_topography[:, :-1], horizontal_pts, dim=mesh.dim - 1
-    )
+    topo_inds = _closest_grid_indices(discrete_topography[:, :-1], horizontal_pts)
 
     if shift_horizontal:
         if has_elevation:
