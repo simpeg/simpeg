@@ -100,7 +100,7 @@ def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
     return insideGrid
 
 
-def _closest_grid_indices(grid, pts, dim=2):
+def _closest_grid_indices(grid, pts):
     """Return indices of closest gridded points for a set of input points.
 
     Parameters
@@ -109,8 +109,6 @@ def _closest_grid_indices(grid, pts, dim=2):
         A gridded set of points.
     pts : (m, dim) numpy.ndarray
         Points being projected to gridded locations.
-    dim : int
-        The `dim` input is deprecated and will be removed in SimPEG v0.24.0.
 
     Returns
     -------
