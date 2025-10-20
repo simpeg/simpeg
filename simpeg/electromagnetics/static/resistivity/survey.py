@@ -1,6 +1,5 @@
 import warnings
 import numpy as np
-import warnings
 
 from ....utils.code_utils import validate_string
 
@@ -290,7 +289,7 @@ class Survey(BaseSurvey):
             )
             warnings.warn(msg, FutureWarning, stacklevel=2)
             topo_cell_cutoff = option
-            
+
         if (key := "topography") in kwargs:
             msg = (
                 "The `topography` argument is not used in the "
