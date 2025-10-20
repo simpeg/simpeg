@@ -2,6 +2,7 @@
 Tests for resistivity (DC) survey objects.
 """
 
+import re
 import pytest
 import numpy as np
 
@@ -36,25 +37,83 @@ class TestRemovedSourceType:
             survey.survey_type = "dipole-dipole"
 
 
-class TestDeprecatedIndActive:
+class TestDeprecatedArgsDrapeElectrodes:
     """
-    Test the deprecated ``ind_active`` argument in ``drape_electrodes_on_topography``.
+    Test the deprecated arguments in ``drape_electrodes_on_topography``.
+
+    Deprecated arguments:
+
+    - ``ind_active`` was removed,
+    - ``topography`` is not used and was deprecated,
+    - ``force`` is not used and was deprecated,
+    - non-empty ``kwargs`` raise error.
     """
 
     @pytest.fixture
     def mesh(self):
         return TensorMesh((5, 5, 5))
 
-    def test_error(self, mesh):
+    @pytest.fixture
+    def survey(self):
+        receivers_list = [
+            receivers.Dipole(
+                locations_m=[[1, 2, 3], [4, 5, 6]],
+                locations_n=[[7, 8, 9], [10, 11, 12]],
+            )
+        ]
+        sources_list = [
+            sources.Dipole(
+                receivers_list, location_a=[0.5, 1.5, 2.5], location_b=[4.5, 5.5, 6.5]
+            )
+        ]
+        return Survey(source_list=sources_list)
+
+    def test_error_ind_active(self, mesh):
         """
         Test if error is raised after passing ``ind_active`` as argument.
         """
         survey = Survey(source_list=[])
-        msg = "got an unexpected keyword argument 'ind_active'"
         active_cells = np.ones(mesh.n_cells, dtype=bool)
+        msg = re.escape("Unsupported keyword argument")
         with pytest.raises(TypeError, match=msg):
             survey.drape_electrodes_on_topography(
                 mesh, active_cells, ind_active=active_cells
+            )
+
+    def test_deprecated_topography(self, mesh, survey):
+        """
+        Test warning after passing ``topography`` as argument.
+        """
+        active_cells = np.ones(mesh.n_cells, dtype=bool)
+        msg = re.escape("The `topography` argument is not used")
+        with pytest.warns(FutureWarning, match=msg):
+            survey.drape_electrodes_on_topography(mesh, active_cells, topography="blah")
+
+    def test_deprecated_force(self, mesh, survey):
+        """
+        Test warning after passing ``force`` as argument.
+        """
+        active_cells = np.ones(mesh.n_cells, dtype=bool)
+        msg = re.escape("The `force` argument is not used")
+        with pytest.warns(FutureWarning, match=msg):
+            survey.drape_electrodes_on_topography(mesh, active_cells, force="blah")
+
+    @pytest.mark.filterwarnings(
+        r"ignore:The `force` argument is not used:FutureWarning"
+    )
+    @pytest.mark.filterwarnings(
+        r"ignore:The `topography` argument is not used:FutureWarning"
+    )
+    def test_non_empty_kwargs(self, mesh):
+        """
+        Test error after passing non empty kwargs.
+        """
+        survey = Survey(source_list=[])
+        active_cells = np.ones(mesh.n_cells, dtype=bool)
+        msg = re.escape("Unsupported keyword argument")
+        with pytest.raises(TypeError, match=msg):
+            survey.drape_electrodes_on_topography(
+                mesh, active_cells, force="blah", topography="blah", other_arg="blah"
             )
 
 
