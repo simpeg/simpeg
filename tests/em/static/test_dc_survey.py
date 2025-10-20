@@ -13,9 +13,7 @@ from simpeg.electromagnetics.static.resistivity import receivers
 
 
 class TestRemovedSourceType:
-    """
-    Tests after removing the source_type argument and property.
-    """
+    """Tests after removing the source_type argument and property."""
 
     def test_error_after_argument(self):
         """
@@ -44,6 +42,7 @@ class TestDeprecatedArgsDrapeElectrodes:
     Deprecated arguments:
 
     - ``ind_active`` was removed,
+    - ``option`` was deprecated,
     - ``topography`` is not used and was deprecated,
     - ``force`` is not used and was deprecated,
     - non-empty ``kwargs`` raise error.
@@ -53,8 +52,8 @@ class TestDeprecatedArgsDrapeElectrodes:
     def mesh(self):
         return TensorMesh((5, 5, 5))
 
-    @pytest.fixture
-    def survey(self):
+    def test_warning(self, mesh):
+        """Test if warning is raised after passing ``option`` as argument."""
         receivers_list = [
             receivers.Dipole(
                 locations_m=[[1, 2, 3], [4, 5, 6]],
@@ -79,6 +78,16 @@ class TestDeprecatedArgsDrapeElectrodes:
             survey.drape_electrodes_on_topography(
                 mesh, active_cells, ind_active=active_cells
             )
+
+    def test_deprecated_option(self, mesh, survey):
+        """Test if warning is raised after passing ``option`` as argument."""
+        msg = (
+            "Argument ``option`` is deprecated in favor of ``topo_cell_cutoff`` "
+            "and will be removed in SimPEG v0.27.0."
+        )
+        active_cells = np.ones(mesh.n_cells, dtype=bool)
+        with pytest.warns(FutureWarning, match=msg):
+            survey.drape_electrodes_on_topography(mesh, active_cells, option="top")
 
     def test_deprecated_topography(self, mesh, survey):
         """
@@ -118,9 +127,7 @@ class TestDeprecatedArgsDrapeElectrodes:
 
 
 def test_repr():
-    """
-    Test the __repr__ method of the survey.
-    """
+    """Test the __repr__ method of the survey."""
     receivers_list = [
         receivers.Dipole(
             locations_m=[[1, 2, 3], [4, 5, 6]], locations_n=[[7, 8, 9], [10, 11, 12]]
