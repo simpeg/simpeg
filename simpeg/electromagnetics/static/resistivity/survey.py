@@ -1,5 +1,5 @@
-import numpy as np
 import warnings
+import numpy as np
 
 from ....utils.code_utils import validate_string
 
@@ -241,10 +241,9 @@ class Survey(BaseSurvey):
         mesh,
         active_cells,
         topo_cell_cutoff="top",
-        topography=None,
-        force=False,
         shift_horizontal=True,
         option=None,
+        **kwargs,
     ):
         """Shift electrode locations to discrete surface topography.
 
@@ -258,8 +257,19 @@ class Survey(BaseSurvey):
             Define topography at tops of cells or cell centers.
         topography : (n, dim) numpy.ndarray, default = ``None``
             Surface topography
+
+            .. deprecated:: v0.25.0
+
+                The ``topography`` argument is not used in this function. It will be
+                removed in SimPEG v0.27.0.
+
         force : bool, default = ``False``
-            If ``True`` force electrodes to surface even if borehole.
+            If ``True`` force electrodes to surface even if borehole
+
+            .. deprecated:: v0.25.0
+
+                The ``force`` argument is not used in this function. It will be removed
+                in SimPEG v0.27.0.
         shift_horizontal : bool
             When True, locations are shifted horizontally to lie vertically over cell
             centers. When False, the original horizontal locations are preserved.
@@ -279,6 +289,27 @@ class Survey(BaseSurvey):
             )
             warnings.warn(msg, FutureWarning, stacklevel=2)
             topo_cell_cutoff = option
+
+        if (key := "topography") in kwargs:
+            msg = (
+                "The `topography` argument is not used in the "
+                "`drape_electrodes_on_topography` and will be removed in "
+                "SimPEG v0.27.0."
+            )
+            warnings.warn(msg, category=FutureWarning, stacklevel=2)
+            kwargs.pop(key)
+
+        if (key := "force") in kwargs:
+            msg = (
+                "The `force` argument is not used in the "
+                "`drape_electrodes_on_topography` and will be removed in "
+                "SimPEG v0.27.0."
+            )
+            warnings.warn(msg, category=FutureWarning, stacklevel=2)
+            kwargs.pop(key)
+
+        if kwargs:  # TODO Remove this when removing kwargs argument.
+            raise TypeError("Unsupported keyword argument " + kwargs.popitem()[0])
 
         if self.survey_geometry == "surface":
             loc_a = self.locations_a[:, :2]
