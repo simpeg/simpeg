@@ -282,7 +282,7 @@ def compute_J(self, m, f=None):
     for block_derivs_chunks, addresses_chunks in zip(
         blocks_receiver_derivs, blocks, strict=True
     ):
-        Jmatrix = parallel_block_compute(
+        parallel_block_compute(
             simulation,
             m,
             Jmatrix,
@@ -301,7 +301,10 @@ def compute_J(self, m, f=None):
     gc.collect()
     if self.store_sensitivities == "disk":
         del Jmatrix
-        Jmatrix = array.from_zarr(self.sensitivity_path)
+        return array.from_zarr(self.sensitivity_path)
+
+    if client:
+        return client.gather(Jmatrix)
 
     return Jmatrix
 
@@ -367,11 +370,9 @@ def parallel_block_compute(
         count += n_cols
 
     if client:
-        client.gather(block_delayed)
+        return client.gather(block_delayed)
     else:
-        compute(block_delayed)
-
-    return Jmatrix
+        return compute(block_delayed)
 
 
 Sim.compute_J = compute_J
