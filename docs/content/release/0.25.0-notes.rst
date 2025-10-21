@@ -18,14 +18,14 @@ New features
 New differential simulation for magnetic fields
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This release ships a new and improved version of the magnetic differential
+This release ships with a new and improved version of the magnetic differential
 simulation
 :class:`~simpeg.potential_fields.magnetics.Simulation3DDifferential` by
 `@johnweis0480 <https://github.com/johnweis0480>`__.
 This simulation computes the magnetic field on every cell of the mesh by
-numerically solving the magnetostatic PDE. It takes into account
-self-demagnetization effects, it can model induced and remanent magnetizations,
-and it's faster and less memory intensive than the integral simulation on large
+numerically solving the magnetostatic PDE. It accounts for
+self-demagnetization effects, model both induced and remanent magnetizations,
+and is faster and less memory intensive than the integral simulation for large
 problems.
 
 See https://github.com/simpeg/simpeg/pull/1682 for more details.
@@ -33,11 +33,11 @@ See https://github.com/simpeg/simpeg/pull/1682 for more details.
 Add utility function to shift electrodes to discrete topography
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Add new `shift_to_discrete_topography` function that shifts locations relative
-to discrete surface topography. We measure electric fields at the Earth's
-surface when performing MT surveys. Like DC/IP, the original measurement
-locations of the electric fields can end up in air cells when we define
-discrete surface topography. These functions allow the user to shift locations
+A new `shift_to_discrete_topography` function shifts locations relative
+to discrete surface topography. When performing MT surveys, we measure
+electric fields at the Earth's surface. Similar to DC/IP, the original measurement
+locations of the electric fields can end up in air cells when we discretize surface
+topography. This function allows the user to shift locations
 relative to discrete topography on Tensor and Tree meshes. For Airborne NSEM,
 they also allow the user to preserve the original flight heights.
 
@@ -46,10 +46,10 @@ See https://github.com/simpeg/simpeg/pull/1683 for more details.
 Sensitivity matrix as a ``LinearOperator`` in gravity and magnetic equivalent layers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Now the gravity and magnetic equivalent sources can define the sensitivity
+Gravity and magnetic equivalent sources can now define the sensitivity
 matrix ``J`` as a :class:`scipy.sparse.linalg.LinearOperator` when
-``store_sensitivities="forward_only"``. This extends the behaviour that was
-already implemented in the integral gravity and magnetic simulations to the
+``store_sensitivities="forward_only"``. This extends the behaviour previously
+implemented in the integral gravity and magnetic simulations to the
 equivalent layer classes.
 
 See https://github.com/simpeg/simpeg/pull/1674 and
@@ -59,31 +59,30 @@ Choosing the default solver is easier now
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The :func:`~simpeg.utils.get_default_solver` can now be imported directly from
-:mod:`simpeg.utils` to make it easier to use it.
+:mod:`simpeg.utils` making it easier to use it.
 
 Check out the new How to Guide on :ref:`choosing-solvers` for more information
 on how we can use this function.
 
-Improve inversion print out
+Improved inversion printout
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The information table we see when running an inversion got improved. Now the
-zeroth iteration corresponds to the status of the inversion problem **before**
-running any optimization step, while the following ones show information about
-the problem **after** each iteration, but before directives are applied. Now
-the last iteration of the inversion is shown in the last row of the table.
-Moreover, some non-very-useful messages have been removed to produce a cleaner
-output.
+The information table displayed during an inversion has been improved. Now, the
+zero-th iteration corresponds to the status of the inversion problem **before**
+any optimization steps, while subsequent iterations show information **after** each
+iteration but before directives are applied. The final iteration of the inversion is shown
+in the last row of the table. Additionally, some non-very-useful messages have
+been removed to produce a cleaner output.
 
 See https://github.com/simpeg/simpeg/pull/1626 for more details.
 
-Standardize directives to save outputs
+Standardized directives for saving outputs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The directives that are meant to store and save inversion outputs have been
-standardize and made more reliable. They now respect the output directory
-chosen by the user, and the output file names have been standardize to follow
-a ``name-timestamp-iteration`` format, to make it easier to sort and identify
+Directives that store and save inversion outputs have been
+standardized and made more reliable. They now respect the output directory
+chosen by the user, and output filenames follow a standardized
+``name-timestamp-iteration`` format to make it easier to sort and identify
 files from different inversions.
 
 See https://github.com/simpeg/simpeg/pull/1657 for more details.
@@ -91,9 +90,10 @@ See https://github.com/simpeg/simpeg/pull/1657 for more details.
 Updates to the Conjugate Gradient minimizers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The conjugate gradient minimizers were updated to work with the ones in latest
-versions of SciPy. They can now take both relative and absolute tolerances
+The conjugate gradient minimizers were updated to be consistent with the latest
+versions of SciPy. They can now accept both relative and absolute tolerances
 through the ``cg_rtol`` and ``cg_atol`` arguments, respectively.
+
 The ``tolCG`` argument will be removed in the future, making ``cg_rtol`` and
 ``cg_atol`` the preferred way to set tolerances in these minimizers.
 
@@ -108,8 +108,8 @@ This release introduces a fresh new landing page for SimPEG docs, and a new
 **How to Guide** section in our :ref:`user_guide` with pages on
 :ref:`choosing-solvers` and :ref:`how-to-move-mesh`.
 
-We also included a new page that clarifies Python and Numpy :ref:`versions
-compatibility` with SimPEG, and explain the criteria for dropping older
+We also included a new page that clarifies Python and Numpy :ref:`version-compatibility`
+with SimPEG, and explain the criteria for dropping older
 versions of our dependencies.
 
 We started removing the gravity, magnetic and DC tutorials from SimPEG's docs,
@@ -120,7 +120,7 @@ Now we can navigate our docs using our arrow keys in the keyboard (for those
 power users that don't want to leave the keyboard) thanks to `@prisae
 <https://github.com/prisae>`__.
 
-Finally, we improved a fixed a few things in the docs: mathematical
+Finally, we improved and fixed a few things in the docs: mathematical
 expressions, added missing classes to the API reference, updated admonitions in
 docstrings, and more.
 
@@ -151,7 +151,7 @@ Dropped support for Python 3.10
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We dropped support for Python 3.10, inline with our
-:ref:`version-compatiblity` schedule. So, remember to use Python 3.11 or higher
+:ref:`version-compatibility` schedule. So, remember to use Python 3.11 or higher
 when installing SimPEG v0.25.0. If you still need to use Python 3.10, please
 pin your SimPEG version to v0.24.0.
 
@@ -192,11 +192,11 @@ for linear ones.
 Changed the output of :func:`~simpeg.utils.model_builder.get_indices_block`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The :func:`~simpeg.utils.model_builder.get_indices_block` function used to
-return a tuple with just a single element: the array with cell indices that
-correspond the given block. We standardize its output to be in agreement with
-similar functions in the module. Now it returns a single Numpy array with the
-cell indices that correspond to the block.
+The :func:`~simpeg.utils.model_builder.get_indices_block` function previously
+returned a tuple with just a single element: the array with cell indices that
+correspond the given block. We standardized its output to be in agreement with
+similar functions in the module. It now returns a single NumPy array with the
+cell indices of the block.
 
 If you were using this function as follows, where you used to extract the first
 element of the tuple:
@@ -217,8 +217,8 @@ remind users of this new behaviour.
 Removals
 ~~~~~~~~
 
-We also removed some bits of code that were marked for deprecation in previous
-releases, like:
+We also removed several deprecated items marked for removal in previous
+releases, including:
 
 - The `Data.index_dictionary` property. Use the new ``get_slice`` method of
   ``Survey`` (for example:
