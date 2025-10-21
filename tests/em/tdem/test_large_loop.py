@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-# import matplotlib.pyplot as plt
-
 import discretize
 from simpeg.electromagnetics import time_domain as tdem
 from simpeg import maps
@@ -48,15 +46,6 @@ def setup_mesh_model(tx_halfwidth=50):
     mesh = discretize.TensorMesh([hx, hx, hz], origin="CC0")
     mesh.origin = mesh.origin - np.r_[0, 0, mesh.h[2][: n_padding_z + n_cells_z].sum()]
     mesh.n_cells
-
-    # fig, ax = plt.subplots(1, 1, figsize = (4, 4))
-    # n_times = len(rx_times)
-    # mesh.plot_slice(np.nan * np.ones(mesh.n_cells), grid=True, ax=ax, grid_opts={"color":"k", "lw":0.5})
-    # ax.plot(tx_points[:, 0], tx_points[:, 1], "-s", color="C0")
-    # ax.plot(rx_locs[:, 0], rx_locs[:, 1], "ro", ms=4)
-    # ax.set_xlim(100*np.r_[-1, 1])
-    # ax.set_ylim(100*np.r_[-1, 1])
-    # ax.set_aspect = 1
 
     # define model
     model = sigma_air * np.ones(mesh.n_cells)
@@ -117,10 +106,6 @@ def setup_simulation(mesh, survey, simulation_type="EB"):
         (3e-5, nsteps),
         (1e-4, nsteps),
         (3e-4, nsteps + 4),
-        # (1e-3, nsteps),
-        # (3e-3, nsteps+4),
-        # (1e-2, nsteps-18),
-        # (3e-2, nsteps)
     ]
 
     if simulation_type == "EB":
@@ -191,11 +176,5 @@ def test_large_loop(simulation_type):
     )
 
     dpred1d = simulation_1D.dpred(sigma_back) * current
-
-    # fig, ax = plt.subplots(1, 2, figsize=(10, 3))
-    # for i in range(2):
-    #     ax[i].loglog(rx_times, np.abs(dpred1d[i*n_times:(i+1)*n_times]), label="analytic")
-    #     ax[i].loglog(rx_times, np.abs(dpred_numeric[i*n_times:(i+1)*n_times]), label="numeric")
-    #     ax[i].loglog(rx_times, np.abs(dpred_numeric[i*n_times:(i+1)*n_times] - dpred1d[i*n_times:(i+1)*n_times]), label="diff")
 
     np.testing.assert_allclose(dpred_numeric, dpred1d, rtol=REL_TOL)
