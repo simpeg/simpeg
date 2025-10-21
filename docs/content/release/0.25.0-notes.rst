@@ -43,6 +43,16 @@ they also allow the user to preserve the original flight heights.
 
 See https://github.com/simpeg/simpeg/pull/1683 for more details.
 
+Use a closed-loop wire as a source in TDEM
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We can now define a closed-loop wire as source in TDEM code with a step-off
+waveform, using either the B or H formulations. The simulation will first
+compute the vector potential using the Biot-Savart Law and then take the curl
+of it to get the initial :math:`\mathbf{B}` field.
+
+See https://github.com/simpeg/simpeg/pull/1651 for more details.
+
 Sensitivity matrix as a ``LinearOperator`` in gravity and magnetic equivalent layers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -349,3 +359,9 @@ Pull Requests
   https://github.com/simpeg/simpeg/pull/1719
 - Add shift to discrete topography for NSEM by `@dccowan <https://github.com/dccowan>`__ in
   https://github.com/simpeg/simpeg/pull/1683
+- Deprecate unused arguments in ``drape_electrodes_on_topography`` by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1723
+- Fix LaTeX equations in ``Simulation3DDifferential`` by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1726
+- Implement a closed loop as a TDEM source by `@lheagy <https://github.com/lheagy>`__ in
+  https://github.com/simpeg/simpeg/pull/1651
