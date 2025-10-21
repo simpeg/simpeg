@@ -10,6 +10,7 @@ from ....utils import (
 )
 from ....data import Data
 from ....base import BaseElectricalPDESimulation
+from ....base.pde_simulation import _inner_mat_mul_op
 from .survey import Survey
 from .fields import Fields3DCellCentered, Fields3DNodal
 from .utils import _mini_pole_pole
@@ -566,14 +567,7 @@ class Simulation3DNodal(BaseDCSimulation):
         if self.bc_type != "Neumann" and self.sigmaMap is not None:
             if getattr(self, "_MBC_sigma", None) is None:
                 self._MBC_sigma = self._AvgBC @ self.sigmaDeriv
-            if not isinstance(u, Zero):
-                u = u.flatten()
-                if v.ndim > 1:
-                    u = u[:, None]
-                if not adjoint:
-                    out += u * (self._MBC_sigma @ v)
-                else:
-                    out += self._MBC_sigma.T @ (u * v)
+            out += _inner_mat_mul_op(self._MBC_sigma, u, v, adjoint)
         return out
 
     def setBC(self):
