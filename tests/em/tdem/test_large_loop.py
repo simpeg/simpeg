@@ -19,7 +19,6 @@ sigma_air = 1e-8
 sigma_back = 1 / rho_back
 
 current = 2
-
 REL_TOL = 0.35
 
 
@@ -31,8 +30,8 @@ def setup_mesh_model(tx_halfwidth=50):
 
     n_cells_x = int(tx_halfwidth * 2 / cell_size)
     n_cells_z = int((tx_halfwidth) / cell_size) + 5
-    n_padding_x = 10
-    n_padding_z = 10
+    n_padding_x = 11
+    n_padding_z = 11
 
     hx = [
         (cell_size, n_padding_x, -padding_factor),
@@ -149,7 +148,7 @@ def test_large_loop(simulation_type):
     tx_halfwidth = 50
 
     # receiver times
-    rx_times = 1e-3 * np.logspace(-1, 2, 30)
+    rx_times = 1e-3 * np.logspace(-1, 1, 30)
 
     rx_x = np.r_[20]  # np.linspace(-100, 100, 10)
     rx_y = np.r_[20]  # np.linspace(-100, 100, 10)
