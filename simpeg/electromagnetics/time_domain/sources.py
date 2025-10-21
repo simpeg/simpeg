@@ -1997,7 +1997,7 @@ class LineCurrent(BaseTDEMSrc):
                     - 1 / self.mu * simulation.MeI * a_bc
                 )
             else:
-                return simulation.mesh.edge_curl.T * a
+                return simulation.MeMuI * simulation.mesh.edge_curl.T * a
 
     def hInitialDeriv(self, simulation, v, adjoint=False, f=None):
         """Compute derivative of intitial magnetic field times a vector
