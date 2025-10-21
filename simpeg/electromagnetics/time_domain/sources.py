@@ -2108,7 +2108,9 @@ class RawVec_Grounded(LineCurrent):
 
         srcType = kwargs.pop("srcType", None)
         if srcType is not None and srcType != "galvanic":
-            raise ValueError("expected srcType to be 'galvanic' for the RawVec_Grounded")
+            raise ValueError(
+                "expected srcType to be 'galvanic' for the RawVec_Grounded"
+            )
         super().__init__(receiver_list, srcType="galvanic", **kwargs)
         self.integrate = False
 
