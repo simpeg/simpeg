@@ -52,20 +52,20 @@ class BaseSaveGeoH5(InversionDirective, ABC):
         )
 
     def initialize(self):
-        if self.open_geoh5:
-            self._geoh5.open(mode="r+")
+        if self.open_geoh5 and not getattr(self._workspace, "_geoh5", None):
+            self._workspace.open(mode="r+")
 
         self.write(0)
 
         if self.close_geoh5:
-            self._geoh5.close()
+            self._workspace.close()
 
     def endIter(self):
-        if self.open_geoh5:
-            self._geoh5.open(mode="r+")
+        if self.open_geoh5 and not getattr(self._workspace, "_geoh5", None):
+            self._workspace.open(mode="r+")
         self.write(self.opt.iter)
         if self.close_geoh5:
-            self._geoh5.close()
+            self._workspace.close()
 
     def get_names(
         self, component: str, channel: str, iteration: int
@@ -127,7 +127,7 @@ class BaseSaveGeoH5(InversionDirective, ABC):
             )
 
         self._h5_object = entity.uid
-        self._geoh5 = entity.workspace
+        self._workspace = entity.workspace
 
         if getattr(entity, "n_cells", None) is not None:
             self.association = "CELL"
@@ -263,7 +263,7 @@ class SaveArrayGeoH5(BaseSaveGeoH5, ABC):
         prop = self.apply_transformations(prop)
 
         # Save results
-        with fetch_active_workspace(self._geoh5, mode="r+") as w_s:
+        with fetch_active_workspace(self._workspace, mode="r+") as w_s:
             h5_object = w_s.get_entity(self.h5_object)[0]
             for cc, component in enumerate(self.components):
                 if component not in self.data_type:
@@ -386,7 +386,7 @@ class SaveDataGeoH5(SaveArrayGeoH5):
 class SaveLogFilesGeoH5(BaseSaveGeoH5):
 
     def write(self, iteration: int, **_):
-        dirpath = Path(self._geoh5.h5file).parent
+        dirpath = Path(self._workspace.h5file).parent
         filepath = dirpath / "SimPEG.out"
 
         if iteration == 0:
@@ -412,9 +412,9 @@ class SaveLogFilesGeoH5(BaseSaveGeoH5):
         """
         Save iteration metrics to comments.
         """
-        dirpath = Path(self._geoh5.h5file).parent
+        dirpath = Path(self._workspace.h5file).parent
 
-        with fetch_active_workspace(self._geoh5, mode="r+") as w_s:
+        with fetch_active_workspace(self._workspace, mode="r+") as w_s:
             h5_object = w_s.get_entity(self.h5_object)[0]
 
             for file in ["SimPEG.out", "SimPEG.log", "ChiFactors.log"]:
@@ -452,7 +452,7 @@ class SavePropertyGroup(BaseSaveGeoH5):
         """
         Save the model to the geoh5 file
         """
-        with fetch_active_workspace(self._geoh5, mode="r+") as w_s:
+        with fetch_active_workspace(self._workspace, mode="r+") as w_s:
             h5_object = w_s.get_entity(self.h5_object)[0]
 
             for component in self.components:
@@ -560,7 +560,7 @@ class SavePGIModel(SaveArrayGeoH5):
         petro_model = self.get_values(values)
         petro_model = self.apply_transformations(petro_model).flatten()
         channel_name, _ = self.get_names("petrophysics", "", iteration)
-        with fetch_active_workspace(self._geoh5, mode="r+") as w_s:
+        with fetch_active_workspace(self._workspace, mode="r+") as w_s:
             h5_object = w_s.get_entity(self.h5_object)[0]
             data = h5_object.add_data(
                 {
