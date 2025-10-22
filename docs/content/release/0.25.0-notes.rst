@@ -44,12 +44,12 @@ they also allow the user to preserve the original flight heights.
 See https://github.com/simpeg/simpeg/pull/1683 for more details.
 
 Calculate B/H fields with a step-off waveform closed-loop wire source in TDEM
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We can now define a closed-loop wire as source in TDEM code with a step-off
-waveform, using either the B or H formulations. The simulation will first
-compute the vector potential using the Biot-Savart Law and then take the curl
-of it to get the initial :math:`\mathbf{B}` field.
+We can now calculate the B and H fields using a closed-loop wire as source in
+the TDEM code with a step-off waveform.
+The simulation will first compute the vector potential using the Biot-Savart
+Law and then take the curl of it to get the initial :math:`\mathbf{B}` field.
 
 See https://github.com/simpeg/simpeg/pull/1651 for more details.
 
