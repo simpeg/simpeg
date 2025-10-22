@@ -181,13 +181,22 @@ class StepOffWaveform(BaseWaveform):
 
 
 class RampOffWaveform(BaseWaveform):
-    """
+    """RampOffWaveform([ramp_start,] ramp_end)
+
     A waveform with a linear ramp-off.
+
+    ``RampOffWaveform`` can be called with a varying number of positional arguments:
+
+    * ``RampOffWaveform(ramp_end)``: Specify only the ramp end time, with an implied ramp
+      start time of zero.
+    * ``RampOffWaveform(ramp_start, ramp_end)``: Specify both the ramp start and end times.
 
     Parameters
     ----------
-    off_time : float, default: 0.0
-        time at which the transmitter is turned off in units of seconds
+    ramp_start : float, optional
+        Time the ramp off portion of the waveform starts. The default start value is 0.
+    ramp_end : float
+        Time at which the ramp off ends.
 
     Examples
     --------
@@ -197,20 +206,115 @@ class RampOffWaveform(BaseWaveform):
     >>> from simpeg.electromagnetics import time_domain as tdem
 
     >>> times = np.linspace(0, 1e-4, 1000)
-    >>> waveform = tdem.sources.RampOffWaveform(off_time=1e-5)
+    >>> waveform = tdem.sources.RampOffWaveform(1e-5)
     >>> plt.plot(times, [waveform.eval(t) for t in times])
     >>> plt.show()
 
     """
 
-    def __init__(self, off_time=0.0, **kwargs):
-        super().__init__(off_time=off_time, has_initial_fields=True, **kwargs)
+    def __init__(self, *args, ramp_start=None, ramp_end=None, **kwargs):
+        off_time = kwargs.pop("off_time", None)
+        if off_time is not None:
+            if len(args) > 1 or ramp_end is not None:
+                raise TypeError(
+                    "Can not specify both `off_time` and a `ramp_end` value."
+                )
+            ramp_end = off_time
+            warnings.warn(
+                "`off_time` keyword arg has been deprecated and will be removed in "
+                "SimPEG v0.27.0, pass the ramp end time as the last positional argument.`",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+        nargs = len(args)
+        if nargs == 0:
+            if ramp_end is None:
+                raise TypeError(
+                    "RampOffWaveform() requires `ramp_end` to be specified."
+                )
+            if ramp_start is None:
+                ramp_start = 0.0
+        elif nargs == 1:
+            if ramp_start is not None:
+                raise TypeError(
+                    "argument for RampOffWaveform() given by name ('ramp_start') and position (position 0)"
+                )
+            if ramp_end is not None:
+                ramp_start = args[0]
+            else:
+                ramp_start = 0
+                ramp_end = args[0]
+        elif nargs == 2:
+            if ramp_start is not None:
+                raise TypeError(
+                    "argument for RampOffWaveform() given by name ('ramp_start') and position (position 0)"
+                )
+            if ramp_end is not None:
+                raise TypeError(
+                    "argument for RampOffWaveform() given by name ('ramp_end') and position (position 1)"
+                )
+            ramp_start, ramp_end = args
+        else:
+            raise TypeError(
+                "Must specify one or two positional arguments for the RampOffWaveform."
+            )
+
+        self.ramp_start = ramp_start
+        super().__init__(off_time=ramp_end, has_initial_fields=True, **kwargs)
+
+    @property
+    def ramp_start(self):
+        """Ramp start time
+
+        Sets the time the ramp off begins.
+
+        Returns
+        -------
+        float
+            The start time of the ramp off for the waveform
+        """
+        return self._ramp_start
+
+    @ramp_start.setter
+    def ramp_start(self, value):
+        self._ramp_start = validate_float("ramp_start", value)
+
+    @property
+    def ramp_end(self):
+        """Ramp end time, when the current is off.
+
+        Sets the time the ramp off ends.
+
+        Returns
+        -------
+        float
+            The end time of the ramp off for the waveform
+        """
+        return self._ramp_end
+
+    @ramp_end.setter
+    def ramp_end(self, value):
+        """ "off-time of the source"""
+        self._ramp_end = validate_float(
+            "ramp_end", value, min_val=self.ramp_start, inclusive_min=False
+        )
+
+    @property
+    def off_time(self):
+        return self.ramp_end
+
+    @off_time.setter
+    def off_time(self, value):
+        self.ramp_end = value
 
     def eval(self, time):  # noqa: A003
-        if abs(time - 0.0) < self.epsilon:
+        dt = time - self.ramp_start
+        if dt < self.epsilon:
             return 1.0
-        elif time < self.off_time:
-            return -1.0 / self.off_time * (time - self.off_time)
+        elif time < self.ramp_end:
+            ramp_width = self.ramp_end - self.ramp_start
+            return 1 - dt / ramp_width
         else:
             return 0.0
 
@@ -218,8 +322,10 @@ class RampOffWaveform(BaseWaveform):
         t = np.asarray(time, dtype=float)
         out = np.zeros_like(t)
 
-        if self.off_time > 0:
-            out[(t < self.off_time) & (t >= self.epsilon)] = -1.0 / self.off_time
+        ramp_width = self.ramp_end - self.ramp_start
+        out[(t < self.ramp_end) & ((t - self.ramp_start) >= self.epsilon)] = (
+            -1.0 / ramp_width
+        )
 
         if out.ndim == 0:
             out = out.item()
@@ -227,7 +333,7 @@ class RampOffWaveform(BaseWaveform):
 
     @property
     def time_nodes(self):
-        return np.r_[0.0, self.off_time]
+        return np.r_[self.ramp_start, self.ramp_end]
 
 
 class RawWaveform(BaseWaveform):
