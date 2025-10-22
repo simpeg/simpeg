@@ -192,6 +192,20 @@ def test_ramp_off_bad_args():
     with pytest.raises(
         TypeError,
         match=re.escape(
+            "argument for RampOffWaveform() given by name ('ramp_start') and position (position 0)"
+        ),
+    ):
+        RampOffWaveform(0.1, 0.2, ramp_start=0.0)
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            "argument for RampOffWaveform() given by name ('ramp_start') and position (position 0)"
+        ),
+    ):
+        RampOffWaveform(0.1, 0.2, ramp_start=0.1, ramp_end=0.2)
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
             "argument for RampOffWaveform() given by name ('ramp_end') and position (position 1)"
         ),
     ):
