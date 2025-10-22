@@ -229,10 +229,6 @@ class RampOffWaveform(BaseWaveform):
                 )
 
         nargs = len(args)
-        if nargs > 2:
-            raise TypeError(
-                "Must specify one or two positional arguments for the RampOffWaveform."
-            )
         if nargs == 0:
             if ramp_end is None:
                 raise TypeError(
@@ -240,7 +236,7 @@ class RampOffWaveform(BaseWaveform):
                 )
             if ramp_start is None:
                 ramp_start = 0.0
-        elif len(args) == 1:
+        elif nargs == 1:
             if ramp_start is not None:
                 raise TypeError(
                     "argument for RampOffWaveform() given by name ('ramp_start') and position (position 0)"
@@ -250,7 +246,7 @@ class RampOffWaveform(BaseWaveform):
             else:
                 ramp_start = 0
                 ramp_end = args[0]
-        elif len(args) == 2:
+        elif nargs == 2:
             if ramp_start is not None:
                 raise TypeError(
                     "argument for RampOffWaveform() given by name ('ramp_start') and position (position 0)"
@@ -260,6 +256,10 @@ class RampOffWaveform(BaseWaveform):
                     "argument for RampOffWaveform() given by name ('ramp_end') and position (position 1)"
                 )
             ramp_start, ramp_end = args
+        else:
+            raise TypeError(
+                "Must specify one or two positional arguments for the RampOffWaveform."
+            )
 
         self.ramp_start = ramp_start
         super().__init__(off_time=ramp_end, has_initial_fields=True, **kwargs)
