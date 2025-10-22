@@ -38,20 +38,30 @@ class TestStepOffWaveform(unittest.TestCase):
         assert_array_almost_equal(result, expected)
 
 
-@pytest.mark.parametrize("ramp_start", [-1e-3, 0, 1e-3])
+@pytest.mark.parametrize("ramp_start", [-1e-3, None, 0, 1e-3])
 @pytest.mark.parametrize("ramp_end", [1e-2, 5e-3])
 class TestRampOffWaveform:
     times = np.linspace(start=-1e-2, stop=2e-2, num=31)
 
     def test_waveform_evaluate(self, ramp_start, ramp_end):
-        ramp_off = RampOffWaveform(ramp_start=ramp_start, ramp_end=ramp_end)
+        if ramp_start is None:
+            args = (ramp_end,)
+        else:
+            args = (ramp_start, ramp_end)
+        ramp_off = RampOffWaveform(*args)
+        if ramp_start is None:
+            assert ramp_off.ramp_start == 0.0
         result = [ramp_off.eval(t) for t in self.times]
         expected = np.interp(self.times, ramp_off.time_nodes, [1, 0])
         assert_array_almost_equal(result, expected)
 
     def test_waveform_derivative(self, ramp_start, ramp_end):
         # Test the waveform derivative at points between the time_nodes
-        wave = RampOffWaveform(ramp_start=ramp_start, ramp_end=ramp_end)
+        if ramp_start is None:
+            args = (ramp_end,)
+        else:
+            args = (ramp_start, ramp_end)
+        wave = RampOffWaveform(*args)
 
         def f(t):
             wave_eval = np.array([wave.eval(ti) for ti in t])
@@ -73,7 +83,13 @@ class TestRampOffWaveform:
 @pytest.mark.parametrize("attr", ["ramp_end", "off_time"])
 def test_ramp_off_time_is_ramp_end(attr):
     t_off = 0.01
-    ramp = RampOffWaveform(**{attr: t_off})
+    if attr == "ramp_end":
+        ramp = RampOffWaveform(t_off)
+    else:
+        with pytest.warns(
+            DeprecationWarning, match="`off_time` keyword arg has been deprecated.*"
+        ):
+            ramp = RampOffWaveform(off_time=t_off)
     assert ramp.ramp_end == t_off
     assert ramp.off_time == t_off
 
@@ -86,9 +102,18 @@ def test_ramp_off_time_is_ramp_end(attr):
 def test_ramp_off_bad_end():
     with pytest.raises(
         ValueError,
-        match=re.escape("'ramp_end' must be a value in the range [0.1, inf]"),
+        match=re.escape("'ramp_end' must be a value in the range (0.1, inf]"),
     ):
-        RampOffWaveform(ramp_start=0.1, ramp_end=0.0)
+        RampOffWaveform(0.1, 0.0)
+
+
+def test_ramp_off_bad_args():
+    with pytest.raises(TypeError, match="Can not specify both `off_time` and.*"):
+        RampOffWaveform(0.01, off_time=0.1)
+    with pytest.raises(
+        TypeError, match="Must specify at least one positional argument.*"
+    ):
+        RampOffWaveform()
 
 
 class TestVTEMWaveform(unittest.TestCase):

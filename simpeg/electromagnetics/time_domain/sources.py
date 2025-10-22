@@ -177,13 +177,22 @@ class StepOffWaveform(BaseWaveform):
 
 
 class RampOffWaveform(BaseWaveform):
-    """
+    """RampOffWaveform([ramp_start,] ramp_end)
+
     A waveform with a linear ramp-off.
+
+    ``RampOffWaveform`` can be called with a varying number of positional arguments:
+
+    * ``RampOffWaveform(ramp_end)``: Specify only the ramp end time, with an implied ramp
+      start time of zero.
+    * ``RampOffWaveform(ramp_start, ramp_end)``: Specify both the ramp start and end times.
 
     Parameters
     ----------
-    off_time : float, default: 0.0
-        time at which the transmitter is turned off in units of seconds
+    ramp_start : float, optional
+        Time the ramp off portion of the waveform starts. The default start value is 0.
+    ramp_end : float
+        Time at which the ramp off ends.
 
     Examples
     --------
@@ -193,15 +202,38 @@ class RampOffWaveform(BaseWaveform):
     >>> from simpeg.electromagnetics import time_domain as tdem
 
     >>> times = np.linspace(0, 1e-4, 1000)
-    >>> waveform = tdem.sources.RampOffWaveform(off_time=1e-5)
+    >>> waveform = tdem.sources.RampOffWaveform(1e-5)
     >>> plt.plot(times, [waveform.eval(t) for t in times])
     >>> plt.show()
 
     """
 
-    def __init__(self, ramp_end=0.0, ramp_start=0.0, **kwargs):
-        if (off_time := kwargs.pop("off_time", None)) is not None:
-            ramp_end = off_time
+    def __init__(self, *args, **kwargs):
+        off_time = kwargs.pop("off_time", None)
+        if len(args) == 1:
+            if off_time is not None:
+                raise TypeError(
+                    "Can not specify both `off_time` and a positional argument."
+                )
+            ramp_start = 0.0
+            ramp_end = args[0]
+        elif len(args) == 2:
+            ramp_start, ramp_end = args
+        else:
+            if (off_time := kwargs.pop("off_time", None)) is not None:
+                warnings.warn(
+                    "`off_time` keyword arg has been deprecated and will be removed in "
+                    "SimPEG v0.26.0, pass the ramp end time as the last positional argument.`",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                ramp_start = 0
+                ramp_end = off_time
+            else:
+                raise TypeError(
+                    "Must specify at least one positional argument for the RampOffWaveform."
+                )
+
         self.ramp_start = ramp_start
         self.ramp_end = ramp_end
         super().__init__(off_time=ramp_end, has_initial_fields=True, **kwargs)
@@ -239,11 +271,13 @@ class RampOffWaveform(BaseWaveform):
     @ramp_end.setter
     def ramp_end(self, value):
         """ "off-time of the source"""
-        self._ramp_end = validate_float("ramp_end", value, min_val=self.ramp_start)
+        self._ramp_end = validate_float(
+            "ramp_end", value, min_val=self.ramp_start, inclusive_min=False
+        )
 
     @property
     def off_time(self):
-        return self._ramp_end
+        return self.ramp_end
 
     @off_time.setter
     def off_time(self, value):
