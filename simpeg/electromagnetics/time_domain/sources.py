@@ -219,14 +219,13 @@ class RampOffWaveform(BaseWaveform):
                 raise TypeError(
                     "Can not specify both `off_time` and a `ramp_end` value."
                 )
-            else:
-                ramp_end = off_time
-                warnings.warn(
-                    "`off_time` keyword arg has been deprecated and will be removed in "
-                    "SimPEG v0.26.0, pass the ramp end time as the last positional argument.`",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
+            ramp_end = off_time
+            warnings.warn(
+                "`off_time` keyword arg has been deprecated and will be removed in "
+                "SimPEG v0.27.0, pass the ramp end time as the last positional argument.`",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         nargs = len(args)
         if nargs == 0:
