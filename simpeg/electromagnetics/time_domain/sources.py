@@ -210,17 +210,17 @@ class RampOffWaveform(BaseWaveform):
 
     def __init__(self, *args, **kwargs):
         off_time = kwargs.pop("off_time", None)
+        if len(args) > 0 and off_time is not None:
+            raise TypeError(
+                "Can not specify both `off_time` and a positional argument."
+            )
         if len(args) == 1:
-            if off_time is not None:
-                raise TypeError(
-                    "Can not specify both `off_time` and a positional argument."
-                )
             ramp_start = 0.0
             ramp_end = args[0]
         elif len(args) == 2:
             ramp_start, ramp_end = args
         else:
-            if (off_time := kwargs.pop("off_time", None)) is not None:
+            if off_time is not None:
                 warnings.warn(
                     "`off_time` keyword arg has been deprecated and will be removed in "
                     "SimPEG v0.26.0, pass the ramp end time as the last positional argument.`",
@@ -231,7 +231,7 @@ class RampOffWaveform(BaseWaveform):
                 ramp_end = off_time
             else:
                 raise TypeError(
-                    "Must specify at least one positional argument for the RampOffWaveform."
+                    "Must specify at one or two positional arguments for the RampOffWaveform."
                 )
 
         self.ramp_start = ramp_start

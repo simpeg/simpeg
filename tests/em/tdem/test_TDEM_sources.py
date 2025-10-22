@@ -111,9 +111,13 @@ def test_ramp_off_bad_args():
     with pytest.raises(TypeError, match="Can not specify both `off_time` and.*"):
         RampOffWaveform(0.01, off_time=0.1)
     with pytest.raises(
-        TypeError, match="Must specify at least one positional argument.*"
+        TypeError, match="Must specify at one or two positional arguments.*"
     ):
         RampOffWaveform()
+    with pytest.raises(
+        TypeError, match="Must specify at one or two positional arguments.*"
+    ):
+        RampOffWaveform(0.1, 0.2, 0.3)
 
 
 class TestVTEMWaveform(unittest.TestCase):
