@@ -43,7 +43,7 @@ they also allow the user to preserve the original flight heights.
 
 See https://github.com/simpeg/simpeg/pull/1683 for more details.
 
-Use a closed-loop wire as a source in TDEM
+Calculate B/H fields with a step-off waveform closed-loop wire source in TDEM
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We can now define a closed-loop wire as source in TDEM code with a step-off
