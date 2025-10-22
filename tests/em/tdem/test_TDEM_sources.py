@@ -107,17 +107,95 @@ def test_ramp_off_bad_end():
         RampOffWaveform(0.1, 0.0)
 
 
+def test_ramp_off_good_args():
+    with pytest.warns(
+        DeprecationWarning, match="`off_time` keyword arg has been deprecated.*"
+    ):
+        ramp = RampOffWaveform(off_time=0.1)
+        assert ramp.ramp_start == 0.0
+        assert ramp.ramp_end == 0.1
+
+    ramp = RampOffWaveform(0.1)
+    assert ramp.ramp_start == 0.0
+    assert ramp.ramp_end == 0.1
+
+    ramp = RampOffWaveform(ramp_end=0.1)
+    assert ramp.ramp_start == 0.0
+    assert ramp.ramp_end == 0.1
+
+    ramp = RampOffWaveform(0.1, 0.2)
+    assert ramp.ramp_start == 0.1
+    assert ramp.ramp_end == 0.2
+
+    ramp = RampOffWaveform(0.1, ramp_end=0.2)
+    assert ramp.ramp_start == 0.1
+    assert ramp.ramp_end == 0.2
+
+    ramp = RampOffWaveform(ramp_start=0.1, ramp_end=0.2)
+    assert ramp.ramp_start == 0.1
+    assert ramp.ramp_end == 0.2
+
+    ramp = RampOffWaveform(ramp_end=0.2, ramp_start=0.1)
+    assert ramp.ramp_start == 0.1
+    assert ramp.ramp_end == 0.2
+
+    with pytest.warns(
+        DeprecationWarning, match="`off_time` keyword arg has been deprecated.*"
+    ):
+        ramp = RampOffWaveform(0.1, off_time=0.2)
+        assert ramp.ramp_start == 0.1
+        assert ramp.ramp_end == 0.2
+
+    with pytest.warns(
+        DeprecationWarning, match="`off_time` keyword arg has been deprecated.*"
+    ):
+        ramp = RampOffWaveform(ramp_start=0.1, off_time=0.2)
+        assert ramp.ramp_start == 0.1
+        assert ramp.ramp_end == 0.2
+
+
 def test_ramp_off_bad_args():
-    with pytest.raises(TypeError, match="Can not specify both `off_time` and.*"):
-        RampOffWaveform(0.01, off_time=0.1)
     with pytest.raises(
-        TypeError, match="Must specify at one or two positional arguments.*"
+        TypeError,
+        match=re.escape("Can not specify both `off_time` and a `ramp_end` value."),
+    ):
+        RampOffWaveform(0.01, 0.2, off_time=0.1)
+    with pytest.raises(
+        TypeError,
+        match=re.escape("Can not specify both `off_time` and a `ramp_end` value."),
+    ):
+        RampOffWaveform(ramp_end=0.2, off_time=0.1)
+    with pytest.raises(
+        TypeError,
+        match=re.escape("RampOffWaveform() requires `ramp_end` to be specified."),
     ):
         RampOffWaveform()
     with pytest.raises(
-        TypeError, match="Must specify at one or two positional arguments.*"
+        TypeError,
+        match=re.escape("RampOffWaveform() requires `ramp_end` to be specified."),
+    ):
+        RampOffWaveform(ramp_start=0.0)
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            "Must specify one or two positional arguments for the RampOffWaveform."
+        ),
     ):
         RampOffWaveform(0.1, 0.2, 0.3)
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            "argument for RampOffWaveform() given by name ('ramp_start') and position (position 0)"
+        ),
+    ):
+        RampOffWaveform(0.1, ramp_start=0.0)
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            "argument for RampOffWaveform() given by name ('ramp_end') and position (position 1)"
+        ),
+    ):
+        RampOffWaveform(0.1, 0.2, ramp_end=0.0)
 
 
 class TestVTEMWaveform(unittest.TestCase):

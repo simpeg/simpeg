@@ -212,34 +212,56 @@ class RampOffWaveform(BaseWaveform):
 
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, ramp_start=None, ramp_end=None, **kwargs):
         off_time = kwargs.pop("off_time", None)
-        if len(args) > 0 and off_time is not None:
-            raise TypeError(
-                "Can not specify both `off_time` and a positional argument."
-            )
-        if len(args) == 1:
-            ramp_start = 0.0
-            ramp_end = args[0]
-        elif len(args) == 2:
-            ramp_start, ramp_end = args
-        else:
-            if off_time is not None:
+        if off_time is not None:
+            if len(args) > 1 or ramp_end is not None:
+                raise TypeError(
+                    "Can not specify both `off_time` and a `ramp_end` value."
+                )
+            else:
+                ramp_end = off_time
                 warnings.warn(
                     "`off_time` keyword arg has been deprecated and will be removed in "
                     "SimPEG v0.26.0, pass the ramp end time as the last positional argument.`",
                     DeprecationWarning,
                     stacklevel=2,
                 )
-                ramp_start = 0
-                ramp_end = off_time
-            else:
+
+        nargs = len(args)
+        if nargs > 2:
+            raise TypeError(
+                "Must specify one or two positional arguments for the RampOffWaveform."
+            )
+        if nargs == 0:
+            if ramp_end is None:
                 raise TypeError(
-                    "Must specify at one or two positional arguments for the RampOffWaveform."
+                    "RampOffWaveform() requires `ramp_end` to be specified."
                 )
+            if ramp_start is None:
+                ramp_start = 0.0
+        elif len(args) == 1:
+            if ramp_start is not None:
+                raise TypeError(
+                    "argument for RampOffWaveform() given by name ('ramp_start') and position (position 0)"
+                )
+            if ramp_end is not None:
+                ramp_start = args[0]
+            else:
+                ramp_start = 0
+                ramp_end = args[0]
+        elif len(args) == 2:
+            if ramp_start is not None:
+                raise TypeError(
+                    "argument for RampOffWaveform() given by name ('ramp_start') and position (position 0)"
+                )
+            if ramp_end is not None:
+                raise TypeError(
+                    "argument for RampOffWaveform() given by name ('ramp_end') and position (position 1)"
+                )
+            ramp_start, ramp_end = args
 
         self.ramp_start = ramp_start
-        self.ramp_end = ramp_end
         super().__init__(off_time=ramp_end, has_initial_fields=True, **kwargs)
 
     @property
