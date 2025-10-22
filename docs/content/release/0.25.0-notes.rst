@@ -368,3 +368,5 @@ Pull Requests
   https://github.com/simpeg/simpeg/pull/1726
 - Implement a closed loop as a TDEM source by `@lheagy <https://github.com/lheagy>`__ in
   https://github.com/simpeg/simpeg/pull/1651
+- Allow for specifying ramp start and ramp end in ``RampOffWaveform`` by
+  `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1714
