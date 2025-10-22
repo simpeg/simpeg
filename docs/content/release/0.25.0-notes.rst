@@ -35,11 +35,13 @@ Add utility function to shift electrodes to discrete topography
 
 A new `shift_to_discrete_topography` function shifts locations relative
 to discrete surface topography. When performing MT surveys, we measure
-electric fields at the Earth's surface. Similar to DC/IP, the original measurement
-locations of the electric fields can end up in air cells when we discretize surface
-topography. This function allows the user to shift locations
-relative to discrete topography on Tensor and Tree meshes. For Airborne NSEM,
-they also allow the user to preserve the original flight heights.
+electric fields at the Earth's surface.
+Similar to DC/IP, the original measurement locations of the electric fields can
+end up in air cells when we discretize surface topography. This function allows
+the user to shift locations relative to discrete topography on Tensor and Tree
+meshes.
+For Airborne NSEM, they also allow the user to preserve the original flight
+heights.
 
 See https://github.com/simpeg/simpeg/pull/1683 for more details.
 
@@ -79,10 +81,11 @@ Improved inversion printout
 
 The information table displayed during an inversion has been improved. Now, the
 zero-th iteration corresponds to the status of the inversion problem **before**
-any optimization steps, while subsequent iterations show information **after** each
-iteration but before directives are applied. The final iteration of the inversion is shown
-in the last row of the table. Additionally, some non-very-useful messages have
-been removed to produce a cleaner output.
+any optimization steps, while subsequent iterations show information **after**
+each iteration but before directives are applied.
+The final iteration of the inversion is shown in the last row of the table.
+Additionally, some non-very-useful messages have been removed to produce
+a cleaner output.
 
 See https://github.com/simpeg/simpeg/pull/1626 for more details.
 
@@ -118,9 +121,9 @@ This release introduces a fresh new landing page for SimPEG docs, and a new
 **How to Guide** section in our :ref:`user_guide` with pages on
 :ref:`choosing-solvers` and :ref:`how-to-move-mesh`.
 
-We also included a new page that clarifies Python and Numpy :ref:`version-compatibility`
-with SimPEG, and explain the criteria for dropping older
-versions of our dependencies.
+We also included a new page that clarifies Python and Numpy
+:ref:`version-compatibility` with SimPEG, and explain the criteria for dropping
+older versions of our dependencies.
 
 We started removing the gravity, magnetic and DC tutorials from SimPEG's docs,
 as part of our plan of moving all tutorials to our `User Tutorials
