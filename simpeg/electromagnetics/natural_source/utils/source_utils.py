@@ -212,7 +212,7 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
 
 
 def primary_e_1d_solution(
-    mesh, sigma_1d, freq, top_bc="dirichlet", bot_bc="dirichlet", n_pad=500
+    mesh, sigma_1d, freq, top_bc="dirichlet", bot_bc="robin", n_pad=500
 ):
     r"""Compute 1D electric field solution on nodes.
 

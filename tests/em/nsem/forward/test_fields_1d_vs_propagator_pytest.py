@@ -43,15 +43,19 @@ def get_model(mesh, model_type):
 
 
 CASES_LIST_HALFSPACE = [
-    ("e", "dirichlet"),
-    ("e", "neumann"),
-    ("h", "dirichlet"),
-    ("h", "neumann"),
+    ("e", "dirichlet", "dirichlet"),
+    ("e", "dirichlet", "robin"),
+    ("e", "neumann", "dirichlet"),
+    ("e", "neumann", "robin"),
+    ("h", "dirichlet", "dirichlet"),
+    ("h", "dirichlet", "robin"),
+    ("h", "neumann", "dirichlet"),
+    ("h", "neumann", "robin"),
 ]
 
 
-@pytest.mark.parametrize("solution_type, boundary_condition", CASES_LIST_HALFSPACE)
-def test_propagator_fv1d_crosscheck(solution_type, boundary_condition, mesh, mapping):
+@pytest.mark.parametrize("solution_type, top_bc, bot_bc", CASES_LIST_HALFSPACE)
+def test_propagator_fv1d_crosscheck(solution_type, top_bc, bot_bc, mesh, mapping):
     """Validate 1d fields against propagator solution."""
     sig_1d = get_model(mesh, "halfspace")
     freq = 100.0
@@ -62,11 +66,11 @@ def test_propagator_fv1d_crosscheck(solution_type, boundary_condition, mesh, map
     )
 
     if solution_type == "e":
-        u1 = primary_e_1d_solution(mesh, sig_1d, freq, boundary_condition, 500)
-        if boundary_condition == "dirichlet":
+        u1 = primary_e_1d_solution(mesh, sig_1d, freq, top_bc, bot_bc, 500)
+        if top_bc == "dirichlet":
             u0 = Ed + Eu
             u0 /= u0[-1]
-        elif boundary_condition == "neumann":
+        elif top_bc == "neumann":
             u0 = Hd + Hu
             u0 /= u0[-1]
             u0 = mesh.average_node_to_cell @ u0
@@ -75,11 +79,11 @@ def test_propagator_fv1d_crosscheck(solution_type, boundary_condition, mesh, map
             u1 /= -1.0j * 2 * np.pi * freq * mu_0
 
     elif solution_type == "h":
-        u1 = primary_h_1d_solution(mesh, sig_1d, freq, boundary_condition, 500)
-        if boundary_condition == "dirichlet":
+        u1 = primary_h_1d_solution(mesh, sig_1d, freq, top_bc, bot_bc, 500)
+        if top_bc == "dirichlet":
             u0 = Hd + Hu
             u0 /= u0[-1]
-        elif boundary_condition == "neumann":
+        elif top_bc == "neumann":
             u0 = Ed + Eu
             u0 /= u0[-1]
             u0 = mesh.average_node_to_cell @ u0
