@@ -6,6 +6,7 @@ from ..utils import omega
 from .utils.source_utils import (
     primary_e_1d_solution,
     project_1d_fields_to_mesh_edges,
+    homo1DModelSource
 )
 import discretize
 from discretize.utils import volume_average
@@ -110,11 +111,9 @@ class PlanewaveXYPrimary(Planewave):
         """
         if self._ePrimary is None:
             sigma_1d, _ = self._get_sigmas(simulation)
-            # self._ePrimary = homo1DModelSource(
-            #     simulation.mesh, self.frequency, sigma_1d
-            # )
-            e_1d = primary_e_1d_solution(simulation.mesh, sigma_1d, self.frequency)
-            self._ePrimary = project_1d_fields_to_mesh_edges(simulation.mesh, e_1d)
+            self._ePrimary = homo1DModelSource(
+                simulation.mesh, self.frequency, sigma_1d
+            )
         return self._ePrimary
 
     def bPrimary(self, simulation):
