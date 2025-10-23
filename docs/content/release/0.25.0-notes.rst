@@ -4,7 +4,7 @@
 SimPEG v0.25.0 Release Notes
 ============================
 
-October 21st, 2025
+October 22nd, 2025
 
 .. contents:: Highlights
     :depth: 3
@@ -33,9 +33,9 @@ See https://github.com/simpeg/simpeg/pull/1682 for more details.
 Add utility function to shift electrodes to discrete topography
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A new `shift_to_discrete_topography` function shifts locations relative
-to discrete surface topography. When performing MT surveys, we measure
-electric fields at the Earth's surface.
+A new :func:`simpeg.utils.shift_to_discrete_topography` function shifts
+locations relative to discrete surface topography. When performing MT surveys,
+we measure electric fields at the Earth's surface.
 Similar to DC/IP, the original measurement locations of the electric fields can
 end up in air cells when we discretize surface topography. This function allows
 the user to shift locations relative to discrete topography on Tensor and Tree
@@ -158,7 +158,7 @@ In this release we included a few bugfixes:
 Breaking changes
 ----------------
 
-We introduce a few breaking changes in SimPEG v0.25.0.
+We introduced a few breaking changes in SimPEG v0.25.0.
 
 Dropped support for Python 3.10
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -233,11 +233,11 @@ Removals
 We also removed several deprecated items marked for removal in previous
 releases, including:
 
-- The `Data.index_dictionary` property. Use the new ``get_slice`` method of
+- The ``Data.index_dictionary`` property. Use the new ``get_slice`` method of
   ``Survey`` (for example:
   :meth:`simpeg.potential_fields.gravity.Survey.get_slice`).
-- The `gtg_diagonal` property from gravity simulation.
-- The `components` property from gravity and magnetic surveys.
+- The ``gtg_diagonal`` property from gravity simulation.
+- The ``components`` property from gravity and magnetic surveys.
 
 
 Contributors
