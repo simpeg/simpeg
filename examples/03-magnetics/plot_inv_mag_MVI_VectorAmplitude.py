@@ -106,7 +106,7 @@ ind = utils.model_builder.get_indices_block(
     np.r_[-30, -20, -10],
     np.r_[30, 20, 25],
     mesh.gridCC,
-)[0]
+)
 model_amp[ind] = 0.05
 model_azm_dip[ind, 0] = 45.0
 model_azm_dip[ind, 1] = 90.0
