@@ -4,7 +4,7 @@
 SimPEG v0.25.0 Release Notes
 ============================
 
-October 21st, 2025
+October 22nd, 2025
 
 .. contents:: Highlights
     :depth: 3
