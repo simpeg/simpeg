@@ -243,9 +243,16 @@ class BaseEM1DSimulation(BaseSimulation):
                 1 - \eta \Bigg ( \frac{1}{1 + (1-\eta ) (1 + i\omega \tau)^c} \Bigg )
             \Bigg ]
 
-        :param numpy.array frequencies: np.array(N,) containing frequencies
-        :rtype: numpy.ndarray: np.array(n_layer, n_frequency)
-        :return: complex conductivity matrix
+        Parameters
+        -----------
+        frequencies : array_like
+            (n_frequency,)-array containing frequencies
+
+        Returns
+        -------
+        out : np.ndarray
+            (n_layer, n_frequency)-array of complex conductivities for all
+            layers
 
         """
         n_layer = self.n_layer
