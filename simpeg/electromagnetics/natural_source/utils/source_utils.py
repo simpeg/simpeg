@@ -320,39 +320,6 @@ def primary_e_1d_solution(
     w = 2 * np.pi * freq
     A = G.T @ M_e_mui @ G + 1j * w * M_f_sigma
 
-    # Approach 1
-
-    # # Impose boundary conditions
-    # q = np.zeros(mesh_ext.n_faces, dtype=np.complex128)
-
-    # if bot_bc == "dirichlet":
-    #     e_d, e_u, h_d, h_u = getEHfields(mesh_ext, sigma_1d_ext, freq, mesh.nodes_x)
-    #     e_tot = e_d + e_u
-    #     q[0] = A[0, 0] * e_tot[0]
-    #     A[0, 1] = 0.0
-    # elif bot_bc == "robin":
-    #     k = np.sqrt(-1.0j * w * mu_0 * sigma_1d[0])
-    #     A[0, 0] = (
-    #         1.0 / (mu_0 * hz[0]) + 1.0j * k / mu_0 + 1.0j * w * hz[0] * sigma_1d[0]
-    #     )
-    #     A[0, 1] = -1.0 / (mu_0 * hz[0])
-    # else:
-    #     raise ValueError("'bot_bc' must be one of {'dirichlet', 'robin'}.")
-
-    # if top_bc == "dirichlet":
-    #     A[-1, -2] = 0
-    #     q[-1] = A[-1, -1]
-    # elif top_bc == "neumann":
-    #     q[-1] = -1.0j * w
-    # else:
-    #     raise ValueError("'top_bc' must be one of {'dirichlet', 'neumann'}.")
-
-    # # Solve and return along original discretization
-    # Ainv = get_default_solver()(A)
-    # e_1d = Ainv @ q
-
-    # Approach 2
-
     fixed_nodes = np.zeros(mesh_ext.n_nodes, dtype=bool)
     e_fixed = []
     q = np.zeros(mesh_ext.n_nodes, dtype=np.complex128)
@@ -499,41 +466,6 @@ def primary_h_1d_solution(
 
     w = 2 * np.pi * freq
     A = G.T @ M_e_rho @ G + 1j * w * M_f_mu
-
-    # Approach 1
-
-    # # Impose boundary conditions
-    # rho_1d_ext = 1/sigma_1d_ext
-    # q = np.zeros(mesh_ext.n_faces, dtype=np.complex128)
-
-    # if bot_bc == "dirichlet":
-    #     e_d, e_u, h_d, h_u = getEHfields(mesh_ext, 1 / rho_1d_ext, freq, mesh.nodes_x)
-    #     h_tot = h_d + h_u
-    #     q[0] = A[0, 0] * h_tot[0]
-    #     A[0, 1] = 0.0
-    # elif bot_bc == "robin":
-    #     k = np.sqrt(-1.0j * w * mu_0 * rho_1d_ext[0])
-    #     A[0, 0] = rho_1d_ext[0] * (1.0j * k + 1 / hz[0]) + 1.0j * w * mu_0 * hz[0]
-    #     A[0, 1] = -rho_1d_ext[0] / hz[0]
-    # else:
-    #     raise ValueError("'bot_bc' must be one of {'dirichlet', 'robin'}.")
-
-    # if top_bc == "dirichlet":
-    #     A[-1, -2] = 0
-    #     q[-1] = A[-1, -1]
-    # elif top_bc == "neumann":
-    #     q[-1] = 1.
-    # else:
-    #     raise ValueError("'top_bc' must be one of {'dirichlet', 'neumann'}.")
-
-    # # Solve and return along original discretization
-    # Ainv = get_default_solver()(A)
-    # h_1d = Ainv @ q
-    # if n_pad != 0:
-    #     h_1d = h_1d[n_pad:]
-    # return h_1d
-
-    # Approach 2
 
     fixed_nodes = np.zeros(mesh_ext.n_nodes, dtype=bool)
     h_fixed = []
