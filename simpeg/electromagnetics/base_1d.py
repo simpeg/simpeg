@@ -255,7 +255,7 @@ class BaseEM1DSimulation(BaseSimulation):
         sigma = np.tile(self.sigma.reshape([-1, 1]), (1, n_frequency))
 
         # No IP effect
-        if np.all(self.eta) == 0.0:
+        if np.all(self.eta == 0.0):
             return sigma
 
         # IP effect
