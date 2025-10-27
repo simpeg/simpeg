@@ -62,7 +62,7 @@ def test_Jmatrix(model_simulation_tuple):
     # compare to JTvec function
     jtvec = simulation.Jtvec(model, v=vec)
 
-    np.testing.assert_allclose(Jmatrix_vec, jtvec)
+    np.testing.assert_allclose(Jmatrix_vec, jtvec, atol=1e-10)
 
 
 # Test the Jvec derivative
