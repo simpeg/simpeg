@@ -312,16 +312,28 @@ class BaseEM1DSimulation(BaseSimulation):
         Computes the complex magnetic permeability matrix assuming a log-uniform
         distribution of time-relaxation constants:
 
+        Parameters
+        -----------
+        frequencies : array_like
+            (n_frequency,)-array containing frequencies
+        
+        Returns
+        -------
+        out : np.ndarray
+            (n_layer, n_frequency)-array of complex magnetic susceptibility
+            matrix
+
+        Notes
+        -----
+        Formulation is:
+
         .. math::
 
             \chi (\omega ) = \chi + \Delta \chi \Bigg [
                 1 - \Bigg ( \frac{1}{ln (\tau_2 / \tau_1 )} \Bigg )
                 ln \Bigg ( \frac{1 + i\omega \tau_2}{1 + i\omega tau_1} ) \Bigg )
             \Bigg ]
-
-        :param numpy.array frequencies: np.array(N,) containing frequencies
-        :rtype: numpy.ndarray: np.array(n_layer, n_frequency)
-        :return: complex magnetic susceptibility matrix
+        
         """
 
         if np.isscalar(self.mu):
