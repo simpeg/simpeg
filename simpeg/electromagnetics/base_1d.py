@@ -237,23 +237,43 @@ class BaseEM1DSimulation(BaseSimulation):
         r"""
         Computes the complex conductivity matrix using Pelton's Cole-Cole model:
 
-        .. math ::
-
-            \sigma (\omega ) = \sigma \Bigg [
-                1 - \eta \Bigg ( \frac{1}{1 + (1-\eta ) (1 + i\omega \tau)^c} \Bigg )
-            \Bigg ]
-
         Parameters
         -----------
         frequencies : array_like
             (n_frequency,)-array containing frequencies
 
+            Warning
+            -------
+            For IP cases (non-null chargeability), computations assume
+            conductivity/frequency at infinite frequency were passed (see notes
+            below)
+        
         Returns
         -------
         out : np.ndarray
             (n_layer, n_frequency)-array of complex conductivities for all
             layers
 
+        Notes
+        -----
+        Complex conductivity is obtained following (Pelton, 1978): 
+
+        .. math ::
+
+            \sigma (\omega ) = \sigma_{\infty} \Bigg (
+                1 - \frac{\eta}{1 + (1-\eta ) (i\omega \tau)^c}
+            \Bigg )
+
+        where :math:`\eta`, :math:`\tau` and :math:`c` are the model
+        chargeability (V/V), relaxation time (s) and frequency exponent (-)
+
+        This formulation relies on the conductivity at infinite frequency
+        \sigma_{\infty} which lightly differs from Pelton's — based on
+        the conductivity at 0 frequency \sigma_0:
+
+        .. math ::
+
+            \sigma_0 = ( 1 - \eta ) \sigma_{\infty} 
         """
         n_layer = self.n_layer
         n_frequency = len(frequencies)
