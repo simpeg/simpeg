@@ -120,7 +120,7 @@ ind = utils.model_builder.get_indices_block(
     np.r_[-10, -10, -30],
     np.r_[10, 10, -10],
     mesh.gridCC,
-)[0]
+)
 
 # Assign magnetization values
 model[ind] = 0.3
@@ -228,7 +228,7 @@ m0 = np.ones(nC) * 1e-4  # Starting model
 
 # Add directives to the inversion
 opt = optimization.ProjectedGNCG(
-    maxIter=100, lower=-1.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
+    maxIter=100, lower=-1.0, upper=1.0, maxIterLS=20, cg_maxiter=10, cg_rtol=1e-3
 )
 invProb = inverse_problem.BaseInvProblem(global_misfit, reg, opt)
 betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)

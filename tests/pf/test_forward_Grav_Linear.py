@@ -556,7 +556,9 @@ class TestJacobianGravity(BaseFixtures):
             pytest.param(
                 "geoana",
                 "forward_only",
-                marks=pytest.mark.xfail(reason="not implemented"),
+                marks=pytest.mark.xfail(
+                    raises=NotImplementedError, reason="not implemented"
+                ),
             ),
         ],
     )
@@ -596,7 +598,9 @@ class TestJacobianGravity(BaseFixtures):
             pytest.param(
                 "geoana",
                 "forward_only",
-                marks=pytest.mark.xfail(reason="not implemented"),
+                marks=pytest.mark.xfail(
+                    raises=NotImplementedError, reason="not implemented"
+                ),
             ),
         ],
     )
@@ -631,7 +635,12 @@ class TestJacobianGravity(BaseFixtures):
         "engine",
         [
             "choclo",
-            pytest.param("geoana", marks=pytest.mark.xfail(reason="not implemented")),
+            pytest.param(
+                "geoana",
+                marks=pytest.mark.xfail(
+                    raises=NotImplementedError, reason="not implemented"
+                ),
+            ),
         ],
     )
     @pytest.mark.parametrize("method", ["Jvec", "Jtvec"])
@@ -707,7 +716,12 @@ class TestJacobianGravity(BaseFixtures):
         "engine",
         [
             "choclo",
-            pytest.param("geoana", marks=pytest.mark.xfail(reason="not implemented")),
+            pytest.param(
+                "geoana",
+                marks=pytest.mark.xfail(
+                    raises=NotImplementedError, reason="not implemented"
+                ),
+            ),
         ],
     )
     @pytest.mark.parametrize("weights", [True, False])
@@ -847,29 +861,6 @@ class TestGLinearOperator(BaseFixtures):
         assert isinstance(simulation_ram.G, np.ndarray)
         vector = np.random.default_rng(seed=42).uniform(size=survey.nD)
         np.testing.assert_allclose(simulation.G.T @ vector, simulation_ram.G.T @ vector)
-
-
-class TestDeprecationWarning(BaseFixtures):
-    """
-    Test warnings after deprecated properties or methods of the simulation class.
-    """
-
-    def test_gtg_diagonal(self, survey, mesh):
-        """Test deprecation warning on gtg_diagonal property."""
-        mapping = maps.IdentityMap(nP=mesh.n_cells)
-        simulation = gravity.simulation.Simulation3DIntegral(
-            survey=survey,
-            mesh=mesh,
-            rhoMap=mapping,
-            store_sensitivities="ram",
-            engine="choclo",
-        )
-        msg = re.escape(
-            "The `gtg_diagonal` property has been deprecated. "
-            "It will be removed in SimPEG v0.25.0.",
-        )
-        with pytest.warns(FutureWarning, match=msg):
-            simulation.gtg_diagonal
 
 
 class TestConversionFactor:

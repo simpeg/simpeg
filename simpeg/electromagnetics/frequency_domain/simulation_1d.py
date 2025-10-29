@@ -194,9 +194,9 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 rTE = rTE_forward(frequencies, unique_lambs, sig, mu, self.thicknesses)
                 rTE = rTE[i_freq]
                 rTE = np.take_along_axis(rTE, inv_lambs, axis=1)
-                v_dh_temp = (C0s_dh * rTE) @ self._fhtfilt.j0 + (
-                    C1s_dh * rTE
-                ) @ self._fhtfilt.j1
+                v_dh_temp = ((C0s_dh * rTE) @ self._fhtfilt.j0).real + (
+                    (C1s_dh * rTE) @ self._fhtfilt.j1
+                ).real
                 v_dh_temp += W @ v_dh_temp
                 # need to re-arange v_dh as it's currently (n_data x 1)
                 # however it already contains all the relevant information...

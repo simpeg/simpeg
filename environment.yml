@@ -5,10 +5,10 @@ dependencies:
 # dependencies
   - python=3.11
   - numpy>=1.22
-  - scipy>=1.8
+  - scipy>=1.12
   - pymatsolver>=0.3
   - matplotlib-base
-  - discretize>=0.11
+  - discretize>=0.12
   - geoana>=0.7
   - libdlf
   - typing_extensions
@@ -34,6 +34,7 @@ dependencies:
   - sphinx-gallery>=0.1.13
   - sphinxcontrib-apidoc
   - sphinx-reredirects
+  - sphinx-design
   - pydata-sphinx-theme
   - empymod>=2.0.0
   - nbsphinx
