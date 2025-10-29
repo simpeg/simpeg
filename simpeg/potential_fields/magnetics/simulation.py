@@ -1686,15 +1686,17 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
     This simulation solves for the magnetostatic PDE:
 
     .. math::
-        \nabla \cdot \Vec{B} = 0
+
+        \nabla \cdot \mathbf{B} = 0
 
     where the constitutive relation is specified as:
 
     .. math::
-        \Vec{B} = \mu\Vec{H} + \mu_0\Vec{M_r}
 
-    where :math:`\Vec{M_r}` is a fixed magnetization unaffected by the inducing field
-    and :math:`\mu\Vec{H}` is the induced magnetization.
+        \mathbf{B} = \mu\mathbf{H} + \mu_0\mathbf{M_r}
+
+    where :math:`\mathbf{M_r}` is a fixed magnetization unaffected by the inducing field
+    and :math:`\mu\mathbf{H}` is the induced magnetization.
     """
 
     _Ainv = None

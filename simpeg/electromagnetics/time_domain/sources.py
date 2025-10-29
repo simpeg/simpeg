@@ -3,7 +3,11 @@ import warnings
 from discretize.utils import mkvc
 
 import numpy as np
-from geoana.em.static import CircularLoopWholeSpace, MagneticDipoleWholeSpace
+from geoana.em.static import (
+    CircularLoopWholeSpace,
+    MagneticDipoleWholeSpace,
+    LineCurrentWholeSpace,
+)
 from scipy.constants import mu_0
 
 from ...utils import Zero, sdiag
@@ -177,13 +181,22 @@ class StepOffWaveform(BaseWaveform):
 
 
 class RampOffWaveform(BaseWaveform):
-    """
+    """RampOffWaveform([ramp_start,] ramp_end)
+
     A waveform with a linear ramp-off.
+
+    ``RampOffWaveform`` can be called with a varying number of positional arguments:
+
+    * ``RampOffWaveform(ramp_end)``: Specify only the ramp end time, with an implied ramp
+      start time of zero.
+    * ``RampOffWaveform(ramp_start, ramp_end)``: Specify both the ramp start and end times.
 
     Parameters
     ----------
-    off_time : float, default: 0.0
-        time at which the transmitter is turned off in units of seconds
+    ramp_start : float, optional
+        Time the ramp off portion of the waveform starts. The default start value is 0.
+    ramp_end : float
+        Time at which the ramp off ends.
 
     Examples
     --------
@@ -193,20 +206,115 @@ class RampOffWaveform(BaseWaveform):
     >>> from simpeg.electromagnetics import time_domain as tdem
 
     >>> times = np.linspace(0, 1e-4, 1000)
-    >>> waveform = tdem.sources.RampOffWaveform(off_time=1e-5)
+    >>> waveform = tdem.sources.RampOffWaveform(1e-5)
     >>> plt.plot(times, [waveform.eval(t) for t in times])
     >>> plt.show()
 
     """
 
-    def __init__(self, off_time=0.0, **kwargs):
-        super().__init__(off_time=off_time, has_initial_fields=True, **kwargs)
+    def __init__(self, *args, ramp_start=None, ramp_end=None, **kwargs):
+        off_time = kwargs.pop("off_time", None)
+        if off_time is not None:
+            if len(args) > 1 or ramp_end is not None:
+                raise TypeError(
+                    "Can not specify both `off_time` and a `ramp_end` value."
+                )
+            ramp_end = off_time
+            warnings.warn(
+                "`off_time` keyword arg has been deprecated and will be removed in "
+                "SimPEG v0.27.0, pass the ramp end time as the last positional argument.`",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+        nargs = len(args)
+        if nargs == 0:
+            if ramp_end is None:
+                raise TypeError(
+                    "RampOffWaveform() requires `ramp_end` to be specified."
+                )
+            if ramp_start is None:
+                ramp_start = 0.0
+        elif nargs == 1:
+            if ramp_start is not None:
+                raise TypeError(
+                    "argument for RampOffWaveform() given by name ('ramp_start') and position (position 0)"
+                )
+            if ramp_end is not None:
+                ramp_start = args[0]
+            else:
+                ramp_start = 0
+                ramp_end = args[0]
+        elif nargs == 2:
+            if ramp_start is not None:
+                raise TypeError(
+                    "argument for RampOffWaveform() given by name ('ramp_start') and position (position 0)"
+                )
+            if ramp_end is not None:
+                raise TypeError(
+                    "argument for RampOffWaveform() given by name ('ramp_end') and position (position 1)"
+                )
+            ramp_start, ramp_end = args
+        else:
+            raise TypeError(
+                "Must specify one or two positional arguments for the RampOffWaveform."
+            )
+
+        self.ramp_start = ramp_start
+        super().__init__(off_time=ramp_end, has_initial_fields=True, **kwargs)
+
+    @property
+    def ramp_start(self):
+        """Ramp start time
+
+        Sets the time the ramp off begins.
+
+        Returns
+        -------
+        float
+            The start time of the ramp off for the waveform
+        """
+        return self._ramp_start
+
+    @ramp_start.setter
+    def ramp_start(self, value):
+        self._ramp_start = validate_float("ramp_start", value)
+
+    @property
+    def ramp_end(self):
+        """Ramp end time, when the current is off.
+
+        Sets the time the ramp off ends.
+
+        Returns
+        -------
+        float
+            The end time of the ramp off for the waveform
+        """
+        return self._ramp_end
+
+    @ramp_end.setter
+    def ramp_end(self, value):
+        """ "off-time of the source"""
+        self._ramp_end = validate_float(
+            "ramp_end", value, min_val=self.ramp_start, inclusive_min=False
+        )
+
+    @property
+    def off_time(self):
+        return self.ramp_end
+
+    @off_time.setter
+    def off_time(self, value):
+        self.ramp_end = value
 
     def eval(self, time):  # noqa: A003
-        if abs(time - 0.0) < self.epsilon:
+        dt = time - self.ramp_start
+        if dt < self.epsilon:
             return 1.0
-        elif time < self.off_time:
-            return -1.0 / self.off_time * (time - self.off_time)
+        elif time < self.ramp_end:
+            ramp_width = self.ramp_end - self.ramp_start
+            return 1 - dt / ramp_width
         else:
             return 0.0
 
@@ -214,8 +322,10 @@ class RampOffWaveform(BaseWaveform):
         t = np.asarray(time, dtype=float)
         out = np.zeros_like(t)
 
-        if self.off_time > 0:
-            out[(t < self.off_time) & (t >= self.epsilon)] = -1.0 / self.off_time
+        ramp_width = self.ramp_end - self.ramp_start
+        out[(t < self.ramp_end) & ((t - self.ramp_start) >= self.epsilon)] = (
+            -1.0 / ramp_width
+        )
 
         if out.ndim == 0:
             out = out.item()
@@ -223,7 +333,7 @@ class RampOffWaveform(BaseWaveform):
 
     @property
     def time_nodes(self):
-        return np.r_[0.0, self.off_time]
+        return np.r_[self.ramp_start, self.ramp_end]
 
 
 class RawWaveform(BaseWaveform):
@@ -1620,7 +1730,9 @@ class LineCurrent(BaseTDEMSrc):
         srcType=None,
         **kwargs,
     ):
-        super().__init__(receiver_list=receiver_list, location=location, **kwargs)
+        super().__init__(
+            receiver_list=receiver_list, location=location, srcType=srcType, **kwargs
+        )
         for rx in self.receiver_list:
             if getattr(rx, "use_source_receiver_offset", False):
                 raise ValueError(
@@ -1898,37 +2010,56 @@ class LineCurrent(BaseTDEMSrc):
         )
 
     def _getAmmr(self, simulation):
-        if simulation._formulation != "HJ":
+        if simulation._formulation == "EB":
             raise NotImplementedError
-
-        vol = simulation.mesh.cell_volumes
-        Div = sdiag(vol) * simulation.mesh.face_divergence
-        return (
-            simulation.mesh.edge_curl
-            * simulation.MeMuI
-            * simulation.mesh.edge_curl.T.tocsr()
-            - Div.T.tocsr()
-            * sdiag(1.0 / vol * simulation.mui)
-            * Div  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
-        )
+        elif simulation._formulation == "HJ":
+            vol = simulation.mesh.cell_volumes
+            Div = sdiag(vol) * simulation.mesh.face_divergence
+            return (
+                simulation.mesh.edge_curl
+                * simulation.MeMuI
+                * simulation.mesh.edge_curl.T.tocsr()
+                - Div.T.tocsr()
+                * sdiag(1.0 / vol * simulation.mui)
+                * Div  # stabalizing term. See (Chen, Haber & Oldenburg 2002)
+            )
 
     def _aInitial(self, simulation):
-        A = self._getAmmr(simulation)
-        Ainv = simulation.solver(A)  # todo: store this
-        s_e = self.s_e(simulation, 0)
-        rhs = s_e + self.jInitial(simulation)
-        return Ainv * rhs
+        if self.srcType == "inductive":
+            # for an inductive source, use the Biot Savart law (from geoana) to compute the vector potential
+            line_current = LineCurrentWholeSpace(self.location)
+            if simulation._formulation == "EB":
+                vector_potential = simulation.mesh.project_edge_vector(
+                    line_current.vector_potential(simulation.mesh.edges)
+                )
+            elif simulation._formulation == "HJ":
+                vector_potential = simulation.mesh.project_face_vector(
+                    line_current.vector_potential(simulation.mesh.faces)
+                )
+            return self.current * vector_potential
+        else:
+            # if a grounded source, solve the MMR problem
+            A = self._getAmmr(simulation)
+            Ainv = simulation.solver(A)  # todo: store this
+            s_e = self.s_e(simulation, 0)
+            rhs = s_e + self.jInitial(simulation)
+            return Ainv * rhs
 
     def _aInitialDeriv(self, simulation, v, adjoint=False):
-        A = self._getAmmr(simulation)
-        Ainv = simulation.solver(A)  # todo: store this - move it to the simulation
+        if self.srcType == "inductive":
+            # the vector potential doesn't depend on the model for an inductive source
+            return Zero()
+        else:
+            # for a grounded source, the derivatives are obtained from the MMR problem
+            A = self._getAmmr(simulation)
+            Ainv = simulation.solver(A)  # todo: store this - move it to the simulation
 
-        if adjoint is True:
-            return self.jInitialDeriv(
-                simulation, Ainv * v, adjoint=True
-            )  # A is symmetric
+            if adjoint is True:
+                return self.jInitialDeriv(
+                    simulation, Ainv * v, adjoint=True
+                )  # A is symmetric
 
-        return Ainv * self.jInitialDeriv(simulation, v)
+            return Ainv * self.jInitialDeriv(simulation, v)
 
     def hInitial(self, simulation):
         """Compute initial magnetic field.
@@ -1950,8 +2081,29 @@ class LineCurrent(BaseTDEMSrc):
         if self.waveform.has_initial_fields is False:
             return Zero()
 
-        b = self.bInitial(simulation)
-        return simulation.MeMuI * b
+        if simulation._formulation == "EB":
+            return 1 / self.mu * self.bInitial(simulation)
+        elif simulation._formulation == "HJ":
+            a = self._aInitial(simulation)
+
+            if self.srcType == "inductive":
+                line_current = LineCurrentWholeSpace(self.location)
+                a_boundary = mkvc(
+                    line_current.vector_potential(simulation.mesh.boundary_edges)
+                )
+                a_bc = simulation.mesh.boundary_edge_vector_integral * a_boundary
+
+                return (
+                    1.0
+                    / self.mu
+                    * simulation.MeI
+                    * simulation.mesh.edge_curl.T
+                    * simulation.Mf
+                    * a
+                    - 1 / self.mu * simulation.MeI * a_bc
+                )
+            else:
+                return simulation.MeMuI * simulation.mesh.edge_curl.T * a
 
     def hInitialDeriv(self, simulation, v, adjoint=False, f=None):
         """Compute derivative of intitial magnetic field times a vector
@@ -1996,11 +2148,13 @@ class LineCurrent(BaseTDEMSrc):
 
         if self.waveform.has_initial_fields is False:
             return Zero()
-        elif simulation._formulation != "HJ":
-            raise NotImplementedError
 
-        a = self._aInitial(simulation)
-        return simulation.mesh.edge_curl.T * a
+        if simulation._formulation == "EB":
+            a = self._aInitial(simulation)
+            return simulation.mesh.edge_curl * a
+        elif simulation._formulation == "HJ":
+            # return simulation.mesh.edge_curl.T * a
+            return self.mu * self.hInitial(simulation)
 
     def bInitialDeriv(self, simulation, v, adjoint=False, f=None):
         """Compute derivative of intitial magnetic flux density times a vector
@@ -2021,8 +2175,6 @@ class LineCurrent(BaseTDEMSrc):
         """
         if self.waveform.has_initial_fields is False:
             return Zero()
-        elif simulation._formulation != "HJ":
-            raise NotImplementedError
 
         if adjoint is True:
             return self._aInitialDeriv(
@@ -2059,11 +2211,14 @@ class LineCurrent(BaseTDEMSrc):
 # on faces
 class RawVec_Grounded(LineCurrent):
     def __init__(self, receiver_list=None, s_e=None, **kwargs):
+
+        srcType = kwargs.pop("srcType", None)
+        if srcType is not None and srcType != "galvanic":
+            raise ValueError(
+                "expected srcType to be 'galvanic' for the RawVec_Grounded"
+            )
+        super().__init__(receiver_list, srcType="galvanic", **kwargs)
         self.integrate = False
-        kwargs.pop("srcType", None)
-        super(RawVec_Grounded, self).__init__(
-            receiver_list, srcType="galvanic", **kwargs
-        )
 
         if s_e is not None:
             self._Mfjs = self._s_e = s_e
