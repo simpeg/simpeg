@@ -701,92 +701,141 @@ class Tipper(BaseNaturalSourceRx):
         # will grab both primary and secondary and sum them!
         h = f[src, "h"]
 
-        Phx = self.getP(mesh, "Fx", 1)
-        Phy = self.getP(mesh, "Fy", 1)
-        Pho = self.getP(mesh, "F" + self.orientation[0], 0)
+        # Only Tzx
+        if mesh.dim == 2:
 
-        hx = Phx @ h
-        hy = Phy @ h
-        ho = Pho @ h
+            Phx = self.getP(mesh, "Ex")
+            Phz = self.getP(mesh, "Ey")
 
-        if self.orientation[1] == "x":
-            h = -hy
+            hz = Phz @ h[:, 0]
+            hx = Phx @ h[:, 0]
+
+            return hz / hx
+
         else:
-            h = hx
 
-        top = h[:, 0] * ho[:, 1] - h[:, 1] * ho[:, 0]
-        bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
-        return top / bot
+            Phx = self.getP(mesh, "Fx", 1)
+            Phy = self.getP(mesh, "Fy", 1)
+            Pho = self.getP(mesh, "F" + self.orientation[0], 0)
+
+            hx = Phx @ h
+            hy = Phy @ h
+            ho = Pho @ h
+
+            if self.orientation[1] == "x":
+                h = -hy
+            else:
+                h = hx
+
+            top = h[:, 0] * ho[:, 1] - h[:, 1] * ho[:, 0]
+            bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
+
+            return top / bot
 
     def _eval_tipper_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
         # will grab both primary and secondary and sum them!
         h = f[src, "h"]
 
-        Phx = self.getP(mesh, "Fx", 1)
-        Phy = self.getP(mesh, "Fy", 1)
-        Pho = self.getP(mesh, "F" + self.orientation[0], 0)
+        if mesh.dim == 2:
 
-        hx = Phx @ h
-        hy = Phy @ h
-        ho = Pho @ h
+            Phx = self.getP(mesh, "Ex")
+            Phz = self.getP(mesh, "Ey")
 
-        if self.orientation[1] == "x":
-            h = -hy
+            hz = Phz @ h[:, 0]
+            hx = Phx @ h[:, 0]
+
+            tip = hz / hx
+
         else:
-            h = hx
 
-        top = h[:, 0] * ho[:, 1] - h[:, 1] * ho[:, 0]
-        bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
-        tip = top / bot
+            Phx = self.getP(mesh, "Fx", 1)
+            Phy = self.getP(mesh, "Fy", 1)
+            Pho = self.getP(mesh, "F" + self.orientation[0], 0)
 
-        if adjoint:
-            # Work backwards!
-            gtop_v = (v / bot)[..., None]
-            gbot_v = (-tip * v / bot)[..., None]
-            n_d = self.nD
-
-            ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v
-            ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v
-            gho_v = np.c_[-h[:, 1], h[:, 0]] * gtop_v
-            gh_v = np.c_[ho[:, 1], -ho[:, 0]] * gtop_v
+            hx = Phx @ h
+            hy = Phy @ h
+            ho = Pho @ h
 
             if self.orientation[1] == "x":
-                ghy_v -= gh_v
+                h = -hy
             else:
-                ghx_v += gh_v
+                h = hx
 
-            if v.ndim == 2:
-                # collapse into a long list of n_d vectors
-                ghx_v = ghx_v.reshape((n_d, -1))
-                ghy_v = ghy_v.reshape((n_d, -1))
-                gho_v = gho_v.reshape((n_d, -1))
+            top = h[:, 0] * ho[:, 1] - h[:, 1] * ho[:, 0]
+            bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
 
-            gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v + Pho.T @ gho_v
+            tip = top / bot
+
+        # ADJOINT
+        if adjoint:
+
+            n_d = self.nD
+
+            if mesh.dim == 2:
+
+                ghz_v = v / hx
+                ghx_v = -tip * v / hx
+                gh_v = Phx.T @ ghx_v + Phz.T @ ghz_v
+
+            else:
+                # Work backwards!
+                gtop_v = (v / bot)[..., None]
+                gbot_v = (-tip * v / bot)[..., None]
+
+                ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v
+                ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v
+                gho_v = np.c_[-h[:, 1], h[:, 0]] * gtop_v
+                gh_v = np.c_[ho[:, 1], -ho[:, 0]] * gtop_v
+
+                if self.orientation[1] == "x":
+                    ghy_v -= gh_v
+                else:
+                    ghx_v += gh_v
+
+                if v.ndim == 2:
+                    # collapse into a long list of n_d vectors
+                    ghx_v = ghx_v.reshape((n_d, -1))
+                    ghy_v = ghy_v.reshape((n_d, -1))
+                    gho_v = gho_v.reshape((n_d, -1))
+
+                gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v + Pho.T @ gho_v
+
             return f._hDeriv(src, None, gh_v, adjoint=True)
 
+        # JVEC
         dh_v = f._hDeriv(src, du_dm_v, v, adjoint=False)
-        dhx_v = Phx @ dh_v
-        dhy_v = Phy @ dh_v
-        dho_v = Pho @ dh_v
-        if self.orientation[1] == "x":
-            dh_v = -dhy_v
+
+        if mesh.dim == 2:
+
+            dhx_v = Phx @ dh_v
+            dhz_v = Phz @ dh_v
+
+            return (dhz_v - tip * dhx_v) / hx
+
         else:
-            dh_v = dhx_v
 
-        dtop_v = (
-            h[:, 0] * dho_v[:, 1]
-            + dh_v[:, 0] * ho[:, 1]
-            - h[:, 1] * dho_v[:, 0]
-            - dh_v[:, 1] * ho[:, 0]
-        )
-        dbot_v = (
-            hx[:, 0] * dhy_v[:, 1]
-            + dhx_v[:, 0] * hy[:, 1]
-            - hx[:, 1] * dhy_v[:, 0]
-            - dhx_v[:, 1] * hy[:, 0]
-        )
+            dhx_v = Phx @ dh_v
+            dhy_v = Phy @ dh_v
+            dho_v = Pho @ dh_v
+            if self.orientation[1] == "x":
+                dh_v = -dhy_v
+            else:
+                dh_v = dhx_v
 
-        return (bot * dtop_v - top * dbot_v) / (bot * bot)
+            dtop_v = (
+                h[:, 0] * dho_v[:, 1]
+                + dh_v[:, 0] * ho[:, 1]
+                - h[:, 1] * dho_v[:, 0]
+                - dh_v[:, 1] * ho[:, 0]
+            )
+            dbot_v = (
+                hx[:, 0] * dhy_v[:, 1]
+                + dhx_v[:, 0] * hy[:, 1]
+                - hx[:, 1] * dhy_v[:, 0]
+                - dhx_v[:, 1] * hy[:, 0]
+            )
+
+            return (bot * dtop_v - top * dbot_v) / (bot * bot)
 
     def eval(self, src, mesh, f):  # noqa: A003
         tip = self._eval_tipper(src, mesh, f)
@@ -917,56 +966,85 @@ class Admittance(_ElectricAndMagneticReceiver):
         )
 
     def _eval_admittance(self, src, mesh, f):
-        if mesh.dim < 3:
+        if mesh.dim == 1:
             raise NotImplementedError(
-                "Admittance receiver not implemented for dim < 3."
+                "Admittance receiver not implemented for dim == 1."
             )
 
         e = f[src, "e"]
         h = f[src, "h"]
 
-        ex = self.getP(mesh, "Ex", 0) @ e
-        ey = self.getP(mesh, "Ey", 0) @ e
+        if mesh.dim == 2:
+            if self.orientation == "yx":
+                PE = self.getP(mesh, "Ex")
+                PH = self.getP(mesh, "CC")
+            elif self.orientation == "xy":
+                PE = self.getP(mesh, "CC")
+                PH = self.getP(mesh, "Ex")
 
-        h = self.getP(mesh, "F" + self.orientation[0], 1) @ h
+            top = PH @ h[:, 0]
+            bot = PE @ e[:, 0]
 
-        if self.orientation[1] == "x":
-            top = h[:, 0] * ey[:, 1] - h[:, 1] * ex[:, 1]
         else:
-            top = -h[:, 0] * ey[:, 0] + h[:, 1] * ex[:, 0]
 
-        bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
+            ex = self.getP(mesh, "Ex", 0) @ e
+            ey = self.getP(mesh, "Ey", 0) @ e
+
+            h = self.getP(mesh, "F" + self.orientation[0], 1) @ h
+
+            if self.orientation[1] == "x":
+                top = h[:, 0] * ey[:, 1] - h[:, 1] * ex[:, 1]
+            else:
+                top = -h[:, 0] * ey[:, 0] + h[:, 1] * ex[:, 0]
+
+            bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
 
         return top / bot
 
     def _eval_admittance_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
-        if mesh.dim < 3:
+        if mesh.dim == 1:
             raise NotImplementedError(
-                "Admittance receiver not implemented for dim < 3."
+                "Admittance receiver not implemented for dim == 1."
             )
 
-        # Compute admittances
+        # COMPUTE ADMITTANCES
         e = f[src, "e"]
         h = f[src, "h"]
 
-        Pex = self.getP(mesh, "Ex", 0)
-        Pey = self.getP(mesh, "Ey", 0)
-        Ph = self.getP(mesh, "F" + self.orientation[0], 1)
+        if mesh.dim == 2:
+            if self.orientation == "yx":
+                Pe = self.getP(mesh, "Ex")
+                Ph = self.getP(mesh, "CC")
+            elif self.orientation == "xy":
+                Pe = self.getP(mesh, "CC")
+                Ph = self.getP(mesh, "Ex")
 
-        ex = Pex @ e
-        ey = Pey @ e
-        h = Ph @ h
+            top = Ph @ h[:, 0]
+            bot = Pe @ e[:, 0]
+            adm = top / bot
 
-        if self.orientation[1] == "x":
-            p_ind = 1
             fact = 1.0
-        else:
-            p_ind = 0
-            fact = -1.0
 
-        top = fact * (h[:, 0] * ey[:, p_ind] - h[:, 1] * ex[:, p_ind])
-        bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
-        adm = top / bot
+        else:
+
+            Pex = self.getP(mesh, "Ex", 0)
+            Pey = self.getP(mesh, "Ey", 0)
+            Ph = self.getP(mesh, "F" + self.orientation[0], 1)
+
+            ex = Pex @ e
+            ey = Pey @ e
+            h = Ph @ h
+
+            if self.orientation[1] == "x":
+                p_ind = 1
+                fact = 1.0
+            else:
+                p_ind = 0
+                fact = -1.0
+
+            top = fact * (h[:, 0] * ey[:, p_ind] - h[:, 1] * ex[:, p_ind])
+            bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
+            adm = top / bot
 
         # ADJOINT
         if adjoint:
@@ -977,14 +1055,21 @@ class Admittance(_ElectricAndMagneticReceiver):
             a_v = fact * v / bot  # term 1
             b_v = -adm * v / bot  # term 2
 
-            ex_v = np.c_[ey[:, 1], -ey[:, 0]] * b_v[:, None]  # terms dex in bot
-            ey_v = np.c_[-ex[:, 1], ex[:, 0]] * b_v[:, None]  # terms dey in bot
-            ex_v[:, p_ind] -= h[:, 1] * a_v  # add terms dex in top
-            ey_v[:, p_ind] += h[:, 0] * a_v  # add terms dey in top
-            e_v = Pex.T @ ex_v + Pey.T @ ey_v
+            if mesh.dim == 2:
 
-            h_v = np.c_[ey[:, p_ind], -ex[:, p_ind]] * a_v[:, None]  # h in top
-            h_v = Ph.T @ h_v
+                h_v = Ph.T @ a_v
+                e_v = Pe.T @ b_v
+
+            else:
+
+                ex_v = np.c_[ey[:, 1], -ey[:, 0]] * b_v[:, None]  # terms dex in bot
+                ey_v = np.c_[-ex[:, 1], ex[:, 0]] * b_v[:, None]  # terms dey in bot
+                ex_v[:, p_ind] -= h[:, 1] * a_v  # add terms dex in top
+                ey_v[:, p_ind] += h[:, 0] * a_v  # add terms dey in top
+                e_v = Pex.T @ ex_v + Pey.T @ ey_v
+
+                h_v = np.c_[ey[:, p_ind], -ex[:, p_ind]] * a_v[:, None]  # h in top
+                h_v = Ph.T @ h_v
 
             fu_e_v, fm_e_v = f._eDeriv(src, None, e_v, adjoint=True)
             fu_h_v, fm_h_v = f._hDeriv(src, None, h_v, adjoint=True)
@@ -992,25 +1077,34 @@ class Admittance(_ElectricAndMagneticReceiver):
             return fu_e_v + fu_h_v, fm_e_v + fm_h_v
 
         # JVEC
-        de_v = f._eDeriv(src, du_dm_v, v, adjoint=False)
-        dh_v = Ph @ f._hDeriv(src, du_dm_v, v, adjoint=False)
+        if mesh.dim == 2:
 
-        dex_v = Pex @ de_v
-        dey_v = Pey @ de_v
+            de_v = Pe @ f._eDeriv(src, du_dm_v, v, adjoint=False)
+            dh_v = Ph @ f._hDeriv(src, du_dm_v, v, adjoint=False)
 
-        dtop_v = fact * (
-            h[:, 0] * dey_v[:, p_ind]
-            + dh_v[:, 0] * ey[:, p_ind]
-            - h[:, 1] * dex_v[:, p_ind]
-            - dh_v[:, 1] * ex[:, p_ind]
-        )
-        dbot_v = (
-            ex[:, 0] * dey_v[:, 1]
-            + dex_v[:, 0] * ey[:, 1]
-            - ex[:, 1] * dey_v[:, 0]
-            - dex_v[:, 1] * ey[:, 0]
-        )
-        adm_deriv = (bot * dtop_v - top * dbot_v) / (bot * bot)
+            adm_deriv = (dh_v - adm * de_v) / bot
+
+        else:
+
+            de_v = f._eDeriv(src, du_dm_v, v, adjoint=False)
+            dh_v = Ph @ f._hDeriv(src, du_dm_v, v, adjoint=False)
+
+            dex_v = Pex @ de_v
+            dey_v = Pey @ de_v
+
+            dtop_v = fact * (
+                h[:, 0] * dey_v[:, p_ind]
+                + dh_v[:, 0] * ey[:, p_ind]
+                - h[:, 1] * dex_v[:, p_ind]
+                - dh_v[:, 1] * ex[:, p_ind]
+            )
+            dbot_v = (
+                ex[:, 0] * dey_v[:, 1]
+                + dex_v[:, 0] * ey[:, 1]
+                - ex[:, 1] * dey_v[:, 0]
+                - dex_v[:, 1] * ey[:, 0]
+            )
+            adm_deriv = (bot * dtop_v - top * dbot_v) / (bot * bot)
 
         return getattr(adm_deriv, self.component)
 
