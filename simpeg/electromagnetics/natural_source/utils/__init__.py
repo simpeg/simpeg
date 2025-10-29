@@ -7,6 +7,11 @@ NOTE: These utilities are not well test, use with care
 """
 
 from .solutions_1d import get1DEfields  # Add the names of the functions
+from .source_utils import (
+    primary_e_1d_solution,
+    primary_h_1d_solution,
+    project_1d_fields_to_mesh_edges,
+)
 from .analytic_1d import getEHfields, getImpedance
 from .data_utils import (
     appResPhs,
