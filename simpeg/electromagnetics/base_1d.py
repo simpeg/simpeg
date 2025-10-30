@@ -246,7 +246,7 @@ class BaseEM1DSimulation(BaseSimulation):
 
                 For IP cases (non-null chargeability), computations assume
                 conductivity/frequency at infinite frequency were passed
-                (see notes below).            
+                (see notes below).
 
         Returns
         -------
