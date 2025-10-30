@@ -247,7 +247,7 @@ class BaseEM1DSimulation(BaseSimulation):
             For IP cases (non-null chargeability), computations assume
             conductivity/frequency at infinite frequency were passed (see notes
             below)
-        
+
         Returns
         -------
         out : np.ndarray
@@ -256,7 +256,7 @@ class BaseEM1DSimulation(BaseSimulation):
 
         Notes
         -----
-        Complex conductivity is obtained following (Pelton, 1978): 
+        Complex conductivity is obtained following (Pelton, 1978):
 
         .. math ::
 
@@ -273,7 +273,7 @@ class BaseEM1DSimulation(BaseSimulation):
 
         .. math ::
 
-            \sigma_0 = ( 1 - \eta ) \sigma_{\infty} 
+            \sigma_0 = ( 1 - \eta ) \sigma_{\infty}
         """
         n_layer = self.n_layer
         n_frequency = len(frequencies)
@@ -316,7 +316,7 @@ class BaseEM1DSimulation(BaseSimulation):
         -----------
         frequencies : array_like
             (n_frequency,)-array containing frequencies
-        
+
         Returns
         -------
         out : np.ndarray
@@ -333,7 +333,7 @@ class BaseEM1DSimulation(BaseSimulation):
                 1 - \Bigg ( \frac{1}{ln (\tau_2 / \tau_1 )} \Bigg )
                 ln \Bigg ( \frac{1 + i\omega \tau_2}{1 + i\omega tau_1} ) \Bigg )
             \Bigg ]
-        
+
         """
 
         if np.isscalar(self.mu):
