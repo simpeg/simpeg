@@ -15,7 +15,7 @@ source:
 build:
   number: 0
   noarch: python
-  script: ${{ PYTHON }} -m pip install . -vv --no-deps
+  script: ${{ PYTHON }} -m pip install .[dask] -vv --no-deps
 
 requirements:
   host:
@@ -28,16 +28,19 @@ requirements:
     # Mira packages
     - geoh5py >=0.12.0a.dev, <0.13.dev
     # direct dependencies
+    - dask-core *
     - discretize >=0.11
+    - distributed *
+    - fsspec >=0.3.3
     - geoana >=0.7.0
     - libdlf *
     - matplotlib-base
     - numpy >=1.22
     - pymatsolver >=0.3
     - scipy >=1.8
+    - zarr *
   run_constraints:
     - choclo >=0.3.0
-    - fsspec >=0.3.3
     - scikit-learn >=1.2
 
 tests:
