@@ -104,6 +104,7 @@ include = ["simpeg*"]
 
 [tool.setuptools_scm]
 version_file = "simpeg/version.py"
+write_to = "_version.txt"
 local_scheme = "node-and-date"
 
 [tool.coverage.run]
