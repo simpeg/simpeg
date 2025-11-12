@@ -325,11 +325,11 @@ class Impedance(_ElectricAndMagneticReceiver):
                 PH = self.getP(mesh, h_loc)
             elif mesh.dim == 2:
                 if self.orientation == "xy":
-                    PE = self.getP(mesh, "Ex")
-                    PH = self.getP(mesh, "CC")
+                    PE = self.getP(mesh, "Ex", 0)
+                    PH = self.getP(mesh, "CC", 1)
                 elif self.orientation == "yx":
-                    PE = self.getP(mesh, "CC")
-                    PH = self.getP(mesh, "Ex")
+                    PE = self.getP(mesh, "CC", 0)
+                    PH = self.getP(mesh, "Ex", 1)
             top = PE @ e[:, 0]
             bot = PH @ h[:, 0]
 
@@ -375,11 +375,11 @@ class Impedance(_ElectricAndMagneticReceiver):
                 PH = self.getP(mesh, h_loc)
             elif mesh.dim == 2:
                 if self.orientation == "xy":
-                    PE = self.getP(mesh, "Ex")
-                    PH = self.getP(mesh, "CC")
+                    PE = self.getP(mesh, "Ex", 0)
+                    PH = self.getP(mesh, "CC", 1)
                 elif self.orientation == "yx":
-                    PE = self.getP(mesh, "CC")
-                    PH = self.getP(mesh, "Ex")
+                    PE = self.getP(mesh, "CC", 0)
+                    PH = self.getP(mesh, "Ex", 1)
 
             top = PE @ e[:, 0]
             bot = PH @ h[:, 0]
@@ -704,8 +704,8 @@ class Tipper(BaseNaturalSourceRx):
         # Only Tzx
         if mesh.dim == 2:
 
-            Phx = self.getP(mesh, "Ex")
-            Phz = self.getP(mesh, "Ey")
+            Phx = self.getP(mesh, "Ex", 1)
+            Phz = self.getP(mesh, "Ey", 0)
 
             hz = Phz @ h[:, 0]
             hx = Phx @ h[:, 0]
@@ -738,8 +738,8 @@ class Tipper(BaseNaturalSourceRx):
 
         if mesh.dim == 2:
 
-            Phx = self.getP(mesh, "Ex")
-            Phz = self.getP(mesh, "Ey")
+            Phx = self.getP(mesh, "Ex", 1)
+            Phz = self.getP(mesh, "Ey", 0)
 
             hz = Phz @ h[:, 0]
             hx = Phx @ h[:, 0]
@@ -976,11 +976,11 @@ class Admittance(_ElectricAndMagneticReceiver):
 
         if mesh.dim == 2:
             if self.orientation == "yx":
-                PE = self.getP(mesh, "Ex")
-                PH = self.getP(mesh, "CC")
+                PE = self.getP(mesh, "Ex", 0)
+                PH = self.getP(mesh, "CC", 1)
             elif self.orientation == "xy":
-                PE = self.getP(mesh, "CC")
-                PH = self.getP(mesh, "Ex")
+                PE = self.getP(mesh, "CC", 0)
+                PH = self.getP(mesh, "Ex", 1)
 
             top = PH @ h[:, 0]
             bot = PE @ e[:, 0]
@@ -1013,11 +1013,11 @@ class Admittance(_ElectricAndMagneticReceiver):
 
         if mesh.dim == 2:
             if self.orientation == "yx":
-                Pe = self.getP(mesh, "Ex")
-                Ph = self.getP(mesh, "CC")
+                Pe = self.getP(mesh, "Ex", 0)
+                Ph = self.getP(mesh, "CC", 1)
             elif self.orientation == "xy":
-                Pe = self.getP(mesh, "CC")
-                Ph = self.getP(mesh, "Ex")
+                Pe = self.getP(mesh, "CC", 0)
+                Ph = self.getP(mesh, "Ex", 1)
 
             top = Ph @ h[:, 0]
             bot = Pe @ e[:, 0]
