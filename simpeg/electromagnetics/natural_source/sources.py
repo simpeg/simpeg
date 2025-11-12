@@ -326,62 +326,24 @@ class FictitiousSource3D(BaseFDEMSrc):
         # Fictitious source from 1D
         if len(simulation.sigma_background) == len(simulation.mesh.h[2]):
 
-            # Generate 1D mesh and conductivity
+            # Compute 1D solution and project
             mesh_3d = simulation.mesh
-            hz = mesh_3d.h[2]
             sigma_1d = simulation.sigma_background
-            mesh_1d = discretize.TensorMesh([hz], origin=[mesh_3d.origin[2]])
+            # mesh_1d = discretize.TensorMesh([hz], origin=[mesh_3d.origin[2]])
 
-            # Generate extended 1D            
-            n_pad = 2000  # arbitrary num of padding cells added
-            hz_ext = np.r_[hz[0] * np.ones(n_pad), hz, hz[-1] * np.ones(n_pad)]
-            mesh_1d_ext = discretize.TensorMesh([hz_ext], origin=[mesh_3d.origin[2] - hz[0] * n_pad])
-            
-            sigma_1d_ext = np.r_[sigma_1d[0] * np.ones(n_pad), sigma_1d, sigma_1d[-1] * np.ones(n_pad)]
-            sigma_1d_ext = mesh_1d_ext.average_face_to_cell.T * sigma_1d_ext
-            sigma_1d_ext[0] = sigma_1d[1]
-            sigma_1d_ext[-1] = sigma_1d[-2]
-
-            # Solve the 1D problem for electric fields on nodes
-            w = 2*np.pi*self.frequency
-            k = np.sqrt(-1.j * w * mu_0 * sigma_1d_ext[0])
-
-            A = mesh_1d_ext.nodal_gradient.T @ mesh_1d_ext.nodal_gradient + 1j*w*mu_0 * sdiag(sigma_1d_ext)
-            A[0, 0] = (1. + 1j*k*hz[0]) / hz[0]**2 + 1j*w*mu_0*sigma_1d[0]
-            A[0, 1] = -1 / hz[0]**2
-
-            q = np.zeros(mesh_1d_ext.n_faces, dtype=np.complex128)
-            q[-1] = -1j*w*mu_0 / hz[-1]
-
-            Ainv = Solver(A)
-            u_1d = Ainv * q
-
-            # Project to X and Y edges
-            fields_x = (
-                mesh_1d.get_interpolation_matrix(
-                    mesh_3d.edges_x[:, 2], location_type="nodes"
-                )
-                @ u_1d[n_pad:-n_pad]
-            )
-            fields_y = (
-                mesh_1d.get_interpolation_matrix(
-                    mesh_3d.edges_y[:, 2], location_type="nodes"
-                )
-                @ u_1d[n_pad:-n_pad]
-            )
-
-            fields_x = np.r_[fields_x, np.zeros(mesh_3d.n_edges_y + mesh_3d.n_edges_z)]
-            fields_y = np.r_[
-                np.zeros(mesh_3d.n_edges_x), fields_y, np.zeros(mesh_3d.n_edges_z)
-            ]
+            e_1d = primary_e_1d_solution(simulation.mesh, sigma_1d, self.frequency)
+            e_1d = project_1d_fields_to_mesh_edges(simulation.mesh, e_1d)
 
             # Generate fictitious sources
-            sigma_3d = (
-                mesh_1d.get_interpolation_matrix(
-                    mesh_3d.cell_centers[:, 2], location_type="cell_centers"
-                )
-                @ sigma_1d
-            )
+            sigma_3d = maps.SurjectVertical1D(mesh_3d) @ sigma_1d
+
+
+            # sigma_3d = (
+            #     mesh_1d.get_interpolation_matrix(
+            #         mesh_3d.cell_centers[:, 2], location_type="cell_centers"
+            #     )
+            #     @ sigma_1d
+            # )
 
             C = mesh_3d.edge_curl
             MfMui = mesh_3d.get_face_inner_product(model=mu_0, invert_model=True)
@@ -389,7 +351,7 @@ class FictitiousSource3D(BaseFDEMSrc):
 
             A = C.T.tocsr() * MfMui * C + 1j * omega(self.frequency) * MeSigma
 
-            s_e = (A @ np.c_[fields_x, fields_y]) / (1j * omega(self.frequency))
+            s_e = (A @ e_1d) / (1j * omega(self.frequency))
 
         else:
 
