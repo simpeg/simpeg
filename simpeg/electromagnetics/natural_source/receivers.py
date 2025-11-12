@@ -694,7 +694,7 @@ class Tipper(BaseNaturalSourceRx):
     @orientation.setter
     def orientation(self, var):
         self._orientation = validate_string(
-            "orientation", var, string_list=("zx", "zy", "xx", "xy", "yx", "yy")
+            "orientation", var, string_list=("zx", "zy", "xx", "xy", "yx", "yy", "det")
         )
 
     def _eval_tipper(self, src, mesh, f):
@@ -703,6 +703,9 @@ class Tipper(BaseNaturalSourceRx):
 
         # Only Tzx
         if mesh.dim == 2:
+
+            if self.orientation == "det":
+                raise ValueError("Receiver orientation 'det' only valid for 3D simulation.")
 
             Phx = self.getP(mesh, "Ex", 1)
             Phz = self.getP(mesh, "Ey", 0)
@@ -716,20 +719,32 @@ class Tipper(BaseNaturalSourceRx):
 
             Phx = self.getP(mesh, "Fx", 1)
             Phy = self.getP(mesh, "Fy", 1)
-            Pho = self.getP(mesh, "F" + self.orientation[0], 0)
-
             hx = Phx @ h
             hy = Phy @ h
-            ho = Pho @ h
 
-            if self.orientation[1] == "x":
-                h = -hy
-            else:
-                h = hx
-
-            top = h[:, 0] * ho[:, 1] - h[:, 1] * ho[:, 0]
             bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
 
+            if self.orientation == "det":
+
+                Phox = self.getP(mesh, "Fx", 0)
+                Phoy = self.getP(mesh, "Fy", 0)
+                hox = Phox @ h
+                hoy = Phoy @ h
+
+                top = hox[:, 0] * hoy[:, 1] - hox[:, 1] * hoy[:, 0]
+
+            else:
+
+                Pho = self.getP(mesh, "F" + self.orientation[0], 0)
+                ho = Pho @ h
+
+                if self.orientation[1] == "x":
+                    h = -hy
+                else:
+                    h = hx
+
+                top = h[:, 0] * ho[:, 1] - h[:, 1] * ho[:, 0]
+            
             return top / bot
 
     def _eval_tipper_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
@@ -933,7 +948,7 @@ class Admittance(_ElectricAndMagneticReceiver):
     @orientation.setter
     def orientation(self, var):
         self._orientation = validate_string(
-            "orientation", var, string_list=("xx", "xy", "yx", "yy", "zx", "zy")
+            "orientation", var, string_list=("xx", "xy", "yx", "yy", "zx", "zy", "det")
         )
 
     @property
@@ -975,7 +990,9 @@ class Admittance(_ElectricAndMagneticReceiver):
         h = f[src, "h"]
 
         if mesh.dim == 2:
-            if self.orientation == "yx":
+            if self.orientation == "det":
+                raise ValueError("Receiver orientation 'det' only valid for 3D simulation.")
+            elif self.orientation == "yx":
                 PE = self.getP(mesh, "Ex", 0)
                 PH = self.getP(mesh, "CC", 1)
             elif self.orientation == "xy":
@@ -989,15 +1006,23 @@ class Admittance(_ElectricAndMagneticReceiver):
 
             ex = self.getP(mesh, "Ex", 0) @ e
             ey = self.getP(mesh, "Ey", 0) @ e
-
-            h = self.getP(mesh, "F" + self.orientation[0], 1) @ h
-
-            if self.orientation[1] == "x":
-                top = h[:, 0] * ey[:, 1] - h[:, 1] * ex[:, 1]
-            else:
-                top = -h[:, 0] * ey[:, 0] + h[:, 1] * ex[:, 0]
-
             bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
+
+            if self.orientation == "det":
+
+                hx = self.getP(mesh, "Fx", 1) @ h
+                hy = self.getP(mesh, "Fy", 1) @ h
+
+                top = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
+
+            else:
+
+                h = self.getP(mesh, "F" + self.orientation[0], 1) @ h
+
+                if self.orientation[1] == "x":
+                    top = h[:, 0] * ey[:, 1] - h[:, 1] * ex[:, 1]
+                else:
+                    top = -h[:, 0] * ey[:, 0] + h[:, 1] * ex[:, 0]
 
         return top / bot
 

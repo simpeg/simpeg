@@ -6,7 +6,7 @@ from simpeg.electromagnetics import natural_source as nsem
 from simpeg.electromagnetics.natural_source.utils.test_utils import (
     PlanewaveXYPrimaryDeprecated,
 )
-from simpeg.utils import model_builder, mkvc
+from simpeg.utils import model_builder, mkvc, get_default_solver
 from simpeg import maps
 
 REL_TOLERANCE = 0.05
@@ -188,11 +188,11 @@ def test_analytic_halfspace_solution(
     model_hs = get_model(mesh, "halfspace")  # 1e-2 halfspace
     if source_type == "primary_secondary":
         sim = nsem.simulation.Simulation3DPrimarySecondary(
-            mesh, survey=survey, sigmaPrimary=model_hs, sigmaMap=mapping
+            mesh, survey=survey, sigmaPrimary=model_hs, sigmaMap=mapping, solver=get_default_solver()
         )
     else:
         sim = nsem.simulation.Simulation3DFictitiousSource(
-            mesh, survey=survey, sigma_background=model_hs, sigmaMap=mapping
+            mesh, survey=survey, sigma_background=model_hs, sigmaMap=mapping, solver=get_default_solver()
         )
 
     numeric_solution = sim.dpred(model_hs)
@@ -252,10 +252,10 @@ def test_simulation_3d_crosscheck(
     #     mesh, survey=survey_ps, sigmaPrimary=model_hs, sigmaMap=mapping
     # )
     sim_1d = nsem.simulation.Simulation3DFictitiousSource(
-        mesh, survey=survey_1d, sigma_background=model_1d, sigmaMap=mapping
+        mesh, survey=survey_1d, sigma_background=model_1d, sigmaMap=mapping, solver=get_default_solver()
     )
     sim_3d = nsem.simulation.Simulation3DFictitiousSource(
-        mesh, survey=survey_3d, sigma_background=model_hs, sigmaMap=mapping
+        mesh, survey=survey_3d, sigma_background=model_hs, sigmaMap=mapping, solver=get_default_solver()
     )
 
     # dpred_ps = sim_ps.dpred(model_block)
@@ -287,7 +287,7 @@ def test_analytic_halfspace_deprecated(
     )
     model_hs = get_model(mesh, "halfspace")  # 1e-2 halfspace
     sim = nsem.simulation.Simulation3DPrimarySecondary(
-        mesh, survey=survey, sigmaPrimary=model_hs, sigmaMap=mapping
+        mesh, survey=survey, sigmaPrimary=model_hs, sigmaMap=mapping, solver=get_default_solver()
     )
     numeric_solution = sim.dpred(model_hs)
 
