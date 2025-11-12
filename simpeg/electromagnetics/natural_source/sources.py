@@ -4,8 +4,10 @@ from scipy.constants import mu_0
 from ... import maps
 from ..frequency_domain.sources import BaseFDEMSrc
 from ..utils import omega
-from .utils.source_utils import homo1DModelSource
-from .utils.solutions_1d import get1DEfields
+from .utils.source_utils import (
+    primary_e_1d_solution,
+    project_1d_fields_to_mesh_edges,
+)
 import discretize
 from discretize.utils import volume_average, sdiag
 from pymatsolver import Solver
@@ -16,6 +18,7 @@ from pymatsolver import Solver
 #################
 
 
+# Rename to BasePlanewave
 class Planewave(BaseFDEMSrc):
     """
     Source class for the 1D and pseudo-3D problems.
@@ -33,7 +36,7 @@ class Planewave(BaseFDEMSrc):
 
 
 # Need to implement such that it works for all dims.
-# Rename to be more descriptive
+# Rename to be more descriptive (I suggest PlanewavePrimarySecondary)
 class PlanewaveXYPrimary(Planewave):
     """
     NSEM planewave source for both polarizations (x and y)
@@ -109,9 +112,14 @@ class PlanewaveXYPrimary(Planewave):
         """
         if self._ePrimary is None:
             sigma_1d, _ = self._get_sigmas(simulation)
-            self._ePrimary = homo1DModelSource(
-                simulation.mesh, self.frequency, sigma_1d
-            )
+            e_1d = primary_e_1d_solution(simulation.mesh, sigma_1d, self.frequency)
+            e_1d = project_1d_fields_to_mesh_edges(simulation.mesh, e_1d)
+
+            # To output X and Y polarization for 1D mesh
+            if simulation.mesh.dim == 1:
+                e_1d = np.c_[e_1d, -e_1d]
+
+            self._ePrimary = e_1d
         return self._ePrimary
 
     def bPrimary(self, simulation):
