@@ -133,6 +133,50 @@ def get_survey(
     return nsem.survey.Survey(source_list)
 
 
+
+def get_det_survey(
+    source_type, locations, frequencies, survey_type
+):
+    source_list = []
+
+    for f in frequencies:
+
+        # ZTEM data types (Txx, Tyx, Tzx, Txy, Tyy, Tzy)
+        if survey_type == "tipper":
+            rx_list = [
+                nsem.receivers.Tipper(
+                    locations_h=locations, locations_base=locations, orientation=ij, component="real",
+                )
+                for ij in ["xx", "xy", "yx", "yy", "det"]
+            ] + [
+                nsem.receivers.Tipper(
+                    locations_h=locations, locations_base=locations, orientation=ij, component="imag",
+                )
+                for ij in ["xx", "xy", "yx", "yy", "det"]
+            ]
+
+        # Admittance data types (Yxx, Yyx, Yzx, Yxy, Yyy, Yzy)
+        elif survey_type == "admittance":
+            rx_list = [
+                nsem.receivers.Admittance(
+                    locations_e=locations, locations_h=locations, orientation=ij, component="real",
+                )
+                for ij in ["xx", "xy", "yx", "yy", "det"]
+            ] +  [
+                nsem.receivers.Admittance(
+                    locations_e=locations, locations_h=locations, orientation=ij, component="imag",
+                )
+                for ij in ["xx", "xy", "yx", "yy", "det"]
+            ]
+
+        if source_type == "primary_secondary":
+            source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
+        else:
+            source_list.append(nsem.sources.FictitiousSource3D(rx_list, f))
+
+    return nsem.survey.Survey(source_list)
+
+
 def get_analytic_halfspace_solution(sigma, f, survey_type, component):
     # MT data types (Zxx, Zxy, Zyx, Zyy)
     if survey_type == "impedance":
@@ -272,4 +316,53 @@ def test_simulation_3d_crosscheck(
     np.testing.assert_allclose(
         dpred_ps, dpred_1d, rtol=REL_TOLERANCE_2, atol=ABS_TOLERANCE_2
     )
+
+
+
+CASES_LIST_DET = [
+    ("primary_secondary", "tipper"),
+    ("primary_secondary", "admittance"),
+]
+
+
+@pytest.mark.parametrize("source_type, survey_type", CASES_LIST_DET)
+def test_det_transfer_function(
+    source_type, survey_type, frequencies, locations, mesh, mapping
+):
+    # Numerical solution
+    survey = get_det_survey(source_type, locations, frequencies, survey_type)
+    model_hs = get_model(mesh, "halfspace")  # 1e-2 halfspace
+    model_block = get_model(mesh, "block")
+
+    if source_type == "primary_secondary":
+        sim = nsem.simulation.Simulation3DPrimarySecondary(
+            mesh, survey=survey, sigmaPrimary=model_hs, sigmaMap=mapping, solver=get_default_solver()
+        )
+    else:
+        mesh_1d = TensorMesh([mesh.h[-1]], origin=[mesh.origin[-1]])
+        model_1d = get_model(mesh_1d, "halfspace")
+        sim = nsem.simulation.Simulation3DFictitiousSource(
+            mesh, survey=survey, sigma_background=model_1d, sigmaMap=mapping, solver=get_default_solver()
+        )
+
+    dpred = sim.dpred(model_block)
+    n_freq = len(frequencies)
+    n_rx = 5  # xx, xy, yx, yy, det
+    n_loc = np.shape(locations)[0]
+    dpred = dpred.reshape((n_freq, 2, n_rx, n_loc))
+    dpred = dpred[:, 0, :, :] + 1.j*dpred[:, 1, :, :]
+    
+    dpred_det = mkvc(dpred[:, -1, :])
+    dpred_xy = mkvc(dpred[:, 0, :] * dpred[:, 3, :] - dpred[:, 1, :] * dpred[:, 2, :])
+
+    # real components    
+    np.testing.assert_allclose(
+        np.real(dpred_det), np.real(dpred_xy), atol=ABS_TOLERANCE
+    )
+    
+    # imag components    
+    np.testing.assert_allclose(
+        np.imag(dpred_det), np.imag(dpred_xy), atol=ABS_TOLERANCE
+    )
+
 
