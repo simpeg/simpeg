@@ -765,19 +765,27 @@ class Tipper(BaseNaturalSourceRx):
 
             Phx = self.getP(mesh, "Fx", 1)
             Phy = self.getP(mesh, "Fy", 1)
-            Pho = self.getP(mesh, "F" + self.orientation[0], 0)
-
             hx = Phx @ h
             hy = Phy @ h
-            ho = Pho @ h
-
-            if self.orientation[1] == "x":
-                h = -hy
-            else:
-                h = hx
-
-            top = h[:, 0] * ho[:, 1] - h[:, 1] * ho[:, 0]
             bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
+
+            if self.orientation == "det":
+
+                Phox = self.getP(mesh, "Fx", 0)
+                Phoy = self.getP(mesh, "Fy", 0)
+                hox = Phox @ h
+                hoy = Phoy @ h
+                top = hox[:, 0] * hoy[:, 1] - hox[:, 1] * hoy[:, 0]
+
+            else:
+
+                Pho = self.getP(mesh, "F" + self.orientation[0], 0)
+                ho = Pho @ h
+                if self.orientation[1] == "x":
+                    h = -hy
+                else:
+                    h = hx
+                top = h[:, 0] * ho[:, 1] - h[:, 1] * ho[:, 0]
 
             tip = top / bot
 
@@ -793,27 +801,45 @@ class Tipper(BaseNaturalSourceRx):
                 gh_v = Phx.T @ ghx_v + Phz.T @ ghz_v
 
             else:
+
                 # Work backwards!
                 gtop_v = (v / bot)[..., None]
                 gbot_v = (-tip * v / bot)[..., None]
 
                 ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v
                 ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v
-                gho_v = np.c_[-h[:, 1], h[:, 0]] * gtop_v
-                gh_v = np.c_[ho[:, 1], -ho[:, 0]] * gtop_v
 
-                if self.orientation[1] == "x":
-                    ghy_v -= gh_v
+                if self.orientation == "det":
+
+                    ghox_v = np.c_[hoy[:, 1], -hoy[:, 0]] * gtop_v
+                    ghoy_v = np.c_[-hox[:, 1], hox[:, 0]] * gtop_v
+
+                    if v.ndim == 2:
+                        # collapse into a long list of n_d vectors
+                        ghx_v = ghx_v.reshape((n_d, -1))
+                        ghy_v = ghy_v.reshape((n_d, -1))
+                        ghox_v = ghox_v.reshape((n_d, -1))
+                        ghoy_v = ghoy_v.reshape((n_d, -1))
+
+                    gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v + Phox.T @ ghox_v + Phoy.T @ ghoy_v
+
                 else:
-                    ghx_v += gh_v
 
-                if v.ndim == 2:
-                    # collapse into a long list of n_d vectors
-                    ghx_v = ghx_v.reshape((n_d, -1))
-                    ghy_v = ghy_v.reshape((n_d, -1))
-                    gho_v = gho_v.reshape((n_d, -1))
+                    gho_v = np.c_[-h[:, 1], h[:, 0]] * gtop_v
+                    gh_v = np.c_[ho[:, 1], -ho[:, 0]] * gtop_v
 
-                gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v + Pho.T @ gho_v
+                    if self.orientation[1] == "x":
+                        ghy_v -= gh_v
+                    else:
+                        ghx_v += gh_v
+
+                    if v.ndim == 2:
+                        # collapse into a long list of n_d vectors
+                        ghx_v = ghx_v.reshape((n_d, -1))
+                        ghy_v = ghy_v.reshape((n_d, -1))
+                        gho_v = gho_v.reshape((n_d, -1))
+
+                    gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v + Pho.T @ gho_v
 
             return f._hDeriv(src, None, gh_v, adjoint=True)
 
@@ -831,24 +857,46 @@ class Tipper(BaseNaturalSourceRx):
 
             dhx_v = Phx @ dh_v
             dhy_v = Phy @ dh_v
-            dho_v = Pho @ dh_v
-            if self.orientation[1] == "x":
-                dh_v = -dhy_v
-            else:
-                dh_v = dhx_v
+            
+            if self.orientation == "det":
 
-            dtop_v = (
-                h[:, 0] * dho_v[:, 1]
-                + dh_v[:, 0] * ho[:, 1]
-                - h[:, 1] * dho_v[:, 0]
-                - dh_v[:, 1] * ho[:, 0]
-            )
-            dbot_v = (
-                hx[:, 0] * dhy_v[:, 1]
-                + dhx_v[:, 0] * hy[:, 1]
-                - hx[:, 1] * dhy_v[:, 0]
-                - dhx_v[:, 1] * hy[:, 0]
-            )
+                dhox_v = Phox @ dh_v
+                dhoy_v = Phoy @ dh_v
+
+                dtop_v = (
+                    hox[:, 0] * dhoy_v[:, 1]
+                    + dhox_v[:, 0] * hoy[:, 1]
+                    - hoy[:, 0] * dhox_v[:, 1]
+                    - dhoy_v[:, 0] * hox[:, 1]
+                )
+                dbot_v = (
+                    hx[:, 0] * dhy_v[:, 1]
+                    + dhx_v[:, 0] * hy[:, 1]
+                    - hy[:, 0] * dhx_v[:, 1]
+                    - dhy_v[:, 0] * hx[:, 1]
+                )
+
+
+            else:
+
+                dho_v = Pho @ dh_v
+                if self.orientation[1] == "x":
+                    dh_v = -dhy_v
+                else:
+                    dh_v = dhx_v
+
+                dtop_v = (
+                    h[:, 0] * dho_v[:, 1]
+                    + dh_v[:, 0] * ho[:, 1]
+                    - h[:, 1] * dho_v[:, 0]
+                    - dh_v[:, 1] * ho[:, 0]
+                )
+                dbot_v = (
+                    hx[:, 0] * dhy_v[:, 1]
+                    + dhx_v[:, 0] * hy[:, 1]
+                    - hx[:, 1] * dhy_v[:, 0]
+                    - dhx_v[:, 1] * hy[:, 0]
+                )
 
             return (bot * dtop_v - top * dbot_v) / (bot * bot)
 
@@ -1054,21 +1102,32 @@ class Admittance(_ElectricAndMagneticReceiver):
 
             Pex = self.getP(mesh, "Ex", 0)
             Pey = self.getP(mesh, "Ey", 0)
-            Ph = self.getP(mesh, "F" + self.orientation[0], 1)
-
             ex = Pex @ e
             ey = Pey @ e
-            h = Ph @ h
-
-            if self.orientation[1] == "x":
-                p_ind = 1
-                fact = 1.0
-            else:
-                p_ind = 0
-                fact = -1.0
-
-            top = fact * (h[:, 0] * ey[:, p_ind] - h[:, 1] * ex[:, p_ind])
             bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
+
+            if self.orientation == "det":
+
+                Phx = self.getP(mesh, "Fx", 1)
+                Phy = self.getP(mesh, "Fy", 1)
+                hx = Phx @ h
+                hy = Phy @ h
+                top = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
+                fact = 1.0
+
+            else:
+
+                Ph = self.getP(mesh, "F" + self.orientation[0], 1)
+                h = Ph @ h
+
+                if self.orientation[1] == "x":
+                    p_ind = 1
+                    fact = 1.0
+                else:
+                    p_ind = 0
+                    fact = -1.0
+                top = fact * (h[:, 0] * ey[:, p_ind] - h[:, 1] * ex[:, p_ind])
+            
             adm = top / bot
 
         # ADJOINT
@@ -1087,14 +1146,26 @@ class Admittance(_ElectricAndMagneticReceiver):
 
             else:
 
-                ex_v = np.c_[ey[:, 1], -ey[:, 0]] * b_v[:, None]  # terms dex in bot
-                ey_v = np.c_[-ex[:, 1], ex[:, 0]] * b_v[:, None]  # terms dey in bot
-                ex_v[:, p_ind] -= h[:, 1] * a_v  # add terms dex in top
-                ey_v[:, p_ind] += h[:, 0] * a_v  # add terms dey in top
-                e_v = Pex.T @ ex_v + Pey.T @ ey_v
+                if self.orientation == "det":
 
-                h_v = np.c_[ey[:, p_ind], -ex[:, p_ind]] * a_v[:, None]  # h in top
-                h_v = Ph.T @ h_v
+                    hx_v = np.c_[hy[:, 1], -hy[:, 0]] * a_v[:, None]  # terms dex in bot
+                    hy_v = np.c_[-hx[:, 1], hx[:, 0]] * a_v[:, None]  # terms dey in bot
+                    h_v = Phx.T @ hx_v + Phy.T @ hy_v
+
+                    ex_v = np.c_[ey[:, 1], -ey[:, 0]] * b_v[:, None]  # terms dex in bot
+                    ey_v = np.c_[-ex[:, 1], ex[:, 0]] * b_v[:, None]  # terms dey in bot
+                    e_v = Pex.T @ ex_v + Pey.T @ ey_v
+
+                else:
+
+                    ex_v = np.c_[ey[:, 1], -ey[:, 0]] * b_v[:, None]  # terms dex in bot
+                    ey_v = np.c_[-ex[:, 1], ex[:, 0]] * b_v[:, None]  # terms dey in bot
+                    ex_v[:, p_ind] -= h[:, 1] * a_v  # add terms dex in top
+                    ey_v[:, p_ind] += h[:, 0] * a_v  # add terms dey in top
+                    e_v = Pex.T @ ex_v + Pey.T @ ey_v
+
+                    h_v = np.c_[ey[:, p_ind], -ex[:, p_ind]] * a_v[:, None]  # h in top
+                    h_v = Ph.T @ h_v
 
             fu_e_v, fm_e_v = f._eDeriv(src, None, e_v, adjoint=True)
             fu_h_v, fm_h_v = f._hDeriv(src, None, h_v, adjoint=True)
@@ -1112,23 +1183,45 @@ class Admittance(_ElectricAndMagneticReceiver):
         else:
 
             de_v = f._eDeriv(src, du_dm_v, v, adjoint=False)
-            dh_v = Ph @ f._hDeriv(src, du_dm_v, v, adjoint=False)
-
             dex_v = Pex @ de_v
             dey_v = Pey @ de_v
 
-            dtop_v = fact * (
-                h[:, 0] * dey_v[:, p_ind]
-                + dh_v[:, 0] * ey[:, p_ind]
-                - h[:, 1] * dex_v[:, p_ind]
-                - dh_v[:, 1] * ex[:, p_ind]
-            )
-            dbot_v = (
-                ex[:, 0] * dey_v[:, 1]
-                + dex_v[:, 0] * ey[:, 1]
-                - ex[:, 1] * dey_v[:, 0]
-                - dex_v[:, 1] * ey[:, 0]
-            )
+            if self.orientation == "det":
+
+                dh_v = f._hDeriv(src, du_dm_v, v, adjoint=False)
+                dhx_v = Phx @ dh_v
+                dhy_v = Phy @ dh_v
+
+                dtop_v = (
+                    hx[:, 0] * dhy_v[:, 1]
+                    + dhx_v[:, 0] * hy[:, 1]
+                    - hy[:, 0] * dhx_v[:, 1]
+                    - dhy_v[:, 0] * hx[:, 1]
+                )
+                dbot_v = (
+                    ex[:, 0] * dey_v[:, 1]
+                    + dex_v[:, 0] * ey[:, 1]
+                    - ey[:, 0] * dex_v[:, 1]
+                    - dey_v[:, 0] * ex[:, 1]
+                )
+
+            else:
+
+                dh_v = Ph @ f._hDeriv(src, du_dm_v, v, adjoint=False)                
+
+                dtop_v = fact * (
+                    h[:, 0] * dey_v[:, p_ind]
+                    + dh_v[:, 0] * ey[:, p_ind]
+                    - h[:, 1] * dex_v[:, p_ind]
+                    - dh_v[:, 1] * ex[:, p_ind]
+                )
+                dbot_v = (
+                    ex[:, 0] * dey_v[:, 1]
+                    + dex_v[:, 0] * ey[:, 1]
+                    - ex[:, 1] * dey_v[:, 0]
+                    - dex_v[:, 1] * ey[:, 0]
+                )
+
             adm_deriv = (bot * dtop_v - top * dbot_v) / (bot * bot)
 
         return getattr(adm_deriv, self.component)

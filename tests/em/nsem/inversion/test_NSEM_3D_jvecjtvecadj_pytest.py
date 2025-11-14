@@ -1,14 +1,11 @@
 import pytest
 import numpy as np
 from discretize import TensorMesh, tests
-from simpeg import (
-    maps,
-    data_misfit,
-)
-from simpeg.utils import mkvc, model_builder
+from simpeg import maps, data_misfit
+from simpeg.utils import mkvc, model_builder, get_default_solver
 from simpeg.electromagnetics import natural_source as nsem
 
-ADJ_RTOL = 1e-10
+ADJ_RTOL = 1e-12
 
 
 @pytest.fixture
@@ -148,6 +145,8 @@ CASES_LIST = [
     ("admittance", ["xx", "yy"], ["real", "imag"]),
     ("admittance", ["zx", "zy"], ["real", "imag"]),
     ("apparent_conductivity", None, None),
+    ("tipper", ["det"], ["real", "imag"]),
+    ("admittance", ["det"], ["real", "imag"]),
 ]
 
 
@@ -176,7 +175,11 @@ class TestDerivativesPrimarySecondary:
 
         # Define the simulation
         sim = nsem.simulation.Simulation3DPrimarySecondary(
-            mesh, survey=survey, sigmaMap=mapping, sigmaPrimary=sigma_hs
+            mesh,
+            survey=survey,
+            sigmaMap=mapping,
+            sigmaPrimary=sigma_hs,
+            solver=get_default_solver()
         )
 
         n_active = np.sum(active_cells)
@@ -227,6 +230,7 @@ class TestDerivativesPrimarySecondary:
             lambda m: (sim.dpred(m), lambda mx: sim.Jvec(m0, mx)),
             m0,
             plotIt=False,
+            random_seed=42,
             num=3,
         )
 
@@ -264,7 +268,8 @@ class TestDerivativesPrimarySecondary:
             lambda v: sim.Jtvec(m0, v, f=f),
             m0.shape,
             (n_data,),
-            rtol=ADJ_TOLERANCE,
+            rtol=ADJ_RTOL,
+            random_seed=44,
         )
 
 
@@ -281,7 +286,6 @@ class TestDerivativesFictitiousSource:
         mesh,
         active_cells,
         mapping,
-        sigma_hs,
         sigma_background_1d,
     ):
         survey = get_survey(
@@ -295,7 +299,11 @@ class TestDerivativesFictitiousSource:
 
         # Define the simulation
         sim = nsem.simulation.Simulation3DFictitiousSource(
-            mesh, survey=survey, sigmaMap=mapping, sigma_background=sigma_background_1d
+            mesh,
+            survey=survey,
+            sigmaMap=mapping,
+            sigma_background=sigma_background_1d,
+            solver=get_default_solver()
         )
 
         n_active = np.sum(active_cells)
@@ -317,7 +325,6 @@ class TestDerivativesFictitiousSource:
         mesh,
         active_cells,
         mapping,
-        sigma_hs,
         sigma_background_1d,
     ):
         m0, dmis = self.get_setup_objects(
@@ -329,7 +336,6 @@ class TestDerivativesFictitiousSource:
             mesh,
             active_cells,
             mapping,
-            sigma_hs,
             sigma_background_1d,
         )
         sim = dmis.simulation
@@ -339,6 +345,7 @@ class TestDerivativesFictitiousSource:
             m0,
             plotIt=False,
             num=3,
+            random_seed=42,
         )
 
         assert passed
@@ -353,7 +360,7 @@ class TestDerivativesFictitiousSource:
         mesh,
         active_cells,
         mapping,
-        sigma_hs,
+        sigma_background_1d,
     ):
         m0, dmis = self.get_setup_objects(
             survey_type,
@@ -364,7 +371,6 @@ class TestDerivativesFictitiousSource:
             mesh,
             active_cells,
             mapping,
-            sigma_hs,
             sigma_background_1d,
         )
         sim = dmis.simulation
@@ -379,3 +385,24 @@ class TestDerivativesFictitiousSource:
             rtol=ADJ_RTOL,
             random_seed=32,
         )
+    
+    
+# my_mesh = mesh()
+# my_active_cells = active_cells(my_mesh)
+# my_mapping = mapping(my_mesh, my_active_cells)
+# # my_sigma_hs = sigma_hs(my_mesh, my_active_cells)
+# my_sigma_1d = sigma_background_1d(my_mesh)
+    
+    
+# my_test = TestDerivativesFictitiousSource()
+# my_test.test_adjoint(
+#     "tipper",
+#     ["xy", "yx"],
+#     ["real", "imag"],
+#     locations(),
+#     frequencies(),
+#     my_mesh,
+#     my_active_cells,
+#     my_mapping,
+#     my_sigma_1d,
+# )
