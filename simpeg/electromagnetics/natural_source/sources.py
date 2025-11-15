@@ -332,8 +332,15 @@ class FictitiousSource3D(BaseFDEMSrc):
             e_1d = primary_e_1d_solution(simulation.mesh, sigma_1d, self.frequency)
             e_1d = project_1d_fields_to_mesh_edges(simulation.mesh, e_1d)
 
-            # Generate fictitious sources
-            sigma_3d = maps.SurjectVertical1D(mesh_3d) @ sigma_1d
+            # Generate fictitious sources (surject1d only for tensor mesh)
+            hz = mesh_3d.h[-1]
+            mesh_1d = discretize.TensorMesh([hz], origin=[mesh_3d.origin[-1]])
+            sigma_3d = (
+                mesh_1d.get_interpolation_matrix(
+                    mesh_3d.cell_centers[:, -1], location_type="cell_centers"
+                )
+                @ sigma_1d
+            )
             C = mesh_3d.edge_curl
             MfMui = mesh_3d.get_face_inner_product(model=mu_0, invert_model=True)
             MeSigma = mesh_3d.get_edge_inner_product(model=sigma_3d)
