@@ -162,3 +162,5 @@ new code, suggesting improvements to existing codes, identifying bugs,
 providing examples, or anything that will improve SimPEG.
 Please checkout the `contributing guide <https://docs.simpeg.xyz/content/getting_started/contributing/index.html>`_
 for more information on how to contribute.
+This is a test line added by Manoj in the tutorial1 branch.
+
