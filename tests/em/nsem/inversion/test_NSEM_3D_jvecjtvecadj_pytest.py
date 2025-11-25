@@ -5,7 +5,7 @@ from simpeg import (
     maps,
     data_misfit,
 )
-from simpeg.utils import mkvc, model_builder
+from simpeg.utils import mkvc, model_builder, get_default_solver
 from simpeg.electromagnetics import natural_source as nsem
 
 ADJ_RTOL = 1e-10
@@ -158,7 +158,11 @@ class TestDerivatives:
 
         # Define the simulation
         sim = nsem.simulation.Simulation3DPrimarySecondary(
-            mesh, survey=survey, sigmaMap=mapping, sigmaPrimary=sigma_hs
+            mesh,
+            survey=survey,
+            sigmaMap=mapping,
+            sigmaPrimary=sigma_hs,
+            solver=get_default_solver(),
         )
 
         n_active = np.sum(active_cells)
@@ -250,3 +254,50 @@ class TestDerivatives:
             rtol=ADJ_RTOL,
             random_seed=32,
         )
+
+
+# test_obj = TestDerivatives()
+
+# test_locations = locations()
+# test_frequencies = frequencies()
+# test_mesh = mesh()
+# test_active = active_cells(test_mesh)
+# test_mapping = mapping(test_mesh, test_active)
+# test_sigma_hs = sigma_hs(test_mesh, test_active)
+
+
+# test_obj.test_misfit(
+#     "apparent_conductivity",
+#     None,
+#     None,
+#     test_locations,
+#     test_frequencies,
+#     test_mesh,
+#     test_active,
+#     test_mapping,
+#     test_sigma_hs,
+# )
+
+# test_obj.test_adjoint(
+#     "apparent_conductivity",
+#     None,
+#     None,
+#     test_locations,
+#     test_frequencies,
+#     test_mesh,
+#     test_active,
+#     test_mapping,
+#     test_sigma_hs,
+# )
+
+# test_obj.test_adjoint(
+#     "impedance",
+#     ["xy", "yx"],
+#     ["app_res"],
+#     test_locations,
+#     test_frequencies,
+#     test_mesh,
+#     test_active,
+#     test_mapping,
+#     test_sigma_hs,
+# )
