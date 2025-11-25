@@ -591,7 +591,7 @@ class Stitched1DModel:
             dy = ly / ny
             print((">> dy:%.1e") % (dy))
         if dz is None:
-            dz = np.median(self.mesh_1d.hx)
+            dz = np.median(self.mesh_1d.h[0])
 
         nx = int(np.floor(lx / dx))
         ny = int(np.floor(ly / dy))
