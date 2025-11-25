@@ -179,7 +179,7 @@ class TestDerivativesPrimarySecondary:
             survey=survey,
             sigmaMap=mapping,
             sigmaPrimary=sigma_hs,
-            solver=get_default_solver()
+            solver=get_default_solver(),
         )
 
         n_active = np.sum(active_cells)
@@ -385,24 +385,3 @@ class TestDerivativesFictitiousSource:
             rtol=ADJ_RTOL,
             random_seed=32,
         )
-    
-    
-# my_mesh = mesh()
-# my_active_cells = active_cells(my_mesh)
-# my_mapping = mapping(my_mesh, my_active_cells)
-# # my_sigma_hs = sigma_hs(my_mesh, my_active_cells)
-# my_sigma_1d = sigma_background_1d(my_mesh)
-    
-    
-# my_test = TestDerivativesFictitiousSource()
-# my_test.test_adjoint(
-#     "tipper",
-#     ["xy", "yx"],
-#     ["real", "imag"],
-#     locations(),
-#     frequencies(),
-#     my_mesh,
-#     my_active_cells,
-#     my_mapping,
-#     my_sigma_1d,
-# )
