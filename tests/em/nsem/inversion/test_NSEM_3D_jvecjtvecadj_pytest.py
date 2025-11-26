@@ -147,6 +147,8 @@ CASES_LIST = [
     ("apparent_conductivity", None, None),
     ("tipper", ["det"], ["real", "imag"]),
     ("admittance", ["det"], ["real", "imag"]),
+    ("tipper", ["amp_squared"], ["real"]),
+    ("admittance", ["amp_squared"], ["real"]),
 ]
 
 

@@ -177,6 +177,30 @@ def get_det_survey(
     return nsem.survey.Survey(source_list)
 
 
+def get_amp_survey(
+    source_type, locations, frequencies, survey_type
+):
+    source_list = []
+
+    for f in frequencies:
+
+        rx_list = [
+            nsem.receivers.Admittance(
+                locations_e=locations, locations_h=locations, orientation="amp_squared", component="real",
+            ),
+            nsem.receivers.ApparentConductivity(
+                locations_e=locations, locations_h=locations,
+            )
+        ]
+
+        if source_type == "primary_secondary":
+            source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
+        else:
+            source_list.append(nsem.sources.FictitiousSource3D(rx_list, f))
+
+    return nsem.survey.Survey(source_list)
+
+
 def get_analytic_halfspace_solution(sigma, f, survey_type, component):
     # MT data types (Zxx, Zxy, Zyx, Zyy)
     if survey_type == "impedance":
@@ -364,5 +388,46 @@ def test_det_transfer_function(
     np.testing.assert_allclose(
         np.imag(dpred_det), np.imag(dpred_xy), atol=ABS_TOLERANCE
     )
+
+
+CASES_LIST_AMP = [
+    ("primary_secondary", "admittance"),
+]
+
+@pytest.mark.parametrize("source_type, survey_type", CASES_LIST_AMP)
+def test_amp_transfer_function(
+    source_type, survey_type, frequencies, locations, mesh, mapping
+):
+    # Numerical solution
+    survey = get_amp_survey(source_type, locations, frequencies, survey_type)
+    model_hs = get_model(mesh, "halfspace")  # 1e-2 halfspace
+    model_block = get_model(mesh, "block")
+
+    if source_type == "primary_secondary":
+        sim = nsem.simulation.Simulation3DPrimarySecondary(
+            mesh, survey=survey, sigmaPrimary=model_hs, sigmaMap=mapping, solver=get_default_solver()
+        )
+    else:
+        mesh_1d = TensorMesh([mesh.h[-1]], origin=[mesh.origin[-1]])
+        model_1d = get_model(mesh_1d, "halfspace")
+        sim = nsem.simulation.Simulation3DFictitiousSource(
+            mesh, survey=survey, sigma_background=model_1d, sigmaMap=mapping, solver=get_default_solver()
+        )
+
+    dpred = sim.dpred(model_block)
+    n_freq = len(frequencies)
+    n_rx = 2  # det, amp
+    n_loc = np.shape(locations)[0]
+    dpred = dpred.reshape((n_freq, n_rx, n_loc))
+    
+    fact = 2 * np.pi * mu_0
+
+    dpred_amp = mkvc(fact * np.outer(frequencies, np.ones(n_loc)) * dpred[:, 0, :])
+    dpred_appcon = mkvc(dpred[:, 1, :])
+   
+    np.testing.assert_allclose(
+        dpred_amp, dpred_appcon, atol=ABS_TOLERANCE
+    )
+    
 
 
