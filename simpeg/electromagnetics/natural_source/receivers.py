@@ -689,14 +689,14 @@ class Tipper(BaseNaturalSourceRx):
         -------
         str
             Specifies the tipper element :math:`T_{ij}` corresponding to the data.
-            One of {'xx', 'yx', 'zx', 'zy', 'yy', 'zy', 'det'}.
+            One of {'xx', 'yx', 'zx', 'zy', 'yy', 'zy', 'det', 'sqrt_det'}.
         """
         return self._orientation
 
     @orientation.setter
     def orientation(self, var):
         self._orientation = validate_string(
-            "orientation", var, string_list=("zx", "zy", "xx", "xy", "yx", "yy", "det")
+            "orientation", var, string_list=("zx", "zy", "xx", "xy", "yx", "yy", "det", "sqrt_det")
         )
 
     def _eval_tipper(self, src, mesh, f):
@@ -706,7 +706,7 @@ class Tipper(BaseNaturalSourceRx):
         # Only Tzx
         if mesh.dim == 2:
 
-            if self.orientation == "det":
+            if "det" in self.orientation:
                 raise NotImplementedError("Receiver orientations 'det' only valid for 3D simulation.")
 
             Phx = self.getP(mesh, "Ex", 1)
@@ -726,7 +726,7 @@ class Tipper(BaseNaturalSourceRx):
 
             bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
 
-            if self.orientation == "det":
+            if "det" in self.orientation:
 
                 Phox = self.getP(mesh, "Fx", 0)
                 Phoy = self.getP(mesh, "Fy", 0)
@@ -734,6 +734,9 @@ class Tipper(BaseNaturalSourceRx):
                 hoy = Phoy @ h
 
                 top = hox[:, 0] * hoy[:, 1] - hox[:, 1] * hoy[:, 0]
+
+                if self.orientation == "sqrt_det":
+                    return np.sqrt(top / bot)
 
             else:
 
@@ -771,15 +774,13 @@ class Tipper(BaseNaturalSourceRx):
             hy = Phy @ h
             bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
 
-            if self.orientation == "det":
+            if "det" in self.orientation:
 
                 Phox = self.getP(mesh, "Fx", 0)
                 Phoy = self.getP(mesh, "Fy", 0)
                 hox = Phox @ h
                 hoy = Phoy @ h
-                
                 top = hox[:, 0] * hoy[:, 1] - hox[:, 1] * hoy[:, 0]
-                
 
             else:
 
@@ -792,6 +793,11 @@ class Tipper(BaseNaturalSourceRx):
                 top = h[:, 0] * ho[:, 1] - h[:, 1] * ho[:, 0]
 
             tip = top / bot
+
+            if self.orientation == "sqrt_det":
+                scale = 0.5 / np.sqrt(tip)
+            else:
+                scale = 1.0
 
         # ADJOINT
         if adjoint:
@@ -810,13 +816,13 @@ class Tipper(BaseNaturalSourceRx):
             else:
 
                 # Work backwards!
-                a_v = (v / bot)[..., None]
-                b_v = (-tip * v / bot)[..., None]
+                a_v = (scale * v / bot)[..., None]
+                b_v = (scale * -tip * v / bot)[..., None]
 
                 ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * b_v
                 ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * b_v
 
-                if self.orientation == "det":
+                if "det" in self.orientation:
 
                     ghox_v = np.c_[hoy[:, 1], -hoy[:, 0]] * a_v
                     ghoy_v = np.c_[-hox[:, 1], hox[:, 0]] * a_v
@@ -865,7 +871,7 @@ class Tipper(BaseNaturalSourceRx):
             dhx_v = Phx @ dh_v
             dhy_v = Phy @ dh_v
             
-            if self.orientation == "det":
+            if "det" in self.orientation:
 
                 dhox_v = Phox @ dh_v
                 dhoy_v = Phoy @ dh_v
@@ -904,7 +910,7 @@ class Tipper(BaseNaturalSourceRx):
                     - dhx_v[:, 1] * hy[:, 0]
                 )
 
-            return (bot * dtop_v - top * dbot_v) / (bot * bot)
+            return scale * (bot * dtop_v - top * dbot_v) / (bot * bot)
 
     def eval(self, src, mesh, f):  # noqa: A003
         tip = self._eval_tipper(src, mesh, f)
@@ -996,14 +1002,14 @@ class Admittance(_ElectricAndMagneticReceiver):
         Returns
         -------
         str
-            Receiver orientation. One of {'xx', 'xy', 'yx', 'yy', 'zx', 'zy', 'det'}
+            Receiver orientation. One of {'xx', 'xy', 'yx', 'yy', 'zx', 'zy', 'det', 'sqrt_det'}
         """
         return self._orientation
 
     @orientation.setter
     def orientation(self, var):
         self._orientation = validate_string(
-            "orientation", var, string_list=("xx", "xy", "yx", "yy", "zx", "zy", "det")
+            "orientation", var, string_list=("xx", "xy", "yx", "yy", "zx", "zy", "det", "sqrt_det")
         )
 
     @property
@@ -1045,7 +1051,7 @@ class Admittance(_ElectricAndMagneticReceiver):
         h = f[src, "h"]
 
         if mesh.dim == 2:
-            if self.orientation == "det":
+            if "det" in self.orientation:
                 raise ValueError("Receiver orientations 'det' only valid for 3D simulation.")
             elif self.orientation == "yx":
                 PE = self.getP(mesh, "Ex", 0)
@@ -1063,12 +1069,15 @@ class Admittance(_ElectricAndMagneticReceiver):
             ey = self.getP(mesh, "Ey", 0) @ e
             bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
 
-            if self.orientation == "det":
+            if "det" in self.orientation:
 
                 hx = self.getP(mesh, "Fx", 1) @ h
                 hy = self.getP(mesh, "Fy", 1) @ h
 
                 top = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
+
+                if self.orientation == "sqrt_det":
+                    return np.sqrt(top / bot)
 
             else:
 
@@ -1113,7 +1122,7 @@ class Admittance(_ElectricAndMagneticReceiver):
             ey = Pey @ e
             bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
 
-            if self.orientation == "det":
+            if "det" in self.orientation:
 
                 Phx = self.getP(mesh, "Fx", 1)
                 Phy = self.getP(mesh, "Fy", 1)
@@ -1137,9 +1146,14 @@ class Admittance(_ElectricAndMagneticReceiver):
             
             adm = top / bot
 
+            if self.orientation == "sqrt_det":
+                scale = 0.5 / np.sqrt(adm)
+            else:
+                scale = 1.0
+
         # ADJOINT
         if adjoint:
-            if (self.component == "imag") & (self.orientation != "amp_squared"):
+            if self.component == "imag":
                 v = -1j * v
 
             # J_T * v = d_top_T * a_v + d_bot_T * b
@@ -1153,10 +1167,13 @@ class Admittance(_ElectricAndMagneticReceiver):
 
             else:
 
+                a_v *= scale
+                b_v *= scale
+
                 ex_v = np.c_[ey[:, 1], -ey[:, 0]] * b_v[:, None]  # terms dex in bot
                 ey_v = np.c_[-ex[:, 1], ex[:, 0]] * b_v[:, None]  # terms dey in bot
 
-                if self.orientation == "det":
+                if "det" in self.orientation:
 
                     hx_v = np.c_[hy[:, 1], -hy[:, 0]] * a_v[:, None]  # terms dex in bot
                     hy_v = np.c_[-hx[:, 1], hx[:, 0]] * a_v[:, None]  # terms dey in bot
@@ -1194,7 +1211,7 @@ class Admittance(_ElectricAndMagneticReceiver):
 
             dh_v = f._hDeriv(src, du_dm_v, v, adjoint=False)
 
-            if self.orientation == "det":
+            if "det" in self.orientation:
 
                 dhx_v = Phx @ dh_v
                 dhy_v = Phy @ dh_v
@@ -1229,7 +1246,7 @@ class Admittance(_ElectricAndMagneticReceiver):
                     - dex_v[:, 1] * ey[:, 0]
                 )
 
-            adm_deriv = (bot * dtop_v - top * dbot_v) / (bot * bot)
+            adm_deriv = scale * (bot * dtop_v - top * dbot_v) / (bot * bot)
 
         return getattr(adm_deriv, self.component)
 
@@ -1453,7 +1470,7 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
         )
 
 
-class SquaredAmplitudeRatio(BaseNaturalSourceRx):
+class AmplitudeRatio(BaseNaturalSourceRx):
     """Receiver type base on square amplitudes of fields
 
     Parameters
@@ -1476,6 +1493,7 @@ class SquaredAmplitudeRatio(BaseNaturalSourceRx):
         locations_h,
         locations_base=None,
         base_type="magnetic",
+        component="amp",
         storeProjections=False,
     ):
         if locations_base is None:
@@ -1486,6 +1504,7 @@ class SquaredAmplitudeRatio(BaseNaturalSourceRx):
             storeProjections=storeProjections,
         )
         self.base_type = base_type
+        self.component = component
 
     @property
     def locations_h(self):
@@ -1511,7 +1530,7 @@ class SquaredAmplitudeRatio(BaseNaturalSourceRx):
 
     @property
     def base_type(self):
-        r"""Whether a 'magnetic' or 'electric' base statio is used.
+        r"""Whether a 'magnetic' or 'electric' base station is used.
 
         Returns
         -------
@@ -1526,10 +1545,27 @@ class SquaredAmplitudeRatio(BaseNaturalSourceRx):
             "base_type", var, ["magnetic", "electric"]
         )
 
+    @property
+    def component(self):
+        r"""Whether to use the amplitude or amplitude squared of the fields.
+
+        Returns
+        -------
+        str
+            Component; i.e. "amp" or "amp_squared"
+        """
+        return self._component
+
+    @component.setter
+    def component(self, var):
+        self._component = validate_string(
+            "component", var, ["amp", "amp_squared"]
+        )
+
     def _eval_transfer_function(self, src, mesh, f):
 
         if mesh.dim < 3:
-            raise NotImplementedError("'AmplitudeSquared' transfer function only for 3D simulation.")
+            raise NotImplementedError("'AmplitudeRatio' transfer function only for 3D simulation.")
 
         h = f[src, "h"]
         hx = self.getP(mesh, "Fx", 1) @ h
@@ -1548,7 +1584,10 @@ class SquaredAmplitudeRatio(BaseNaturalSourceRx):
         top = np.sum(np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2, axis=-1)
         bot = np.sum(np.abs(bx) ** 2 + np.abs(by) ** 2, axis=-1)
 
-        return top / bot
+        if self.component == "amp":
+            return np.sqrt(top / bot)
+        else:
+            return top / bot
 
     def _eval_transfer_function_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
 
@@ -1584,12 +1623,18 @@ class SquaredAmplitudeRatio(BaseNaturalSourceRx):
         top = np.sum(np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2, axis=-1)
         bot = np.sum(np.abs(bx) ** 2 + np.abs(by) ** 2, axis=-1)
 
+        if self.component == "amp":
+            scale =  0.5 / np.sqrt(top / bot)
+        else:
+            scale = 1.0
+
+
         # ADJOINT
         if adjoint:
 
             # J_T * v = d_top_T * a_v + d_bot_T * b
-            a_v = v / bot  # term 1
-            b_v = -top * v / bot**2  # term 2
+            a_v = scale * v / bot  # term 1
+            b_v = -scale * top * v / bot**2  # term 2
 
             a_v = np.repeat(mkvc(a_v, n_dims=2), 2, axis=-1)
             b_v = np.repeat(mkvc(b_v, n_dims=2), 2, axis=-1)
@@ -1638,7 +1683,7 @@ class SquaredAmplitudeRatio(BaseNaturalSourceRx):
             (bx.conjugate() * dbx_v + by.conjugate() * dby_v).real, axis=-1
         )
 
-        return (bot * dtop_v - top * dbot_v) / (bot * bot)
+        return scale * (bot * dtop_v - top * dbot_v) / (bot * bot)
 
     def eval(self, src, mesh, f):  # noqa: A003
         # Docstring inherited from parent class (Impedance).

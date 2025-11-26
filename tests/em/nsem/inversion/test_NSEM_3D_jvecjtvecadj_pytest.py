@@ -120,12 +120,13 @@ def get_survey(
                     ]
                 )
 
-        elif survey_type == "amplitude_squared":
+        elif survey_type == "amplitude_ratio":
             # The orientations variable carries the base type
             rx_list.append(
-                nsem.receivers.SquaredAmplitudeRatio(
+                nsem.receivers.AmplitudeRatio(
                     locations,
                     base_type=orientations[0],
+                    component=components[0],
                 )
             )
 
@@ -158,8 +159,12 @@ CASES_LIST = [
     ("apparent_conductivity", None, None),
     ("tipper", ["det"], ["real", "imag"]),
     ("admittance", ["det"], ["real", "imag"]),
-    ("amplitude_squared", "magnetic", None),
-    ("amplitude_squared", "electric", None),
+    ("tipper", ["sqrt_det"], ["real", "imag"]),
+    ("admittance", ["sqrt_det"], ["real", "imag"]),
+    ("amplitude_ratio", "magnetic", "amp"),
+    ("amplitude_ratio", "electric", "amp"),
+    ("amplitude_ratio", "magnetic", "amp_squared"),
+    ("amplitude_ratio", "electric", "amp_squared"),
 ]
 
 
