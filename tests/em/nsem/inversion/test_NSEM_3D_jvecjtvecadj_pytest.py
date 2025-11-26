@@ -120,6 +120,17 @@ def get_survey(
                     ]
                 )
 
+        elif survey_type == "amplitude_squared":
+            # The orientations variable carries the base type
+            rx_list.append(
+                nsem.receivers.SquaredAmplitudeRatio(
+                    locations,
+                    base_type=orientations[0],
+                )
+            )
+
+
+
         # MobileMT is app_cond
         elif survey_type == "apparent_conductivity":
             rx_list.extend([nsem.receivers.ApparentConductivity(locations)])
@@ -147,8 +158,8 @@ CASES_LIST = [
     ("apparent_conductivity", None, None),
     ("tipper", ["det"], ["real", "imag"]),
     ("admittance", ["det"], ["real", "imag"]),
-    ("tipper", ["amp_squared"], ["real"]),
-    ("admittance", ["amp_squared"], ["real"]),
+    ("amplitude_squared", "magnetic", None),
+    ("amplitude_squared", "electric", None),
 ]
 
 

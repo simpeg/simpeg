@@ -185,8 +185,8 @@ def get_amp_survey(
     for f in frequencies:
 
         rx_list = [
-            nsem.receivers.Admittance(
-                locations_e=locations, locations_h=locations, orientation="amp_squared", component="real",
+            nsem.receivers.SquaredAmplitudeRatio(
+                locations_h=locations, locations_base=locations, base_type="electric",
             ),
             nsem.receivers.ApparentConductivity(
                 locations_e=locations, locations_h=locations,

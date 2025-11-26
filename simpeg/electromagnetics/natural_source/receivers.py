@@ -689,14 +689,14 @@ class Tipper(BaseNaturalSourceRx):
         -------
         str
             Specifies the tipper element :math:`T_{ij}` corresponding to the data.
-            One of {'xx', 'yx', 'zx', 'zy', 'yy', 'zy', 'det', 'amp_squared'}.
+            One of {'xx', 'yx', 'zx', 'zy', 'yy', 'zy', 'det'}.
         """
         return self._orientation
 
     @orientation.setter
     def orientation(self, var):
         self._orientation = validate_string(
-            "orientation", var, string_list=("zx", "zy", "xx", "xy", "yx", "yy", "det", "amp_squared")
+            "orientation", var, string_list=("zx", "zy", "xx", "xy", "yx", "yy", "det")
         )
 
     def _eval_tipper(self, src, mesh, f):
@@ -706,8 +706,8 @@ class Tipper(BaseNaturalSourceRx):
         # Only Tzx
         if mesh.dim == 2:
 
-            if (self.orientation == "det") | (self.orientation == "amp_squared"):
-                raise ValueError("Receiver orientations 'det' and 'amp_squared' only valid for 3D simulation.")
+            if self.orientation == "det":
+                raise NotImplementedError("Receiver orientations 'det' only valid for 3D simulation.")
 
             Phx = self.getP(mesh, "Ex", 1)
             Phz = self.getP(mesh, "Ey", 0)
@@ -724,6 +724,8 @@ class Tipper(BaseNaturalSourceRx):
             hx = Phx @ h
             hy = Phy @ h
 
+            bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
+
             if self.orientation == "det":
 
                 Phox = self.getP(mesh, "Fx", 0)
@@ -732,19 +734,6 @@ class Tipper(BaseNaturalSourceRx):
                 hoy = Phoy @ h
 
                 top = hox[:, 0] * hoy[:, 1] - hox[:, 1] * hoy[:, 0]
-                bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
-
-            elif self.orientation == "amp_squared":
-
-                Phox = self.getP(mesh, "Fx", 0)
-                Phoy = self.getP(mesh, "Fy", 0)
-                Phoz = self.getP(mesh, "Fz", 0)
-                hox = Phox @ h
-                hoy = Phoy @ h
-                hoz = Phoz @ h
-
-                top = np.sum(np.abs(hox) ** 2 + np.abs(hoy) ** 2 + np.abs(hoz) ** 2, axis=-1)
-                bot = np.sum(np.abs(hx) ** 2 + np.abs(hy) ** 2, axis=-1)
 
             else:
 
@@ -757,8 +746,7 @@ class Tipper(BaseNaturalSourceRx):
                     h = hx
 
                 top = h[:, 0] * ho[:, 1] - h[:, 1] * ho[:, 0]
-                bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
-            
+ 
             return top / bot
 
     def _eval_tipper_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
@@ -781,6 +769,7 @@ class Tipper(BaseNaturalSourceRx):
             Phy = self.getP(mesh, "Fy", 1)
             hx = Phx @ h
             hy = Phy @ h
+            bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
 
             if self.orientation == "det":
 
@@ -790,19 +779,7 @@ class Tipper(BaseNaturalSourceRx):
                 hoy = Phoy @ h
                 
                 top = hox[:, 0] * hoy[:, 1] - hox[:, 1] * hoy[:, 0]
-                bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
-
-            elif self.orientation == "amp_squared":
                 
-                Phox = self.getP(mesh, "Fx", 0)
-                Phoy = self.getP(mesh, "Fy", 0)
-                Phoz = self.getP(mesh, "Fz", 0)
-                hox = Phox @ h
-                hoy = Phoy @ h
-                hoz = Phoz @ h
-                
-                top = np.sum(np.abs(hox) ** 2 + np.abs(hoy) ** 2 + np.abs(hoz) ** 2, axis=-1)
-                bot = np.sum(np.abs(hx) ** 2 + np.abs(hy) ** 2, axis=-1)
 
             else:
 
@@ -813,14 +790,13 @@ class Tipper(BaseNaturalSourceRx):
                 else:
                     h = hx
                 top = h[:, 0] * ho[:, 1] - h[:, 1] * ho[:, 0]
-                bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
 
             tip = top / bot
 
         # ADJOINT
         if adjoint:
             
-            if (self.component == "imag") & (self.orientation != "amp_squared"):
+            if self.component == "imag":
                 v = -1j * v
 
             n_d = self.nD
@@ -837,10 +813,10 @@ class Tipper(BaseNaturalSourceRx):
                 a_v = (v / bot)[..., None]
                 b_v = (-tip * v / bot)[..., None]
 
+                ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * b_v
+                ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * b_v
+
                 if self.orientation == "det":
-                    
-                    ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * b_v
-                    ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * b_v
 
                     ghox_v = np.c_[hoy[:, 1], -hoy[:, 0]] * a_v
                     ghoy_v = np.c_[-hox[:, 1], hox[:, 0]] * a_v
@@ -854,26 +830,7 @@ class Tipper(BaseNaturalSourceRx):
 
                     gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v + Phox.T @ ghox_v + Phoy.T @ ghoy_v
 
-                elif self.orientation == "amp_squared":
-                    
-                    a_v = np.repeat(mkvc(a_v, n_dims=2), 2, axis=-1)
-                    b_v = np.repeat(mkvc(b_v, n_dims=2), 2, axis=-1)
-                    
-                    hox *= a_v
-                    hoy *= a_v
-                    hoz *= a_v
-                    hx *= b_v
-                    hy *= b_v
-        
-                    gh_v = 2 * (
-                        (Phx.T @ hx + Phy.T @ hy).conjugate() +
-                        (Phox.T @ hox + Phoy.T @ hoy + Phoz.T @ hoz).conjugate()
-                    )
-
                 else:
-                    
-                    ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * b_v
-                    ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * b_v
 
                     gho_v = np.c_[-h[:, 1], h[:, 0]] * a_v
                     gh_v = np.c_[ho[:, 1], -ho[:, 0]] * a_v
@@ -924,23 +881,6 @@ class Tipper(BaseNaturalSourceRx):
                     + dhx_v[:, 0] * hy[:, 1]
                     - hy[:, 0] * dhx_v[:, 1]
                     - dhy_v[:, 0] * hx[:, 1]
-                )
-
-            elif self.orientation == "amp_squared":
-                
-                dhox_v = Phox @ dh_v
-                dhoy_v = Phoy @ dh_v
-                dhoz_v = Phoz @ dh_v
-                
-                # Imaginary components cancel and its 2x the real of the conjugate x the deriv
-                dtop_v = 2 * np.sum(
-                    (
-                        hox.conjugate() * dhox_v + hoy.conjugate() * dhoy_v + hoz.conjugate() * dhoz_v
-                    ).real,
-                    axis=-1,
-                )
-                dbot_v = 2 * np.sum(
-                    (hx.conjugate() * dhx_v + hy.conjugate() * dhy_v).real, axis=-1
                 )
 
             else:
@@ -1056,14 +996,14 @@ class Admittance(_ElectricAndMagneticReceiver):
         Returns
         -------
         str
-            Receiver orientation. One of {'xx', 'xy', 'yx', 'yy', 'zx', 'zy', 'det', 'amp_squared'}
+            Receiver orientation. One of {'xx', 'xy', 'yx', 'yy', 'zx', 'zy', 'det'}
         """
         return self._orientation
 
     @orientation.setter
     def orientation(self, var):
         self._orientation = validate_string(
-            "orientation", var, string_list=("xx", "xy", "yx", "yy", "zx", "zy", "det", "amp_squared")
+            "orientation", var, string_list=("xx", "xy", "yx", "yy", "zx", "zy", "det")
         )
 
     @property
@@ -1105,8 +1045,8 @@ class Admittance(_ElectricAndMagneticReceiver):
         h = f[src, "h"]
 
         if mesh.dim == 2:
-            if (self.orientation == "det") | (self.orientation == "amp_squared"):
-                raise ValueError("Receiver orientations 'det' and 'amp_squared' only valid for 3D simulation.")
+            if self.orientation == "det":
+                raise ValueError("Receiver orientations 'det' only valid for 3D simulation.")
             elif self.orientation == "yx":
                 PE = self.getP(mesh, "Ex", 0)
                 PH = self.getP(mesh, "CC", 1)
@@ -1121,6 +1061,7 @@ class Admittance(_ElectricAndMagneticReceiver):
 
             ex = self.getP(mesh, "Ex", 0) @ e
             ey = self.getP(mesh, "Ey", 0) @ e
+            bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
 
             if self.orientation == "det":
 
@@ -1128,16 +1069,6 @@ class Admittance(_ElectricAndMagneticReceiver):
                 hy = self.getP(mesh, "Fy", 1) @ h
 
                 top = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
-                bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
-
-            elif self.orientation == "amp_squared":
-                
-                hx = self.getP(mesh, "Fx", 1) @ h
-                hy = self.getP(mesh, "Fy", 1) @ h
-                hz = self.getP(mesh, "Fz", 1) @ h
-
-                top = np.sum(np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2, axis=-1)
-                bot = np.sum(np.abs(ex) ** 2 + np.abs(ey) ** 2, axis=-1)
 
             else:
 
@@ -1147,7 +1078,6 @@ class Admittance(_ElectricAndMagneticReceiver):
                     top = h[:, 0] * ey[:, 1] - h[:, 1] * ex[:, 1]
                 else:
                     top = -h[:, 0] * ey[:, 0] + h[:, 1] * ex[:, 0]
-                bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
 
         return top / bot
 
@@ -1181,6 +1111,7 @@ class Admittance(_ElectricAndMagneticReceiver):
             Pey = self.getP(mesh, "Ey", 0)
             ex = Pex @ e
             ey = Pey @ e
+            bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
 
             if self.orientation == "det":
 
@@ -1189,22 +1120,7 @@ class Admittance(_ElectricAndMagneticReceiver):
                 hx = Phx @ h
                 hy = Phy @ h
                 top = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
-                bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
                 fact = 1.0
-
-            elif self.orientation == "amp_squared":
-                
-                Phx = self.getP(mesh, "Fx", 1)
-                Phy = self.getP(mesh, "Fy", 1)
-                Phz = self.getP(mesh, "Fz", 1)
-                
-                hx = Phx @ h
-                hy = Phy @ h
-                hz = Phz @ h
-        
-                fact = 1.0
-                top = np.sum(np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2, axis=-1)
-                bot = np.sum(np.abs(ex) ** 2 + np.abs(ey) ** 2, axis=-1)
 
             else:
 
@@ -1218,7 +1134,6 @@ class Admittance(_ElectricAndMagneticReceiver):
                     p_ind = 0
                     fact = -1.0
                 top = fact * (h[:, 0] * ey[:, p_ind] - h[:, 1] * ex[:, p_ind])
-                bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
             
             adm = top / bot
 
@@ -1238,43 +1153,25 @@ class Admittance(_ElectricAndMagneticReceiver):
 
             else:
 
+                ex_v = np.c_[ey[:, 1], -ey[:, 0]] * b_v[:, None]  # terms dex in bot
+                ey_v = np.c_[-ex[:, 1], ex[:, 0]] * b_v[:, None]  # terms dey in bot
+
                 if self.orientation == "det":
 
                     hx_v = np.c_[hy[:, 1], -hy[:, 0]] * a_v[:, None]  # terms dex in bot
                     hy_v = np.c_[-hx[:, 1], hx[:, 0]] * a_v[:, None]  # terms dey in bot
                     h_v = Phx.T @ hx_v + Phy.T @ hy_v
 
-                    ex_v = np.c_[ey[:, 1], -ey[:, 0]] * b_v[:, None]  # terms dex in bot
-                    ey_v = np.c_[-ex[:, 1], ex[:, 0]] * b_v[:, None]  # terms dey in bot
                     e_v = Pex.T @ ex_v + Pey.T @ ey_v
-
-                elif self.orientation == "amp_squared":
-                    
-                    a_v = np.repeat(mkvc(a_v, n_dims=2), 2, axis=-1)
-                    b_v = np.repeat(mkvc(b_v, n_dims=2), 2, axis=-1)
-                    
-                    hx *= a_v
-                    hy *= a_v
-                    hz *= a_v
-                    ex *= b_v
-                    ey *= b_v
-        
-                    e_v = 2 * (Pex.T @ ex + Pey.T @ ey).conjugate()
-                    h_v = 2 * (Phx.T @ hx + Phy.T @ hy + Phz.T @ hz).conjugate()
-        
-                    fu_e_v, fm_e_v = f._eDeriv(src, None, e_v, adjoint=True)
-                    fu_h_v, fm_h_v = f._hDeriv(src, None, h_v, adjoint=True)
     
                 else:
 
-                    ex_v = np.c_[ey[:, 1], -ey[:, 0]] * b_v[:, None]  # terms dex in bot
-                    ey_v = np.c_[-ex[:, 1], ex[:, 0]] * b_v[:, None]  # terms dey in bot
+                    h_v = np.c_[ey[:, p_ind], -ex[:, p_ind]] * a_v[:, None]  # h in top
+                    h_v = Ph.T @ h_v
+
                     ex_v[:, p_ind] -= h[:, 1] * a_v  # add terms dex in top
                     ey_v[:, p_ind] += h[:, 0] * a_v  # add terms dey in top
                     e_v = Pex.T @ ex_v + Pey.T @ ey_v
-
-                    h_v = np.c_[ey[:, p_ind], -ex[:, p_ind]] * a_v[:, None]  # h in top
-                    h_v = Ph.T @ h_v
 
             fu_e_v, fm_e_v = f._eDeriv(src, None, e_v, adjoint=True)
             fu_h_v, fm_h_v = f._hDeriv(src, None, h_v, adjoint=True)
@@ -1313,23 +1210,6 @@ class Admittance(_ElectricAndMagneticReceiver):
                     + dex_v[:, 0] * ey[:, 1]
                     - ey[:, 0] * dex_v[:, 1]
                     - dey_v[:, 0] * ex[:, 1]
-                )
-
-            elif self.orientation == "amp_squared":
-                
-                dhx_v = Phx @ dh_v
-                dhy_v = Phy @ dh_v
-                dhz_v = Phz @ dh_v
-                
-                # Imaginary components cancel and its 2x the real of the conjugate x the deriv
-                dtop_v = 2 * np.sum(
-                    (
-                        hx.conjugate() * dhx_v + hy.conjugate() * dhy_v + hz.conjugate() * dhz_v
-                    ).real,
-                    axis=-1,
-                )
-                dbot_v = 2 * np.sum(
-                    (ex.conjugate() * dex_v + ey.conjugate() * dey_v).real, axis=-1
                 )
             
             else:
@@ -1571,6 +1451,208 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
         return self._eval_apparent_conductivity_deriv(
             src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
         )
+
+
+class SquaredAmplitudeRatio(BaseNaturalSourceRx):
+    """Receiver type base on square amplitudes of fields
+
+    Parameters
+    ----------
+    locations_h : (n_loc, n_dim) array_like
+        Locations where the roving magnetic fields are measured.
+    locations_base : (n_loc, n_dim) array_like, optional
+        Locations where the base station magnetic fields are measured. Defaults to
+        the same locations as the roving magnetic fields measurements,
+        `locations_r`.
+    base_type : {'magnetic', 'electric'}
+        Whether magnetic or electric fields are measured at the base station.
+    storeProjections : bool
+        Whether to cache to internal projection matrices.
+    """
+    _loc_names = ("Roving magnetic field", "Base station field")
+
+    def __init__(
+        self,
+        locations_h,
+        locations_base=None,
+        base_type="magnetic",
+        storeProjections=False,
+    ):
+        if locations_base is None:
+            locations_base = locations_h
+        super().__init__(
+            locations1=locations_h,
+            locations2=locations_base,
+            storeProjections=storeProjections,
+        )
+        self.base_type = base_type
+
+    @property
+    def locations_h(self):
+        """Roving magnetic field measurement locations.
+
+        Returns
+        -------
+        numpy.ndarray
+            Roving locations where the magnetic field is measured for all receiver data.
+        """
+        return self._locations[0]
+
+    @property
+    def locations_base(self):
+        """Base station magnetic field measurement locations.
+
+        Returns
+        -------
+        numpy.ndarray
+            Base station locations where the horizontal magnetic fields are measured.
+        """
+        return self._locations[1]
+
+    @property
+    def base_type(self):
+        r"""Whether a 'magnetic' or 'electric' base statio is used.
+
+        Returns
+        -------
+        str
+            Base station type; i.e. "magnetic" or "electric"
+        """
+        return self._base_type
+
+    @base_type.setter
+    def base_type(self, var):
+        self._base_type = validate_string(
+            "base_type", var, ["magnetic", "electric"]
+        )
+
+    def _eval_transfer_function(self, src, mesh, f):
+
+        if mesh.dim < 3:
+            raise NotImplementedError("'AmplitudeSquared' transfer function only for 3D simulation.")
+
+        h = f[src, "h"]
+        hx = self.getP(mesh, "Fx", 1) @ h
+        hy = self.getP(mesh, "Fy", 1) @ h
+        hz = self.getP(mesh, "Fz", 1) @ h
+
+        if self.base_type == "magnetic":
+            bx = self.getP(mesh, "Fx", 0) @ h
+            by = self.getP(mesh, "Fy", 0) @ h
+
+        else:
+            e = f[src, "e"]
+            bx = self.getP(mesh, "Ex", 0) @ e
+            by = self.getP(mesh, "Ey", 0) @ e
+
+        top = np.sum(np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2, axis=-1)
+        bot = np.sum(np.abs(bx) ** 2 + np.abs(by) ** 2, axis=-1)
+
+        return top / bot
+
+    def _eval_transfer_function_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
+
+        if mesh.dim < 3:
+            raise NotImplementedError("'AmplitudeSquared' transfer function only for 3D simulation.")
+
+        h = f[src, "h"]
+        Phx = self.getP(mesh, "Fx", 1)
+        Phy = self.getP(mesh, "Fy", 1)
+        Phz = self.getP(mesh, "Fz", 1)
+
+        hx = Phx @ h
+        hy = Phy @ h
+        hz = Phz @ h
+
+        if self.base_type == "magnetic":
+            
+            Pbx = self.getP(mesh, "Fx", 0)
+            Pby = self.getP(mesh, "Fy", 0)
+
+            bx = Pbx @ h
+            by = Pby @ h
+
+        else:
+            
+            Pbx = self.getP(mesh, "Ex", 0)
+            Pby = self.getP(mesh, "Ey", 0)
+
+            e = f[src, "e"]
+            bx = Pbx @ e
+            by = Pby @ e
+
+        top = np.sum(np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2, axis=-1)
+        bot = np.sum(np.abs(bx) ** 2 + np.abs(by) ** 2, axis=-1)
+
+        # ADJOINT
+        if adjoint:
+
+            # J_T * v = d_top_T * a_v + d_bot_T * b
+            a_v = v / bot  # term 1
+            b_v = -top * v / bot**2  # term 2
+
+            a_v = np.repeat(mkvc(a_v, n_dims=2), 2, axis=-1)
+            b_v = np.repeat(mkvc(b_v, n_dims=2), 2, axis=-1)
+
+            hx *= a_v
+            hy *= a_v
+            hz *= a_v
+            bx *= b_v
+            by *= b_v
+
+            h_v = 2 * (Phx.T @ hx + Phy.T @ hy + Phz.T @ hz).conjugate()
+            b_v = 2 * (Pbx.T @ bx + Pby.T @ by).conjugate()
+
+            if self.base_type == "magnetic":
+
+                return f._hDeriv(src, None, h_v+b_v, adjoint=True)
+
+            else:
+
+                fu_b_v, fm_b_v = f._eDeriv(src, None, b_v, adjoint=True)
+                fu_h_v, fm_h_v = f._hDeriv(src, None, h_v, adjoint=True)
+                return fu_b_v + fu_h_v, fm_b_v + fm_h_v
+
+        # JVEC
+        dh_v = f._hDeriv(src, du_dm_v, v, adjoint=False)
+        dhx_v = Phx @ dh_v
+        dhy_v = Phy @ dh_v
+        dhz_v = Phz @ dh_v
+
+        if self.base_type == "magnetic":
+            db_v = dh_v
+        else:
+            db_v = f._eDeriv(src, du_dm_v, v, adjoint=False)
+            
+        dbx_v = Pbx @ db_v
+        dby_v = Pby @ db_v
+
+        # Imaginary components cancel and its 2x the real of the conjugate x the deriv
+        dtop_v = 2 * np.sum(
+            (
+                hx.conjugate() * dhx_v + hy.conjugate() * dhy_v + hz.conjugate() * dhz_v
+            ).real,
+            axis=-1,
+        )
+        dbot_v = 2 * np.sum(
+            (bx.conjugate() * dbx_v + by.conjugate() * dby_v).real, axis=-1
+        )
+
+        return (bot * dtop_v - top * dbot_v) / (bot * bot)
+
+    def eval(self, src, mesh, f):  # noqa: A003
+        # Docstring inherited from parent class (Impedance).
+        return self._eval_transfer_function(src, mesh, f)
+
+    def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
+        # Docstring inherited from parent class (Impedance).
+        return self._eval_transfer_function_deriv(
+            src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
+        )
+
+
+
+
 
 
 @deprecate_class(removal_version="0.24.0", error=True, replace_docstring=False)
