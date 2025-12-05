@@ -3,9 +3,9 @@ Maps that transform physical properties from one space to another.
 """
 
 import warnings
+from numbers import Real
 import numpy as np
 import scipy.sparse as sp
-from scipy.sparse.linalg import LinearOperator
 from scipy.constants import mu_0
 from scipy.special import expit, logit
 from discretize.utils import mkvc, sdiag, rotation_matrix_from_normals
@@ -554,6 +554,53 @@ class ChiMap(IdentityMap):
         return m / mu_0 - 1
 
 
+class EffectiveSusceptibilityMap(IdentityMap):
+    r"""Effective susceptibility Map
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        The number of parameters accepted by the mapping is set to equal the number
+        of mesh cells.
+    nP : int
+        Set the number of parameters accepted by the mapping directly. Used if the
+        number of parameters is known. Used generally when the number of parameters
+        is not equal to the number of cells in a mesh.
+    ambient_field_magnitude : float
+        The magnitude of the ambient geomagnetic field in nT.
+
+    Notes
+    -----
+    This map converts effective susceptibility values (:math:`\chi_\text{eff}`) into magnetic
+    polarization (:math:`\mathbf{I}`):
+
+    .. math::
+        \mathbf{I} = \mu_0 \mathbf{M} = \chi_\text{eff} \lVert \mathbf{B}_0 \rVert
+
+    where :math:`\mathbf{M}` is the magnetization vector, and
+    :math:`\lVert \mathbf{B}_0 \rVert` is the magnitude of the ambient field in nT.
+    """
+
+    def __init__(self, ambient_field_magnitude, mesh=None, nP=None, **kwargs):
+        super().__init__(mesh=mesh, nP=nP, **kwargs)
+        if not isinstance(ambient_field_magnitude, Real):
+            raise TypeError(
+                "ambient_field_magnitude must be a float (or int convertible to float)"
+            )
+        self.ambient_field_magnitude = ambient_field_magnitude
+
+    def _transform(self, m):
+        return m * self.ambient_field_magnitude
+
+    def deriv(self, m, v=None):
+        if v is not None:
+            return self.ambient_field_magnitude * v
+        return self.ambient_field_magnitude * sp.eye(self.nP)
+
+    def inverse(self, m):
+        return m / self.ambient_field_magnitude
+
+
 class MuRelative(IdentityMap):
     r"""Mapping that computes the magnetic permeability given a set of relative permeabilities.
 
@@ -902,6 +949,18 @@ class ComplexMap(IdentityMap):
         where :math:`\mathbf{I}` is the identity matrix of shape (*nP/2*, *nP/2*) and
         :math:`j = \sqrt{-1}`.
 
+        .. important::
+
+            Calculating the transpose of the derivative of the
+            :class:`~simpeg.maps.ComplexMap` as follows doesn't return the adjoint of
+            the matrix, but its transpose:
+
+            .. code:: python
+
+                complex_map = ComplexMap(...)
+                derivative = complex_map.deriv(m)
+                derivative.T  # this is not the complex adjoint
+
         Parameters
         ----------
         m : (nP) numpy.ndarray
@@ -953,17 +1012,9 @@ class ComplexMap(IdentityMap):
 
         """
         nC = self.shape[0]
-        shp = (nC, nC * 2)
-
-        def fwd(v):
-            return v[:nC] + v[nC:] * 1j
-
-        def adj(v):
-            return np.r_[v.real, v.imag]
-
         if v is not None:
-            return LinearOperator(shp, matvec=fwd, rmatvec=adj) * v
-        return LinearOperator(shp, matvec=fwd, rmatvec=adj)
+            return v[:nC] + v[nC:] * 1j
+        return sp.diags([1, 1j], [0, nC], [nC, 2 * nC])
 
 
 class SelfConsistentEffectiveMedium(IdentityMap):
@@ -1455,13 +1506,16 @@ class SelfConsistentEffectiveMedium(IdentityMap):
     def _transform(self, m):
         return self._sc2phaseEMTSpheroidstransform(m)
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
         """
         Derivative of the effective conductivity with respect to the
         volume fraction of phase 2 material
         """
         sige = self._transform(m)
-        return self._sc2phaseEMTSpheroidstransformDeriv(sige, m)
+        derivative = self._sc2phaseEMTSpheroidstransformDeriv(sige, m)
+        if v is not None:
+            return derivative @ v
+        return derivative
 
     def inverse(self, sige):
         """

@@ -831,6 +831,10 @@ def _extract_location_data(data, location, orientation, component, return_uncert
     data_list = []
     std_list = []
     floor_list = []
+
+    # Get dict of flat array slices for each source-receiver pair in the survey
+    survey_slices = data.survey.get_all_slices()
+
     for src in data.survey.source_list:
         rx_list = [
             rx
@@ -850,9 +854,9 @@ def _extract_location_data(data, location, orientation, component, return_uncert
             data_list.append(data[src, rx][ind_loc])
 
             if return_uncert:
-                index = data.index_dictionary[src][rx]
-                std_list.append(data.relative_error[index][ind_loc])
-                floor_list.append(data.noise_floor[index][ind_loc])
+                src_rx_slice = survey_slices[src, rx]
+                std_list.append(data.relative_error[src_rx_slice][ind_loc])
+                floor_list.append(data.noise_floor[src_rx_slice][ind_loc])
     if return_uncert:
         return (
             np.array(freq_list),

@@ -10,6 +10,7 @@ from ....utils import (
 )
 from ....data import Data
 from ....base import BaseElectricalPDESimulation
+from ....base.pde_simulation import _inner_mat_mul_op
 from .survey import Survey
 from .fields import Fields3DCellCentered, Fields3DNodal
 from .utils import _mini_pole_pole
@@ -112,6 +113,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return f
 
     def getJ(self, m, f=None):
+        self.model = m
         if getattr(self, "_Jmatrix", None) is None:
             if f is None:
                 f = self.fields(m)
@@ -215,7 +217,6 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
             if isinstance(v, Data):
                 v = v.dobs
             v = self._mini_survey_dataT(v)
-            v = Data(survey, v)
             Jtv = np.zeros(m.size)
         else:
             # This is for forming full sensitivity matrix
@@ -223,13 +224,17 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
             istrt = int(0)
             iend = int(0)
 
+        # Get dict of flat array slices for each source-receiver pair in the survey
+        survey_slices = survey.get_all_slices()
+
         for source in survey.source_list:
             u_source = f[source, self._solutionType].copy()
             for rx in source.receiver_list:
                 # wrt f, need possibility wrt m
                 if v is not None:
+                    src_rx_slice = survey_slices[source, rx]
                     PTv = rx.evalDeriv(
-                        source, self.mesh, f, v[source, rx], adjoint=True
+                        source, self.mesh, f, v[src_rx_slice], adjoint=True
                     )
                 else:
                     PTv = rx.evalDeriv(source, self.mesh, f).toarray().T
@@ -562,14 +567,7 @@ class Simulation3DNodal(BaseDCSimulation):
         if self.bc_type != "Neumann" and self.is_parametrized("sigma"):
             if getattr(self, "_MBC_sigma", None) is None:
                 self._MBC_sigma = self._AvgBC @ self.sigmaDeriv
-            if not isinstance(u, Zero):
-                u = u.flatten()
-                if v.ndim > 1:
-                    u = u[:, None]
-                if not adjoint:
-                    out += u * (self._MBC_sigma @ v)
-                else:
-                    out += self._MBC_sigma.T @ (u * v)
+            out += _inner_mat_mul_op(self._MBC_sigma, u, v, adjoint)
         return out
 
     def setBC(self):

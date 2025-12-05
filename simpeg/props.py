@@ -602,7 +602,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         _delete_on_model_update,
         "deleteTheseOnModelUpdate",
         removal_version="0.25.0",
-        future_warn=True,
+        error=True,
     )
 
     #: List of matrix names to have their factors cleared on a model update

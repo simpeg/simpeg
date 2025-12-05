@@ -5,7 +5,7 @@ import scipy.sparse as sp
 
 from .... import props
 from ....base import BaseElectricalPDESimulation
-from ....data import Data
+from ....utils import mkvc
 from ..resistivity import Simulation2DCellCentered as DC_2D_CC
 from ..resistivity import Simulation2DNodal as DC_2D_N
 from ..resistivity import Simulation3DCellCentered as DC_3D_CC
@@ -35,7 +35,8 @@ class BaseIPSimulation(BaseElectricalPDESimulation):
 
     @cached_property
     def _scale(self):
-        scale = Data(self.survey, np.ones(self.survey.nD))
+        survey_slices = self.survey.get_all_slices()
+        scale = np.ones(self.survey.nD)
         if self._f is None:
             # re-uses the DC simulation's fields method
             self._f = super().fields(None)
@@ -47,8 +48,9 @@ class BaseIPSimulation(BaseElectricalPDESimulation):
         for src in self.survey.source_list:
             for rx in src.receiver_list:
                 if rx.data_type == "apparent_chargeability":
-                    scale[src, rx] = 1.0 / rx.eval(src, self.mesh, f)
-        return scale.dobs
+                    src_rx_slice = survey_slices[src, rx]
+                    scale[src_rx_slice] = mkvc(1.0 / rx.eval(src, self.mesh, f))
+        return scale
 
     def __init__(
         self,

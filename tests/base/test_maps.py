@@ -32,6 +32,7 @@ REMOVED_IGNORE = [
 MAPS_TO_EXCLUDE_2D = [
     "ComboMap",
     "ActiveCells",
+    "EffectiveSusceptibilityMap",
     "InjectActiveCells",
     "LogMap",
     "LinearMap",
@@ -59,6 +60,7 @@ MAPS_TO_EXCLUDE_2D = [
 MAPS_TO_EXCLUDE_3D = [
     "ComboMap",
     "ActiveCells",
+    "EffectiveSusceptibilityMap",
     "InjectActiveCells",
     "LogMap",
     "LinearMap",
@@ -211,6 +213,10 @@ class MapTests(unittest.TestCase):
         mapping = maps.ReciprocalMap(self.mesh2)
         self.assertTrue(mapping.test(random_seed=42))
         mapping = maps.ReciprocalMap(self.mesh3)
+        self.assertTrue(mapping.test(random_seed=42))
+
+    def test_EffectiveSusceptibilityMap(self):
+        mapping = maps.EffectiveSusceptibilityMap(50000.0, mesh=self.mesh3)
         self.assertTrue(mapping.test(random_seed=42))
 
     def test_Mesh2MeshMap(self):
@@ -748,8 +754,8 @@ def test_linearity():
     assert all(not m.is_linear for m in non_linear_maps)
 
 
-class DeprecatedIndActive:
-    """Base class to test deprecated ``actInd`` and ``indActive`` arguments in maps."""
+class RemovedIndActive:
+    """Base class to test removed ``actInd`` and ``indActive`` arguments in maps."""
 
     @pytest.fixture
     def mesh(self):
@@ -763,267 +769,346 @@ class DeprecatedIndActive:
         active_cells[0] = False
         return active_cells
 
-    def get_message_duplicated_error(self, old_name, new_name, version="v0.24.0"):
+    def get_message_removed_error(self, old_name, new_name, version="v0.24.0"):
         msg = (
-            f"Cannot pass both '{new_name}' and '{old_name}'."
-            f"'{old_name}' has been deprecated and will be removed in "
-            f" SimPEG {version}, please use '{new_name}' instead."
-        )
-        return msg
-
-    def get_message_deprecated_warning(self, old_name, new_name, version="v0.24.0"):
-        msg = (
-            f"'{old_name}' has been deprecated and will be removed in "
-            f" SimPEG {version}, please use '{new_name}' instead."
+            f"'{old_name}' was removed in "
+            f"SimPEG {version}, please use '{new_name}' instead."
         )
         return msg
 
 
-class TestParametricPolyMap(DeprecatedIndActive):
-    """Test deprecated ``actInd`` in ParametricPolyMap."""
+class TestParametricPolyMap(RemovedIndActive):
+    """Test removed ``actInd`` in ParametricPolyMap."""
 
-    def test_warning_argument(self, mesh, active_cells):
+    def test_error_argument(self, mesh, active_cells):
         """
-        Test if warning is raised after passing ``actInd`` to the constructor.
+        Test if error is raised after passing ``actInd`` to the constructor.
         """
-        msg = self.get_message_deprecated_warning("actInd", "active_cells")
-        with pytest.warns(FutureWarning, match=msg):
-            map_instance = maps.ParametricPolyMap(mesh, 2, actInd=active_cells)
-        np.testing.assert_allclose(map_instance.active_cells, active_cells)
-
-    def test_error_duplicated_argument(self, mesh, active_cells):
-        """
-        Test error after passing ``actInd`` and ``active_cells`` to the constructor.
-        """
-        msg = self.get_message_duplicated_error("actInd", "active_cells")
+        msg = "Unsupported keyword argument actInd"
         with pytest.raises(TypeError, match=msg):
-            maps.ParametricPolyMap(
-                mesh, 2, active_cells=active_cells, actInd=active_cells
-            )
+            maps.ParametricPolyMap(mesh, 2, actInd=active_cells)
 
-    def test_warning_accessing_property(self, mesh, active_cells):
+    def test_error_accessing_property(self, mesh, active_cells):
         """
-        Test warning when trying to access the ``actInd`` property.
+        Test error when trying to access the ``actInd`` property.
         """
         mapping = maps.ParametricPolyMap(mesh, 2, active_cells=active_cells)
-        msg = "actInd has been deprecated, please use active_cells"
-        with pytest.warns(FutureWarning, match=msg):
-            old_act_ind = mapping.actInd
-        np.testing.assert_allclose(mapping.active_cells, old_act_ind)
+        msg = "actInd has been removed, please use active_cells"
+        with pytest.raises(NotImplementedError, match=msg):
+            mapping.actInd
 
-    def test_warning_setter(self, mesh, active_cells):
+    def test_error_setter(self, mesh, active_cells):
         """
-        Test warning when trying to set the ``actInd`` property.
+        Test error when trying to set the ``actInd`` property.
         """
         mapping = maps.ParametricPolyMap(mesh, 2, active_cells=active_cells)
-        # Define new active cells to pass to the setter
-        new_active_cells = active_cells.copy()
-        new_active_cells[-4:] = False
-        msg = "actInd has been deprecated, please use active_cells"
-        with pytest.warns(FutureWarning, match=msg):
-            mapping.actInd = new_active_cells
-        np.testing.assert_allclose(mapping.active_cells, new_active_cells)
+        msg = "actInd has been removed, please use active_cells"
+        with pytest.raises(NotImplementedError, match=msg):
+            mapping.actInd = active_cells
 
 
-class TestMesh2Mesh(DeprecatedIndActive):
-    """Test deprecated ``indActive`` in ``Mesh2Mesh``."""
+class TestMesh2Mesh(RemovedIndActive):
+    """Test removed ``indActive`` in ``Mesh2Mesh``."""
 
     @pytest.fixture
     def meshes(self, mesh):
         return [mesh, deepcopy(mesh)]
 
-    def test_warning_argument(self, meshes, active_cells):
+    def test_error_argument(self, meshes, active_cells):
         """
-        Test if warning is raised after passing ``indActive`` to the constructor.
+        Test if error is raised after passing ``indActive`` to the constructor.
         """
-        msg = self.get_message_deprecated_warning("indActive", "active_cells")
-        with pytest.warns(FutureWarning, match=msg):
-            mapping_instance = maps.Mesh2Mesh(meshes, indActive=active_cells)
-        np.testing.assert_allclose(mapping_instance.active_cells, active_cells)
-
-    def test_error_duplicated_argument(self, meshes, active_cells):
-        """
-        Test error after passing ``indActive`` and ``active_cells`` to the constructor.
-        """
-        msg = self.get_message_duplicated_error("indActive", "active_cells")
+        msg = self.get_message_removed_error("indActive", "active_cells")
         with pytest.raises(TypeError, match=msg):
-            maps.Mesh2Mesh(meshes, active_cells=active_cells, indActive=active_cells)
+            maps.Mesh2Mesh(meshes, indActive=active_cells)
 
-    def test_warning_accessing_property(self, meshes, active_cells):
+    def test_error_accessing_property(self, meshes, active_cells):
         """
-        Test warning when trying to access the ``indActive`` property.
+        Test error when trying to access the ``indActive`` property.
         """
         mapping = maps.Mesh2Mesh(meshes, active_cells=active_cells)
-        msg = "indActive has been deprecated, please use active_cells"
-        with pytest.warns(FutureWarning, match=msg):
-            old_act_ind = mapping.indActive
-        np.testing.assert_allclose(mapping.active_cells, old_act_ind)
+        msg = "indActive has been removed, please use active_cells"
+        with pytest.raises(NotImplementedError, match=msg):
+            mapping.indActive
 
     def test_warning_setter(self, meshes, active_cells):
         """
         Test warning when trying to set the ``indActive`` property.
         """
         mapping = maps.Mesh2Mesh(meshes, active_cells=active_cells)
-        # Define new active cells to pass to the setter
-        new_active_cells = active_cells.copy()
-        new_active_cells[-4:] = False
-        msg = "indActive has been deprecated, please use active_cells"
-        with pytest.warns(FutureWarning, match=msg):
-            mapping.indActive = new_active_cells
-        np.testing.assert_allclose(mapping.active_cells, new_active_cells)
+        msg = "indActive has been removed, please use active_cells"
+        with pytest.raises(NotImplementedError, match=msg):
+            mapping.indActive = active_cells
 
 
-class TestInjectActiveCells(DeprecatedIndActive):
-    """Test deprecated ``indActive`` and ``valInactive`` in ``InjectActiveCells``."""
+class TestInjectActiveCells(RemovedIndActive):
+    """Test removed ``indActive`` and ``valInactive`` in ``InjectActiveCells``."""
 
-    def test_indactive_warning_argument(self, mesh, active_cells):
+    def test_indactive_error_argument(self, mesh, active_cells):
         """
-        Test if warning is raised after passing ``indActive`` to the constructor.
+        Test if error is raised after passing ``indActive`` to the constructor.
         """
-        msg = self.get_message_deprecated_warning("indActive", "active_cells")
-        with pytest.warns(FutureWarning, match=msg):
-            mapping_instance = maps.InjectActiveCells(mesh, indActive=active_cells)
-        np.testing.assert_allclose(mapping_instance.active_cells, active_cells)
-
-    def test_indactive_error_duplicated_argument(self, mesh, active_cells):
-        """
-        Test error after passing ``indActive`` and ``active_cells`` to the constructor.
-        """
-        msg = self.get_message_duplicated_error("indActive", "active_cells")
+        msg = self.get_message_removed_error("indActive", "active_cells")
         with pytest.raises(TypeError, match=msg):
-            maps.InjectActiveCells(
-                mesh, active_cells=active_cells, indActive=active_cells
-            )
+            maps.InjectActiveCells(mesh, indActive=active_cells)
 
-    def test_indactive_warning_accessing_property(self, mesh, active_cells):
+    def test_indactive_error_accessing_property(self, mesh, active_cells):
         """
-        Test warning when trying to access the ``indActive`` property.
+        Test error when trying to access the ``indActive`` property.
         """
         mapping = maps.InjectActiveCells(mesh, active_cells=active_cells)
-        msg = "indActive has been deprecated, please use active_cells"
-        with pytest.warns(FutureWarning, match=msg):
-            old_act_ind = mapping.indActive
-        np.testing.assert_allclose(mapping.active_cells, old_act_ind)
+        msg = "indActive has been removed, please use active_cells"
+        with pytest.raises(NotImplementedError, match=msg):
+            mapping.indActive
 
-    def test_indactive_warning_setter(self, mesh, active_cells):
+    def test_indactive_error_setter(self, mesh, active_cells):
         """
-        Test warning when trying to set the ``indActive`` property.
+        Test error when trying to set the ``indActive`` property.
         """
         mapping = maps.InjectActiveCells(mesh, active_cells=active_cells)
-        # Define new active cells to pass to the setter
-        new_active_cells = active_cells.copy()
-        new_active_cells[-4:] = False
-        msg = "indActive has been deprecated, please use active_cells"
-        with pytest.warns(FutureWarning, match=msg):
-            mapping.indActive = new_active_cells
-        np.testing.assert_allclose(mapping.active_cells, new_active_cells)
+        msg = "indActive has been removed, please use active_cells"
+        with pytest.raises(NotImplementedError, match=msg):
+            mapping.indActive = active_cells
 
     @pytest.mark.parametrize("value_inactive", (3.14, np.array([1])))
-    def test_valinactive_warning_argument(self, mesh, active_cells, value_inactive):
+    def test_valinactive_error_argument(self, mesh, active_cells, value_inactive):
         """
-        Test if warning is raised after passing ``valInactive`` to the constructor.
+        Test if error is raised after passing ``valInactive`` to the constructor.
         """
-        msg = self.get_message_deprecated_warning("valInactive", "value_inactive")
-        with pytest.warns(FutureWarning, match=msg):
-            mapping_instance = maps.InjectActiveCells(
-                mesh, active_cells=active_cells, valInactive=value_inactive
-            )
-        # Ensure that the value passed to valInactive was correctly used
-        expected = np.zeros_like(active_cells, dtype=np.float64)
-        expected[~active_cells] = value_inactive
-        np.testing.assert_allclose(mapping_instance.value_inactive, expected)
-
-    @pytest.mark.parametrize("valInactive", (3.14, np.array([3.14])))
-    @pytest.mark.parametrize("value_inactive", (3.14, np.array([3.14])))
-    def test_valinactive_error_duplicated_argument(
-        self, mesh, active_cells, valInactive, value_inactive
-    ):
-        """
-        Test error after passing ``valInactive`` and ``value_inactive`` to the
-        constructor.
-        """
-        msg = self.get_message_duplicated_error("valInactive", "value_inactive")
+        msg = self.get_message_removed_error("valInactive", "value_inactive")
         with pytest.raises(TypeError, match=msg):
             maps.InjectActiveCells(
-                mesh,
-                active_cells=active_cells,
-                value_inactive=value_inactive,
-                valInactive=valInactive,
+                mesh, active_cells=active_cells, valInactive=value_inactive
             )
 
-    def test_valinactive_warning_accessing_property(self, mesh, active_cells):
+    def test_valinactive_error_accessing_property(self, mesh, active_cells):
         """
-        Test warning when trying to access the ``valInactive`` property.
+        Test error when trying to access the ``valInactive`` property.
         """
         mapping = maps.InjectActiveCells(
             mesh, active_cells=active_cells, value_inactive=3.14
         )
-        msg = "valInactive has been deprecated, please use value_inactive"
-        with pytest.warns(FutureWarning, match=msg):
-            old_value = mapping.valInactive
-        np.testing.assert_allclose(mapping.value_inactive, old_value)
+        msg = "valInactive has been removed, please use value_inactive"
+        with pytest.raises(NotImplementedError, match=msg):
+            mapping.valInactive
 
-    def test_valinactive_warning_setter(self, mesh, active_cells):
+    def test_valinactive_error_setter(self, mesh, active_cells):
         """
-        Test warning when trying to set the ``valInactive`` property.
+        Test error when trying to set the ``valInactive`` property.
         """
         mapping = maps.InjectActiveCells(
             mesh, active_cells=active_cells, value_inactive=3.14
         )
-        msg = "valInactive has been deprecated, please use value_inactive"
-        with pytest.warns(FutureWarning, match=msg):
+        msg = "valInactive has been removed, please use value_inactive"
+        with pytest.raises(NotImplementedError, match=msg):
             mapping.valInactive = 4.5
-        np.testing.assert_allclose(mapping.value_inactive[~mapping.active_cells], 4.5)
 
 
-class TestParametric(DeprecatedIndActive):
-    """Test deprecated ``indActive`` in parametric mappings."""
+class TestParametric(RemovedIndActive):
+    """Test removed ``indActive`` in parametric mappings."""
 
     CLASSES = (BaseParametric, ParametricLayer, ParametricBlock, ParametricEllipsoid)
 
     @pytest.mark.parametrize("map_class", CLASSES)
-    def test_indactive_warning_argument(self, mesh, active_cells, map_class):
+    def test_indactive_error_argument(self, mesh, active_cells, map_class):
         """
-        Test if warning is raised after passing ``indActive`` to the constructor.
+        Test if error is raised after passing ``indActive`` to the constructor.
         """
-        msg = self.get_message_deprecated_warning("indActive", "active_cells")
-        with pytest.warns(FutureWarning, match=msg):
-            mapping_instance = map_class(mesh, indActive=active_cells)
-        np.testing.assert_allclose(mapping_instance.active_cells, active_cells)
-
-    @pytest.mark.parametrize("map_class", CLASSES)
-    def test_indactive_error_duplicated_argument(self, mesh, active_cells, map_class):
-        """
-        Test error after passing ``indActive`` and ``active_cells`` to the constructor.
-        """
-        msg = self.get_message_duplicated_error("indActive", "active_cells")
+        msg = self.get_message_removed_error("indActive", "active_cells")
         with pytest.raises(TypeError, match=msg):
-            map_class(mesh, active_cells=active_cells, indActive=active_cells)
+            map_class(mesh, indActive=active_cells)
 
     @pytest.mark.parametrize("map_class", CLASSES)
-    def test_indactive_warning_accessing_property(self, mesh, active_cells, map_class):
+    def test_indactive_error_accessing_property(self, mesh, active_cells, map_class):
         """
-        Test warning when trying to access the ``indActive`` property.
+        Test error when trying to access the ``indActive`` property.
         """
         mapping = map_class(mesh, active_cells=active_cells)
-        msg = "indActive has been deprecated, please use active_cells"
-        with pytest.warns(FutureWarning, match=msg):
-            old_act_ind = mapping.indActive
-        np.testing.assert_allclose(mapping.active_cells, old_act_ind)
+        msg = "indActive has been removed, please use active_cells"
+        with pytest.raises(NotImplementedError, match=msg):
+            mapping.indActive
 
     @pytest.mark.parametrize("map_class", CLASSES)
-    def test_indactive_warning_setter(self, mesh, active_cells, map_class):
+    def test_indactive_error_setter(self, mesh, active_cells, map_class):
         """
-        Test warning when trying to set the ``indActive`` property.
+        Test error when trying to set the ``indActive`` property.
         """
         mapping = map_class(mesh, active_cells=active_cells)
-        # Define new active cells to pass to the setter
-        new_active_cells = active_cells.copy()
-        new_active_cells[-4:] = False
-        msg = "indActive has been deprecated, please use active_cells"
-        with pytest.warns(FutureWarning, match=msg):
-            mapping.indActive = new_active_cells
-        np.testing.assert_allclose(mapping.active_cells, new_active_cells)
+        msg = "indActive has been removed, please use active_cells"
+        with pytest.raises(NotImplementedError, match=msg):
+            mapping.indActive = active_cells
+
+
+class TestParametricDeriv:
+    """
+    Test the ``deriv`` method of parametric maps.
+
+
+    Test if ``map.deriv(m) @ v`` is equivalent to ``map.deriv(m, v=v)``.
+    """
+
+    @pytest.fixture
+    def mesh_2d(self):
+        """Sample mesh."""
+        h = 10
+        return discretize.TensorMesh([h, h], "CC")
+
+    @pytest.fixture
+    def mesh_3d(self):
+        """Sample mesh."""
+        h = 10
+        return discretize.TensorMesh([h, h, h], "CCN")
+
+    @pytest.fixture
+    def cyl_mesh(self):
+        """Sample cylindrical mesh."""
+        return discretize.CylindricalMesh([4, 6, 5])
+
+    @pytest.mark.parametrize(
+        "map_class",
+        [
+            maps.ParametricBlock,
+            maps.ParametricBlockInLayer,
+            maps.ParametricEllipsoid,
+            maps.ParametricLayer,
+            maps.ParametricPolyMap,
+        ],
+    )
+    def test_deriv_mesh_3d(self, mesh_3d, map_class):
+        """
+        Test maps on a 3d mesh.
+        """
+        kwargs = {}
+        if map_class is maps.ParametricPolyMap:
+            kwargs["order"] = [1, 1]
+        mapping = map_class(mesh_3d, **kwargs)
+        model_size = mapping.shape[1]
+        rng = np.random.default_rng(seed=48)
+        model = rng.uniform(size=model_size)
+        v = rng.uniform(size=model_size)
+        derivative = mapping.deriv(model)
+        np.testing.assert_allclose(derivative @ v, mapping.deriv(model, v=v))
+
+    def test_deriv_mesh_2d(self, mesh_2d):
+        """
+        Test maps on a 2d mesh.
+        """
+        mapping = maps.ParametricCircleMap(mesh_2d)
+        model_size = mapping.shape[1]
+        rng = np.random.default_rng(seed=48)
+        model = rng.uniform(size=model_size)
+        v = rng.uniform(size=model_size)
+        derivative = mapping.deriv(model)
+        np.testing.assert_allclose(derivative @ v, mapping.deriv(model, v=v))
+
+    def test_deriv_cyl_mesh(self, cyl_mesh):
+        """
+        Test maps on a cylindrical mesh.
+        """
+        mapping = maps.ParametricCasingAndLayer(cyl_mesh)
+        model_size = mapping.shape[1]
+        rng = np.random.default_rng(seed=48)
+        model = rng.uniform(size=model_size)
+        v = rng.uniform(size=model_size)
+        derivative = mapping.deriv(model)
+        np.testing.assert_allclose(derivative @ v, mapping.deriv(model, v=v))
+
+
+def test_deriv_SelfConsistentEffectiveMedium():
+    """
+    Test deriv method of ``SelfConsistentEffectiveMedium``.
+    """
+    h = 10
+    mesh = discretize.TensorMesh([h, h, h], "CCN")
+    mapping = maps.SelfConsistentEffectiveMedium(mesh, sigma0=1, sigma1=2)
+    model_size = mapping.shape[1]
+    rng = np.random.default_rng(seed=48)
+    model = rng.uniform(size=model_size)
+    v = rng.uniform(size=model_size)
+    derivative = mapping.deriv(model)
+    np.testing.assert_allclose(derivative @ v, mapping.deriv(model, v=v), rtol=1e-6)
+
+
+class TestComplexMapDerivative:
+    """
+    Test deriv method of ComplexMap.
+    """
+
+    @pytest.fixture
+    def mesh(self):
+        return discretize.TensorMesh([4])
+
+    @pytest.fixture
+    def active_cells(self, mesh):
+        return mesh.cell_centers < 0.5
+
+    def test_deriv(self, mesh, active_cells):
+        """
+        Test the deriv method.
+
+        Since the mapping is linear, the derivative matrix times a vector should return
+        the same as evaluating the mapping on the same vector.
+        """
+        n_cells = mesh.n_cells
+        n_active_cells = np.sum(active_cells)
+        mapping = maps.ComplexMap(nP=n_active_cells * 2)
+        m = np.random.default_rng(seed=12).uniform(size=n_cells)
+        derivative = mapping.deriv(m)
+        expected = mapping * m
+        np.testing.assert_allclose(expected, derivative @ m)
+
+    def test_deriv_with_vector(self, mesh, active_cells):
+        """
+        Test the deriv method with a ``v`` argument.
+
+        Since the mapping is linear, the derivative matrix times a vector should return
+        the same as evaluating the mapping on the same vector.
+        """
+        n_cells = mesh.n_cells
+        n_active_cells = np.sum(active_cells)
+        mapping = maps.ComplexMap(nP=n_active_cells * 2)
+        rng = np.random.default_rng(seed=12)
+        m = rng.uniform(size=n_cells)
+        v = rng.uniform(size=n_cells)
+        derivative = mapping.deriv(m, v=v)
+        expected = mapping * v
+        np.testing.assert_allclose(expected, derivative)
+
+    def test_deriv_within_combo(self, mesh, active_cells):
+        """
+        Test the deriv method when being called within a ``ComboMap``.
+        """
+        n_cells = mesh.n_cells
+        n_active_cells = np.sum(active_cells)
+        inject_map = maps.InjectActiveCells(
+            mesh, active_cells=active_cells, value_inactive=0
+        )
+        complex_map = maps.ComplexMap(nP=n_active_cells * 2)
+        mapping = inject_map * complex_map
+        rng = np.random.default_rng(seed=12)
+        m = rng.uniform(size=n_cells)
+        expected = mapping * m
+        derivative = mapping.deriv(m)
+        np.testing.assert_allclose(expected, derivative @ m)
+
+    def test_deriv_within_combo_with_vector(self, mesh, active_cells):
+        """
+        Test the deriv method when being called within a ``ComboMap`` and ``v`` as an
+        array.
+        """
+        n_cells = mesh.n_cells
+        n_active_cells = np.sum(active_cells)
+        inject_map = maps.InjectActiveCells(
+            mesh, active_cells=active_cells, value_inactive=0
+        )
+        complex_map = maps.ComplexMap(nP=n_active_cells * 2)
+        mapping = inject_map * complex_map
+        rng = np.random.default_rng(seed=12)
+        m = rng.uniform(size=n_cells)
+        v = rng.uniform(size=n_cells)
+        derivative = mapping.deriv(m, v=v)
+        expected = mapping * v
+        np.testing.assert_allclose(expected, derivative)
 
 
 if __name__ == "__main__":

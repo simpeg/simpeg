@@ -80,6 +80,7 @@ class Data(BaseData, DataNSEMPlotMethods):
             ("tzy", complex),
         ]
 
+        survey_slices = self.survey.get_all_slices()
         for src in self.survey.source_list:
             # Temp array for all the receivers of the source.
             # Note: needs to be written more generally,
@@ -100,7 +101,7 @@ class Data(BaseData, DataNSEMPlotMethods):
             ).view(dtRI)
             # Get the type and the value for the DataNSEM object as a list
             typeList = [
-                [rx.orientation, rx.component, self[src, rx]]
+                [rx.orientation, rx.component, self.dobs[survey_slices[src, rx]]]
                 for rx in src.receiver_list
             ]
             # Insert the values to the temp array

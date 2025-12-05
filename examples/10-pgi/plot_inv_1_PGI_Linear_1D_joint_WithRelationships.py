@@ -147,8 +147,8 @@ reg_simple = regularization.PGI(
 opt = optimization.ProjectedGNCG(
     maxIter=50,
     tolX=1e-6,
-    maxIterCG=100,
-    tolCG=1e-3,
+    cg_maxiter=100,
+    cg_rtol=1e-3,
     lower=-10,
     upper=10,
 )
@@ -195,8 +195,8 @@ reg_simple_no_map = regularization.PGI(
 opt = optimization.ProjectedGNCG(
     maxIter=50,
     tolX=1e-6,
-    maxIterCG=100,
-    tolCG=1e-3,
+    cg_maxiter=100,
+    cg_rtol=1e-3,
     lower=-10,
     upper=10,
 )
@@ -246,8 +246,8 @@ reg = reg1 + reg2
 opt = optimization.ProjectedGNCG(
     maxIter=50,
     tolX=1e-6,
-    maxIterCG=100,
-    tolCG=1e-3,
+    cg_maxiter=100,
+    cg_rtol=1e-3,
     lower=-10,
     upper=10,
 )

@@ -3,12 +3,13 @@ channels:
   - conda-forge
 dependencies:
   - numpy>=1.22
-  - scipy>=1.8
+  - scipy>=1.12
   - pymatsolver>=0.3
   - matplotlib-base
-  - discretize>=0.11.2
+  - discretize>=0.12
   - geoana>=0.7
   - libdlf
+  - typing_extensions
 
 # optional dependencies
   - dask
@@ -24,6 +25,8 @@ dependencies:
   - sphinx
   - sphinx-gallery>=0.1.13
   - sphinxcontrib-apidoc
+  - sphinx-reredirects
+  - sphinx-design
   - pydata-sphinx-theme
   - nbsphinx
   - numpydoc
@@ -43,4 +46,4 @@ dependencies:
 # PyPI uploading
   - wheel
   - twine
-  - build
+  - python-build

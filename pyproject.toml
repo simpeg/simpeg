@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 name = 'simpeg'
 description = "SimPEG: Simulation and Parameter Estimation in Geophysics"
 readme = 'README.rst'
-requires-python = '>=3.10'
+requires-python = '>=3.11'
 authors = [
   {name = 'SimPEG developers', email = 'rowanc1@gmail.com'},
 ]
@@ -16,12 +16,13 @@ keywords = [
 ]
 dependencies = [
     "numpy>=1.22",
-    "scipy>=1.8",
+    "scipy>=1.12",
     "pymatsolver>=0.3",
     "matplotlib",
-    "discretize>=0.11.2",
+    "discretize>=0.12",
     "geoana>=0.7",
     "libdlf",
+    "typing_extensions; python_version<'3.13'",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -72,6 +73,8 @@ docs = [
     "sphinx",
     "sphinx-gallery>=0.1.13",
     "sphinxcontrib-apidoc",
+    "sphinx-reredirects",
+    "sphinx-design",
     "pydata-sphinx-theme",
     "nbsphinx",
     "empymod>=2.0.0",
@@ -134,7 +137,7 @@ directory = "coverage_html_report"
 
 [tool.black]
 required-version = '24.3.0'
-target-version = ['py38', 'py39', 'py310', 'py311']
+target-version = ['py310', 'py311', 'py312']
 
 [tool.flake8]
 extend-ignore = [
@@ -256,10 +259,14 @@ rst-roles = [
 # pyproject.toml
 [tool.pytest.ini_options]
 filterwarnings = [
-    "ignore::simpeg.utils.solver_utils.DefaultSolverWarning",
+    "error:You are running a pytest without setting a random seed.*:UserWarning",
+    'error:The `simpeg\.directives\.[a-z_]+` submodule has been deprecated',
+    'error:Casting complex values to real discards the imaginary part',
+    'ignore::simpeg.utils.BreakingChangeWarning',
     # Note change the following to errors once fixed internally.
     '''ignore:Getting `[^.]+\.([^`]+)` directly is deprecated\. If this is still necessary use `[^.]+\.parametrizations\.([^`]+)` instead:FutureWarning''',
     '''ignore:Passing mapping argument [^ ]+ to [^ ]+ is deprecated\. Instead you can now use the [^ ]+ argument\.:FutureWarning''',
     '''ignore:Setting `[^.]+\.[^`]+` directly is deprecated\. Instead register a parametrization with `[^.]+\.parametrize\('[^']+'\)`:FutureWarning''',
     '''ignore:Getting `[^.]+\.[^`]+` is deprecated, use `[^.]+\._prop_deriv\('[^']+'\)` instead\.:FutureWarning''',
 ]
+xfail_strict = true

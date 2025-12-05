@@ -4,15 +4,14 @@ import numpy as np
 from ....utils.code_utils import validate_string
 
 from ....survey import BaseSurvey
-from ..utils import drapeTopotoLoc
+from ....utils import shift_to_discrete_topography
 from . import receivers as Rx
 from . import sources as Src
 from ..utils import static_utils
-from simpeg import data
 
 
 class Survey(BaseSurvey):
-    """DC/IP survey class
+    """DC/IP survey class.
 
     Parameters
     ----------
@@ -28,24 +27,18 @@ class Survey(BaseSurvey):
         survey_geometry="surface",
         **kwargs,
     ):
-        if (key := "survey_type") in kwargs:
-            warnings.warn(
-                f"Argument '{key}' is ignored and will be removed in future "
-                "versions of SimPEG. Types of sources and their corresponding "
-                "receivers are obtained from their respective classes, without "
+        if kwargs.pop("survey_type", None) is not None:
+            raise TypeError(
+                "Argument 'survey_type' has been removed in SimPEG 0.24.0. Types of sources and"
+                "their corresponding receivers are obtained from their respective classes, without "
                 "the need to specify the survey type.",
-                FutureWarning,
-                stacklevel=0,
             )
-            kwargs.pop(key)
         super(Survey, self).__init__(source_list, **kwargs)
         self.survey_geometry = survey_geometry
 
     @property
     def survey_geometry(self):
-        """Survey geometry
-
-        This property is deprecated.
+        """Survey geometry.
 
         Returns
         -------
@@ -66,36 +59,17 @@ class Survey(BaseSurvey):
         """
         ``survey_type`` has been removed.
 
-        Survey type; one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
-
         .. important:
 
             The `survey_type` property has been removed. Types of sources and
             their corresponding receivers are obtained from their respective
             classes, without the need to specify the survey type.
-
-        Returns
-        -------
-        str
-            Survey type; one of {"dipole-dipole", "pole-dipole", "dipole-pole", "pole-pole"}
         """
-        warnings.warn(
-            "Property 'survey_type' has been removed."
-            "Types of sources and their corresponding receivers are obtained from "
-            "their respective classes, without the need to specify the survey type.",
-            FutureWarning,
-            stacklevel=0,
-        )
+        raise AttributeError("'survey_type' has been removed.")
 
     @survey_type.setter
     def survey_type(self, var):
-        warnings.warn(
-            "Property 'survey_type' has been removed."
-            "Types of sources and their corresponding receivers are obtained from "
-            "their respective classes, without the need to specify the survey type.",
-            FutureWarning,
-            stacklevel=0,
-        )
+        raise AttributeError("'survey_type' has been removed.")
 
     def __repr__(self):
         return f"{self.__class__.__name__}(#sources: {self.nSrc}; #data: {self.nD})"
@@ -103,7 +77,7 @@ class Survey(BaseSurvey):
     @property
     def locations_a(self):
         """
-        Locations of the positive (+) current electrodes in the survey
+        Locations of the positive (+) current electrodes in the survey.
 
         Returns
         -------
@@ -117,7 +91,7 @@ class Survey(BaseSurvey):
     @property
     def locations_b(self):
         """
-        Locations of the negative (-) current electrodes in the survey
+        Locations of the negative (-) current electrodes in the survey.
 
         Returns
         -------
@@ -131,7 +105,7 @@ class Survey(BaseSurvey):
     @property
     def locations_m(self):
         """
-        Locations of the positive (+) potential electrodes in the survey
+        Locations of the positive (+) potential electrodes in the survey.
 
         Returns
         -------
@@ -145,7 +119,7 @@ class Survey(BaseSurvey):
     @property
     def locations_n(self):
         """
-        Locations of the negative (-) potential electrodes in the survey
+        Locations of the negative (-) potential electrodes in the survey.
 
         Returns
         -------
@@ -159,7 +133,7 @@ class Survey(BaseSurvey):
     @property
     def unique_electrode_locations(self):
         """
-        Unique locations of the A, B, M, N electrodes
+        Unique locations of the A, B, M, N electrodes.
 
         Returns
         -------
@@ -194,43 +168,29 @@ class Survey(BaseSurvey):
     def set_geometric_factor(
         self,
         space_type="halfspace",
-        data_type=None,
-        survey_type=None,
     ):
         """
-        Set and return the geometric factor for all data
+        Set and return the geometric factor for all data.
 
         Parameters
         ----------
         space_type : {'halfspace', 'wholespace'}
             Calculate geometric factors using a half-space or whole-space formula.
-        data_type : str, default = ``None``
-            This input argument is now deprecated
-        survey_type : str, default = ``None``
-            This input argument is now deprecated
 
         Returns
         -------
         (nD) numpy.ndarray
             The geometric factor for each datum
         """
-        if data_type is not None:
-            raise TypeError(
-                "The data_type kwarg has been removed, please set the data_type on the "
-                "receiver object itself."
-            )
-        if survey_type is not None:
-            raise TypeError("The survey_type parameter is no longer needed")
-
         geometric_factor = static_utils.geometric_factor(self, space_type=space_type)
 
-        geometric_factor = data.Data(self, geometric_factor)
+        # geometric_factor = data.Data(self, geometric_factor)
+        survey_slices = self.get_all_slices()
         for source in self.source_list:
             for rx in source.receiver_list:
-                if data_type is not None:
-                    rx.data_type = data_type
                 if rx.data_type == "apparent_resistivity":
-                    rx._geometric_factor[source] = geometric_factor[source, rx]
+                    src_rx_slice = survey_slices[source, rx]
+                    rx._geometric_factor[source] = geometric_factor[src_rx_slice]
         return geometric_factor
 
     def _set_abmn_locations(self):
@@ -276,22 +236,14 @@ class Survey(BaseSurvey):
         self._locations_m = np.vstack(locations_m)
         self._locations_n = np.vstack(locations_n)
 
-    def getABMN_locations(self):
-        """The 'getABMN_locations' method has been removed."""
-        raise TypeError(
-            "The getABMN_locations method has been Removed. Please instead "
-            "ask for the property of interest: survey.locations_a, "
-            "survey.locations_b, survey.locations_m, or survey.locations_n."
-        )
-
     def drape_electrodes_on_topography(
         self,
         mesh,
         active_cells,
-        option="top",
-        topography=None,
-        force=False,
-        ind_active=None,
+        topo_cell_cutoff="top",
+        shift_horizontal=True,
+        option=None,
+        **kwargs,
     ):
         """Shift electrode locations to discrete surface topography.
 
@@ -301,26 +253,63 @@ class Survey(BaseSurvey):
             The mesh on which the discretized fields are computed
         active_cells : numpy.ndarray of int or bool
             Active topography cells
-        option :{"top", "center"}
+        topo_cell_cutoff : {"top", "center"}
             Define topography at tops of cells or cell centers.
         topography : (n, dim) numpy.ndarray, default = ``None``
             Surface topography
+
+            .. deprecated:: v0.25.0
+
+                The ``topography`` argument is not used in this function. It will be
+                removed in SimPEG v0.27.0.
+
         force : bool, default = ``False``
             If ``True`` force electrodes to surface even if borehole
-        ind_active : numpy.ndarray of int or bool, optional
 
-            .. deprecated:: 0.23.0
+            .. deprecated:: v0.25.0
 
-               Argument ``ind_active`` is deprecated in favor of ``active_cells``
-               and will be removed in SimPEG v0.24.0.
+                The ``force`` argument is not used in this function. It will be removed
+                in SimPEG v0.27.0.
+        shift_horizontal : bool
+            When True, locations are shifted horizontally to lie vertically over cell
+            centers. When False, the original horizontal locations are preserved.
+        option : {"top", "center"}
+            Define topography at tops of cells or cell centers.
+
+            .. deprecated:: 0.25.0
+
+               Argument ``option`` is deprecated in favor of ``topo_cell_cutoff``
+               and will be removed in SimPEG v0.27.0.
 
         """
-        # Deprecate ind_active argument
-        if ind_active is not None:
-            raise TypeError(
-                "'ind_active' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'active_cells' instead."
+        if option is not None:
+            msg = (
+                "Argument ``option`` is deprecated in favor of ``topo_cell_cutoff`` "
+                "and will be removed in SimPEG v0.27.0."
             )
+            warnings.warn(msg, FutureWarning, stacklevel=2)
+            topo_cell_cutoff = option
+
+        if (key := "topography") in kwargs:
+            msg = (
+                "The `topography` argument is not used in the "
+                "`drape_electrodes_on_topography` and will be removed in "
+                "SimPEG v0.27.0."
+            )
+            warnings.warn(msg, category=FutureWarning, stacklevel=2)
+            kwargs.pop(key)
+
+        if (key := "force") in kwargs:
+            msg = (
+                "The `force` argument is not used in the "
+                "`drape_electrodes_on_topography` and will be removed in "
+                "SimPEG v0.27.0."
+            )
+            warnings.warn(msg, category=FutureWarning, stacklevel=2)
+            kwargs.pop(key)
+
+        if kwargs:  # TODO Remove this when removing kwargs argument.
+            raise TypeError("Unsupported keyword argument " + kwargs.popitem()[0])
 
         if self.survey_geometry == "surface":
             loc_a = self.locations_a[:, :2]
@@ -334,8 +323,12 @@ class Survey(BaseSurvey):
             inv_b, inv = inv[: len(loc_b)], inv[len(loc_b) :]
             inv_m, inv_n = inv[: len(loc_m)], inv[len(loc_m) :]
 
-            electrodes_shifted = drapeTopotoLoc(
-                mesh, unique_electrodes, active_cells=active_cells, option=option
+            electrodes_shifted = shift_to_discrete_topography(
+                mesh,
+                unique_electrodes,
+                active_cells=active_cells,
+                topo_cell_cutoff=topo_cell_cutoff,
+                shift_horizontal=shift_horizontal,
             )
             a_shifted = electrodes_shifted[inv_a]
             b_shifted = electrodes_shifted[inv_b]
@@ -368,10 +361,3 @@ class Survey(BaseSurvey):
             raise Exception(
                 f"Input valid survey survey_geometry: {self.survey_geometry}"
             )
-
-    def drapeTopo(self, *args, **kwargs):
-        """This method is deprecated. See :meth:`drape_electrodes_on_topography`"""
-        raise TypeError(
-            "The drapeTopo method has been removed. Please instead "
-            "use the drape_electrodes_on_topography method."
-        )
