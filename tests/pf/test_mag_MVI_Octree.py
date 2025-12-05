@@ -19,7 +19,6 @@ import shutil
 
 class MVIProblemTest(unittest.TestCase):
     def setUp(self):
-        np.random.seed(0)
         h0_amplitude, h0_inclination, h0_declination = (50000.0, 90.0, 0.0)
 
         # The magnetization is set along a different
@@ -75,14 +74,14 @@ class MVIProblemTest(unittest.TestCase):
         M_xyz = utils.mat_utils.dip_azimuth2cartesian(M[0], M[1])
 
         # Get the indicies of the magnetized block
-        ind = utils.model_builder.get_indices_block(
+        indices = utils.model_builder.get_indices_block(
             np.r_[-20, -20, -10],
             np.r_[20, 20, 25],
             mesh.gridCC,
-        )[0]
+        )
 
         # Assign magnetization values
-        model[ind, :] = np.kron(np.ones((ind.shape[0], 1)), M_xyz * 0.05)
+        model[indices, :] = np.kron(np.ones((indices.size, 1)), M_xyz * 0.05)
 
         # Remove air cells
         self.model = model[actv, :]
@@ -99,14 +98,18 @@ class MVIProblemTest(unittest.TestCase):
             survey=survey,
             model_type="vector",
             chiMap=idenMap,
-            ind_active=actv,
+            active_cells=actv,
             store_sensitivities="disk",
         )
         self.sim = sim
 
         # Compute some data and add some random noise
         data = sim.make_synthetic_data(
-            utils.mkvc(self.model), relative_error=0.0, noise_floor=5.0, add_noise=True
+            utils.mkvc(self.model),
+            relative_error=0.0,
+            noise_floor=5.0,
+            add_noise=True,
+            random_seed=0,
         )
 
         # This Mapping connects the regularizations for the three-component
@@ -132,7 +135,7 @@ class MVIProblemTest(unittest.TestCase):
 
         # Add directives to the inversion
         opt = optimization.ProjectedGNCG(
-            maxIter=10, lower=-10, upper=10.0, maxIterLS=5, maxIterCG=5, tolCG=1e-4
+            maxIter=10, lower=-10, upper=10.0, maxIterLS=5, cg_maxiter=5, cg_rtol=1e-3
         )
 
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -143,8 +146,8 @@ class MVIProblemTest(unittest.TestCase):
         # Here is where the norms are applied
         # Use pick a treshold parameter empirically based on the distribution of
         #  model parameters
-        IRLS = directives.Update_IRLS(
-            f_min_change=1e-3, max_irls_iterations=0, beta_tol=5e-1
+        IRLS = directives.UpdateIRLS(
+            f_min_change=1e-3, max_irls_iterations=0, misfit_tolerance=5e-1
         )
 
         # Pre-conditioner
@@ -195,23 +198,22 @@ class MVIProblemTest(unittest.TestCase):
             lower=Lbound,
             upper=Ubound,
             maxIterLS=5,
-            maxIterCG=5,
-            tolCG=1e-3,
-            stepOffBoundsFact=1e-3,
+            cg_maxiter=5,
+            cg_rtol=1e-3,
+            active_set_grad_scale=1e-3,
         )
         opt.approxHinv = None
 
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=beta)
 
         # Here is where the norms are applied
-        IRLS = directives.Update_IRLS(
+        IRLS = directives.UpdateIRLS(
             f_min_change=1e-4,
             max_irls_iterations=5,
-            minGNiter=1,
-            beta_tol=0.5,
-            coolingRate=1,
-            coolEps_q=True,
-            sphericalDomain=True,
+            misfit_tolerance=0.5,
+        )
+        spherical_scale = directives.SphericalUnitsWeights(
+            amplitude=wires.amp, angles=[reg_t, reg_p]
         )
 
         # Special directive specific to the mag amplitude problem. The sensitivity
@@ -222,7 +224,13 @@ class MVIProblemTest(unittest.TestCase):
 
         self.inv = inversion.BaseInversion(
             invProb,
-            directiveList=[ProjSpherical, IRLS, sensitivity_weights, update_Jacobi],
+            directiveList=[
+                spherical_scale,
+                ProjSpherical,
+                IRLS,
+                sensitivity_weights,
+                update_Jacobi,
+            ],
         )
 
     def test_mag_inverse(self):

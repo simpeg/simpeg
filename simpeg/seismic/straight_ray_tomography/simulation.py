@@ -1,9 +1,10 @@
+import discretize
 import numpy as np
 import scipy.sparse as sp
 import matplotlib.pyplot as plt
 
 from ...simulation import LinearSimulation
-from ...utils import sub2ind
+from ...utils import sub2ind, validate_type
 from ... import props
 
 
@@ -77,12 +78,24 @@ def _lineintegral(M, Tx, Rx):
 class Simulation2DIntegral(LinearSimulation):
     slowness, slownessMap, slownessDeriv = props.Invertible("Slowness model (1/v)")
 
-    def __init__(
-        self, mesh=None, survey=None, slowness=None, slownessMap=None, **kwargs
-    ):
-        super().__init__(mesh=mesh, survey=survey, **kwargs)
+    def __init__(self, mesh, survey=None, slowness=None, slownessMap=None, **kwargs):
+        self.mesh = mesh
+        super().__init__(survey=survey, **kwargs)
         self.slowness = slowness
         self.slownessMap = slownessMap
+
+    @property
+    def mesh(self):
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, value):
+        value = validate_type("mesh", value, discretize.TensorMesh, cast=False)
+        if value.dim != 2:
+            raise ValueError(
+                f"{type(self).__name__} mesh must be 2D, received a {value.dim}D mesh."
+            )
+        self._mesh = value
 
     @property
     def A(self):

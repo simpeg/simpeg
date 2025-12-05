@@ -15,6 +15,7 @@ from ...utils import (
 from .survey import SurveyVRM
 from .receivers import Point, SquareLoop
 
+from ...utils.code_utils import deprecate_property
 
 ############################################
 # BASE VRM PROBLEM CLASS
@@ -32,10 +33,16 @@ class BaseVRMSimulation(BaseSimulation):
         survey=None,
         refinement_factor=None,
         refinement_distance=None,
-        indActive=None,
+        active_cells=None,
         **kwargs,
     ):
-        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        # Deprecate indActive argument
+        if kwargs.pop("indActive", None) is not None:
+            raise TypeError(
+                "'indActive' was removed in SimPEG v0.24.0, please use 'active_cells' instead."
+            )
+        self.mesh = mesh
+        super().__init__(survey=survey, **kwargs)
 
         if refinement_distance is None:
             if refinement_factor is None:
@@ -48,18 +55,30 @@ class BaseVRMSimulation(BaseSimulation):
                 * np.arange(1, refinement_factor + 1)
             )
         self.refinement_distance = refinement_distance
-        if indActive is None:
-            indActive = np.ones(self.mesh.n_cells, dtype=bool)
-        self.indActive = indActive
 
-    @BaseSimulation.mesh.setter
+        if active_cells is None:
+            active_cells = np.ones(self.mesh.n_cells, dtype=bool)
+        self.active_cells = active_cells
+
+    @property
+    def mesh(self):
+        """Mesh for the integral VRM simulations.
+
+        Returns
+        -------
+        discretize.TensorMesh or discretize.TreeMesh
+            3D Mesh on which the forward problem is discretized.
+        """
+        return self._mesh
+
+    @mesh.setter
     def mesh(self, value):
         value = validate_type(
             "mesh", value, (discretize.TensorMesh, discretize.TreeMesh), cast=False
         )
         if value.dim != 3:
             raise ValueError(
-                f"Mesh must be 3D tensor or 3D tree. Current mesh is {value.dim}"
+                f"{type(self).__name__} mesh must be 3D, received a {value.dim}D mesh."
             )
         self._mesh = value
 
@@ -108,18 +127,28 @@ class BaseVRMSimulation(BaseSimulation):
         )
 
     @property
-    def indActive(self):
+    def active_cells(self):
         """Topography active cells.
 
         Returns
         -------
         (mesh.n_cells) numpy.ndarray of bool
         """
-        return self._indActive
+        return self._active_cells
 
-    @indActive.setter
-    def indActive(self, value):
-        self._indActive = validate_active_indices("indActive", value, self.mesh.n_cells)
+    @active_cells.setter
+    def active_cells(self, value):
+        self._active_cells = validate_active_indices(
+            "active_cells", value, self.mesh.n_cells
+        )
+
+    indActive = deprecate_property(
+        active_cells,
+        "indActive",
+        "active_cells",
+        removal_version="0.24.0",
+        error=True,
+    )
 
     def _getH0matrix(self, xyz, pp):
         """
@@ -697,12 +726,12 @@ class BaseVRMSimulation(BaseSimulation):
     def _getAMatricies(self):
         """Returns the full geometric operator"""
 
-        indActive = self.indActive
+        active_cells = self.active_cells
 
         # GET CELL INFORMATION FOR FORWARD MODELING
         meshObj = self.mesh
-        xyzc = meshObj.gridCC[indActive, :]
-        xyzh = meshObj.h_gridded[indActive, :]
+        xyzc = meshObj.gridCC[active_cells, :]
+        xyzh = meshObj.h_gridded[active_cells, :]
 
         # GET LIST OF A MATRICIES
         A = []
@@ -811,7 +840,7 @@ class Simulation3DLinear(BaseVRMSimulation):
         self.xi = xi
         self.xiMap = xiMap
 
-        nAct = list(self.indActive).count(True)
+        nAct = list(self.active_cells).count(True)
         if self.xiMap is None:
             self.xiMap = maps.IdentityMap(nP=nAct)
 

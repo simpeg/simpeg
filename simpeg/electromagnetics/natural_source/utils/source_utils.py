@@ -43,7 +43,7 @@ def homo1DModelSource(mesh, freq, sigma_1d):
         for i in np.arange(mesh.vnEy[0]):
             ey_py[i, :] = e0_1d
         # ey_py[1:-1, 1:-1, 1:-1] = 0
-        eBG_py = np.vstack((ex_py, mkvc(ey_py, 2), ez_py))
+        eBG_py = np.vstack((ex_py, mkvc(ey_py, 2)))
     elif mesh.dim == 3:
         # us the z component of ex_grid as lookup for solution
         edges_u, inv_edges = np.unique(mesh.gridEx[:, -1], return_inverse=True)
@@ -113,7 +113,7 @@ def analytic1DModelSource(mesh, freq, sigma_1d):
         for i in np.arange(mesh.vnEy[0]):
             ey_py[i, :] = e0_1d
         # ey_py[1:-1, 1:-1, 1:-1] = 0
-        eBG_py = np.vstack((ex_py, mkvc(ey_py, 2), ez_py))
+        eBG_py = np.vstack((ex_py, mkvc(ey_py, 2)))
     elif mesh.dim == 3:
         # Setup x (east) polarization (_x)
         ex_px = -np.array([E1dFieldDict[i] for i in mesh.gridEx[:, 2]]).reshape(-1, 1)

@@ -325,8 +325,8 @@ class MetaSimulation(BaseSimulation):
         return self._jtjdiag
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        return super().deleteTheseOnModelUpdate + ["_jtjdiag"]
+    def _delete_on_model_update(self):
+        return super()._delete_on_model_update + ["_jtjdiag"]
 
 
 class SumMetaSimulation(MetaSimulation):

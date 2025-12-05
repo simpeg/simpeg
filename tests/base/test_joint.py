@@ -53,8 +53,9 @@ class DataMisfitTest(unittest.TestCase):
             mesh=mesh, survey=survey1, rhoMap=maps.ExpMap(mesh)
         )
 
-        dobs0 = simulation0.make_synthetic_data(model)
-        dobs1 = simulation1.make_synthetic_data(model)
+        rng = np.random.default_rng(seed=42)
+        dobs0 = simulation0.make_synthetic_data(model, random_seed=rng)
+        dobs1 = simulation1.make_synthetic_data(model, random_seed=rng)
 
         self.mesh = mesh
         self.model = model
@@ -72,9 +73,9 @@ class DataMisfitTest(unittest.TestCase):
         self.dmiscombo = self.dmis0 + self.dmis1
 
     def test_multiDataMisfit(self):
-        self.dmis0.test()
-        self.dmis1.test()
-        self.dmiscombo.test(x=self.model)
+        self.dmis0.test(random_seed=42)
+        self.dmis1.test(random_seed=42)
+        self.dmiscombo.test(x=self.model, random_seed=42)
 
     def test_inv(self):
         reg = regularization.WeightedLeastSquares(self.mesh)
@@ -97,7 +98,7 @@ class DataMisfitTest(unittest.TestCase):
         reg2 = regularization.WeightedLeastSquares(self.mesh)
         reg = reg1 + reg2
         opt = optimization.ProjectedGNCG(
-            maxIter=30, lower=-10, upper=10, maxIterLS=20, maxIterCG=50, tolCG=1e-4
+            maxIter=30, lower=-10, upper=10, maxIterLS=20, cg_maxiter=50, cg_rtol=1e-3
         )
         invProb = inverse_problem.BaseInvProblem(self.dmiscombo, reg, opt)
         directives_list = [

@@ -210,7 +210,7 @@ class BaseRx(BaseSimPEGRx):
         v : numpy.ndarray
             The vector which being multiplied
         adjoint : bool, default = ``False``
-            If ``True``, return the ajoint
+            If ``True``, return the adjoint
 
         Returns
         -------

@@ -77,7 +77,7 @@ def test_gravity_inversion_linear(engine):
         mesh,
         survey=survey,
         rhoMap=idenMap,
-        ind_active=actv,
+        active_cells=actv,
         store_sensitivities="ram",
         engine=engine,
         **kwargs,
@@ -98,13 +98,13 @@ def test_gravity_inversion_linear(engine):
 
     # Add directives to the inversion
     opt = optimization.ProjectedGNCG(
-        maxIter=100, lower=-1.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
+        maxIter=100, lower=-1.0, upper=1.0, maxIterLS=20, cg_maxiter=10, cg_rtol=1e-3
     )
     invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 
     # Here is where the norms are applied
     starting_beta = directives.BetaEstimateMaxDerivative(10.0)
-    IRLS = directives.Update_IRLS()
+    IRLS = directives.UpdateIRLS()
     update_Jacobi = directives.UpdatePreconditioner()
     sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
     inv = inversion.BaseInversion(

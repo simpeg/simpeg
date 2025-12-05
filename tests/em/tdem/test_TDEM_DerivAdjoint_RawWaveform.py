@@ -6,7 +6,6 @@ from simpeg import maps, tests
 from simpeg.electromagnetics import time_domain as tdem
 from simpeg.electromagnetics import utils
 from scipy.interpolate import interp1d
-from pymatsolver import Pardiso as Solver
 import pytest
 
 plotIt = False
@@ -47,7 +46,6 @@ def get_prob(mesh, mapping, formulation, **kwargs):
     prb = getattr(tdem, "Simulation3D{}".format(formulation))(
         mesh, sigmaMap=mapping, **kwargs
     )
-    prb.solver = Solver
     return prb
 
 
@@ -72,14 +70,14 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
         time_steps = [(1e-3, 5), (1e-4, 5), (5e-5, 10), (5e-5, 10), (1e-4, 10)]
         t_mesh = discretize.TensorMesh([time_steps])
         times = t_mesh.nodes_x
-        np.random.rand(412)
+        rng = np.random.default_rng(seed=42)
         self.survey = get_survey(times, self.t0)
 
         self.prob = get_prob(
             mesh, mapping, self.formulation, survey=self.survey, time_steps=time_steps
         )
         self.m = np.log(1e-1) * np.ones(self.prob.sigmaMap.nP)
-        self.m *= 0.25 * np.random.rand(*self.m.shape) + 1
+        self.m *= 0.25 * rng.uniform(size=self.m.shape) + 1
 
         print("Solving Fields for problem {}".format(self.formulation))
         t = time.time()
@@ -120,7 +118,6 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
                 src.receiver_list = rxlist
 
     def JvecTest(self, rxcomp):
-        np.random.seed(4)
         self.set_receiver_list(rxcomp)
 
         def derChk(m):
@@ -134,17 +131,19 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
                 prbtype=self.formulation, rxcomp=rxcomp
             )
         )
-        tests.check_derivative(derChk, self.m, plotIt=False, num=3, eps=1e-20)
+        tests.check_derivative(
+            derChk, self.m, plotIt=False, num=3, eps=1e-20, random_seed=5412
+        )
 
     def JvecVsJtvecTest(self, rxcomp):
-        np.random.seed(4)
         self.set_receiver_list(rxcomp)
         print(
             "\nAdjoint Testing Jvec, Jtvec prob {}, {}".format(self.formulation, rxcomp)
         )
 
-        m = np.random.rand(self.prob.sigmaMap.nP)
-        d = np.random.randn(self.prob.survey.nD)
+        rng = np.random.default_rng(seed=4)
+        m = rng.uniform(size=self.prob.sigmaMap.nP)
+        d = rng.normal(size=self.prob.survey.nD)
         V1 = d.dot(self.prob.Jvec(self.m, m, f=self.fields))
         V2 = m.dot(self.prob.Jtvec(self.m, d, f=self.fields))
         tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.0
@@ -308,7 +307,7 @@ class DerivAdjoint_J(Base_DerivAdjoint_Test):
 #             return Av, ADeriv_dm
 
 #         print('\n Testing ADeriv {}'.format(prbtype))
-#         tests.check_derivative(AderivFun, m0, plotIt=False, num=4, eps=EPS)
+#         tests.check_derivative(AderivFun, m0, plotIt=False, num=4, eps=EPS, random_seed=512)
 
 #     def A_adjointTest(self, prbtype):
 #         prb, m0, mesh = setUp_TDEM(prbtype)

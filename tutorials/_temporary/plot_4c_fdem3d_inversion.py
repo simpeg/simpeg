@@ -46,11 +46,6 @@ from simpeg import (
     utils,
 )
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import SolverLU as Solver
-
 # sphinx_gallery_thumbnail_number = 3
 
 #############################################
@@ -289,7 +284,9 @@ starting_model = background_conductivity * np.ones(nC)
 #
 
 simulation = fdem.simulation.Simulation3DMagneticFluxDensity(
-    mesh, survey=survey, sigmaMap=model_map, Solver=Solver
+    mesh,
+    survey=survey,
+    sigmaMap=model_map,
 )
 
 
@@ -324,9 +321,9 @@ reg = regularization.WeightedLeastSquares(
 # Define how the optimization problem is solved. Here we will use a projected
 # Gauss-Newton approach that employs the conjugate gradient solver.
 # opt = optimization.ProjectedGNCG(
-#    maxIterCG=5, tolCG=1e-2, lower=-10, upper=5
+#    cg_maxiter=5, cg_rtol=1e-2, lower=-10, upper=5
 #    )
-opt = optimization.InexactGaussNewton(maxIterCG=5, tolCG=1e-2)
+opt = optimization.InexactGaussNewton(cg_maxiter=5, cg_rtol=1e-2)
 
 # Here we define the inverse problem that is to be solved
 inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)

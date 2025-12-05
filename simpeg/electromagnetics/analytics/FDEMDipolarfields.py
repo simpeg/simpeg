@@ -199,7 +199,7 @@ def J_galvanic_from_ElectricDipoleWholeSpace(
         Add description of parameters
     """
 
-    Ex_galvanic, Ey_galvanic, Ez_galvanic = E_galvanic_from_ElectricDipoleWholeSpaced(
+    Ex_galvanic, Ey_galvanic, Ez_galvanic = E_galvanic_from_ElectricDipoleWholeSpace(
         XYZ,
         srcLoc,
         sig,
@@ -229,7 +229,7 @@ def J_inductive_from_ElectricDipoleWholeSpace(
         Ex_inductive,
         Ey_inductive,
         Ez_inductive,
-    ) = E_inductive_from_ElectricDipoleWholeSpaced(
+    ) = E_inductive_from_ElectricDipoleWholeSpace(
         XYZ,
         srcLoc,
         sig,
@@ -318,6 +318,7 @@ def B_from_ElectricDipoleWholeSpace(
         kappa=kappa,
         epsr=epsr,
     )
+    mu = mu_0 * (1 + kappa)
     Bx = mu * Hx
     By = mu * Hy
     Bz = mu * Hz

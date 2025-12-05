@@ -233,7 +233,7 @@ simulation_grav = pf.gravity.simulation.Simulation3DIntegral(
     survey=data_grav.survey,
     mesh=mesh,
     rhoMap=wires.den,
-    ind_active=actv,
+    active_cells=actv,
     engine="choclo",
 )
 dmis_grav = data_misfit.L2DataMisfit(data=data_grav, simulation=simulation_grav)
@@ -242,7 +242,7 @@ simulation_mag = pf.magnetics.simulation.Simulation3DIntegral(
     survey=data_mag.survey,
     mesh=mesh,
     chiMap=wires.sus,
-    ind_active=actv,
+    active_cells=actv,
 )
 dmis_mag = data_misfit.L2DataMisfit(data=data_mag, simulation=simulation_mag)
 
@@ -394,8 +394,8 @@ opt = optimization.ProjectedGNCG(
     lower=lowerbound,
     upper=upperbound,
     maxIterLS=20,
-    maxIterCG=100,
-    tolCG=1e-4,
+    cg_maxiter=100,
+    cg_rtol=1e-3,
 )
 # create inverse problem
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)

@@ -1,9 +1,13 @@
+import warnings
 import numpy as np
 import scipy.ndimage as ndi
 import scipy.sparse as sp
 from .mat_utils import mkvc
 from scipy.spatial import Delaunay
 from discretize.base import BaseMesh
+
+from ..typing import RandomSeed
+from ..utils.warnings import BreakingChangeWarning
 
 
 def add_block(cell_centers, model, p0, p1, prop_value):
@@ -50,7 +54,7 @@ def get_indices_block(p0, p1, cell_centers):
 
     Returns
     -------
-    tuple of int
+    array of int
         Indices of the cells whose center lie within the specified block
 
     """
@@ -59,51 +63,89 @@ def get_indices_block(p0, p1, cell_centers):
         cell_centers = cell_centers.cell_centers
 
     # Validation: p0 and p1 live in the same dimensional space
-    assert len(p0) == len(p1), "Dimension mismatch. len(p0) != len(p1)"
+    if len(p0) != len(p1):
+        msg = (
+            "Dimension mismatch between `p0` and `p1`. "
+            f"`p0` has {len(p0)} elements, while "
+            f"`p1` has {len(p0)} elements. "
+            "They should have the same amount of elements."
+        )
+        raise ValueError(msg)
 
     # Validation: mesh and points live in the same dimensional space
-    dimMesh = np.size(cell_centers[0, :])
-    assert len(p0) == dimMesh, "Dimension mismatch. len(p0) != dimMesh"
+    mesh_ndim = len(p0)
+    if cell_centers.size % mesh_ndim != 0:
+        msg = (
+            "Dimension mismatch between `cell_centers` and dimensions of block "
+            "corners. "
+            f"The `cell_centers` have {cell_centers.size} elements that don't match "
+            f"the expected number of dimensions of the block corners ({len(p0)})."
+        )
+        raise ValueError(msg)
 
-    for ii in range(len(p0)):
-        p0[ii], p1[ii] = np.min([p0[ii], p1[ii]]), np.max([p0[ii], p1[ii]])
+    # Redefine the block corners to ensure they are correctly defined as min and max
+    p0_new = [min(p0[i], p1[i]) for i in range(mesh_ndim)]
+    p1_new = [max(p0[i], p1[i]) for i in range(mesh_ndim)]
 
-    if dimMesh == 1:
+    if mesh_ndim == 1:
         # Define the reference points
-        x1 = p0[0]
-        x2 = p1[0]
+        (x1,) = p0_new
+        (x2,) = p1_new
 
-        indX = (x1 <= cell_centers[:, 0]) & (cell_centers[:, 0] <= x2)
-        ind = np.where(indX)
+        x_centers = cell_centers
+        indX = (x1 <= x_centers) & (x_centers <= x2)
+        (ind,) = np.where(indX)
 
-    elif dimMesh == 2:
+    elif mesh_ndim == 2:
         # Define the reference points
-        x1 = p0[0]
-        y1 = p0[1]
+        x1, y1 = p0_new
+        x2, y2 = p1_new
 
-        x2 = p1[0]
-        y2 = p1[1]
+        x_centers = cell_centers[:, 0]
+        y_centers = cell_centers[:, 1]
+        indX = (x1 <= x_centers) & (x_centers <= x2)
+        indY = (y1 <= y_centers) & (y_centers <= y2)
 
-        indX = (x1 <= cell_centers[:, 0]) & (cell_centers[:, 0] <= x2)
-        indY = (y1 <= cell_centers[:, 1]) & (cell_centers[:, 1] <= y2)
+        (ind,) = np.where(indX & indY)
 
-        ind = np.where(indX & indY)
-
-    elif dimMesh == 3:
+    elif mesh_ndim == 3:
         # Define the points
-        x1 = p0[0]
-        y1 = p0[1]
-        z1 = p0[2]
+        x1, y1, z1 = p0_new
+        x2, y2, z2 = p1_new
 
-        x2 = p1[0]
-        y2 = p1[1]
-        z2 = p1[2]
+        x_centers = cell_centers[:, 0]
+        y_centers = cell_centers[:, 1]
+        z_centers = cell_centers[:, 2]
+        indX = (x1 <= x_centers) & (x_centers <= x2)
+        indY = (y1 <= y_centers) & (y_centers <= y2)
+        indZ = (z1 <= z_centers) & (z_centers <= z2)
 
-        indX = (x1 <= cell_centers[:, 0]) & (cell_centers[:, 0] <= x2)
-        indY = (y1 <= cell_centers[:, 1]) & (cell_centers[:, 1] <= y2)
-        indZ = (z1 <= cell_centers[:, 2]) & (cell_centers[:, 2] <= z2)
+        (ind,) = np.where(indX & indY & indZ)
 
-        ind = np.where(indX & indY & indZ)
+    # Warn users about the breaking change introduced in the return of this function
+    msg = (
+        "Since SimPEG v0.25.0, the 'get_indices_block' function returns a single array "
+        "with the cell indices, instead of a tuple with a single element. "
+        "This means that we don't need to unpack the tuple anymore to access to the "
+        "cell indices."
+        "\n"
+        "If you were using this function as in:"
+        "\n\n"
+        "    ind = get_indices_block(p0, p1, mesh.cell_centers)[0]"
+        "\n\n"
+        "Make sure you update it to:"
+        "\n\n"
+        "    ind = get_indices_block(p0, p1, mesh.cell_centers)"
+        "\n\n"
+        "To hide this warning, add this to your script or notebook:"
+        "\n"
+        "\n    import warnings"
+        "\n    from simpeg.utils import BreakingChangeWarning"
+        "\n"
+        "\n    warnings.filterwarnings(action='ignore', category=BreakingChangeWarning)"
+        "\n"
+    )
+    warnings.warn(msg, BreakingChangeWarning, stacklevel=2)
 
     # Return a tuple
     return ind
@@ -218,7 +260,7 @@ def get_indices_sphere(center, radius, cell_centers):
 
     Returns
     -------
-    tuple of int
+    array of int
         Indices of the cells whose center lie within the specified sphere
 
     """
@@ -414,15 +456,26 @@ def create_layers_model(cell_centers, layer_tops, layer_values):
     return model
 
 
-def create_random_model(shape, seed=1000, anisotropy=None, its=100, bounds=None):
-    """Create random model by convolving a kernel with a uniformly distributed random model.
+def create_random_model(
+    shape,
+    random_seed: RandomSeed | None = 1000,
+    anisotropy=None,
+    its=100,
+    bounds=None,
+    **kwargs,
+):
+    """
+    Create random model by convolving a kernel with a uniformly distributed random model.
 
     Parameters
     ----------
     shape : int or tuple of int
-        Shape of the model. Can define a vector of size (n_cells) or define the dimensions of a tensor
-    seed : int, optional
-        If not None, sets the seed for the random uniform model that is convolved with the kernel.
+        Shape of the model. Can define a vector of size (n_cells) or define the
+        dimensions of a tensor.
+    random_seed : None or :class:`~simpeg.typing.RandomSeed`, optional
+        Random seed for random uniform model that is convolved with the kernel.
+        It can either be an int, a predefined Numpy random number generator, or
+        any valid input to ``numpy.random.default_rng``.
     anisotropy : numpy.ndarray
         this is the (*3*, *n*) blurring kernel that is used.
     its : int
@@ -447,17 +500,19 @@ def create_random_model(shape, seed=1000, anisotropy=None, its=100, bounds=None)
     >>> plt.show()
 
     """
+    if kwargs:
+        args = ", ".join([f"'{key}'" for key in kwargs])
+        raise TypeError(f"Invalid arguments {args}.")
+    # ---
+
     if bounds is None:
         bounds = [0, 1]
 
-    if seed is not None:
-        np.random.seed(seed)
-        print("Using a seed of: ", seed)
-
-    if isinstance(shape, (int, float)):
+    if isinstance(shape, int):
         shape = (shape,)  # make it a tuple for consistency
 
-    mr = np.random.rand(*shape)
+    rng = np.random.default_rng(seed=random_seed)
+    mr = rng.random(size=shape)
     if anisotropy is None:
         if len(shape) == 1:
             smth = np.array([1, 10.0, 1], dtype=float)

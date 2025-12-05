@@ -1,7 +1,9 @@
+import pytest
 import unittest
 import numpy as np
 from scipy.sparse.linalg import eigsh
 from discretize import TensorMesh
+from simpeg.objective_function import BaseObjectiveFunction
 from simpeg import simulation, data_misfit
 from simpeg.maps import IdentityMap
 from simpeg.regularization import WeightedLeastSquares
@@ -51,6 +53,7 @@ class TestEigenvalues(unittest.TestCase):
             relative_error=relative_error,
             noise_floor=noise_floor,
             add_noise=True,
+            random_seed=40,
         )
         dmis = data_misfit.L2DataMisfit(simulation=sim, data=data_obj)
         self.dmis = dmis
@@ -79,7 +82,7 @@ class TestEigenvalues(unittest.TestCase):
         field = self.dmis.simulation.fields(self.true_model)
         max_eigenvalue_numpy, _ = eigsh(dmis_matrix, k=1)
         max_eigenvalue_directive = eigenvalue_by_power_iteration(
-            self.dmis, self.true_model, fields_list=field, n_pw_iter=30
+            self.dmis, self.true_model, fields_list=field, n_pw_iter=30, random_seed=42
         )
         passed = np.isclose(max_eigenvalue_numpy, max_eigenvalue_directive, rtol=1e-2)
         self.assertTrue(passed, True)
@@ -92,7 +95,7 @@ class TestEigenvalues(unittest.TestCase):
         dmiscombo_matrix = 2 * self.G.T.dot(WtW.dot(self.G))
         max_eigenvalue_numpy, _ = eigsh(dmiscombo_matrix, k=1)
         max_eigenvalue_directive = eigenvalue_by_power_iteration(
-            self.dmiscombo, self.true_model, n_pw_iter=30
+            self.dmiscombo, self.true_model, n_pw_iter=30, random_seed=42
         )
         passed = np.isclose(max_eigenvalue_numpy, max_eigenvalue_directive, rtol=1e-2)
         self.assertTrue(passed, True)
@@ -102,7 +105,7 @@ class TestEigenvalues(unittest.TestCase):
         reg_maxtrix = self.reg.deriv2(self.true_model)
         max_eigenvalue_numpy, _ = eigsh(reg_maxtrix, k=1)
         max_eigenvalue_directive = eigenvalue_by_power_iteration(
-            self.reg, self.true_model, n_pw_iter=100
+            self.reg, self.true_model, n_pw_iter=100, random_seed=42
         )
         passed = np.isclose(max_eigenvalue_numpy, max_eigenvalue_directive, rtol=1e-2)
         self.assertTrue(passed, True)
@@ -114,11 +117,39 @@ class TestEigenvalues(unittest.TestCase):
         combo_matrix = dmis_matrix + self.beta * reg_maxtrix
         max_eigenvalue_numpy, _ = eigsh(combo_matrix, k=1)
         max_eigenvalue_directive = eigenvalue_by_power_iteration(
-            self.mixcombo, self.true_model, n_pw_iter=100
+            self.mixcombo, self.true_model, n_pw_iter=100, random_seed=42
         )
         passed = np.isclose(max_eigenvalue_numpy, max_eigenvalue_directive, rtol=1e-2)
         self.assertTrue(passed, True)
         print("Eigenvalue Utils for a mixed ComboObjectiveFunction is validated.")
+
+
+class TestRemovedSeed:
+    """Test removed ``seed`` argument."""
+
+    @pytest.fixture
+    def mock_objfun(self):
+        """
+        Mock objective function class as child of ``BaseObjectiveFunction``
+        """
+
+        class MockObjectiveFunction(BaseObjectiveFunction):
+
+            def deriv2(self, m, v=None, **kwargs):
+                return np.ones(self.nP)
+
+        return MockObjectiveFunction
+
+    def test_error_argument(self, mock_objfun):
+        """
+        Test if error is raised after passing ``seed``.
+        """
+        msg = "got an unexpected keyword argument 'seed'"
+        n_params = 5
+        combo = mock_objfun(nP=n_params) + 3.0 * mock_objfun(nP=n_params)
+        model = np.ones(n_params)
+        with pytest.raises(TypeError, match=msg):
+            eigenvalue_by_power_iteration(combo_objfct=combo, model=model, seed=42)
 
 
 if __name__ == "__main__":

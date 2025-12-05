@@ -1,0 +1,1 @@
+.. automodule:: simpeg.electromagnetics.viscous_remanent_magnetization

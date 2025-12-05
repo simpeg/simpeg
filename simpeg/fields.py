@@ -5,24 +5,71 @@ from .utils import mkvc, validate_type
 
 
 class Fields:
-    """Fancy Field Storage
+    r"""Base class for storing fields.
+
+    Fields classes are used to store the discrete field solution for a
+    corresponding simulation object; see :py:class:`simpeg.simulation.BaseSimulation`.
+    Generally only one field solution (e.g. ``'eSolution'``, ``'phiSolution'``, ``'bSolution'``) is stored.
+    However, it may be possible to extract multiple field types (e.g. ``'e'``, ``'b'``, ``'j'``, ``'h'``)
+    on the fly from the fields object. The field solution that is stored and the
+    field types that can be extracted depend on the formulation used by the associated simulation.
+    See the example below to learn how fields are extracted from fields objects.
+
+    Parameters
+    ----------
+    simulation : simpeg.simulation.BaseSimulation
+        The simulation object used to compute the discrete field solution.
+    knownFields : dict of {key: str}, optional
+        Dictionary defining the field solutions that are stored and where
+        on the mesh they are discretized. E.g. ``{'eSolution': 'E', 'bSolution': 'F'}``
+        would store the `eSolution` on edges and `bSolution` on faces.
+        The ``str`` must be one of {``'CC'``, ``'N'``, ``'E'``, ``'F'``}.
+    aliasFields : dict of {key: list}, optional
+        Set aliases to extract different field types from the field solutions that are
+        stored by the fields object. The ``key`` defines the name you would like to use
+        when extracting a given field type from the fields object. In order, the list
+        contains:
+
+        * the key for the known field solution that is used to compute the field type
+        * where the output field type lives {``'CC'``, ``'N'``, ``'E'``, ``'F'``}
+        * the name of the method used to compute the output field.
+
+        E.g. ``{'b': ['eSolution', 'F', '_b']}`` is an alias that
+        would allow you to extract a field type (``'b'``) that lives on mesh faces (``'F'``)
+        from the E-field solution (``'eSolution'``) by calling a method (``'_b'``).
+    dtype : dtype or dict of {str : dtype}, optional
+        Set the Python data type for each numerical field solution that is stored in
+        the fields object. E.g. ``float``, ``complex``,
+        ``{'eSolution': complex, 'bSolution': complex}``.
 
     Examples
     --------
-    >>> fields = Fields(
-    ...     simulation=simulation, knownFields={"phi": "CC"}
-    ... )
-    >>> fields[:,'phi'] = phi
+    We want to access the fields for a discrete solution with :math:`\mathbf{e}` discretized
+    to edges and :math:`\mathbf{b}` discretized to faces. To extract the fields for all sources:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        e = f[:,'e']
+        b = f[:,'b']
+
+    The array ``e`` returned will have shape (`n_edges`, `n_sources`). And the array ``b``
+    returned will have shape (`n_faces`, `n_sources`). We can also extract the fields for
+    a subset of the source list used for the simulation as follows:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        e = f[source_list,'e']
+        b = f[source_list,'b']
+
     """
 
     _dtype = float
     _knownFields = {}
     _aliasFields = {}
 
-    def __init__(
-        self, simulation, knownFields=None, aliasFields=None, dtype=None, **kwargs
-    ):
-        super().__init__(**kwargs)
+    def __init__(self, simulation, knownFields=None, aliasFields=None, dtype=None):
         self.simulation = simulation
 
         if knownFields is not None:
@@ -45,11 +92,12 @@ class Fields:
 
     @property
     def simulation(self):
-        """The simulation object that created these fields
+        """The simulation object used to compute the field solution.
 
         Returns
         -------
         simpeg.simulation.BaseSimulation
+            The simulation object used to compute the field solution.
         """
         return self._simulation
 
@@ -61,39 +109,41 @@ class Fields:
 
     @property
     def knownFields(self):
-        """The known fields of this object.
+        """The field solutions and where they are discretized on the mesh.
 
-        The dictionary representing the known fields and their locations on the simulation
-        mesh. The keys are the names of the fields, and the values are the location on
-        the mesh.
+        Dictionary defining the field solutions that are stored and where
+        on the mesh they are discretized. The ``key`` defines the name
+        of the field solution that is stored, and a ``str`` defines where
+        on the mesh the stored field solution is discretized. The
+        ``str`` must be one of {``'CC'``, ``'N'``, ``'E'``, ``'F'``}.
 
-        >>> fields.knownFields
-        {'e': 'E', 'phi': 'CC'}
-
-        Would represent that the `e` field and `phi` fields are known, and they are
-        located on the mesh edges and cell centers, respectively.
+        E.g. ``{'eSolution': 'E', 'bSolution': 'F'}``
+        would define the `eSolution` on edges and `bSolution` on faces.
 
         Returns
         -------
         dict
-            They keys are the field names and the values are the field locations.
+            The keys are the field solution names and the values {'N', 'CC', 'E'. 'F'}
+            define where the field solution is discretized.
         """
         return self._knownFields
 
     @property
     def aliasFields(self):
-        """The aliased fields of this object.
+        """The aliased fields of the object.
 
-        The dictionary representing the aliased fields that can be accessed on this
-        object. The keys are the names of the fields, and the values are a list of the
-        known field, the aliased field's location on the mesh, and a function that goes
-        from the known field to the aliased field.
+        Aliases are defined to extract different field types from the field solutions that are
+        stored by the fields object. The ``key`` defines the name you would like to use
+        when extracting a given field type from the fields object. In order, the list
+        contains:
 
-        >>> fields.aliasFields
-        {'b': ['e', 'F', '_e']}
+        * the key for the known field solution that is used to compute the field type
+        * where the output field type lives {``'CC'``, ``'N'``, ``'E'``, ``'F'``}
+        * the name of the method used to compute the output field.
 
-        Would represent that the `e` field and `phi` fields are known, and they are
-        located on the mesh edges and cell centers, respectively.
+        E.g. ``{'b': ['eSolution', 'F', '_b']}`` is an alias that
+        would allow you to extract a field type ('b') that lives on mesh faces ('F')
+        from the E-field solution ('eSolution') by calling a method ('_b').
 
         Returns
         -------
@@ -106,28 +156,53 @@ class Fields:
 
     @property
     def dtype(self):
-        """The data type of the storage matrix
+        """Python data type(s) used to store the fields.
+
+        the Python data type for each numerical field solution that is stored in
+        the fields object. E.g. ``float``, ``complex``, ``{'eSolution': complex, 'bSolution': complex}``.
 
         Returns
         -------
         dtype or dict of {str : dtype}
+            Python data type(s) used to store the fields.
         """
         return self._dtype
 
     @property
     def mesh(self):
+        """Mesh used by the simulation.
+
+        Returns
+        -------
+        discretize.BaseMesh
+            Mesh used by the simulation.
+        """
         return self.simulation.mesh
 
     @property
     def survey(self):
+        """Survey used by the simulation.
+
+        Returns
+        -------
+        simpeg.survey.BaseSurvey
+            Survey used by the simulation.
+        """
         return self.simulation.survey
 
     def startup(self):
+        """Run startup to connect the simulation's discrete attributes to the fields object."""
         pass
 
     @property
     def approxSize(self):
-        """The approximate cost to storing all of the known fields."""
+        """Approximate cost of storing all of the known fields in MB.
+
+        Returns
+        -------
+        int
+            Approximate cost of storing all of the known fields in MB.
+        """
         sz = 0.0
         for f in self.knownFields:
             loc = self.knownFields[f]
@@ -273,21 +348,73 @@ class Fields:
 
 
 class TimeFields(Fields):
-    """Fancy Field Storage for time domain problems
-    .. code:: python
+    r"""Base class for storing TDEM fields.
 
-        fields = TimeFields(simulation=simulation, knownFields={'phi':'CC'})
-        fields[:,'phi', timeInd] = phi
-        print(fields[src0,'phi'])
+    ``TimeFields`` is a base class for storing discrete field solutions for simulations
+    that use discrete time-stepping; see :py:class:`simpeg.simulation.BaseTimeSimulation`.
+    Generally only one field solution (e.g. ``'eSolution'``, ``'phiSolution'``, ``'bSolution'``) is stored.
+    However, it may be possible to extract multiple field types (e.g. ``'e'``, ``'b'``, ``'j'``, ``'h'``)
+    on the fly from the fields object. The field solution that is stored and the
+    field types that can be extracted depend on the formulation used by the associated simulation.
+    See the example below to learn how fields are extracted from fields objects.
+
+    Parameters
+    ----------
+    simulation : simpeg.simulation.BaseTimeSimulation
+        The simulation object used to compute the discrete field solution.
+    knownFields : dict of {key: str}, optional
+        Dictionary defining the field solutions that are stored and where
+        on the mesh they are discretized. E.g. ``{'eSolution': 'E', 'bSolution': 'F'}``
+        would store the `eSolution` on edges and `bSolution` on faces.
+        The ``str`` must be one of {``'CC'``, ``'N'``, ``'E'``, ``'F'``}.
+    aliasFields : dict of {key: list}, optional
+        Set aliases to extract different field types from the field solutions that are
+        stored by the fields object. The ``key`` defines the name you would like to use
+        when extracting a given field type from the fields object. In order, the list
+        contains:
+
+        * the key for the known field solution that is used to compute the field type
+        * where the output field type lives {``'CC'``, ``'N'``, ``'E'``, ``'F'``}
+        * the name of the method used to compute the output field.
+
+        E.g. ``{'b': ['eSolution', 'F', '_b']}`` is an alias that
+        would allow you to extract a field type ('b') that lives on mesh faces ('F')
+        from the E-field solution ('eSolution') by calling a method ('_b').
+    dtype : dtype or dict of {str : dtype}, optional
+        Set the Python data type for each numerical field solution that is stored in
+        the fields object. E.g. ``float``, ``complex``, ``{'eSolution': complex, 'bSolution': complex}``.
+
+    Examples
+    --------
+    We want to access the fields for a discrete solution with :math:`\mathbf{e}` discretized
+    to edges and :math:`\mathbf{b}` discretized to faces. To extract the fields for all sources:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        e = f[:, 'e', :]
+        b = f[:, 'b', :]
+
+    The array ``e`` returned will have shape (`n_edges`, `n_sources`, `n_steps`). And the array ``b``
+    returned will have shape (`n_faces`, `n_sources`, `n_steps`). We can also extract the fields for
+    a subset of the source list used for the simulation and/or a subset of the time steps as follows:
+
+    .. code-block:: python
+
+        f = simulation.fields(m)
+        e = f[source_list, 'e', t_inds]
+        b = f[source_list, 'b', t_inds]
+
     """
 
     @property
     def simulation(self):
-        """The simulation object that created these fields
+        """The simulation object used to compute the field solution.
 
         Returns
         -------
         simpeg.simulation.BaseTimeSimulation
+            The simulation object used to compute the field solution.
         """
         return self._simulation
 

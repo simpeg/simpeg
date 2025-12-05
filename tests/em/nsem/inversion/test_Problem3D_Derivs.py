@@ -2,7 +2,7 @@
 import pytest
 import unittest
 import numpy as np
-from simpeg import tests, mkvc
+from simpeg import tests
 from simpeg.electromagnetics import natural_source as nsem
 from scipy.constants import mu_0
 
@@ -51,7 +51,7 @@ def test_Jtjdiag_clearing(model_simulation_tuple):
 
 def test_Jmatrix(model_simulation_tuple):
     model, simulation = model_simulation_tuple
-    rng = np.random.default_rng(4421)
+    rng = np.random.default_rng(4422)
     # create random vector
     vec = rng.standard_normal(simulation.survey.nD)
 
@@ -88,36 +88,9 @@ def DerivJvecTest(inputSetup, comp="All", freq=False, expMap=True):
     def fun(x):
         return simulation.dpred(x), lambda x: simulation.Jvec(m, x)
 
-    return tests.check_derivative(fun, m, num=3, plotIt=False, eps=FLR)
-
-
-def DerivProjfieldsTest(inputSetup, comp="All", freq=False):
-    survey, simulation = nsem.utils.test_utils.setupSimpegNSEM_ePrimSec(
-        inputSetup, comp, freq
+    return tests.check_derivative(
+        fun, m, num=3, plotIt=False, eps=FLR, random_seed=1512
     )
-    print("Derivative test of data projection for eFormulation primary/secondary\n")
-    # simulation.mapping = Maps.ExpMap(simulation.mesh)
-    # Initate things for the derivs Test
-    src = survey.source_list[0]
-    np.random.seed(1983)
-    u0x = np.random.randn(survey.mesh.nE) + np.random.randn(survey.mesh.nE) * 1j
-    u0y = np.random.randn(survey.mesh.nE) + np.random.randn(survey.mesh.nE) * 1j
-    u0 = np.vstack((mkvc(u0x, 2), mkvc(u0y, 2)))
-    f0 = simulation.fieldsPair(survey.mesh, survey)
-    # u0 = np.hstack((mkvc(u0_px,2),mkvc(u0_py,2)))
-    f0[src, "e_pxSolution"] = u0[: len(u0) / 2]  # u0x
-    f0[src, "e_pySolution"] = u0[len(u0) / 2 : :]  # u0y
-
-    def fun(u):
-        f = simulation.fieldsPair(survey.mesh, survey)
-        f[src, "e_pxSolution"] = u[: len(u) / 2]
-        f[src, "e_pySolution"] = u[len(u) / 2 : :]
-        return (
-            rx.eval(src, survey.mesh, f),
-            lambda t: rx.evalDeriv(src, survey.mesh, f0, mkvc(t, 2)),
-        )
-
-    return tests.check_derivative(fun, u0, num=3, plotIt=False, eps=FLR)
 
 
 class NSEM_DerivTests(unittest.TestCase):

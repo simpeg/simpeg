@@ -6,7 +6,6 @@ from discretize.tests import check_derivative
 from simpeg.electromagnetics import natural_source as nsem
 from simpeg import maps
 from discretize import TensorMesh, TreeMesh, CylindricalMesh
-from pymatsolver import Pardiso
 
 
 def check_deriv(sim, test_mod, **kwargs):
@@ -25,8 +24,9 @@ def check_deriv(sim, test_mod, **kwargs):
 
 
 def check_adjoint(sim, test_mod):
-    u = np.random.rand(len(test_mod))
-    v = np.random.rand(sim.survey.nD)
+    rng = np.random.default_rng(seed=42)
+    u = rng.uniform(size=len(test_mod))
+    v = rng.uniform(size=sim.survey.nD)
 
     f = sim.fields(test_mod)
     Ju = sim.Jvec(test_mod, u, f=f)
@@ -53,18 +53,18 @@ def create_simulation_1d(sim_type, deriv_type):
     frequencies = np.logspace(-2, 1, 30)
 
     rx_list = [
-        nsem.receivers.PointNaturalSource([[0]], orientation="xy", component="real"),
-        nsem.receivers.PointNaturalSource([[0]], orientation="xy", component="imag"),
-        nsem.receivers.PointNaturalSource(
+        nsem.receivers.Impedance([[0]], orientation="xy", component="real"),
+        nsem.receivers.Impedance([[0]], orientation="xy", component="imag"),
+        nsem.receivers.Impedance(
             [[0]], orientation="xy", component="apparent_resistivity"
         ),
-        nsem.receivers.PointNaturalSource([[0]], orientation="xy", component="phase"),
-        nsem.receivers.PointNaturalSource([[0]], orientation="yx", component="real"),
-        nsem.receivers.PointNaturalSource([[0]], orientation="yx", component="imag"),
-        nsem.receivers.PointNaturalSource(
+        nsem.receivers.Impedance([[0]], orientation="xy", component="phase"),
+        nsem.receivers.Impedance([[0]], orientation="yx", component="real"),
+        nsem.receivers.Impedance([[0]], orientation="yx", component="imag"),
+        nsem.receivers.Impedance(
             [[0]], orientation="yx", component="apparent_resistivity"
         ),
-        nsem.receivers.PointNaturalSource([[0]], orientation="yx", component="phase"),
+        nsem.receivers.Impedance([[0]], orientation="yx", component="phase"),
     ]
     src_list = [nsem.sources.Planewave(rx_list, frequency=f) for f in frequencies]
     survey = nsem.Survey(src_list)
@@ -88,14 +88,12 @@ def create_simulation_1d(sim_type, deriv_type):
             mesh,
             survey=survey,
             **sim_kwargs,
-            solver=Pardiso,
         )
     else:
         sim = nsem.simulation.Simulation1DMagneticField(
             mesh,
             survey=survey,
             **sim_kwargs,
-            solver=Pardiso,
         )
     return sim, test_mod
 
@@ -171,18 +169,12 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
             sim_kwargs["h_bc"] = h_bc
 
         rx_list = [
-            nsem.receivers.PointNaturalSource(
-                rx_locs, orientation="xy", component="real"
-            ),
-            nsem.receivers.PointNaturalSource(
-                rx_locs, orientation="xy", component="imag"
-            ),
-            nsem.receivers.PointNaturalSource(
+            nsem.receivers.Impedance(rx_locs, orientation="xy", component="real"),
+            nsem.receivers.Impedance(rx_locs, orientation="xy", component="imag"),
+            nsem.receivers.Impedance(
                 rx_locs, orientation="xy", component="apparent_resistivity"
             ),
-            nsem.receivers.PointNaturalSource(
-                rx_locs, orientation="xy", component="phase"
-            ),
+            nsem.receivers.Impedance(rx_locs, orientation="xy", component="phase"),
         ]
         src_list = [nsem.sources.Planewave(rx_list, frequency=f) for f in frequencies]
         survey = nsem.Survey(src_list)
@@ -191,7 +183,6 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
             mesh,
             survey=survey,
             **sim_kwargs,
-            solver=Pardiso,
         )
     else:
         if fixed_boundary:
@@ -222,18 +213,12 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
             sim_kwargs["e_bc"] = e_bc
 
         rx_list = [
-            nsem.receivers.PointNaturalSource(
-                rx_locs, orientation="yx", component="real"
-            ),
-            nsem.receivers.PointNaturalSource(
-                rx_locs, orientation="yx", component="imag"
-            ),
-            nsem.receivers.PointNaturalSource(
+            nsem.receivers.Impedance(rx_locs, orientation="yx", component="real"),
+            nsem.receivers.Impedance(rx_locs, orientation="yx", component="imag"),
+            nsem.receivers.Impedance(
                 rx_locs, orientation="yx", component="apparent_resistivity"
             ),
-            nsem.receivers.PointNaturalSource(
-                rx_locs, orientation="yx", component="phase"
-            ),
+            nsem.receivers.Impedance(rx_locs, orientation="yx", component="phase"),
         ]
         src_list = [nsem.sources.Planewave(rx_list, frequency=f) for f in frequencies]
         survey = nsem.Survey(src_list)
@@ -242,7 +227,6 @@ def create_simulation_2d(sim_type, deriv_type, mesh_type, fixed_boundary=False):
             mesh,
             survey=survey,
             **sim_kwargs,
-            solver=Pardiso,
         )
     return sim, test_mod
 
@@ -259,19 +243,19 @@ class Sim_1D(unittest.TestCase):
 
     def test_e_sigma_deriv(self):
         sim, test_mod = create_simulation_1d("e", "sigma")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=235)
 
     def test_h_sigma_deriv(self):
         sim, test_mod = create_simulation_1d("h", "sigma")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=5212)
 
     def test_e_mu_deriv(self):
         sim, test_mod = create_simulation_1d("e", "mu")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=63246)
 
     def test_h_mu_deriv(self):
         sim, test_mod = create_simulation_1d("h", "mu")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=124)
 
     def test_e_sigma_adjoint(self):
         sim, test_mod = create_simulation_1d("e", "sigma")
@@ -295,10 +279,10 @@ class Sim_2D(unittest.TestCase):
         rx_locs = np.c_[np.linspace(-8000, 8000, 3), np.zeros(3)]
         mesh_1d = TensorMesh([5])
         mesh_2d = TensorMesh([5, 5])
-        r_xy = nsem.receivers.PointNaturalSource(
+        r_xy = nsem.receivers.Impedance(
             rx_locs, orientation="xy", component="apparent_resistivity"
         )
-        r_yx = nsem.receivers.PointNaturalSource(
+        r_yx = nsem.receivers.Impedance(
             rx_locs, orientation="yx", component="apparent_resistivity"
         )
         survey_xy = nsem.Survey([nsem.sources.Planewave([r_xy], frequency=10)])
@@ -332,13 +316,15 @@ class Sim_2D(unittest.TestCase):
             nsem.simulation.Simulation2DMagneticField(
                 mesh_2d, survey=survey_yx, e_bc=100
             )
+
+        random_array = np.random.default_rng(seed=42).uniform(size=20)
         with self.assertRaises(TypeError):
             nsem.simulation.Simulation2DElectricField(
-                mesh_2d, survey=survey_xy, h_bc=np.random.rand(20)
+                mesh_2d, survey=survey_xy, h_bc=random_array
             )
         with self.assertRaises(TypeError):
             nsem.simulation.Simulation2DMagneticField(
-                mesh_2d, survey=survey_yx, e_bc=np.random.rand(20)
+                mesh_2d, survey=survey_yx, e_bc=random_array
             )
 
         # Check fixed boundary condition Key Error
@@ -353,8 +339,9 @@ class Sim_2D(unittest.TestCase):
 
         # Check fixed boundary condition length error
         bc = {}
+        rng = np.random.default_rng(seed=42)
         for freq in survey_xy.frequencies:
-            bc[freq] = np.random.rand(mesh_2d.boundary_edges.shape[0] + 3)
+            bc[freq] = rng.uniform(size=mesh_2d.boundary_edges.shape[0] + 3)
         with self.assertRaises(ValueError):
             nsem.simulation.Simulation2DElectricField(
                 mesh_2d, survey=survey_xy, h_bc=bc
@@ -366,19 +353,19 @@ class Sim_2D(unittest.TestCase):
 
     def test_e_sigma_deriv(self):
         sim, test_mod = create_simulation_2d("e", "sigma", "TensorMesh")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=125)
 
     def test_h_sigma_deriv(self):
         sim, test_mod = create_simulation_2d("h", "sigma", "TensorMesh")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=7425)
 
     def test_e_mu_deriv(self):
         sim, test_mod = create_simulation_2d("e", "mu", "TensorMesh")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=236423)
 
     def test_h_mu_deriv(self):
         sim, test_mod = create_simulation_2d("h", "mu", "TensorMesh")
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=34632)
 
     def test_e_sigma_adjoint(self):
         sim, test_mod = create_simulation_2d("e", "sigma", "TensorMesh")
@@ -408,13 +395,13 @@ class Sim_2D(unittest.TestCase):
         sim, test_mod = create_simulation_2d(
             "e", "sigma", "TensorMesh", fixed_boundary=True
         )
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=2634)
 
     def test_h_sigma_deriv_fixed(self):
         sim, test_mod = create_simulation_2d(
             "h", "sigma", "TensorMesh", fixed_boundary=True
         )
-        assert check_deriv(sim, test_mod, num=3)
+        assert check_deriv(sim, test_mod, num=3, random_seed=3651326)
 
     def test_e_sigma_adjoint_fixed(self):
         sim, test_mod = create_simulation_2d(

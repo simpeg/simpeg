@@ -223,7 +223,7 @@ reg.norms = [p, qx, qy]
 
 # Define how the optimization problem is solved.
 opt = optimization.ProjectedGNCG(
-    maxIter=100, lower=0.0, upper=1e6, maxIterLS=20, maxIterCG=10, tolCG=1e-4
+    maxIter=100, lower=0.0, upper=1e6, maxIterLS=20, cg_maxiter=10, cg_rtol=1e-3
 )
 
 # Here we define the inverse problem that is to be solved
@@ -240,11 +240,11 @@ inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
 #
 
 # Reach target misfit for L2 solution, then use IRLS until model stops changing.
-update_IRLS = directives.Update_IRLS(
+update_IRLS = directives.UpdateIRLS(
     f_min_change=1e-4,
     max_irls_iterations=30,
-    coolEpsFact=1.5,
-    beta_tol=1e-2,
+    irls_cooling_factor=1.5,
+    misfit_tolerance=1e-2,
 )
 
 # Defining a starting value for the trade-off parameter (beta) between the data

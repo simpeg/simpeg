@@ -5,7 +5,7 @@ import scipy.sparse as sp
 
 from .... import maps, props
 from ....base import BasePDESimulation
-from ....data import Data
+from ....utils import mkvc
 from ..resistivity import Simulation2DCellCentered as DC_2D_CC
 from ..resistivity import Simulation2DNodal as DC_2D_N
 from ..resistivity import Simulation3DCellCentered as DC_3D_CC
@@ -43,7 +43,8 @@ class BaseIPSimulation(BasePDESimulation):
 
     @cached_property
     def _scale(self):
-        scale = Data(self.survey, np.ones(self.survey.nD))
+        survey_slices = self.survey.get_all_slices()
+        scale = np.ones(self.survey.nD)
         if self._f is None:
             # re-uses the DC simulation's fields method
             self._f = super().fields(None)
@@ -55,14 +56,15 @@ class BaseIPSimulation(BasePDESimulation):
         for src in self.survey.source_list:
             for rx in src.receiver_list:
                 if rx.data_type == "apparent_chargeability":
-                    scale[src, rx] = 1.0 / rx.eval(src, self.mesh, f)
-        return scale.dobs
+                    src_rx_slice = survey_slices[src, rx]
+                    scale[src_rx_slice] = mkvc(1.0 / rx.eval(src, self.mesh, f))
+        return scale
 
     eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability (V/V)")
 
     def __init__(
         self,
-        mesh=None,
+        mesh,
         survey=None,
         sigma=None,
         rho=None,
@@ -70,7 +72,7 @@ class BaseIPSimulation(BasePDESimulation):
         etaMap=None,
         Ainv=None,  # A DC's Ainv
         _f=None,  # A pre-computed DC field
-        **kwargs
+        **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.sigma = sigma
@@ -132,7 +134,7 @@ class BaseIPSimulation(BasePDESimulation):
         return super().Jtvec(m, v * self._scale, f)
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_update(self):
         toDelete = []
         return toDelete
 

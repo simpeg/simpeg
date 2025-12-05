@@ -2,11 +2,11 @@
 Magnetic inversion on a TreeMesh
 ================================
 
-In this example, we demonstrate the use of a Magnetic Vector Inverison
+In this example, we demonstrate the use of a Magnetic Vector Inversion
 on 3D TreeMesh for the inversion of magnetic data.
 
-The inverse problem uses the :class:'simpeg.regularization.VectorAmplitude'
-regularization borrowed from ...
+The inverse problem uses the :class:`simpeg.regularization.VectorAmplitude`
+regularization.
 
 """
 
@@ -106,7 +106,7 @@ ind = utils.model_builder.get_indices_block(
     np.r_[-30, -20, -10],
     np.r_[30, 20, 25],
     mesh.gridCC,
-)[0]
+)
 model_amp[ind] = 0.05
 model_azm_dip[ind, 0] = 45.0
 model_azm_dip[ind, 1] = 90.0
@@ -123,7 +123,7 @@ idenMap = maps.IdentityMap(nP=nC * 3)
 
 # Create the simulation
 simulation = magnetics.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, chiMap=idenMap, ind_active=actv, model_type="vector"
+    survey=survey, mesh=mesh, chiMap=idenMap, active_cells=actv, model_type="vector"
 )
 
 # Compute some data and add some random noise
@@ -170,7 +170,7 @@ dmis.W = 1.0 / data_object.standard_deviation
 
 # The optimization scheme
 opt = optimization.ProjectedGNCG(
-    maxIter=20, lower=-10, upper=10.0, maxIterLS=20, maxIterCG=20, tolCG=1e-4
+    maxIter=20, lower=-10, upper=10.0, maxIterLS=20, cg_maxiter=20, cg_rtol=1e-3
 )
 
 # The inverse problem
@@ -183,7 +183,9 @@ betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 sensitivity_weights = directives.UpdateSensitivityWeights()
 
 # Here is where the norms are applied
-IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=10, beta_tol=5e-1)
+IRLS = directives.UpdateIRLS(
+    f_min_change=1e-3, max_irls_iterations=10, misfit_tolerance=5e-1
+)
 
 # Pre-conditioner
 update_Jacobi = directives.UpdatePreconditioner()
