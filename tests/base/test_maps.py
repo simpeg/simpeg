@@ -594,6 +594,20 @@ class MapTests(unittest.TestCase):
             )
 
 
+def test_logit_limits():
+    logit_map = maps.LogisticSigmoidMap(lower_bound=-1, upper_bound=2)
+
+    assert logit_map * np.r_[0] == np.r_[0.5]
+    assert logit_map * np.r_[-50] == np.r_[-1]
+    assert logit_map * np.r_[50] == np.r_[2]
+
+    logit_map = maps.LogisticSigmoidMap(lower_bound=2, upper_bound=-1)
+
+    assert logit_map * np.r_[0] == np.r_[0.5]
+    assert logit_map * np.r_[-50] == np.r_[2]
+    assert logit_map * np.r_[50] == np.r_[-1]
+
+
 class TestWires(unittest.TestCase):
     def test_basic(self):
         mesh = discretize.TensorMesh([10, 10, 10])
