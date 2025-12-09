@@ -4,7 +4,6 @@ from simpeg.simulation import BaseSimulation
 from simpeg.survey import BaseSurvey
 from simpeg.maps import IdentityMap
 from simpeg.utils import validate_list_of_types, validate_type
-from simpeg.props import HasModel
 import itertools
 from dask.distributed import Client
 from dask.distributed import Future
@@ -27,7 +26,9 @@ def _normalize_simulation(sim):
 
 
 def _store_model(mapping, sim, model):
-    sim.model = mapping * model
+    if model is not None:
+        model = mapping * model
+    sim.model = model
 
 
 def _calc_fields(mapping, sim, model, apply_map=False):
@@ -274,8 +275,7 @@ class DaskMetaSimulation(MetaSimulation):
                 # Bad mapping model length
                 return 1
             map_out_shape = mapping.shape[0]
-            for name in sim._act_map_names:
-                sim_mapping = getattr(sim, name)
+            for _, sim_mapping in sim.parametrizations.items():
                 sim_in_shape = sim_mapping.shape[1]
                 if (
                     map_out_shape != "*"
@@ -307,25 +307,13 @@ class DaskMetaSimulation(MetaSimulation):
             )
 
         self._mappings = mappings
+        self._model_length = model_len
         if self._repeat_sim:
             self._workers = workers
 
     @property
-    def _model_map(self):
-        # create a bland mapping that has the correct input shape
-        # to test against model inputs, avoids pulling the first
-        # mapping back to the main task.
-        if not hasattr(self, "__model_map"):
-            client = self.client
-            n_m = client.submit(
-                lambda v: v.shape[1],
-                self.mappings[0],
-                workers=self._workers[0],
-                pure=False,
-            )
-            n_m = client.gather(n_m)
-            self.__model_map = IdentityMap(nP=n_m)
-        return self.__model_map
+    def _expected_model_length(self):
+        return self._model_length
 
     @property
     def client(self):
@@ -337,13 +325,9 @@ class DaskMetaSimulation(MetaSimulation):
         """
         return self._client
 
-    @property
-    def model(self):
-        return self._model
-
-    @model.setter
+    @MetaSimulation.model.setter
     def model(self, value):
-        updated = HasModel.model.fset(self, value)
+        updated = self._update_model(value)
         # Only send the model to the internal simulations if it was updated.
         if updated:
             client = self.client
