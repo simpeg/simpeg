@@ -4,14 +4,15 @@ on:
   pull_request_target:  # zizmor: ignore[dangerous-triggers]
     types: [opened]
 
-permissions:
-  contents: read
-  pull-requests: write
+permissions: {}
 
 jobs:
   call-workflow-add-jira-issue-summary:
     if: startsWith(github.repository, 'MiraGeoscience/')  # run if PR targets the Mira repo only
-    uses: MiraGeoscience/CI-tools/.github/workflows/reusable-jira-pr_add_jira_summary.yml@main
+    uses: MiraGeoscience/CI-tools/.github/workflows/reusable-jira-pr_add_jira_summary.yml@v2
+    permissions:
+      contents: read
+      pull-requests: write
     secrets:
       JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
       JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}

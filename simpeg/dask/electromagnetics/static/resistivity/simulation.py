@@ -181,6 +181,10 @@ def getSourceTerm(self):
             )
             blocks = []
             for ind in indices:
+
+                if len(ind) == 0:
+                    continue
+
                 blocks.append(
                     client.submit(source_eval, sim, future_list, ind, workers=worker)
                 )

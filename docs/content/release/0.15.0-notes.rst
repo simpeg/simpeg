@@ -109,7 +109,7 @@ Pull requests
 * `#983 <https://github.com/simpeg/simpeg/pull/983>`__: Update README.rst
 * `#984 <https://github.com/simpeg/simpeg/pull/984>`__: typo in the init
 * `#986 <https://github.com/simpeg/simpeg/pull/986>`__: Update README.rst
-* `#987 <https://github.com/simpeg/simpeg/pull/987>`__: Ensure the 2D IP simulation stores it's scale array as a float
+* `#987 <https://github.com/simpeg/simpeg/pull/987>`__: Ensure the 2D IP simulation stores its scale array as a float
 * `#993 <https://github.com/simpeg/simpeg/pull/993>`__: Dc boundary conditions updates
 * `#994 <https://github.com/simpeg/simpeg/pull/994>`__: Update plot_inv_mag_MVI_Sparse_TreeMesh.py
 * `#997 <https://github.com/simpeg/simpeg/pull/997>`__: Update api_mag.rst
