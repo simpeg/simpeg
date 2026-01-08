@@ -256,11 +256,34 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
 
         return weights
 
-    def _check_parameters(self, X):
+    def _warn_xp_not_numpy(self, xp):
+        """
+        Raise warning if the passed array API is not Numpy.
+
+        SimPEG's Gaussian Mixture Models don't currently support other array APIs beside
+        Numpy, so it's better to warn users that are intending to use another API.
+        """
+        if xp is None or xp is np:
+            return
+        try:
+            module = xp.__array_namespace_info__.__module__
+        except AttributeError:
+            module = "unknown"
+        if module.lower() != "numpy":
+            warnings.warn(
+                "Using array API is not supported in SimPEG's Gaussian Mixture Models "
+                "yet. Numpy will be used instead.",
+                UserWarning,
+                stacklevel=2,
+            )
+
+    def _check_parameters(self, X, xp=None):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         Check the Gaussian mixture parameters are well defined.
         """
+        self._warn_xp_not_numpy(xp)
+
         n_samples, n_features = X.shape
         if self.covariance_type not in ["spherical", "tied", "diag", "full"]:
             raise ValueError(
@@ -289,7 +312,7 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
                 n_features,
             )
 
-    def _initialize_parameters(self, X, random_state):
+    def _initialize_parameters(self, X, random_state, xp=None):
         """
         [modified from Scikit-Learn.mixture._base]
         Initialize the model parameters.
@@ -300,6 +323,8 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
         random_state : RandomState
             A random number generator instance.
         """
+        self._warn_xp_not_numpy(xp)
+
         n_samples, _ = X.shape
 
         if self.init_params == "kmeans":
@@ -322,7 +347,7 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
 
         self._initialize(X, resp)
 
-    def _m_step(self, X, log_resp):
+    def _m_step(self, X, log_resp, xp=None):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         M step.
@@ -334,6 +359,8 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
             Logarithm of the posterior probabilities (or responsibilities) of
             the point of each sample in X.
         """
+        self._warn_xp_not_numpy(xp)
+
         n_samples, _ = X.shape
         Volume = np.mean(self.cell_volumes)
         weights, self.means_, self.covariances_ = self._estimate_gaussian_parameters(
@@ -409,7 +436,7 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
         }[covariance_type](respVol, X, nk, means, reg_covar)
         return nk, means, covariances
 
-    def _e_step(self, X):
+    def _e_step(self, X, xp=None):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         E step.
@@ -426,6 +453,7 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
             Logarithm of the posterior probabilities (or responsibilities) of
             the point of each sample in X.
         """
+        self._warn_xp_not_numpy(xp)
         log_prob_norm, log_resp = self._estimate_log_prob_resp(X)
         return np.average(log_prob_norm, weights=self.cell_volumes), log_resp
 
@@ -1316,7 +1344,7 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
             # **kwargs
         )
 
-    def _initialize(self, X, resp):
+    def _initialize(self, X, resp, xp=None):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         Initialization of the Gaussian mixture parameters.
@@ -1326,6 +1354,8 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
         X : array-like, shape (n_samples, n_features)
         resp : array-like, shape (n_samples, n_components)
         """
+        self._warn_xp_not_numpy(xp)
+
         n_samples, _ = X.shape
 
         weights, means, covariances = self._estimate_gaussian_parameters(
@@ -1412,10 +1442,12 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
 
         return -0.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det
 
-    def _estimate_log_prob(self, X):
+    def _estimate_log_prob(self, X, xp=None):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         """
+        self._warn_xp_not_numpy(xp)
+
         return self._estimate_log_gaussian_prob(
             X,
             self.means_,
@@ -1424,10 +1456,14 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
             self.cluster_mapping,
         )
 
-    def _estimate_gaussian_parameters(self, X, resp, reg_covar, covariance_type):
+    def _estimate_gaussian_parameters(
+        self, X, resp, reg_covar, covariance_type, xp=None
+    ):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         """
+        self._warn_xp_not_numpy(xp)
+
         respVol = self.cell_volumes.reshape(-1, 1) * resp
         nk = respVol.sum(axis=0) + 10 * np.finfo(resp.dtype).eps
         # stupid lazy piece of junk code to get the shapes right
@@ -1526,7 +1562,7 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
 
         return (X, y)
 
-    def _m_step(self, X, log_resp):
+    def _m_step(self, X, log_resp, xp=None):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         M step.
@@ -1537,6 +1573,8 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
             Logarithm of the posterior probabilities (or responsibilities) of
             the point of each sample in X.
         """
+        self._warn_xp_not_numpy(xp)
+
         n_samples, _ = X.shape
         (
             self.weights_,
@@ -1634,7 +1672,7 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
             # **kwargs
         )
 
-    def _initialize(self, X, resp):
+    def _initialize(self, X, resp, xp=None):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         Initialization of the Gaussian mixture parameters.
@@ -1643,6 +1681,8 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
         X : array-like, shape (n_samples, n_features)
         resp : array-like, shape (n_samples, n_components)
         """
+        self._warn_xp_not_numpy(xp)
+
         n_samples, _ = X.shape
 
         weights, means, covariances = self._estimate_gaussian_parameters(
@@ -1728,7 +1768,8 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
 
         return -0.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det
 
-    def _estimate_log_prob(self, X):
+    def _estimate_log_prob(self, X, xp=None):
+        self._warn_xp_not_numpy(xp)
         return self._estimate_log_gaussian_prob(
             X,
             self.means_,
@@ -1769,7 +1810,7 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
             )[k]
         return nk, means, covariances
 
-    def _m_step(self, X, log_resp):
+    def _m_step(self, X, log_resp, xp=None):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         M step.
@@ -1780,6 +1821,8 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
             Logarithm of the posterior probabilities (or responsibilities) of
             the point of each sample in X.
         """
+        self._warn_xp_not_numpy(xp)
+
         n_samples, _ = X.shape
         (
             self.weights_,
