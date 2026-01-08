@@ -54,21 +54,21 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
     Weighted Gaussian mixture class
 
     This class is built upon the :class:`sklearn.mixture.GaussianMixture` class from
-    scikit-Learn, with two main modifications:
+    scikit-learn, with two main modifications:
 
     1. Each sample/observation is given a weight, the volume of the corresponding
-       discretize.BaseMesh cell, when fitting the Gaussian Mixture Model (GMM). More
-       volume gives more importance, ensuing a mesh-free evaluation of the clusters of
-       the geophysical model.
+       :class:`discretize.base.BaseMesh` cell, when fitting the Gaussian Mixture Model
+       (GMM). More volume gives more importance, ensuing a mesh-free evaluation of the
+       clusters of the geophysical model.
     2. When set manually, the proportions can be set either globally (normal behavior)
        or cell-by-cell (improvements).
 
     .. attention::
 
         This class built upon the :class:`sklearn.mixture.GaussianMixture` class from
-        Scikit-Learn. New functionalities are added, as well as modifications to
+        scikit-learn. New functionalities are added, as well as modifications to
         existing functions, to serve the purposes pursued within SimPEG. This use is
-        allowed by the scikit-Learn licensing (BSD-3-Clause License) and we are grateful
+        allowed by the scikit-learn licensing (BSD-3-Clause License) and we are grateful
         for their contributions to the open-source community.
 
     There are some additional parameters to provide to this class, compared to
@@ -79,7 +79,7 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
     n_components : int
         Number of components
     mesh : discretize.base.BaseMesh
-        :class:`discretize.TensorMesh` or :class:`discretize.TreeMesh`) mesh: the volume
+        :class:`discretize.TensorMesh` or :class:`discretize.TreeMesh` mesh. The volume
         of the cells give each sample/observations its weight in the fitting process.
     actv : array, optional
         Active indices.
@@ -855,7 +855,7 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
     """
     This class built upon the :class:`~simpeg.utils.WeightedGaussianMixture`, which
     itself built upon from the :clas::`sklearn.mixture.GaussianMixture` class from
-    Scikit-Learn.
+    scikit-learn.
 
     In addition to weights samples/observations by the cells volume of the mesh, this
     class uses a posterior approach to fit the GMM parameters. This means it takes prior
@@ -870,13 +870,13 @@ class GaussianMixtureWithPrior(WeightedGaussianMixture):
     .. attention::
 
         This class built upon the :class:`sklearn.mixture.GaussianMixture` class from
-        Scikit-Learn. New functionalities are added, as well as modifications to
+        scikit-learn. New functionalities are added, as well as modifications to
         existing functions, to serve the purposes pursued within SimPEG. This use is
-        allowed by the scikit-Learn licensing (BSD-3-Clause License) and we are grateful
+        allowed by the scikit-learn licensing (BSD-3-Clause License) and we are grateful
         for their contributions to the open-source community.
 
     There are some additional parameters to provide to this class, compared to
-    :class:`sklearn.mixture.GaussianMixture`.
+    :class:`~simpeg.utils.WeightedGaussianMixture`.
 
     Parameters
     ----------
@@ -1284,7 +1284,7 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
     """Gaussian mixture class for non-linear relationships.
 
     This class built upon the WeightedGaussianMixture, which itself built upon from
-    the mixture.gaussian_mixture.GaussianMixture class from Scikit-Learn.
+    the mixture.gaussian_mixture.GaussianMixture class from scikit-learn.
 
     In addition to weights samples/observations by the cells volume of the mesh,
     this class can be given specified nonlinear relationships between physical properties.
@@ -1292,13 +1292,14 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
     list of mapping (cluster_mapping argument). Functions are added and modified
     to fill that purpose, in particular the `fit` and  `samples` functions.
 
-    Disclaimer: this class built upon the GaussianMixture class from Scikit-Learn.
+    Disclaimer: this class built upon the GaussianMixture class from scikit-learn.
     New functionalitie are added, as well as modifications to
     existing functions, to serve the purposes pursued within SimPEG.
-    This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)
+    This use is allowed by the scikit-learn licensing (BSD-3-Clause License)
     and we are grateful for their contributions to the open-source community.
 
-    Addtional parameters to provide, compared to `WeightedGaussianMixture`:
+    There are some additional parameters to provide to this class, compared to
+    :class:`~simpeg.utils.WeightedGaussianMixture`.
 
     Parameters
     ----------
@@ -1600,7 +1601,7 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
 
     This class built upon the :class:`~simpeg.utils.GaussianMixtureWithPrior`, which
     itself built upon from the :class:`~simpeg.utils.WeightedGaussianMixture`, built up
-    from the :class:`sklearn.mixture.GaussianMixture` class from Scikit-Learn.
+    from the :class:`sklearn.mixture.GaussianMixture` class from scikit-learn.
 
     In addition to weights samples/observations by the cells volume of the mesh
     (from :class:`~simpeg.utils.WeightedGaussianMixture`), and nonlinear relationships
@@ -1619,13 +1620,13 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
     .. attention::
 
         This class built upon the :class:`sklearn.mixture.GaussianMixture` class from
-        Scikit-Learn. New functionalities are added, as well as modifications to
+        scikit-learn. New functionalities are added, as well as modifications to
         existing functions, to serve the purposes pursued within SimPEG. This use is
         allowed by the scikit-Learn licensing (BSD-3-Clause License) and we are grateful
         for their contributions to the open-source community.
 
     There are some additional parameters to provide to this class, compared to
-    :class:`sklearn.mixture.GaussianMixture`.
+    :class:`~simpeg.utils.GaussianMixtureWithPrior`.
 
     Parameters
     ----------
