@@ -1445,10 +1445,12 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
 
         return -0.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det
 
-    def _estimate_log_prob(self, X):
+    def _estimate_log_prob(self, X, xp=None):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         """
+        self._warn_xp_not_numpy(xp)
+
         return self._estimate_log_gaussian_prob(
             X,
             self.means_,
@@ -1457,10 +1459,12 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
             self.cluster_mapping,
         )
 
-    def _estimate_gaussian_parameters(self, X, resp, reg_covar, covariance_type):
+    def _estimate_gaussian_parameters(self, X, resp, reg_covar, covariance_type, xp=None):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         """
+        self._warn_xp_not_numpy(xp)
+
         respVol = self.cell_volumes.reshape(-1, 1) * resp
         nk = respVol.sum(axis=0) + 10 * np.finfo(resp.dtype).eps
         # stupid lazy piece of junk code to get the shapes right
@@ -1765,7 +1769,8 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
 
         return -0.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det
 
-    def _estimate_log_prob(self, X):
+    def _estimate_log_prob(self, X, xp=None):
+        self._warn_xp_not_numpy(xp)
         return self._estimate_log_gaussian_prob(
             X,
             self.means_,
