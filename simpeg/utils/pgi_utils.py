@@ -263,22 +263,19 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
         SimPEG's Gaussian Mixture Models don't currently support other array APIs beside
         Numpy, so it's better to warn users that are intending to use another API.
         """
-        if xp is None:
-            return
-        if xp is np:
+        if xp is None or xp is np:
             return
         try:
             module = xp.__array_namespace_info__.__module__
         except AttributeError:
-            pass
-        else:
-            if module.lower() != "numpy":
-                warnings.warn(
-                    "Using array API is not supported in SimPEG's Gaussian Mixture Models "
-                    "yet. Numpy will be used instead.",
-                    UserWarning,
-                    stacklevel=2,
-                )
+            module = "unknown"
+        if module.lower() != "numpy":
+            warnings.warn(
+                "Using array API is not supported in SimPEG's Gaussian Mixture Models "
+                "yet. Numpy will be used instead.",
+                UserWarning,
+                stacklevel=2,
+            )
 
     def _check_parameters(self, X, xp=None):
         """
