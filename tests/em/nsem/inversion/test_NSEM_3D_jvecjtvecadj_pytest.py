@@ -5,7 +5,7 @@ from simpeg import (
     maps,
     data_misfit,
 )
-from simpeg.utils import mkvc, model_builder
+from simpeg.utils import mkvc, model_builder, get_default_solver
 from simpeg.electromagnetics import natural_source as nsem
 
 ADJ_RTOL = 1e-10
@@ -158,7 +158,11 @@ class TestDerivatives:
 
         # Define the simulation
         sim = nsem.simulation.Simulation3DPrimarySecondary(
-            mesh, survey=survey, sigmaMap=mapping, sigmaPrimary=sigma_hs
+            mesh,
+            survey=survey,
+            sigmaMap=mapping,
+            sigmaPrimary=sigma_hs,
+            solver=get_default_solver(),
         )
 
         n_active = np.sum(active_cells)
