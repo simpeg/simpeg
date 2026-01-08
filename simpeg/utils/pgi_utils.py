@@ -1,4 +1,3 @@
-import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -278,7 +277,7 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
                     "Using array API is not supported in SimPEG's Gaussian Mixture Models "
                     "yet. Numpy will be used instead.",
                     UserWarning,
-                    stacklevel=2
+                    stacklevel=2,
                 )
 
     def _check_parameters(self, X, xp=None):
