@@ -1459,7 +1459,9 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
             self.cluster_mapping,
         )
 
-    def _estimate_gaussian_parameters(self, X, resp, reg_covar, covariance_type, xp=None):
+    def _estimate_gaussian_parameters(
+        self, X, resp, reg_covar, covariance_type, xp=None
+    ):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         """
