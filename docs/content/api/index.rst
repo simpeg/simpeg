@@ -32,6 +32,15 @@ Regularizations
 
   simpeg.regularization
 
+Optimizers
+----------
+Optimizers used within SimPEG inversions.
+
+.. toctree::
+  :maxdepth: 2
+
+  simpeg.optimization
+
 Directives
 ----------
 .. toctree::
@@ -41,7 +50,6 @@ Directives
 
 Utilities
 ---------
-
 Classes and functions for performing useful operations.
 
 .. toctree::

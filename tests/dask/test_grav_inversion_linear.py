@@ -102,7 +102,12 @@ class GravInvLinProblemTest(unittest.TestCase):
 
         # Add directives to the inversion
         opt = optimization.ProjectedGNCG(
-            maxIter=100, lower=-1.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-4
+            maxIter=100,
+            lower=-1.0,
+            upper=1.0,
+            maxIterLS=20,
+            cg_maxiter=10,
+            cg_rtol=1e-4,
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e2)
 

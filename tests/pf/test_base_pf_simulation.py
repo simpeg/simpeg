@@ -309,40 +309,25 @@ class TestInvalidMesh:
             mock_simulation_class(CylindricalMesh(h))
 
 
-class TestDeprecationIndActive:
+class TestRemovedIndActive:
     """
-    Test if using the deprecated ind_active argument/property raise warnings/errors
+    Test if using the removed ``ind_active`` argument/property raise errors.
     """
 
-    def test_deprecated_argument(self, tensor_mesh, mock_simulation_class):
-        """Test if passing ind_active argument raises warning."""
+    def test_removed_argument(self, tensor_mesh, mock_simulation_class):
+        """Test if passing ind_active argument raises error."""
         ind_active = np.ones(tensor_mesh.n_cells, dtype=bool)
-        version_regex = "v[0-9]+.[0-9]+.[0-9]+"
         msg = (
-            "'ind_active' has been deprecated and will be removed in "
-            f" SimPEG {version_regex}, please use 'active_cells' instead."
-        )
-        with pytest.warns(FutureWarning, match=msg):
-            sim = mock_simulation_class(tensor_mesh, ind_active=ind_active)
-        np.testing.assert_allclose(sim.active_cells, ind_active)
-
-    def test_error_both_args(self, tensor_mesh, mock_simulation_class):
-        """Test if passing both ind_active and active_cells raises error."""
-        ind_active = np.ones(tensor_mesh.n_cells, dtype=bool)
-        version_regex = "v[0-9]+.[0-9]+.[0-9]+"
-        msg = (
-            f"Cannot pass both 'active_cells' and 'ind_active'."
-            "'ind_active' has been deprecated and will be removed in "
-            f" SimPEG {version_regex}, please use 'active_cells' instead."
+            "'ind_active' has been removed in "
+            "SimPEG v0.24.0, please use 'active_cells' instead."
         )
         with pytest.raises(TypeError, match=msg):
-            mock_simulation_class(
-                tensor_mesh, active_cells=ind_active, ind_active=ind_active
-            )
+            mock_simulation_class(tensor_mesh, ind_active=ind_active)
 
-    def test_deprecated_property(self, tensor_mesh, mock_simulation_class):
-        """Test if passing both ind_active and active_cells raises error."""
+    def test_removed_property(self, tensor_mesh, mock_simulation_class):
+        """Test if accessing the ind_active property raises an error."""
         ind_active = np.ones(tensor_mesh.n_cells, dtype=bool)
         simulation = mock_simulation_class(tensor_mesh, active_cells=ind_active)
-        with pytest.warns(FutureWarning):
+        msg = "ind_active has been removed, please use active_cells."
+        with pytest.raises(NotImplementedError, match=msg):
             simulation.ind_active

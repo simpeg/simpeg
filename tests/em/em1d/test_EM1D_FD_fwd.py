@@ -9,6 +9,7 @@ from geoana.em.fdem import (
     vertical_magnetic_field_horizontal_loop as mag_field,
 )
 import empymod
+import pytest
 
 
 class EM1D_FD_test_failures(unittest.TestCase):
@@ -546,6 +547,100 @@ class EM1D_FD_LineCurrentTest(unittest.TestCase):
 
         err = np.linalg.norm(H - H_analytic) / np.linalg.norm(H_analytic)
         self.assertLess(err, 1e-4)
+
+
+@pytest.mark.parametrize(
+    "rx_class",
+    [fdem.receivers.PointMagneticField, fdem.receivers.PointMagneticFieldSecondary],
+)
+@pytest.mark.parametrize("n_locs1", [1, 4])
+@pytest.mark.parametrize("n_locs2", [1, 4])
+@pytest.mark.parametrize("orientation", ["x", "y", "z"])
+@pytest.mark.parametrize("component", ["real", "imag", "both"])
+def test_rx_loc_shapes(rx_class, n_locs1, n_locs2, orientation, component):
+    offsets = np.full(n_locs1, 100.0)
+    rx1_locs = np.pad(offsets[:, None], ((0, 0), (0, 2)), constant_values=0)
+    offsets = np.full(n_locs2, 100.0)
+    rx2_locs = np.pad(offsets[:, None], ((0, 0), (0, 2)), constant_values=0)
+
+    rx_list = [
+        rx_class(rx1_locs, orientation=orientation, component=component),
+        rx_class(rx2_locs, orientation=orientation, component=component),
+    ]
+    n_d = n_locs1 + n_locs2
+    if component == "both":
+        n_d *= 2
+
+    src = fdem.sources.MagDipole(rx_list, frequency=0.1)
+    srv = fdem.Survey(src)
+
+    sim = fdem.Simulation1DLayered(survey=srv, sigma=[1])
+    d = sim.dpred(None)
+
+    # assert the shape is correct
+    assert d.shape == (n_d,)
+
+    # every value should be the same...
+    d1 = d[srv.get_slice(src, rx_list[0])]
+    d2 = d[srv.get_slice(src, rx_list[1])]
+
+    if component == "both":
+        d1 = d1[::2] + 1j * d1[1::2]
+        d2 = d2[::2] + 1j * d2[1::2]
+    d = np.r_[d1, d2]
+    np.testing.assert_allclose(d, d[0], rtol=1e-12)
+
+    sim.sigmaMap = maps.IdentityMap(nP=1)
+    # make sure forming J works
+    J = sim.getJ(np.ones(1))
+    assert J.shape == (n_d, 1)
+
+    # and all of its values are the same too:
+    j1 = J[srv.get_slice(src, rx_list[0]), 0]
+    j2 = J[srv.get_slice(src, rx_list[1]), 0]
+
+    if component == "both":
+        j1 = j1[::2] + 1j * j1[1::2]
+        j2 = j2[::2] + 1j * j2[1::2]
+    J = np.r_[j1, j2]
+    np.testing.assert_allclose(J, J[0], rtol=1e-12)
+
+
+@pytest.mark.parametrize("prop", ["conductivity", "permeability"])
+def test_real_vs_complex(prop):
+    """just makes sure that it respect a complex conductivity, in that it is different
+    from the real value.
+    """
+    offsets = np.linspace(5, 20, 10)
+    rx1_locs = np.pad(offsets[:, None], ((0, 0), (0, 2)), constant_values=0)
+    rx_list = [
+        fdem.receivers.PointMagneticField(rx1_locs, orientation="x", component="real"),
+        fdem.receivers.PointMagneticField(rx1_locs, orientation="x", component="imag"),
+    ]
+
+    src = fdem.sources.MagDipole(rx_list, frequency=0.1)
+    srv = fdem.Survey(src)
+
+    sim = fdem.Simulation1DLayered(survey=srv, sigma=[1.0])
+    if prop == "conductivity":
+        sim.eta = 0.5
+    else:
+        sim.dchi = 1.0
+
+    d_c = sim.dpred(None)
+
+    # create another simulation that is just the real part of sigma and mu
+    sim_real = fdem.Simulation1DLayered(survey=srv, sigma=[1.0])
+
+    # hijack these to just return the real values from the complex valued simulation
+    # that way we are sure the two simulations have the same real parts of mu and sigma
+    # but different imaginary portions
+    sim_real.compute_complex_sigma = lambda f: sim.compute_complex_sigma(f).real
+    sim_real.compute_complex_mu = lambda f: sim.compute_complex_mu(f).real
+
+    d_r = sim_real.dpred(None)
+
+    assert np.all(d_r != d_c)
 
 
 if __name__ == "__main__":

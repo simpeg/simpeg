@@ -6,14 +6,14 @@ import numpy as np
 from dataclasses import dataclass
 
 from ..maps import Projection
-from .directives import InversionDirective, UpdatePreconditioner, BetaSchedule
+from ._directives import InversionDirective, UpdatePreconditioner, BetaSchedule
 from ..regularization import (
     Sparse,
     BaseSparse,
     SmoothnessFirstOrder,
     WeightedLeastSquares,
 )
-from ..utils import validate_integer, validate_float
+from ..utils import validate_integer, validate_float, deprecate_class
 
 
 @dataclass
@@ -224,20 +224,20 @@ class UpdateIRLS(InversionDirective):
         """
         Adjust the cooling schedule based on the misfit.
         """
-        if self.metrics.start_irls_iter is None:
-            return
+        if self.metrics.start_irls_iter is not None:
+            ratio = self.invProb.phi_d / self.misfit_from_chi_factor(
+                self.chifact_target
+            )
+            if np.abs(1.0 - ratio) > self.misfit_tolerance:
 
-        ratio = self.invProb.phi_d / self.misfit_from_chi_factor(self.chifact_target)
-        if np.abs(1.0 - ratio) > self.misfit_tolerance:
+                if ratio > 1:
+                    update_ratio = 1 / np.mean([0.75, 1 / ratio])
+                else:
+                    update_ratio = 1 / np.mean([2.0, 1 / ratio])
 
-            if ratio > 1:
-                update_ratio = 1 / np.mean([0.75, 1 / ratio])
+                self.cooling_factor = update_ratio
             else:
-                update_ratio = 1 / np.mean([2.0, 1 / ratio])
-
-            self.cooling_factor = update_ratio
-        else:
-            self.cooling_factor = 1.0
+                self.cooling_factor = 1.0
 
     def initialize(self):
         """
@@ -497,3 +497,8 @@ class SphericalUnitsWeights(InversionDirective):
                     continue
 
                 obj.set_weights(angle_scale=np.ones_like(amplitude) * max_p / np.pi)
+
+
+@deprecate_class(removal_version="0.24.0", error=True)
+class Update_IRLS(UpdateIRLS):
+    pass

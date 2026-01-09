@@ -110,7 +110,7 @@ class MagInvLinProblemTest(unittest.TestCase):
 
         # Add directives to the inversion
         opt = optimization.ProjectedGNCG(
-            maxIter=100, lower=0.0, upper=1.0, maxIterLS=20, maxIterCG=10, tolCG=1e-3
+            maxIter=100, lower=0.0, upper=1.0, maxIterLS=20, cg_maxiter=10, cg_rtol=1e-3
         )
 
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)

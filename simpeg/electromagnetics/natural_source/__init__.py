@@ -27,8 +27,6 @@ Receivers
   receivers.Admittance
   receivers.ApparentConductivity
   receivers.Tipper
-  receivers.PointNaturalSource
-  receivers.Point3DTipper
 
 Sources
 =======

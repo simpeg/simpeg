@@ -1,3 +1,5 @@
+import re
+import pytest
 import unittest
 
 import numpy as np
@@ -5,6 +7,7 @@ import discretize
 
 from simpeg import maps
 from simpeg import data_misfit, simulation, survey
+from simpeg import Data
 
 
 class DataMisfitTest(unittest.TestCase):
@@ -67,6 +70,73 @@ class DataMisfitTest(unittest.TestCase):
         self.data.relative_error = self.relative
         self.data.noise_floor = self.noise_floor
         self.dmis.test(x=self.model, random_seed=17)
+
+    def test_real_valued(self):
+        # Change model
+        new_model = self.model + 1
+
+        # Misfit to data
+        misfit_original = self.dmis(new_model)
+
+        # Test pseudo-complex, with 0 imaginary part; misfit must be the same
+        d_pseudo = Data(self.sim.survey, dobs=self.data.dobs + 0j * self.data.dobs)
+        d_pseudo.relative_error = self.relative
+        d_pseudo.noise_floor = self.noise_floor
+        dmis_pseudo = data_misfit.L2DataMisfit(simulation=self.sim, data=d_pseudo)
+        misfit_pseudo = dmis_pseudo(new_model)
+        # assert_array_equal with strict also checks dtype
+        np.testing.assert_array_equal(misfit_original, misfit_pseudo, strict=True)
+
+        # Test actually complex; misfit must be different
+        data_imag = self.sim.make_synthetic_data(self.model, random_seed=17)
+        d_complex = Data(self.sim.survey, dobs=self.data.dobs + 1j * data_imag.dobs)
+        d_complex.relative_error = self.relative
+        d_complex.noise_floor = self.noise_floor
+        dmis_complex = data_misfit.L2DataMisfit(simulation=self.sim, data=d_complex)
+        misfit_complex = dmis_complex(new_model)
+        assert misfit_original != misfit_complex
+        assert misfit_complex.dtype == np.float64
+
+
+class MockSimulation(simulation.BaseSimulation):
+    """
+    Mock simulation class that returns nans or infs in the dpred array.
+    """
+
+    def __init__(self, invalid_value=np.nan):
+        self.invalid_value = invalid_value
+        super().__init__()
+
+    def dpred(self, m=None, f=None):
+        a = np.arange(4, dtype=np.float64)
+        a[1] = self.invalid_value
+        return a
+
+
+class TestNanOrInfInResidual:
+    """Test errors if the simulation return dpred with nans or infs."""
+
+    @pytest.fixture
+    def n_data(self):
+        return 4
+
+    @pytest.fixture
+    def sample_survey(self, n_data):
+        receivers = survey.BaseRx(np.zeros(n_data)[:, np.newaxis])
+        source = survey.BaseSrc([receivers])
+        return survey.BaseSurvey([source])
+
+    @pytest.mark.parametrize("invalid_value", [np.nan, np.inf])
+    def test_error(self, sample_survey, invalid_value):
+        mock_simulation = MockSimulation(invalid_value)
+        data = Data(sample_survey)
+        dmisfit = data_misfit.BaseDataMisfit(data, mock_simulation)
+        msg = re.escape(
+            "The `MockSimulation.dpred()` method returned an array that contains "
+            "`nan`s and/or `inf`s."
+        )
+        with pytest.raises(ValueError, match=msg):
+            dmisfit.residual(m=None)
 
 
 if __name__ == "__main__":

@@ -4,11 +4,11 @@ from ...utils.code_utils import (
     validate_ndarray_with_shape,
     deprecate_class,
 )
-import warnings
 import numpy as np
 from scipy.constants import mu_0
 from scipy.sparse import csr_matrix
 from ...survey import BaseRx
+from simpeg.utils import mkvc
 
 
 def _alpha(src):
@@ -128,9 +128,7 @@ class BaseNaturalSourceRx(BaseRx):
 
 
 class _ElectricAndMagneticReceiver(BaseNaturalSourceRx):
-    """
-    Intermediate class for MT receivers that measure an electric and magnetic field
-    """
+    """Intermediate class for MT receivers that measure an electric and magnetic field."""
 
     _loc_names = ("Electric field", "Magnetic field")
 
@@ -236,7 +234,7 @@ class Impedance(_ElectricAndMagneticReceiver):
 
     @property
     def component(self):
-        r"""Data type; i.e. "real", "imag", "apparent_resistivity", "phase"
+        r"""Data type; i.e. "real", "imag", "apparent_resistivity", "phase".
 
         For the impedance element :math:`Z_{ij}`, the `component` property specifies
         whether the data are:
@@ -301,7 +299,7 @@ class Impedance(_ElectricAndMagneticReceiver):
 
     def _eval_impedance(self, src, mesh, f):
         if mesh.dim < 3 and self.orientation in ["xx", "yy"]:
-            return 0.0
+            return np.zeros((self.nD, 1), dtype=complex)
         e = f[src, "e"]
         h = f[src, "h"]
         if mesh.dim == 3:
@@ -506,7 +504,6 @@ class Impedance(_ElectricAndMagneticReceiver):
         numpy.ndarray
             Evaluated data for the receiver.
         """
-
         imp = self._eval_impedance(src, mesh, f)
         if self.component == "complex":
             return imp
@@ -552,8 +549,8 @@ class Impedance(_ElectricAndMagneticReceiver):
         Returns
         -------
         numpy.ndarray
-            Calculated derivative (n_data,) if `adjoint` is ``False``, and (n_param, 2) if `adjoint`
-            is ``True``, for both polarizations.
+            Calculated derivative (n_data,) if `adjoint` is ``False``,
+            and (n_param, 2) if `adjoint` is ``True``, for both polarizations.
         """
         if self.component == "complex":
             raise NotImplementedError(
@@ -584,9 +581,13 @@ class Tipper(BaseNaturalSourceRx):
     according to:
 
     .. math::
-        \begin{bmatrix} T_{xx} & T_{yx} & T_{zx} \\ T_{xy} & T_{yy} & T_{zy} \end{bmatrix} =
-        \begin{bmatrix} H_x^{(x)} & H_y^{(x)} \\ H_x^{(y)} & H_y^{(y)} \end{bmatrix}_b^{-1} \,
-        \begin{bmatrix} H_x^{(x)} & H_y^{(x)} & H_z^{(x)} \\ H_x^{(y)} & H_y^{(y)} & H_z^{(y)} \end{bmatrix}_r
+        \begin{bmatrix}
+        T_{xx} & T_{yx} & T_{zx} \\ T_{xy} & T_{yy} & T_{zy}
+        \end{bmatrix} = \begin{bmatrix}
+        H_x^{(x)} & H_y^{(x)} \\ H_x^{(y)} & H_y^{(y)}
+        \end{bmatrix}_b^{-1} \, \begin{bmatrix}
+        H_x^{(x)} & H_y^{(x)} & H_z^{(x)} \\ H_x^{(y)} & H_y^{(y)} & H_z^{(y)}
+        \end{bmatrix}_r
 
     where subscript :math:`b` denotes the base station location and subscript
     :math:`r` denotes the mobile receiver location.
@@ -655,7 +656,7 @@ class Tipper(BaseNaturalSourceRx):
 
     @property
     def component(self):
-        r"""Tipper data type; i.e. "real", "imag"
+        r"""Tipper data type; i.e. "real", "imag".
 
         For the tipper element :math:`T_{ij}`, the `component` property specifies
         whether the data are:
@@ -829,9 +830,13 @@ class Admittance(_ElectricAndMagneticReceiver):
     This class is used to simulate data types that can be derived from the admittance tensor:
 
     .. math::
-        \begin{bmatrix} Y_{xx} & Y_{xy} \\ Y_{yx} & Y_{yy} \\ Y_{zx} & Y_{zy} \end{bmatrix} =
-        \begin{bmatrix} H_x^{(x)} & H_x^{(y)} \\ H_y^{(x)} & H_y^{(y)} \\ H_z^{(x)} & H_z^{(y)} \end{bmatrix}_{\, r} \;
-        \begin{bmatrix} E_x^{(x)} & E_x^{(y)} \\ E_y^{(x)} & E_y^{(y)} \end{bmatrix}_b^{-1}
+        \begin{bmatrix}
+        Y_{xx} & Y_{xy} \\ Y_{yx} & Y_{yy} \\ Y_{zx} & Y_{zy}
+        \end{bmatrix} = \begin{bmatrix}
+        H_x^{(x)} & H_x^{(y)} \\ H_y^{(x)} & H_y^{(y)} \\ H_z^{(x)} & H_z^{(y)}
+        \end{bmatrix}_{\, r} \; \begin{bmatrix}
+        E_x^{(x)} & E_x^{(y)} \\ E_y^{(x)} & E_y^{(y)}
+        \end{bmatrix}_b^{-1}
 
     where superscripts :math:`(x)` and :math:`(y)` denote signals corresponding to
     incident planewaves whose electric fields are polarized along the x and y-directions
@@ -1046,20 +1051,21 @@ class Admittance(_ElectricAndMagneticReceiver):
 class ApparentConductivity(_ElectricAndMagneticReceiver):
     r"""Receiver class for simulating apparent conductivity data (3D problems only).
 
-    This class is used to simulate apparent conductivity data, in S/m, as defined by:
+    This class is used to simulate an apparent conductivity datum, in S/m, as defined by:
 
     .. math::
-        \sigma_{app} = \mu_0 \omega \dfrac{\big | \vec{H} \big |^2}{\big | \vec{E} \big |^2}
+        \sigma_{app} = \mu_0 \omega \dfrac{\bar{H}^2}{ \bar{E} ^2}
 
     where :math:`\omega` is the angular frequency in rad/s,
 
     .. math::
-        \big | \vec{H} \big | = \Big [ H_x^2 + H_y^2 + H_z^2 \Big ]^{1/2}
+        \bar{H} \big |^2 = \big | \vec{H}^{(x)} \big |^2 + \big | \vec{H}^{(y)} \big |^2
 
     and
 
     .. math::
-        \big | \vec{E} \big | = \Big [ E_x^2 + E_y^2 \Big ]^{1/2}
+        \bar{E}^2= \Big [ \big | E_x^{(x)} \big |^2 + \big | E_y^{(x)} \big |^2 \Big ]
+        = \Big [ \big | E_x^{(y)} \big |^2 + \big | E_y^{(y)} \big |^2 \Big ]
 
     Parameters
     ----------
@@ -1070,6 +1076,13 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
         locations as electric field measurements, `locations_e`.
     storeProjections : bool
         Whether to cache to internal projection matrices.
+
+    Notes
+    -----
+    It is important to take the amplitudes of the fields resulting from x and y planewave
+    polarizations separately, then summing. Adding the fields from x and y planewaves then
+    summing can result in simulated anomalies which do not presented entirely over
+    conductive/resistive targets.
     """
 
     def __init__(self, locations_e, locations_h=None, storeProjections=False):
@@ -1090,20 +1103,14 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
         e = f[src, "e"]
         h = f[src, "h"]
 
-        Pex = self.getP(mesh, "Ex", 0)
-        Pey = self.getP(mesh, "Ey", 0)
-        Phx = self.getP(mesh, "Fx", 1)
-        Phy = self.getP(mesh, "Fy", 1)
-        Phz = self.getP(mesh, "Fz", 1)
+        ex = self.getP(mesh, "Ex", 0) @ e
+        ey = self.getP(mesh, "Ey", 0) @ e
+        hx = self.getP(mesh, "Fx", 1) @ h
+        hy = self.getP(mesh, "Fy", 1) @ h
+        hz = self.getP(mesh, "Fz", 1) @ h
 
-        ex = np.sum(Pex @ e, axis=-1)
-        ey = np.sum(Pey @ e, axis=-1)
-        hx = np.sum(Phx @ h, axis=-1)
-        hy = np.sum(Phy @ h, axis=-1)
-        hz = np.sum(Phz @ h, axis=-1)
-
-        top = np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2
-        bot = np.abs(ex) ** 2 + np.abs(ey) ** 2
+        top = np.sum(np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2, axis=-1)
+        bot = np.sum(np.abs(ex) ** 2 + np.abs(ey) ** 2, axis=-1)
 
         return (2 * np.pi * src.frequency * mu_0) * top / bot
 
@@ -1125,21 +1132,24 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
         Phy = self.getP(mesh, "Fy", 1)
         Phz = self.getP(mesh, "Fz", 1)
 
-        ex = np.sum(Pex @ e, axis=-1)
-        ey = np.sum(Pey @ e, axis=-1)
-        hx = np.sum(Phx @ h, axis=-1)
-        hy = np.sum(Phy @ h, axis=-1)
-        hz = np.sum(Phz @ h, axis=-1)
+        ex = Pex @ e
+        ey = Pey @ e
+        hx = Phx @ h
+        hy = Phy @ h
+        hz = Phz @ h
 
         fact = 2 * np.pi * src.frequency * mu_0
-        top = np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2
-        bot = np.abs(ex) ** 2 + np.abs(ey) ** 2
+        top = np.sum(np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2, axis=-1)
+        bot = np.sum(np.abs(ex) ** 2 + np.abs(ey) ** 2, axis=-1)
 
         # ADJOINT
         if adjoint:
             # Compute: J_T * v = d_top_T * a_v + d_bot_T * b
             a_v = fact * v / bot  # term 1
             b_v = -fact * top * v / bot**2  # term 2
+
+            a_v = np.repeat(mkvc(a_v, n_dims=2), 2, axis=-1)
+            b_v = np.repeat(mkvc(b_v, n_dims=2), 2, axis=-1)
 
             hx *= a_v
             hy *= a_v
@@ -1159,21 +1169,22 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
         de_v = f._eDeriv(src, du_dm_v, v, adjoint=False)
         dh_v = f._hDeriv(src, du_dm_v, v, adjoint=False)
 
-        dex_v = np.sum(Pex @ de_v, axis=-1)
-        dey_v = np.sum(Pey @ de_v, axis=-1)
-        dhx_v = np.sum(Phx @ dh_v, axis=-1)
-        dhy_v = np.sum(Phy @ dh_v, axis=-1)
-        dhz_v = np.sum(Phz @ dh_v, axis=-1)
+        dex_v = Pex @ de_v
+        dey_v = Pey @ de_v
+        dhx_v = Phx @ dh_v
+        dhy_v = Phy @ dh_v
+        dhz_v = Phz @ dh_v
 
-        # Imaginary components cancel and its 2x the real
-        dtop_v = (
-            2
-            * (
-                hx * dhx_v.conjugate() + hy * dhy_v.conjugate() + hz * dhz_v.conjugate()
-            ).real
+        # Imaginary components cancel and its 2x the real of the conjugate x the deriv
+        dtop_v = 2 * np.sum(
+            (
+                hx.conjugate() * dhx_v + hy.conjugate() * dhy_v + hz.conjugate() * dhz_v
+            ).real,
+            axis=-1,
         )
-
-        dbot_v = 2 * (ex * dex_v.conjugate() + ey * dey_v.conjugate()).real
+        dbot_v = 2 * np.sum(
+            (ex.conjugate() * dex_v + ey.conjugate() * dey_v).real, axis=-1
+        )
 
         return fact * (bot * dtop_v - top * dbot_v) / (bot * bot)
 
@@ -1231,166 +1242,27 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
         Returns
         -------
         numpy.ndarray
-            Calculated derivative (n_data,) if `adjoint` is ``False``, and (n_param, 2) if `adjoint`
-            is ``True``, for both polarizations.
+            Calculated derivative (n_data,) if `adjoint` is ``False``,
+            and (n_param, 2) if `adjoint` is ``True``, for both polarizations.
         """
         return self._eval_apparent_conductivity_deriv(
             src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
         )
 
 
-@deprecate_class(removal_version="0.24.0", future_warn=True, replace_docstring=False)
+@deprecate_class(removal_version="0.24.0", error=True, replace_docstring=False)
 class PointNaturalSource(Impedance):
-    """Point receiver class for magnetotelluric simulations.
-
+    """
     .. warning::
-        This class is deprecated and will be removed in SimPEG v0.24.0.
+        This class was removed in SimPEG v0.24.0.
         Please use :class:`.natural_source.receivers.Impedance`.
-
-    Assumes that the data locations are standard xyz coordinates;
-    i.e. (x,y,z) is (Easting, Northing, up).
-
-    Parameters
-    ----------
-    locations : (n_loc, n_dim) numpy.ndarray
-        Receiver locations.
-    orientation : {'xx', 'xy', 'yx', 'yy'}
-        MT receiver orientation.
-    component : {'real', 'imag', 'apparent_resistivity', 'phase'}
-        MT data type.
     """
 
-    def __init__(
-        self,
-        locations=None,
-        orientation="xy",
-        component="real",
-        locations_e=None,
-        locations_h=None,
-        **kwargs,
-    ):
-        if locations is None:
-            if (locations_e is None) ^ (
-                locations_h is None
-            ):  # if only one of them is none
-                raise TypeError(
-                    "Either locations or both locations_e and locations_h must be passed"
-                )
-            if locations_e is None and locations_h is None:
-                warnings.warn(
-                    "Using the default for locations is deprecated behavior. Please explicitly set locations. ",
-                    FutureWarning,
-                    stacklevel=2,
-                )
-                locations_e = np.array([[0.0]])
-                locations_h = locations_e
-        else:  # locations was not None
-            if locations_e is not None or locations_h is not None:
-                raise TypeError(
-                    "Cannot pass both locations and locations_e or locations_h at the same time."
-                )
-            if isinstance(locations, list):
-                if len(locations) == 2:
-                    locations_e = locations[0]
-                    locations_h = locations[1]
-                elif len(locations) == 1:
-                    locations_e = locations[0]
-                    locations_h = locations[0]
-                else:
-                    raise ValueError("incorrect size of list, must be length of 1 or 2")
-            else:
-                locations_e = locations_h = locations
 
-        super().__init__(
-            locations_e=locations_e,
-            locations_h=locations_h,
-            orientation=orientation,
-            component=component,
-            **kwargs,
-        )
-
-    def eval(self, src, mesh, f, return_complex=False):  # noqa: A003
-        if return_complex:
-            warnings.warn(
-                "Calling with return_complex=True is deprecated in SimPEG 0.23. Instead set rx.component='complex'",
-                FutureWarning,
-                stacklevel=2,
-            )
-            temp = self.component
-            self.component = "complex"
-            out = super().eval(src, mesh, f)
-            self.component = temp
-        else:
-            out = super().eval(src, mesh, f)
-        return out
-
-    locations = property(lambda self: self._locations[0], Impedance.locations.fset)
-
-
-@deprecate_class(removal_version="0.24.0", future_warn=True, replace_docstring=False)
+@deprecate_class(removal_version="0.24.0", error=True, replace_docstring=False)
 class Point3DTipper(Tipper):
-    """Point receiver class for Z-axis tipper simulations.
-
-    .. warning::
-        This class is deprecated and will be removed in SimPEG v0.24.0.
-        Please use :class:`.natural_source.receivers.Tipper`.
-
-    Assumes that the data locations are standard xyz coordinates;
-    i.e. (x,y,z) is (Easting, Northing, up).
-
-    Parameters
-    ----------
-    locations : (n_loc, n_dim) numpy.ndarray
-        Receiver locations.
-    orientation : str, default = 'zx'
-        NSEM receiver orientation. Must be one of {'zx', 'zy'}
-    component : str, default = 'real'
-        NSEM data type. Choose one of {'real', 'imag', 'apparent_resistivity', 'phase'}
     """
-
-    def __init__(
-        self,
-        locations,
-        orientation="zx",
-        component="real",
-        locations_e=None,
-        locations_h=None,
-        **kwargs,
-    ):
-        # note locations_e and locations_h never did anything for this class anyways
-        # so can just issue a warning here...
-        if locations_e is not None or locations_h is not None:
-            warnings.warn(
-                "locations_e and locations_h are unused for this class",
-                UserWarning,
-                stacklevel=2,
-            )
-        if isinstance(locations, list):
-            if len(locations) < 3:
-                locations = locations[0]
-            else:
-                raise ValueError("incorrect size of list, must be length of 1 or 2")
-
-        super().__init__(
-            locations_h=locations,
-            orientation=orientation,
-            component=component,
-            **kwargs,
-        )
-
-    def eval(self, src, mesh, f, return_complex=False):  # noqa: A003
-        if return_complex:
-            warnings.warn(
-                "Calling with return_complex=True is deprecated in SimPEG 0.23. Instead set rx.component='complex'",
-                FutureWarning,
-                stacklevel=2,
-            )
-            temp = self.component
-            self.component = "complex"
-            out = super().eval(src, mesh, f)
-            self.component = temp
-        else:
-            out = super().eval(src, mesh, f)
-        return out
-
-    locations = property(lambda self: self._locations[0], Tipper.locations.fset)
+    .. warning::
+        This class was removed in SimPEG v0.24.0.
+        Please use :class:`.natural_source.receivers.Tipper`.
+    """

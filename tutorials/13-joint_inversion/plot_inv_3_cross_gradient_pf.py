@@ -343,8 +343,8 @@ opt = optimization.ProjectedGNCG(
     lower=-2.0,
     upper=2.0,
     maxIterLS=20,
-    maxIterCG=100,
-    tolCG=1e-3,
+    cg_maxiter=100,
+    cg_rtol=1e-3,
     tolX=1e-3,
 )
 

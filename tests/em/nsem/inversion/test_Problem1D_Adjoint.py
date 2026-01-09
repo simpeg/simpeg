@@ -18,10 +18,10 @@ def JvecAdjointTest_1D(sigmaHalf, formulation="PrimSec"):
 
     # Define a receiver for each data type as a list
     receivers_list = [
-        nsem.receivers.PointNaturalSource(component="real"),
-        nsem.receivers.PointNaturalSource(component="imag"),
-        nsem.receivers.PointNaturalSource(component="app_res"),
-        nsem.receivers.PointNaturalSource(component="phase"),
+        nsem.receivers.Impedance([[]], component="real"),
+        nsem.receivers.Impedance([[]], component="imag"),
+        nsem.receivers.Impedance([[]], component="app_res"),
+        nsem.receivers.Impedance([[]], component="phase"),
     ]
 
     # Use a list to define the planewave source at each frequency and assign receivers

@@ -7,7 +7,7 @@ import numpy as np
 from scipy.sparse import csc_matrix, csr_matrix
 from simpeg.regularization import PGIsmallness
 
-from .directives import InversionDirective
+from ._directives import InversionDirective
 from simpeg.maps import IdentityMap
 
 from geoh5py.data import FloatData
@@ -16,7 +16,7 @@ from geoh5py.groups.property_group import GroupTypeEnum
 from geoh5py.groups import UIJsonGroup
 from geoh5py.objects import ObjectBase
 from geoh5py.ui_json.utils import fetch_active_workspace
-from simpeg.directives.directives import compute_JtJdiags
+from simpeg.directives._directives import compute_JtJdiags
 
 
 class BaseSaveGeoH5(InversionDirective, ABC):
@@ -397,13 +397,16 @@ class SaveLogFilesGeoH5(BaseSaveGeoH5):
             iteration = 0
             for line in file:
                 val = re.findall(r"[+-]?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+-]?\d+)", line)
-                if len(val) == 5:
-                    log.append(val[:-2])
+                if len(val) >= 4:
+                    log.append(val[:3])
                     iteration += 1
 
         if len(log) > 0:
             with open(filepath, "a", encoding="utf-8") as file:
                 date_time = datetime.now().strftime("%b-%d-%Y:%H:%M:%S")
+
+                if len(log) == 2:  # First iteration with 0th iter
+                    file.write(f"{0} " + " ".join(log[0]) + f" {date_time}\n")
                 file.write(f"{iteration-1} " + " ".join(log[-1]) + f" {date_time}\n")
 
         self.save_log()

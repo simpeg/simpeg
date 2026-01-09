@@ -1,4 +1,5 @@
 import unittest
+import pytest
 from simpeg import maps
 import simpeg.electromagnetics.time_domain as tdem
 from simpeg.electromagnetics.utils import convolve_with_waveform
@@ -283,6 +284,69 @@ def test_backwards_compatible_filter_key():
     sim.time_filter = "key_81_CosSin_2009"
 
     assert sim.time_filter == "key_81_2009"
+
+
+@pytest.mark.parametrize("prop", ["conductivity", "permeability"])
+def test_real_vs_complex(prop):
+    """just makes sure that it respect a complex conductivity, in that it is different
+    from the real value.
+    """
+    source_location = np.array([0.0, 0.0, 100.0 + 1e-5])
+    receiver_locations = np.array([[0.0, 0.0, 100.0 + 1e-5]])
+    receiver_orientation = "z"  # "x", "y" or "z"
+    times = np.logspace(-5, -2, 31)
+    radius = 20.0
+
+    # Waveform
+    waveform = tdem.sources.TriangularWaveform(
+        start_time=-0.01, peak_time=-0.005, off_time=0.0
+    )
+
+    # Receiver list
+
+    # Define receivers at each location.
+    b_receiver = tdem.receivers.PointMagneticFluxDensity(
+        receiver_locations, times, receiver_orientation
+    )
+    dbzdt_receiver = tdem.receivers.PointMagneticFluxTimeDerivative(
+        receiver_locations, times, receiver_orientation
+    )
+    receivers_list = [
+        b_receiver,
+        dbzdt_receiver,
+    ]  # Make a list containing all receivers even if just one
+
+    # Must define the transmitter properties and associated receivers
+    source_list = [
+        tdem.sources.CircularLoop(
+            receivers_list,
+            location=source_location,
+            waveform=waveform,
+            radius=radius,
+        )
+    ]
+
+    survey = tdem.Survey(source_list)
+
+    sim = tdem.Simulation1DLayered(survey=survey, sigma=[1.0])
+    if prop == "conductivity":
+        sim.eta = 0.5
+    else:
+        sim.dchi = 1.0
+
+    d_c = sim.dpred(None)
+
+    sim_real = tdem.Simulation1DLayered(survey=survey, sigma=[1.0])
+
+    # hijack these to just return the real values from the complex valued simulation
+    # that way we are sure the two simulations have the same real parts of mu and sigma
+    # but different imaginary portions
+    sim_real.compute_complex_sigma = lambda f: sim.compute_complex_sigma(f).real
+    sim_real.compute_complex_mu = lambda f: sim.compute_complex_mu(f).real
+
+    d_r = sim_real.dpred(None)
+
+    assert np.all(d_r != d_c)
 
 
 if __name__ == "__main__":

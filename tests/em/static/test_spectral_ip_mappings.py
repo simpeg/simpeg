@@ -29,35 +29,13 @@ class TestDeprecatedIndActive:
         active_cells[0] = False
         return active_cells
 
-    def get_message_duplicated_error(self, old_name, new_name, version="v0.24.0"):
+    def test_error_argument(self, mesh, active_cells):
+        """
+        Test if error is raised after passing ``indActive`` as argument.
+        """
         msg = (
-            f"Cannot pass both '{new_name}' and '{old_name}'."
-            f"'{old_name}' has been deprecated and will be removed in "
-            f" SimPEG {version}, please use '{new_name}' instead."
+            "'indActive' was removed in SimPEG v0.24.0, "
+            "please use 'active_cells' instead."
         )
-        return msg
-
-    def get_message_deprecated_warning(self, old_name, new_name, version="v0.24.0"):
-        msg = (
-            f"'{old_name}' has been deprecated and will be removed in "
-            f" SimPEG {version}, please use '{new_name}' instead."
-        )
-        return msg
-
-    def test_warning_argument(self, mesh, active_cells):
-        """
-        Test if warning is raised after passing ``indActive`` as argument.
-        """
-        msg = self.get_message_deprecated_warning(self.OLD_NAME, self.NEW_NAME)
-        with pytest.warns(FutureWarning, match=msg):
-            spectral_ip_mappings(mesh, indActive=active_cells)
-
-    def test_error_duplicated_argument(self, mesh, active_cells):
-        """
-        Test error after passing ``indActive`` and ``active_cells`` as arguments.
-        """
-        msg = self.get_message_duplicated_error(self.OLD_NAME, self.NEW_NAME)
         with pytest.raises(TypeError, match=msg):
-            spectral_ip_mappings(
-                mesh, active_cells=active_cells, indActive=active_cells
-            )
+            spectral_ip_mappings(mesh, indActive=active_cells)

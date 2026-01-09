@@ -2,7 +2,6 @@
 Parametric map classes.
 """
 
-import warnings
 import discretize
 import numpy as np
 from numpy.polynomial import polynomial
@@ -335,12 +334,6 @@ class ParametricPolyMap(IdentityMap):
         Active cells array. Can be a boolean ``numpy.ndarray`` of length
         ``mesh.n_cells`` or a ``numpy.ndarray`` of ``int`` containing the
         indices of the active cells.
-    actInd : numpy.ndarray, optional
-
-        .. deprecated:: 0.23.0
-
-           Argument ``actInd`` is deprecated in favor of ``active_cells`` and will
-           be removed in SimPEG v0.24.0.
 
     Examples
     --------
@@ -404,7 +397,7 @@ class ParametricPolyMap(IdentityMap):
         normal="X",
         active_cells=None,
         slope=1e4,
-        actInd=None,
+        **kwargs,
     ):
         super().__init__(mesh=mesh)
         self.logSigma = logSigma
@@ -412,21 +405,13 @@ class ParametricPolyMap(IdentityMap):
         self.normal = normal
         self.slope = slope
 
-        # Deprecate actInd argument
-        if actInd is not None:
-            if active_cells is not None:
-                raise TypeError(
-                    "Cannot pass both 'active_cells' and 'actInd'."
-                    "'actInd' has been deprecated and will be removed in "
-                    " SimPEG v0.24.0, please use 'active_cells' instead.",
-                )
-            warnings.warn(
-                "'actInd' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'active_cells' instead.",
-                FutureWarning,
-                stacklevel=2,
+        # Deprecate indActive argument
+        if kwargs.pop("indActive", None) is not None:
+            raise TypeError(
+                "'indActive' was removed in SimPEG v0.24.0, please use 'active_cells' instead."
             )
-            active_cells = actInd
+        if kwargs:  # TODO Remove this when removing kwargs argument.
+            raise TypeError("Unsupported keyword argument " + kwargs.popitem()[0])
 
         if active_cells is None:
             active_cells = np.ones(mesh.n_cells, dtype=bool)
@@ -498,8 +483,7 @@ class ParametricPolyMap(IdentityMap):
         "actInd",
         "active_cells",
         removal_version="0.24.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     @property
@@ -1103,13 +1087,6 @@ class BaseParametric(IdentityMap):
     active_cells : numpy.ndarray, optional
         Active cells array. Can be a boolean ``numpy.ndarray`` of length *mesh.nC*
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active cells.
-    indActive : numpy.ndarray
-
-        .. deprecated:: 0.23.0
-
-           Argument ``indActive`` is deprecated in favor of ``active_cells`` and will
-           be removed in SimPEG v0.24.0.
-
 
     """
 
@@ -1119,26 +1096,15 @@ class BaseParametric(IdentityMap):
         slope=None,
         slopeFact=1.0,
         active_cells=None,
-        indActive=None,
         **kwargs,
     ):
-        super(BaseParametric, self).__init__(mesh, **kwargs)
-
         # Deprecate indActive argument
-        if indActive is not None:
-            if active_cells is not None:
-                raise TypeError(
-                    "Cannot pass both 'active_cells' and 'indActive'."
-                    "'indActive' has been deprecated and will be removed in "
-                    " SimPEG v0.24.0, please use 'active_cells' instead.",
-                )
-            warnings.warn(
-                "'indActive' has been deprecated and will be removed in "
-                " SimPEG v0.24.0, please use 'active_cells' instead.",
-                FutureWarning,
-                stacklevel=2,
+        if kwargs.pop("indActive", None) is not None:
+            raise TypeError(
+                "'indActive' was removed in SimPEG v0.24.0, please use 'active_cells' instead."
             )
-            active_cells = indActive
+
+        super(BaseParametric, self).__init__(mesh, **kwargs)
 
         self.active_cells = active_cells
         self.slopeFact = slopeFact
@@ -1189,8 +1155,7 @@ class BaseParametric(IdentityMap):
         "indActive",
         "active_cells",
         removal_version="0.24.0",
-        future_warn=True,
-        error=False,
+        error=True,
     )
 
     @property
@@ -1321,12 +1286,6 @@ class ParametricLayer(BaseParametric):
     slopeFact : float
         Scaling factor for the sharpness of the boundaries based on cell size.
         Using this option, we set *a = slopeFact / dh*.
-    indActive : numpy.ndarray
-
-        .. deprecated:: 0.23.0
-
-           Argument ``indActive`` is deprecated in favor of ``active_cells`` and will
-           be removed in SimPEG v0.24.0.
 
     Examples
     --------
@@ -1357,9 +1316,6 @@ class ParametricLayer(BaseParametric):
     >>> mesh.plot_image(act_map * layer_map * model, ax=ax)
 
     """
-
-    def __init__(self, mesh, **kwargs):
-        super().__init__(mesh, **kwargs)
 
     @property
     def nP(self):
@@ -1475,7 +1431,7 @@ class ParametricLayer(BaseParametric):
             mDict["val_layer"] - mDict["val_background"]
         ) * self._atanLayerDeriv_layer_thickness(mDict)
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
         r"""Derivative of the mapping with respect to the input parameters.
 
         Let :math:`\mathbf{m} = [\sigma_0, \;\sigma_1,\; z_L , \; h]` be the set of
@@ -1515,10 +1471,8 @@ class ParametricLayer(BaseParametric):
             input argument *v* is not ``None``, the method returns the derivative times
             the vector *v*.
         """
-
         mDict = self.mDict(m)
-
-        return sp.csr_matrix(
+        derivative = sp.csr_matrix(
             np.vstack(
                 [
                     self._deriv_val_background(mDict),
@@ -1528,6 +1482,9 @@ class ParametricLayer(BaseParametric):
                 ]
             ).T
         )
+        if v is not None:
+            return derivative @ v
+        return derivative
 
 
 class ParametricBlock(BaseParametric):
@@ -1589,12 +1546,6 @@ class ParametricBlock(BaseParametric):
         Epsilon value used in the ekblom representation of the block
     p : float
         p-value used in the ekblom representation of the block.
-    indActive : numpy.ndarray
-
-        .. deprecated:: 0.23.0
-
-           Argument ``indActive`` is deprecated in favor of ``active_cells`` and will
-           be removed in SimPEG v0.24.0.
 
     Examples
     --------
@@ -1840,7 +1791,7 @@ class ParametricBlock(BaseParametric):
             ]
         ).T
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
         r"""Derivative of the mapping with respect to the input parameters.
 
         Let :math:`\mathbf{m} = [\sigma_0, \;\sigma_1,\; x_b, \; dx, (\; y_b, \; dy, \; z_b , dz)]`
@@ -1877,9 +1828,12 @@ class ParametricBlock(BaseParametric):
             input argument *v* is not ``None``, the method returns the derivative times
             the vector *v*.
         """
-        return sp.csr_matrix(
+        derivative = sp.csr_matrix(
             getattr(self, "_deriv{}D".format(self.mesh.dim))(self.mDict(m))
         )
+        if v is not None:
+            return derivative @ v
+        return derivative
 
 
 class ParametricEllipsoid(ParametricBlock):
@@ -1938,12 +1892,6 @@ class ParametricEllipsoid(ParametricBlock):
         Using this option, we set *a = slopeFact / dh*.
     epsilon : float
         Epsilon value used in the ekblom representation of the block
-    indActive : numpy.ndarray
-
-        .. deprecated:: 0.23.0
-
-           Argument ``indActive`` is deprecated in favor of ``active_cells`` and will
-           be removed in SimPEG v0.24.0.
 
     Examples
     --------
@@ -2275,10 +2223,9 @@ class ParametricCasingAndLayer(ParametricLayer):
             + d_insideCasing_cont_dcasing_top
         )
 
-    def deriv(self, m):
+    def deriv(self, m, v=None):
         mDict = self.mDict(m)
-
-        return sp.csr_matrix(
+        derivative = sp.csr_matrix(
             np.vstack(
                 [
                     self._deriv_val_background(mDict),
@@ -2294,6 +2241,9 @@ class ParametricCasingAndLayer(ParametricLayer):
                 ]
             ).T
         )
+        if v is not None:
+            return derivative @ v
+        return derivative
 
 
 class ParametricBlockInLayer(ParametricLayer):
@@ -2731,8 +2681,12 @@ class ParametricBlockInLayer(ParametricLayer):
         elif self.mesh.dim == 3:
             return self._transform3d(m)
 
-    def deriv(self, m):
-        if self.mesh.dim == 2:
-            return sp.csr_matrix(self._deriv2d(m))
-        elif self.mesh.dim == 3:
-            return sp.csr_matrix(self._deriv3d(m))
+    def deriv(self, m, v=None):
+        derivative = (
+            sp.csr_matrix(self._deriv2d(m))
+            if self.mesh.dim == 2
+            else sp.csr_matrix(self._deriv3d(m))
+        )
+        if v is not None:
+            return derivative @ v
+        return derivative

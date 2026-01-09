@@ -110,8 +110,8 @@ def run(plotIt=True, cleanAfterRun=True):
         lower=driver.bounds[0],
         upper=driver.bounds[1],
         maxIterLS=10,
-        maxIterCG=20,
-        tolCG=1e-4,
+        cg_maxiter=20,
+        cg_rtol=1e-4,
     )
 
     # Define misfit function (obs-calc)
