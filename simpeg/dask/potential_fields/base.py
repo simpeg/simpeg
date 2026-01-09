@@ -99,7 +99,7 @@ def linear_operator(self):
     else:
         Jmatrix = None
 
-    n_components = len(self.survey.components)
+    n_components = len(self.survey.source_list[0].receiver_list[0].components)
     n_blocks = np.ceil(
         (n_cells * n_components * self.survey.receiver_locations.shape[0] * 8.0 * 1e-6)
         / self.max_chunk_size
