@@ -201,7 +201,7 @@ reg = regularization.Smallness(
 )
 
 opt = optimization.ProjectedGNCG(
-    maxIter=20, lower=0.0, upper=1e-2, maxIterLS=20, tolCG=1e-4
+    maxIter=20, lower=0.0, upper=1e-2, maxIterLS=20, cg_rtol=1e-4
 )
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 directives = [

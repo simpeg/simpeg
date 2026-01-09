@@ -65,7 +65,7 @@ class SIPProblemTestsCC(unittest.TestCase):
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -162,7 +162,7 @@ class SIPProblemTestsN(unittest.TestCase):
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=problem)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -277,7 +277,7 @@ class SIPProblemTestsN_air(unittest.TestCase):
         )
         reg = reg_eta + reg_taui + reg_c
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)

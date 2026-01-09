@@ -1,3 +1,5 @@
+.. _version-compatibility:
+
 Version compatibility
 =====================
 

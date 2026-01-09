@@ -78,6 +78,8 @@ Mesh Utility Functions
   :toctree: generated/
 
   surface2inds
+  get_discrete_topography
+  shift_to_discrete_topography
 
 
 Model Utility Functions
@@ -170,6 +172,7 @@ List of custom warnings used in SimPEG.
 .. autosummary::
   :toctree: generated/
 
+  BreakingChangeWarning
   PerformanceWarning
 """
 
@@ -241,6 +244,8 @@ from .mesh_utils import (
     closest_points_index,
     extract_core_mesh,
     surface2inds,
+    get_discrete_topography,
+    shift_to_discrete_topography,
 )
 from .curv_utils import (
     volume_tetrahedron,
@@ -267,4 +272,4 @@ from .pgi_utils import (
     GaussianMixtureWithNonlinearRelationshipsWithPrior,
 )
 from .solver_utils import get_default_solver, set_default_solver
-from .warnings import PerformanceWarning
+from .warnings import BreakingChangeWarning, PerformanceWarning

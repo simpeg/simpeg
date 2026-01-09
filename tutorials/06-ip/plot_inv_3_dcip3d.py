@@ -352,7 +352,9 @@ dc_regularization.reference_model_in_smooth = (
 )
 
 # Define how the optimization problem is solved.
-dc_optimization = optimization.InexactGaussNewton(maxIter=15, maxIterCG=30, tolCG=1e-2)
+dc_optimization = optimization.InexactGaussNewton(
+    maxIter=15, cg_maxiter=30, cg_rtol=1e-2
+)
 
 # Here we define the inverse problem that is to be solved
 dc_inverse_problem = inverse_problem.BaseInvProblem(
@@ -612,7 +614,7 @@ ip_regularization = regularization.WeightedLeastSquares(
 
 # Define how the optimization problem is solved.
 ip_optimization = optimization.ProjectedGNCG(
-    maxIter=15, lower=0.0, upper=10, maxIterCG=30, tolCG=1e-2
+    maxIter=15, lower=0.0, upper=10, cg_maxiter=30, cg_rtol=1e-3
 )
 
 # Here we define the inverse problem that is to be solved

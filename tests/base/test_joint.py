@@ -98,7 +98,7 @@ class DataMisfitTest(unittest.TestCase):
         reg2 = regularization.WeightedLeastSquares(self.mesh)
         reg = reg1 + reg2
         opt = optimization.ProjectedGNCG(
-            maxIter=30, lower=-10, upper=10, maxIterLS=20, maxIterCG=50, tolCG=1e-4
+            maxIter=30, lower=-10, upper=10, maxIterLS=20, cg_maxiter=50, cg_rtol=1e-3
         )
         invProb = inverse_problem.BaseInvProblem(self.dmiscombo, reg, opt)
         directives_list = [
