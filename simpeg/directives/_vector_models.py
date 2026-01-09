@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from dask.distributed import Future
 from . import (
@@ -270,7 +271,10 @@ class VectorInversion(InversionDirective):
                 ProjectSphericalBounds(Wires(*projections)),
                 spherical_units,
             ] + self.inversion.directiveList.dList
-            self.inversion.directiveList = directiveList
+
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                self.inversion.directiveList = directiveList
 
             for directive in directiveList:
                 if not isinstance(directive, BaseSaveGeoH5):
