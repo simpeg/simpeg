@@ -121,14 +121,20 @@ def linear_operator(self):
                 block_compute,
                 sim,
                 block,
-                self.survey.components,
+                self.survey.source_list[0].receiver_list[0].components,
                 Jmatrix,
                 count,
                 workers=worker,
             )
 
         else:
-            chunk = delayed_compute(self, block, self.survey.components, Jmatrix, count)
+            chunk = delayed_compute(
+                self,
+                block,
+                self.survey.source_list[0].receiver_list[0].components,
+                Jmatrix,
+                count,
+            )
             row = array.from_delayed(
                 chunk,
                 dtype=self.sensitivity_dtype,
