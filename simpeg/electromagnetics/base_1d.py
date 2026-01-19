@@ -240,7 +240,7 @@ class BaseEM1DSimulation(BaseSimulation):
         .. math ::
 
             \sigma (\omega ) = \sigma \Bigg [
-                1 - \eta \Bigg ( \frac{1}{1 + (1-\eta ) (1 + i\omega \tau)^c} \Bigg )
+                1 - \eta \Bigg ( \frac{1}{1 + (1-\eta ) (i\omega \tau)^c} \Bigg )
             \Bigg ]
 
         :param numpy.array frequencies: np.array(N,) containing frequencies
