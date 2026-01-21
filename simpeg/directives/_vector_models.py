@@ -215,6 +215,9 @@ class VectorInversion(InversionDirective):
 
                     reg.units = units
 
+                if reg in self.regularizations.objfcts and reg.units == "radian":
+                    mult *= 1 / np.pi
+
                 multipliers.append(mult)
 
             self.reg.multipliers = multipliers
