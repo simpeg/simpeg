@@ -73,8 +73,12 @@ class IPProblemTests2DN(unittest.TestCase):
         # Find cells that lie below surface topography
         ind_active = ds.utils.active_from_xyz(mesh, topo_2d)
         # Shift electrodes to the surface of discretized topography
-        dc_data.survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
-        ip_data.survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
+        dc_data.survey.drape_electrodes_on_topography(
+            mesh, ind_active, option="top", shift_horizontal=False
+        )
+        ip_data.survey.drape_electrodes_on_topography(
+            mesh, ind_active, option="top", shift_horizontal=False
+        )
 
         # Define conductivity model in S/m (or resistivity model in Ohm m)
         air_conductivity = 1e-8
