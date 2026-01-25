@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING
+from typing import Iterable, TYPE_CHECKING
 
 from datetime import datetime
 import pathlib
@@ -2655,6 +2655,16 @@ class ProjectSphericalBounds(InversionDirective):
         self.opt.xc = m
 
 
+def flatten(nested_iterable):
+    for item in nested_iterable:
+        if isinstance(item, list):
+            yield from flatten(item)
+        elif isinstance(item, np.ndarray):
+            yield from item.tolist()
+        else:
+            yield item
+
+
 class ScaleMisfitMultipliers(InversionDirective):
     """
     Scale the misfits by the relative chi-factors of multiple misfit functions.
@@ -2670,9 +2680,17 @@ class ScaleMisfitMultipliers(InversionDirective):
         Path to save the chi-factors log file.
     """
 
-    def __init__(self, path: pathlib.Path | None = None, **kwargs):
+    def __init__(
+        self,
+        path: pathlib.Path | None = None,
+        nesting: list[list] | None = None,
+        target_chi: float = 1.0,
+        **kwargs,
+    ):
         self.last_beta = None
         self.chi_factors = None
+        self.target_chi = target_chi
+        self.nesting = nesting
 
         if path is None:
             path = pathlib.Path("./")
@@ -2684,42 +2702,77 @@ class ScaleMisfitMultipliers(InversionDirective):
     def initialize(self):
         self.last_beta = self.invProb.beta
         self.multipliers = self.invProb.dmisfit.multipliers
-        self.scalings = np.ones_like(self.multipliers)
-        with open(self.filepath, "w", encoding="utf-8") as f:
-            f.write("Logging of [scaling * chi factor] per misfit function.\n\n")
-            f.write(
-                "Iterations\t"
-                + "\t".join(
-                    f"[{objfct.name}]" for objfct in self.invProb.dmisfit.objfcts
-                )
-            )
-            f.write("\n")
+        self.scalings = np.ones_like(self.multipliers)  # Everyone gets a fair chance
+        self.misfit_tree_indices = self.parse_by_nested_levels(self.nesting)
+        # def append_labels(_, depth):
+        #     return f"[{depth}]"
+        #
+        # with open(self.filepath, "w", encoding="utf-8") as f:
+        #     f.write("Logging of [scaling * chi factor] per misfit function.\n\n")
+        #
+        #     header = "Iterations\t"
+        #     for elem in recursions(self.nested_misfits, append_labels):
+        #         header += "\t".join(f"Misfit [{elem}]")
+        #
+        #     f.write("\n")
 
-    def endIter(self):
-        ratio = self.invProb.beta / self.last_beta
+    def scalings_by_level(
+        self, nested_values, nested_indices, ratio, scaling_vector: np.ndarray | None
+    ):
+        """
+        Recursively compute scaling factors for each level of the nested misfit structure.
+
+        The maximum chi-factor at each level is used to determine scaling factors
+        for the misfit functions at that level. The scaling factors are then propagated
+        down to the next level of the nested structure.
+        """
+        if scaling_vector is None:
+            scaling_vector = np.ones(len(self.invProb.dmisfit.multipliers))
+
         chi_factors = []
-        for residual in self.invProb.residuals:
-            phi_d = np.vdot(residual, residual)
-            chi_factors.append(phi_d / len(residual))
+        flat_indices = []
+        for elem, indices in zip(nested_values, nested_indices):
 
-        self.chi_factors = np.asarray(chi_factors)
+            # Reach the outer most level
+            if not isinstance(indices, list) or (
+                len(indices) == 1 and not isinstance(indices[0], list)
+            ):
+                return scaling_vector
 
-        if np.all(self.chi_factors < 1) or ratio >= 1:
-            self.last_beta = self.invProb.beta
-            self.write_log()
-            return
+            flat_indices.append(np.asarray(list(flatten(indices))))
+            residuals = np.asarray(list(flatten(elem)))
+            phi_d = np.vdot(residuals, residuals)
+            chi_factors.append(phi_d / len(residuals))
 
-        # Normalize scaling between [ratio, 1]
+        chi_factors = np.hstack(chi_factors)
         scalings = (
-            1
-            - (1 - ratio)
-            * (self.chi_factors.max() - self.chi_factors)
-            / self.chi_factors.max()
+            1 - (1 - ratio) * (chi_factors.max() - chi_factors) / chi_factors.max()
         )
 
         # Force the ones that overshot target
-        scalings[self.chi_factors < 1] = (
-            ratio  # * self.chi_factors[self.chi_factors < 1]
+        scalings[chi_factors < self.target_chi] = ratio
+
+        for elem, indices, scale, group_ind in zip(
+            nested_values, nested_indices, scalings, flat_indices
+        ):
+            # Scale everything below same as super group
+            scaling_vector[group_ind] = np.maximum(
+                ratio, scale * scaling_vector[group_ind]
+            )
+            scaling_vector = self.scalings_by_level(
+                elem, indices, ratio, scaling_vector
+            )
+
+        return scaling_vector
+
+    def endIter(self):
+        ratio = self.invProb.beta / self.last_beta
+        nested_residuals = self.parse_by_nested_levels(
+            self.nesting, self.invProb.residuals
+        )
+
+        scalings = self.scalings_by_level(
+            nested_residuals, self.misfit_tree_indices, ratio, None
         )
 
         # Update the scaling
@@ -2728,7 +2781,56 @@ class ScaleMisfitMultipliers(InversionDirective):
         # Normalize total phi_d with scalings
         self.invProb.dmisfit.multipliers = self.multipliers * self.scalings
         self.last_beta = self.invProb.beta
-        self.write_log()
+        # self.write_log()
+
+    def parse_by_nested_levels(
+        self, nesting: list[Iterable], values: Iterable | None = None
+    ) -> Iterable:
+        """
+        Replace leaf elements of `nesting` with values from `flat` (in order).
+        Assumes the number of leaf positions equals len(flat).
+
+        Parameters:
+        - nesting: arbitrarily nested list structure; leaves are non-list values
+        - flat: flat iterable whose values will fill the leaves in order
+
+        Returns:
+        - A new nested structure with leaves replaced by values from `flat`.
+
+        Raises:
+        - ValueError if `flat` has fewer or more elements than required by `nesting`.
+        """
+        indices = np.arange(len(self.invProb.dmisfit.objfcts))
+        if nesting is None:
+            if values is not None:
+                return values
+            return indices.tolist()
+
+        it = iter(indices)
+
+        def _fill(node: Iterable) -> Iterable:
+            if isinstance(node, list):
+                return [_fill(child) for child in node]
+            elif isinstance(node, dict):
+                return [_fill(child) for child in node.values()]
+            # leaf: consume a value
+            try:
+                if values is not None:
+                    return values[next(it)]
+                return next(it)
+            except StopIteration:
+                raise ValueError("Not enough elements in `flat` to fill `nesting`.")
+
+        result = _fill(nesting)
+
+        # ensure no extra elements left
+        try:
+            next(it)
+            raise ValueError("Too many elements in `flat` for the given `nesting`.")
+        except StopIteration:
+            pass
+
+        return result
 
     def write_log(self):
         """
