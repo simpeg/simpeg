@@ -2685,12 +2685,14 @@ class ScaleMisfitMultipliers(InversionDirective):
         path: pathlib.Path | None = None,
         nesting: list[list] | None = None,
         target_chi: float = 1.0,
+        headers: list[str] | None = None,
         **kwargs,
     ):
         self.last_beta = None
         self.chi_factors = None
         self.target_chi = target_chi
         self.nesting = nesting
+        self.headers = headers
 
         if path is None:
             path = pathlib.Path("./")
@@ -2699,24 +2701,44 @@ class ScaleMisfitMultipliers(InversionDirective):
 
         super().__init__(**kwargs)
 
+        self._log_array: np.ndarray | None = None
+
+    @property
+    def log_array(self, headers: list[str] | None = None):
+        if self._log_array is None:
+            if self.headers is None:
+
+                def append_sub_indices(elements, header):
+                    values = []
+                    for ii, elem in enumerate(elements):
+                        heads = header + f"[{ii}]"
+                        if isinstance(elem, Iterable):
+                            values += append_sub_indices(elem, heads)
+                        else:
+                            values += [heads]
+                    return values
+
+                headers = []
+                for ii, elem in enumerate(self.misfit_tree_indices):
+                    headers += append_sub_indices(elem, f"[{ii}]")
+                self.headers = headers
+
+            dtype = np.dtype(
+                [("Iterations", np.int32)] + [(h, np.float32) for h in self.headers]
+            )
+            self._log_array = np.rec.fromrecords((), dtype=dtype)
+
+        return self._log_array
+
     def initialize(self):
         self.last_beta = self.invProb.beta
         self.multipliers = self.invProb.dmisfit.multipliers
         self.scalings = np.ones_like(self.multipliers)  # Everyone gets a fair chance
         self.misfit_tree_indices = self.parse_by_nested_levels(self.nesting)
-        # def append_labels(_, depth):
-        #     return f"[{depth}]"
-        #
-        # with open(self.filepath, "w", encoding="utf-8") as f:
-        #     f.write("Logging of [scaling * chi factor] per misfit function.\n\n")
-        #
-        #     header = "Iterations\t"
-        #     for elem in recursions(self.nested_misfits, append_labels):
-        #         header += "\t".join(f"Misfit [{elem}]")
-        #
-        #     f.write("\n")
 
-    def scalings_by_level(
+        self.write_log()
+
+    def scale_by_level(
         self, nested_values, nested_indices, ratio, scaling_vector: np.ndarray | None
     ):
         """
@@ -2725,6 +2747,20 @@ class ScaleMisfitMultipliers(InversionDirective):
         The maximum chi-factor at each level is used to determine scaling factors
         for the misfit functions at that level. The scaling factors are then propagated
         down to the next level of the nested structure.
+
+        Parameters
+        ----------
+        nested_values : list
+            Nested list of misfit residuals.
+
+        nested_indices : list
+            Nested list of indices corresponding to the misfit residuals.
+
+        ratio : float
+            Ratio of current beta to last beta.
+
+        scaling_vector : np.ndarray, optional
+            Current scaling vector to be updated.
         """
         if scaling_vector is None:
             scaling_vector = np.ones(len(self.invProb.dmisfit.multipliers))
@@ -2733,7 +2769,7 @@ class ScaleMisfitMultipliers(InversionDirective):
         flat_indices = []
         for elem, indices in zip(nested_values, nested_indices):
 
-            # Reach the outer most level
+            # Reach the outermost level
             if not isinstance(indices, list) or (
                 len(indices) == 1 and not isinstance(indices[0], list)
             ):
@@ -2759,9 +2795,7 @@ class ScaleMisfitMultipliers(InversionDirective):
             scaling_vector[group_ind] = np.maximum(
                 ratio, scale * scaling_vector[group_ind]
             )
-            scaling_vector = self.scalings_by_level(
-                elem, indices, ratio, scaling_vector
-            )
+            scaling_vector = self.scale_by_level(elem, indices, ratio, scaling_vector)
 
         return scaling_vector
 
@@ -2771,7 +2805,7 @@ class ScaleMisfitMultipliers(InversionDirective):
             self.nesting, self.invProb.residuals
         )
 
-        scalings = self.scalings_by_level(
+        scalings = self.scale_by_level(
             nested_residuals, self.misfit_tree_indices, ratio, None
         )
 
@@ -2781,24 +2815,26 @@ class ScaleMisfitMultipliers(InversionDirective):
         # Normalize total phi_d with scalings
         self.invProb.dmisfit.multipliers = self.multipliers * self.scalings
         self.last_beta = self.invProb.beta
-        # self.write_log()
+
+        # Log the scaling factors
+        self.write_log()
 
     def parse_by_nested_levels(
         self, nesting: list[Iterable], values: Iterable | None = None
     ) -> Iterable:
         """
-        Replace leaf elements of `nesting` with values from `flat` (in order).
-        Assumes the number of leaf positions equals len(flat).
+        Replace leaf elements of `nesting` with values from `values` (in order).
+        Assumes the number of leaf positions equals len(values).
 
         Parameters:
         - nesting: arbitrarily nested list structure; leaves are non-list values
-        - flat: flat iterable whose values will fill the leaves in order
+        - values: flat iterable whose values will fill the leaves in order
 
         Returns:
-        - A new nested structure with leaves replaced by values from `flat`.
+        - A new nested structure with leaves replaced by values from `values`.
 
         Raises:
-        - ValueError if `flat` has fewer or more elements than required by `nesting`.
+        - ValueError if `values` has fewer or more elements than required by `nesting`.
         """
         indices = np.arange(len(self.invProb.dmisfit.objfcts))
         if nesting is None:
@@ -2836,16 +2872,19 @@ class ScaleMisfitMultipliers(InversionDirective):
         """
         Write the scaling factors to the log file.
         """
-        with open(self.filepath, "a", encoding="utf-8") as f:
-            f.write(
-                f"{self.opt.iter}\t"
-                + "\t".join(
-                    f"{multi:.2e} * {chi:.2e}"
-                    for multi, chi in zip(
-                        self.invProb.dmisfit.multipliers, self.chi_factors
-                    )
-                )
-                + "\n"
+        self._log_array = np.append(
+            self.log_array,
+            np.rec.fromrecords(
+                tuple([getattr(self.opt, "iter", 0)] + self.scalings.tolist()),
+                dtype=self.log_array.dtype,
+            ),
+        )
+        with open(self.filepath, "w", encoding="utf-8") as f:
+            np.savetxt(
+                f,
+                self.log_array,
+                header="Iterations - Scaling per misfit",
+                fmt=["%d"] + ["%0.2e"] * (len(self._log_array.dtype) - 1),
             )
 
 
