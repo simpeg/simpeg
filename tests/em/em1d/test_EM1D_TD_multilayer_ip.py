@@ -116,7 +116,7 @@ class EM1D_TD_IP_test(unittest.TestCase):
         c_hom = np.ones(3) * c_single
 
         # When using IP, note that infinite frequency resistivity/conductivity
-        # is expected while Lin et al i(2019) rely on 0-frequency parameters
+        # is expected while Lin et al. (2019) rely on 0-frequency parameters
         cls.resistivities_0 = SURVEY_CONFIG["ground"]["resistivities"]
         cls.resistivities_inf_null = cls.resistivities_0 * (1 - eta_null)
         cls.resistivities_inf_heter = cls.resistivities_0 * (1 - eta_heter)

@@ -239,8 +239,8 @@ class BaseEM1DSimulation(BaseSimulation):
 
         Parameters
         -----------
-        frequencies : array_like
-            (n_frequency,)-array containing frequencies
+        frequencies : (n_frequencies,) array
+            Array with frequencies.
 
             .. important::
 
@@ -250,9 +250,8 @@ class BaseEM1DSimulation(BaseSimulation):
 
         Returns
         -------
-        out : np.ndarray
-            (n_layer, n_frequency)-array of complex conductivities for all
-            layers
+        out : (n_layers, n_frequencies) array
+            A 2D array of complex conductivities for all layers.
 
         Notes
         -----
@@ -314,14 +313,13 @@ class BaseEM1DSimulation(BaseSimulation):
 
         Parameters
         -----------
-        frequencies : array_like
-            (n_frequency,)-array containing frequencies
+        frequencies : (n_frequencies,) array
+            Array with frequencies.
 
         Returns
         -------
-        out : np.ndarray
-            (n_layer, n_frequency)-array of complex magnetic susceptibility
-            matrix
+        out : (n_layers, n_frequencies) array
+            The complex magnetic susceptibility matrix.
 
         Notes
         -----
