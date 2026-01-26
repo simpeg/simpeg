@@ -2768,13 +2768,6 @@ class ScaleMisfitMultipliers(InversionDirective):
         chi_factors = []
         flat_indices = []
         for elem, indices in zip(nested_values, nested_indices):
-
-            # Reach the outermost level
-            if not isinstance(indices, list) or (
-                len(indices) == 1 and not isinstance(indices[0], list)
-            ):
-                return scaling_vector
-
             flat_indices.append(np.asarray(list(flatten(indices))))
             residuals = np.asarray(list(flatten(elem)))
             phi_d = np.vdot(residuals, residuals)
@@ -2795,7 +2788,14 @@ class ScaleMisfitMultipliers(InversionDirective):
             scaling_vector[group_ind] = np.maximum(
                 ratio, scale * scaling_vector[group_ind]
             )
-            scaling_vector = self.scale_by_level(elem, indices, ratio, scaling_vector)
+
+            # Continue one level deeper if more nesting
+            if isinstance(indices, list) and (
+                len(indices) > 1 and isinstance(indices[0], list)
+            ):
+                scaling_vector = self.scale_by_level(
+                    elem, indices, ratio, scaling_vector
+                )
 
         return scaling_vector
 
