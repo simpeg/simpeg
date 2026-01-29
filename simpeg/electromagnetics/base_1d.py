@@ -346,7 +346,7 @@ class BaseEM1DSimulation(BaseSimulation):
         mu = np.tile(mu.reshape([-1, 1]), (1, n_frequency))
 
         # No magnetic viscosity
-        if np.all(self.dchi) == 0.0:
+        if np.all(self.dchi == 0.0):
             return mu
 
         # Magnetic viscosity
