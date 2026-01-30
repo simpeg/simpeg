@@ -1,9 +1,8 @@
-import discretize.base
 import numpy as np
 import scipy.sparse as sp
 from scipy import constants
 from ... import utils, props
-from ...utils import validate_type
+from ...base import WaterRetention, HydraulicConductivity
 
 
 def _get_projections(u):
@@ -17,7 +16,7 @@ def _get_projections(u):
     return P_p, P_n
 
 
-def _partition_args(mesh, Hcond, Theta, hcond_args, theta_args, **kwargs):
+def _partition_args(Hcond, Theta, hcond_args, theta_args, **kwargs):
     hcond_params = {k: kwargs[k] for k in kwargs if k in hcond_args}
     theta_params = {k: kwargs[k] for k in kwargs if k in theta_args}
 
@@ -26,73 +25,13 @@ def _partition_args(mesh, Hcond, Theta, hcond_args, theta_args, **kwargs):
     if len(other_params) > 0:
         raise Exception("Unknown parameters: {}".format(other_params))
 
-    hcond = Hcond(mesh, **hcond_params)
-    theta = Theta(mesh, **theta_params)
+    hcond = Hcond(**hcond_params)
+    theta = Theta(**theta_params)
 
     return hcond, theta
 
 
-class NonLinearModel(props.HasModel):
-    """A non linear model that has dependence on the fields and a model"""
-
-    counter = None  #: A simpeg.utils.Counter object
-
-    def __init__(self, mesh, **kwargs):
-        self.mesh = mesh
-        super(NonLinearModel, self).__init__(**kwargs)
-
-    @property
-    def mesh(self):
-        return self._mesh
-
-    @mesh.setter
-    def mesh(self, value):
-        self._mesh = validate_type("mesh", value, discretize.base.BaseMesh, cast=False)
-
-    @property
-    def nP(self):
-        """Number of parameters in the model."""
-        return self.mesh.nC
-
-
-class BaseWaterRetention(NonLinearModel):
-    def plot(self, ax=None):
-        import matplotlib.pyplot as plt
-
-        if ax is None:
-            plt.figure()
-            ax = plt.subplot(111)
-
-        h = -np.logspace(-2, 3, 1000)
-        ax.semilogx(-h, self(h))
-        ax.set_title("Water retention curve")
-        ax.set_xlabel(r"Soil water potential, $-\psi$")
-        ax.set_ylabel("Water content, $\\theta$")
-
-
-class BaseHydraulicConductivity(NonLinearModel):
-    def plot(self, ax=None):
-        import matplotlib.pyplot as plt
-
-        if ax is None:
-            plt.figure()
-            ax = plt.subplot(111)
-
-        h = -np.logspace(-2, 3, 1000)
-        ax.loglog(-h, self(h))
-        ax.set_title("Hydraulic conductivity function")
-        ax.set_xlabel(r"Soil water potential, $-\psi$")
-        ax.set_ylabel("Hydraulic conductivity, $K$")
-
-
-class Haverkamp_theta(BaseWaterRetention):
-    theta_r, theta_rMap, theta_rDeriv = props.Invertible(
-        "residual water content [L3L-3]"
-    )
-
-    theta_s, theta_sMap, theta_sDeriv = props.Invertible(
-        "saturated water content [L3L-3]"
-    )
+class Haverkamp_theta(WaterRetention):
 
     alpha, alphaMap, alphaDeriv = props.Invertible("")
 
@@ -100,22 +39,21 @@ class Haverkamp_theta(BaseWaterRetention):
 
     def __init__(
         self,
-        mesh,
+        *args,
         theta_r=0.075,
-        theta_rMap=None,
         theta_s=0.287,
-        theta_sMap=None,
         alpha=1.611e06,
         alphaMap=None,
         beta=3.96,
         betaMap=None,
         **kwargs,
     ):
-        super().__init__(mesh=mesh, **kwargs)
-        self.theta_r = theta_r
-        self.theta_rMap = theta_rMap
-        self.theta_s = theta_s
-        self.theta_sMap = theta_sMap
+        if len(args) > 0 or "mesh" in kwargs:
+            raise TypeError(
+                "Haverkamp_theta() no longer takes positional arguments. "
+                "The `mesh` positional argument was unused and has been removed."
+            )
+        super().__init__(theta_r=theta_r, theta_s=theta_s, **kwargs)
         self.alpha = alpha
         self.alphaMap = alphaMap
         self.beta = beta
@@ -217,8 +155,7 @@ class Haverkamp_theta(BaseWaterRetention):
         return g
 
 
-class Haverkamp_k(BaseHydraulicConductivity):
-    Ks, KsMap, KsDeriv = props.Invertible("Saturated hydraulic conductivity")
+class Haverkamp_k(HydraulicConductivity):
 
     A, AMap, ADeriv = props.Invertible("fitting parameter")
 
@@ -226,18 +163,20 @@ class Haverkamp_k(BaseHydraulicConductivity):
 
     def __init__(
         self,
-        mesh,
+        *args,
         Ks=9.44e-03,
-        KsMap=None,
         A=1.175e06,
         AMap=None,
         gamma=4.74,
         gammaMap=None,
         **kwargs,
     ):
-        super().__init__(mesh=mesh, **kwargs)
-        self.Ks = Ks
-        self.KsMap = KsMap
+        if len(args) > 0 or "mesh" in kwargs:
+            raise TypeError(
+                "Haverkamp_k() no longer takes positional arguments. "
+                "The `mesh` positional argument was unused and has been removed."
+            )
+        super().__init__(Ks=Ks, **kwargs)
         self.A = A
         self.AMap = AMap
         self.gamma = gamma
@@ -294,9 +233,8 @@ class Haverkamp_k(BaseHydraulicConductivity):
         return dGamma_dm
 
 
-def haverkamp(mesh, **kwargs):
+def haverkamp(**kwargs):
     return _partition_args(
-        mesh,
         Haverkamp_k,
         Haverkamp_theta,
         ["Ks", "A", "gamma"],
@@ -327,14 +265,7 @@ class HaverkampParams(object):
         }
 
 
-class Vangenuchten_theta(BaseWaterRetention):
-    theta_r, theta_rMap, theta_rDeriv = props.Invertible(
-        "residual water content [L3L-3]"
-    )
-
-    theta_s, theta_sMap, theta_sDeriv = props.Invertible(
-        "saturated water content [L3L-3]"
-    )
+class Vangenuchten_theta(WaterRetention):
 
     n, nMap, nDeriv = props.Invertible("measure of the pore-size distribution, >1")
 
@@ -344,22 +275,21 @@ class Vangenuchten_theta(BaseWaterRetention):
 
     def __init__(
         self,
-        mesh,
+        *args,
         theta_r=0.078,
-        theta_rMap=None,
         theta_s=0.430,
-        theta_sMap=None,
         n=1.56,
         nMap=None,
         alpha=0.036,
         alphaMap=None,
         **kwargs,
     ):
-        super().__init__(mesh=mesh, **kwargs)
-        self.theta_r = theta_r
-        self.theta_rMap = theta_rMap
-        self.theta_s = theta_s
-        self.theta_sMap = theta_sMap
+        if len(args) > 0 or "mesh" in kwargs:
+            raise TypeError(
+                "Vangenuchten_theta() no longer takes positional arguments. "
+                "The `mesh` positional argument was unused and has been removed."
+            )
+        super().__init__(theta_r=theta_r, theta_s=theta_s, **kwargs)
         self.alpha = alpha
         self.alphaMap = alphaMap
         self.n = n
@@ -486,8 +416,7 @@ class Vangenuchten_theta(BaseWaterRetention):
         return g
 
 
-class Vangenuchten_k(BaseHydraulicConductivity):
-    Ks, KsMap, KsDeriv = props.Invertible("Saturated hydraulic conductivity")
+class Vangenuchten_k(HydraulicConductivity):
 
     I, IMap, IDeriv = props.Invertible("")
 
@@ -499,9 +428,8 @@ class Vangenuchten_k(BaseHydraulicConductivity):
 
     def __init__(
         self,
-        mesh,
+        *args,
         Ks=24.96,
-        KsMap=None,
         I=0.5,
         IMap=None,
         n=1.56,
@@ -510,9 +438,12 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         alphaMap=None,
         **kwargs,
     ):
-        super().__init__(mesh=mesh, **kwargs)
-        self.Ks = Ks
-        self.KsMap = KsMap
+        if len(args) > 0 or "mesh" in kwargs:
+            raise TypeError(
+                "Vangenuchten_k() no longer takes positional arguments. "
+                "The `mesh` positional argument was unused and has been removed."
+            )
+        super().__init__(Ks=Ks, **kwargs)
         self.I = I
         self.IMap = IMap
         self.n = n
@@ -809,9 +740,8 @@ class Vangenuchten_k(BaseHydraulicConductivity):
         return g
 
 
-def van_genuchten(mesh, **kwargs):
+def van_genuchten(**kwargs):
     return _partition_args(
-        mesh,
         Vangenuchten_k,
         Vangenuchten_theta,
         ["alpha", "n", "Ks", "I"],
