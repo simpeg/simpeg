@@ -8,7 +8,6 @@ import numpy as np
 from scipy.constants import mu_0
 from scipy.sparse import csr_matrix
 from ...survey import BaseRx
-from simpeg.utils import mkvc
 
 
 def _alpha(src):
@@ -1145,20 +1144,34 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
         # ADJOINT
         if adjoint:
             # Compute: J_T * v = d_top_T * a_v + d_bot_T * b
-            a_v = fact * v / bot  # term 1
-            b_v = -fact * top * v / bot**2  # term 2
+            a_v = fact * np.c_[v] / bot[:, None]  # term 1
+            b_v = np.c_[v] * (-fact * top / (bot**2))[:, None]  # term 2
 
-            a_v = np.repeat(mkvc(a_v, n_dims=2), 2, axis=-1)
-            b_v = np.repeat(mkvc(b_v, n_dims=2), 2, axis=-1)
+            # a_v = np.repeat(mkvc(a_v, n_dims=2), 2, axis=-1)
+            # b_v = np.repeat(mkvc(b_v, n_dims=2), 2, axis=-1)
 
-            hx *= a_v
-            hy *= a_v
-            hz *= a_v
-            ex *= b_v
-            ey *= b_v
+            # hx *= a_v
+            # hy *= a_v
+            # hz *= a_v
+            # ex *= b_v
+            # ey *= b_v
 
-            e_v = 2 * (Pex.T @ ex + Pey.T @ ey).conjugate()
-            h_v = 2 * (Phx.T @ hx + Phy.T @ hy + Phz.T @ hz).conjugate()
+            ghx_v = np.einsum("ij,ik->ijk", a_v, hx).reshape((hx.shape[0], -1))
+            ghy_v = np.einsum("ij,ik->ijk", a_v, hy).reshape((hy.shape[0], -1))
+            ghz_v = np.einsum("ij,ik->ijk", a_v, hz).reshape((hz.shape[0], -1))
+            gex_v = np.einsum("ij,ik->ijk", b_v, ex).reshape((ex.shape[0], -1))
+            gey_v = np.einsum("ij,ik->ijk", b_v, ey).reshape((ey.shape[0], -1))
+            e_v = (
+                2 * (Pex.T @ csr_matrix(gex_v) + Pey.T @ csr_matrix(gey_v)).conjugate()
+            )
+            h_v = (
+                2
+                * (
+                    Phx.T @ csr_matrix(ghx_v)
+                    + Phy.T @ csr_matrix(ghy_v)
+                    + Phz.T @ csr_matrix(ghz_v)
+                ).conjugate()
+            )
 
             fu_e_v, fm_e_v = f._eDeriv(src, None, e_v, adjoint=True)
             fu_h_v, fm_h_v = f._hDeriv(src, None, h_v, adjoint=True)
