@@ -1147,15 +1147,6 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
             a_v = fact * np.c_[v] / bot[:, None]  # term 1
             b_v = np.c_[v] * (-fact * top / (bot**2))[:, None]  # term 2
 
-            # a_v = np.repeat(mkvc(a_v, n_dims=2), 2, axis=-1)
-            # b_v = np.repeat(mkvc(b_v, n_dims=2), 2, axis=-1)
-
-            # hx *= a_v
-            # hy *= a_v
-            # hz *= a_v
-            # ex *= b_v
-            # ey *= b_v
-
             ghx_v = np.einsum("ij,ik->ijk", a_v, hx).reshape((hx.shape[0], -1))
             ghy_v = np.einsum("ij,ik->ijk", a_v, hy).reshape((hy.shape[0], -1))
             ghz_v = np.einsum("ij,ik->ijk", a_v, hz).reshape((hz.shape[0], -1))
