@@ -183,9 +183,7 @@ class BaseRx(BaseSimPEGRx):
 
         if self.data_type == "apparent_resistivity":
             try:
-                if mesh.dim == 2:
-                    return v / self.geometric_factor[src][:, None]
-                return v / self.geometric_factor[src].reshape(-1, 1)
+                return v / self.geometric_factor[src][:, None]
             except KeyError:
                 raise KeyError(
                     "Receiver geometric factor has not been set, please execute "
