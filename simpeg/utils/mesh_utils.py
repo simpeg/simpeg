@@ -196,7 +196,11 @@ def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top"):
             dz = 0.0
         return np.c_[mesh.cell_centers[inds, :-1], mesh.cell_centers[inds, -1] + dz]
     else:
-        raise NotImplementedError(f"{type(mesh)} mesh is not supported.")
+        msg = (
+            f"Invalid mesh of type '{type(mesh).__name__}'. "
+            "`get_discrete_topography` only supports TensorMesh and TreeMesh."
+        )
+        raise TypeError(msg)
 
 
 def shift_to_discrete_topography(
@@ -244,9 +248,11 @@ def shift_to_discrete_topography(
     :func:`simpeg.utils.get_discrete_topography`
     """
     if mesh._meshType != "TENSOR" and mesh._meshType != "TREE":
-        raise TypeError(
-            "shift_to_discrete_topography only supported for TensorMesh and TreeMesh'."
+        msg = (
+            f"Invalid mesh of type '{type(mesh).__name__}'. "
+            "`shift_to_discrete_topography` only supports TensorMesh and TreeMesh."
         )
+        raise TypeError(msg)
 
     if not isinstance(heights, (int, float)) and len(pts) != len(heights):
         raise ValueError(
