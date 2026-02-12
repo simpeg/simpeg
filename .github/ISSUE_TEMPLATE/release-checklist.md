@@ -40,8 +40,8 @@ assignees: ""
 - [ ] Copy the content of `notes.rst` to a new file `docs/content/release/<version>-notes.rst`.
 - [ ] Edit the release notes file, following the template below and the previous release notes.
 - [ ] Add the new release notes to the list in `docs/content/release/index.rst`.
-- [ ] **Open a PR** with the new release notes.
-- [ ] Manually view the built documentation by downloading the Azure `html_doc` artifact and check for formatting and errors.
+- [ ] Create a new branch called `changelog-v<VERSION_NUMBER>` and commit the
+  changes in `docs/content/release`
 
 
 <details>
@@ -116,8 +116,10 @@ Edit the `docs/_static/versions.json` file and:
 - [ ] Double-check the changes.
 - [ ] Commit the changes to the same branch.
 
-### Merge the PR
+### Create a PR and merge it
 
+- [ ] Open a PR merging the new branch into `main`.
+- [ ] Manually view the built documentation by downloading the Azure `html_doc` artifact and check for formatting and errors.
 - [ ] **Merge that PR.**
 
 ## Make the new release
