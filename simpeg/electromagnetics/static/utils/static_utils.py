@@ -1298,8 +1298,8 @@ def generate_dcip_sources_line(
 
     Returns
     -------
-    simpeg.electromagnetics.static.resistivity.Survey
-        A DC survey object.
+    list of simpeg.electromagnetics.static.resistivity.sources.BaseSrc
+        A list of DC resistivity sources.
     """
     assert survey_type.lower() in [
         "pole-pole",
