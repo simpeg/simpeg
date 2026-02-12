@@ -116,7 +116,7 @@ Edit the `docs/_static/versions.json` file and:
 - [ ] Double-check the changes.
 - [ ] Commit the changes to the same branch.
 
-### Merge the PR
+### Create a PR and merge it
 
 - [ ] Open a PR merging the new branch into `main`.
 - [ ] Manually view the built documentation by downloading the Azure `html_doc` artifact and check for formatting and errors.
