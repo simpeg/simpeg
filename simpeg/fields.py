@@ -474,7 +474,7 @@ class TimeFields(Fields):
         shape = self._correctShape(name, ind)
         if isinstance(val, np.ndarray) and val.size == 1:
             val = val[0]
-        if np.isscalar(val):
+        if np.ndim(val) == 0:
             field[:, srcInd, timeInd] = val
             return
         if val.size != np.array(shape).prod():

@@ -3,7 +3,7 @@ import scipy.sparse as sp
 from discretize.utils import Zero
 
 from ... import props
-from ...utils import mkvc, validate_type
+from ...utils import mkvc, validate_type, validate_ndarray_with_shape
 from ..base import BaseEMSimulation
 from ..utils import omega
 from .survey import Survey
@@ -62,8 +62,14 @@ class BaseFDEMSimulation(BaseEMSimulation):
         Whether to compute and store the sensitivity matrix.
     """
 
+    # setting __doc__ to None will cause it to regenerate when this class is created
+    sigma = BaseEMSimulation.sigma.set_feature(dtype=(float, complex), __doc__=None)
+    rho = BaseEMSimulation.rho.set_feature(dtype=(float, complex), __doc__=None)
+
     fieldsPair = FieldsFDEM
-    permittivity = props.PhysicalProperty("Dielectric permittivity (F/m)")
+    permittivity = props.PhysicalProperty(
+        "Dielectric permittivity (F/m)", default=None, invertible=False
+    )
 
     def __init__(
         self,
@@ -76,13 +82,27 @@ class BaseFDEMSimulation(BaseEMSimulation):
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.forward_only = forward_only
-        if permittivity is not None:
+        self._init_property(permittivity=permittivity)
+        self.storeJ = storeJ
+
+    @permittivity.setter
+    def permittivity(self, value):
+        prop = type(self).permittivity
+        if value is not None:
             warnings.warn(
                 "Simulations using permittivity have not yet been thoroughly tested and derivatives are not implemented. Contributions welcome!",
                 stacklevel=2,
             )
-        self.permittivity = permittivity
-        self.storeJ = storeJ
+            value = validate_ndarray_with_shape(
+                f"{type(self).__name__}.permittivity",
+                value,
+                shape=[
+                    (),
+                    (1,),
+                    (self.mesh.n_cells,),
+                ],
+            )
+        setattr(self, prop.private_name, value)
 
     @property
     def survey(self):
@@ -1445,13 +1465,16 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
     _formulation = "HJ"
     fieldsPair = Fields3DCurrentDensity
 
-    permittivity = props.PhysicalProperty("Dielectric permittivity (F/m)")
-
     def __init__(
         self, mesh, survey=None, forward_only=False, permittivity=None, **kwargs
     ):
-        super().__init__(mesh=mesh, survey=survey, forward_only=forward_only, **kwargs)
-        self.permittivity = permittivity
+        super().__init__(
+            mesh=mesh,
+            survey=survey,
+            forward_only=forward_only,
+            permittivity=permittivity,
+            **kwargs,
+        )
 
     def getA(self, freq):
         r"""System matrix for the frequency provided.

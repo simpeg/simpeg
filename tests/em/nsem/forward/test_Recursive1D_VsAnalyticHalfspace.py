@@ -85,7 +85,7 @@ def test_incorrect_rx_types(rx_class):
     if rx_class is ns_rx.Impedance:
         with warnings.catch_warnings():
             warnings.simplefilter("error")
-            nsem.Simulation1DRecursive(survey=survey)
+            nsem.Simulation1DRecursive(survey=survey, sigma=1, thicknesses=[])
     else:
         with pytest.raises(
             NotImplementedError, match="Simulation1DRecursive does not support .*"
