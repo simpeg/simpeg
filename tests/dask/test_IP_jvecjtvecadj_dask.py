@@ -73,8 +73,12 @@ class IPProblemTests2DN(unittest.TestCase):
         # Find cells that lie below surface topography
         ind_active = ds.utils.active_from_xyz(mesh, topo_2d)
         # Shift electrodes to the surface of discretized topography
-        dc_data.survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
-        ip_data.survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
+        dc_data.survey.drape_electrodes_on_topography(
+            mesh, ind_active, option="top", shift_horizontal=False
+        )
+        ip_data.survey.drape_electrodes_on_topography(
+            mesh, ind_active, option="top", shift_horizontal=False
+        )
 
         # Define conductivity model in S/m (or resistivity model in Ohm m)
         air_conductivity = 1e-8
@@ -97,7 +101,7 @@ class IPProblemTests2DN(unittest.TestCase):
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=5, maxIter=1, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=5
+            maxIterLS=5, maxIter=1, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=5
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -172,7 +176,7 @@ class IPProblemTestsCC(unittest.TestCase):
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -247,7 +251,7 @@ class IPProblemTestsN(unittest.TestCase):
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -325,7 +329,7 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -410,7 +414,7 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)

@@ -19,6 +19,7 @@ For details on the available classes and functions in SimPEG, please visit the
   getting-started/installing
   getting-started/contributing/index.rst
   getting-started/citing.rst
+  getting-started/version-compatibility.rst
 
 .. toctree::
   :glob:

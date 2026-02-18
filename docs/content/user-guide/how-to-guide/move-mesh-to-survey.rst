@@ -1,3 +1,5 @@
+.. _how-to-move-mesh:
+
 ============================
 Locating mesh on survey area
 ============================

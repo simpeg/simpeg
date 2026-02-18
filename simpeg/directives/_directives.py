@@ -2349,7 +2349,7 @@ class UpdateSensitivityWeights(InversionDirective):
     every_iteration : bool
         When ``True``, update sensitivity weighting at every model update; non-linear problems.
         When ``False``, create sensitivity weights for starting model only; linear problems.
-    threshold : float
+    threshold_value : float
         Threshold value for smallest weighting value.
     threshold_method : {'amplitude', 'global', 'percentile'}
         Threshold method for how `threshold_value` is applied:

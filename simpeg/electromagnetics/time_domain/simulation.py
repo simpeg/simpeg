@@ -404,11 +404,18 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                     ATinv_df_duT_v[isrc, :] = (
                         AdiagTinv
                         * df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1]
-                    )
+                    ).squeeze()
                 elif tInd > -1:
-                    ATinv_df_duT_v[isrc, :] = AdiagTinv * (
-                        mkvc(df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1])
-                        - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :])
+                    ATinv_df_duT_v[isrc, :] = (
+                        AdiagTinv
+                        * (
+                            mkvc(
+                                df_duT_v[
+                                    src, "{}Deriv".format(self._fieldType), tInd + 1
+                                ]
+                            )
+                            - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :])
+                        ).squeeze()
                     )
 
                 dAsubdiagT_dm_v = self.getAsubdiagDeriv(
@@ -1296,11 +1303,18 @@ class Simulation3DElectricField(BaseTDEMSimulation):
                     ATinv_df_duT_v[isrc, :] = (
                         AdiagTinv
                         * df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1]
-                    )
+                    ).squeeze()
                 elif tInd > -1:
-                    ATinv_df_duT_v[isrc, :] = AdiagTinv * (
-                        mkvc(df_duT_v[src, "{}Deriv".format(self._fieldType), tInd + 1])
-                        - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :])
+                    ATinv_df_duT_v[isrc, :] = (
+                        AdiagTinv
+                        * (
+                            mkvc(
+                                df_duT_v[
+                                    src, "{}Deriv".format(self._fieldType), tInd + 1
+                                ]
+                            )
+                            - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :])
+                        ).squeeze()
                     )
 
                 dAsubdiagT_dm_v = self.getAsubdiagDeriv(
@@ -1337,7 +1351,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
                             )
                             - Asubdiag.T * mkvc(ATinv_df_duT_v[isrc, :])
                         )
-                    )
+                    ).squeeze()
                 )
 
                 dRHST_dm_v = self.getRHSDeriv(

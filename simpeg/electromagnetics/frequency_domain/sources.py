@@ -1332,7 +1332,7 @@ class LineCurrent(BaseFDEMSrc):
         if getattr(self, "_Mejs", None) is None:
             mesh = simulation.mesh
             locs = self.location
-            self._Mejs = self.current * segmented_line_current_source_term(mesh, locs)
+            self._Mejs = segmented_line_current_source_term(mesh, locs)
         return self.current * self._Mejs
 
     def Mfjs(self, simulation):

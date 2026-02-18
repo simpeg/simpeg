@@ -237,16 +237,42 @@ class BaseEM1DSimulation(BaseSimulation):
         r"""
         Computes the complex conductivity matrix using Pelton's Cole-Cole model:
 
+        Parameters
+        -----------
+        frequencies : (n_frequencies,) array
+            Array with frequencies.
+
+            .. important::
+
+                For IP cases (non-null chargeability), computations assume
+                conductivity/frequency at infinite frequency were passed
+                (see notes below).
+
+        Returns
+        -------
+        out : (n_layers, n_frequencies) array
+            A 2D array of complex conductivities for all layers.
+
+        Notes
+        -----
+        Complex conductivity is obtained following (Pelton, 1978):
+
         .. math ::
 
-            \sigma (\omega ) = \sigma \Bigg [
-                1 - \eta \Bigg ( \frac{1}{1 + (1-\eta ) (1 + i\omega \tau)^c} \Bigg )
-            \Bigg ]
+            \sigma (\omega ) = \sigma_{\infty} \Bigg (
+                1 - \frac{\eta}{1 + (1-\eta ) (i\omega \tau)^c}
+            \Bigg )
 
-        :param numpy.array frequencies: np.array(N,) containing frequencies
-        :rtype: numpy.ndarray: np.array(n_layer, n_frequency)
-        :return: complex conductivity matrix
+        where :math:`\eta`, :math:`\tau` and :math:`c` are the model
+        chargeability (V/V), relaxation time (s) and frequency exponent (-)
 
+        This formulation relies on the conductivity at infinite frequency
+        :math:`\sigma_{\infty}` which lightly differs from Pelton's — based on
+        the conductivity at 0 frequency :math:`\sigma_0`:
+
+        .. math ::
+
+            \sigma_0 = ( 1 - \eta ) \sigma_{\infty}
         """
         n_layer = self.n_layer
         n_frequency = len(frequencies)
@@ -255,7 +281,7 @@ class BaseEM1DSimulation(BaseSimulation):
         sigma = np.tile(self.sigma.reshape([-1, 1]), (1, n_frequency))
 
         # No IP effect
-        if np.all(self.eta) == 0.0:
+        if np.all(self.eta == 0.0):
             return sigma
 
         # IP effect
@@ -285,6 +311,20 @@ class BaseEM1DSimulation(BaseSimulation):
         Computes the complex magnetic permeability matrix assuming a log-uniform
         distribution of time-relaxation constants:
 
+        Parameters
+        -----------
+        frequencies : (n_frequencies,) array
+            Array with frequencies.
+
+        Returns
+        -------
+        out : (n_layers, n_frequencies) array
+            The complex magnetic susceptibility matrix.
+
+        Notes
+        -----
+        Formulation is:
+
         .. math::
 
             \chi (\omega ) = \chi + \Delta \chi \Bigg [
@@ -292,9 +332,6 @@ class BaseEM1DSimulation(BaseSimulation):
                 ln \Bigg ( \frac{1 + i\omega \tau_2}{1 + i\omega tau_1} ) \Bigg )
             \Bigg ]
 
-        :param numpy.array frequencies: np.array(N,) containing frequencies
-        :rtype: numpy.ndarray: np.array(n_layer, n_frequency)
-        :return: complex magnetic susceptibility matrix
         """
 
         if np.isscalar(self.mu):
@@ -309,7 +346,7 @@ class BaseEM1DSimulation(BaseSimulation):
         mu = np.tile(mu.reshape([-1, 1]), (1, n_frequency))
 
         # No magnetic viscosity
-        if np.all(self.dchi) == 0.0:
+        if np.all(self.dchi == 0.0):
             return mu
 
         # Magnetic viscosity

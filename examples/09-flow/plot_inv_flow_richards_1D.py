@@ -99,7 +99,7 @@ def run(plotIt=True):
     # Setup a pretty standard inversion
     reg = regularization.WeightedLeastSquares(M, alpha_s=1e-1)
     dmis = data_misfit.L2DataMisfit(simulation=prob, data=data)
-    opt = optimization.InexactGaussNewton(maxIter=20, maxIterCG=10)
+    opt = optimization.InexactGaussNewton(maxIter=20, cg_maxiter=10)
     invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
     beta = directives.BetaSchedule(coolingFactor=4)
     betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e2)

@@ -279,7 +279,7 @@ ax = plot_data(dclean)
 
 dmisfit = data_misfit.L2DataMisfit(simulation=prob, data=data)
 reg = regularization.WeightedLeastSquares(inversion_mesh)
-opt = optimization.InexactGaussNewton(maxIterCG=10, remember="xc")
+opt = optimization.InexactGaussNewton(cg_maxiter=10, remember="xc")
 invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
 betaest = directives.BetaEstimate_ByEig(beta0_ratio=0.05, n_pw_iter=1, random_seed=1)

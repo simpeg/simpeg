@@ -13,6 +13,7 @@ from simpeg import (
 )
 from simpeg.utils import mkvc
 from simpeg.electromagnetics import resistivity as dc
+from simpeg.electromagnetics.static import utils as static_utils
 import shutil
 
 
@@ -38,7 +39,27 @@ class DCProblemTestsCC(unittest.TestCase):
         )
 
         source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        # Make sure it actually generated sources
+        assert len(source_list) > 0
+
+        for survey_type in ["dipole-pole", "pole-dipole", "pole-pole"]:
+            for data_type in ["volt", "apparent_resistivity"]:
+
+                next_list = static_utils.generate_dcip_sources_line(
+                    survey_type=survey_type,
+                    data_type=data_type,
+                    dimension_type="2D",
+                    end_points=[-surveySize / 2, surveySize / 2],
+                    num_rx_per_src=5,
+                    station_spacing=aSpacing,
+                    topo=0.0,
+                )
+                # Make sure it actually generated sources
+                assert len(next_list) > 0
+                source_list.extend(next_list)
         survey = dc.survey.Survey(source_list)
+        survey.set_geometric_factor()
+
         simulation = dc.simulation.Simulation3DCellCentered(
             mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh)
         )
@@ -50,7 +71,7 @@ class DCProblemTestsCC(unittest.TestCase):
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -184,7 +205,27 @@ class DCProblemTestsN(unittest.TestCase):
         )
 
         source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
+        # Make sure it actually generated sources
+        assert len(source_list) > 0
+
+        for survey_type in ["dipole-pole", "pole-dipole", "pole-pole"]:
+            for data_type in ["volt", "apparent_resistivity"]:
+
+                next_list = static_utils.generate_dcip_sources_line(
+                    survey_type=survey_type,
+                    data_type=data_type,
+                    dimension_type="2D",
+                    end_points=[-surveySize / 2, surveySize / 2],
+                    num_rx_per_src=5,
+                    station_spacing=aSpacing,
+                    topo=0.0,
+                )
+                # Make sure it actually generated sources
+                assert len(next_list) > 0
+                source_list.extend(next_list)
         survey = dc.survey.Survey(source_list)
+        survey.set_geometric_factor()
+
         simulation = dc.simulation.Simulation3DNodal(
             mesh=mesh, survey=survey, rhoMap=maps.IdentityMap(mesh)
         )
@@ -196,7 +237,7 @@ class DCProblemTestsN(unittest.TestCase):
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -273,7 +314,7 @@ class DCProblemTestsN_Robin(unittest.TestCase):
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -350,7 +391,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -434,7 +475,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -522,7 +563,7 @@ class DCProblemTestsN_storeJ_Robin(unittest.TestCase):
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)

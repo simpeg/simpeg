@@ -541,7 +541,7 @@ ip_regularization = regularization.WeightedLeastSquares(
 # Define how the optimization problem is solved. Here it is a projected
 # Gauss Newton with Conjugate Gradient solver.
 ip_optimization = optimization.ProjectedGNCG(
-    maxIter=15, lower=0.0, upper=1000.0, maxIterCG=30, tolCG=1e-2
+    maxIter=15, lower=0.0, upper=1000.0, cg_maxiter=30, cg_rtol=1e-3
 )
 
 # Here we define the inverse problem that is to be solved

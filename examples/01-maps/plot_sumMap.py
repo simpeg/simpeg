@@ -164,8 +164,8 @@ def run(plotIt=True):
         lower=0.0,
         upper=1.0,
         maxIterLS=20,
-        maxIterCG=10,
-        tolCG=1e-3,
+        cg_maxiter=10,
+        cg_rtol=1e-3,
         tolG=1e-3,
         eps=1e-6,
     )
