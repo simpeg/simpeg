@@ -253,8 +253,11 @@ class Survey(BaseSurvey):
             The mesh on which the discretized fields are computed
         active_cells : numpy.ndarray of int or bool
             Active topography cells
-        topo_cell_cutoff : {"top", "center"}
+        topo_cell_cutoff : {"top", "center"}, optional
             Define topography at tops of cells or cell centers.
+        shift_horizontal : bool, optional
+            When True, locations are shifted horizontally to lie vertically over cell
+            centers. When False, the original horizontal locations are preserved.
         topography : (n, dim) numpy.ndarray, default = ``None``
             Surface topography
 
@@ -270,9 +273,6 @@ class Survey(BaseSurvey):
 
                 The ``force`` argument is not used in this function. It will be removed
                 in SimPEG v0.27.0.
-        shift_horizontal : bool
-            When True, locations are shifted horizontally to lie vertically over cell
-            centers. When False, the original horizontal locations are preserved.
         option : {"top", "center"}
             Define topography at tops of cells or cell centers.
 
@@ -281,6 +281,9 @@ class Survey(BaseSurvey):
                Argument ``option`` is deprecated in favor of ``topo_cell_cutoff``
                and will be removed in SimPEG v0.27.0.
 
+        See also
+        --------
+        :func:`simpeg.utils.shift_to_discrete_topography`
         """
         if option is not None:
             msg = (
