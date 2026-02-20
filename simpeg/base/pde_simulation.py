@@ -976,11 +976,11 @@ class BaseElectricalEdgePropertyPDESimulation(BaseElectricalPDESimulation):
                     delattr(self, mat)
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_update(self):
         """
         items to be deleted if the model for Magnetic Permeability is updated
         """
-        toDelete = super().deleteTheseOnModelUpdate
+        toDelete = super()._delete_on_model_update
         if self.kappaMap is not None:
             toDelete = toDelete + self._clear_on_kappa_update
         return toDelete
@@ -1012,11 +1012,11 @@ class BaseElectricalFacePropertyPDESimulation(BaseElectricalPDESimulation):
                     delattr(self, mat)
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_update(self):
         """
         items to be deleted if the model for Magnetic Permeability is updated
         """
-        toDelete = super().deleteTheseOnModelUpdate
+        toDelete = super()._delete_on_model_update
         if self.tauMap is not None:
             toDelete = toDelete + self._clear_on_tau_update
         return toDelete
@@ -1069,11 +1069,11 @@ class BaseHierarchicalElectricalSimulation(
         return self.MeSigmaDeriv(u, v, adjoint=adjoint)
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_update(self):
         """
         items to be deleted if the model for cell, face or edge conductivity is updated
         """
-        toDelete = super().deleteTheseOnModelUpdate
+        toDelete = super()._delete_on_model_update
         if (
             self.sigmaMap is not None
             or self.rhoMap is not None
