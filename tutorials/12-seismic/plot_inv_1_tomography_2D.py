@@ -223,7 +223,7 @@ reg.norms = [p, qx, qy]
 
 # Define how the optimization problem is solved.
 opt = optimization.ProjectedGNCG(
-    maxIter=100, lower=0.0, upper=1e6, maxIterLS=20, maxIterCG=10, tolCG=1e-4
+    maxIter=100, lower=0.0, upper=1e6, maxIterLS=20, cg_maxiter=10, cg_rtol=1e-3
 )
 
 # Here we define the inverse problem that is to be solved

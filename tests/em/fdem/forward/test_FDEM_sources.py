@@ -376,24 +376,6 @@ class TestSimpleSourcePropertiesTensor(unittest.TestCase):
         assert self.bPrimaryTest(src, "j")
 
 
-def test_removal_circular_loop_n():
-    """
-    Test if passing the N argument to CircularLoop raises an error
-    """
-    msg = "'N' property has been removed. Please use 'n_turns'."
-    with pytest.raises(TypeError, match=msg):
-        fdem.sources.CircularLoop(
-            [],
-            frequency=1e-3,
-            radius=np.sqrt(1 / np.pi),
-            location=[0, 0, 0],
-            orientation="Z",
-            mu=mu_0,
-            current=0.5,
-            N=2,
-        )
-
-
 def test_line_current_failures():
     rx_locs = [[0.5, 0.5, 0]]
     tx_locs = [[0, 0, 0], [0, 1, 0], [1, 1, 0], [1, 0, 0], [0, 0, 0]]
@@ -402,3 +384,37 @@ def test_line_current_failures():
     )
     with pytest.raises(ValueError):
         fdem.sources.LineCurrent([rx], 10, tx_locs)
+
+
+class TestBugFixDuplicatedCurrent:
+    """Test that the duplicated current in LinearCurrent.Mejs has been removed."""
+
+    sigma = 1e-2
+
+    def compute_e_field(self, current):
+        """
+        Calculate electric field on a mesh with a line current as the source.
+        """
+        hx = [(20.0, 10)]
+        mesh = discretize.TensorMesh([hx, hx, hx], origin="CCC")
+        line_path = np.array([[-50, 0, -50], [50, 0, -50]])
+        source = fdem.sources.LineCurrent(
+            location=line_path, current=current, frequency=1.0, receiver_list=[]
+        )
+        survey = fdem.Survey([source])
+        simulation = fdem.Simulation3DElectricField(
+            mesh=mesh, survey=survey, sigma=self.sigma
+        )
+        fields = simulation.fields()
+        return fields[source, "e"]
+
+    def test_fields_linear_on_current(self):
+        """
+        Test that the electric fields are linear on the current.
+
+        When the current is multiplied twice, the fields are not linear.
+        """
+        current_1, current_2 = 2.5, 10.3
+        expected = self.compute_e_field(current_1 + current_2)
+        actual = self.compute_e_field(current_1) + self.compute_e_field(current_2)
+        np.testing.assert_allclose(expected, actual, atol=1e-14)

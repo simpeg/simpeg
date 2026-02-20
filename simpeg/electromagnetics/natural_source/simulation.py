@@ -110,6 +110,23 @@ class Simulation1DElectricField(BaseFDEMSimulation):
             freq, u, v, adjoint
         )
 
+    def getJ(self, m, f=None):
+        r"""Generate the full sensitivity matrix.
+
+        .. important::
+
+            This method hasn't been implemented yet for this class.
+
+        Raises
+        -------
+        NotImplementedError
+        """
+        msg = (
+            "The getJ method hasn't been implemented for the "
+            f"{type(self).__name__} yet."
+        )
+        raise NotImplementedError(msg)
+
 
 class Simulation1DMagneticField(BaseFDEMSimulation):
     """
@@ -171,6 +188,23 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
         return self.getADeriv_rho(freq, u, v, adjoint) + self.getADeriv_mu(
             freq, u, v, adjoint
         )
+
+    def getJ(self, m, f=None):
+        r"""Generate the full sensitivity matrix.
+
+        .. important::
+
+            This method hasn't been implemented yet for this class.
+
+        Raises
+        -------
+        NotImplementedError
+        """
+        msg = (
+            "The getJ method hasn't been implemented for the "
+            f"{type(self).__name__} yet."
+        )
+        raise NotImplementedError(msg)
 
 
 class Simulation1DPrimarySecondary(Simulation1DElectricField):
@@ -474,8 +508,8 @@ class Simulation2DElectricField(BaseFDEMSimulation):
         return self._boundary_fields
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        items = super().deleteTheseOnModelUpdate
+    def _delete_on_model_update(self):
+        items = super()._delete_on_model_update
         items.append("_boundary_fields")
         return items
 
@@ -696,8 +730,8 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
         return self._boundary_fields
 
     @property
-    def deleteTheseOnModelUpdate(self):
-        items = super().deleteTheseOnModelUpdate
+    def _delete_on_model_update(self):
+        items = super()._delete_on_model_update
         items.append("_boundary_fields")
         return items
 

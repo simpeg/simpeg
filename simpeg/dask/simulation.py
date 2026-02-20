@@ -51,10 +51,7 @@ _old_init = Sim.__init__
 
 def __init__(
     self,
-    mesh=None,
     survey=None,
-    solver=None,
-    solver_opts=None,
     sensitivity_path="./sensitivity/",
     counter=None,
     verbose=False,
@@ -65,10 +62,7 @@ def __init__(
 ):
     _old_init(
         self,
-        mesh=mesh,
         survey=survey,
-        solver=solver,
-        solver_opts=solver_opts,
         sensitivity_path=sensitivity_path,
         counter=counter,
         verbose=verbose,

@@ -1,0 +1,232 @@
+.. _0.24.0_notes:
+
+===========================
+SimPEG 0.24.0 Release Notes
+===========================
+
+April 24th, 2025
+
+.. contents:: Highlights
+    :depth: 3
+
+Updates
+=======
+
+New features
+------------
+
+Speed up of dot products involved in PGI
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This release includes optimizations of some dot products carried out in the
+:class:`~simpeg.regularization.pgi.PGIsmallness`. They significantly reduce the
+computation time of Petrophysically and Geologically Guided Inversions (PGI).
+
+Specifically, these changes optimize the dot products involved when evaluating
+the regularization function itself and its derivatives. The optimization takes
+advantage of the :func:`numpy.einsum` function.
+
+See https://github.com/simpeg/simpeg/pull/1587 and
+https://github.com/simpeg/simpeg/pull/1588 for more information.
+
+
+Potential field sensitivity matrices as Linear Operators
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The gravity and magnetic field simulations are now capable of building the
+sensitivity matrix ``G`` as a SciPy
+:class:`~scipy.sparse.linalg.LinearOperator` object when the
+``store_sensitivities`` argument is set to ``"forward_only"``.
+The :class:`~scipy.sparse.linalg.LinearOperator` objects
+can be used to compute the dot product with any vector (``G
+@ v``), or the dot product of their transpose (``G.T @ v``) as if they were
+arrays, although the dense matrix is never fully built nor allocated in memory.
+Instead, the forward computation is carried out whenever a dot product is
+requested.
+
+This change allows to compute the simulation derivatives without requiring
+large amount of memory to store large sensitivity matrices, enabling users to
+run inversions of large models where the sensitivity matrix is larger than the
+available memory.
+
+Using methods like
+:meth:`~simpeg.potential_fields.gravity.Simulation3DIntegral.Jvec`,
+:meth:`~simpeg.potential_fields.gravity.Simulation3DIntegral.Jtvec`,
+and
+:meth:`~simpeg.potential_fields.gravity.Simulation3DIntegral.getJtJdiag`, make
+use of
+:attr:`~simpeg.potential_fields.gravity.Simulation3DIntegral.G`
+a linear operator when ``store_sensitivities="forward_only"``.
+Meanwhile, the
+:meth:`~simpeg.potential_fields.gravity.Simulation3DIntegral.getJ`
+method returns a composite
+:class:`~scipy.sparse.linalg.LinearOperator` object that can also be used to
+compute dot products with any vector.
+
+See https://github.com/simpeg/simpeg/pull/1622 and
+https://github.com/simpeg/simpeg/pull/1634 for more information.
+
+Move indexing of arrays from :class:`simpeg.data.Data` to Surveys
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We moved the indexing capabilities of the :class:`~simpeg.data.Data` objects to
+the different ``Survey`` objects. This is useful in case we have some data as
+a flat array that is related to a particular survey (or combination of sources
+and receivers), and we want to obtain the data values associated to
+a particular pair of source and receiver.
+
+With this change, we don't need to define a new :class:`~simpeg.data.Data`
+object to slice an array, we can use the ``Survey`` itself.
+For example, let's say we have a survey with two sources, and three receivers
+each:
+
+.. code:: python
+
+   receivers_a = [Recevier([[-2, 0]]), Recevier([[0, 0]]), Recevier([[2, 0]])]
+   source_a = Source(receiver_list=receivers_a)
+   receivers_b = [Recevier([[3, 1]]), Recevier([[4, 1]]), Recevier([[5, 1]])]
+   source_b = Source(receiver_list=receivers_b)
+   survey = Survey(source_list=[source_a, source_b])
+
+And we have a ``dobs`` array that corresponds to this survey. We can obtain the
+values of the ``dobs`` array associated with the second receiver and the first
+source by using the ``get_slice`` method to obtain a ``slice`` object, and then
+use it to index the ``dobs`` array:
+
+.. code:: python
+
+   slice_obj = survey.get_slice(source_a, receivers_a[1])
+   dobs_slice = dobs[slice_obj]
+
+See https://github.com/simpeg/simpeg/pull/1616 and
+https://github.com/simpeg/simpeg/pull/1632 for more information.
+
+Documentation
+-------------
+
+The documentation pages have been reorganized, merging the _Getting Started_
+section into the :ref:`User Guide <user_guide>`.
+This change makes it easier to navigate through the different documentation
+pages, with the assistance of a table of contents on the side.
+
+We updated the :ref:`installation instructions <installing>`, with `Miniforge
+<https://github.com/conda-forge/miniforge>`_ as the recommended Python
+distribution.
+
+We have also improved the documentation of some classes and methods.
+
+
+Bugfixes
+--------
+
+This release includes a list of bug fixes. We solved issues related to the
+``getJ`` method of the DC, SIP, TDEM, and FDEM simulations. The EM1D
+simulations can now work with receivers objects with multiple locations.
+The :class:`~simpeg.data_misfit.BaseDataMisfit` class and its children raise errors in case the
+simulation is retuning non-numeric values as output.
+
+We have also improved some of the error messages that users get when things
+don't work as expected, aiming to catch those mistakes earlier than late.
+
+Contributors
+============
+
+Contributors
+
+- `@ghwilliams <https://github.com/ghwilliams>`__
+- `@jcapriot <https://github.com/jcapriot>`__
+- `@johnweis0480 <https://github.com/johnweis0480>`__
+- `@lheagy <https://github.com/lheagy>`__
+- `@santisoler <https://github.com/santisoler>`__
+
+
+Pull Requests
+=============
+
+- Bugfix for TDEM magnetic dipole sources by `@lheagy <https://github.com/lheagy>`__ in
+  https://github.com/simpeg/simpeg/pull/1572
+- Fix ubcstyle printout by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1577
+- Add docstring to ``n_processes`` in potential field simulations by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1578
+- Move simulation solver from base simulation to PDE simulation by
+  `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1582
+- Update and fix instructions to build the docs by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1583
+- Change location of ``mesh`` attribute by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1585
+- Speed up most commonly used deriv/deriv2 in PGI by `@johnweis0480 <https://github.com/johnweis0480>`__ in
+  https://github.com/simpeg/simpeg/pull/1587
+- Improve dot products in ``PGIsmallness.__call__`` and update docstring
+  by `@johnweis0480 <https://github.com/johnweis0480>`__ in https://github.com/simpeg/simpeg/pull/1588
+- Rename delete on model update by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1589
+- update PGI Example plotting script for deprecated collections by
+  `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1595
+- Coverage upload on failed test by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1596
+- Use zizmor to lint GitHub Actions workflows by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1592
+- Update installation instructions in docs by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1597
+- Set ``permissions`` in Actions to avoid zizmor’s
+  ``excessive-permissions`` by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1602
+- Fix for removed quadrature function on new scipy versions by `@jcapriot <https://github.com/jcapriot>`__
+  in https://github.com/simpeg/simpeg/pull/1603
+- Install zizmor through conda-forge in ``environment.yml`` by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1600
+- Raise errors if dpred in ``BaseDataMisfit`` has nans by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1615
+- Update Black’s Python versions in ``pyproject.toml`` by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1620
+- Use shell rendering in Bug report template by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1612
+- Merge Getting Started and Examples into User Guide by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1619
+- Fix usage of “bug” label in bug report template by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1624
+- Fix redirects links in docs by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1623
+- Fix bug on ``getJ`` of gravity simulation by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1621
+- Fix redirect to user guide index page by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1627
+- Move indexing of flat arrays to Survey classes by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1616
+- Replace Data indexing for Survey slicing where needed by `@santisoler <https://github.com/santisoler>`__
+  in https://github.com/simpeg/simpeg/pull/1632
+- Implement ``G`` matrix as ``LinearOperator`` in gravity simulation by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1622
+- Set maximum number of iterations in eq sources tests by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1636
+- Em1d multiple rx locs by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1637
+- Fix definition of model in gravity J-related tests by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1643
+- Improve docstring of dip_azimuth2cartesian by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1642
+- Improve variable names in gravity test by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1641
+- Test transpose of gravity getJ as linear operator by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1644
+- Configure zizmor to pin reviewdog actions with tags by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1650
+- Deprecate ``components`` in potential field surveys by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1633
+- Fix bug on magnetic simulation ``nD`` property by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1646
+- Make pytest error on random seeded test by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1598
+- Add support for potential fields survey indexing by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1635
+- Implement magnetic G as linear operator by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1634
+- Use Numpy’s RNG in tests for depth weighting by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1570
+- Raise NotImplementedError on getJ for NSEM 1D simulations by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1653
+- Set the model when calling ``getJ`` in DC and SIP simulations by
+  `@lheagy <https://github.com/lheagy>`__ in https://github.com/simpeg/simpeg/pull/1361
+- Fix ``getJ`` method in TDEM and FDEM 1D simulations by `@ghwilliams <https://github.com/ghwilliams>`__ in
+  https://github.com/simpeg/simpeg/pull/1638

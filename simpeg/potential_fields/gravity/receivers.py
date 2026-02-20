@@ -20,7 +20,7 @@ class Point(survey.BaseRx):
 
     .. important::
 
-        Gradient components ("gxx", "gyy", "gzz", "gxy", "gxz", "gyz") are
+        Gradient components ("gxx", "gyy", "gzz", "gxy", "gxz", "gyz", "guv") are
         returned in Eotvos (:math:`10^{-9} s^{-2}`).
 
     Parameters
@@ -41,7 +41,7 @@ class Point(survey.BaseRx):
         - "gyy"  --> y-derivative of the y-component
         - "gyz"  --> z-derivative of the y-component (and visa versa)
         - "gzz"  --> z-derivative of the z-component
-        - "guv"  --> UV component
+        - "guv"  --> UV component, i.e., (gyy - gxx) / 2
 
     See also
     --------

@@ -547,64 +547,40 @@ class TestDeprecatedIndActive:
         active_cells[0] = False
         return active_cells
 
-    def get_message_duplicated_error(self, old_name, new_name, version="v0.24.0"):
-        msg = (
-            f"Cannot pass both '{new_name}' and '{old_name}'."
-            f"'{old_name}' has been deprecated and will be removed in "
-            f" SimPEG {version}, please use '{new_name}' instead."
-        )
-        return msg
-
-    def get_message_deprecated_warning(self, old_name, new_name, version="v0.24.0"):
-        msg = (
-            f"'{old_name}' has been deprecated and will be removed in "
-            f" SimPEG {version}, please use '{new_name}' instead."
-        )
-        return msg
-
     @pytest.mark.parametrize("simulation", CLASSES)
-    def test_warning_argument(self, mesh, active_cells, simulation):
+    def test_error_argument(self, mesh, active_cells, simulation):
         """
-        Test if warning is raised after passing ``indActive`` to the constructor.
+        Test if error is raised after passing ``indActive`` to the constructor.
         """
-        msg = self.get_message_deprecated_warning(self.OLD_NAME, self.NEW_NAME)
-        with pytest.warns(FutureWarning, match=msg):
-            sim = simulation(mesh, indActive=active_cells)
-        np.testing.assert_allclose(sim.active_cells, active_cells)
-
-    @pytest.mark.parametrize("simulation", CLASSES)
-    def test_error_duplicated_argument(self, mesh, active_cells, simulation):
-        """
-        Test error after passing ``indActive`` and ``active_cells`` to the constructor.
-        """
-        msg = self.get_message_duplicated_error(self.OLD_NAME, self.NEW_NAME)
+        msg = (
+            "'indActive' was removed in SimPEG v0.24.0, "
+            "please use 'active_cells' instead."
+        )
         with pytest.raises(TypeError, match=msg):
-            simulation(mesh, active_cells=active_cells, indActive=active_cells)
+            simulation(mesh, indActive=active_cells)
 
     @pytest.mark.parametrize("simulation", CLASSES)
-    def test_warning_accessing_property(self, mesh, active_cells, simulation):
+    def test_error_accessing_property(self, mesh, active_cells, simulation):
         """
-        Test warning when trying to access the ``indActive`` property.
+        Test error when trying to access the ``indActive`` property.
         """
         sim = simulation(mesh, active_cells=active_cells)
-        msg = f"{self.OLD_NAME} has been deprecated, please use {self.NEW_NAME}"
-        with pytest.warns(FutureWarning, match=msg):
-            old_ind_active = sim.indActive
-        np.testing.assert_allclose(sim.active_cells, old_ind_active)
+        msg = f"{self.OLD_NAME} has been removed, please use {self.NEW_NAME}"
+        with pytest.raises(NotImplementedError, match=msg):
+            sim.indActive
 
     @pytest.mark.parametrize("simulation", CLASSES)
-    def test_warning_setter(self, mesh, active_cells, simulation):
+    def test_error_setter(self, mesh, active_cells, simulation):
         """
-        Test warning when trying to set the ``indActive`` property.
+        Test error when trying to set the ``indActive`` property.
         """
         sim = simulation(mesh, active_cells=active_cells)
         # Define new active cells to pass to the setter
         new_active_cells = active_cells.copy()
         new_active_cells[-4:] = False
-        msg = f"{self.OLD_NAME} has been deprecated, please use {self.NEW_NAME}"
-        with pytest.warns(FutureWarning, match=msg):
+        msg = f"{self.OLD_NAME} has been removed, please use {self.NEW_NAME}"
+        with pytest.raises(NotImplementedError, match=msg):
             sim.indActive = new_active_cells
-        np.testing.assert_allclose(sim.active_cells, new_active_cells)
 
 
 if __name__ == "__main__":

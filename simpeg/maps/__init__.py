@@ -18,6 +18,7 @@ from ._injection import (
 from ._property_maps import (
     ChiMap,
     ComplexMap,
+    EffectiveSusceptibilityMap,
     ExpMap,
     LogisticSigmoidMap,
     LogMap,

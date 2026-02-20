@@ -44,27 +44,30 @@ else:
     _DEFAULT_SOLVER = SolverLU
 
 
-# Create a specific warning allowing users to silence this if they so choose.
-class DefaultSolverWarning(UserWarning):
-    pass
-
-
-def get_default_solver() -> Type[Base]:
+def get_default_solver(warn=False) -> Type[Base]:
     """Return the default solver used by simpeg.
+
+    Parameters
+    ----------
+    warn : bool, optional
+
+        .. deprecated:: 0.25.0
+
+           Argument ``warn`` is deprecated and will be removed in
+           SimPEG v0.26.0.
 
     Returns
     -------
     solver
         The default solver class used by simpeg's simulations.
     """
-    warnings.warn(
-        f"Using the default solver: {_DEFAULT_SOLVER.__name__}. \n\n"
-        f"If you would like to suppress this notification, add \n"
-        f"warnings.filterwarnings('ignore', simpeg.utils.solver_utils.DefaultSolverWarning)\n"
-        f" to your script.",
-        DefaultSolverWarning,
-        stacklevel=2,
-    )
+    if warn:
+        warnings.warn(
+            "The `warn` argument has been deprecated and will be "
+            "removed in SimPEG v0.26.0.",
+            FutureWarning,
+            stacklevel=2,
+        )
     return _DEFAULT_SOLVER
 
 
@@ -91,16 +94,19 @@ SolverWrapD = deprecate_function(
     old_name="SolverWrapD",
     removal_version="0.24.0",
     new_location="pymatsolver",
+    error=True,
 )
 SolverWrapI = deprecate_function(
     wrap_iterative,
     old_name="SolverWrapI",
     removal_version="0.24.0",
     new_location="pymatsolver",
+    error=True,
 )
 SolverDiag = deprecate_function(
     Diagonal,
     old_name="SolverDiag",
     removal_version="0.24.0",
     new_location="pymatsolver",
+    error=True,
 )

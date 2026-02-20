@@ -1,6 +1,8 @@
+import discretize
 import numpy as np
 import unittest
 
+import pytest
 from discretize import TensorMesh
 
 from simpeg import utils
@@ -290,14 +292,14 @@ class DCProblemAnalyticTests_DPField(unittest.TestCase):
         ROI_large_TSE = np.array([200, 0])
         ROI_largeInds = utils.model_builder.get_indices_block(
             ROI_large_BNW, ROI_large_TSE, mesh.gridN
-        )[0]
+        )
         # print(ROI_largeInds.shape)
 
         ROI_small_BNW = np.array([-50, -25])
         ROI_small_TSE = np.array([50, 0])
         ROI_smallInds = utils.model_builder.get_indices_block(
             ROI_small_BNW, ROI_small_TSE, mesh.gridN
-        )[0]
+        )
         # print(ROI_smallInds.shape)
 
         ROI_inds = np.setdiff1d(ROI_largeInds, ROI_smallInds)
@@ -426,6 +428,13 @@ class DCSimulationAppResTests(unittest.TestCase):
         err = np.sqrt(np.linalg.norm((data - rhohalf) / rhohalf) ** 2 / data.size)
         print(f"DPDP N err: {err}")
         self.assertLess(err, tolerance)
+
+
+def test_bad_mesh_dim():
+    mesh = discretize.TensorMesh([3, 3, 3])
+    msg = "Simulation2DNodal mesh must be 2D, received a 3D mesh."
+    with pytest.raises(ValueError, match=msg):
+        dc.Simulation2DNodal(mesh)
 
 
 if __name__ == "__main__":

@@ -35,7 +35,7 @@ def setUp_TDEM(
     )
     mapping = maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
 
-    rxtimes = np.logspace(-4, -3, 20)
+    rxtimes = np.hstack([np.r_[0], np.logspace(-4, -3, 20)])
 
     if waveform.upper() == "RAW":
         t0 = 0.006

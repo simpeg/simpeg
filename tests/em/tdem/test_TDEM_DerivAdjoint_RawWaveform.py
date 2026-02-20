@@ -131,8 +131,9 @@ class Base_DerivAdjoint_Test(unittest.TestCase):
                 prbtype=self.formulation, rxcomp=rxcomp
             )
         )
-        np.random.seed(4)  # set seed for check_derivative
-        tests.check_derivative(derChk, self.m, plotIt=False, num=3, eps=1e-20)
+        tests.check_derivative(
+            derChk, self.m, plotIt=False, num=3, eps=1e-20, random_seed=5412
+        )
 
     def JvecVsJtvecTest(self, rxcomp):
         self.set_receiver_list(rxcomp)
@@ -306,7 +307,7 @@ class DerivAdjoint_J(Base_DerivAdjoint_Test):
 #             return Av, ADeriv_dm
 
 #         print('\n Testing ADeriv {}'.format(prbtype))
-#         tests.check_derivative(AderivFun, m0, plotIt=False, num=4, eps=EPS)
+#         tests.check_derivative(AderivFun, m0, plotIt=False, num=4, eps=EPS, random_seed=512)
 
 #     def A_adjointTest(self, prbtype):
 #         prb, m0, mesh = setUp_TDEM(prbtype)

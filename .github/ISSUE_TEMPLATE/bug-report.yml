@@ -1,7 +1,7 @@
 name: Bug report
 description: Report a bug in SimPEG.
 title: "BUG: <Please write a comprehensive title after the 'BUG: ' prefix>"
-labels: [Bug]
+labels: ["bug"]
 
 body:
 - type: markdown
@@ -46,6 +46,7 @@ body:
     description: >
       Please include the output from `simpeg.Report()` to describe your system for us.
       Paste the output from `from simpeg import Report; print(Report())` below.
+    render: shell
   validations:
     required: true
 

@@ -1,14 +1,15 @@
+import discretize.base
 import numpy as np
 import scipy.sparse as sp
 import time
 
 from ... import utils
+from ...base import BasePDESimulation
 from ...simulation import BaseTimeSimulation
 from ... import optimization
 from ...utils import (
     validate_type,
     validate_ndarray_with_shape,
-    deprecate_property,
     validate_string,
     validate_integer,
     validate_float,
@@ -19,7 +20,7 @@ from .empirical import BaseHydraulicConductivity
 from .empirical import BaseWaterRetention
 
 
-class SimulationNDCellCentered(BaseTimeSimulation):
+class SimulationNDCellCentered(BaseTimeSimulation, BasePDESimulation):
     """Richards Simulation"""
 
     def __init__(
@@ -35,9 +36,6 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         root_finder_tol=1e-4,
         **kwargs,
     ):
-        debug = kwargs.pop("debug", None)
-        if debug is not None:
-            self.debug = debug
         super().__init__(mesh=mesh, **kwargs)
         self.hydraulic_conductivity = hydraulic_conductivity
         self.water_retention = water_retention
@@ -52,6 +50,22 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         BaseHydraulicConductivity, "hydraulic conductivity function"
     )
     water_retention = NestedModeler(BaseWaterRetention, "water retention curve")
+
+    @property
+    def mesh(self):
+        """Tensor style mesh for the Richards flow simulation.
+
+        Returns
+        -------
+        discretize.TensorMesh or discretize.TreeMesh
+        """
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, value):
+        self._mesh = validate_type(
+            "mesh", value, (discretize.TensorMesh, discretize.TreeMesh), cast=False
+        )
 
     # TODO: This can also be a function(time, u_ii)
     @property
@@ -85,14 +99,6 @@ class SimulationNDCellCentered(BaseTimeSimulation):
         self._initial_conditions = validate_ndarray_with_shape(
             "initial_conditions", value
         )
-
-    debug = deprecate_property(
-        BaseTimeSimulation.verbose,
-        "debug",
-        "verbose",
-        removal_version="0.19.0",
-        future_warn=True,
-    )
 
     @property
     def method(self):

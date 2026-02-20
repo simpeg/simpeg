@@ -26,18 +26,14 @@ class FiniteVolume1DTest(unittest.TestCase):
         self.frequencies = np.logspace(-2, 1, 30)
 
         rx_list = [
-            nsem.receivers.PointNaturalSource(
+            nsem.receivers.Impedance(
                 [[0]], orientation="xy", component="apparent_resistivity"
             ),
-            nsem.receivers.PointNaturalSource(
-                [[0]], orientation="xy", component="phase"
-            ),
-            nsem.receivers.PointNaturalSource(
+            nsem.receivers.Impedance([[0]], orientation="xy", component="phase"),
+            nsem.receivers.Impedance(
                 [[0]], orientation="yx", component="apparent_resistivity"
             ),
-            nsem.receivers.PointNaturalSource(
-                [[0]], orientation="yx", component="phase"
-            ),
+            nsem.receivers.Impedance([[0]], orientation="yx", component="phase"),
         ]
         # simulation
         src_list = [

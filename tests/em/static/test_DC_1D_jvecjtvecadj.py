@@ -130,8 +130,7 @@ def test_derivative(deriv_type):
 
         return d, J
 
-    np.random.seed(40)  # set a random seed for check_derivative
-    assert check_derivative(sim_1d_func, model, plotIt=False, num=4)
+    assert check_derivative(sim_1d_func, model, plotIt=False, num=4, random_seed=125)
 
 
 @pytest.mark.parametrize("deriv_type", ("sigma", "h", "both"))
@@ -178,7 +177,7 @@ def test_adjoint(deriv_type):
     def JT(v):
         return simulation.Jtvec(model, v)
 
-    assert_isadjoint(J, JT, len(model), survey.nD)
+    assert_isadjoint(J, JT, len(model), survey.nD, random_seed=5512)
 
 
 def test_errors():
