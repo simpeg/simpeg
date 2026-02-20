@@ -587,11 +587,25 @@ class MapTests(unittest.TestCase):
         # test that passing a lower bound higher than an upper bound)
         with pytest.raises(
             ValueError,
-            match="A lower bound is greater than or equal to the upper bound.",
+            match="A lower bound cannot be equal to the upper bound.",
         ):
             maps.LogisticSigmoidMap(
-                lower_bound=good_vector_upper, upper_bound=good_vector_lower
+                lower_bound=good_vector_upper, upper_bound=good_vector_upper
             )
+
+
+def test_logit_limits():
+    logit_map = maps.LogisticSigmoidMap(lower_bound=-1, upper_bound=2)
+
+    assert logit_map * np.r_[0] == np.r_[0.5]
+    assert logit_map * np.r_[-50] == np.r_[-1]
+    assert logit_map * np.r_[50] == np.r_[2]
+
+    logit_map = maps.LogisticSigmoidMap(lower_bound=2, upper_bound=-1)
+
+    assert logit_map * np.r_[0] == np.r_[0.5]
+    assert logit_map * np.r_[-50] == np.r_[2]
+    assert logit_map * np.r_[50] == np.r_[-1]
 
 
 class TestWires(unittest.TestCase):

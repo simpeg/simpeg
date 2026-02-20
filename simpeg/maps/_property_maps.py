@@ -366,10 +366,8 @@ class LogisticSigmoidMap(IdentityMap):
                 f"are incompatible with each other."
             ) from err
 
-        if np.any(lower_bound >= upper_bound):
-            raise ValueError(
-                "A lower bound is greater than or equal to the upper bound."
-            )
+        if np.any(lower_bound == upper_bound):
+            raise ValueError("A lower bound cannot be equal to the upper bound.")
 
         self._lower_bound = lower_bound
         self._upper_bound = upper_bound
