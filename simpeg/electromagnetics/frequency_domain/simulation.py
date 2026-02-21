@@ -3,7 +3,6 @@ import scipy.sparse as sp
 from discretize.utils import Zero, mkvc
 
 from ... import props
-from ...data import Data
 from ...utils import validate_type
 from ...base import BaseHierarchicalElectricalSimulation
 from ..base import BaseEMSimulation
