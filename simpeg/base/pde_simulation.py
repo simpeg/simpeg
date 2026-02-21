@@ -507,9 +507,7 @@ def with_surface_property_mass_matrices(property_name):
                     np.ones(self.mesh.n_faces)
                 )(np.ones(self.mesh.n_faces)) * getattr(self, f"{arg.lower()}Deriv")
                 setattr(self, stash_name, M_prop_deriv)
-            return _inner_mat_mul_op(
-                getattr(self, stash_name), u, v=v, adjoint=adjoint
-            )
+            return _inner_mat_mul_op(getattr(self, stash_name), u, v=v, adjoint=adjoint)
 
         setattr(cls, f"_Mf{arg}Deriv", MfDeriv_prop)
 
@@ -527,9 +525,7 @@ def with_surface_property_mass_matrices(property_name):
                     np.ones(self.mesh.n_faces)
                 )(np.ones(self.mesh.n_edges)) * getattr(self, f"{arg.lower()}Deriv")
                 setattr(self, stash_name, M_prop_deriv)
-            return _inner_mat_mul_op(
-                getattr(self, stash_name), u, v=v, adjoint=adjoint
-            )
+            return _inner_mat_mul_op(getattr(self, stash_name), u, v=v, adjoint=adjoint)
 
         setattr(cls, f"_Me{arg}Deriv", MeDeriv_prop)
 
@@ -646,9 +642,7 @@ def with_line_property_mass_matrices(property_name):
                     np.ones(self.mesh.n_edges)
                 )(np.ones(self.mesh.n_edges)) * getattr(self, f"{arg.lower()}Deriv")
                 setattr(self, stash_name, M_prop_deriv)
-            return _inner_mat_mul_op(
-                getattr(self, stash_name), u, v=v, adjoint=adjoint
-            )
+            return _inner_mat_mul_op(getattr(self, stash_name), u, v=v, adjoint=adjoint)
 
         setattr(cls, f"_Me{arg}Deriv", MeDeriv_prop)
 
