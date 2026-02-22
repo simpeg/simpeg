@@ -26,6 +26,8 @@ from simpeg.utils import get_default_solver
 @with_surface_property_mass_matrices("tau")
 @with_line_property_mass_matrices("kappa")
 class SimpleSim(BasePDESimulation):
+    """Base class for simple simulation."""
+
     sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
     rho, rhoMap, rhoDeriv = props.Invertible("Electrical conductivity (S/m)")
     props.Reciprocal(sigma, rho)
@@ -60,9 +62,7 @@ class SimpleSim(BasePDESimulation):
 
     @property
     def _delete_on_model_update(self):
-        """
-        matrices to be deleted if the model for conductivity/resistivity is updated
-        """
+        """Matrices deleted upon conductivity/resistivity model update."""
         toDelete = super()._delete_on_model_update
         if self.sigmaMap is not None or self.rhoMap is not None:
             toDelete = toDelete + self._clear_on_sigma_update
@@ -74,7 +74,10 @@ class SimpleSim(BasePDESimulation):
 
 
 class TestSim(unittest.TestCase):
+    """Test simulation."""
+
     def setUp(self):
+        """Set up functions."""
         self.mesh = discretize.TensorMesh([5, 6, 7])
 
         self.sim = SimpleSim(self.mesh, sigmaMap=maps.ExpMap())
@@ -98,6 +101,7 @@ class TestSim(unittest.TestCase):
         ]
 
     def test_zero_returns(self):
+        """Test zero returns."""
         n_c = self.mesh.n_cells
         n_n = self.mesh.n_nodes
         n_f = self.mesh.n_faces
@@ -141,6 +145,7 @@ class TestSim(unittest.TestCase):
         assert sim.MeSigmaIDeriv(u_e, Zero()).__class__ == Zero
 
     def test_simple_mass(self):
+        """Test simple mass matrix."""
         sim = self.sim
         n_c = self.mesh.n_cells
         n_n = self.mesh.n_nodes
@@ -173,6 +178,7 @@ class TestSim(unittest.TestCase):
         np.testing.assert_allclose(x_e, sim.MeI @ (sim.Me @ x_e))
 
     def test_forward_expected_shapes(self):
+        """Test forward expected shapes."""
         sim = self.sim
         sim.model = self.start_mod
 
@@ -233,6 +239,7 @@ class TestSim(unittest.TestCase):
         )
 
     def test_forward_anis_expected_shapes(self):
+        """Test forward anisotropy expected shapes."""
         sim = self.sim
         sim.model = self.start_full_mod
 
@@ -293,6 +300,7 @@ class TestSim(unittest.TestCase):
         )
 
     def test_adjoint_expected_shapes(self):
+        """Test adjoint expected shapes."""
         sim = self.sim
         sim.model = self.start_mod
 
@@ -355,6 +363,7 @@ class TestSim(unittest.TestCase):
         )
 
     def test_adjoint_anis_expected_shapes(self):
+        """Test adjoint anisotropy expected shapes."""
         sim = self.sim
         sim.model = self.start_full_mod
 
@@ -417,6 +426,7 @@ class TestSim(unittest.TestCase):
         )
 
     def test_adjoint_opp(self):
+        """Test adjoint opp."""
         sim = self.sim
         sim.model = self.start_mod
 
@@ -476,6 +486,7 @@ class TestSim(unittest.TestCase):
         np.testing.assert_allclose(vJy, yJtv)
 
     def test_anis_adjoint_opp(self):
+        """Test anisotropy adjoint opp."""
         sim = self.sim
         sim.model = self.start_full_mod
 
@@ -514,6 +525,7 @@ class TestSim(unittest.TestCase):
         np.testing.assert_allclose(vJy, yJtv)
 
     def test_Mcc_deriv(self):
+        """Test Mcc derive."""
         u = np.random.randn(self.mesh.n_cells)
         sim = self.sim
         x0 = self.start_mod
@@ -531,6 +543,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=8672354)
 
     def test_Mn_deriv(self):
+        """Test Mn derive."""
         u = np.random.randn(self.mesh.n_nodes)
         sim = self.sim
         x0 = self.start_mod
@@ -548,6 +561,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=523876)
 
     def test_Me_deriv(self):
+        """Test Me deriv."""
         u = np.random.randn(self.mesh.n_edges)
         sim = self.sim
         x0 = self.start_mod
@@ -565,6 +579,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=9875163)
 
     def test_Me_diagonal_anisotropy_deriv(self):
+        """Test Me diagonal anisotropy derive."""
         u = np.random.randn(self.mesh.n_edges)
         sim = self.sim
         x0 = self.start_diag_mod
@@ -582,6 +597,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=1658372)
 
     def test_Me_full_anisotropy_deriv(self):
+        """Test Me full anisotropy deriv."""
         u = np.random.randn(self.mesh.n_edges)
         sim = self.sim_full_aniso
         x0 = self.start_full_mod
@@ -599,6 +615,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=9867234)
 
     def test_Mf_deriv(self):
+        """Test Mf deriv."""
         u = np.random.randn(self.mesh.n_faces)
         sim = self.sim
         x0 = self.start_mod
@@ -616,6 +633,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=10523687)
 
     def test_Mf_diagonal_anisotropy_deriv(self):
+        """Test Mf diagonal anisotropy deriv."""
         u = np.random.randn(self.mesh.n_faces)
         sim = self.sim
         x0 = self.start_diag_mod
@@ -633,6 +651,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=19876354)
 
     def test_Mf_full_anisotropy_deriv(self):
+        """Test Mf full anisotropy derive."""
         u = np.random.randn(self.mesh.n_faces)
         sim = self.sim_full_aniso
         x0 = self.start_full_mod
@@ -650,6 +669,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=102309487)
 
     def test_MccI_deriv(self):
+        """Test MccI derive."""
         u = np.random.randn(self.mesh.n_cells)
         sim = self.sim
         x0 = self.start_mod
@@ -667,6 +687,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=89726354)
 
     def test_MnI_deriv(self):
+        """Test MnI derive."""
         u = np.random.randn(self.mesh.n_nodes)
         sim = self.sim
         x0 = self.start_mod
@@ -684,6 +705,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=12503698)
 
     def test_MeI_deriv(self):
+        """Test MeI deriv."""
         u = np.random.randn(self.mesh.n_edges)
         sim = self.sim
         x0 = self.start_mod
@@ -701,6 +723,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=5674129834)
 
     def test_MfI_deriv(self):
+        """Test MfI derive."""
         u = np.random.randn(self.mesh.n_faces)
         sim = self.sim
         x0 = self.start_mod
@@ -718,6 +741,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=532349)
 
     def test_Mcc_adjoint(self):
+        """Test Mcc adjoint."""
         n_items = self.mesh.n_cells
         u = np.random.randn(n_items)
         sim = self.sim
@@ -731,6 +755,7 @@ class TestSim(unittest.TestCase):
         np.testing.assert_allclose(yJv, vJty)
 
     def test_Mn_adjoint(self):
+        """Test Mn adjoint."""
         n_items = self.mesh.n_nodes
         u = np.random.randn(n_items)
         sim = self.sim
@@ -744,6 +769,7 @@ class TestSim(unittest.TestCase):
         np.testing.assert_allclose(yJv, vJty)
 
     def test_Me_adjoint(self):
+        """Test Me adjoint."""
         n_items = self.mesh.n_edges
         u = np.random.randn(n_items)
         sim = self.sim
@@ -757,6 +783,7 @@ class TestSim(unittest.TestCase):
         np.testing.assert_allclose(yJv, vJty)
 
     def test_Mf_adjoint(self):
+        """Test Mf adjoint."""
         n_items = self.mesh.n_faces
         u = np.random.randn(n_items)
         sim = self.sim
@@ -770,6 +797,7 @@ class TestSim(unittest.TestCase):
         np.testing.assert_allclose(yJv, vJty)
 
     def test_MccI_adjoint(self):
+        """Test MccI adoint."""
         n_items = self.mesh.n_cells
         u = np.random.randn(n_items)
         sim = self.sim
@@ -783,6 +811,7 @@ class TestSim(unittest.TestCase):
         np.testing.assert_allclose(yJv, vJty)
 
     def test_MnI_adjoint(self):
+        """Test MnI adjoint."""
         n_items = self.mesh.n_nodes
         u = np.random.randn(n_items)
         sim = self.sim
@@ -796,6 +825,7 @@ class TestSim(unittest.TestCase):
         np.testing.assert_allclose(yJv, vJty)
 
     def test_MeI_adjoint(self):
+        """Test MeI adjoint."""
         n_items = self.mesh.n_edges
         u = np.random.randn(n_items)
         sim = self.sim
@@ -809,6 +839,7 @@ class TestSim(unittest.TestCase):
         np.testing.assert_allclose(yJv, vJty)
 
     def test_MfI_adjoint(self):
+        """Test MfI adjoint."""
         n_items = self.mesh.n_faces
         u = np.random.randn(n_items)
         sim = self.sim
@@ -823,7 +854,10 @@ class TestSim(unittest.TestCase):
 
 
 class TestSimSurfaceProperties(unittest.TestCase):
+    """Tests for surface properties."""
+
     def setUp(self):
+        """Set up function."""
         self.mesh = discretize.TensorMesh([5, 6, 7])
 
         self.sim = SimpleSim(self.mesh, tauMap=maps.ExpMap())
@@ -832,6 +866,7 @@ class TestSimSurfaceProperties(unittest.TestCase):
         )
 
     def test_zero_returns(self):
+        """Test zero returns."""
         n_f = self.mesh.n_faces
         n_e = self.mesh.n_edges
         sim = self.sim
@@ -853,6 +888,7 @@ class TestSimSurfaceProperties(unittest.TestCase):
         assert sim._MeTauIDeriv(u_e, Zero()).__class__ == Zero
 
     def test_forward_expected_shapes(self):
+        """Test forward expected shapes."""
         sim = self.sim
         sim.model = self.start_mod
 
@@ -913,6 +949,7 @@ class TestSimSurfaceProperties(unittest.TestCase):
         )
 
     def test_adjoint_expected_shapes(self):
+        """Test adjoint expected shapes."""
         sim = self.sim
         sim.model = self.start_mod
 
@@ -975,6 +1012,7 @@ class TestSimSurfaceProperties(unittest.TestCase):
         )
 
     def test_adjoint_opp_shapes(self):
+        """Test adjoint opp shapes."""
         sim = self.sim
         sim.model = self.start_mod
 
@@ -1033,6 +1071,7 @@ class TestSimSurfaceProperties(unittest.TestCase):
         np.testing.assert_allclose(vJy, yJtv)
 
     def test_Me_deriv(self):
+        """Test Me derive."""
         u = np.random.randn(self.mesh.n_edges)
         sim = self.sim
         x0 = self.start_mod
@@ -1050,6 +1089,7 @@ class TestSimSurfaceProperties(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False)
 
     def test_Mf_deriv(self):
+        """Test Mf deriv."""
         u = np.random.randn(self.mesh.n_faces)
         sim = self.sim
         x0 = self.start_mod
@@ -1067,6 +1107,7 @@ class TestSimSurfaceProperties(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False)
 
     def test_MeI_deriv(self):
+        """Test MeI derive."""
         u = np.random.randn(self.mesh.n_edges)
         sim = self.sim
         x0 = self.start_mod
@@ -1084,6 +1125,7 @@ class TestSimSurfaceProperties(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False)
 
     def test_MfI_deriv(self):
+        """Test MfI deriv."""
         u = np.random.randn(self.mesh.n_faces)
         sim = self.sim
         x0 = self.start_mod
@@ -1101,6 +1143,7 @@ class TestSimSurfaceProperties(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False)
 
     def test_Me_adjoint(self):
+        """Test Me adjoint."""
         n_items = self.mesh.n_edges
         u = np.random.randn(n_items)
         sim = self.sim
@@ -1114,6 +1157,7 @@ class TestSimSurfaceProperties(unittest.TestCase):
         np.testing.assert_allclose(yJv, vJty)
 
     def test_Mf_adjoint(self):
+        """Test Mf adjoint."""
         n_items = self.mesh.n_faces
         u = np.random.randn(n_items)
         sim = self.sim
@@ -1127,6 +1171,7 @@ class TestSimSurfaceProperties(unittest.TestCase):
         np.testing.assert_allclose(yJv, vJty)
 
     def test_MeI_adjoint(self):
+        """Test MeI adjoint."""
         n_items = self.mesh.n_edges
         u = np.random.randn(n_items)
         sim = self.sim
@@ -1140,6 +1185,7 @@ class TestSimSurfaceProperties(unittest.TestCase):
         np.testing.assert_allclose(yJv, vJty)
 
     def test_MfI_adjoint(self):
+        """Test MfI adjoint."""
         n_items = self.mesh.n_faces
         u = np.random.randn(n_items)
         sim = self.sim
@@ -1154,7 +1200,10 @@ class TestSimSurfaceProperties(unittest.TestCase):
 
 
 class TestSimEdgeProperties(unittest.TestCase):
+    """Tests for edge properties."""
+
     def setUp(self):
+        """Set up function."""
         self.mesh = discretize.TensorMesh([5, 6, 7])
 
         self.sim = SimpleSim(self.mesh, kappaMap=maps.ExpMap())
@@ -1163,6 +1212,7 @@ class TestSimEdgeProperties(unittest.TestCase):
         )
 
     def test_zero_returns(self):
+        """Test zero returns."""
         n_e = self.mesh.n_edges
         sim = self.sim
 
@@ -1178,6 +1228,7 @@ class TestSimEdgeProperties(unittest.TestCase):
         assert sim._MeKappaIDeriv(u_e, Zero()).__class__ == Zero
 
     def test_forward_expected_shapes(self):
+        """Test forward expected shapes."""
         sim = self.sim
         sim.model = self.start_mod
 
@@ -1238,6 +1289,7 @@ class TestSimEdgeProperties(unittest.TestCase):
         )
 
     def test_adjoint_expected_shapes(self):
+        """Test adjoint expected shapes."""
         sim = self.sim
         sim.model = self.start_mod
 
@@ -1299,6 +1351,7 @@ class TestSimEdgeProperties(unittest.TestCase):
         )
 
     def test_adjoint_opp_shapes(self):
+        """Test adjoint opp shapes."""
         sim = self.sim
         sim.model = self.start_mod
 
@@ -1357,6 +1410,7 @@ class TestSimEdgeProperties(unittest.TestCase):
         np.testing.assert_allclose(vJy, yJtv)
 
     def test_Me_deriv(self):
+        """Test Me deriv."""
         u = np.random.randn(self.mesh.n_edges)
         sim = self.sim
         x0 = self.start_mod
@@ -1374,6 +1428,7 @@ class TestSimEdgeProperties(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False)
 
     def test_MeI_deriv(self):
+        """Test MeI derive."""
         u = np.random.randn(self.mesh.n_edges)
         sim = self.sim
         x0 = self.start_mod
@@ -1391,6 +1446,7 @@ class TestSimEdgeProperties(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False)
 
     def test_Me_adjoint(self):
+        """Test Me adjoint."""
         n_items = self.mesh.n_edges
         u = np.random.randn(n_items)
         sim = self.sim
@@ -1404,6 +1460,7 @@ class TestSimEdgeProperties(unittest.TestCase):
         np.testing.assert_allclose(yJv, vJty)
 
     def test_MeI_adjoint(self):
+        """Test MeI adjoint."""
         n_items = self.mesh.n_edges
         u = np.random.randn(n_items)
         sim = self.sim
@@ -1418,6 +1475,7 @@ class TestSimEdgeProperties(unittest.TestCase):
 
 
 def test_bad_derivative_stash():
+    """Test bad derivative stash."""
     mesh = discretize.TensorMesh([5, 6, 7])
     sim = SimpleSim(mesh, sigmaMap=maps.ExpMap())
     sim.model = np.random.rand(mesh.n_cells)
@@ -1439,6 +1497,7 @@ def test_bad_derivative_stash():
 
 
 def test_solver_defaults(caplog, info_logging):
+    """Test solver defaults."""
     mesh = discretize.TensorMesh([2, 2, 2])
     sim = BasePDESimulation(mesh)
     # Check that logging.info was created
@@ -1449,9 +1508,7 @@ def test_solver_defaults(caplog, info_logging):
 
 @pytest.mark.parametrize("solver_class", [pymatsolver.SolverLU, pymatsolver.Solver])
 def test_performance_warning_on_solver(solver_class):
-    """
-    Test PerformanceWarning when setting an inefficient solver.
-    """
+    """Test PerformanceWarning when setting an inefficient solver."""
     mesh = discretize.TensorMesh([2, 2, 2])
     regex = re.escape(
         f"The 'pymatsolver.{solver_class.__name__}' solver might lead to high "
@@ -1462,6 +1519,7 @@ def test_performance_warning_on_solver(solver_class):
 
 
 def test_bad_solver():
+    """Test bad solver."""
     mesh = discretize.TensorMesh([2, 2, 2])
     msg = re.escape("BasePDESimulation.solver must be a class")
     with pytest.raises(TypeError, match=msg):
@@ -1473,11 +1531,13 @@ def test_bad_solver():
 
 
 def test_mesh_required():
+    """Test mesh required."""
     with pytest.raises(TypeError):
         BasePDESimulation()
 
 
 def test_bad_mesh():
+    """Test bad mesh."""
     with pytest.raises(TypeError):
         # should error on anything besides a discretize.base.BaseMesh
         BasePDESimulation(np.array([1, 2, 3]))
