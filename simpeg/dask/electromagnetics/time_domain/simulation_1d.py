@@ -12,8 +12,8 @@ def Jmatrix(self):
     Return the diagonal of JtJ
     """
     if getattr(self, "_Jmatrix", None) is None:
-        Jmat = self.getJ(self.model)
-        self._Jmatrix = Jmat * self.sigmaDeriv
+        Jmat = self._getJ(self.model)
+        self._Jmatrix = Jmat["ds"] * self.sigmaDeriv
 
     return self._Jmatrix
 
