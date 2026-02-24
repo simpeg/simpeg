@@ -1,4 +1,6 @@
-from ....electromagnetics.time_domain.simulation_1d import Simulation1DLayered as Sim
+from ....electromagnetics.frequency_domain.simulation_1d import (
+    Simulation1DLayered as Sim,
+)
 
 from ...simulation import getJtJdiag, Jvec, Jtvec
 
