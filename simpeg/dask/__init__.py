@@ -1,6 +1,7 @@
 try:
     import simpeg.dask.simulation
     import simpeg.dask.electromagnetics.frequency_domain.simulation
+    import simpeg.dask.electromagnetics.frequency_domain.simulation_1d
     import simpeg.dask.electromagnetics.static.resistivity.simulation
     import simpeg.dask.electromagnetics.static.resistivity.simulation_2d
     import simpeg.dask.electromagnetics.static.induced_polarization.simulation
