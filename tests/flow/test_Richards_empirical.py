@@ -111,7 +111,11 @@ class TestModels(unittest.TestCase):
         hav = richards.empirical.Haverkamp_k(mesh)
         print("Haverkamp_k test u deriv")
         passed = check_derivative(
-            lambda u: (hav(u), hav.derivU(u)),
+            # Cast output of call into an array, because since Numpy 2.4 the
+            # check_derivative function has issues dealing with matrices as outputs:
+            # Numpy refuses to assign an array element with a sequence (matrix), even if
+            # that matrix contains a single value.
+            lambda u: (np.asarray(hav(u)), hav.derivU(u)),
             np.random.randn(mesh.nC),
             plotIt=False,
             random_seed=5662,
@@ -158,7 +162,11 @@ class TestModels(unittest.TestCase):
 
             def fun(m):
                 hav.model = m  # noqa: B023
-                return hav(u), hav.derivM(u)  # noqa: B023
+                # Cast output of call into an array, because since Numpy 2.4 the
+                # check_derivative function has issues dealing with matrices as outputs:
+                # Numpy refuses to assign an array element with a sequence (matrix), even if
+                # that matrix contains a single value.
+                return np.asarray(hav(u)), hav.derivM(u)  # noqa: B023
 
             print("Haverkamp_k test m deriv:  ", name)
 
