@@ -103,11 +103,7 @@ class BaseRichardsTest(unittest.TestCase):
         print("Testing Richards Derivative FULL dim={}".format(self.mesh.dim))
         J = self.prob.Jfull(self.mtrue)
         passed = check_derivative(
-            # Cast output of dpred and J into arrays, because since Numpy 2.4 the
-            # check_derivative function has issues dealing with matrices as outputs:
-            # Numpy refuses to assign an array element with a sequence (matrix), even if
-            # that matrix contains a single value.
-            lambda m: [np.asarray(self.prob.dpred(m)), np.asarray(J)],
+            lambda m: [self.prob.dpred(m), J],
             self.mtrue,
             num=3,
             plotIt=False,
