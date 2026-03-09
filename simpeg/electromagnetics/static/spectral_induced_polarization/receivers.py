@@ -136,7 +136,7 @@ class BaseRx(BaseTimeRx):
         numpy.ndarray
             Time projection from time-steps to time channels
         """
-        time_inds = np.isin(times_all, self.times)
+        time_inds = np.in1d(times_all, self.times)
         return time_inds
 
     def eval(self, src, mesh, f):  # noqa: A003
