@@ -1,0 +1,24 @@
+.. _0.25.2_notes:
+
+============================
+SimPEG v0.25.2 Release Notes
+============================
+
+March 11th, 2026
+
+Bug fixes and patches
+=====================
+
+- Add patches to support Numpy 2.4 by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1759
+- Replace LaTeX ``align`` for ``aligned`` in math directives by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1758
+
+Contributors
+============
+
+This is a combination of contributors and reviewers who have made contributions
+towards this release (in no particular order):
+
+* `@santisoler <https://github.com/santisoler>`__
+* `@jcapriot <https://github.com/jcapriot>`__
