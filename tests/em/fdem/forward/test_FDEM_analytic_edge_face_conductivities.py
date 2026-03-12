@@ -13,6 +13,7 @@ REL_TOL = 0.01
 @pytest.mark.parametrize("formulation", ["MagneticFluxDensity", "ElectricField"])
 @pytest.mark.parametrize("mesh_type", ["CYL", "TREE"])
 def test_layer_conductance_to_analytic(mesh_type, formulation, rx_type, orientation):
+    """Validate 1D analytic solution for thin layer against layer as face conductances."""
     # Some static parameters
     loop_radius = np.pi**-0.5
     receiver_location = np.c_[12.0, 0.0, 1.0]
@@ -144,3 +145,4 @@ def test_layer_conductance_to_analytic(mesh_type, formulation, rx_type, orientat
 
 
 # NEED A TEST FOR THE EDGE CONDUCTIVITIES
+# CYL MESH CODE AGAINST VERTICAL WIRE?

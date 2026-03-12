@@ -15,6 +15,7 @@ CASES_LIST = [
 
 @pytest.mark.parametrize("formulation, mesh_type", CASES_LIST)
 def test_layer_conductance_to_analytic(formulation, mesh_type):
+    """Validate 1D analytic solution for thin layer against layer as face conductances."""
     # Some static parameters
     times = np.logspace(-3, -2, 6)
 
