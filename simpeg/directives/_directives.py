@@ -2676,8 +2676,14 @@ class ScaleMisfitMultipliers(InversionDirective):
     Parameters
     ----------
 
-    path : str
+    filepath : str
         Path to save the chi-factors log file.
+    nesting : list of lists
+        Nested list structure that matches the structure of the misfit functions in the inverse problem.
+    target_chi : float
+        Target chi-factor for the misfit functions. Misfit functions with chi-factors below this value will be scaled more aggressively.
+    headers : list of str
+        List of headers for the chi-factors log file.
     """
 
     def __init__(
@@ -2695,9 +2701,9 @@ class ScaleMisfitMultipliers(InversionDirective):
         self.headers = headers
 
         if path is None:
-            path = pathlib.Path("./")
+            path = pathlib.Path("./ChiFactors.log")
 
-        self.filepath = path / "ChiFactors.log"
+        self.filepath = path
 
         super().__init__(**kwargs)
 

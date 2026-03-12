@@ -384,16 +384,27 @@ class SaveDataGeoH5(SaveArrayGeoH5):
 
 
 class SaveLogFilesGeoH5(BaseSaveGeoH5):
+    def __init__(
+        self,
+        h5_object,
+        start_date_time: str,
+        **kwargs,
+    ):
+
+        self.time_stamp = start_date_time
+        super().__init__(h5_object, **kwargs)
 
     def write(self, iteration: int, **_):
         dirpath = Path(self._workspace.h5file).parent
-        filepath = dirpath / "SimPEG.out"
+        filepath = dirpath / f"SimPEG_{self.time_stamp}.out"
 
         if iteration == 0:
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write("iteration beta phi_d phi_m time\n")
         log = []
-        with open(dirpath / "SimPEG.log", "r", encoding="utf-8") as file:
+        with open(
+            dirpath / f"SimPEG_{self.time_stamp}.log", "r", encoding="utf-8"
+        ) as file:
             iteration = 0
             for line in file:
                 val = re.findall(r"[+-]?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+-]?\d+)", line)
@@ -420,7 +431,11 @@ class SaveLogFilesGeoH5(BaseSaveGeoH5):
         with fetch_active_workspace(self._workspace, mode="r+") as w_s:
             h5_object = w_s.get_entity(self.h5_object)[0]
 
-            for file in ["SimPEG.out", "SimPEG.log", "ChiFactors.log"]:
+            for file in [
+                f"SimPEG_{self.time_stamp}.out",
+                f"SimPEG_{self.time_stamp}.log",
+                f"ChiFactors_{self.time_stamp}.log",
+            ]:
                 filepath = dirpath / file
 
                 if not filepath.is_file():
