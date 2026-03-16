@@ -13,7 +13,7 @@ Bug fixes and patches
   https://github.com/simpeg/simpeg/pull/1759
 - Replace LaTeX ``align`` for ``aligned`` in math directives by
   `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1758
-- Improve type hints in `distance_weighting` by
+- Improve type hints in ``distance_weighting`` by
   `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1756
 
 Contributors
