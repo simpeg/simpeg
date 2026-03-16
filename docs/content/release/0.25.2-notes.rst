@@ -4,7 +4,7 @@
 SimPEG v0.25.2 Release Notes
 ============================
 
-March 11th, 2026
+March 16th, 2026
 
 Bug fixes and patches
 =====================
