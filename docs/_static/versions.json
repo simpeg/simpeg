@@ -4,10 +4,15 @@
         "url": "https://docs.simpeg.xyz/dev/"
     },
     {
-        "name": "v0.25.1 (latest)",
-        "version": "0.25.1",
-        "url": "https://docs.simpeg.xyz/v0.25.1/",
+        "name": "v0.25.2 (latest)",
+        "version": "0.25.2",
+        "url": "https://docs.simpeg.xyz/v0.25.2/",
         "preferred": true
+    },
+    {
+        "name": "v0.25.1",
+        "version": "0.25.1",
+        "url": "https://docs.simpeg.xyz/v0.25.1/"
     },
     {
         "name": "v0.25.0",
