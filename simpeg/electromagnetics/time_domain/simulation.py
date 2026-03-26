@@ -2737,7 +2737,23 @@ class Simulation3DHierarchicalElectricField(
 
     """
 
-    pass
+    @property
+    def _delete_on_model_update(self):
+        """List of model-dependent attributes to clean upon model update.
+
+        Some of the TDEM simulation's attributes are model-dependent. This property specifies
+        the model-dependent attributes that much be cleared when the model is updated.
+
+        Returns
+        -------
+        list of str
+            List of the model-dependent attributes to clean upon model update.
+        """
+        items = super()._delete_on_model_update
+        if (self.sigmaMap is not None) | (self.tauMap is not None) | (self.kappaMap is not None):
+            items = items + ["_Adcinv"]  #: clear DC matrix factors on any model updates
+            # if there is a sigmaMap
+        return items
 
 
 class Simulation3DHierarchicalMagneticFluxDensity(
@@ -2806,5 +2822,8 @@ class Simulation3DHierarchicalMagneticFluxDensity(
          \mathbf{s_e}^{n+1} + \mathbf{s_m}^{n+1})
 
     """
+
+    # If the MMR problem or other FV formulation is required to get B(t=0), a _delete_on_model_update
+    # property will need to be added so that the system matrix is cleared when the model updates. 
 
     pass
