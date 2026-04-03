@@ -220,7 +220,7 @@ def primary_e_1d_solution(
     ----------
     mesh : discretize.base.BaseTensorMesh
         A 1d, 2d or 3d tensor mesh or tree mesh.
-    sigma_1d :
+    sigma_1d : array
         1D conductivity model defined along the vertical discretization.
         Conductivities are defined from the bottom cell upwards.
     freq : float
