@@ -1,6 +1,7 @@
 """
 Test NSEM solutions against propagator solution.
 """
+
 import pytest
 from scipy.constants import mu_0
 import numpy as np
@@ -12,7 +13,8 @@ from simpeg.electromagnetics.natural_source.utils import (
 )
 from simpeg import maps
 
-ABS_TOLERANCE = 3e-3
+REL_TOLERANCE = 0.05
+ABS_TOLERANCE = 1e-5
 
 
 @pytest.fixture
@@ -93,5 +95,9 @@ def test_propagator_fv1d_crosscheck(solution_type, top_bc, bot_bc, mesh, mapping
             u1 = mesh.nodal_gradient @ u1
             u1 /= sig_1d
 
-    assert np.real(u1) == pytest.approx(np.real(u0), abs=ABS_TOLERANCE)
-    assert np.imag(u1) == pytest.approx(np.imag(u0), abs=ABS_TOLERANCE)
+    np.testing.assert_allclose(
+        np.real(u1), np.real(u0), rtol=REL_TOLERANCE, atol=ABS_TOLERANCE
+    )
+    np.testing.assert_allclose(
+        np.imag(u1), np.imag(u0), rtol=REL_TOLERANCE, atol=ABS_TOLERANCE
+    )
