@@ -24,10 +24,10 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     displacement, and Maxwell's equations are expressed as:
 
     .. math::
-        \begin{align}
+        \begin{aligned}
         \nabla \times \vec{e} + \frac{\partial \vec{b}}{\partial t} &= -\frac{\partial \vec{s}_m}{\partial t} \\
         \nabla \times \vec{h} - \vec{j} &= \vec{s}_e
-        \end{align}
+        \end{aligned}
 
     where the constitutive relations between fields and fluxes are given by:
 

@@ -27,10 +27,10 @@ class BaseFDEMSimulation(BaseEMSimulation):
     Maxwell's equations are expressed as:
 
     .. math::
-        \begin{align}
+        \begin{aligned}
         \nabla \times \vec{E} + i\omega \vec{B} &= - i \omega \vec{S}_m \\
         \nabla \times \vec{H} - \vec{J} &= \vec{S}_e
-        \end{align}
+        \end{aligned}
 
     where the constitutive relations between fields and fluxes are given by:
 
@@ -543,10 +543,10 @@ class Simulation3DElectricField(BaseFDEMSimulation):
     :math:`+i\omega t` Fourier convention is used:
 
     .. math::
-        \begin{align}
+        \begin{aligned}
         &\nabla \times \vec{E} + i\omega \vec{B} = - i \omega \vec{S}_m \\
         &\nabla \times \vec{H} - \vec{J} = \vec{S}_e
-        \end{align}
+        \end{aligned}
 
     where :math:`\vec{S}_e` is an electric source term that defines a source current density,
     and :math:`\vec{S}_m` magnetic source term that defines a source magnetic flux density.
@@ -933,10 +933,10 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     :math:`+i\omega t` Fourier convention is used:
 
     .. math::
-        \begin{align}
+        \begin{aligned}
         &\nabla \times \vec{E} + i\omega \vec{B} = - i \omega \vec{S}_m \\
         &\nabla \times \vec{H} - \vec{J} = \vec{S}_e
-        \end{align}
+        \end{aligned}
 
     where :math:`\vec{S}_e` is an electric source term that defines a source current density,
     and :math:`\vec{S}_m` magnetic source term that defines a source magnetic flux density.
@@ -1377,10 +1377,10 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
     :math:`+i\omega t` Fourier convention is used:
 
     .. math::
-        \begin{align}
+        \begin{aligned}
         &\nabla \times \vec{E} + i\omega \vec{B} = - i \omega \vec{S}_m \\
         &\nabla \times \vec{H} - \vec{J} = \vec{S}_e
-        \end{align}
+        \end{aligned}
 
     where :math:`\vec{S}_e` is an electric source term that defines a source current density,
     and :math:`\vec{S}_m` magnetic source term that defines a source magnetic flux density.
@@ -1820,10 +1820,10 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
     :math:`+i\omega t` Fourier convention is used:
 
     .. math::
-        \begin{align}
+        \begin{aligned}
         &\nabla \times \vec{E} + i\omega \vec{B} = - i \omega \vec{S}_m \\
         &\nabla \times \vec{H} - \vec{J} = \vec{S}_e
-        \end{align}
+        \end{aligned}
 
     where :math:`\vec{S}_e` is an electric source term that defines a source current density,
     and :math:`\vec{S}_m` magnetic source term that defines a source magnetic flux density.
