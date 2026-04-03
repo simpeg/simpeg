@@ -1,4 +1,6 @@
-# noqa: D100
+"""
+Utility functions for NSEM sources.
+"""
 import numpy as np
 from scipy.constants import mu_0
 import scipy.sparse as sp
@@ -303,8 +305,8 @@ def primary_e_1d_solution(
     if len(hz) != len(sigma_1d):
         raise ValueError(
             "Number of cells in vertical direction must match length of "
-            "'sigma_1d'. Here hz has length {} and sigma_1d has length "
-            "{}".format(len(hz), len(sigma_1d))
+            f"'sigma_1d'. Here hz has length {len(hz)} and sigma_1d has "
+            f"length {len(sigma_1d)}"
         )
 
     # Generate extended 1D mesh and conductivity model to solve 1D problem
@@ -368,7 +370,7 @@ def primary_h_1d_solution(
     ----------
     mesh : discretize.base.BaseTensorMesh
         A 1d, 2d or 3d tensor mesh or tree mesh.
-    sigma_1d :
+    sigma_1d : array
         1D conductivity model defined along the vertical discretization.
         Conductivities are defined from the bottom cell upwards.
     freq : float
@@ -450,8 +452,8 @@ def primary_h_1d_solution(
     if len(hz) != len(sigma_1d):
         raise ValueError(
             "Number of cells in vertical direction must match length of "
-            "'sigma_1d'. Here hz has length {} and sigma_1d has length "
-            "{}".format(len(hz), len(sigma_1d))
+            f"'sigma_1d'. Here hz has length {len(hz)} and sigma_1d has "
+            f"length {len(sigma_1d)}"
         )
 
     # Generate extended 1D mesh and resistivity model to solve 1D problem

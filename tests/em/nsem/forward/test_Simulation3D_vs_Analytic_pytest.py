@@ -233,12 +233,9 @@ def test_analytic_halfspace_deprecated(
     )
     analytic_solution = np.repeat(analytic_solution, n_locations)
 
-    # # Error
-    err = np.abs(
-        (numeric_solution - analytic_solution) / (analytic_solution + ABS_TOLERANCE)
+    np.testing.assert_allclose(
+        numeric_solution, analytic_solution, rtol=REL_TOLERANCE, atol=ABS_TOLERANCE
     )
-
-    assert np.all(err < REL_TOLERANCE)
 
 
 def test_symmetry_for_appcon(frequencies, locations, mesh, mapping):

@@ -1,4 +1,6 @@
-# noqa: D100
+"""
+Test NSEM solutions against propagator solution.
+"""
 import pytest
 from scipy.constants import mu_0
 import numpy as np
