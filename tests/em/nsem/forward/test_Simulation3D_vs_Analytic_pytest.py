@@ -3,9 +3,6 @@ from scipy.constants import mu_0
 import numpy as np
 from discretize import TensorMesh
 from simpeg.electromagnetics import natural_source as nsem
-from simpeg.electromagnetics.natural_source.utils.test_utils import (
-    PlanewaveXYPrimaryDeprecated,
-)
 from simpeg.utils import model_builder, mkvc, get_default_solver
 from simpeg import maps
 
@@ -66,9 +63,7 @@ def frequencies():
     return [1e-1, 2e-1]
 
 
-def get_survey(
-    locations, frequencies, survey_type, component, use_deprecated_source=False
-):
+def get_survey(locations, frequencies, survey_type, component):
     source_list = []
 
     for f in frequencies:
@@ -115,10 +110,7 @@ def get_survey(
         elif survey_type == "apparent_conductivity":
             rx_list = [nsem.receivers.ApparentConductivity(locations)]
 
-        if use_deprecated_source:
-            source_list.append(PlanewaveXYPrimaryDeprecated(rx_list, f))
-        else:
-            source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
+        source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
 
     return nsem.survey.Survey(source_list)
 
@@ -203,39 +195,6 @@ def test_analytic_halfspace_solution(
     )
 
     assert np.all(err < REL_TOLERANCE)
-
-
-# Source term was generated using the function `homo1DModelSource` to solve the
-# 1D problem. This function has since been deprecated and will be removed in
-# SimPEG v0.27.
-@pytest.mark.parametrize("survey_type, component", CASES_LIST_HALFSPACE)
-def test_analytic_halfspace_deprecated(
-    survey_type, component, frequencies, locations, mesh, mapping
-):
-    # Numerical solution
-    survey = get_survey(
-        locations, frequencies, survey_type, component, use_deprecated_source=True
-    )
-    model_hs = get_model(mesh, "halfspace")  # 1e-2 halfspace
-    sim = nsem.simulation.Simulation3DPrimarySecondary(
-        mesh, survey=survey, sigmaPrimary=model_hs, sigmaMap=mapping
-    )
-    numeric_solution = sim.dpred(model_hs)
-
-    # Analytic solution
-    sigma_hs = 1e-2
-    n_locations = np.shape(locations)[0]
-    analytic_solution = np.hstack(
-        [
-            get_analytic_halfspace_solution(sigma_hs, f, survey_type, component)
-            for f in frequencies
-        ]
-    )
-    analytic_solution = np.repeat(analytic_solution, n_locations)
-
-    np.testing.assert_allclose(
-        numeric_solution, analytic_solution, rtol=REL_TOLERANCE, atol=ABS_TOLERANCE
-    )
 
 
 def test_symmetry_for_appcon(frequencies, locations, mesh, mapping):
