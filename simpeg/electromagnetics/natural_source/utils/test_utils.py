@@ -2,7 +2,7 @@ import numpy as np
 
 import discretize
 from simpeg import maps, mkvc, utils
-from ....utils import unpack_widths, deprecate_class
+from ....utils import unpack_widths
 from ..receivers import (
     Impedance,
     Tipper,
@@ -11,7 +11,6 @@ from ..survey import Survey
 from ..sources import PlanewaveXYPrimary, Planewave
 from ..simulation import Simulation3DPrimarySecondary
 from .data_utils import appResPhs
-from .source_utils import homo1DModelSource
 
 # Define the tolerances
 TOLr = 5e-2
