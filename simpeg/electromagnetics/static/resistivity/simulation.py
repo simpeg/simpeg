@@ -9,7 +9,7 @@ from ....utils import (
     validate_active_indices,
 )
 from ....data import Data
-from ....base import BaseElectricalPDESimulation
+from ....base import BaseElectricalPDESimulation, BaseHierarchicalElectricalSimulation
 from ....base.pde_simulation import _inner_mat_mul_op
 from .survey import Survey
 from .fields import Fields3DCellCentered, Fields3DNodal
@@ -668,6 +668,13 @@ class Simulation3DNodal(BaseDCSimulation):
         model
         """
         return super()._clear_on_sigma_update + ["_MBC_sigma"]
+
+
+class Simulation3DHierarchicalNodal(
+    BaseHierarchicalElectricalSimulation, Simulation3DNodal
+):
+
+    pass
 
 
 Simulation3DCellCentred = Simulation3DCellCentered  # UK and US!
