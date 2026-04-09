@@ -2,6 +2,7 @@
 Test NSEM solutions against propagator solution.
 """
 
+import re
 import pytest
 from scipy.constants import mu_0
 import numpy as np
@@ -101,3 +102,34 @@ def test_propagator_fv1d_crosscheck(solution_type, top_bc, bot_bc, mesh, mapping
     np.testing.assert_allclose(
         np.imag(u1), np.imag(u0), rtol=REL_TOLERANCE, atol=ABS_TOLERANCE
     )
+
+
+@pytest.mark.parametrize(
+    "primary_solution_func", (primary_e_1d_solution, primary_h_1d_solution)
+)
+class TestErrors:
+    """
+    Test errors raised by ``primary_e_1d_solution`` and ``primary_h_1d_solution``.
+    """
+
+    def test_invalid_top_bc(self, mesh, primary_solution_func):
+        sig_1d = get_model(mesh, "halfspace")
+        top_bc = "invalid bc"
+        msg = re.escape(f"Invalid 'top_bc' equal to '{top_bc}'")
+        with pytest.raises(ValueError, match=msg):
+            primary_solution_func(mesh, sigma_1d=sig_1d, freq=100, top_bc=top_bc)
+
+    def test_invalid_bottom_bc(self, mesh, primary_solution_func):
+        sig_1d = get_model(mesh, "halfspace")
+        bottom_bc = "invalid bc"
+        msg = re.escape(f"Invalid 'bot_bc' equal to '{bottom_bc}'")
+        with pytest.raises(ValueError, match=msg):
+            primary_solution_func(mesh, sigma_1d=sig_1d, freq=100, bot_bc=bottom_bc)
+
+    def test_invalid_sigma_size(self, mesh, primary_solution_func):
+        invalid_sigma = np.ones(3)
+        msg = re.escape(
+            "Number of cells in vertical direction must match length of 'sigma_1d'."
+        )
+        with pytest.raises(ValueError, match=msg):
+            primary_solution_func(mesh, sigma_1d=invalid_sigma, freq=100)

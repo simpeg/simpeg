@@ -277,7 +277,11 @@ def primary_e_1d_solution(
         k_bot = np.sqrt(-1.0j * w * mu_0 * sigma_1d_ext[0])
         A[0, 0] += 1j * k_bot / mu_0
     else:
-        raise ValueError("'bot_bc' must be one of {'dirichlet', 'robin'}.")
+        msg = (
+            f"Invalid 'bot_bc' equal to '{bot_bc}'. "
+            "It must be one of {'dirichlet', 'robin'}."
+        )
+        raise ValueError(msg)
 
     # Top BC
     if top_bc == "dirichlet":
@@ -286,7 +290,11 @@ def primary_e_1d_solution(
     elif top_bc == "neumann":
         q[-1] = -1j * w
     else:
-        raise ValueError("'top_bc' must be one of {'dirichlet', 'neumann'}.")
+        msg = (
+            f"Invalid 'top_bc' equal to '{top_bc}'. "
+            "It must be one of {'dirichlet', 'neumann'}."
+        )
+        raise ValueError(msg)
 
     P_fixed = sp.eye(mesh_ext.n_nodes, format="csc")[:, fixed_nodes]
     P_free = sp.eye(mesh_ext.n_nodes, format="csc")[:, ~fixed_nodes]
@@ -424,7 +432,11 @@ def primary_h_1d_solution(
         k_bot = np.sqrt(-1.0j * w * mu_0 * sigma_1d_ext[0])
         A[0, 0] += 1j * k_bot / sigma_1d[0]
     else:
-        raise ValueError("'bot_bc' must be one of {'dirichlet', 'robin'}.")
+        msg = (
+            f"Invalid 'bot_bc' equal to '{bot_bc}'. "
+            "It must be one of {'dirichlet', 'robin'}."
+        )
+        raise ValueError(msg)
 
     # Top BC
     if top_bc == "dirichlet":
@@ -433,7 +445,11 @@ def primary_h_1d_solution(
     elif top_bc == "neumann":
         q[-1] = 1.0
     else:
-        raise ValueError("'top_bc' must be one of {'dirichlet', 'neumann'}.")
+        msg = (
+            f"Invalid 'top_bc' equal to '{top_bc}'. "
+            "It must be one of {'dirichlet', 'neumann'}."
+        )
+        raise ValueError(msg)
 
     P_fixed = sp.eye(mesh_ext.n_nodes, format="csc")[:, fixed_nodes]
     P_free = sp.eye(mesh_ext.n_nodes, format="csc")[:, ~fixed_nodes]
@@ -463,8 +479,12 @@ def project_1d_fields_to_mesh_edges(mesh, u_1d):
     numpy.ndarray (n_edges, n_polarization)
         Fields on the edges of the mesh for each polarization.
     """
-    if len(u_1d) != len(mesh.h[-1]) + 1:
-        raise ValueError("Length of u_1d must match number of vertical edges in mesh.")
+    if len(u_1d) != (expected := len(mesh.h[-1]) + 1):
+        msg = (
+            f"Found invalid 'u_1d' with '{len(u_1d)}' elements. "
+            f"It must match the number of vertical edges in the mesh ({expected})."
+        )
+        raise ValueError(msg)
 
     if mesh.dim == 1:
         return u_1d
