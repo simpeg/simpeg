@@ -8,22 +8,29 @@ from simpeg import maps
 from discretize.tests import check_derivative, assert_isadjoint
 
 
-# setup simulation
-mesh = discretize.TensorMesh([10, 11, 12], "CCN")
-conductivity = 0.01
-base_elec = [-0.4, -0.4, -0.3]
-xyz_roving = utils.ndgrid(
-    mesh.cell_centers_x[2:-2], mesh.cell_centers_y[2:-2], np.r_[-0.3]
-)
-xyz_base = np.tile([base_elec], (xyz_roving.shape[0], 1))
-rx_dipole = dc.receivers.Dipole(locations_m=xyz_roving, locations_n=xyz_base)
-rx_pole = dc.receivers.Pole(locations=np.r_[xyz_roving, [base_elec]])
-src = sp.sources.StreamingCurrents([rx_dipole, rx_pole])
-survey = sp.Survey([src])
-sim = sp.Simulation3DCellCentered(mesh=mesh, survey=survey, sigma=conductivity)
+@pytest.fixture
+def mesh():
+    return discretize.TensorMesh([10, 11, 12], "CCN")
 
 
-def test_forward():
+@pytest.fixture
+def sim(mesh):
+    # setup simulation
+    conductivity = 0.01
+    base_elec = [-0.4, -0.4, -0.3]
+    xyz_roving = utils.ndgrid(
+        mesh.cell_centers_x[2:-2], mesh.cell_centers_y[2:-2], np.r_[-0.3]
+    )
+    xyz_base = np.tile([base_elec], (xyz_roving.shape[0], 1))
+    rx_dipole = dc.receivers.Dipole(locations_m=xyz_roving, locations_n=xyz_base)
+    rx_pole = dc.receivers.Pole(locations=np.r_[xyz_roving, [base_elec]])
+    src = sp.sources.StreamingCurrents([rx_dipole, rx_pole])
+    survey = sp.Survey([src])
+    sim = sp.Simulation3DCellCentered(mesh=mesh, survey=survey, sigma=conductivity)
+    return sim
+
+
+def test_forward(sim, mesh):
     # double check qMap is maps.IdentityMap()
     sim.qMap = maps.IdentityMap()
     # We can setup a dc simulation with a dipole source at these
@@ -37,11 +44,11 @@ def test_forward():
     q[indb] = -1.0
     q /= mesh.cell_volumes
 
-    dc_tx = dc.sources.Dipole([rx_dipole, rx_pole], location_a=a_loc, location_b=b_loc)
-    dc_survey = dc.Survey([dc_tx])
-    sim_dc = dc.Simulation3DCellCentered(
-        mesh=mesh, survey=dc_survey, sigma=conductivity
+    dc_tx = dc.sources.Dipole(
+        sim.survey.source_list[0].receiver_list, location_a=a_loc, location_b=b_loc
     )
+    dc_survey = dc.Survey([dc_tx])
+    sim_dc = dc.Simulation3DCellCentered(mesh=mesh, survey=dc_survey, sigma=sim.sigma)
 
     dc_dpred = sim_dc.make_synthetic_data(None, add_noise=False, random_seed=40)
     sp_dpred = sim.make_synthetic_data(q, add_noise=False, random_seed=40)
@@ -52,13 +59,16 @@ def test_forward():
 @pytest.mark.parametrize(
     "q_map",
     [
-        maps.IdentityMap(mesh),
-        sp.CurrentDensityMap(mesh),
-        sp.CurrentDensityMap(mesh, active_cells=mesh.cell_centers[:, -1] < 0.85),
-        sp.HydraulicHeadMap(mesh, L=1.0),
+        lambda mesh: maps.IdentityMap(mesh),
+        lambda mesh: sp.CurrentDensityMap(mesh),
+        lambda mesh: sp.CurrentDensityMap(
+            mesh, active_cells=mesh.cell_centers[:, -1] < 0.85
+        ),
+        lambda mesh: sp.HydraulicHeadMap(mesh, L=1.0),
     ],
 )
-def test_deriv(q_map):
+def test_deriv(sim, mesh, q_map):
+    q_map = q_map(mesh)
     sim.model = None
     sim.qMap = q_map
 
@@ -79,12 +89,13 @@ def test_deriv(q_map):
 @pytest.mark.parametrize(
     "q_map",
     [
-        maps.IdentityMap(mesh),
-        sp.CurrentDensityMap(mesh),
-        sp.HydraulicHeadMap(mesh, L=1.0),
+        lambda mesh: maps.IdentityMap(mesh),
+        lambda mesh: sp.CurrentDensityMap(mesh),
+        lambda mesh: sp.HydraulicHeadMap(mesh, L=1.0),
     ],
 )
-def test_adjoint(q_map):
+def test_adjoint(sim, mesh, q_map):
+    q_map = q_map(mesh)
     sim.model = None
     sim.qMap = q_map
 
@@ -99,18 +110,19 @@ def test_adjoint(q_map):
         return sim.Jtvec(model, v, f=f)
 
     assert_isadjoint(
-        Jvec, Jtvec, shape_u=(q_map.shape[1],), shape_v=(survey.nD), random_seed=rng
+        Jvec, Jtvec, shape_u=(q_map.shape[1],), shape_v=(sim.survey.nD), random_seed=rng
     )
 
 
-def test_errors():
-    with pytest.raises(ValueError):
+def test_errors(mesh, sim):
+    survey = sim.survey
+    with pytest.warns(FutureWarning):
         sp.Simulation3DCellCentered(mesh=mesh, survey=survey, sigma=None, rho=None)
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         sp.Simulation3DCellCentered(mesh=mesh, survey=survey, sigma=1.0, rho=1.0)
 
 
-def test_clears():
+def test_clears(sim):
     # set qMap as a non-linear map to make sure it adds the correct
     # items to be cleared on model update
     sim.qMap = maps.IdentityMap()
