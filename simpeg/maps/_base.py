@@ -1150,6 +1150,10 @@ class Wires(object):
         for arg in args:
 
             if isinstance(arg[1], (int, np.integer)):
+
+                if not getattr(self, "_nP", None):
+                    self._nP = int(np.sum([w[1] for w in args]))
+
                 wire = Projection(self.nP, slice(start, start + arg[1]))
                 start += arg[1]
             else:
