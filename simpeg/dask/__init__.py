@@ -11,6 +11,7 @@ try:
     import simpeg.dask.potential_fields.base
     import simpeg.dask.potential_fields.gravity.simulation
     import simpeg.dask.potential_fields.magnetics.simulation
+    import simpeg.dask.potential_fields.magnetics.simulation_pde
     import simpeg.dask.simulation
     import simpeg.dask.inverse_problem
     import simpeg.dask.objective_function
