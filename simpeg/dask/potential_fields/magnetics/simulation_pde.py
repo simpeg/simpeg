@@ -1,15 +1,19 @@
+from dask import array, compute, delayed
 import numpy as np
 from ....potential_fields.magnetics import Simulation3DDifferential as Sim
 from ....utils import sdiag, mkvc
 
 
-def distance_weights(locations, cell_centers, exponent=3, threshold=1e-2):
+def distance_weights(locations, cell_centers, cell_volumes, exponent=3, threshold=1e-2):
     distance_weights = np.zeros(len(cell_centers))
-    for ind, loc in enumerate(locations):
+    for loc in locations:
         distance = np.linalg.norm(cell_centers - loc, axis=1)
-        distance_weights += (distance + threshold) ** (-2 * exponent)
+        distance_weights += cell_volumes**2.0 * (distance + threshold) ** (
+            -2 * exponent
+        )
 
     return distance_weights
+
 
 def dask_getJtJdiag(self, m, W=None, f=None):
     """
@@ -30,9 +34,11 @@ def dask_getJtJdiag(self, m, W=None, f=None):
 
     chunks = np.array_split(self.survey.receiver_locations, n_threads)
     cell_centers = self.mesh.cell_centers.copy()
+    cell_volumes = self.mesh.cell_volumes.copy()
 
     if client:
         cell_centers = client.scatter(cell_centers, workers=worker)
+        cell_volumes = client.scatter(cell_volumes, workers=worker)
     else:
         delayed_distance_weights = delayed(distance_weights)
 
@@ -44,15 +50,17 @@ def dask_getJtJdiag(self, m, W=None, f=None):
                     distance_weights,
                     block,
                     cell_centers,
+                    cell_volumes,
                     workers=worker,
                 )
             )
         else:
             futures.append(
                 array.from_delayed(
-                    delayed_compute_rows(
+                    delayed_distance_weights(
                         block,
                         cell_centers,
+                        cell_volumes,
                     ),
                     dtype=np.float32,
                     shape=(
@@ -67,7 +75,7 @@ def dask_getJtJdiag(self, m, W=None, f=None):
     else:
         diag = compute(futures)
 
-    diag = np.tile(np.vstack(diag).sum(axis=0) * self.mesh.cell_volumes**2.,3)**0.5
+    diag = np.tile(np.vstack(diag).sum(axis=0), 3)
     return mkvc((sdiag(np.sqrt(diag)) @ self.remDeriv).power(2).sum(axis=0))
 
 
