@@ -1991,13 +1991,23 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         if v is None:
             v = np.eye(Q.shape[0])
             divt_solve_q = (
-                self._DivT * (self._Ainv * ((Q * self.MfMuiI * -self._DivT).T * v))
+                self._DivT
+                * (
+                    self._Ainv
+                    * ((Q * self.MfMuiI * -self._DivT).T * v).astype(self.solver_dtype)
+                )
                 + Q.T * v
             )
             del v
         else:
             divt_solve_q = (
-                self._DivT * (self._Ainv * ((-self._Div * (self.MfMuiI.T * (Q.T * v)))))
+                self._DivT
+                * (
+                    self._Ainv
+                    * ((-self._Div * (self.MfMuiI.T * (Q.T * v)))).astype(
+                        self.solver_dtype
+                    )
+                )
                 + Q.T * v
             )
 
@@ -2071,7 +2081,9 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
                     self.MfMuiI * Mf_r_mui_deriv * v
                 )
 
-        Ainv_Ddm = self._Ainv * (self._Div * (-dCmu_dm + db_dm))
+        Ainv_Ddm = self._Ainv * (self._Div * (-dCmu_dm + db_dm)).astype(
+            self.solver_dtype
+        )
 
         Jv = Q * (C * Ainv_Ddm + (-dCmu_dm + db_dm))
 
