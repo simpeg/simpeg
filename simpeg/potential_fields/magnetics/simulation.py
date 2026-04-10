@@ -1862,7 +1862,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
                 ).diagonal()
             )
 
-        return rhs
+        return rhs.astype(self.solver_dtype)
 
     def _getA(self):
         A = self._Div * self.MfMuiI * self._DivT
