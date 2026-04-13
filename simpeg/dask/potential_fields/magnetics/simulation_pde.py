@@ -65,7 +65,7 @@ def dask_getJtJdiag(self, m, W=None, f=None):
                     dtype=np.float32,
                     shape=(
                         len(block),
-                        self.active_cells.sum(),
+                        len(cell_centers),
                     ),
                 )
             )

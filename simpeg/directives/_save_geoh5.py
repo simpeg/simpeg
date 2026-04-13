@@ -486,7 +486,7 @@ class SavePropertyGroup(BaseSaveGeoH5):
                         if (channel_name in child.name and isinstance(child, FloatData))
                     ]
 
-                    if children[0] is not None:
+                    if children:
                         properties += children
 
                 if len(properties) == 0:
