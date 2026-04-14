@@ -5,14 +5,14 @@ from ....utils import sdiag, mkvc
 
 
 def distance_weights(locations, cell_centers, cell_volumes, exponent=3, threshold=1e-2):
-    distance_weights = np.zeros(len(cell_centers))
+    weights = np.zeros(len(cell_centers))
     for loc in locations:
         distance = np.linalg.norm(cell_centers - loc, axis=1)
-        distance_weights += cell_volumes**2.0 * (distance + threshold) ** (
+        weights += cell_volumes**2.0 * (distance + threshold) ** (
             -2 * exponent
         )
 
-    return distance_weights
+    return weights
 
 
 def dask_getJtJdiag(self, m, W=None, f=None):
