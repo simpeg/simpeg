@@ -73,7 +73,7 @@ def dask_getJtJdiag(self, m, W=None, f=None):
     if client:
         diag = client.gather(futures)
     else:
-        diag = compute(futures)
+        diag = compute(futures)[0]
 
     diag = np.tile(np.vstack(diag).sum(axis=0), 3)
     return mkvc((sdiag(np.sqrt(diag)) @ self.remDeriv).power(2).sum(axis=0))
