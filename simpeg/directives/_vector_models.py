@@ -91,7 +91,7 @@ class VectorInversion(InversionDirective):
     chifact_target = 1.0
     reference_model = None
     mode = "cartesian"
-    inversion_type = "mvis"
+    inversion_type = "magnetic vector"
     norms = []
     alphas = []
     cartesian_model = None
@@ -162,7 +162,7 @@ class VectorInversion(InversionDirective):
 
         if (
             self.invProb.phi_d < self.target
-        ) and self.mode == "cartesian":  # and self.inversion_type == 'mvis':
+        ) and self.mode == "cartesian" and self.inversion_type == "magnetic vector":
             print("Switching MVI to spherical coordinates")
             self.mode = "spherical"
             self.cartesian_model = model
