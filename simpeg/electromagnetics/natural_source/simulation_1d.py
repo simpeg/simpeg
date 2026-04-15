@@ -238,17 +238,25 @@ class Simulation1DRecursive(BaseSimulation):
         for src in self.survey.source_list:
             i_freq = np.searchsorted(self.survey.frequencies, src.frequency)
             for rx in src.receiver_list:
+
+                if rx.orientation == 'xy':
+                    pm = 1
+                elif rx.orientation == 'yx':
+                    pm = -1
+                else:
+                    NotImplementedError("Only 'xy' and 'yx' receiver orientations implemented for Simulation1DRecursive.")
+
                 if rx.component == "real":
-                    d.append(np.real(Z[i_freq]))
+                    d.append(pm * np.real(Z[i_freq]))
                 elif rx.component == "imag":
-                    d.append(np.imag(Z[i_freq]))
+                    d.append(pm * np.imag(Z[i_freq]))
                 elif rx.component == "apparent_resistivity":
                     d.append(
                         np.abs(Z[i_freq]) ** 2 / (2 * np.pi * src.frequency * mu_0)
                     )
                 elif rx.component == "phase":
                     d.append(
-                        (180.0 / np.pi) * np.arctan2(Z[i_freq].imag, Z[i_freq].real)
+                        pm * (180.0 / np.pi) * np.arctan2(Z[i_freq].imag, Z[i_freq].real)
                     )
 
         return np.array(d)
@@ -283,10 +291,18 @@ class Simulation1DRecursive(BaseSimulation):
             i_freq = np.searchsorted(self.survey.frequencies, src.frequency)
             Js_row = Js[i_freq]
             for rx in src.receiver_list:
+
+                if rx.orientation == 'xy':
+                    pm = 1
+                elif rx.orientation == 'yx':
+                    pm = -1
+                else:
+                    NotImplementedError("Only 'xy' and 'yx' receiver orientations implemented for Simulation1DRecursive.")
+
                 if rx.component == "real":
-                    Jrows = np.real(Js_row)
+                    Jrows = pm * np.real(Js_row)
                 elif rx.component == "imag":
-                    Jrows = np.imag(Js_row)
+                    Jrows = pm * np.imag(Js_row)
                 elif rx.component == "apparent_resistivity":
                     Jrows = (np.pi * src.frequency * mu_0) ** -1 * (
                         np.real(Z[i_freq]) * np.real(Js_row)
@@ -299,7 +315,7 @@ class Simulation1DRecursive(BaseSimulation):
                     bot = real**2 + imag**2
                     d_real_dm = np.real(Js_row)
                     d_imag_dm = np.imag(Js_row)
-                    Jrows = C * (-imag / bot * d_real_dm + real / bot * d_imag_dm)
+                    Jrows = pm * C * (-imag / bot * d_real_dm + real / bot * d_imag_dm)
                 end = start + rx.nD
                 J[start:end] = Jrows
                 start = end
