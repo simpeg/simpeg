@@ -19,7 +19,7 @@ def create_survey(freq, orientation):
         nsem.receivers.Impedance([[]], component="phase", orientation=orientation),
     ]
 
-    source_list = [nsem.sources.BasePlanewave(receivers_list, f) for f in freq]
+    source_list = [nsem.sources.Planewave(receivers_list, f) for f in freq]
 
     return nsem.survey.Survey(source_list)
 
@@ -88,7 +88,7 @@ def test_incorrect_rx_types(rx_class):
     """Test incorrect receiver types."""
     loc = np.zeros((1, 3))
     rx = rx_class(loc)
-    source = nsem.sources.BasePlanewave(rx, frequency=10)
+    source = nsem.sources.Planewave(rx, frequency=10)
     survey = nsem.Survey(source)
 
     if rx_class is ns_rx.Impedance:

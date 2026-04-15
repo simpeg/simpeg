@@ -17,7 +17,7 @@ from discretize.utils import volume_average
 
 
 # Rename to BasePlanewave
-class BasePlanewave(BaseFDEMSrc):
+class Planewave(BaseFDEMSrc):
     """
     Source class for the 1D and pseudo-3D problems.
 
@@ -32,7 +32,6 @@ class BasePlanewave(BaseFDEMSrc):
     # This class is only provided to have a uniquely identifiable "Planewave" class
     pass
 
-Planewave = BasePlanewave
 
 # Need to implement such that it works for all dims.
 # Rename to be more descriptive (I suggest PlanewavePrimarySecondary)

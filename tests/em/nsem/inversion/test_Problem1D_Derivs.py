@@ -37,7 +37,7 @@ def receivers_list():
 @pytest.fixture
 def survey_1d(frequencies, receivers_list):
     """Generate 1D survey."""
-    source_list = [nsem.sources.BasePlanewave(receivers_list, f) for f in frequencies]
+    source_list = [nsem.sources.Planewave(receivers_list, f) for f in frequencies]
     return nsem.survey.Survey(source_list)
 
 
