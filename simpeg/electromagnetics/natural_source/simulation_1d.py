@@ -244,7 +244,7 @@ class Simulation1DRecursive(BaseSimulation):
                 elif rx.orientation == 'yx':
                     pm = -1
                 else:
-                    NotImplementedError("Only 'xy' and 'yx' receiver orientations implemented for Simulation1DRecursive.")
+                    raise NotImplementedError("Only 'xy' and 'yx' receiver orientations implemented for Simulation1DRecursive.")
 
                 if rx.component == "real":
                     d.append(pm * np.real(Z[i_freq]))

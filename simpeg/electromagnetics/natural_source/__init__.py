@@ -34,6 +34,7 @@ Sources
   :toctree: generated/
 
   sources.Planewave
+  sources.BasePlanewave
   sources.PlanewaveXYPrimary
 
 Data

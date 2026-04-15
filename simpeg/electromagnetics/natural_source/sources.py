@@ -17,7 +17,7 @@ from discretize.utils import volume_average
 
 
 # Rename to BasePlanewave
-class Planewave(BaseFDEMSrc):
+class BasePlanewave(BaseFDEMSrc):
     """
     Source class for the 1D and pseudo-3D problems.
 
@@ -32,10 +32,11 @@ class Planewave(BaseFDEMSrc):
     # This class is only provided to have a uniquely identifiable "Planewave" class
     pass
 
+Planewave = BasePlanewave
 
 # Need to implement such that it works for all dims.
 # Rename to be more descriptive (I suggest PlanewavePrimarySecondary)
-class PlanewaveXYPrimary(Planewave):
+class PlanewaveXYPrimary(BasePlanewave):
     """
     NSEM planewave source for both polarizations (x and y)
     estimated from a single 1D primary models.
