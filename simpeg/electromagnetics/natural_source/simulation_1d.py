@@ -1,3 +1,5 @@
+"""Recursive 1D simulation class."""
+
 import numpy as np
 from scipy.constants import mu_0
 
@@ -5,6 +7,7 @@ from ...simulation import BaseSimulation
 from ... import props
 from ...utils import validate_type
 from ..frequency_domain.survey import Survey
+from .sources import Planewave
 from .receivers import Impedance
 
 
@@ -58,6 +61,7 @@ class Simulation1DRecursive(BaseSimulation):
         **kwargs,
     ):
         super().__init__(survey=survey, **kwargs)
+
         self.fix_Jmatrix = fix_Jmatrix
         self.sigma = sigma
         self.rho = rho
@@ -80,14 +84,33 @@ class Simulation1DRecursive(BaseSimulation):
 
     @survey.setter
     def survey(self, value):
+        """Define the survey."""
         if value is not None:
             value = validate_type("survey", value, Survey, cast=False)
             for src in value.source_list:
-                for rx in src.receiver_list:
-                    if not isinstance(rx, Impedance):
-                        raise NotImplementedError(
-                            f"{type(self).__name__} does not support {type(rx).__name__} receivers, only implemented for 'Impedance'."
+                if type(src) is not Planewave:
+                    raise NotImplementedError(
+                        (
+                            "Simulation1DRecursive defines sources using the "
+                            f"Planewave class, got {type(src)} instead."
                         )
+                    )
+                for rx in src.receiver_list:
+                    if type(rx) is not Impedance:
+                        raise NotImplementedError(
+                            (
+                                "Simulation1DRecursive only supports the Impedance "
+                                f"receiver class, got {type(rx)} instead."
+                            )
+                        )
+                    if (rx.orientation != "xy") and (rx.orientation != "yx"):
+                        raise NotImplementedError(
+                            (
+                                "Simulation1DRecursive only allows 'xy' or 'yx' for the "
+                                f"orientation property of Impedance receivers, got {rx.orientation}."
+                            )
+                        )
+
         self._survey = value
 
     @property
@@ -151,20 +174,20 @@ class Simulation1DRecursive(BaseSimulation):
         Parameters
         ----------
         frequencies : (n_freq, ) np.ndarray
-            Frequencies in Hz
+            Frequencies in Hz.
         thicknesses : (n_layer-1, ) np.ndarray
-            Layer thicknesses in meters, starting from the bottom
+            Layer thicknesses in meters, starting from the bottom.
         sigmas : (n_layer, ) np.ndarray
-            Layer conductivities in S/m, starting from the bottom
+            Layer conductivities in S/m, starting from the bottom.
 
         Returns
         -------
         Z : (n_freq, ) np.ndarray
-            Complex impedance at surface
+            Complex impedance at surface.
         Z_dsigma : (n_freq, n_layer) np.ndarray
-            Derivative of complex impedances at surface with respect to sigma
+            Derivative of complex impedances at surface with respect to sigma.
         Z_dsigma : (n_freq, n_layer-1) np.ndarray
-            Derivative of complex impedances at surface with respect to thicknesses
+            Derivative of complex impedances at surface with respect to thicknesses.
         """
         frequencies = np.asarray(frequencies)
         thicknesses = np.asarray(thicknesses)[::-1]
@@ -220,12 +243,7 @@ class Simulation1DRecursive(BaseSimulation):
         return None
 
     def dpred(self, m, f=None):
-        """
-        Computes the data for a given 1D model.
-
-        :param np.array m: inversion model (nP,)
-        :return np.array f: data (nD,)
-        """
+        # Inherited
         self.model = m
 
         # Compute complex impedances for each frequency=
@@ -238,17 +256,25 @@ class Simulation1DRecursive(BaseSimulation):
         for src in self.survey.source_list:
             i_freq = np.searchsorted(self.survey.frequencies, src.frequency)
             for rx in src.receiver_list:
+
+                if rx.orientation == "xy":
+                    pm = 1
+                elif rx.orientation == "yx":
+                    pm = -1
+
                 if rx.component == "real":
-                    d.append(np.real(Z[i_freq]))
+                    d.append(pm * np.real(Z[i_freq]))
                 elif rx.component == "imag":
-                    d.append(np.imag(Z[i_freq]))
+                    d.append(pm * np.imag(Z[i_freq]))
                 elif rx.component == "apparent_resistivity":
                     d.append(
                         np.abs(Z[i_freq]) ** 2 / (2 * np.pi * src.frequency * mu_0)
                     )
                 elif rx.component == "phase":
                     d.append(
-                        (180.0 / np.pi) * np.arctan2(Z[i_freq].imag, Z[i_freq].real)
+                        pm
+                        * (180.0 / np.pi)
+                        * np.arctan2(Z[i_freq].imag, Z[i_freq].real)
                     )
 
         return np.array(d)
@@ -283,10 +309,16 @@ class Simulation1DRecursive(BaseSimulation):
             i_freq = np.searchsorted(self.survey.frequencies, src.frequency)
             Js_row = Js[i_freq]
             for rx in src.receiver_list:
+
+                if rx.orientation == "yx":
+                    pm = -1
+                else:
+                    pm = 1
+
                 if rx.component == "real":
-                    Jrows = np.real(Js_row)
+                    Jrows = pm * np.real(Js_row)
                 elif rx.component == "imag":
-                    Jrows = np.imag(Js_row)
+                    Jrows = pm * np.imag(Js_row)
                 elif rx.component == "apparent_resistivity":
                     Jrows = (np.pi * src.frequency * mu_0) ** -1 * (
                         np.real(Z[i_freq]) * np.real(Js_row)
@@ -299,7 +331,7 @@ class Simulation1DRecursive(BaseSimulation):
                     bot = real**2 + imag**2
                     d_real_dm = np.real(Js_row)
                     d_imag_dm = np.imag(Js_row)
-                    Jrows = C * (-imag / bot * d_real_dm + real / bot * d_imag_dm)
+                    Jrows = pm * C * (-imag / bot * d_real_dm + real / bot * d_imag_dm)
                 end = start + rx.nD
                 J[start:end] = Jrows
                 start = end

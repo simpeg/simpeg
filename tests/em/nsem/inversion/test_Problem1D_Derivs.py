@@ -1,92 +1,113 @@
-import unittest
+"""Test derivatives for 1D simulations."""
+
 import numpy as np
 from scipy.constants import mu_0
 from simpeg import maps, tests
 from simpeg.electromagnetics import natural_source as nsem
+import pytest
 
 TOL = 1e-4
-FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
+FLR = 1e-20
 CONDUCTIVITY = 1e1
 MU = mu_0
 
 
-def DerivJvecTest_1D(halfspace_value, freq=False, expMap=True):
-    # Frequencies being measured
-    frequencies = np.logspace(0, 4, 21)
+# --- Fixtures ---
+@pytest.fixture
+def frequencies():
+    """Return test frequencies."""
+    return np.logspace(0, 4, 21)
 
-    # Define a receiver for each data type as a list
-    receivers_list = [
-        nsem.receivers.Impedance([[]], component="real"),
-        nsem.receivers.Impedance([[]], component="imag"),
-        nsem.receivers.Impedance([[]], component="app_res"),
-        nsem.receivers.Impedance([[]], component="phase"),
+
+@pytest.fixture
+def receivers_list():
+    """Return test receivers list."""
+    return [
+        nsem.receivers.Impedance([[]], component="real", orientation="xy"),
+        nsem.receivers.Impedance([[]], component="imag", orientation="xy"),
+        nsem.receivers.Impedance([[]], component="app_res", orientation="xy"),
+        nsem.receivers.Impedance([[]], component="phase", orientation="xy"),
+        nsem.receivers.Impedance([[]], component="real", orientation="yx"),
+        nsem.receivers.Impedance([[]], component="imag", orientation="yx"),
+        nsem.receivers.Impedance([[]], component="app_res", orientation="yx"),
+        nsem.receivers.Impedance([[]], component="phase", orientation="yx"),
     ]
 
-    # Use a list to define the planewave source at each frequency and assign receivers
-    source_list = []
-    for ii in range(0, len(frequencies)):
-        source_list.append(nsem.sources.Planewave(receivers_list, frequencies[ii]))
 
-    # Define the survey object
-    survey = nsem.survey.Survey(source_list)
+@pytest.fixture
+def survey_1d(frequencies, receivers_list):
+    """Generate 1D survey."""
+    source_list = [nsem.sources.Planewave(receivers_list, f) for f in frequencies]
+    return nsem.survey.Survey(source_list)
 
-    # Layer thicknesses
+
+@pytest.fixture
+def simulation_recursive(survey_1d):
+    """Simulate data with recursie solution."""
     layer_thicknesses = np.array([200, 100])
-
-    # Layer conductivities
-    sigma_model = np.array([0.001, 0.01, 0.1])
-
-    # Define a mapping for conductivities
     mapping = maps.Wires(("sigma", 3), ("thicknesses", 2))
 
-    simulation = nsem.simulation_1d.Simulation1DRecursive(
-        survey=survey,
+    sim = nsem.simulation_1d.Simulation1DRecursive(
+        survey=survey_1d,
         sigmaMap=mapping.sigma,
         thicknessesMap=mapping.thicknesses,
     )
 
+    sigma_model = np.array([0.001, 0.01, 0.1])
     x0 = np.r_[sigma_model, layer_thicknesses]
 
-    def fun(x):
-        return simulation.dpred(x), lambda x: simulation.Jvec(x0, x)
+    return sim, x0
 
-    return tests.check_derivative(
+
+@pytest.fixture
+def primary_secondary_setup():
+    """Set up primary-secondary simulation."""
+    survey, sig, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(
+        1e-2, False, structure=True
+    )
+
+    sim = nsem.Simulation1DPrimarySecondary(
+        mesh,
+        sigmaPrimary=sigBG,
+        sigmaMap=maps.IdentityMap(mesh),
+        survey=survey,
+    )
+
+    return sim, sigBG
+
+
+# --- Tests ---
+def test_derivJvec_Z1d_e(simulation_recursive):
+    """Test formulation derivative."""
+    simulation, x0 = simulation_recursive
+
+    def fun(x):
+        return simulation.dpred(x), lambda v: simulation.Jvec(x0, v)
+
+    result = tests.check_derivative(
         fun, x0, num=6, plotIt=False, eps=FLR, random_seed=298376
     )
 
+    assert result
 
-def DerivJvecTest(halfspace_value, freq=False, expMap=True):
-    survey, sig, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(
-        halfspace_value, False, structure=True
-    )
-    simulation = nsem.Simulation1DPrimarySecondary(
-        mesh, sigmaPrimary=sigBG, sigmaMap=maps.IdentityMap(mesh), survey=survey
-    )
-    print("Using {0} solver for the simulation".format(simulation.solver))
-    print(
-        "Derivative test of Jvec for eForm primary/secondary for 1d comp from {0} to {1} Hz\n".format(
-            survey.frequencies[0], survey.frequencies[-1]
-        )
-    )
 
-    x0 = sigBG
+def test_derivJvec_Z1dr(primary_secondary_setup):
+    """Test other formulation derivative."""
+    simulation, x0 = primary_secondary_setup
+
     survey = simulation.survey
 
-    def fun(x):
-        return simulation.dpred(x), lambda x: simulation.Jvec(x0, x)
+    print(f"Using {simulation.solver} solver for the simulation")
+    print(
+        f"Derivative test of Jvec for eForm primary/secondary for 1d comp "
+        f"from {survey.frequencies[0]} to {survey.frequencies[-1]} Hz\n"
+    )
 
-    return tests.check_derivative(
+    def fun(x):
+        return simulation.dpred(x), lambda v: simulation.Jvec(x0, v)
+
+    result = tests.check_derivative(
         fun, x0, num=4, plotIt=False, eps=FLR, random_seed=5553
     )
 
-
-class NSEM_DerivTests(unittest.TestCase):
-    def test_derivJvec_Z1dr(self):
-        self.assertTrue(DerivJvecTest(1e-2))
-
-    def test_derivJvec_Z1d_e(self):
-        self.assertTrue(DerivJvecTest_1D(1e-2))
-
-
-if __name__ == "__main__":
-    unittest.main()
+    assert result
