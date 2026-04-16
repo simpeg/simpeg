@@ -1,6 +1,5 @@
 """Pytests for 1D recursive solution."""
 
-import warnings
 from simpeg.electromagnetics import natural_source as nsem
 from simpeg.electromagnetics.natural_source.sources import Planewave, PlanewaveXYPrimary
 from simpeg.electromagnetics.natural_source.receivers import (

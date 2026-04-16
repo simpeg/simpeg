@@ -309,10 +309,10 @@ class Simulation1DRecursive(BaseSimulation):
             Js_row = Js[i_freq]
             for rx in src.receiver_list:
 
-                if rx.orientation == "xy":
-                    pm = 1
-                else rx.orientation == "yx":
+                if rx.orientation == "yx":
                     pm = -1
+                else:
+                    pm = 1
 
                 if rx.component == "real":
                     Jrows = pm * np.real(Js_row)
