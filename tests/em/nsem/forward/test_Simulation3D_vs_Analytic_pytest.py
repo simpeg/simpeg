@@ -428,7 +428,9 @@ def test_amp_transfer_function(
 def test_symmetry_for_appcon(frequencies, locations, mesh, mapping):
     """Test the app con is symmetric across the y-axis."""
     # Numerical solution
-    survey = get_survey(locations, frequencies, "apparent_conductivity", None)
+    survey = get_survey(
+        "primary_secondary", locations, frequencies, "apparent_conductivity", None
+    )
     model_hs = get_model(mesh, "halfspace")  # 1e-2 halfspace
     model_block = get_model(mesh, "block")
     sim = nsem.simulation.Simulation3DPrimarySecondary(
