@@ -11,7 +11,6 @@ from ..survey import Survey
 from ..sources import PlanewaveXYPrimary, Planewave
 from ..simulation import Simulation3DPrimarySecondary
 from .data_utils import appResPhs
-from .source_utils import homo1DModelSource
 
 # Define the tolerances
 TOLr = 5e-2
@@ -572,28 +571,3 @@ def twoLayer(conds):
     sigBG[groundInd] = conds[1]
 
     return (M, freqs, sig, sigBG, rx_loc)
-
-
-@deprecate_class(removal_version=0.27)
-class PlanewaveXYPrimaryDeprecated(PlanewaveXYPrimary):
-    """Deprecated planewave source for 3D simulations."""
-
-    def ePrimary(self, simulation):
-        """Primary electric field source.
-
-        Parameters
-        ----------
-        simulation : simpeg.electromagnetics.natural_source_simulation.BaseNSEMSimulation
-            A NSEM simulation.
-
-        Returns
-        -------
-        numpy.ndarray
-            Primary electric field.
-        """
-        if self._ePrimary is None:
-            sigma_1d, _ = self._get_sigmas(simulation)
-            self._ePrimary = homo1DModelSource(
-                simulation.mesh, self.frequency, sigma_1d
-            )
-        return self._ePrimary

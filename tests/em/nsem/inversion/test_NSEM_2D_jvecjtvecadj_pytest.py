@@ -35,13 +35,6 @@ def mapping(mesh, active_cells):
 
 
 @pytest.fixture
-def sigma_hs(mesh, active_cells):
-    sigma_hs = 1e-8 * np.ones(mesh.nC)
-    sigma_hs[active_cells] = 1e1
-    return sigma_hs
-
-
-@pytest.fixture
 def locations():
     # Receiver locations
     elevation = 0.0
@@ -128,7 +121,6 @@ class TestDerivatives:
         mesh,
         active_cells,
         mapping,
-        sigma_hs,
     ):
         survey = get_survey(
             survey_type, orientation, components, locations, frequencies
@@ -179,7 +171,6 @@ class TestDerivatives:
         mesh,
         active_cells,
         mapping,
-        sigma_hs,
     ):
         m0, dmis = self.get_setup_objects(
             survey_type,
@@ -190,7 +181,6 @@ class TestDerivatives:
             mesh,
             active_cells,
             mapping,
-            sigma_hs,
         )
         sim = dmis.simulation
 
@@ -214,7 +204,6 @@ class TestDerivatives:
         mesh,
         active_cells,
         mapping,
-        sigma_hs,
     ):
         m0, dmis = self.get_setup_objects(
             survey_type,
@@ -225,7 +214,6 @@ class TestDerivatives:
             mesh,
             active_cells,
             mapping,
-            sigma_hs,
         )
         sim = dmis.simulation
         n_data = sim.survey.nD

@@ -3,9 +3,6 @@ from scipy.constants import mu_0
 import numpy as np
 from discretize import TensorMesh
 from simpeg.electromagnetics import natural_source as nsem
-from simpeg.electromagnetics.natural_source.utils.test_utils import (
-    PlanewaveXYPrimaryDeprecated,
-)
 from simpeg.utils import model_builder, mkvc, get_default_solver
 from simpeg import maps
 
@@ -49,8 +46,8 @@ def get_model(mesh, model_type):
         model[mesh.cell_centers[:, 2] < -3000.0] = 1e-1
     elif model_type == "block":
         ind_block = model_builder.get_indices_block(
-            np.array([-200, -200, -800]),
-            np.array([200, 200, -400]),
+            np.array([-200, -200, -200]),
+            np.array([200, 200, -600]),
             mesh.cell_centers,
         )
         model[ind_block] = 1e-1
@@ -63,7 +60,8 @@ def get_model(mesh, model_type):
 def locations():
     # Receiver locations
     elevation = 0.0
-    rx_x, rx_y = np.meshgrid(np.arange(-350, 350, 200), np.arange(-350, 350, 200))
+    v = np.r_[-350.0, -150.0, 150.0, 350.0]  # needs to be symmetric
+    rx_x, rx_y = np.meshgrid(v, v)
     return np.hstack(
         (mkvc(rx_x, 2), mkvc(rx_y, 2), elevation + np.zeros((np.prod(rx_x.shape), 1)))
     )
@@ -302,7 +300,6 @@ CASES_LIST_CROSSCHECK = [
     ("apparent_conductivity", None),
 ]
 
-
 # PRIMARY-SECONDARY DOESN'T SEEM TO WORK UNLESS THE PADDING IS EXTREME.
 @pytest.mark.parametrize("survey_type, component", CASES_LIST_CROSSCHECK)
 def test_simulation_3d_crosscheck(
@@ -342,12 +339,10 @@ def test_simulation_3d_crosscheck(
     )
 
 
-
 CASES_LIST_DET = [
     ("primary_secondary", "tipper"),
     ("primary_secondary", "admittance"),
 ]
-
 
 @pytest.mark.parametrize("source_type, survey_type", CASES_LIST_DET)
 def test_det_transfer_function(
@@ -428,6 +423,28 @@ def test_amp_transfer_function(
     np.testing.assert_allclose(
         dpred_amp, dpred_appcon, atol=ABS_TOLERANCE
     )
-    
 
 
+def test_symmetry_for_appcon(frequencies, locations, mesh, mapping):
+    """Test the app con is symmetric across the y-axis."""
+    # Numerical solution
+    survey = get_survey(locations, frequencies, "apparent_conductivity", None)
+    model_hs = get_model(mesh, "halfspace")  # 1e-2 halfspace
+    model_block = get_model(mesh, "block")
+    sim = nsem.simulation.Simulation3DPrimarySecondary(
+        mesh,
+        survey=survey,
+        sigmaPrimary=model_hs,
+        sigmaMap=mapping,
+        solver=get_default_solver(),
+    )
+    solution = sim.dpred(model_block)
+
+    n_pt = int(np.sqrt(np.shape(locations)[0]))
+    n_freq = len(frequencies)
+
+    solution = solution.reshape((n_freq, n_pt, n_pt))
+    solution_flipped = np.flip(solution, axis=-1)
+
+    # Error
+    np.testing.assert_allclose(solution, solution_flipped, atol=ABS_TOLERANCE)
