@@ -1,4 +1,5 @@
 """Recursive 1D simulation class."""
+
 import numpy as np
 from scipy.constants import mu_0
 
