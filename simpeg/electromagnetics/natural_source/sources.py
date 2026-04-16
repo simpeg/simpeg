@@ -35,7 +35,7 @@ class Planewave(BaseFDEMSrc):
 
 # Need to implement such that it works for all dims.
 # Rename to be more descriptive (I suggest PlanewavePrimarySecondary)
-class PlanewaveXYPrimary(BasePlanewave):
+class PlanewaveXYPrimary(Planewave):
     """
     NSEM planewave source for both polarizations (x and y)
     estimated from a single 1D primary models.

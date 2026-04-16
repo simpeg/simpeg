@@ -1,3 +1,4 @@
+"""Recursive 1D simulation class."""
 import numpy as np
 from scipy.constants import mu_0
 
@@ -5,6 +6,7 @@ from ...simulation import BaseSimulation
 from ... import props
 from ...utils import validate_type
 from ..frequency_domain.survey import Survey
+from .sources import Planewave
 from .receivers import Impedance
 
 
@@ -58,6 +60,7 @@ class Simulation1DRecursive(BaseSimulation):
         **kwargs,
     ):
         super().__init__(survey=survey, **kwargs)
+
         self.fix_Jmatrix = fix_Jmatrix
         self.sigma = sigma
         self.rho = rho
@@ -80,14 +83,33 @@ class Simulation1DRecursive(BaseSimulation):
 
     @survey.setter
     def survey(self, value):
+        """Define the survey."""
         if value is not None:
             value = validate_type("survey", value, Survey, cast=False)
             for src in value.source_list:
-                for rx in src.receiver_list:
-                    if not isinstance(rx, Impedance):
-                        raise NotImplementedError(
-                            f"{type(self).__name__} does not support {type(rx).__name__} receivers, only implemented for 'Impedance'."
+                if type(src) != Planewave:
+                    raise NotImplementedError(
+                        (
+                            "Simulation1DRecursive defines sources using the "
+                            f"Planewave class, got {type(src)} instead."
                         )
+                    )
+                for rx in src.receiver_list:
+                    if type(rx) != Impedance:
+                        raise NotImplementedError(
+                            (
+                                "Simulation1DRecursive only supports the Impedance "
+                                f"receiver class, got {type(rx)} instead."
+                            )
+                        )
+                    if (rx.orientation != "xy") and (rx.orientation != "yx"):
+                        raise NotImplementedError(
+                            (
+                                "Simulation1DRecursive only allows 'xy' or 'yx' for the "
+                                f"orientation property of Impedance receivers, got {rx.orientation}."
+                            )
+                        )
+
         self._survey = value
 
     @property
@@ -151,20 +173,20 @@ class Simulation1DRecursive(BaseSimulation):
         Parameters
         ----------
         frequencies : (n_freq, ) np.ndarray
-            Frequencies in Hz
+            Frequencies in Hz.
         thicknesses : (n_layer-1, ) np.ndarray
-            Layer thicknesses in meters, starting from the bottom
+            Layer thicknesses in meters, starting from the bottom.
         sigmas : (n_layer, ) np.ndarray
-            Layer conductivities in S/m, starting from the bottom
+            Layer conductivities in S/m, starting from the bottom.
 
         Returns
         -------
         Z : (n_freq, ) np.ndarray
-            Complex impedance at surface
+            Complex impedance at surface.
         Z_dsigma : (n_freq, n_layer) np.ndarray
-            Derivative of complex impedances at surface with respect to sigma
+            Derivative of complex impedances at surface with respect to sigma.
         Z_dsigma : (n_freq, n_layer-1) np.ndarray
-            Derivative of complex impedances at surface with respect to thicknesses
+            Derivative of complex impedances at surface with respect to thicknesses.
         """
         frequencies = np.asarray(frequencies)
         thicknesses = np.asarray(thicknesses)[::-1]
@@ -220,12 +242,7 @@ class Simulation1DRecursive(BaseSimulation):
         return None
 
     def dpred(self, m, f=None):
-        """
-        Computes the data for a given 1D model.
-
-        :param np.array m: inversion model (nP,)
-        :return np.array f: data (nD,)
-        """
+        # Inherited
         self.model = m
 
         # Compute complex impedances for each frequency=
@@ -239,12 +256,10 @@ class Simulation1DRecursive(BaseSimulation):
             i_freq = np.searchsorted(self.survey.frequencies, src.frequency)
             for rx in src.receiver_list:
 
-                if rx.orientation == 'xy':
+                if rx.orientation == "xy":
                     pm = 1
-                elif rx.orientation == 'yx':
+                elif rx.orientation == "yx":
                     pm = -1
-                else:
-                    raise NotImplementedError("Only 'xy' and 'yx' receiver orientations implemented for Simulation1DRecursive.")
 
                 if rx.component == "real":
                     d.append(pm * np.real(Z[i_freq]))
@@ -256,7 +271,9 @@ class Simulation1DRecursive(BaseSimulation):
                     )
                 elif rx.component == "phase":
                     d.append(
-                        pm * (180.0 / np.pi) * np.arctan2(Z[i_freq].imag, Z[i_freq].real)
+                        pm
+                        * (180.0 / np.pi)
+                        * np.arctan2(Z[i_freq].imag, Z[i_freq].real)
                     )
 
         return np.array(d)
@@ -292,12 +309,10 @@ class Simulation1DRecursive(BaseSimulation):
             Js_row = Js[i_freq]
             for rx in src.receiver_list:
 
-                if rx.orientation == 'xy':
+                if rx.orientation == "xy":
                     pm = 1
-                elif rx.orientation == 'yx':
+                else rx.orientation == "yx":
                     pm = -1
-                else:
-                    NotImplementedError("Only 'xy' and 'yx' receiver orientations implemented for Simulation1DRecursive.")
 
                 if rx.component == "real":
                     Jrows = pm * np.real(Js_row)

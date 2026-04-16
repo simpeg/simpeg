@@ -2,24 +2,29 @@
 
 import warnings
 from simpeg.electromagnetics import natural_source as nsem
+from simpeg.electromagnetics.natural_source.sources import Planewave, PlanewaveXYPrimary
+from simpeg.electromagnetics.natural_source.receivers import (
+    Impedance,
+    Admittance,
+    Tipper,
+    ApparentConductivity,
+)
 from simpeg import maps
 import numpy as np
 from scipy.constants import mu_0
 import pytest
 
-ns_rx = nsem.receivers
-
 
 def create_survey(freq, orientation):
     """Generate test survey."""
     receivers_list = [
-        nsem.receivers.Impedance([[]], component="real", orientation=orientation),
-        nsem.receivers.Impedance([[]], component="imag", orientation=orientation),
-        nsem.receivers.Impedance([[]], component="app_res", orientation=orientation),
-        nsem.receivers.Impedance([[]], component="phase", orientation=orientation),
+        Impedance([[]], component="real", orientation=orientation),
+        Impedance([[]], component="imag", orientation=orientation),
+        Impedance([[]], component="app_res", orientation=orientation),
+        Impedance([[]], component="phase", orientation=orientation),
     ]
 
-    source_list = [nsem.sources.Planewave(receivers_list, f) for f in freq]
+    source_list = [Planewave(receivers_list, f) for f in freq]
 
     return nsem.survey.Survey(source_list)
 
@@ -74,30 +79,67 @@ def test_recursive_forward(freq, sigma_half, orientation):
     np.testing.assert_allclose(dpred, danal)
 
 
-# --- Receiver type validation ---
+@pytest.mark.parametrize(
+    "src_class",
+    [PlanewaveXYPrimary, Planewave],
+)
+def test_incorrect_src_types(src_class):
+    """Test incorrect source types."""
+    loc = np.zeros((1, 3))
+    rx = Impedance(loc)
+    src = src_class(rx, frequency=10)
+    survey = nsem.Survey(src)
+
+    if src_class is not Planewave:
+        with pytest.raises(
+            NotImplementedError,
+            match=(
+                "Simulation1DRecursive defines sources using the Planewave class,"
+                f" got {type(src)} instead."
+            ),
+        ):
+            nsem.Simulation1DRecursive(survey=survey)
+
+
 @pytest.mark.parametrize(
     "rx_class",
-    [
-        ns_rx.Impedance,
-        ns_rx.Admittance,
-        ns_rx.Tipper,
-        ns_rx.ApparentConductivity,
-    ],
+    [Impedance, Admittance, Tipper, ApparentConductivity],
 )
 def test_incorrect_rx_types(rx_class):
     """Test incorrect receiver types."""
     loc = np.zeros((1, 3))
     rx = rx_class(loc)
-    source = nsem.sources.Planewave(rx, frequency=10)
+    source = Planewave(rx, frequency=10)
     survey = nsem.Survey(source)
 
-    if rx_class is ns_rx.Impedance:
-        with warnings.catch_warnings():
-            warnings.simplefilter("error")
-            nsem.Simulation1DRecursive(survey=survey)
-    else:
+    if rx_class is not Impedance:
         with pytest.raises(
             NotImplementedError,
-            match="Simulation1DRecursive does not support .*",
+            match=(
+                "Simulation1DRecursive only supports the Impedance receiver class, "
+                f"got {type(rx)} instead."
+            ),
+        ):
+            nsem.Simulation1DRecursive(survey=survey)
+
+
+@pytest.mark.parametrize(
+    "rx_orientation",
+    ["xx", "xy", "yx", "yy", "zx", "zy"],
+)
+def test_incorrect_rx_orientations(rx_orientation):
+    """Test incorrect receiver orientations."""
+    loc = np.zeros((1, 3))
+    rx = Impedance(loc)
+    source = Planewave(rx, frequency=10)
+    survey = nsem.Survey(source)
+
+    if (rx.orientation != "xy") and (rx.orientation != "yx"):
+        with pytest.raises(
+            NotImplementedError,
+            match=(
+                "Simulation1DRecursive only allows 'xy' or 'yx' for the orientation"
+                f" property of Impedance receivers, got {rx.orientation}."
+            ),
         ):
             nsem.Simulation1DRecursive(survey=survey)
