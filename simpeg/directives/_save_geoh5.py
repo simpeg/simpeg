@@ -1,3 +1,4 @@
+import logging
 import re
 from abc import ABC, abstractmethod
 from datetime import datetime
@@ -387,11 +388,8 @@ class SaveLogFilesGeoH5(BaseSaveGeoH5):
     def __init__(
         self,
         h5_object,
-        start_date_time: str,
         **kwargs,
     ):
-
-        self.time_stamp = start_date_time
         super().__init__(h5_object, **kwargs)
 
     def write(self, iteration: int, **_):
@@ -399,6 +397,13 @@ class SaveLogFilesGeoH5(BaseSaveGeoH5):
         filepath = dirpath / "SimPEG.out"
 
         if iteration == 0:
+
+            if filepath.exists():
+                logging.WARNING(
+                    "SimPEG.out file already exists and will be overwritten."
+                )
+                filepath.unlink()
+
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write("iteration beta phi_d phi_m time\n")
         log = []
