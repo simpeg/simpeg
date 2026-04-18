@@ -1,0 +1,16 @@
+name: JIRA actions
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  call-workflow-pr_jira_actions:
+    uses: MiraGeoscience/CI-tools/.github/workflows/reusable-jira-pr_actions.yml@v3
+    permissions:
+      contents: read
+      pull-requests: write
+    secrets:
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+      JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+      JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
