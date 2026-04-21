@@ -4,8 +4,10 @@ from scipy.constants import mu_0
 from ... import maps
 from ..frequency_domain.sources import BaseFDEMSrc
 from ..utils import omega
+from ...utils import Zero
 from .utils.source_utils import (
     primary_e_1d_solution,
+    primary_h_1d_solution,
     project_1d_fields_to_mesh_edges,
 )
 import discretize
@@ -228,7 +230,7 @@ class PlanewaveXYPrimary(Planewave):
     S_eDeriv = s_eDeriv
 
 
-class FictitiousSource3D(BaseFDEMSrc):
+class FictitiousSource(BaseFDEMSrc):
     r"""Fictitious source class for 3D natural source EM simulations.
 
     This class uses the method of fictitious sources to implement the boundary conditions
@@ -320,36 +322,47 @@ class FictitiousSource3D(BaseFDEMSrc):
             Electric source term on mesh.
         """
 
+        if simulation.formulation == "HJ":
+            return Zero()
+
         if getattr(self, "_s_e", None) is not None:
             return getattr(self, "_s_e")
 
         # Fictitious source from 1D
-        if len(simulation.sigma_background) == len(simulation.mesh.h[2]):
+        if len(simulation.sigma_background) == len(simulation.mesh.h[-1]):
 
             # Compute 1D solution and project
-            mesh_3d = simulation.mesh
+            mesh = simulation.mesh
             sigma_1d = simulation.sigma_background
             e_1d = primary_e_1d_solution(simulation.mesh, sigma_1d, self.frequency)
             e_1d = project_1d_fields_to_mesh_edges(simulation.mesh, e_1d)
 
             # Generate fictitious sources (surject1d only for tensor mesh)
-            hz = mesh_3d.h[-1]
-            mesh_1d = discretize.TensorMesh([hz], origin=[mesh_3d.origin[-1]])
-            sigma_3d = (
+            hz = mesh.h[-1]
+            mesh_1d = discretize.TensorMesh([hz], origin=[mesh.origin[-1]])
+            sigma_p = (
                 mesh_1d.get_interpolation_matrix(
-                    mesh_3d.cell_centers[:, -1], location_type="cell_centers"
+                    mesh.cell_centers[:, -1], location_type="cell_centers"
                 )
                 @ sigma_1d
             )
-            C = mesh_3d.edge_curl
-            MfMui = mesh_3d.get_face_inner_product(model=mu_0, invert_model=True)
-            MeSigma = mesh_3d.get_edge_inner_product(model=sigma_3d)
-
+            C = mesh.edge_curl
+            MeSigma = mesh.get_edge_inner_product(model=sigma_p)
+            if mesh.dim == 2:
+                MfMui = sdiag(mesh.cell_volumes / mu_0)  # faces are cell centers in 2d
+            else:
+                MfMui = mesh.get_face_inner_product(model=mu_0, invert_model=True)
+            
             A = C.T.tocsr() * MfMui * C + 1j * omega(self.frequency) * MeSigma
 
             s_e = (A @ e_1d) / (1j * omega(self.frequency))
 
         else:
+
+            if mesh.dim != 2:
+                raise NotImplementedError(
+                    f"The mesh must be a 3D mesh. The provided mesh has dimension {mesh.dim}"
+                )
 
             mesh_3d = simulation.mesh
 
@@ -415,6 +428,140 @@ class FictitiousSource3D(BaseFDEMSrc):
                     self.frequency
                 )
             )
+
+        # Set and return fictitious sources
+        setattr(self, "_s_e", s_e)
+        return getattr(self, "_s_e")
+
+
+
+
+
+
+    def s_m(self, simulation):
+        """Electric source term
+
+        Parameters
+        ----------
+        simulation : simpeg.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
+            A NSEM simulation
+
+        Returns
+        -------
+        numpy.ndarray
+            Electric source term on mesh.
+        """
+
+        if simulation.formulation == "EB":
+            return Zero()
+
+        if getattr(self, "_s_m", None) is not None:
+            return getattr(self, "_s_m")
+
+        # Fictitious source from 1D
+        if len(simulation.sigma_background) == len(simulation.mesh.h[-1]):
+
+            # Compute 1D solution and project
+            mesh = simulation.mesh
+            sigma_1d = simulation.sigma_background
+            h_1d = primary_h_1d_solution(simulation.mesh, sigma_1d, self.frequency)
+            h_1d = project_1d_fields_to_mesh_edges(simulation.mesh, h_1d)
+
+            # Generate fictitious sources (surject1d only for tensor mesh)
+            hz = mesh.h[-1]
+            mesh_1d = discretize.TensorMesh([hz], origin=[mesh.origin[-1]])
+            sigma_p = (
+                mesh_1d.get_interpolation_matrix(
+                    mesh.cell_centers[:, -1], location_type="cell_centers"
+                )
+                @ sigma_1d
+            )
+            C = mesh.edge_curl
+            MeMu = mesh.get_edge_inner_product(model=mu_0)
+            if mesh.dim == 2:
+                MccRho = sdiag(mesh.cell_volumes / sigma_p)  # faces are cell centers in 2d
+            else:
+                MfRho = mesh.get_face_inner_product(model=sigma_p, invert_model=True)
+            
+            A = C.T.tocsr() * MfRho * C + 1j * omega(self.frequency) * MeMu
+
+            s_m = A @ h_1d
+
+        else:
+
+            if mesh.dim != 2:
+                raise NotImplementedError(
+                    f"The mesh must be a 3D mesh. The provided mesh has dimension {mesh.dim}"
+                )
+
+            raise NotImplementedError(
+                "Not implemented yet."
+            )
+
+            # mesh_3d = simulation.mesh
+
+            # # Construct operator
+            # C = mesh_3d.edge_curl
+            # MfMui = mesh_3d.get_face_inner_product(model=mu_0, invert_model=True)
+            # MeSigma = mesh_3d.get_edge_inner_product(model=simulation.sigma_background)
+            # A = C.T.tocsr() * MfMui * C + 1j * omega(self.frequency) * MeSigma
+
+            # # x-polarization
+            # ind_exterior = (
+            #     (mesh_3d.edges[:, 0] == min(mesh_3d.faces_x[:, 0]))
+            #     | (mesh_3d.edges[:, 0] == max(mesh_3d.faces_x[:, 0]))
+            #     | (mesh_3d.edges[:, 2] == min(mesh_3d.faces_z[:, 2]))
+            #     | (mesh_3d.edges[:, 2] == max(mesh_3d.faces_z[:, 2]))
+            # )
+
+            # ind_top = (mesh_3d.edges[:, 2] == max(mesh_3d.faces_z[:, 2])) & (
+            #     mesh_3d.edge_tangents[:, 0] == 1.0
+            # )
+
+            # A_interior = A.copy()[~ind_exterior, :]  # eliminate boundary edge rows
+            # b = (A_interior.copy()[:, ind_top]) @ np.ones(np.sum(ind_top))
+            # A_interior = A_interior[:, ~ind_exterior]
+
+            # A_inv = simulation.solver(A_interior, **simulation.solver_opts)
+            # u_interior = A_inv * -b
+            # A_inv.clean()
+
+            # u_x = np.zeros(mesh_3d.n_edges, dtype=complex)
+            # u_x[~ind_exterior] = u_interior
+            # u_x[ind_top] = 1.0 + 0.0j
+
+            # # y-polarization
+            # ind_exterior = (
+            #     (mesh_3d.edges[:, 1] == min(mesh_3d.faces_y[:, 1]))
+            #     | (mesh_3d.edges[:, 1] == max(mesh_3d.faces_y[:, 1]))
+            #     | (mesh_3d.edges[:, 2] == min(mesh_3d.faces_z[:, 2]))
+            #     | (mesh_3d.edges[:, 2] == max(mesh_3d.faces_z[:, 2]))
+            # )
+
+            # ind_top = (mesh_3d.edges[:, 2] == max(mesh_3d.faces_z[:, 2])) & (
+            #     mesh_3d.edge_tangents[:, 1] == 1.0
+            # )
+
+            # A_interior = A.copy()[~ind_exterior, :]  # eliminate boundary edge rows
+            # b = (A_interior.copy()[:, ind_top]) @ np.ones(np.sum(ind_top))
+            # A_interior = A_interior[:, ~ind_exterior]
+
+            # A_inv = simulation.solver(A_interior, **simulation.solver_opts)
+            # u_interior = A_inv * -b
+            # A_inv.clean()
+
+            # u_y = np.zeros(mesh_3d.n_edges, dtype=complex)
+            # u_y[~ind_exterior] = u_interior
+            # u_y[ind_top] = 1.0 + 0.0j
+
+            # # Get fictitious sources
+            # s_e = (A @ np.c_[u_x, u_y]) / (1j * omega(self.frequency))
+
+            # print(
+            #     "3D FICTITIOUS SOURCES COMPUTED FOR FREQUENCY {} Hz".format(
+            #         self.frequency
+            #     )
+            # )
 
         # Set and return fictitious sources
         setattr(self, "_s_e", s_e)
