@@ -2085,7 +2085,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
 
     @property
     def length_scale_y(self):
-        r"""Multiplier constant for smoothness along z relative to base scale length.
+        r"""Multiplier constant for smoothness along y relative to base scale length.
 
         Where the :math:`\Delta h` defines the base length scale (i.e. minimum cell dimension),
         and  :math:`\alpha_y` defines the multiplier constant for first-order smoothness along y,
@@ -2097,7 +2097,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
         Returns
         -------
         float
-            Multiplier constant for smoothness along z relative to base scale length.
+            Multiplier constant for smoothness along y relative to base scale length.
         """
         return np.sqrt(self.alpha_y) / self.regularization_mesh.base_length
 

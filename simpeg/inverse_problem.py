@@ -345,9 +345,8 @@ class BaseInvProblem:
                 self.phi_s += mult * reg.objfcts[i_s](m) * reg.alpha_s
                 self.phi_x += mult * reg.objfcts[i_x](m) * reg.alpha_x
                 if dim > 1:
-                    self.phi_z += mult * reg.objfcts[i_y](m) * reg.alpha_y
+                    self.phi_y += mult * reg.objfcts[i_y](m) * reg.alpha_y
                 if dim > 2:
-                    self.phi_y = self.phi_z
                     self.phi_z += mult * reg.objfcts[i_z](m) * reg.alpha_z
 
         phi = phi_d + self.beta * phi_m
