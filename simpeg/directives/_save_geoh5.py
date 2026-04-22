@@ -397,9 +397,6 @@ class SaveLogFilesGeoH5(BaseSaveGeoH5):
         dirpath = Path(self._workspace.h5file).parent
         filepath = dirpath / f"{self.base_name}.out"
 
-        if not filepath.exists():
-            with open(filepath, "w", encoding="utf-8") as f:
-                f.write("iteration beta phi_d phi_m time\n")
         log = []
         with open(dirpath / f"{self.base_name}.log", "r", encoding="utf-8") as file:
             iteration = 0
@@ -410,6 +407,10 @@ class SaveLogFilesGeoH5(BaseSaveGeoH5):
                     iteration += 1
 
         if len(log) > 0:
+            if not filepath.exists():
+                with open(filepath, "w", encoding="utf-8") as f:
+                    f.write("iteration beta phi_d phi_m time\n")
+
             with open(filepath, "a", encoding="utf-8") as file:
                 date_time = datetime.now().strftime("%b-%d-%Y:%H:%M:%S")
 
@@ -441,7 +442,7 @@ class SaveLogFilesGeoH5(BaseSaveGeoH5):
                 with open(filepath, "rb") as f:
                     raw_file = f.read()
 
-                file_entity = h5_object.get_entity(file)[0]
+                file_entity = h5_object.get_entity(f"{self.base_name}{file}")[0]
                 if file_entity is None:
                     file_entity = h5_object.add_file(filepath)
 
