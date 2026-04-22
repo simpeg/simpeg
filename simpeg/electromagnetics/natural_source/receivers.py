@@ -1135,7 +1135,7 @@ class Admittance(_ElectricAndMagneticReceiver):
 
         else:
 
-            h_grid = "F" if f.simulation._formulation == "EB" else "E"
+            e_grid = "E" if f.simulation._formulation == "EB" else "F"
             h_grid = "F" if f.simulation._formulation == "EB" else "E"
 
             Pex = self.getP(mesh, e_grid+"x", 0)

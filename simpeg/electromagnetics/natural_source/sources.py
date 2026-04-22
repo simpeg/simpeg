@@ -334,7 +334,7 @@ class FictitiousSource(BaseFDEMSrc):
             # Compute 1D solution and project
             mesh = simulation.mesh
             sigma_1d = simulation.sigma_background
-            e_1d = primary_e_1d_solution(simulation.mesh, sigma_1d, self.frequency)
+            e_1d = primary_e_1d_solution(simulation.mesh, sigma_1d, self.frequency, bot_bc="robin")  # More stable for extreme padding
             e_1d = project_1d_fields_to_mesh_edges(simulation.mesh, e_1d)
 
             # Generate fictitious sources (surject1d only for tensor mesh)
@@ -464,7 +464,7 @@ class FictitiousSource(BaseFDEMSrc):
             # Compute 1D solution and project
             mesh = simulation.mesh
             sigma_1d = simulation.sigma_background
-            h_1d = primary_h_1d_solution(simulation.mesh, sigma_1d, self.frequency)
+            h_1d = primary_h_1d_solution(simulation.mesh, sigma_1d, self.frequency, bot_bc="robin")  # More stable for extreme padding
             h_1d = project_1d_fields_to_mesh_edges(simulation.mesh, h_1d)
 
             # For consistency with x and y polarized E-field planewaves

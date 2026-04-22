@@ -261,7 +261,7 @@ def primary_h_1d_solution(
             f"'sigma_1d'. Here hz has length {len(hz)} and sigma_1d has "
             f"length {len(sigma_1d)}"
         )
-
+    
     # Generate extended 1D mesh and resistivity model to solve 1D problem
     hz_ext = np.pad(hz, (n_pad, 0), mode="edge")
     mesh_ext = TensorMesh([hz_ext], origin=[mesh.origin[-1] - hz[0] * n_pad])
