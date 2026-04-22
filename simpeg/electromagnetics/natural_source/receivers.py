@@ -302,13 +302,24 @@ class Impedance(_ElectricAndMagneticReceiver):
         e = f[src, "e"]
         h = f[src, "h"]
         if mesh.dim == 3:
-            if self.orientation[0] == "x":
-                e = self.getP(mesh, "Ex", 0) @ e
-            else:
-                e = self.getP(mesh, "Ey", 0) @ e
+            
+            if f.simulation._formulation == "EB":
+                if self.orientation[0] == "x":
+                    e = self.getP(mesh, "Ex", 0) @ e
+                else:
+                    e = self.getP(mesh, "Ey", 0) @ e
 
-            hx = self.getP(mesh, "Fx", 1) @ h
-            hy = self.getP(mesh, "Fy", 1) @ h
+                hx = self.getP(mesh, "Fx", 1) @ h
+                hy = self.getP(mesh, "Fy", 1) @ h
+            else:
+                if self.orientation[0] == "x":
+                    e = self.getP(mesh, "Fx", 0) @ e
+                else:
+                    e = self.getP(mesh, "Fy", 0) @ e
+
+                hx = self.getP(mesh, "Ex", 1) @ h
+                hy = self.getP(mesh, "Ey", 1) @ h
+
             if self.orientation[1] == "x":
                 h = hy
             else:
@@ -347,15 +358,25 @@ class Impedance(_ElectricAndMagneticReceiver):
         e = f[src, "e"]
         h = f[src, "h"]
         if mesh.dim == 3:
-            if self.orientation[0] == "x":
-                Pe = self.getP(mesh, "Ex", 0)
-                e = Pe @ e
+            if f.simulation._formulation == "EB":
+                Phx = self.getP(mesh, "Fx", 1)
+                Phy = self.getP(mesh, "Fy", 1)
+                if self.orientation[0] == "x":
+                    Pe = self.getP(mesh, "Ex", 0)
+                    e = Pe @ e
+                else:
+                    Pe = self.getP(mesh, "Ey", 0)
+                    e = Pe @ e
             else:
-                Pe = self.getP(mesh, "Ey", 0)
-                e = Pe @ e
+                Phx = self.getP(mesh, "Ex", 1)
+                Phy = self.getP(mesh, "Ey", 1)
+                if self.orientation[0] == "x":
+                    Pe = self.getP(mesh, "Fx", 0)
+                    e = Pe @ e
+                else:
+                    Pe = self.getP(mesh, "Fy", 0)
+                    e = Pe @ e
 
-            Phx = self.getP(mesh, "Fx", 1)
-            Phy = self.getP(mesh, "Fy", 1)
             hx = Phx @ h
             hy = Phy @ h
             if self.orientation[1] == "x":
@@ -719,8 +740,12 @@ class Tipper(BaseNaturalSourceRx):
 
         else:
 
-            Phx = self.getP(mesh, "Fx", 1)
-            Phy = self.getP(mesh, "Fy", 1)
+            if f.simulation._formulation == "EB":
+                Phx = self.getP(mesh, "Fx", 1)
+                Phy = self.getP(mesh, "Fy", 1)
+            else:
+                Phx = self.getP(mesh, "Ex", 1)
+                Phy = self.getP(mesh, "Ey", 1)
 
             hx = Phx @ h
             hy = Phy @ h
@@ -729,8 +754,13 @@ class Tipper(BaseNaturalSourceRx):
 
             if "det" in self.orientation:
 
-                Phox = self.getP(mesh, "Fx", 0)
-                Phoy = self.getP(mesh, "Fy", 0)
+                if f.simulation._formulation == "EB":
+                    Phox = self.getP(mesh, "Fx", 0)
+                    Phoy = self.getP(mesh, "Fy", 0)
+                else:
+                    Phox = self.getP(mesh, "Ex", 0)
+                    Phoy = self.getP(mesh, "Ey", 0)
+                    
                 hox = Phox @ h
                 hoy = Phoy @ h
 
@@ -740,8 +770,12 @@ class Tipper(BaseNaturalSourceRx):
                     return np.sqrt(top / bot)
 
             else:
-
-                Pho = self.getP(mesh, "F" + self.orientation[0], 0)
+                
+                if f.simulation._formulation == "EB":
+                    Pho = self.getP(mesh, "F" + self.orientation[0], 0)
+                else:
+                    Pho = self.getP(mesh, "E" + self.orientation[0], 0)
+                
                 ho = Pho @ h
 
                 if self.orientation[1] == "x":
@@ -769,8 +803,12 @@ class Tipper(BaseNaturalSourceRx):
 
         else:
 
-            Phx = self.getP(mesh, "Fx", 1)
-            Phy = self.getP(mesh, "Fy", 1)
+            if f.simulation._formulation == "EB":            
+                Phx = self.getP(mesh, "Fx", 1)
+                Phy = self.getP(mesh, "Fy", 1)
+            else:
+                Phx = self.getP(mesh, "Fx", 1)
+                Phy = self.getP(mesh, "Fy", 1)
 
             hx = Phx @ h
             hy = Phy @ h
@@ -778,15 +816,24 @@ class Tipper(BaseNaturalSourceRx):
 
             if "det" in self.orientation:
 
-                Phox = self.getP(mesh, "Fx", 0)
-                Phoy = self.getP(mesh, "Fy", 0)
+                if f.simulation._formulation == "EB": 
+                    Phox = self.getP(mesh, "Fx", 0)
+                    Phoy = self.getP(mesh, "Fy", 0)
+                else:
+                    Phox = self.getP(mesh, "Ex", 0)
+                    Phoy = self.getP(mesh, "Ey", 0)
+                
                 hox = Phox @ h
                 hoy = Phoy @ h
                 top = hox[:, 0] * hoy[:, 1] - hox[:, 1] * hoy[:, 0]
 
             else:
 
-                Pho = self.getP(mesh, "F" + self.orientation[0], 0)
+                if f.simulation._formulation == "EB": 
+                    Pho = self.getP(mesh, "F" + self.orientation[0], 0)
+                else:
+                    Pho = self.getP(mesh, "E" + self.orientation[0], 0)
+                    
                 ho = Pho @ h
                 if self.orientation[1] == "x":
                     h = -hy
@@ -1067,14 +1114,23 @@ class Admittance(_ElectricAndMagneticReceiver):
 
         else:
 
-            ex = self.getP(mesh, "Ex", 0) @ e
-            ey = self.getP(mesh, "Ey", 0) @ e
+            if f.simulation._formulation == "EB":
+                ex = self.getP(mesh, "Ex", 0) @ e
+                ey = self.getP(mesh, "Ey", 0) @ e
+            else:
+                ex = self.getP(mesh, "Fx", 0) @ e
+                ey = self.getP(mesh, "Fy", 0) @ e
+
             bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
 
             if "det" in self.orientation:
 
-                hx = self.getP(mesh, "Fx", 1) @ h
-                hy = self.getP(mesh, "Fy", 1) @ h
+                if f.simulation._formulation == "EB":
+                    hx = self.getP(mesh, "Fx", 1) @ h
+                    hy = self.getP(mesh, "Fy", 1) @ h
+                else:
+                    hx = self.getP(mesh, "Ex", 1) @ h
+                    hy = self.getP(mesh, "Ey", 1) @ h
 
                 top = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
 
@@ -1083,7 +1139,10 @@ class Admittance(_ElectricAndMagneticReceiver):
 
             else:
 
-                h = self.getP(mesh, "F" + self.orientation[0], 1) @ h
+                if f.simulation._formulation == "EB":
+                    h = self.getP(mesh, "F" + self.orientation[0], 1) @ h
+                else:
+                    h = self.getP(mesh, "F" + self.orientation[0], 1) @ h
 
                 if self.orientation[1] == "x":
                     top = h[:, 0] * ey[:, 1] - h[:, 1] * ex[:, 1]
@@ -1118,16 +1177,26 @@ class Admittance(_ElectricAndMagneticReceiver):
 
         else:
 
-            Pex = self.getP(mesh, "Ex", 0)
-            Pey = self.getP(mesh, "Ey", 0)
+            if f.simulation._formulation == "EB":
+                Pex = self.getP(mesh, "Ex", 0)
+                Pey = self.getP(mesh, "Ey", 0)
+            else:
+                Pex = self.getP(mesh, "Fx", 0)
+                Pey = self.getP(mesh, "Fy", 0)
+        
             ex = Pex @ e
             ey = Pey @ e
             bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
 
             if "det" in self.orientation:
 
-                Phx = self.getP(mesh, "Fx", 1)
-                Phy = self.getP(mesh, "Fy", 1)
+                if f.simulation._formulation == "EB":                
+                    Phx = self.getP(mesh, "Fx", 1)
+                    Phy = self.getP(mesh, "Fy", 1)
+                else:
+                    Phx = self.getP(mesh, "Ex", 1)
+                    Phy = self.getP(mesh, "Ey", 1)
+                
                 hx = Phx @ h
                 hy = Phy @ h
                 top = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
@@ -1135,7 +1204,11 @@ class Admittance(_ElectricAndMagneticReceiver):
 
             else:
 
-                Ph = self.getP(mesh, "F" + self.orientation[0], 1)
+                if f.simulation._formulation == "EB":
+                    Ph = self.getP(mesh, "F" + self.orientation[0], 1)
+                else:
+                    Ph = self.getP(mesh, "E" + self.orientation[0], 1)
+                
                 h = Ph @ h
 
                 if self.orientation[1] == "x":
@@ -1325,11 +1398,18 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
         e = f[src, "e"]
         h = f[src, "h"]
 
-        ex = self.getP(mesh, "Ex", 0) @ e
-        ey = self.getP(mesh, "Ey", 0) @ e
-        hx = self.getP(mesh, "Fx", 1) @ h
-        hy = self.getP(mesh, "Fy", 1) @ h
-        hz = self.getP(mesh, "Fz", 1) @ h
+        if f.simulation._formulation == "EB":
+            ex = self.getP(mesh, "Ex", 0) @ e
+            ey = self.getP(mesh, "Ey", 0) @ e
+            hx = self.getP(mesh, "Fx", 1) @ h
+            hy = self.getP(mesh, "Fy", 1) @ h
+            hz = self.getP(mesh, "Fz", 1) @ h
+        else:
+            ex = self.getP(mesh, "Fx", 0) @ e
+            ey = self.getP(mesh, "Fy", 0) @ e
+            hx = self.getP(mesh, "Ex", 1) @ h
+            hy = self.getP(mesh, "Ey", 1) @ h
+            hz = self.getP(mesh, "Ez", 1) @ h
 
         top = np.sum(np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2, axis=-1)
         bot = np.sum(np.abs(ex) ** 2 + np.abs(ey) ** 2, axis=-1)
@@ -1348,11 +1428,18 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
         e = f[src, "e"]
         h = f[src, "h"]
 
-        Pex = self.getP(mesh, "Ex", 0)
-        Pey = self.getP(mesh, "Ey", 0)
-        Phx = self.getP(mesh, "Fx", 1)
-        Phy = self.getP(mesh, "Fy", 1)
-        Phz = self.getP(mesh, "Fz", 1)
+        if f.simulation._formulation == "EB":
+            Pex = self.getP(mesh, "Ex", 0)
+            Pey = self.getP(mesh, "Ey", 0)
+            Phx = self.getP(mesh, "Fx", 1)
+            Phy = self.getP(mesh, "Fy", 1)
+            Phz = self.getP(mesh, "Fz", 1)
+        else:
+            Pex = self.getP(mesh, "Fx", 0)
+            Pey = self.getP(mesh, "Fy", 0)
+            Phx = self.getP(mesh, "Ex", 1)
+            Phy = self.getP(mesh, "Ey", 1)
+            Phz = self.getP(mesh, "Ez", 1)
 
         ex = Pex @ e
         ey = Pey @ e

@@ -4,7 +4,7 @@ from discretize.utils import Zero
 
 from ...utils import mkvc
 from ... import maps
-from ..frequency_domain.simulation import BaseFDEMSimulation, Simulation3DElectricField
+from ..frequency_domain.simulation import BaseFDEMSimulation, Simulation3DElectricField, Simulation3DMagneticField
 from ..frequency_domain.survey import Survey
 from ..utils import omega
 from .sources import Planewave
@@ -1426,7 +1426,7 @@ class Simulation3DMagneticFieldFictitious(Simulation3DMagneticField):
 
 
 
-class Simulation2DMagneticFieldFictitious(Simulation3DElectricFieldFictitious):
+class Simulation2DMagneticFieldFictitious(Simulation3DMagneticFieldFictitious):
     r"""2D NDEM simulation which uses fictitious sources to impose boudary conditions.
 
     This simulation solves for the natural source electric fields at each frequency
@@ -1520,7 +1520,7 @@ class Simulation2DMagneticFieldFictitious(Simulation3DElectricFieldFictitious):
 
     """
 
-    fieldsPair = Fields2DElectricField
+    fieldsPair = Fields2DMagneticField
 
     def __init__(self, mesh, survey=None, sigma_background=None, **kwargs):
         
@@ -1534,13 +1534,14 @@ class Simulation2DMagneticFieldFictitious(Simulation3DElectricFieldFictitious):
         for src in self.survey.source_list:
             for rx in src.receiver_list:
                 if not (
-                    (rx.orientation == "xy" and isinstance(rx, Impedance))
-                    or (rx.orientation == "yx" and isinstance(rx, Admittance))
+                    (rx.orientation == "yx" and isinstance(rx, Impedance))
+                    or (rx.orientation == "xy" and isinstance(rx, Admittance))
+                    or (rx.orientation == "zx" and isinstance(rx, Tipper))
                 ):
                     raise TypeError(
-                        "natural_source.Simulation2DElectricField only supports Impedance for"
-                        " an xy receiver orientation OR Admittance for a yx receiver"
-                        " orientation. Please provide a survey with valid receivers."
+                        "natural_source.Simulation2DMagneticField supports Impedance and"
+                        " Admittance receivers for an yx orientation, and Tipper receivers"
+                        " for a zx orientation. Please provide a survey with valid receivers."
                     )
 
     def getA(self, freq):

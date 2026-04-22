@@ -322,7 +322,7 @@ class FictitiousSource(BaseFDEMSrc):
             Electric source term on mesh.
         """
 
-        if simulation.formulation == "HJ":
+        if simulation._formulation == "HJ":
             return Zero()
 
         if getattr(self, "_s_e", None) is not None:
@@ -452,7 +452,7 @@ class FictitiousSource(BaseFDEMSrc):
             Electric source term on mesh.
         """
 
-        if simulation.formulation == "EB":
+        if simulation._formulation == "EB":
             return Zero()
 
         if getattr(self, "_s_m", None) is not None:
@@ -467,6 +467,10 @@ class FictitiousSource(BaseFDEMSrc):
             h_1d = primary_h_1d_solution(simulation.mesh, sigma_1d, self.frequency)
             h_1d = project_1d_fields_to_mesh_edges(simulation.mesh, h_1d)
 
+            # For consistency with x and y polarized E-field planewaves
+            h_1d = np.c_[-h_1d[:, 1], h_1d[:, 0]]
+
+
             # Generate fictitious sources (surject1d only for tensor mesh)
             hz = mesh.h[-1]
             mesh_1d = discretize.TensorMesh([hz], origin=[mesh.origin[-1]])
@@ -479,7 +483,7 @@ class FictitiousSource(BaseFDEMSrc):
             C = mesh.edge_curl
             MeMu = mesh.get_edge_inner_product(model=mu_0)
             if mesh.dim == 2:
-                MccRho = sdiag(mesh.cell_volumes / sigma_p)  # faces are cell centers in 2d
+                MfRho = sdiag(mesh.cell_volumes / sigma_p)  # faces are cell centers in 2d
             else:
                 MfRho = mesh.get_face_inner_product(model=sigma_p, invert_model=True)
             
@@ -564,5 +568,5 @@ class FictitiousSource(BaseFDEMSrc):
             # )
 
         # Set and return fictitious sources
-        setattr(self, "_s_e", s_e)
-        return getattr(self, "_s_e")
+        setattr(self, "_s_m", s_m)
+        return getattr(self, "_s_m")
