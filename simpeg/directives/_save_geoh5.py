@@ -387,19 +387,21 @@ class SaveLogFilesGeoH5(BaseSaveGeoH5):
     def __init__(
         self,
         h5_object,
+        base_name,
         **kwargs,
     ):
+        self.base_name = base_name
         super().__init__(h5_object, **kwargs)
 
     def write(self, iteration: int, **_):
         dirpath = Path(self._workspace.h5file).parent
-        filepath = dirpath / "SimPEG.out"
+        filepath = dirpath / f"{self.base_name}.out"
 
-        if iteration == 0:
+        if not filepath.exists():
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write("iteration beta phi_d phi_m time\n")
         log = []
-        with open(dirpath / "SimPEG.log", "r", encoding="utf-8") as file:
+        with open(dirpath / f"{self.base_name}.log", "r", encoding="utf-8") as file:
             iteration = 0
             for line in file:
                 val = re.findall(r"[+-]?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+-]?\d+)", line)
@@ -427,11 +429,11 @@ class SaveLogFilesGeoH5(BaseSaveGeoH5):
             h5_object = w_s.get_entity(self.h5_object)[0]
 
             for file in [
-                "SimPEG.out",
-                "SimPEG.log",
-                "ChiFactors.log",
+                ".out",
+                ".log",
+                ".chi",
             ]:
-                filepath = dirpath / file
+                filepath = dirpath / f"{self.base_name}{file}"
 
                 if not filepath.is_file():
                     continue
