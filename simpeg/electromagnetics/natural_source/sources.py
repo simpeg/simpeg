@@ -359,9 +359,9 @@ class FictitiousSource(BaseFDEMSrc):
 
         else:
 
-            if mesh.dim != 2:
+            if simulation.mesh.dim != 3:
                 raise NotImplementedError(
-                    f"The mesh must be a 3D mesh. The provided mesh has dimension {mesh.dim}"
+                    f"The mesh must be a 3D mesh. The provided mesh has dimension {simulation.mesh.dim}"
                 )
 
             mesh_3d = simulation.mesh
@@ -468,8 +468,8 @@ class FictitiousSource(BaseFDEMSrc):
             h_1d = project_1d_fields_to_mesh_edges(simulation.mesh, h_1d)
 
             # For consistency with x and y polarized E-field planewaves
-            h_1d = np.c_[-h_1d[:, 1], h_1d[:, 0]]
-
+            if simulation.mesh.dim == 3:
+                h_1d = np.c_[-h_1d[:, 1], h_1d[:, 0]]
 
             # Generate fictitious sources (surject1d only for tensor mesh)
             hz = mesh.h[-1]
@@ -493,9 +493,9 @@ class FictitiousSource(BaseFDEMSrc):
 
         else:
 
-            if mesh.dim != 2:
+            if simulation.mesh.dim != 3:
                 raise NotImplementedError(
-                    f"The mesh must be a 3D mesh. The provided mesh has dimension {mesh.dim}"
+                    f"The mesh must be a 3D mesh. The provided mesh has dimension {simulation.mesh.dim}"
                 )
 
             raise NotImplementedError(

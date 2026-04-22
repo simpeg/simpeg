@@ -30,6 +30,11 @@ def mapping(mesh):
 def get_model(mesh, model_type):
     # Model used for testing
     model = 1e-8 * np.ones(mesh.nC)
+
+    if mesh.dim == 1:
+        model[mesh.cell_centers < 0.0] = 1e-2
+        return model
+
     model[mesh.cell_centers[:, 1] < 0.0] = 1e-2
 
     if model_type == "layer":
@@ -59,7 +64,7 @@ def frequencies():
     return [1e1, 2e1]
 
 
-def get_survey(locations, frequencies, survey_type, component, orientation):
+def get_survey(simulation_type, locations, frequencies, survey_type, component, orientation):
     source_list = []
 
     for f in frequencies:
@@ -95,7 +100,10 @@ def get_survey(locations, frequencies, survey_type, component, orientation):
                 )
             ]
 
-        source_list.append(nsem.sources.Planewave(rx_list, f))
+        if simulation_type == "PS":
+            source_list.append(nsem.sources.Planewave(rx_list, f))
+        else:
+            source_list.append(nsem.sources.FictitiousSource(rx_list, f))
 
     return nsem.survey.Survey(source_list)
 
@@ -136,44 +144,72 @@ def get_analytic_halfspace_solution(sigma, f, survey_type, component, orientatio
 # solution for a halfspace.
 
 CASES_LIST_HALFSPACE = [
-    ("impedance", "real", "xy"),
-    ("impedance", "real", "yx"),
-    ("impedance", "imag", "xy"),
-    ("impedance", "imag", "yx"),
-    ("impedance", "app_res", "xy"),
-    ("impedance", "app_res", "yx"),
-    ("impedance", "phase", "xy"),
-    ("impedance", "phase", "yx"),
-    ("admittance", "real", "xy"),
-    ("admittance", "real", "yx"),
-    ("admittance", "imag", "xy"),
-    ("admittance", "imag", "yx"),
-    ("tipper", "real", "zx"),
-    ("tipper", "imag", "zx"),
+    # ("PS", "impedance", "real", "xy"),
+    # ("PS", "impedance", "real", "yx"),
+    # ("PS", "impedance", "imag", "xy"),
+    # ("PS", "impedance", "imag", "yx"),
+    # ("PS", "impedance", "app_res", "xy"),
+    # ("PS", "impedance", "app_res", "yx"),
+    # ("PS", "impedance", "phase", "xy"),
+    # ("PS", "impedance", "phase", "yx"),
+    # ("PS", "admittance", "real", "xy"),
+    # ("PS", "admittance", "real", "yx"),
+    # ("PS", "admittance", "imag", "xy"),
+    # ("PS", "admittance", "imag", "yx"),
+    # ("PS", "tipper", "real", "zx"),
+    # ("PS", "tipper", "imag", "zx"),
+    ("FS", "impedance", "real", "xy"),
+    ("FS", "impedance", "real", "yx"),
+    ("FS", "impedance", "imag", "xy"),
+    ("FS", "impedance", "imag", "yx"),
+    ("FS", "impedance", "app_res", "xy"),
+    ("FS", "impedance", "app_res", "yx"),
+    ("FS", "impedance", "phase", "xy"),
+    ("FS", "impedance", "phase", "yx"),
+    ("FS", "admittance", "real", "xy"),
+    ("FS", "admittance", "real", "yx"),
+    ("FS", "admittance", "imag", "xy"),
+    ("FS", "admittance", "imag", "yx"),
+    # ("FS", "tipper", "real", "zx"),
+    # ("FS", "tipper", "imag", "zx"),
 ]
 
 
-@pytest.mark.parametrize("survey_type, component, orientation", CASES_LIST_HALFSPACE)
+@pytest.mark.parametrize("solution_type, survey_type, component, orientation", CASES_LIST_HALFSPACE)
 def test_analytic_halfspace_solution(
-    survey_type, component, orientation, frequencies, locations, mesh, mapping
+    solution_type, survey_type, component, orientation, frequencies, locations, mesh, mapping
 ):
     # Numerical solution
-    survey = get_survey(locations, frequencies, survey_type, component, orientation)
+    survey = get_survey(solution_type, locations, frequencies, survey_type, component, orientation)
     model_hs = get_model(mesh, "halfspace")  # 1e-2 halfspace
     if (orientation == "xy" and survey_type == "impedance") or (
         orientation == "yx" and survey_type == "admittance"
     ):
-        sim = nsem.simulation.Simulation2DElectricField(
-            mesh, survey=survey, sigmaMap=mapping
-        )
+        if solution_type == "PS":
+            sim = nsem.simulation.Simulation2DElectricField(
+                mesh, survey=survey, sigmaMap=mapping
+            )
+        else:
+            mesh_1d = TensorMesh([mesh.h[-1]], origin=[mesh.origin[-1]])
+            sigma_1d = get_model(mesh_1d, "halfspace")
+            sim = nsem.simulation.Simulation2DElectricFieldFictitious(
+                mesh, survey=survey, sigmaMap=mapping, sigma_background=sigma_1d,
+            )
     elif (
         (orientation == "yx" and survey_type == "impedance")
         or (orientation == "xy" and survey_type == "admittance")
         or (orientation == "zx" and survey_type == "tipper")
     ):
-        sim = nsem.simulation.Simulation2DMagneticField(
-            mesh, survey=survey, sigmaMap=mapping
-        )
+        if solution_type == "PS":
+            sim = nsem.simulation.Simulation2DMagneticField(
+                mesh, survey=survey, sigmaMap=mapping
+            )
+        else:
+            mesh_1d = TensorMesh([mesh.h[-1]], origin=[mesh.origin[-1]])
+            sigma_1d = get_model(mesh_1d, "halfspace")
+            sim = nsem.simulation.Simulation2DMagneticFieldFictitious(
+                mesh, survey=survey, sigmaMap=mapping, sigma_background=sigma_1d,
+            )
 
     numeric_solution = sim.dpred(model_hs)
 

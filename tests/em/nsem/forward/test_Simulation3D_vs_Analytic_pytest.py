@@ -126,7 +126,7 @@ def get_survey(
         if source_type == "primary_secondary":
             source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
         else:
-            source_list.append(nsem.sources.FictitiousSource3D(rx_list, f))
+            source_list.append(nsem.sources.FictitiousSource(rx_list, f))
 
     return nsem.survey.Survey(source_list)
 
@@ -170,7 +170,7 @@ def get_det_survey(
         if source_type == "primary_secondary":
             source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
         else:
-            source_list.append(nsem.sources.FictitiousSource3D(rx_list, f))
+            source_list.append(nsem.sources.FictitiousSource(rx_list, f))
 
     return nsem.survey.Survey(source_list)
 
@@ -194,7 +194,7 @@ def get_amp_survey(
         if source_type == "primary_secondary":
             source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
         else:
-            source_list.append(nsem.sources.FictitiousSource3D(rx_list, f))
+            source_list.append(nsem.sources.FictitiousSource(rx_list, f))
 
     return nsem.survey.Survey(source_list)
 
@@ -268,7 +268,7 @@ def test_analytic_halfspace_solution(
             mesh, survey=survey, sigmaPrimary=model_hs, sigmaMap=mapping, solver=get_default_solver()
         )
     else:
-        sim = nsem.simulation.Simulation3DFictitiousSource(
+        sim = nsem.simulation.Simulation3DElectricFieldFictitious(
             mesh, survey=survey, sigma_background=model_1d, sigmaMap=mapping, solver=get_default_solver()
         )
 
@@ -318,15 +318,16 @@ def test_simulation_3d_crosscheck(
 
     model_block = get_model(mesh, "block")
     model_hs = get_model(mesh, "halfspace")
-    model_1d = get_model(mesh, "1d")
+    mesh_1d = TensorMesh([mesh.h[-1]], origin=[mesh.origin[-1]])
+    model_1d = get_model(mesh_1d, "halfspace")
 
     sim_ps = nsem.simulation.Simulation3DPrimarySecondary(
         mesh, survey=survey_ps, sigmaPrimary=model_hs, sigmaMap=mapping, solver=get_default_solver(),
     )
-    sim_1d = nsem.simulation.Simulation3DFictitiousSource(
+    sim_1d = nsem.simulation.Simulation3DElectricFieldFictitious(
         mesh, survey=survey_1d, sigma_background=model_1d, sigmaMap=mapping, solver=get_default_solver(),
     )
-    # sim_3d = nsem.simulation.Simulation3DFictitiousSource(
+    # sim_3d = nsem.simulation.Simulation3DElectricFieldFictitious(
     #     mesh, survey=survey_3d, sigma_background=model_hs, sigmaMap=mapping, solver=get_default_solver(),
     # )
 
@@ -337,6 +338,9 @@ def test_simulation_3d_crosscheck(
     np.testing.assert_allclose(
         dpred_ps, dpred_1d, rtol=REL_TOLERANCE_2, atol=ABS_TOLERANCE_2
     )
+    # np.testing.assert_allclose(
+    #     dpred_1d, dpred_3d, rtol=REL_TOLERANCE_2, atol=ABS_TOLERANCE_2
+    # )
 
 
 CASES_LIST_DET = [
@@ -360,7 +364,7 @@ def test_det_transfer_function(
     else:
         mesh_1d = TensorMesh([mesh.h[-1]], origin=[mesh.origin[-1]])
         model_1d = get_model(mesh_1d, "halfspace")
-        sim = nsem.simulation.Simulation3DFictitiousSource(
+        sim = nsem.simulation.Simulation3DElectricFieldFictitious(
             mesh, survey=survey, sigma_background=model_1d, sigmaMap=mapping, solver=get_default_solver()
         )
 
@@ -405,7 +409,7 @@ def test_amp_transfer_function(
     else:
         mesh_1d = TensorMesh([mesh.h[-1]], origin=[mesh.origin[-1]])
         model_1d = get_model(mesh_1d, "halfspace")
-        sim = nsem.simulation.Simulation3DFictitiousSource(
+        sim = nsem.simulation.Simulation3DElectricFieldFictitious(
             mesh, survey=survey, sigma_background=model_1d, sigmaMap=mapping, solver=get_default_solver()
         )
 
