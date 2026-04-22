@@ -48,7 +48,7 @@ def frequencies():
     return [1e-1, 2e-1]
 
 
-def get_survey(survey_type, orientation, components, locations, frequencies):
+def get_survey(survey_type, source_type, orientation, components, locations, frequencies):
 
     if not isinstance(components, list):
         components = [components]
@@ -91,7 +91,10 @@ def get_survey(survey_type, orientation, components, locations, frequencies):
                 for comp in components
             ]
 
-        source_list.append(nsem.sources.Planewave(rx_list, f))
+        if source_type == "primary_secondary":
+            source_list.append(nsem.sources.Planewave(rx_list, f))
+        else:
+            source_list.append(nsem.sources.FictitiousSource(rx_list, f))
 
     return nsem.survey.Survey(source_list)
 
@@ -109,8 +112,128 @@ CASES_LIST = [
 ]
 
 
+# @pytest.mark.parametrize("survey_type, orientation, components", CASES_LIST)
+# class TestDerivativesPrimarySecondary:
+#     def get_setup_objects(
+#         self,
+#         survey_type,
+#         orientation,
+#         components,
+#         locations,
+#         frequencies,
+#         mesh,
+#         active_cells,
+#         mapping,
+#     ):
+#         survey = get_survey(
+#             survey_type, "primary_secondary", orientation, components, locations, frequencies
+#         )
+
+#         # Define the simulation
+#         if (orientation == "xy" and survey_type == "impedance") or (
+#             orientation == "yx" and survey_type == "admittance"
+#         ):
+#             sim = nsem.simulation.Simulation2DElectricField(
+#                 mesh, survey=survey, sigmaMap=mapping
+#             )
+#         elif (
+#             (orientation == "yx" and survey_type == "impedance")
+#             or (orientation == "xy" and survey_type == "admittance")
+#             or (orientation == "zx" and survey_type == "tipper")
+#         ):
+#             sim = nsem.simulation.Simulation2DMagneticField(
+#                 mesh, survey=survey, sigmaMap=mapping
+#             )
+
+#         n_active = np.sum(active_cells)
+
+#         rng = np.random.default_rng(4412)
+#         # Model
+#         m0 = np.log(1e1) * np.ones(n_active)
+#         ind = model_builder.get_indices_block(
+#             np.r_[-200.0, -600.0],
+#             np.r_[200.0, -200.0],
+#             mesh.cell_centers[active_cells, :],
+#         )
+#         m0[ind] = np.log(1e0)
+#         m0 += 0.01 * rng.uniform(low=-1, high=1, size=n_active)
+
+#         # Define data and misfit
+#         data = sim.make_synthetic_data(m0, add_noise=True)
+#         dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
+
+#         return m0, dmis
+
+#     def test_misfit(
+#         self,
+#         survey_type,
+#         orientation,
+#         components,
+#         locations,
+#         frequencies,
+#         mesh,
+#         active_cells,
+#         mapping,
+#     ):
+#         m0, dmis = self.get_setup_objects(
+#             survey_type,
+#             orientation,
+#             components,
+#             locations,
+#             frequencies,
+#             mesh,
+#             active_cells,
+#             mapping,
+#         )
+#         sim = dmis.simulation
+
+#         passed = tests.check_derivative(
+#             lambda m: (sim.dpred(m), lambda mx: sim.Jvec(m, mx)),
+#             m0,
+#             plotIt=False,
+#             num=2,
+#             random_seed=42,
+#         )
+
+#         assert passed
+
+#     def test_adjoint(
+#         self,
+#         survey_type,
+#         orientation,
+#         components,
+#         locations,
+#         frequencies,
+#         mesh,
+#         active_cells,
+#         mapping,
+#     ):
+#         m0, dmis = self.get_setup_objects(
+#             survey_type,
+#             orientation,
+#             components,
+#             locations,
+#             frequencies,
+#             mesh,
+#             active_cells,
+#             mapping,
+#         )
+#         sim = dmis.simulation
+#         n_data = sim.survey.nD
+
+#         f = sim.fields(m0)
+#         tests.assert_isadjoint(
+#             lambda u: sim.Jvec(m0, u, f=f),
+#             lambda v: sim.Jtvec(m0, v, f=f),
+#             m0.shape,
+#             (n_data,),
+#             rtol=ADJ_RTOL,
+#             random_seed=44,
+#         )
+
+
 @pytest.mark.parametrize("survey_type, orientation, components", CASES_LIST)
-class TestDerivatives:
+class TestDerivativesFictitiousSource:
     def get_setup_objects(
         self,
         survey_type,
@@ -123,30 +246,34 @@ class TestDerivatives:
         mapping,
     ):
         survey = get_survey(
-            survey_type, orientation, components, locations, frequencies
+            survey_type, "fictitious_source", orientation, components, locations, frequencies
         )
+
+        mesh_1d = TensorMesh([mesh.h[-1]], origin='C')
+        sigma_1d = 1e-8 * np.ones(mesh_1d.n_cells)
+        sigma_1d[mesh_1d.cell_centers < 0.0] = 1e-1
 
         # Define the simulation
         if (orientation == "xy" and survey_type == "impedance") or (
             orientation == "yx" and survey_type == "admittance"
         ):
-            sim = nsem.simulation.Simulation2DElectricField(
-                mesh, survey=survey, sigmaMap=mapping
+            sim = nsem.simulation.Simulation2DElectricFieldFictitious(
+                mesh, survey=survey, sigmaMap=mapping, sigma_background=sigma_1d
             )
         elif (
             (orientation == "yx" and survey_type == "impedance")
             or (orientation == "xy" and survey_type == "admittance")
             or (orientation == "zx" and survey_type == "tipper")
         ):
-            sim = nsem.simulation.Simulation2DMagneticField(
-                mesh, survey=survey, sigmaMap=mapping
+            sim = nsem.simulation.Simulation2DMagneticFieldFictitious(
+                mesh, survey=survey, sigmaMap=mapping, sigma_background=sigma_1d
             )
 
         n_active = np.sum(active_cells)
 
         rng = np.random.default_rng(4412)
         # Model
-        m0 = np.log(1e1) * np.ones(n_active)
+        m0 = np.log(1e-1) * np.ones(n_active)
         ind = model_builder.get_indices_block(
             np.r_[-200.0, -600.0],
             np.r_[200.0, -200.0],

@@ -782,8 +782,6 @@ class Simulation3DPrimarySecondary(Simulation3DElectricField):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.sigmaPrimary = sigmaPrimary
 
-    # fieldsPair = Fields3DPrimarySecondary
-
     @property
     def sigmaPrimary(self):
         """
@@ -894,11 +892,6 @@ class Simulation3DElectricFieldFictitious(Simulation3DElectricField):
 
     def __init__(self, mesh, survey=None, sigma_background=None, **kwargs):
 
-        # if mesh.dim != 3:
-        #     raise ValueError(
-        #         f"The mesh must be a 3D mesh. The provided mesh has dimension {mesh.dim}"
-        #     )
-
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.sigma_background = sigma_background
     
@@ -972,6 +965,9 @@ class Simulation3DElectricFieldFictitious(Simulation3DElectricField):
         _, s_e = self.getSourceTerm(freq)
 
         return 1j * omega(freq) * s_e
+
+    def getRHSDeriv(self, freq, src, v, adjoint=False):
+        return Zero()
 
 
 
@@ -1423,6 +1419,9 @@ class Simulation3DMagneticFieldFictitious(Simulation3DMagneticField):
         s_m, _ = self.getSourceTerm(freq)
 
         return s_m
+
+    def getRHSDeriv(self, freq, src, v, adjoint=False):
+        return Zero()
 
 
 

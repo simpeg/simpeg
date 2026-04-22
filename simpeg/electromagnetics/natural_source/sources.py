@@ -114,7 +114,8 @@ class PlanewaveXYPrimary(Planewave):
         """
         if self._ePrimary is None:
             sigma_1d, _ = self._get_sigmas(simulation)
-            e_1d = primary_e_1d_solution(simulation.mesh, sigma_1d, self.frequency)
+            n_pad = 10 if isinstance(simulation.mesh, discretize.TensorMesh) else 500
+            e_1d = primary_e_1d_solution(simulation.mesh, sigma_1d, self.frequency, bot_bc="robin", n_pad=n_pad)
             e_1d = project_1d_fields_to_mesh_edges(simulation.mesh, e_1d)
 
             # To output X and Y polarization for 1D mesh
@@ -306,8 +307,6 @@ class FictitiousSource(BaseFDEMSrc):
 
     """
 
-    _fields_per_source = 2
-
     def s_e(self, simulation):
         """Electric source term
 
@@ -322,10 +321,14 @@ class FictitiousSource(BaseFDEMSrc):
             Electric source term on mesh.
         """
 
-        if simulation._formulation == "HJ":
-            return Zero()
-
         if getattr(self, "_s_e", None) is not None:
+            return getattr(self, "_s_e")
+
+        if simulation.mesh.dim == 3:
+            setattr(self, "_fields_per_source", 2)
+
+        if simulation._formulation == "HJ":
+            setattr(self, "_s_e", Zero())
             return getattr(self, "_s_e")
 
         # Fictitious source from 1D
@@ -334,7 +337,8 @@ class FictitiousSource(BaseFDEMSrc):
             # Compute 1D solution and project
             mesh = simulation.mesh
             sigma_1d = simulation.sigma_background
-            e_1d = primary_e_1d_solution(simulation.mesh, sigma_1d, self.frequency, bot_bc="robin")  # More stable for extreme padding
+            n_pad = 10 if isinstance(simulation.mesh, discretize.TensorMesh) else 500
+            e_1d = primary_e_1d_solution(simulation.mesh, sigma_1d, self.frequency, bot_bc="robin", n_pad=n_pad)  # More stable for extreme padding
             e_1d = project_1d_fields_to_mesh_edges(simulation.mesh, e_1d)
 
             # Generate fictitious sources (surject1d only for tensor mesh)
@@ -452,10 +456,14 @@ class FictitiousSource(BaseFDEMSrc):
             Electric source term on mesh.
         """
 
-        if simulation._formulation == "EB":
-            return Zero()
-
         if getattr(self, "_s_m", None) is not None:
+            return getattr(self, "_s_m")
+
+        if simulation.mesh.dim == 3:
+            setattr(self, "_fields_per_source", 2)
+
+        if simulation._formulation == "EB":
+            setattr(self, "_s_m", Zero())
             return getattr(self, "_s_m")
 
         # Fictitious source from 1D
@@ -464,7 +472,8 @@ class FictitiousSource(BaseFDEMSrc):
             # Compute 1D solution and project
             mesh = simulation.mesh
             sigma_1d = simulation.sigma_background
-            h_1d = primary_h_1d_solution(simulation.mesh, sigma_1d, self.frequency, bot_bc="robin")  # More stable for extreme padding
+            n_pad = 10 if isinstance(simulation.mesh, discretize.TensorMesh) else 500
+            h_1d = primary_h_1d_solution(simulation.mesh, sigma_1d, self.frequency, bot_bc="robin", n_pad=n_pad)  # More stable for extreme padding
             h_1d = project_1d_fields_to_mesh_edges(simulation.mesh, h_1d)
 
             # For consistency with x and y polarized E-field planewaves

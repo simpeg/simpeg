@@ -139,7 +139,7 @@ def get_survey(
         if source_type == "primary_secondary":
             source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
         else:
-            source_list.append(nsem.sources.FictitiousSource3D(rx_list, f))
+            source_list.append(nsem.sources.FictitiousSource(rx_list, f))
 
     return nsem.survey.Survey(source_list)
 
@@ -316,7 +316,7 @@ class TestDerivativesFictitiousSource:
         )
 
         # Define the simulation
-        sim = nsem.simulation.Simulation3DFictitiousSource(
+        sim = nsem.simulation.Simulation3DElectricFieldFictitious(
             mesh,
             survey=survey,
             sigmaMap=mapping,

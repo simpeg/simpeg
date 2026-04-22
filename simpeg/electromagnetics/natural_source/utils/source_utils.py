@@ -12,7 +12,7 @@ from .analytic_1d import getEHfields
 
 
 def primary_e_1d_solution(
-    mesh, sigma_1d, freq, top_bc="dirichlet", bot_bc="robin", n_pad=500
+    mesh, sigma_1d, freq, top_bc="dirichlet", bot_bc="robin", n_pad=0
 ):
     r"""Compute 1D electric field solution on nodes.
 
@@ -168,7 +168,7 @@ def primary_e_1d_solution(
 
 
 def primary_h_1d_solution(
-    mesh, sigma_1d, freq, top_bc="dirichlet", bot_bc="dirichlet", n_pad=500
+    mesh, sigma_1d, freq, top_bc="dirichlet", bot_bc="dirichlet", n_pad=0
 ):
     r"""Compute 1D magnetic field solution on nodes.
 
