@@ -307,6 +307,8 @@ class FictitiousSource(BaseFDEMSrc):
 
     """
 
+    _fields_per_source = None
+
     def s_e(self, simulation):
         """Electric source term
 

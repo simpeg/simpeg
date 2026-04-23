@@ -2,13 +2,14 @@ import numpy as np
 from discretize import TensorMesh, TreeMesh
 from discretize.utils import Zero
 
-from ...utils import mkvc
+from ...utils import mkvc, validate_type
 from ... import maps
 from ..frequency_domain.simulation import BaseFDEMSimulation, Simulation3DElectricField, Simulation3DMagneticField
 from ..frequency_domain.survey import Survey
 from ..utils import omega
 from .sources import Planewave
 from .receivers import Impedance, Tipper, Admittance
+from .survey import Survey
 from .fields import (
     Fields1DPrimarySecondary,
     Fields1DElectricField,
@@ -796,6 +797,32 @@ class Simulation3DPrimarySecondary(Simulation3DElectricField):
         self._sigmaPrimary = val
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class Simulation3DElectricFieldFictitious(Simulation3DElectricField):
     r"""3D NDEM simulation which uses fictitious sources to impose boudary conditions.
 
@@ -894,6 +921,29 @@ class Simulation3DElectricFieldFictitious(Simulation3DElectricField):
 
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.sigma_background = sigma_background
+
+
+    @property
+    def survey(self):
+        """The FDEM survey object.
+
+        Returns
+        -------
+        .frequency_domain.survey.Survey
+            The FDEM survey object.
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey set")
+        return self._survey
+
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, Survey, cast=False)
+            for src in value.source_list:
+                setattr(src, "_fields_per_source", 2)
+
+        self._survey = value
     
     
     @property
@@ -1076,17 +1126,39 @@ class Simulation2DElectricFieldFictitious(Simulation3DElectricFieldFictitious):
 
         super().__init__(mesh=mesh, survey=survey, sigma_background=sigma_background, **kwargs)
 
-        for src in self.survey.source_list:
-            for rx in src.receiver_list:
-                if not (
-                    (rx.orientation == "xy" and isinstance(rx, Impedance))
-                    or (rx.orientation == "yx" and isinstance(rx, Admittance))
-                ):
-                    raise TypeError(
-                        "natural_source.Simulation2DElectricField only supports Impedance for"
-                        " an xy receiver orientation OR Admittance for a yx receiver"
-                        " orientation. Please provide a survey with valid receivers."
-                    )
+    
+    @property
+    def survey(self):
+        """The FDEM survey object.
+
+        Returns
+        -------
+        .frequency_domain.survey.Survey
+            The FDEM survey object.
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey set")
+        return self._survey
+
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, Survey, cast=False)
+            for src in value.source_list:
+                setattr(src, "_fields_per_source", 1)
+
+                for rx in src.receiver_list:
+                    if not (
+                        (rx.orientation == "xy" and isinstance(rx, Impedance))
+                        or (rx.orientation == "yx" and isinstance(rx, Admittance))
+                    ):
+                        raise TypeError(
+                            "natural_source.Simulation2DElectricField only supports Impedance for"
+                            " an xy receiver orientation OR Admittance for a yx receiver"
+                            " orientation. Please provide a survey with valid receivers."
+                        )
+
+        self._survey = value
 
     def getA(self, freq):
         r"""System matrix for the frequency provided.
@@ -1530,18 +1602,39 @@ class Simulation2DMagneticFieldFictitious(Simulation3DMagneticFieldFictitious):
 
         super().__init__(mesh=mesh, survey=survey, sigma_background=sigma_background, **kwargs)
 
-        for src in self.survey.source_list:
-            for rx in src.receiver_list:
-                if not (
-                    (rx.orientation == "yx" and isinstance(rx, Impedance))
-                    or (rx.orientation == "xy" and isinstance(rx, Admittance))
-                    or (rx.orientation == "zx" and isinstance(rx, Tipper))
-                ):
-                    raise TypeError(
-                        "natural_source.Simulation2DMagneticField supports Impedance and"
-                        " Admittance receivers for an yx orientation, and Tipper receivers"
-                        " for a zx orientation. Please provide a survey with valid receivers."
-                    )
+
+    @property
+    def survey(self):
+        """The FDEM survey object.
+
+        Returns
+        -------
+        .frequency_domain.survey.Survey
+            The FDEM survey object.
+        """
+        if self._survey is None:
+            raise AttributeError("Simulation must have a survey set")
+        return self._survey
+        
+    @survey.setter
+    def survey(self, value):
+        if value is not None:
+            value = validate_type("survey", value, Survey, cast=False)
+            for src in value.source_list:
+                setattr(src, "_fields_per_source", 1)
+                for rx in src.receiver_list:
+                    if not (
+                        (rx.orientation == "yx" and isinstance(rx, Impedance))
+                        or (rx.orientation == "xy" and isinstance(rx, Admittance))
+                        or (rx.orientation == "zx" and isinstance(rx, Tipper))
+                    ):
+                        raise TypeError(
+                            "natural_source.Simulation2DMagneticField supports Impedance and"
+                            " Admittance receivers for an yx orientation, and Tipper receivers"
+                            " for a zx orientation. Please provide a survey with valid receivers."
+                        )
+
+        self._survey = value
 
     def getA(self, freq):
         r"""System matrix for the frequency provided.

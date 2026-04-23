@@ -168,7 +168,7 @@ def primary_e_1d_solution(
 
 
 def primary_h_1d_solution(
-    mesh, sigma_1d, freq, top_bc="dirichlet", bot_bc="dirichlet", n_pad=0
+    mesh, sigma_1d, freq, top_bc="dirichlet", bot_bc="robin", n_pad=0
 ):
     r"""Compute 1D magnetic field solution on nodes.
 

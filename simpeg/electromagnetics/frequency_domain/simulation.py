@@ -102,7 +102,6 @@ class BaseFDEMSimulation(BaseEMSimulation):
         if value is not None:
             value = validate_type("survey", value, Survey, cast=False)
         self._survey = value
-        self._survey = value
 
     @property
     def storeJ(self):
