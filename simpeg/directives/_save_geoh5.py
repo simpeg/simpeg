@@ -316,7 +316,8 @@ class SaveModelGeoH5(SaveArrayGeoH5):
 
 class SaveSensitivityGeoH5(SaveArrayGeoH5):
     """
-    Save the model at the current iteration to a geoh5 file.
+    Save the approximate sensitivities (JtJdiag) at the current
+    iteration to a geoh5 file.
     """
 
     _attribute_type = "sensitivities"
@@ -337,7 +338,7 @@ class SaveSensitivityGeoH5(SaveArrayGeoH5):
 
 class SaveDataGeoH5(SaveArrayGeoH5):
     """
-    Save the model at the current iteration to a geoh5 file.
+    Save the predicted data at the current iteration to a geoh5 file.
     """
 
     _attribute_type = "predicted"
@@ -384,6 +385,13 @@ class SaveDataGeoH5(SaveArrayGeoH5):
 
 
 class SaveLogFilesGeoH5(BaseSaveGeoH5):
+    """
+    Save iteration metrics to log files and attach them to the geoh5 file as bytes.
+
+    :param h5_object: The geoh5 object to which the log files will be attached.
+    :param base_name: The base name of the log files.
+    """
+
     def __init__(
         self,
         h5_object,
