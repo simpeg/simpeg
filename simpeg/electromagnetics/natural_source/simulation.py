@@ -797,34 +797,8 @@ class Simulation3DPrimarySecondary(Simulation3DElectricField):
         self._sigmaPrimary = val
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class Simulation3DElectricFieldFictitious(Simulation3DElectricField):
-    r"""3D NDEM simulation which uses fictitious sources to impose boudary conditions.
+    r"""3D NDEM simulation which uses fictitious sources.
 
     This simulation solves for the natural source electric fields at each frequency
     using the method of fictitious sources. In this formulation, the electric fields
@@ -844,11 +818,12 @@ class Simulation3DElectricFieldFictitious(Simulation3DElectricField):
         one of two ways, depending on the size of the ``numpy.ndarray``:
 
         * ``(n_cells_z,)``: `sigma_background` is a 1D layered Earth conductivity
-        defined on the base mesh discretization along the z-axis. Fictitious sources are computed
-        from a 1D numeric solution that is projected onto the 3D mesh. Ideal in the absence of
-        surface topography.
-        * ``(n_cells,)``: `sigma_background` is a 3D backgound condutivity model defined on the 3D mesh.
-        Fictitious sources are computed by solving a reduced 3D problem. Necessary when there is topography.
+        defined on the base mesh discretization along the z-axis. Fictitious sources
+        are computed from a 1D numeric solution that is projected onto the 3D mesh.
+        Ideal in the absence of surface topography.
+        * ``(n_cells,)``: `sigma_background` is a 3D backgound condutivity model defined
+        on the 3D mesh. Fictitious sources are computed by solving a reduced 3D problem.
+        Necessary when there is topography.
 
     Notes
     -----
@@ -869,8 +844,9 @@ class Simulation3DElectricFieldFictitious(Simulation3DElectricField):
         \vec{J} &= \sigma \vec{E} \\
         \vec{H} &= \mu^{-1} \vec{B}
 
-    We then take the inner products of all previous expressions with a vector test function :math:`\vec{u}`.
-    Through vector calculus identities and the divergence theorem, we obtain:
+    We then take the inner products of all previous expressions with a vector
+    test function :math:`\vec{u}`. Through vector calculus identities and the
+    divergence theorem, we obtain:
 
     .. math::
         & \int_\Omega \vec{u} \cdot (\nabla \times \vec{E}) \, dv =
@@ -900,12 +876,17 @@ class Simulation3DElectricFieldFictitious(Simulation3DElectricField):
     * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
     * :math:`\mathbf{M_f}` is the face inner-product matrix
-    * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
-    * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
-    * :math:`\mathbf{s_e}` implements the boundary conditions corresponding to the surface integral as a fictitious source that lives on mesh edges.
-    See :class:`.natural_source.sources.FictitiousSource3D` to see how the fictitious source is constructed.
+    * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
+    projected to edges
+    * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse
+    permeabilities projected to faces
+    * :math:`\mathbf{s_e}` implements the boundary conditions corresponding to the
+    surface integral as a fictitious source that lives on mesh edges.
+    See :class:`.natural_source.sources.FictitiousSource3D` to see how the fictitious
+    source is constructed.
 
-    By cancelling like-terms and combining the discrete expressions to solve for the electric field, we obtain:
+    By cancelling like-terms and combining the discrete expressions to solve for the
+    electric field, we obtain:
 
     .. math::
         \mathbf{A \, e} = i \omega \mathbf{s_e}
@@ -925,12 +906,12 @@ class Simulation3DElectricFieldFictitious(Simulation3DElectricField):
 
     @property
     def survey(self):
-        """The FDEM survey object.
+        """The NSEM survey object.
 
         Returns
         -------
-        .frequency_domain.survey.Survey
-            The FDEM survey object.
+        .natural_source.survey.Survey
+            The NSEM survey object.
         """
         if self._survey is None:
             raise AttributeError("Simulation must have a survey set")
@@ -955,11 +936,12 @@ class Simulation3DElectricFieldFictitious(Simulation3DElectricField):
         one of two ways, depending on the size of the ``numpy.ndarray``:
 
         * ``(n_cells_z,)``: `sigma_background` is a 1D layered Earth conductivity
-        defined on the base mesh discretization along the z-axis. Fictitious sources are computed
-        from a 1D numeric solution that is projected onto the 3D mesh. Ideal in the absence of
-        surface topography.
-        * ``(n_cells,)``: `sigma_background` is a 3D backgound condutivity model defined on the 3D mesh.
-        Fictitious sources are computed by solving a reduced 3D problem. Necessary when there is topography.
+        defined on the base mesh discretization along the z-axis. Fictitious sources
+        are computed from a 1D numeric solution that is projected onto the 3D mesh.
+        Ideal in the absence of surface topography.
+        * ``(n_cells,)``: `sigma_background` is a 3D backgound condutivity model defined
+        on the 3D mesh. Fictitious sources are computed by solving a reduced 3D problem.
+        Necessary when there is topography.
 
         Returns
         -------
@@ -1018,7 +1000,6 @@ class Simulation3DElectricFieldFictitious(Simulation3DElectricField):
 
     def getRHSDeriv(self, freq, src, v, adjoint=False):
         return Zero()
-
 
 
 class Simulation2DElectricFieldFictitious(Simulation3DElectricFieldFictitious):
@@ -1246,75 +1227,6 @@ class Simulation2DElectricFieldFictitious(Simulation3DElectricFieldFictitious):
             return self.MccMuiDeriv(C * u).T * (C * v)
 
         return C.T * (self.MccMuiDeriv(C * u) * v)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 class Simulation3DMagneticFieldFictitious(Simulation3DMagneticField):

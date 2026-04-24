@@ -234,10 +234,9 @@ class PlanewaveXYPrimary(Planewave):
 class FictitiousSource(BaseFDEMSrc):
     r"""Fictitious source class for 3D natural source EM simulations.
 
-    This class uses the method of fictitious sources to implement the boundary conditions
-    required to compute the NSEM fields. The ``FictitiousSource3D`` class is used in
-    conjunction with the :class:`.natural_source.Simulation3DFictitiousSource` simulation class.
-    See the *Notes* section for a discription of how fictitious sources are generated.
+    This class uses the method of fictitious sources to generate the right-hand sides
+    for the NSEM problem. See the *Notes* section for a discription of how fictitious
+    sources are generated.
 
     Parameters
     ----------
@@ -248,55 +247,56 @@ class FictitiousSource(BaseFDEMSrc):
 
     Notes
     -----
-    Let :math:`\vec{u}_0` represent the known field solution corresponding to a background conductivity
-    distribution :math:`\sigma_0`. Where :math:`\mathbf{u_0}` is the known solution discretized to a
-    3D mesh and :math:`\mathbf{A}(\sigma_0)` is the system matrix constructed from the background conductivity,
-    the fictitious source :math:`\mathbf{s_e}` is obtained by computing:
+    Let :math:`\vec{u}_0` represent the known field solution corresponding to a background
+    conductivity distribution :math:`\sigma_0`. Let :math:`\mathbf{u_0}` be the known
+    solution discretized to a 2D or 3D mesh and let :math:`\mathbf{A}(\sigma_0)` be the
+    system matrix constructed from the background conductivity model. The right-hand side
+    corresponding to the fictitious source :math:`\mathbf{q}` is obtained by computing:
 
     .. math::
-        \mathbf{s_e} = \frac{1}{i \omega} \mathbf{A}(\sigma_0) \, \mathbf{u_0}
+        \mathbf{q} = \mathbf{A}(\sigma_0) \, \mathbf{u_0}
 
-    where :math:`\omega` is the angular frequency. Once the source term is obtained, the unknown discrete
-    field solution :math:`\mathbf{u}` for a conductivity distribution :math:`\sigma` can be computed by
-    solving:
+    Once the source term is obtained, the unknown discrete field solution :math:`\mathbf{u}`
+    for the desired conductivity distribution :math:`\sigma` can be computed by solving:
 
     .. math::
-        mathbf{A}(\sigma) \, \mathbf{u} = i \omega \mathbf{s_e}
+        mathbf{A}(\sigma) \, \mathbf{u} = \mathbf{q}
 
-    For NSEM simulations, we must obtain a fictitious source for each incident planewave polarization.
-    Depending on the background conductivity provided, the discrete background field solution
-    :math:`\mathbf{u_0}` is obtained one of two ways.
+    Depending on the background conductivity provided, the discrete background
+    field solution :math:`\mathbf{u_0}` is obtained one of two ways.
 
     **1D Method:**
 
-    In the absence of surface topography, the background conductivity :math:`\sigma_0` is defined within
-    the :class:`.natural_source.Simulation3DFictitiousSource` as a 1D layered Earth. The 1D finite volume
-    NSEM problem is solved for the background conductivity to obtain a 1D field solution :math:`\mathbf{u_{1D}}`.
-    The solution uses a :math:`\mathbf{u_{1D}}=1` boundary condition on the top and :math:`\mathbf{u_{1d}}=0`
-    boundary condition at the bottom.
+    In the absence of surface topography, the background conductivity :math:`\sigma_0`
+    is defined within the :class:`.natural_source.Simulation3DFictitiousSource` as a
+    1D layered Earth. The 1D finite volume NSEM problem is solved for the background
+    conductivity to obtain a 1D field solution :math:`\mathbf{u_{1D}}`. The solution
+    uses a Dirichlet boundary condition on the top and Robin boundary condition at the
+    bottom.
 
-    The known 3D field solution :math:`\mathbf{u_0}` for an incident planewave polarized along the x-direction
-    is obtained by projecting the 1D solution :math:`\mathbf{u_{1D}}` to all x-edges on the 3D mesh; fields
-    on y and z-edges are zero. Similar for the known 3D field solution for an incident planewave polarized
-    along the y-direction.
+    The 1D solution :math:`\mathbf{u_{1D}}` is then projected to the 2D or 3D mesh.
+    For an incident planewave polarized along the x-direction, :math:`\mathbf{u_{1D}}`
+    is projected to all x-edges of the 2D or 3D mesh; fields on all other edges are zero.
+    For a 3D simulation, a similar approach is used to define the fields associated
+    with an incident planewave polarized along the y-direction.
 
     **3D Method:**
 
-    This approach is encouraged when surface topography is significant. Here, the background conductivity
-    :math:`\sigma_0` is defined on the 3D mesh for the :class:`.natural_source.Simulation3DFictitiousSource`
-    simulation.
+    This approach is encouraged when surface topography is significant. This approach is
+    highly experimental. Here, the background conductivity :math:`\sigma_0` is defined on
+    the 3D mesh.
 
     We consider the solution for an incident planewave polarized along the x-direction.
-    Let :math:`i` define the indeces of all of the edges NOT on the x or z-boundaries of the 3D mesh;
-    i.e. internal edges. And let :math:`j` define the indeces of the x-edges on the top boundary of the 3D mesh.
-    From the system matrix for the background conductivity :math:`\mathbf{A}(\sigma_0)`,
-    we solve a reduced system:
+    Let :math:`i` define the indeces of all of the edges NOT on the x or z-boundaries of
+    the 3D mesh; i.e. internal edges. And let :math:`j` define the indeces of the x-edges
+    on the top boundary of the 3D mesh. From the system matrix for the background
+    conductivity :math:`\mathbf{A}(\sigma_0)`, we solve a reduced system:
 
     .. math::
         \mathbf{A_{i,i} \, u_i} = \mathbf{A_{i, j} v}
 
-    where :math:`\mathbf{v}` is a vector of 1s. Once the reduced system is solved, the background
-    solution :math:`\mathbf{u_0}` is constructed such that:
+    where :math:`\mathbf{v}` is a vector of 1s. Once the reduced system is solved,
+    the background solution :math:`\mathbf{u_0}` is constructed such that:
 
     .. math::
         \mathbf{u_0} = \begin{cases}
@@ -304,23 +304,39 @@ class FictitiousSource(BaseFDEMSrc):
         u_j \; on \; j \; edges \\
         0 \; otherwise
         \end{cases}
-
     """
 
     _fields_per_source = None
 
     def s_e(self, simulation):
-        """Electric source term
+        r"""Electric source term.
 
         Parameters
         ----------
         simulation : simpeg.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
-            A NSEM simulation
+            A NSEM simulation.
 
         Returns
         -------
         numpy.ndarray
-            Electric source term on mesh.
+            Electric source term for a 2D or 3D mesh.
+
+        Notes
+        -----
+        Let :math:`\vec{u}_0` represent the known field solution corresponding to a background
+        conductivity distribution :math:`\sigma_0`. Let :math:`\mathbf{u_0}` be the known
+        solution discretized to a 2D or 3D mesh and let :math:`\mathbf{A}(\sigma_0)` be the
+        system matrix constructed from the background conductivity model. The electric source
+        term :math:`\mathbf{s_e}` is obtained by computing:
+
+        .. math::
+            \mathbf{s_e} = \frac{1}{i \omega} \mathbf{A}(\sigma_0) \, \mathbf{u_0}
+
+        Once the source term is obtained, the unknown discrete field solution :math:`\mathbf{u}`
+        for the desired conductivity distribution :math:`\sigma` can be computed by solving:
+
+        .. math::
+            mathbf{A}(\sigma) \, \mathbf{u} = i\omega \mathbf{s_e}
         """
 
         if getattr(self, "_s_e", None) is not None:
@@ -439,22 +455,35 @@ class FictitiousSource(BaseFDEMSrc):
         return getattr(self, "_s_e")
 
 
-
-
-
-
     def s_m(self, simulation):
-        """Electric source term
+        r"""Magnetic source term.
 
         Parameters
         ----------
         simulation : simpeg.electromagnetics.frequency_domain.simulation.BaseFDEMSimulation
-            A NSEM simulation
+            A NSEM simulation.
 
         Returns
         -------
         numpy.ndarray
-            Electric source term on mesh.
+            Magnetic source term for a 2D or 3D mesh.
+
+        Notes
+        -----
+        Let :math:`\vec{u}_0` represent the known field solution corresponding to a background
+        conductivity distribution :math:`\sigma_0`. Let :math:`\mathbf{u_0}` be the known
+        solution discretized to a 2D or 3D mesh and let :math:`\mathbf{A}(\sigma_0)` be the
+        system matrix constructed from the background conductivity model. The magnetic source
+        term :math:`\mathbf{s_m}` is obtained by computing:
+
+        .. math::
+            \mathbf{s_m} = \mathbf{A}(\sigma_0) \, \mathbf{u_0}
+
+        Once the source term is obtained, the unknown discrete field solution :math:`\mathbf{u}`
+        for the desired conductivity distribution :math:`\sigma` can be computed by solving:
+
+        .. math::
+            mathbf{A}(\sigma) \, \mathbf{u} = \mathbf{s_m}
         """
 
         if getattr(self, "_s_m", None) is not None:
@@ -510,71 +539,6 @@ class FictitiousSource(BaseFDEMSrc):
             raise NotImplementedError(
                 "Not implemented yet."
             )
-
-            # mesh_3d = simulation.mesh
-
-            # # Construct operator
-            # C = mesh_3d.edge_curl
-            # MfMui = mesh_3d.get_face_inner_product(model=mu_0, invert_model=True)
-            # MeSigma = mesh_3d.get_edge_inner_product(model=simulation.sigma_background)
-            # A = C.T.tocsr() * MfMui * C + 1j * omega(self.frequency) * MeSigma
-
-            # # x-polarization
-            # ind_exterior = (
-            #     (mesh_3d.edges[:, 0] == min(mesh_3d.faces_x[:, 0]))
-            #     | (mesh_3d.edges[:, 0] == max(mesh_3d.faces_x[:, 0]))
-            #     | (mesh_3d.edges[:, 2] == min(mesh_3d.faces_z[:, 2]))
-            #     | (mesh_3d.edges[:, 2] == max(mesh_3d.faces_z[:, 2]))
-            # )
-
-            # ind_top = (mesh_3d.edges[:, 2] == max(mesh_3d.faces_z[:, 2])) & (
-            #     mesh_3d.edge_tangents[:, 0] == 1.0
-            # )
-
-            # A_interior = A.copy()[~ind_exterior, :]  # eliminate boundary edge rows
-            # b = (A_interior.copy()[:, ind_top]) @ np.ones(np.sum(ind_top))
-            # A_interior = A_interior[:, ~ind_exterior]
-
-            # A_inv = simulation.solver(A_interior, **simulation.solver_opts)
-            # u_interior = A_inv * -b
-            # A_inv.clean()
-
-            # u_x = np.zeros(mesh_3d.n_edges, dtype=complex)
-            # u_x[~ind_exterior] = u_interior
-            # u_x[ind_top] = 1.0 + 0.0j
-
-            # # y-polarization
-            # ind_exterior = (
-            #     (mesh_3d.edges[:, 1] == min(mesh_3d.faces_y[:, 1]))
-            #     | (mesh_3d.edges[:, 1] == max(mesh_3d.faces_y[:, 1]))
-            #     | (mesh_3d.edges[:, 2] == min(mesh_3d.faces_z[:, 2]))
-            #     | (mesh_3d.edges[:, 2] == max(mesh_3d.faces_z[:, 2]))
-            # )
-
-            # ind_top = (mesh_3d.edges[:, 2] == max(mesh_3d.faces_z[:, 2])) & (
-            #     mesh_3d.edge_tangents[:, 1] == 1.0
-            # )
-
-            # A_interior = A.copy()[~ind_exterior, :]  # eliminate boundary edge rows
-            # b = (A_interior.copy()[:, ind_top]) @ np.ones(np.sum(ind_top))
-            # A_interior = A_interior[:, ~ind_exterior]
-
-            # A_inv = simulation.solver(A_interior, **simulation.solver_opts)
-            # u_interior = A_inv * -b
-            # A_inv.clean()
-
-            # u_y = np.zeros(mesh_3d.n_edges, dtype=complex)
-            # u_y[~ind_exterior] = u_interior
-            # u_y[ind_top] = 1.0 + 0.0j
-
-            # # Get fictitious sources
-            # s_e = (A @ np.c_[u_x, u_y]) / (1j * omega(self.frequency))
-
-            # print(
-            #     "3D FICTITIOUS SOURCES COMPUTED FOR FREQUENCY {} Hz".format(
-            #         self.frequency
-            #     )
-            # )
 
         # Set and return fictitious sources
         setattr(self, "_s_m", s_m)
