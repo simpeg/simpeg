@@ -357,7 +357,7 @@ def setupSimpegNSEM_PrimarySecondary(inputSetup, freqs, comp="Imp", singleFreq=F
     # discretize.TensorMesh.write_UBC(mesh,'Mesh-pre.msh', models={'Sigma-pre.dat': np.exp(model_true)})
     # create background conductivity model
     sigma_back = 1e-2
-    sigBG = np.zeros(mesh.nC) * sigma_back
+    sigBG = np.zeros(mesh.nC) + sigma_back
     sigBG[~active] = 1e-8
 
     # Set the mapping
