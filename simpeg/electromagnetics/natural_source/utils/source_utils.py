@@ -8,6 +8,7 @@ from scipy.constants import mu_0
 import scipy.sparse as sp
 from discretize import TensorMesh
 
+from ...utils import omega
 from ....utils import get_default_solver
 from .analytic_1d import getEHfields
 
