@@ -335,7 +335,7 @@ class FictitiousSource(BaseFDEMSrc):
         .. math::
             mathbf{A}(\sigma) \, \mathbf{u} = i\omega \mathbf{s_e}
         """
-        if self._s_e is not None:
+        if getattr(self, "_s_e", None) is not None:
             return self._s_e
 
         if simulation._formulation == "HJ":
@@ -478,7 +478,7 @@ class FictitiousSource(BaseFDEMSrc):
         .. math::
             mathbf{A}(\sigma) \, \mathbf{u} = \mathbf{s_m}
         """
-        if self._s_m is not None:
+        if getattr(self, "_s_m", None) is not None:
             return self._s_m
 
         if simulation._formulation == "EB":
