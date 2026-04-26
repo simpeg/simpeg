@@ -817,8 +817,9 @@ class Simulation3DElectricFieldFictitious(Simulation3DElectricField):
         for each incident planewave polarization. The fictitious sources are generated
         one of two ways, depending on the size of the ``numpy.ndarray``:
 
-        * ``(n_cells_z,)``: `sigma_background` is a 1D layered Earth conductivity
-        defined on the base mesh discretization along the z-axis. Fictitious sources
+        * ``(n_hz,)``: `sigma_background` is a 1D layered Earth conductivity
+        defined on the vertical discretization of the 3D mesh; i.e. a
+        discretization with cell widths given by ``mesh.h[2]``. The fictitious sources
         are computed from a 1D numeric solution that is projected onto the 3D mesh.
         Ideal in the absence of surface topography.
         * ``(n_cells,)``: `sigma_background` is a 3D backgound condutivity model defined
@@ -828,8 +829,8 @@ class Simulation3DElectricFieldFictitious(Simulation3DElectricField):
     Notes
     -----
     Here, we start with the Maxwell's equations in the frequency-domain where a
-    :math:`+i\omega t` Fourier convention is used. For NSEM problems, the electromagnetic
-    source is outside the domain. As such, we have:
+    :math:`+i\omega t` Fourier convention is used. For NSEM problems, the
+    electromagnetic source is outside the domain. Therefore, we have:
 
     .. math::
         \begin{align}
@@ -935,9 +936,10 @@ class Simulation3DElectricFieldFictitious(Simulation3DElectricField):
         for each incident planewave polarization. The fictitious sources are generated
         one of two ways, depending on the size of the ``numpy.ndarray``:
 
-        * ``(n_cells_z,)``: `sigma_background` is a 1D layered Earth conductivity
-        defined on the base mesh discretization along the z-axis. Fictitious sources
-        are computed from a 1D numeric solution that is projected onto the 3D mesh.
+        * ``(n_vertical_cells,)``: `sigma_background` is a 1D layered Earth conductivity
+        defined on the vertical discretization of the 2D or 3D mesh; i.e. a
+        discretization with cell widths given by ``mesh.h[-1]``. The fictitious sources
+        are computed from a 1D numeric solution that is projected onto the 2D or 3D mesh.
         Ideal in the absence of surface topography.
         * ``(n_cells,)``: `sigma_background` is a 3D backgound condutivity model defined
         on the 3D mesh. Fictitious sources are computed by solving a reduced 3D problem.
@@ -1022,12 +1024,14 @@ class Simulation2DElectricFieldFictitious(Simulation3DElectricFieldFictitious):
         for each incident planewave polarization. The fictitious sources are generated
         one of two ways, depending on the size of the ``numpy.ndarray``:
 
-        * ``(n_cells_z,)``: `sigma_background` is a 1D layered Earth conductivity
-        defined on the base mesh discretization along the z-axis. Fictitious sources are computed
-        from a 1D numeric solution that is projected onto the 3D mesh. Ideal in the absence of
-        surface topography.
-        * ``(n_cells,)``: `sigma_background` is a 3D backgound condutivity model defined on the 3D mesh.
-        Fictitious sources are computed by solving a reduced 3D problem. Necessary when there is topography.
+        * ``(n_cells_y,)``: `sigma_background` is a 1D layered Earth conductivity
+        defined on the vertical discretization of the 2D mesh; i.e. a
+        discretization with cell widths given by ``mesh.h[1]``. The fictitious sources
+        are computed from a 1D numeric solution that is projected onto the 2D mesh.
+        Ideal in the absence of surface topography.
+        * ``(n_cells,)``: `sigma_background` is a 3D backgound condutivity model defined on
+        the 2D mesh. Fictitious sources are computed by solving a reduced 2D problem.
+        Necessary when there is topography.
 
     Notes
     -----
@@ -1048,8 +1052,8 @@ class Simulation2DElectricFieldFictitious(Simulation3DElectricFieldFictitious):
         \vec{J} &= \sigma \vec{E} \\
         \vec{H} &= \mu^{-1} \vec{B}
 
-    We then take the inner products of all previous expressions with a vector test function :math:`\vec{u}`.
-    Through vector calculus identities and the divergence theorem, we obtain:
+    We then take the inner products of all previous expressions with a vector test function
+    :math:`\vec{u}`. Through vector calculus identities and the divergence theorem, we obtain:
 
     .. math::
         & \int_\Omega \vec{u} \cdot (\nabla \times \vec{E}) \, dv =
@@ -1061,30 +1065,34 @@ class Simulation2DElectricFieldFictitious(Simulation3DElectricFieldFictitious):
         & \int_\Omega \vec{u} \cdot \vec{H} \, dv = \int_\Omega \vec{u} \cdot \mu^{-1} \vec{B} \, dv
 
     The above expressions are discretized in space according to the finite volume method.
-    The discrete electric fields :math:`\mathbf{e}` are defined on mesh edges,
-    and the discrete magnetic flux densities :math:`\mathbf{b}` are defined on mesh faces.
+    The discrete electric fields :math:`\mathbf{e}` are defined on mesh edges. In 2D, the
+    and the discrete magnetic flux densities :math:`\mathbf{b}` are defined at cell centers.
     This implies :math:`\mathbf{j}` must be defined on mesh edges and :math:`\mathbf{h}` must
-    be defined on mesh faces. Where :math:`\mathbf{u_e}` and :math:`\mathbf{u_f}` represent
-    test functions discretized to edges and faces, respectively, we obtain the following
+    be defined at cell centers. Where :math:`\mathbf{u_e}` and :math:`\mathbf{u_c}` represent
+    test functions discretized to edges and cell centers, respectively, we obtain the following
     set of discrete inner-products:
 
     .. math::
-        &\mathbf{u_f^T M_f C e} = -i \omega \mathbf{u_f^T M_f b} \\
-        &\mathbf{u_e^T C^T M_f h} - \mathbf{u_e^T M_e j} = \mathbf{u_e^T s_e} \\
+        &\mathbf{u_c^T M_c C e} = -i \omega \mathbf{u_c^T M_c b} \\
+        &\mathbf{u_e^T C^T M_c h} - \mathbf{u_e^T M_e j} = \mathbf{u_e^T s_e} \\
         &\mathbf{u_e^T M_e j} = \mathbf{u_e^T M_{e \sigma} e} \\
-        &\mathbf{u_f^T M_f h} = \mathbf{u_f^T M_{f \mu} b}
+        &\mathbf{u_c^T M_c h} = \mathbf{u_c^T M_{f \mu} b}
 
     where
 
     * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
-    * :math:`\mathbf{M_f}` is the face inner-product matrix
-    * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
-    * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
-    * :math:`\mathbf{s_e}` implements the boundary conditions corresponding to the surface integral as a fictitious source that lives on mesh edges.
-    See :class:`.natural_source.sources.FictitiousSource3D` to see how the fictitious source is constructed.
+    * :math:`\mathbf{M_c}` is the cell inner-product matrix
+    * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected toedges
+    * :math:`\mathbf{M_{c\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities
+    projected to cell centers
+    * :math:`\mathbf{s_e}` implements the boundary conditions corresponding to the surface
+    integral as a fictitious source that lives on mesh edges.
+    See :class:`.natural_source.sources.FictitiousSource3D` to see how the fictitious source
+    is constructed.
 
-    By cancelling like-terms and combining the discrete expressions to solve for the electric field, we obtain:
+    By cancelling like-terms and combining the discrete expressions to solve for the
+    electric field, we obtain:
 
     .. math::
         \mathbf{A \, e} = i \omega \mathbf{s_e}
@@ -1092,7 +1100,7 @@ class Simulation2DElectricFieldFictitious(Simulation3DElectricFieldFictitious):
     where the system matrix is given by:
 
     .. math::
-        \mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\sigma}}
+        \mathbf{A} = \mathbf{C^T M_{c\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\sigma}}
 
     """
 
@@ -1147,14 +1155,16 @@ class Simulation2DElectricFieldFictitious(Simulation3DElectricFieldFictitious):
         This method returns the system matrix for the frequency provided:
 
         .. math::
-            \mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\sigma}}
+            \mathbf{A} = \mathbf{C^T M_{c\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\sigma}}
 
         where
 
+        * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
-        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
+        * :math:`\mathbf{M_{c\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities
+        projected to cell centers
 
-        See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
+        See the *Notes* section of the doc strings for :class:`Simulation2DElectricField`
         for a full description of the formulation.
 
         Parameters
@@ -1181,14 +1191,16 @@ class Simulation2DElectricFieldFictitious(Simulation3DElectricFieldFictitious):
         The system matrix at each frequency is given by:
 
         .. math::
-            \mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\sigma}}
+            \mathbf{A} = \mathbf{C^T M_{c\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\sigma}}
 
         where
 
+        * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
-        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities projected to faces
+        * :math:`\mathbf{M_{c\frac{1}{\mu}}}` is the inner-product matrix for inverse permeabilities
+        projected to cell centers
 
-        See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
+        See the *Notes* section of the doc strings for :class:`Simulation2DElectricField`
         for a full description of the formulation.
 
         Where :math:`\mathbf{m}_\boldsymbol{\mu}` are the set of model parameters defining the permeability,
