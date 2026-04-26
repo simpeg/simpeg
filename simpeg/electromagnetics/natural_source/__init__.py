@@ -17,7 +17,10 @@ Simulations
   Simulation2DElectricField
   Simulation2DMagneticField
   Simulation3DPrimarySecondary
-  Simulation3DFictitiousSource
+  Simulation2DElectricFieldFictitious
+  Simulation2DMagneticFieldFictitious
+  Simulation3DElectricFieldFictitious
+  Simulation3DMagneticFieldFictitious
 
 Receivers
 =========
@@ -78,6 +81,10 @@ from .simulation import (
     Simulation2DElectricField,
     Simulation2DMagneticField,
     Simulation3DPrimarySecondary,
+    Simulation2DElectricFieldFictitious,
+    Simulation2DMagneticFieldFictitious,
+    Simulation3DElectricFieldFictitious,
+    Simulation3DMagneticFieldFictitious,
 )
 from . import sources
 from . import receivers

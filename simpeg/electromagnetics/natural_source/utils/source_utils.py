@@ -1,7 +1,4 @@
-"""
-Utility functions for NSEM sources.
-"""
-
+"""Utility functions for NSEM sources."""
 import numpy as np
 from warnings import warn
 from scipy.constants import mu_0
@@ -290,7 +287,7 @@ def primary_h_1d_solution(
             f"'sigma_1d'. Here hz has length {len(hz)} and sigma_1d has "
             f"length {len(sigma_1d)}"
         )
-    
+
     # Generate extended 1D mesh and resistivity model to solve 1D problem
     if n_pad is not None:
         warn(

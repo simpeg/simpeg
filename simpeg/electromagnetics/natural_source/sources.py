@@ -1,3 +1,4 @@
+"""NSEM source classes."""
 import numpy as np
 from scipy.constants import mu_0
 
@@ -12,7 +13,6 @@ from .utils.source_utils import (
 )
 import discretize
 from discretize.utils import volume_average, sdiag
-from pymatsolver import Solver
 
 
 #################
@@ -22,8 +22,7 @@ from pymatsolver import Solver
 
 # Rename to BasePlanewave
 class Planewave(BaseFDEMSrc):
-    """
-    Source class for the 1D and pseudo-3D problems.
+    """Source class for the 1D and pseudo-3D problems.
 
     Parameters
     ----------
@@ -57,7 +56,6 @@ class PlanewaveXYPrimary(Planewave):
     _fields_per_source = 2
 
     def __init__(self, receiver_list, frequency, sigma_primary=None):
-        # assert mkvc(self.mesh.h[2].shape,1) == mkvc(sigma1d.shape,1),'The number of values in the 1D background model does not match the number of vertical cells (hz).'
         self.sigma1d = None
         self._sigma_primary = sigma_primary
         super(PlanewaveXYPrimary, self).__init__(receiver_list, frequency)
@@ -100,7 +98,7 @@ class PlanewaveXYPrimary(Planewave):
             return self._sigma1d, self._sigma_p
 
     def ePrimary(self, simulation):
-        """Primary electric field
+        """Primary electric field.
 
         Parameters
         ----------
@@ -125,7 +123,7 @@ class PlanewaveXYPrimary(Planewave):
         return self._ePrimary
 
     def bPrimary(self, simulation):
-        """Primary magnetic field
+        """Primary magnetic field.
 
         Parameters
         ----------
@@ -147,7 +145,7 @@ class PlanewaveXYPrimary(Planewave):
         return bBG_bp
 
     def s_e(self, simulation):
-        """Electric source term
+        """Electric source term.
 
         Parameters
         ----------
@@ -177,7 +175,7 @@ class PlanewaveXYPrimary(Planewave):
         return Mesigma * e_p - Mesigma_p * e_p
 
     def s_eDeriv(self, simulation, v, adjoint=False):
-        """Derivative of electric source term with respect to model
+        """Derivative of electric source term with respect to model.
 
         Parameters
         ----------
@@ -193,11 +191,10 @@ class PlanewaveXYPrimary(Planewave):
         numpy.ndarray
             Derivative of electric source term on mesh.
         """
-
         return self.s_eDeriv_m(simulation, v, adjoint)
 
     def s_eDeriv_m(self, simulation, v, adjoint=False):
-        """Derivative of electric source term with respect to model
+        """Derivative of electric source term with respect to model.
 
         Parameters
         ----------
@@ -267,11 +264,11 @@ class FictitiousSource(BaseFDEMSrc):
     **1D Method:**
 
     In the absence of surface topography, the background conductivity :math:`\sigma_0`
-    is defined within the :class:`.natural_source.Simulation3DFictitiousSource` as a
-    1D layered Earth. The 1D finite volume NSEM problem is solved for the background
-    conductivity to obtain a 1D field solution :math:`\mathbf{u_{1D}}`. The solution
-    uses a Dirichlet boundary condition on the top and Robin boundary condition at the
-    bottom.
+    is defined as a 1D layered Earth. The discretization of the 1D layered Earth matches
+    the vertical discretization of the 2D or 3D mesh. The 1D finite volume NSEM problem
+    is solved for the background conductivity to obtain a 1D field solution
+    :math:`\mathbf{u_{1D}}`. The solution uses a Dirichlet boundary condition on the top
+    and Robin boundary condition at the bottom.
 
     The 1D solution :math:`\mathbf{u_{1D}}` is then projected to the 2D or 3D mesh.
     For an incident planewave polarized along the x-direction, :math:`\mathbf{u_{1D}}`
@@ -305,6 +302,7 @@ class FictitiousSource(BaseFDEMSrc):
         \end{cases}
     """
 
+    # This attribute is set when the survey is assigned to the simulation.
     _fields_per_source = None
 
     def s_e(self, simulation):
@@ -322,11 +320,11 @@ class FictitiousSource(BaseFDEMSrc):
 
         Notes
         -----
-        Let :math:`\vec{u}_0` represent the known field solution corresponding to a background
-        conductivity distribution :math:`\sigma_0`. Let :math:`\mathbf{u_0}` be the known
-        solution discretized to a 2D or 3D mesh and let :math:`\mathbf{A}(\sigma_0)` be the
-        system matrix constructed from the background conductivity model. The electric source
-        term :math:`\mathbf{s_e}` is obtained by computing:
+        Let :math:`\vec{u}_0` represent the known field solution corresponding to a
+        background conductivity distribution :math:`\sigma_0`. Let :math:`\mathbf{u_0}` be
+        the known solution discretized to a 2D or 3D mesh and let :math:`\mathbf{A}(\sigma_0)`
+        be the system matrix constructed from the background conductivity model. The electric
+        source term :math:`\mathbf{s_e}` is obtained by computing:
 
         .. math::
             \mathbf{s_e} = \frac{1}{i \omega} \mathbf{A}(\sigma_0) \, \mathbf{u_0}
@@ -337,16 +335,12 @@ class FictitiousSource(BaseFDEMSrc):
         .. math::
             mathbf{A}(\sigma) \, \mathbf{u} = i\omega \mathbf{s_e}
         """
-
-        if getattr(self, "_s_e", None) is not None:
-            return getattr(self, "_s_e")
-
-        if simulation.mesh.dim == 3:
-            setattr(self, "_fields_per_source", 2)
+        if self._s_e is not None:
+            return self._s_e
 
         if simulation._formulation == "HJ":
-            setattr(self, "_s_e", Zero())
-            return getattr(self, "_s_e")
+            self._s_e = Zero()
+            return self._s_e
 
         # Fictitious source from 1D
         if len(simulation.sigma_background) == len(simulation.mesh.h[-1]):
@@ -372,7 +366,7 @@ class FictitiousSource(BaseFDEMSrc):
                 MfMui = sdiag(mesh.cell_volumes / mu_0)  # faces are cell centers in 2d
             else:
                 MfMui = mesh.get_face_inner_product(model=mu_0, invert_model=True)
-            
+
             A = C.T.tocsr() * MfMui * C + 1j * omega(self.frequency) * MeSigma
 
             s_e = (A @ e_1d) / (1j * omega(self.frequency))
@@ -381,7 +375,8 @@ class FictitiousSource(BaseFDEMSrc):
 
             if simulation.mesh.dim != 3:
                 raise NotImplementedError(
-                    f"The mesh must be a 3D mesh. The provided mesh has dimension {simulation.mesh.dim}"
+                    "The mesh must be a 3D mesh. The provided mesh "
+                    f"has dimension {simulation.mesh.dim}."
                 )
 
             mesh_3d = simulation.mesh
@@ -450,9 +445,8 @@ class FictitiousSource(BaseFDEMSrc):
             )
 
         # Set and return fictitious sources
-        setattr(self, "_s_e", s_e)
-        return getattr(self, "_s_e")
-
+        self._s_e = s_e
+        return self._s_e
 
     def s_m(self, simulation):
         r"""Magnetic source term.
@@ -484,16 +478,12 @@ class FictitiousSource(BaseFDEMSrc):
         .. math::
             mathbf{A}(\sigma) \, \mathbf{u} = \mathbf{s_m}
         """
-
-        if getattr(self, "_s_m", None) is not None:
-            return getattr(self, "_s_m")
-
-        if simulation.mesh.dim == 3:
-            setattr(self, "_fields_per_source", 2)
+        if self._s_m is not None:
+            return self._s_m
 
         if simulation._formulation == "EB":
-            setattr(self, "_s_m", Zero())
-            return getattr(self, "_s_m")
+            self._s_m = Zero()
+            return self._s_m
 
         # Fictitious source from 1D
         if len(simulation.sigma_background) == len(simulation.mesh.h[-1]):
@@ -520,10 +510,12 @@ class FictitiousSource(BaseFDEMSrc):
             C = mesh.edge_curl
             MeMu = mesh.get_edge_inner_product(model=mu_0)
             if mesh.dim == 2:
-                MfRho = sdiag(mesh.cell_volumes / sigma_p)  # faces are cell centers in 2d
+                MfRho = sdiag(
+                    mesh.cell_volumes / sigma_p
+                )  # faces are cell centers in 2d
             else:
                 MfRho = mesh.get_face_inner_product(model=sigma_p, invert_model=True)
-            
+
             A = C.T.tocsr() * MfRho * C + 1j * omega(self.frequency) * MeMu
 
             s_m = A @ h_1d
@@ -532,13 +524,12 @@ class FictitiousSource(BaseFDEMSrc):
 
             if simulation.mesh.dim != 3:
                 raise NotImplementedError(
-                    f"The mesh must be a 3D mesh. The provided mesh has dimension {simulation.mesh.dim}"
+                    "The mesh must be a 3D mesh. The provided mesh "
+                    f"has dimension {simulation.mesh.dim}"
                 )
 
-            raise NotImplementedError(
-                "Not implemented yet."
-            )
+            raise NotImplementedError("Not implemented yet.")
 
         # Set and return fictitious sources
-        setattr(self, "_s_m", s_m)
-        return getattr(self, "_s_m")
+        self._s_m = s_m
+        return self._s_m

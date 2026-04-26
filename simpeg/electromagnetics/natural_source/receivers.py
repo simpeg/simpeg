@@ -1,8 +1,8 @@
+"""Natural source EM receivers."""
 from ...utils.code_utils import (
     validate_string,
     validate_type,
     validate_ndarray_with_shape,
-    deprecate_class,
 )
 import numpy as np
 from scipy.constants import mu_0
@@ -302,17 +302,17 @@ class Impedance(_ElectricAndMagneticReceiver):
         e = f[src, "e"]
         h = f[src, "h"]
         if mesh.dim == 3:
-            
+
             e_grid = "E" if f.simulation._formulation == "EB" else "F"
             h_grid = "F" if f.simulation._formulation == "EB" else "E"
 
             if self.orientation[0] == "x":
-                e = self.getP(mesh, e_grid+"x", 0) @ e
+                e = self.getP(mesh, e_grid + "x", 0) @ e
             else:
-                e = self.getP(mesh, e_grid+"y", 0) @ e
+                e = self.getP(mesh, e_grid + "y", 0) @ e
 
-            hx = self.getP(mesh, h_grid+"x", 1) @ h
-            hy = self.getP(mesh, h_grid+"y", 1) @ h
+            hx = self.getP(mesh, h_grid + "x", 1) @ h
+            hy = self.getP(mesh, h_grid + "y", 1) @ h
 
             if self.orientation[1] == "x":
                 h = hy
@@ -354,13 +354,13 @@ class Impedance(_ElectricAndMagneticReceiver):
         if mesh.dim == 3:
             e_grid = "E" if f.simulation._formulation == "EB" else "F"
             h_grid = "F" if f.simulation._formulation == "EB" else "E"
-            Phx = self.getP(mesh, h_grid+"x", 1)
-            Phy = self.getP(mesh, h_grid+"y", 1)
+            Phx = self.getP(mesh, h_grid + "x", 1)
+            Phy = self.getP(mesh, h_grid + "y", 1)
             if self.orientation[0] == "x":
-                Pe = self.getP(mesh, e_grid+"x", 0)
+                Pe = self.getP(mesh, e_grid + "x", 0)
                 e = Pe @ e
             else:
-                Pe = self.getP(mesh, e_grid+"y", 0)
+                Pe = self.getP(mesh, e_grid + "y", 0)
                 e = Pe @ e
 
             hx = Phx @ h
@@ -703,7 +703,9 @@ class Tipper(BaseNaturalSourceRx):
     @orientation.setter
     def orientation(self, var):
         self._orientation = validate_string(
-            "orientation", var, string_list=("zx", "zy", "xx", "xy", "yx", "yy", "det", "sqrt_det")
+            "orientation",
+            var,
+            string_list=("zx", "zy", "xx", "xy", "yx", "yy", "det", "sqrt_det"),
         )
 
     def _eval_tipper(self, src, mesh, f):
@@ -714,7 +716,9 @@ class Tipper(BaseNaturalSourceRx):
         if mesh.dim == 2:
 
             if "det" in self.orientation:
-                raise NotImplementedError("Receiver orientations 'det' only valid for 3D simulation.")
+                raise NotImplementedError(
+                    "Receiver orientations 'det' only valid for 3D simulation."
+                )
 
             Phx = self.getP(mesh, "Ex", 1)
             Phz = self.getP(mesh, "Ey", 0)
@@ -728,18 +732,17 @@ class Tipper(BaseNaturalSourceRx):
 
             h_grid = "F" if f.simulation._formulation == "EB" else "E"
 
-            Phx = self.getP(mesh, h_grid+"x", 1)
-            Phy = self.getP(mesh, h_grid+"y", 1)
+            Phx = self.getP(mesh, h_grid + "x", 1)
+            Phy = self.getP(mesh, h_grid + "y", 1)
             hx = Phx @ h
             hy = Phy @ h
 
             bot = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
 
-            
             if "det" in self.orientation:
 
-                Phox = self.getP(mesh, h_grid+"x", 0)
-                Phoy = self.getP(mesh, h_grid+"y", 0)
+                Phox = self.getP(mesh, h_grid + "x", 0)
+                Phoy = self.getP(mesh, h_grid + "y", 0)
                 hox = Phox @ h
                 hoy = Phoy @ h
 
@@ -749,7 +752,7 @@ class Tipper(BaseNaturalSourceRx):
                     return np.sqrt(top / bot)
 
             else:
-                
+
                 Pho = self.getP(mesh, h_grid + self.orientation[0], 0)
                 ho = Pho @ h
 
@@ -759,7 +762,7 @@ class Tipper(BaseNaturalSourceRx):
                     h = hx
 
                 top = h[:, 0] * ho[:, 1] - h[:, 1] * ho[:, 0]
- 
+
             return top / bot
 
     def _eval_tipper_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
@@ -778,10 +781,10 @@ class Tipper(BaseNaturalSourceRx):
 
         else:
 
-            h_grid = "F" if f.simulation._formulation == "EB" else "E"         
-            
-            Phx = self.getP(mesh, h_grid+"x", 1)
-            Phy = self.getP(mesh, h_grid+"y", 1)
+            h_grid = "F" if f.simulation._formulation == "EB" else "E"
+
+            Phx = self.getP(mesh, h_grid + "x", 1)
+            Phy = self.getP(mesh, h_grid + "y", 1)
             hx = Phx @ h
             hy = Phy @ h
 
@@ -789,8 +792,8 @@ class Tipper(BaseNaturalSourceRx):
 
             if "det" in self.orientation:
 
-                Phox = self.getP(mesh, h_grid+"x", 0)
-                Phoy = self.getP(mesh, h_grid+"y", 0)
+                Phox = self.getP(mesh, h_grid + "x", 0)
+                Phoy = self.getP(mesh, h_grid + "y", 0)
                 hox = Phox @ h
                 hoy = Phoy @ h
 
@@ -799,7 +802,7 @@ class Tipper(BaseNaturalSourceRx):
             else:
 
                 Pho = self.getP(mesh, h_grid + self.orientation[0], 0)
-                    
+
                 ho = Pho @ h
                 if self.orientation[1] == "x":
                     h = -hy
@@ -816,7 +819,7 @@ class Tipper(BaseNaturalSourceRx):
 
         # ADJOINT
         if adjoint:
-            
+
             if self.component == "imag":
                 v = -1j * v
 
@@ -849,7 +852,12 @@ class Tipper(BaseNaturalSourceRx):
                         ghox_v = ghox_v.reshape((n_d, -1))
                         ghoy_v = ghoy_v.reshape((n_d, -1))
 
-                    gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v + Phox.T @ ghox_v + Phoy.T @ ghoy_v
+                    gh_v = (
+                        Phx.T @ ghx_v
+                        + Phy.T @ ghy_v
+                        + Phox.T @ ghox_v
+                        + Phoy.T @ ghoy_v
+                    )
 
                 else:
 
@@ -885,7 +893,7 @@ class Tipper(BaseNaturalSourceRx):
 
             dhx_v = Phx @ dh_v
             dhy_v = Phy @ dh_v
-            
+
             if "det" in self.orientation:
 
                 dhox_v = Phox @ dh_v
@@ -1024,7 +1032,9 @@ class Admittance(_ElectricAndMagneticReceiver):
     @orientation.setter
     def orientation(self, var):
         self._orientation = validate_string(
-            "orientation", var, string_list=("xx", "xy", "yx", "yy", "zx", "zy", "det", "sqrt_det")
+            "orientation",
+            var,
+            string_list=("xx", "xy", "yx", "yy", "zx", "zy", "det", "sqrt_det"),
         )
 
     @property
@@ -1067,7 +1077,9 @@ class Admittance(_ElectricAndMagneticReceiver):
 
         if mesh.dim == 2:
             if "det" in self.orientation:
-                raise ValueError("Receiver orientations 'det' only valid for 3D simulation.")
+                raise ValueError(
+                    "Receiver orientations 'det' only valid for 3D simulation."
+                )
             elif self.orientation == "yx":
                 PE = self.getP(mesh, "Ex", 0)
                 PH = self.getP(mesh, "CC", 1)
@@ -1083,15 +1095,15 @@ class Admittance(_ElectricAndMagneticReceiver):
             e_grid = "E" if f.simulation._formulation == "EB" else "F"
             h_grid = "F" if f.simulation._formulation == "EB" else "E"
 
-            ex = self.getP(mesh, e_grid+"x", 0) @ e
-            ey = self.getP(mesh, e_grid+"y", 0) @ e
+            ex = self.getP(mesh, e_grid + "x", 0) @ e
+            ey = self.getP(mesh, e_grid + "y", 0) @ e
 
             bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
 
             if "det" in self.orientation:
 
-                hx = self.getP(mesh, h_grid+"x", 1) @ h
-                hy = self.getP(mesh, h_grid+"y", 1) @ h
+                hx = self.getP(mesh, h_grid + "x", 1) @ h
+                hy = self.getP(mesh, h_grid + "y", 1) @ h
 
                 top = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
 
@@ -1138,17 +1150,17 @@ class Admittance(_ElectricAndMagneticReceiver):
             e_grid = "E" if f.simulation._formulation == "EB" else "F"
             h_grid = "F" if f.simulation._formulation == "EB" else "E"
 
-            Pex = self.getP(mesh, e_grid+"x", 0)
-            Pey = self.getP(mesh, e_grid+"y", 0)
+            Pex = self.getP(mesh, e_grid + "x", 0)
+            Pey = self.getP(mesh, e_grid + "y", 0)
             ex = Pex @ e
             ey = Pey @ e
             bot = ex[:, 0] * ey[:, 1] - ex[:, 1] * ey[:, 0]
 
             if "det" in self.orientation:
 
-                Phx = self.getP(mesh, h_grid+"x", 1)
-                Phy = self.getP(mesh, h_grid+"y", 1)
-                
+                Phx = self.getP(mesh, h_grid + "x", 1)
+                Phy = self.getP(mesh, h_grid + "y", 1)
+
                 hx = Phx @ h
                 hy = Phy @ h
                 top = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
@@ -1166,7 +1178,7 @@ class Admittance(_ElectricAndMagneticReceiver):
                     p_ind = 0
                     fact = -1.0
                 top = fact * (h[:, 0] * ey[:, p_ind] - h[:, 1] * ex[:, p_ind])
-            
+
             adm = top / bot
 
             if self.orientation == "sqrt_det":
@@ -1203,7 +1215,7 @@ class Admittance(_ElectricAndMagneticReceiver):
                     h_v = Phx.T @ hx_v + Phy.T @ hy_v
 
                     e_v = Pex.T @ ex_v + Pey.T @ ey_v
-    
+
                 else:
 
                     h_v = np.c_[ey[:, p_ind], -ex[:, p_ind]] * a_v[:, None]  # h in top
@@ -1251,10 +1263,10 @@ class Admittance(_ElectricAndMagneticReceiver):
                     - ey[:, 0] * dex_v[:, 1]
                     - dey_v[:, 0] * ex[:, 1]
                 )
-            
+
             else:
 
-                dh_v = Ph @ dh_v                
+                dh_v = Ph @ dh_v
 
                 dtop_v = fact * (
                     h[:, 0] * dey_v[:, p_ind]
@@ -1349,11 +1361,11 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
         e_grid = "E" if f.simulation._formulation == "EB" else "F"
         h_grid = "F" if f.simulation._formulation == "EB" else "E"
 
-        ex = self.getP(mesh, e_grid+"x", 0) @ e
-        ey = self.getP(mesh, e_grid+"y", 0) @ e
-        hx = self.getP(mesh, h_grid+"x", 1) @ h
-        hy = self.getP(mesh, h_grid+"y", 1) @ h
-        hz = self.getP(mesh, h_grid+"z", 1) @ h
+        ex = self.getP(mesh, e_grid + "x", 0) @ e
+        ey = self.getP(mesh, e_grid + "y", 0) @ e
+        hx = self.getP(mesh, h_grid + "x", 1) @ h
+        hy = self.getP(mesh, h_grid + "y", 1) @ h
+        hz = self.getP(mesh, h_grid + "z", 1) @ h
 
         top = np.sum(np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2, axis=-1)
         bot = np.sum(np.abs(ex) ** 2 + np.abs(ey) ** 2, axis=-1)
@@ -1375,11 +1387,11 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
         e_grid = "E" if f.simulation._formulation == "EB" else "F"
         h_grid = "F" if f.simulation._formulation == "EB" else "E"
 
-        Pex = self.getP(mesh, e_grid+"x", 0)
-        Pey = self.getP(mesh, e_grid+"y", 0)
-        Phx = self.getP(mesh, h_grid+"x", 1)
-        Phy = self.getP(mesh, h_grid+"y", 1)
-        Phz = self.getP(mesh, h_grid+"z", 1)
+        Pex = self.getP(mesh, e_grid + "x", 0)
+        Pey = self.getP(mesh, e_grid + "y", 0)
+        Phx = self.getP(mesh, h_grid + "x", 1)
+        Phy = self.getP(mesh, h_grid + "y", 1)
+        Phz = self.getP(mesh, h_grid + "z", 1)
 
         ex = Pex @ e
         ey = Pey @ e
@@ -1500,7 +1512,7 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
 
 
 class AmplitudeRatio(BaseNaturalSourceRx):
-    """Receiver type base on square amplitudes of fields
+    """Receiver type base on square amplitudes of fields.
 
     Parameters
     ----------
@@ -1515,6 +1527,7 @@ class AmplitudeRatio(BaseNaturalSourceRx):
     storeProjections : bool
         Whether to cache to internal projection matrices.
     """
+
     _loc_names = ("Roving magnetic field", "Base station field")
 
     def __init__(
@@ -1570,9 +1583,7 @@ class AmplitudeRatio(BaseNaturalSourceRx):
 
     @base_type.setter
     def base_type(self, var):
-        self._base_type = validate_string(
-            "base_type", var, ["magnetic", "electric"]
-        )
+        self._base_type = validate_string("base_type", var, ["magnetic", "electric"])
 
     @property
     def component(self):
@@ -1587,30 +1598,30 @@ class AmplitudeRatio(BaseNaturalSourceRx):
 
     @component.setter
     def component(self, var):
-        self._component = validate_string(
-            "component", var, ["amp", "amp_squared"]
-        )
+        self._component = validate_string("component", var, ["amp", "amp_squared"])
 
     def _eval_transfer_function(self, src, mesh, f):
 
         if mesh.dim < 3:
-            raise NotImplementedError("'AmplitudeRatio' transfer function only for 3D simulation.")
+            raise NotImplementedError(
+                "'AmplitudeRatio' transfer function only for 3D simulation."
+            )
 
         h = f[src, "h"]
-        h_grid = "F" if f.simulation._formulation == "EB" else 'E'
-        hx = self.getP(mesh, h_grid+"x", 1) @ h
-        hy = self.getP(mesh, h_grid+"y", 1) @ h
-        hz = self.getP(mesh, h_grid+"z", 1) @ h
+        h_grid = "F" if f.simulation._formulation == "EB" else "E"
+        hx = self.getP(mesh, h_grid + "x", 1) @ h
+        hy = self.getP(mesh, h_grid + "y", 1) @ h
+        hz = self.getP(mesh, h_grid + "z", 1) @ h
 
         if self.base_type == "magnetic":
-            bx = self.getP(mesh, h_grid+"x", 0) @ h
-            by = self.getP(mesh, h_grid+"y", 0) @ h
+            bx = self.getP(mesh, h_grid + "x", 0) @ h
+            by = self.getP(mesh, h_grid + "y", 0) @ h
 
         else:
             e = f[src, "e"]
             b_grid = "E" if f.simulation._formulation == "EB" else "F"
-            bx = self.getP(mesh, b_grid+"x", 0) @ e
-            by = self.getP(mesh, b_grid+"y", 0) @ e
+            bx = self.getP(mesh, b_grid + "x", 0) @ e
+            by = self.getP(mesh, b_grid + "y", 0) @ e
 
         top = np.sum(np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2, axis=-1)
         bot = np.sum(np.abs(bx) ** 2 + np.abs(by) ** 2, axis=-1)
@@ -1620,34 +1631,38 @@ class AmplitudeRatio(BaseNaturalSourceRx):
         else:
             return top / bot
 
-    def _eval_transfer_function_deriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
+    def _eval_transfer_function_deriv(
+        self, src, mesh, f, du_dm_v=None, v=None, adjoint=False
+    ):
 
         if mesh.dim < 3:
-            raise NotImplementedError("'AmplitudeSquared' transfer function only for 3D simulation.")
+            raise NotImplementedError(
+                "'AmplitudeSquared' transfer function only for 3D simulation."
+            )
 
         h = f[src, "h"]
-        h_grid = "F" if f.simulation._formulation == "EB" else 'E'
-        Phx = self.getP(mesh, h_grid+"x", 1)
-        Phy = self.getP(mesh, h_grid+"y", 1)
-        Phz = self.getP(mesh, h_grid+"z", 1)
+        h_grid = "F" if f.simulation._formulation == "EB" else "E"
+        Phx = self.getP(mesh, h_grid + "x", 1)
+        Phy = self.getP(mesh, h_grid + "y", 1)
+        Phz = self.getP(mesh, h_grid + "z", 1)
 
         hx = Phx @ h
         hy = Phy @ h
         hz = Phz @ h
 
         if self.base_type == "magnetic":
-            
-            Pbx = self.getP(mesh, h_grid+"x", 0)
-            Pby = self.getP(mesh, h_grid+"y", 0)
+
+            Pbx = self.getP(mesh, h_grid + "x", 0)
+            Pby = self.getP(mesh, h_grid + "y", 0)
 
             bx = Pbx @ h
             by = Pby @ h
 
         else:
-            
+
             b_grid = "E" if f.simulation._formulation == "EB" else "F"
-            Pbx = self.getP(mesh, b_grid+"x", 0)
-            Pby = self.getP(mesh, b_grid+"y", 0)
+            Pbx = self.getP(mesh, b_grid + "x", 0)
+            Pby = self.getP(mesh, b_grid + "y", 0)
 
             e = f[src, "e"]
             bx = Pbx @ e
@@ -1657,10 +1672,9 @@ class AmplitudeRatio(BaseNaturalSourceRx):
         bot = np.sum(np.abs(bx) ** 2 + np.abs(by) ** 2, axis=-1)
 
         if self.component == "amp":
-            scale =  0.5 / np.sqrt(top / bot)
+            scale = 0.5 / np.sqrt(top / bot)
         else:
             scale = 1.0
-
 
         # ADJOINT
         if adjoint:
@@ -1683,7 +1697,7 @@ class AmplitudeRatio(BaseNaturalSourceRx):
 
             if self.base_type == "magnetic":
 
-                return f._hDeriv(src, None, h_v+b_v, adjoint=True)
+                return f._hDeriv(src, None, h_v + b_v, adjoint=True)
 
             else:
 
@@ -1701,7 +1715,7 @@ class AmplitudeRatio(BaseNaturalSourceRx):
             db_v = dh_v
         else:
             db_v = f._eDeriv(src, du_dm_v, v, adjoint=False)
-            
+
         dbx_v = Pbx @ db_v
         dby_v = Pby @ db_v
 
@@ -1722,7 +1736,7 @@ class AmplitudeRatio(BaseNaturalSourceRx):
         # Docstring inherited from parent class (Impedance).
         return self._eval_transfer_function(src, mesh, f)
 
-    def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):
+    def evalDeriv(self, src, mesh, f, du_dm_v=None, v=None, adjoint=False):  # noqa: A003
         # Docstring inherited from parent class (Impedance).
         return self._eval_transfer_function_deriv(
             src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
