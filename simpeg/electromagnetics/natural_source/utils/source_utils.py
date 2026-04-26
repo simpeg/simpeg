@@ -120,7 +120,7 @@ def primary_e_1d_solution(
 
     # Generate extended 1D mesh and conductivity model to solve 1D problem
     if n_pad is not None:
-        raise warn(
+        warn(
             "Number of padding cells no longer set directly with 'n_pad'. "
             "Use 'n_skin_depths' to set extent of padding for 1D mesh."
         )
@@ -293,7 +293,7 @@ def primary_h_1d_solution(
     
     # Generate extended 1D mesh and resistivity model to solve 1D problem
     if n_pad is not None:
-        raise warn(
+        warn(
             "Number of padding cells no longer set directly with 'n_pad'. "
             "Use 'n_skin_depths' to set extent of padding for 1D mesh."
         )

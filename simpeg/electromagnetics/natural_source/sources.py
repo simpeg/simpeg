@@ -114,8 +114,7 @@ class PlanewaveXYPrimary(Planewave):
         """
         if self._ePrimary is None:
             sigma_1d, _ = self._get_sigmas(simulation)
-            n_pad = 10 if isinstance(simulation.mesh, discretize.TensorMesh) else 500
-            e_1d = primary_e_1d_solution(simulation.mesh, sigma_1d, self.frequency, bot_bc="robin", n_pad=n_pad)
+            e_1d = primary_e_1d_solution(simulation.mesh, sigma_1d, self.frequency)
             e_1d = project_1d_fields_to_mesh_edges(simulation.mesh, e_1d)
 
             # To output X and Y polarization for 1D mesh
