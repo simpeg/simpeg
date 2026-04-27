@@ -496,7 +496,7 @@ class FictitiousSource(BaseFDEMSrc):
 
             # For consistency with x and y polarized E-field planewaves
             if simulation.mesh.dim == 3:
-                h_1d = np.c_[-h_1d[:, 1], h_1d[:, 0]]
+                h_1d = np.c_[1j*h_1d[:, 1], -1j*h_1d[:, 0]]
 
             # Generate fictitious sources (surject1d only for tensor mesh)
             hz = mesh.h[-1]

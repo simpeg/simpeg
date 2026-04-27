@@ -243,13 +243,15 @@ CASES_LIST_HALFSPACE = [
     ("primary_secondary", "admittance", "real"),
     ("primary_secondary", "admittance", "imag"),
     ("primary_secondary", "apparent_conductivity", None),
-    ("fictitious_source", "impedance", "real"),
-    ("fictitious_source", "impedance", "imag"),
-    ("fictitious_source", "tipper", "real"),
-    ("fictitious_source", "tipper", "imag"),
-    ("fictitious_source", "admittance", "real"),
-    ("fictitious_source", "admittance", "imag"),
-    ("fictitious_source", "apparent_conductivity", None),
+    ("fictitious_efield", "impedance", "real"),
+    ("fictitious_efield", "impedance", "imag"),
+    ("fictitious_efield", "tipper", "real"),
+    ("fictitious_efield", "tipper", "imag"),
+    ("fictitious_efield", "admittance", "real"),
+    ("fictitious_efield", "admittance", "imag"),
+    ("fictitious_efield", "apparent_conductivity", None),
+    ("fictitious_hfield", "tipper", "real"),
+    ("fictitious_hfield", "tipper", "imag"),
 ]
 
 
@@ -267,8 +269,12 @@ def test_analytic_halfspace_solution(
         sim = nsem.simulation.Simulation3DPrimarySecondary(
             mesh, survey=survey, sigmaPrimary=model_hs, sigmaMap=mapping, solver=get_default_solver()
         )
-    else:
+    elif source_type == "fictitious_efield":
         sim = nsem.simulation.Simulation3DElectricFieldFictitious(
+            mesh, survey=survey, sigma_background=model_1d, sigmaMap=mapping, solver=get_default_solver()
+        )
+    else source_type == "fictitious_hfield":
+        sim = nsem.simulation.Simulation3DMagneticFieldFictitious(
             mesh, survey=survey, sigma_background=model_1d, sigmaMap=mapping, solver=get_default_solver()
         )
 
@@ -312,9 +318,6 @@ def test_simulation_3d_crosscheck(
     survey_1d = get_survey(
         "fictitious_source", locations, frequencies, survey_type, component
     )
-    # survey_3d = get_survey(
-    #     "fictitious_source", locations, frequencies, survey_type, component
-    # )
 
     model_block = get_model(mesh, "block")
     model_hs = get_model(mesh, "halfspace")
@@ -324,23 +327,16 @@ def test_simulation_3d_crosscheck(
     sim_ps = nsem.simulation.Simulation3DPrimarySecondary(
         mesh, survey=survey_ps, sigmaPrimary=model_hs, sigmaMap=mapping, solver=get_default_solver(),
     )
-    sim_1d = nsem.simulation.Simulation3DElectricFieldFictitious(
+    sim_fs = nsem.simulation.Simulation3DElectricFieldFictitious(
         mesh, survey=survey_1d, sigma_background=model_1d, sigmaMap=mapping, solver=get_default_solver(),
     )
-    # sim_3d = nsem.simulation.Simulation3DElectricFieldFictitious(
-    #     mesh, survey=survey_3d, sigma_background=model_hs, sigmaMap=mapping, solver=get_default_solver(),
-    # )
 
     dpred_ps = sim_ps.dpred(model_block)
-    dpred_1d = sim_1d.dpred(model_block)
-    # dpred_3d = sim_3d.dpred(model_block)
+    dpred_fs = sim_fs.dpred(model_block)
 
     np.testing.assert_allclose(
-        dpred_ps, dpred_1d, rtol=REL_TOLERANCE_2, atol=ABS_TOLERANCE_2
+        dpred_ps, dpred_fs, rtol=REL_TOLERANCE_2, atol=ABS_TOLERANCE_2
     )
-    # np.testing.assert_allclose(
-    #     dpred_1d, dpred_3d, rtol=REL_TOLERANCE_2, atol=ABS_TOLERANCE_2
-    # )
 
 
 CASES_LIST_DET = [
