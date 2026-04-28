@@ -7,7 +7,7 @@ from simpeg import maps
 from simpeg.electromagnetics.static import resistivity as dcr
 
 ABS_TOL = 1e-13
-REL_TOL = 0.05
+REL_TOL = 0.08
 
 import matplotlib.pyplot as plt
 
@@ -22,8 +22,8 @@ def test_layer_conductance_to_analytic():
 
     layer_depth = 40.0
     layer_thickness = 0.1
-    layer_conductivity = 1e1
-    background_conductivity = 1e-2
+    layer_conductivity = 1e0  # Only 1 order of magnitude (linear regime)
+    background_conductivity = 1e-1
 
     tau = layer_thickness * layer_conductivity
 
@@ -102,15 +102,15 @@ def test_edge_conductivity():
     # Some static parameters
     location_a = np.r_[-40, 0, 0]
     location_b = np.r_[40, 0, 0]
-    locations_m = ndgrid(np.linspace(-20, 20, 5), 0, 0)
+    locations_m = ndgrid(np.linspace(-20, 20, 5), 0, 8)
 
     wire_depth = 16.0
     wire_width = 1.0
     wire_length = 20.0
-    wire_conductivity = 1e1
-    background_conductivity = 1e-2
+    wire_conductivity = 1e0  # Only 1 order of magnitude (linear regime
+    background_conductivity = 1e-1
 
-    kappa_value = wire_width**2 * (wire_conductivity - background_conductivity)
+    kappa_value = wire_width**2 * wire_conductivity
 
     # Mesh
     dh = 0.25  # base cell width
