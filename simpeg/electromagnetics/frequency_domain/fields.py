@@ -1734,7 +1734,8 @@ class Fields3DMagneticField(FieldsFDEM):
         :return: product of the electric field derivative with respect to the
             inversion model with a vector
         """
-        hSolution = mkvc(self[src, "hSolution"])
+        # hSolution = mkvc(self[src, "hSolution"])  # breaks for NSEM H formulation
+        hSolution = self[src, "hSolution"]
         s_e = src.s_e(self.simulation)
 
         if adjoint:

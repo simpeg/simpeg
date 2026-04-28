@@ -48,7 +48,9 @@ def frequencies():
     return [1e-1, 2e-1]
 
 
-def get_survey(survey_type, source_type, orientation, components, locations, frequencies):
+def get_survey(
+    survey_type, source_type, orientation, components, locations, frequencies
+):
 
     if not isinstance(components, list):
         components = [components]
@@ -126,7 +128,12 @@ class TestDerivativesPrimarySecondary:
         mapping,
     ):
         survey = get_survey(
-            survey_type, "primary_secondary", orientation, components, locations, frequencies
+            survey_type,
+            "primary_secondary",
+            orientation,
+            components,
+            locations,
+            frequencies,
         )
 
         # Define the simulation
@@ -246,10 +253,15 @@ class TestDerivativesFictitiousSource:
         mapping,
     ):
         survey = get_survey(
-            survey_type, "fictitious_source", orientation, components, locations, frequencies
+            survey_type,
+            "fictitious_source",
+            orientation,
+            components,
+            locations,
+            frequencies,
         )
 
-        mesh_1d = TensorMesh([mesh.h[-1]], origin='C')
+        mesh_1d = TensorMesh([mesh.h[-1]], origin="C")
         sigma_1d = 1e-8 * np.ones(mesh_1d.n_cells)
         sigma_1d[mesh_1d.cell_centers < 0.0] = 1e-1
 
