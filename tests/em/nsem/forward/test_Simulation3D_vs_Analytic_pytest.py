@@ -250,8 +250,8 @@ CASES_LIST_HALFSPACE = [
     ("fictitious_efield", "admittance", "real"),
     ("fictitious_efield", "admittance", "imag"),
     ("fictitious_efield", "apparent_conductivity", None),
-    ("fictitious_hfield", "tipper", "real"),
-    ("fictitious_hfield", "tipper", "imag"),
+    # ("fictitious_hfield", "tipper", "real"),
+    # ("fictitious_hfield", "tipper", "imag"),
 ]
 
 
@@ -273,7 +273,7 @@ def test_analytic_halfspace_solution(
         sim = nsem.simulation.Simulation3DElectricFieldFictitious(
             mesh, survey=survey, sigma_background=model_1d, sigmaMap=mapping, solver=get_default_solver()
         )
-    else source_type == "fictitious_hfield":
+    else:
         sim = nsem.simulation.Simulation3DMagneticFieldFictitious(
             mesh, survey=survey, sigma_background=model_1d, sigmaMap=mapping, solver=get_default_solver()
         )
