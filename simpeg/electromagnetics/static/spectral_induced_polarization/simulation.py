@@ -45,6 +45,8 @@ class BaseSIPSimulation(BaseIPSimulation):
         storeJ=False,
         actinds=None,
         storeInnerProduct=True,
+        Ainv=None,  # A DC's Ainv
+        _f=None,  # A pre-computed DC field
         **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
@@ -57,6 +59,10 @@ class BaseSIPSimulation(BaseIPSimulation):
         self.storeJ = storeJ
         self.storeInnerProduct = storeInnerProduct
         self.actinds = actinds
+
+        if Ainv is not None:
+            self.Ainv = Ainv
+        self._f = _f
 
     @property
     def survey(self):
@@ -402,7 +408,7 @@ class BaseSIPSimulation(BaseIPSimulation):
 
             return self._Jmatrix
 
-    def getJtJdiag(self, m, Wd, f=None):
+    def getJtJdiag(self, m, W=None, f=None):
         """
         Compute JtJ using adjoint problem. Still we never form
         JtJ
@@ -412,7 +418,7 @@ class BaseSIPSimulation(BaseIPSimulation):
         ntime = len(self.survey.unique_times)
         JtJdiag = np.zeros_like(m)
         J = self.getJ(m, f=f)
-        wd = Wd.diagonal().reshape((self.survey.locations_n, ntime), order="F")
+        wd = W.diagonal().reshape((self.survey.n_locations, ntime), order="F")
         for tind in range(ntime):
             t = self.survey.unique_times[tind]
             Jtv = self._P * J.T * sdiag(wd[:, tind])

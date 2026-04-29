@@ -72,18 +72,17 @@ def spectral_ip_mappings(
 
 def run_inversion(
     m0,
-    survey,
+    simulation,
+    data,
     actind,
     mesh,
     wires,
-    std,
-    eps,
     maxIter=15,
     beta0_ratio=1e0,
     coolingFactor=2,
     coolingRate=2,
     maxIterLS=20,
-    maxIterCG=10,
+    maxIterCG=50,
     LSshorten=0.5,
     eta_lower=1e-5,
     eta_upper=1,
@@ -103,10 +102,7 @@ def run_inversion(
     """
     Run Spectral Spectral IP inversion
     """
-    dmisfit = data_misfit.L2DataMisfit(survey)
-    uncert = abs(survey.dobs) * std + eps
-    dmisfit.W = 1.0 / uncert
-    # Map for a regularization
+    dmisfit = data_misfit.L2DataMisfit(simulation=simulation, data=data)
     # Related to inversion
 
     # Set Upper and Lower bounds
