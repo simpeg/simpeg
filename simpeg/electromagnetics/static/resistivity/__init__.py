@@ -15,6 +15,7 @@ Simulations
   Simulation2DNodal
   Simulation3DCellCentered
   Simulation3DNodal
+  Simulation3DHierarchicalNodal
 
 Receivers
 =========

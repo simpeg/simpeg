@@ -2848,13 +2848,13 @@ class Simulation3DHierarchicalElectricField(
 
     .. math::
         \int_\Omega \vec{u} \cdot \vec{j} \, dv =&
-        \sum_{i} \int \vec{u} \cdot \sigma_i \vec{e} \, dv \\
-        + \sum_{i} \int \vec{u} \cdot \tau_i \vec{e} \, da \\
-        + \sum_{i} \int \vec{u} \cdot \kappa_i \vec{e} \, d\ell
+        \sum_{n}^{nc} \int \vec{u} \cdot \sigma_n \vec{e} \, dv \\
+        + \sum_{n}^{nf} \int \vec{u} \cdot \tau_n \vec{e} \, da \\
+        + \sum_{n}^{ne} \int \vec{u} \cdot \kappa_n \vec{e} \, d\ell
 
-    where :math:`\sigma_i` is the conductivity in cell *i*, :math:`\tau_i` is the face
-    conductance on face *i*, and :math:`\kappa_i` is the area-integrated conductivity
-    on edge *i*.
+    where :math:`\sigma_n` is the conductivity in cell *n*, :math:`\tau_n` is the face
+    conductance on face *n*, and :math:`\kappa_n` is the area-integrated conductivity
+    on edge *n*.
 
     The above expressions are discretized in space according to the finite volume method.
     The discrete electric fields :math:`\mathbf{e}` are defined on mesh edges,
@@ -3048,13 +3048,13 @@ class Simulation3DHierarchicalMagneticFluxDensity(
 
     .. math::
         \int_\Omega \vec{u} \cdot \vec{j} \, dv =&
-        \sum_{i} \int \vec{u} \cdot \sigma_i \vec{e} \, dv \\
-        + \sum_{i} \int \vec{u} \cdot \tau_i \vec{e} \, da \\
-        + \sum_{i} \int \vec{u} \cdot \kappa_i \vec{e} \, d\ell
+        \sum_{n}^{nc} \int \vec{u} \cdot \sigma_n \vec{e} \, dv \\
+        + \sum_{n}^{nf} \int \vec{u} \cdot \tau_n \vec{e} \, da \\
+        + \sum_{n}^{ne} \int \vec{u} \cdot \kappa_n \vec{e} \, d\ell
 
-    where :math:`\sigma_i` is the conductivity in cell *i*, :math:`\tau_i` is the face
-    conductance on face *i*, and :math:`\kappa_i` is the area-integrated conductivity
-    on edge *i*.
+    where :math:`\sigma_n` is the conductivity in cell *n*, :math:`\tau_n` is the face
+    conductance on face *n*, and :math:`\kappa_n` is the area-integrated conductivity
+    on edge *n*.
 
     The above expressions are discretized in space according to the finite volume method.
     The discrete electric fields :math:`\mathbf{e}` are defined on mesh edges,
