@@ -1,3 +1,4 @@
+"""Numerical tests for hierarchical properties."""
 import discretize
 import numpy as np
 import pytest
@@ -12,7 +13,7 @@ ABS_TOL = 1e-13
 CASES_LIST = [
     ("ElectricField", "CYL"),
     ("ElectricField", "TREE"),
-    ("MagneticFluxDensity", "TREE")
+    ("MagneticFluxDensity", "TREE"),
 ]
 
 @pytest.mark.parametrize("formulation, mesh_type", CASES_LIST)
@@ -26,7 +27,7 @@ def test_layer_conductance_to_analytic(formulation, mesh_type):
     source_location = np.r_[0.0, 0.0, 1.0]
 
     layer_depth = 100.0
-    layer_thickness = 1.
+    layer_thickness = 1.0
     layer_conductivity = 100
     background_conductivity = 1e-2
 
@@ -84,23 +85,23 @@ def test_layer_conductance_to_analytic(formulation, mesh_type):
     # DEFINE SURVEY
     waveform = tdem.sources.StepOffWaveform()
 
-    if formulation == 'ElectricField':
+    if formulation == "ElectricField":
         rx_list = [
             tdem.receivers.PointMagneticFluxTimeDerivative(
-                receiver_location, orientation='z', times=times
+                receiver_location, orientation="z", times=times
             )
         ]
     else:
         rx_list = [
             tdem.receivers.PointMagneticFluxDensity(
-                receiver_location, orientation='z', times=times
+                receiver_location, orientation="z", times=times
             )
         ]
 
     # 1D SURVEY AND SIMULATION
     src_1d = [
         tdem.sources.MagDipole(
-            rx_list, location=np.r_[0.0, 0.0, 1.0], orientation='z', waveform=waveform
+            rx_list, location=np.r_[0.0, 0.0, 1.0], orientation="z", waveform=waveform
         )
     ]
     survey_1d = tdem.Survey(src_1d)
@@ -128,7 +129,7 @@ def test_layer_conductance_to_analytic(formulation, mesh_type):
             tdem.sources.MagDipole(
                 rx_list,
                 location=source_location,
-                orientation='z',
+                orientation="z",
                 waveform=waveform,
             )
         ]
@@ -146,18 +147,13 @@ def test_layer_conductance_to_analytic(formulation, mesh_type):
         )
     sim_3d.time_steps = time_steps
 
-    # COMPUTE SOLUTIONS
     analytic_solution = sim_1d.dpred(sigma_1d)  # ALWAYS RETURNS H-FIELD
     numeric_solution = sim_3d.dpred(tau_3d)
 
-    np.testing.assert_allclose(
-        numeric_solution, analytic_solution, rtol=REL_TOL
-    )
-
+    np.testing.assert_allclose(numeric_solution, analytic_solution, rtol=REL_TOL)
 
 def test_edge_conductivity():
     """Cross check for a thin conductive wire."""
-
     # Some static parameters
     location_a = np.r_[-40, 0, 0]
     location_b = np.r_[40, 0, 0]
