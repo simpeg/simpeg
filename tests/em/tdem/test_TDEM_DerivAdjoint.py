@@ -1,19 +1,20 @@
-import unittest
+"""Derivative and adjoint tests."""
+import pytest
 import numpy as np
-import time
 import discretize
-from simpeg import maps, tests
+from simpeg import maps, data_misfit, tests
+from simpeg.utils import get_default_solver
 from simpeg.electromagnetics import time_domain as tdem
 
 plotIt = False
 
-testDeriv = True
-testAdjoint = True
-
-TOL = 1e-4
+ADJ_ATOL = 1e-11
+ADJ_RTOL = 2e-5
 
 
-def get_mesh():
+@pytest.fixture
+def mesh():
+    """Return test mesh."""
     cs = 10.0
     ncx = 4
     ncy = 4
@@ -31,7 +32,54 @@ def get_mesh():
     )
 
 
-def get_mapping(mesh):
+@pytest.fixture
+def locations():
+    """Return receiver locations."""
+    return np.array([[15, 0.0, -1e-2]])
+
+
+@pytest.fixture
+def times():
+    """Return receiver times."""
+    return np.logspace(-4, -3, 20)
+
+def get_survey(receiver_type, orientation, locations, times):
+    """Return test survey."""
+
+    rx1 = getattr(tdem.receivers, "Point" + receiver_type)(
+        locations=locations, times=times, orientation=orientation
+    )
+    rx2 = getattr(tdem.receivers, "Point" + receiver_type)(
+        locations=locations, times=times, orientation=orientation
+    )
+
+    src1 = tdem.sources.MagDipole([rx1], location=np.array([0.0, 0.0, 0.0]))
+    src2 = tdem.sources.MagDipole([rx2], location=np.array([0.0, 0.0, 8.0]))
+
+    return tdem.Survey([src1, src2])
+
+
+def get_simulation(simulation_class, mesh, survey):
+    """Return test simulation."""
+    sim = getattr(tdem, simulation_class)(mesh, survey=survey)
+
+    if "Hierarchical" in simulation_class:
+        sigma_map, tau_map, kappa_map = get_wire_mappings(mesh)
+        sim.sigmaMap = sigma_map
+        sim.tauMap = tau_map
+        sim.kappaMap = kappa_map
+    else:
+        sigma_map = get_sigma_mapping(mesh)
+        sim.sigmaMap = sigma_map
+
+    sim.solver = get_default_solver()
+    sim.time_steps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
+
+    return sim
+
+
+def get_sigma_mapping(mesh):
+    """Return mapping for sigma."""
     active = mesh.cell_centers_z < 0.0
     activeMap = maps.InjectActiveCells(
         mesh, active, np.log(1e-8), nC=mesh.shape_cells[2]
@@ -39,357 +87,190 @@ def get_mapping(mesh):
     return maps.ExpMap(mesh) * maps.SurjectVertical1D(mesh) * activeMap
 
 
-def get_prob(mesh, mapping, formulation, **kwargs):
-    prb = getattr(tdem, "Simulation3D{}".format(formulation))(
-        mesh, sigmaMap=mapping, **kwargs
+def get_wire_mappings(mesh):
+    """Return mapping for cell, faces and edges."""
+    active_cells = mesh.cell_centers[:, -1] < 0.0
+    active_faces = mesh.faces[:, -1] < 0.0
+    active_edges = mesh.edges[:, -1] < 0.0
+    n_active_cells = np.sum(active_cells)
+    n_active_faces = np.sum(active_faces)
+    n_active_edges = np.sum(active_edges)
+
+    wire_map = maps.Wires(
+        ("log_sigma", n_active_cells),
+        ("log_tau", n_active_faces),
+        ("log_kappa", n_active_edges),
     )
-    prb.time_steps = [(1e-05, 10), (5e-05, 10), (2.5e-4, 10)]
-    return prb
+
+    sigma_map = (
+        maps.InjectActiveCells(mesh, active_cells, 1e-8)
+        * maps.ExpMap(nP=n_active_cells)
+        * wire_map.log_sigma
+    )
+    tau_map = (
+        maps.InjectActiveFaces(mesh, active_faces, 0)
+        * maps.ExpMap(nP=n_active_faces)
+        * wire_map.log_tau
+    )
+    kappa_map = (
+        maps.InjectActiveEdges(mesh, active_edges, 0)
+        * maps.ExpMap(nP=n_active_edges)
+        * wire_map.log_kappa
+    )
+
+    return sigma_map, tau_map, kappa_map
 
 
-def get_survey():
-    src1 = tdem.Src.MagDipole([], location=np.array([0.0, 0.0, 0.0]))
-    src2 = tdem.Src.MagDipole([], location=np.array([0.0, 0.0, 8.0]))
-    return tdem.Survey([src1, src2])
+CASES_LIST = [
+    ("Simulation3DElectricField", "MagneticFluxTimeDerivative", "z"),
+    ("Simulation3DElectricField", "MagneticFluxTimeDerivative", "x"),
+    ("Simulation3DElectricField", "ElectricField", "y"),
+    ("Simulation3DElectricField", "MagneticFieldTimeDerivative", "z"),
+    ("Simulation3DElectricField", "MagneticFieldTimeDerivative", "x"),
+    ("Simulation3DElectricField", "CurrentDensity", "y"),
+    ("Simulation3DHierarchicalElectricField", "MagneticFluxTimeDerivative", "z"),
+    ("Simulation3DHierarchicalElectricField", "MagneticFluxTimeDerivative", "x"),
+    ("Simulation3DHierarchicalElectricField", "ElectricField", "y"),
+    ("Simulation3DHierarchicalElectricField", "MagneticFieldTimeDerivative", "z"),
+    ("Simulation3DHierarchicalElectricField", "MagneticFieldTimeDerivative", "x"),
+    ("Simulation3DHierarchicalElectricField", "CurrentDensity", "y"),
+    ("Simulation3DMagneticFluxDensity", "MagneticFluxTimeDerivative", "z"),
+    ("Simulation3DMagneticFluxDensity", "MagneticFluxTimeDerivative", "x"),
+    ("Simulation3DMagneticFluxDensity", "MagneticFluxDensity", "z"),
+    ("Simulation3DMagneticFluxDensity", "MagneticFluxDensity", "x"),
+    ("Simulation3DMagneticFluxDensity", "MagneticFieldTimeDerivative", "z"),
+    ("Simulation3DMagneticFluxDensity", "MagneticFieldTimeDerivative", "x"),
+    ("Simulation3DMagneticFluxDensity", "MagneticField", "z"),
+    ("Simulation3DMagneticFluxDensity", "MagneticField", "x"),
+    ("Simulation3DMagneticFluxDensity", "CurrentDensity", "y"),
+    ("Simulation3DHierarchicalMagneticFluxDensity", "MagneticFluxDensity", "z"),
+    ("Simulation3DHierarchicalMagneticFluxDensity", "MagneticFluxDensity", "x"),
+    ("Simulation3DHierarchicalMagneticFluxDensity", "MagneticFluxTimeDerivative", "z"),
+    ("Simulation3DHierarchicalMagneticFluxDensity", "MagneticFluxTimeDerivative", "x"),
+    ("Simulation3DHierarchicalMagneticFluxDensity", "MagneticField", "z"),
+    ("Simulation3DHierarchicalMagneticFluxDensity", "MagneticField", "x"),
+    ("Simulation3DHierarchicalMagneticFluxDensity", "MagneticFieldTimeDerivative", "z"),
+    ("Simulation3DHierarchicalMagneticFluxDensity", "MagneticFieldTimeDerivative", "x"),
+    ("Simulation3DHierarchicalMagneticFluxDensity", "CurrentDensity", "y"),
+    ("Simulation3DMagneticField", "MagneticField", "z"),
+    ("Simulation3DMagneticField", "MagneticField", "x"),
+    ("Simulation3DMagneticField", "MagneticFieldTimeDerivative", "z"),
+    ("Simulation3DMagneticField", "MagneticFieldTimeDerivative", "x"),
+    ("Simulation3DMagneticField", "MagneticFluxDensity", "z"),
+    ("Simulation3DMagneticField", "MagneticFluxDensity", "x"),
+    ("Simulation3DMagneticField", "MagneticFluxTimeDerivative", "z"),
+    ("Simulation3DMagneticField", "MagneticFluxTimeDerivative", "x"),
+    ("Simulation3DMagneticField", "ElectricField", "y"),
+    ("Simulation3DMagneticField", "CurrentDensity", "y"),
+    ("Simulation3DCurrentDensity", "MagneticFieldTimeDerivative", "z"),
+    ("Simulation3DCurrentDensity", "MagneticFieldTimeDerivative", "x"),
+    ("Simulation3DCurrentDensity", "MagneticFluxTimeDerivative", "z"),
+    ("Simulation3DCurrentDensity", "MagneticFluxTimeDerivative", "x"),
+    ("Simulation3DCurrentDensity", "CurrentDensity", "y"),
+]
 
 
-# ====== TEST Jvec ========== #
+@pytest.mark.parametrize("simulation_class, receiver_type, orientation", CASES_LIST)
+class TestDerivatives:
+    """Derivative and adjoint test for primary-secondary formulation."""
 
-
-class Base_DerivAdjoint_Test(unittest.TestCase):
-    @classmethod
-    def setUpClass(self):
-        # create a prob where we will store the fields
-        mesh = get_mesh()
-        mapping = get_mapping(mesh)
-        self.survey = get_survey()
-        self.prob = get_prob(mesh, mapping, self.formulation, survey=self.survey)
-        rng = np.random.default_rng(seed=42)
-        self.m = np.log(1e-1) * np.ones(self.prob.sigmaMap.nP) + 1e-3 * rng.normal(
-            size=self.prob.sigmaMap.nP
+    def get_setup_objects(
+        self,
+        simulation_class,
+        receiver_type,
+        orientation,
+        mesh,
+        locations,
+        times,
+    ):
+        """Setup test."""
+        survey = get_survey(
+            receiver_type,
+            orientation,
+            locations,
+            times,
         )
-        print("Solving Fields for problem {}".format(self.formulation))
-        t = time.time()
-        self.fields = self.prob.fields(self.m)
-        print("... done. Time: {}\n".format(time.time() - t))
 
-        # create a prob where will be re-computing fields at each jvec
-        # iteration
-        mesh = get_mesh()
-        mapping = get_mapping(mesh)
-        self.surveyfwd = get_survey()
-        self.probfwd = get_prob(mesh, mapping, self.formulation, survey=self.surveyfwd)
+        sim = get_simulation(simulation_class, mesh, survey)
 
-    def get_rx(self, rxcomp):
-        rxOffset = 15.0
-        rxlocs = np.array([[rxOffset, 0.0, -1e-2]])
-        rxtimes = np.logspace(-4, -3, 20)
-        return getattr(tdem.Rx, "Point{}".format(rxcomp[:-1]))(
-            locations=rxlocs, times=rxtimes, orientation=rxcomp[-1]
-        )
-
-    def set_receiver_list(self, rxcomp):
-        # append the right rxlist to the surveys
-        rx = [self.get_rx(rxcomp)]
-        rxfwd = [self.get_rx(rxcomp)]
-
-        # append to srclists
-        for source_list, rxlist in zip(
-            [self.survey.source_list, self.surveyfwd.source_list], [rx, rxfwd]
-        ):
-            for src in source_list:
-                src.receiver_list = rxlist
-
-    def JvecTest(self, rxcomp):
-        self.set_receiver_list(rxcomp)
-
-        def derChk(m):
-            return [
-                self.probfwd.dpred(m),
-                lambda mx: self.prob.Jvec(self.m, mx, f=self.fields),
+        if "Hierarchical" in simulation_class:
+            n_sigma = np.sum(mesh.cell_centers[:, -1] < 0.0)
+            n_tau = np.sum(mesh.faces[:, -1] < 0.0)
+            n_kappa = np.sum(mesh.edges[:, -1] < 0.0)
+            m0 = np.r_[
+                np.log(1e-1) * np.ones(n_sigma) + 1e-3 * np.random.randn(n_sigma),
+                np.log(10 * 1e-1) * np.ones(n_tau) + 1e-3 * np.random.randn(n_tau),
+                np.log(100 * 1e-1) * np.ones(n_kappa) + 1e-3 * np.random.randn(n_kappa),
             ]
+        else:
+            n_param = sim.sigmaMap.nP
+            m0 = np.log(1e-1) * np.ones(n_param) + (1e-3 * np.random.randn(n_param))
 
-        print(
-            "test_Jvec_{prbtype}_{rxcomp}".format(
-                prbtype=self.formulation, rxcomp=rxcomp
-            )
+        # Define data and misfit
+        data = sim.make_synthetic_data(m0, add_noise=True, seed=4412)
+        dmis = data_misfit.L2DataMisfit(simulation=sim, data=data)
+
+        return m0, dmis
+
+    def test_misfit(
+        self,
+        simulation_class,
+        receiver_type,
+        orientation,
+        mesh,
+        locations,
+        times,
+    ):
+        """Test derivative."""
+        m0, dmis = self.get_setup_objects(
+            simulation_class,
+            receiver_type,
+            orientation,
+            mesh,
+            locations,
+            times,
         )
-        tests.check_derivative(
-            derChk, self.m, plotIt=False, num=2, eps=1e-20, random_seed=12
+        sim = dmis.simulation
+
+        passed = tests.check_derivative(
+            lambda m: (sim.dpred(m), lambda mx: sim.Jvec(m0, mx)),
+            m0,
+            plotIt=False,
+            random_seed=42,
+            num=3,
         )
 
-    def JvecVsJtvecTest(self, rxcomp):
-        self.set_receiver_list(rxcomp)
-        print(
-            "\nAdjoint Testing Jvec, Jtvec prob {}, {}".format(self.formulation, rxcomp)
+        assert passed
+
+    def test_adjoint(
+        self,
+        simulation_class,
+        receiver_type,
+        orientation,
+        mesh,
+        locations,
+        times,
+    ):
+        """Test adjoint."""
+        m0, dmis = self.get_setup_objects(
+            simulation_class,
+            receiver_type,
+            orientation,
+            mesh,
+            locations,
+            times,
         )
-
-        rng = np.random.default_rng(seed=42)
-        m = rng.uniform(size=self.prob.sigmaMap.nP)
-        d = rng.normal(size=self.prob.survey.nD)
-        V1 = d.dot(self.prob.Jvec(self.m, m, f=self.fields))
-        V2 = m.dot(self.prob.Jtvec(self.m, d, f=self.fields))
-        tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.0
-        passed = np.abs(V1 - V2) < tol
-
-        print(f"{self.formulation} {V1} {V2} {passed}")
-        self.assertTrue(passed)
-
-
-class TDEM_Fields_B_Pieces(Base_DerivAdjoint_Test):
-    formulation = "MagneticFluxDensity"
-
-    def test_eDeriv_m_adjoint(self):
-        prb = self.prob
-        f = self.fields
-
-        print("\n Testing eDeriv_m Adjoint")
-
-        rng = np.random.default_rng(seed=42)
-        m = rng.uniform(size=len(self.m))
-        e = rng.normal(size=prb.mesh.nE)
-        V1 = e.dot(f._eDeriv_m(1, prb.survey.source_list[0], m))
-        V2 = m.dot(f._eDeriv_m(1, prb.survey.source_list[0], e, adjoint=True))
-        tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.0
-        passed = np.abs(V1 - V2) < tol
-
-        print("    ", V1, V2, np.abs(V1 - V2), tol, passed)
-        self.assertTrue(passed)
-
-    def test_eDeriv_u_adjoint(self):
-        print("\n Testing eDeriv_u Adjoint")
-
-        prb = self.prob
-        f = self.fields
-
-        rng = np.random.default_rng(seed=42)
-        b = rng.uniform(size=prb.mesh.nF)
-        e = rng.normal(size=prb.mesh.nE)
-        V1 = e.dot(f._eDeriv_u(1, prb.survey.source_list[0], b))
-        V2 = b.dot(f._eDeriv_u(1, prb.survey.source_list[0], e, adjoint=True))
-        tol = TOL * (np.abs(V1) + np.abs(V2)) / 2.0
-        passed = np.abs(V1 - V2) < tol
-
-        print("    ", V1, V2, np.abs(V1 - V2), tol, passed)
-        self.assertTrue(passed)
-
-
-class DerivAdjoint_E(Base_DerivAdjoint_Test):
-    formulation = "ElectricField"
-
-    if testDeriv:
-
-        def test_Jvec_e_dbxdt(self):
-            self.JvecTest("MagneticFluxTimeDerivativex")
-
-        def test_Jvec_e_dbzdt(self):
-            self.JvecTest("MagneticFluxTimeDerivativez")
-
-        def test_Jvec_e_ey(self):
-            self.JvecTest("ElectricFieldy")
-
-        def test_Jvec_e_dhxdt(self):
-            self.JvecTest("MagneticFieldTimeDerivativex")
-
-        def test_Jvec_e_dhzdt(self):
-            self.JvecTest("MagneticFieldTimeDerivativez")
-
-        def test_Jvec_e_jy(self):
-            self.JvecTest("CurrentDensityy")
-
-    if testAdjoint:
-
-        def test_Jvec_adjoint_e_dbdtx(self):
-            self.JvecVsJtvecTest("MagneticFluxTimeDerivativex")
-
-        def test_Jvec_adjoint_e_dbdtz(self):
-            self.JvecVsJtvecTest("MagneticFluxTimeDerivativez")
-
-        def test_Jvec_adjoint_e_ey(self):
-            self.JvecVsJtvecTest("ElectricFieldy")
-
-        def test_Jvec_adjoint_e_dhdtx(self):
-            self.JvecVsJtvecTest("MagneticFieldTimeDerivativex")
-
-        def test_Jvec_adjoint_e_dhdtz(self):
-            self.JvecVsJtvecTest("MagneticFieldTimeDerivativez")
-
-        def test_Jvec_adjoint_e_jy(self):
-            self.JvecVsJtvecTest("CurrentDensityy")
-
-
-class DerivAdjoint_B(Base_DerivAdjoint_Test):
-    formulation = "MagneticFluxDensity"
-
-    if testDeriv:
-
-        def test_Jvec_b_bx(self):
-            self.JvecTest("MagneticFluxDensityx")
-
-        def test_Jvec_b_bz(self):
-            self.JvecTest("MagneticFluxDensityz")
-
-        def test_Jvec_b_dbdtx(self):
-            self.JvecTest("MagneticFluxTimeDerivativex")
-
-        def test_Jvec_b_dbdtz(self):
-            self.JvecTest("MagneticFluxTimeDerivativez")
-
-        def test_Jvec_b_hx(self):
-            self.JvecTest("MagneticFieldx")
-
-        def test_Jvec_b_hz(self):
-            self.JvecTest("MagneticFieldz")
-
-        def test_Jvec_b_dhdtx(self):
-            self.JvecTest("MagneticFieldTimeDerivativex")
-
-        def test_Jvec_b_dhdtz(self):
-            self.JvecTest("MagneticFieldTimeDerivativez")
-
-        def test_Jvec_b_jy(self):
-            self.JvecTest("CurrentDensityy")
-
-    if testAdjoint:
-
-        def test_Jvec_adjoint_b_bx(self):
-            self.JvecVsJtvecTest("MagneticFluxDensityx")
-
-        def test_Jvec_adjoint_b_bz(self):
-            self.JvecVsJtvecTest("MagneticFluxDensityz")
-
-        def test_Jvec_adjoint_b_dbdtx(self):
-            self.JvecVsJtvecTest("MagneticFluxTimeDerivativex")
-
-        def test_Jvec_adjoint_b_dbdtz(self):
-            self.JvecVsJtvecTest("MagneticFluxTimeDerivativez")
-
-        def test_Jvec_adjoint_b_ey(self):
-            self.JvecVsJtvecTest("ElectricFieldy")
-
-        def test_Jvec_adjoint_b_hx(self):
-            self.JvecVsJtvecTest("MagneticFieldx")
-
-        def test_Jvec_adjoint_b_hz(self):
-            self.JvecVsJtvecTest("MagneticFieldz")
-
-        def test_Jvec_adjoint_b_dhdtx(self):
-            self.JvecVsJtvecTest("MagneticFieldTimeDerivativex")
-
-        def test_Jvec_adjoint_b_dhdtz(self):
-            self.JvecVsJtvecTest("MagneticFieldTimeDerivativez")
-
-        def test_Jvec_adjoint_b_jy(self):
-            self.JvecVsJtvecTest("CurrentDensityy")
-
-
-class DerivAdjoint_H(Base_DerivAdjoint_Test):
-    formulation = "MagneticField"
-
-    if testDeriv:
-
-        def test_Jvec_h_hx(self):
-            self.JvecTest("MagneticFieldx")
-
-        def test_Jvec_h_hz(self):
-            self.JvecTest("MagneticFieldz")
-
-        def test_Jvec_h_dhdtx(self):
-            self.JvecTest("MagneticFieldTimeDerivativex")
-
-        def test_Jvec_h_dhdtz(self):
-            self.JvecTest("MagneticFieldTimeDerivativez")
-
-        def test_Jvec_h_jy(self):
-            self.JvecTest("CurrentDensityy")
-
-        def test_Jvec_h_bx(self):
-            self.JvecTest("MagneticFluxDensityx")
-
-        def test_Jvec_h_bz(self):
-            self.JvecTest("MagneticFluxDensityz")
-
-        def test_Jvec_h_dbdtx(self):
-            self.JvecTest("MagneticFluxTimeDerivativex")
-
-        def test_Jvec_h_dbdtz(self):
-            self.JvecTest("MagneticFluxTimeDerivativez")
-
-        def test_Jvec_h_ey(self):
-            self.JvecTest("ElectricFieldy")
-
-    if testAdjoint:
-
-        def test_Jvec_adjoint_h_hx(self):
-            self.JvecVsJtvecTest("MagneticFieldx")
-
-        def test_Jvec_adjoint_h_hz(self):
-            self.JvecVsJtvecTest("MagneticFieldz")
-
-        def test_Jvec_adjoint_h_dhdtx(self):
-            self.JvecVsJtvecTest("MagneticFieldTimeDerivativex")
-
-        def test_Jvec_adjoint_h_dhdtz(self):
-            self.JvecVsJtvecTest("MagneticFieldTimeDerivativez")
-
-        def test_Jvec_adjoint_h_jy(self):
-            self.JvecVsJtvecTest("CurrentDensityy")
-
-        def test_Jvec_adjoint_h_bx(self):
-            self.JvecVsJtvecTest("MagneticFluxDensityx")
-
-        def test_Jvec_adjoint_h_bz(self):
-            self.JvecVsJtvecTest("MagneticFluxDensityz")
-
-        def test_Jvec_adjoint_h_dbdtx(self):
-            self.JvecVsJtvecTest("MagneticFluxTimeDerivativex")
-
-        def test_Jvec_adjoint_h_dbdtz(self):
-            self.JvecVsJtvecTest("MagneticFluxTimeDerivativez")
-
-        def test_Jvec_adjoint_h_ey(self):
-            self.JvecVsJtvecTest("ElectricFieldy")
-
-
-class DerivAdjoint_J(Base_DerivAdjoint_Test):
-    formulation = "CurrentDensity"
-
-    if testDeriv:
-
-        def test_Jvec_j_jy(self):
-            self.JvecTest("CurrentDensityy")
-
-        def test_Jvec_j_dhdtx(self):
-            self.JvecTest("MagneticFieldTimeDerivativex")
-
-        def test_Jvec_j_dhdtz(self):
-            self.JvecTest("MagneticFieldTimeDerivativez")
-
-        def test_Jvec_j_ey(self):
-            self.JvecTest("ElectricFieldy")
-
-        def test_Jvec_j_dbdtx(self):
-            self.JvecTest("MagneticFluxTimeDerivativex")
-
-        def test_Jvec_j_dbdtz(self):
-            self.JvecTest("MagneticFluxTimeDerivativez")
-
-    if testAdjoint:
-
-        def test_Jvec_adjoint_j_jy(self):
-            self.JvecVsJtvecTest("CurrentDensityy")
-
-        def test_Jvec_adjoint_j_dhdtx(self):
-            self.JvecVsJtvecTest("MagneticFieldTimeDerivativex")
-
-        def test_Jvec_adjoint_j_dhdtz(self):
-            self.JvecVsJtvecTest("MagneticFieldTimeDerivativez")
-
-        def test_Jvec_adjoint_j_ey(self):
-            self.JvecVsJtvecTest("ElectricFieldy")
-
-        def test_Jvec_adjoint_j_dbdtx(self):
-            self.JvecVsJtvecTest("MagneticFluxTimeDerivativex")
-
-        def test_Jvec_adjoint_j_dbdtz(self):
-            self.JvecVsJtvecTest("MagneticFluxTimeDerivativez")
+        sim = dmis.simulation
+        n_data = sim.survey.nD
+
+        f = sim.fields(m0)
+
+        tests.assert_isadjoint(
+            lambda u: sim.Jvec(m0, u, f=f),
+            lambda v: sim.Jtvec(m0, v, f=f),
+            m0.shape,
+            (n_data,),
+            rtol=ADJ_RTOL,
+            atol=ADJ_ATOL,
+            random_seed=44,
+        )

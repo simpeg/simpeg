@@ -1,7 +1,11 @@
 import re
-
 import pymatsolver
-from simpeg.base import with_property_mass_matrices, BasePDESimulation
+from simpeg.base import (
+    with_property_mass_matrices,
+    with_surface_property_mass_matrices,
+    with_line_property_mass_matrices,
+    BasePDESimulation,
+)
 from simpeg import props, maps
 from simpeg.utils import PerformanceWarning
 import unittest
@@ -19,33 +23,61 @@ from simpeg.utils import get_default_solver
 # define a very simple class...
 @with_property_mass_matrices("sigma")
 @with_property_mass_matrices("mu")
+@with_surface_property_mass_matrices("tau")
+@with_line_property_mass_matrices("kappa")
 class SimpleSim(BasePDESimulation):
-    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
+    """Base class for simple simulation."""
 
+    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
+    rho, rhoMap, rhoDeriv = props.Invertible("Electrical conductivity (S/m)")
+    props.Reciprocal(sigma, rho)
     mu, muMap, muDeriv = props.Invertible("Magnetic Permeability")
+    tau, tauMap, tauDeriv = props.Invertible("Face conductivity, conductance (S)")
+    kappa, kappaMap, kappaDeriv = props.Invertible(
+        "Edge conductivity, conductivity times area (Sm)"
+    )
 
     def __init__(
-        self, mesh, survey=None, sigma=None, sigmaMap=None, mu=mu_0, muMap=None
+        self,
+        mesh,
+        survey=None,
+        sigma=None,
+        sigmaMap=None,
+        mu=mu_0,
+        muMap=None,
+        tau=None,
+        tauMap=None,
+        kappa=None,
+        kappaMap=None,
     ):
         super().__init__(mesh=mesh, survey=survey)
         self.sigma = sigma
         self.mu = mu
+        self.tau = tau
+        self.kappa = kappa
         self.sigmaMap = sigmaMap
         self.muMap = muMap
+        self.tauMap = tauMap
+        self.kappaMap = kappaMap
 
     @property
     def _delete_on_model_update(self):
-        """
-        matrices to be deleted if the model for conductivity/resistivity is updated
-        """
+        """Matrices deleted upon conductivity/resistivity model update."""
         toDelete = super()._delete_on_model_update
         if self.sigmaMap is not None or self.rhoMap is not None:
             toDelete = toDelete + self._clear_on_sigma_update
+        if self.tauMap is not None:
+            toDelete = toDelete + self._clear_on_tau_update
+        if self.kappaMap is not None:
+            toDelete = toDelete + self._clear_on_kappa_update
         return toDelete
 
 
 class TestSim(unittest.TestCase):
+    """Test simulation."""
+
     def setUp(self):
+        """Set up functions."""
         self.mesh = discretize.TensorMesh([5, 6, 7])
 
         self.sim = SimpleSim(self.mesh, sigmaMap=maps.ExpMap())
@@ -69,6 +101,7 @@ class TestSim(unittest.TestCase):
         ]
 
     def test_zero_returns(self):
+        """Test zero returns."""
         n_c = self.mesh.n_cells
         n_n = self.mesh.n_nodes
         n_f = self.mesh.n_faces
@@ -112,6 +145,7 @@ class TestSim(unittest.TestCase):
         assert sim.MeSigmaIDeriv(u_e, Zero()).__class__ == Zero
 
     def test_simple_mass(self):
+        """Test simple mass matrix."""
         sim = self.sim
         n_c = self.mesh.n_cells
         n_n = self.mesh.n_nodes
@@ -144,6 +178,7 @@ class TestSim(unittest.TestCase):
         np.testing.assert_allclose(x_e, sim.MeI @ (sim.Me @ x_e))
 
     def test_forward_expected_shapes(self):
+        """Test forward expected shapes."""
         sim = self.sim
         sim.model = self.start_mod
 
@@ -204,6 +239,7 @@ class TestSim(unittest.TestCase):
         )
 
     def test_forward_anis_expected_shapes(self):
+        """Test forward anisotropy expected shapes."""
         sim = self.sim
         sim.model = self.start_full_mod
 
@@ -264,6 +300,7 @@ class TestSim(unittest.TestCase):
         )
 
     def test_adjoint_expected_shapes(self):
+        """Test adjoint expected shapes."""
         sim = self.sim
         sim.model = self.start_mod
 
@@ -326,6 +363,7 @@ class TestSim(unittest.TestCase):
         )
 
     def test_adjoint_anis_expected_shapes(self):
+        """Test adjoint anisotropy expected shapes."""
         sim = self.sim
         sim.model = self.start_full_mod
 
@@ -388,6 +426,7 @@ class TestSim(unittest.TestCase):
         )
 
     def test_adjoint_opp(self):
+        """Test adjoint opp."""
         sim = self.sim
         sim.model = self.start_mod
 
@@ -447,6 +486,7 @@ class TestSim(unittest.TestCase):
         np.testing.assert_allclose(vJy, yJtv)
 
     def test_anis_adjoint_opp(self):
+        """Test anisotropy adjoint opp."""
         sim = self.sim
         sim.model = self.start_full_mod
 
@@ -485,6 +525,7 @@ class TestSim(unittest.TestCase):
         np.testing.assert_allclose(vJy, yJtv)
 
     def test_Mcc_deriv(self):
+        """Test Mcc derive."""
         u = np.random.randn(self.mesh.n_cells)
         sim = self.sim
         x0 = self.start_mod
@@ -502,6 +543,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=8672354)
 
     def test_Mn_deriv(self):
+        """Test Mn derive."""
         u = np.random.randn(self.mesh.n_nodes)
         sim = self.sim
         x0 = self.start_mod
@@ -519,6 +561,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=523876)
 
     def test_Me_deriv(self):
+        """Test Me deriv."""
         u = np.random.randn(self.mesh.n_edges)
         sim = self.sim
         x0 = self.start_mod
@@ -536,6 +579,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=9875163)
 
     def test_Me_diagonal_anisotropy_deriv(self):
+        """Test Me diagonal anisotropy derive."""
         u = np.random.randn(self.mesh.n_edges)
         sim = self.sim
         x0 = self.start_diag_mod
@@ -553,6 +597,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=1658372)
 
     def test_Me_full_anisotropy_deriv(self):
+        """Test Me full anisotropy deriv."""
         u = np.random.randn(self.mesh.n_edges)
         sim = self.sim_full_aniso
         x0 = self.start_full_mod
@@ -570,6 +615,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=9867234)
 
     def test_Mf_deriv(self):
+        """Test Mf deriv."""
         u = np.random.randn(self.mesh.n_faces)
         sim = self.sim
         x0 = self.start_mod
@@ -587,6 +633,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=10523687)
 
     def test_Mf_diagonal_anisotropy_deriv(self):
+        """Test Mf diagonal anisotropy deriv."""
         u = np.random.randn(self.mesh.n_faces)
         sim = self.sim
         x0 = self.start_diag_mod
@@ -604,6 +651,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=19876354)
 
     def test_Mf_full_anisotropy_deriv(self):
+        """Test Mf full anisotropy derive."""
         u = np.random.randn(self.mesh.n_faces)
         sim = self.sim_full_aniso
         x0 = self.start_full_mod
@@ -621,6 +669,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=102309487)
 
     def test_MccI_deriv(self):
+        """Test MccI derive."""
         u = np.random.randn(self.mesh.n_cells)
         sim = self.sim
         x0 = self.start_mod
@@ -638,6 +687,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=89726354)
 
     def test_MnI_deriv(self):
+        """Test MnI derive."""
         u = np.random.randn(self.mesh.n_nodes)
         sim = self.sim
         x0 = self.start_mod
@@ -655,6 +705,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=12503698)
 
     def test_MeI_deriv(self):
+        """Test MeI deriv."""
         u = np.random.randn(self.mesh.n_edges)
         sim = self.sim
         x0 = self.start_mod
@@ -672,6 +723,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=5674129834)
 
     def test_MfI_deriv(self):
+        """Test MfI derive."""
         u = np.random.randn(self.mesh.n_faces)
         sim = self.sim
         x0 = self.start_mod
@@ -689,6 +741,7 @@ class TestSim(unittest.TestCase):
         assert check_derivative(f, x0=x0, num=3, plotIt=False, random_seed=532349)
 
     def test_Mcc_adjoint(self):
+        """Test Mcc adjoint."""
         n_items = self.mesh.n_cells
         u = np.random.randn(n_items)
         sim = self.sim
@@ -702,6 +755,7 @@ class TestSim(unittest.TestCase):
         np.testing.assert_allclose(yJv, vJty)
 
     def test_Mn_adjoint(self):
+        """Test Mn adjoint."""
         n_items = self.mesh.n_nodes
         u = np.random.randn(n_items)
         sim = self.sim
@@ -715,6 +769,7 @@ class TestSim(unittest.TestCase):
         np.testing.assert_allclose(yJv, vJty)
 
     def test_Me_adjoint(self):
+        """Test Me adjoint."""
         n_items = self.mesh.n_edges
         u = np.random.randn(n_items)
         sim = self.sim
@@ -728,6 +783,7 @@ class TestSim(unittest.TestCase):
         np.testing.assert_allclose(yJv, vJty)
 
     def test_Mf_adjoint(self):
+        """Test Mf adjoint."""
         n_items = self.mesh.n_faces
         u = np.random.randn(n_items)
         sim = self.sim
@@ -741,6 +797,7 @@ class TestSim(unittest.TestCase):
         np.testing.assert_allclose(yJv, vJty)
 
     def test_MccI_adjoint(self):
+        """Test MccI adoint."""
         n_items = self.mesh.n_cells
         u = np.random.randn(n_items)
         sim = self.sim
@@ -754,6 +811,7 @@ class TestSim(unittest.TestCase):
         np.testing.assert_allclose(yJv, vJty)
 
     def test_MnI_adjoint(self):
+        """Test MnI adjoint."""
         n_items = self.mesh.n_nodes
         u = np.random.randn(n_items)
         sim = self.sim
@@ -767,6 +825,7 @@ class TestSim(unittest.TestCase):
         np.testing.assert_allclose(yJv, vJty)
 
     def test_MeI_adjoint(self):
+        """Test MeI adjoint."""
         n_items = self.mesh.n_edges
         u = np.random.randn(n_items)
         sim = self.sim
@@ -780,6 +839,7 @@ class TestSim(unittest.TestCase):
         np.testing.assert_allclose(yJv, vJty)
 
     def test_MfI_adjoint(self):
+        """Test MfI adjoint."""
         n_items = self.mesh.n_faces
         u = np.random.randn(n_items)
         sim = self.sim
@@ -793,7 +853,629 @@ class TestSim(unittest.TestCase):
         np.testing.assert_allclose(yJv, vJty)
 
 
+class TestSimSurfaceProperties(unittest.TestCase):
+    """Tests for surface properties."""
+
+    def setUp(self):
+        """Set up function."""
+        self.mesh = discretize.TensorMesh([5, 6, 7])
+
+        self.sim = SimpleSim(self.mesh, tauMap=maps.ExpMap())
+        self.start_mod = np.log(1e-2 * np.ones(self.mesh.n_faces)) + np.random.randn(
+            self.mesh.n_faces
+        )
+
+    def test_zero_returns(self):
+        """Test zero returns."""
+        n_f = self.mesh.n_faces
+        n_e = self.mesh.n_edges
+        sim = self.sim
+
+        v = np.random.rand(n_f)
+        u_f = np.random.rand(n_f)
+        u_e = np.random.rand(n_e)
+
+        # Test zero return on u passed as Zero
+        assert sim._MfTauDeriv(Zero(), v).__class__ == Zero
+        assert sim._MeTauDeriv(Zero(), v).__class__ == Zero
+        assert sim._MfTauIDeriv(Zero(), v).__class__ == Zero
+        assert sim._MeTauIDeriv(Zero(), v).__class__ == Zero
+
+        # Test zero return on v as Zero
+        assert sim._MfTauDeriv(u_f, Zero()).__class__ == Zero
+        assert sim._MeTauDeriv(u_e, Zero()).__class__ == Zero
+        assert sim._MfTauIDeriv(u_f, Zero()).__class__ == Zero
+        assert sim._MeTauIDeriv(u_e, Zero()).__class__ == Zero
+
+    def test_forward_expected_shapes(self):
+        """Test forward expected shapes."""
+        sim = self.sim
+        sim.model = self.start_mod
+
+        n_f = self.mesh.n_faces
+        # n_c = self.mesh.n_cells
+        # if U.shape (n_f, )
+        u = np.random.rand(n_f)
+        v = np.random.randn(n_f)
+        u2 = np.random.rand(n_f, 2)
+        v2 = np.random.randn(n_f, 4)
+
+        # These cases should all return an array of shape (n_f, )
+        # if V.shape (n_c, )
+        out = sim._MfTauDeriv(u, v)
+        assert out.shape == (n_f,)
+        out = sim._MfTauDeriv(u, v[:, None])
+        assert out.shape == (n_f,)
+        out = sim._MfTauDeriv(u[:, None], v)
+        assert out.shape == (n_f,)
+        out = sim._MfTauDeriv(u[:, None], v[:, None])
+        assert out.shape == (n_f,)
+
+        # now check passing multiple V's
+        out = sim._MfTauDeriv(u, v2)
+        assert out.shape == (n_f, 4)
+        out = sim._MfTauDeriv(u[:, None], v2)
+        assert out.shape == (n_f, 4)
+
+        # also ensure it properly broadcasted the operation....
+        out_2 = np.empty_like(out)
+        for i in range(v2.shape[1]):
+            out_2[:, i] = sim._MfTauDeriv(u[:, None], v2[:, i])
+        np.testing.assert_equal(out, out_2)
+
+        # now check for multiple source polarizations
+        out = sim._MfTauDeriv(u2, v)
+        assert out.shape == (n_f, 2)
+        out = sim._MfTauDeriv(u2, v[:, None])
+        assert out.shape == (n_f, 2)
+
+        # and with multiple RHS
+        out = sim._MfTauDeriv(u2, v2)
+        assert out.shape == (n_f, v2.shape[1], 2)
+
+        # and test broadcasting here...
+        out_2 = np.empty_like(out)
+        for i in range(v2.shape[1]):
+            out_2[:, i, :] = sim._MfTauDeriv(u2, v2[:, i])
+        np.testing.assert_equal(out, out_2)
+
+        # test None as v
+        UM = sim._MfTauDeriv(u)
+        np.testing.assert_allclose(UM @ v, sim._MfTauDeriv(u, v))
+
+        UM = sim._MfTauDeriv(u2)
+        np.testing.assert_allclose(
+            UM @ v, sim._MfTauDeriv(u2, v).reshape(-1, order="F")
+        )
+
+    def test_adjoint_expected_shapes(self):
+        """Test adjoint expected shapes."""
+        sim = self.sim
+        sim.model = self.start_mod
+
+        n_f = self.mesh.n_faces
+        # n_c = self.mesh.n_cells
+
+        u = np.random.rand(n_f)
+        v = np.random.randn(n_f)
+        v2 = np.random.randn(n_f, 4)
+        u2 = np.random.rand(n_f, 2)
+        v2_2 = np.random.randn(n_f, 2)
+        v3 = np.random.rand(n_f, 4, 2)
+
+        # These cases should all return an array of shape (n_c, )
+        # if V.shape (n_f, )
+        out = sim._MfTauDeriv(u, v, adjoint=True)
+        assert out.shape == (n_f,)
+        out = sim._MfTauDeriv(u, v[:, None], adjoint=True)
+        assert out.shape == (n_f,)
+        out = sim._MfTauDeriv(u[:, None], v, adjoint=True)
+        assert out.shape == (n_f,)
+        out = sim._MfTauDeriv(u[:, None], v[:, None], adjoint=True)
+        assert out.shape == (n_f,)
+
+        # now check passing multiple V's
+        out = sim._MfTauDeriv(u, v2, adjoint=True)
+        assert out.shape == (n_f, 4)
+        out = sim._MfTauDeriv(u[:, None], v2, adjoint=True)
+        assert out.shape == (n_f, 4)
+
+        # also ensure it properly broadcasted the operation....
+        out_2 = np.empty_like(out)
+        for i in range(v2.shape[1]):
+            out_2[:, i] = sim._MfTauDeriv(u, v2[:, i], adjoint=True)
+        np.testing.assert_equal(out, out_2)
+
+        # now check for multiple source polarizations
+        out = sim._MfTauDeriv(u2, v2_2, adjoint=True)
+        assert out.shape == (n_f,)
+        out = sim._MfTauDeriv(u2, v2_2, adjoint=True)
+        assert out.shape == (n_f,)
+
+        # and with multiple RHS
+        out = sim._MfTauDeriv(u2, v3, adjoint=True)
+        assert out.shape == (n_f, v3.shape[1])
+
+        # and test broadcasting here...
+        out_2 = np.empty_like(out)
+        for i in range(v2.shape[1]):
+            out_2[:, i] = sim._MfTauDeriv(u2, v3[:, i, :], adjoint=True)
+        np.testing.assert_equal(out, out_2)
+
+        # test None as v
+        UMT = sim._MfTauDeriv(u, adjoint=True)
+        np.testing.assert_allclose(UMT @ v, sim._MfTauDeriv(u, v, adjoint=True))
+
+        UMT = sim._MfTauDeriv(u2, adjoint=True)
+        np.testing.assert_allclose(
+            UMT @ v2_2.reshape(-1, order="F"), sim._MfTauDeriv(u2, v2_2, adjoint=True)
+        )
+
+    def test_adjoint_opp_shapes(self):
+        """Test adjoint opp shapes."""
+        sim = self.sim
+        sim.model = self.start_mod
+
+        n_f = self.mesh.n_faces
+
+        u = np.random.rand(n_f)
+        u2 = np.random.rand(n_f, 2)
+
+        y = np.random.rand(n_f)
+        y2 = np.random.rand(n_f, 4)
+
+        v = np.random.randn(n_f)
+        v2 = np.random.randn(n_f, 4)
+        v2_2 = np.random.randn(n_f, 2)
+        v3 = np.random.rand(n_f, 4, 2)
+
+        # u1, y1 -> v1
+        vJy = v @ sim._MfTauDeriv(u, y)
+        yJtv = y @ sim._MfTauDeriv(u, v, adjoint=True)
+        np.testing.assert_allclose(vJy, yJtv)
+
+        # u1, y2 -> v2
+        vJy = np.sum(v2 * sim._MfTauDeriv(u, y2))
+        yJtv = np.sum(y2 * sim._MfTauDeriv(u, v2, adjoint=True))
+        np.testing.assert_allclose(vJy, yJtv)
+
+        # u2, y1 -> v2_2
+        vJy = np.sum(v2_2 * sim._MfTauDeriv(u2, y))
+        yJtv = np.sum(y * sim._MfTauDeriv(u2, v2_2, adjoint=True))
+        np.testing.assert_allclose(vJy, yJtv)
+
+        # u2, y2 -> v3
+        vJy = np.sum(v3 * sim._MfTauDeriv(u2, y2))
+        yJtv = np.sum(y2 * sim._MfTauDeriv(u2, v3, adjoint=True))
+        np.testing.assert_allclose(vJy, yJtv)
+
+        # Also test Inverse opp, just to be sure...
+        # u1, y1 -> v1
+        vJy = v @ sim._MfTauIDeriv(u, y)
+        yJtv = y @ sim._MfTauIDeriv(u, v, adjoint=True)
+        np.testing.assert_allclose(vJy, yJtv)
+
+        # u1, y2 -> v2
+        vJy = np.sum(v2 * sim._MfTauIDeriv(u, y2))
+        yJtv = np.sum(y2 * sim._MfTauIDeriv(u, v2, adjoint=True))
+        np.testing.assert_allclose(vJy, yJtv)
+
+        # u2, y1 -> v2_2
+        vJy = np.sum(v2_2 * sim._MfTauIDeriv(u2, y))
+        yJtv = np.sum(y * sim._MfTauIDeriv(u2, v2_2, adjoint=True))
+        np.testing.assert_allclose(vJy, yJtv)
+
+        # u2, y2 -> v3
+        vJy = np.sum(v3 * sim._MfTauIDeriv(u2, y2))
+        yJtv = np.sum(y2 * sim._MfTauIDeriv(u2, v3, adjoint=True))
+        np.testing.assert_allclose(vJy, yJtv)
+
+    def test_Me_deriv(self):
+        """Test Me derive."""
+        u = np.random.randn(self.mesh.n_edges)
+        sim = self.sim
+        x0 = self.start_mod
+
+        def f(x):
+            sim.model = x
+            d = sim._MeTau @ u
+
+            def Jvec(v):
+                sim.model = x0
+                return sim._MeTauDeriv(u, v)
+
+            return d, Jvec
+
+        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+
+    def test_Mf_deriv(self):
+        """Test Mf deriv."""
+        u = np.random.randn(self.mesh.n_faces)
+        sim = self.sim
+        x0 = self.start_mod
+
+        def f(x):
+            sim.model = x
+            d = sim._MfTau @ u
+
+            def Jvec(v):
+                sim.model = x0
+                return sim._MfTauDeriv(u, v)
+
+            return d, Jvec
+
+        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+
+    def test_MeI_deriv(self):
+        """Test MeI derive."""
+        u = np.random.randn(self.mesh.n_edges)
+        sim = self.sim
+        x0 = self.start_mod
+
+        def f(x):
+            sim.model = x
+            d = sim._MeTauI @ u
+
+            def Jvec(v):
+                sim.model = x0
+                return sim._MeTauIDeriv(u, v)
+
+            return d, Jvec
+
+        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+
+    def test_MfI_deriv(self):
+        """Test MfI deriv."""
+        u = np.random.randn(self.mesh.n_faces)
+        sim = self.sim
+        x0 = self.start_mod
+
+        def f(x):
+            sim.model = x
+            d = sim._MfTauI @ u
+
+            def Jvec(v):
+                sim.model = x0
+                return sim._MfTauIDeriv(u, v)
+
+            return d, Jvec
+
+        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+
+    def test_Me_adjoint(self):
+        """Test Me adjoint."""
+        n_items = self.mesh.n_edges
+        u = np.random.randn(n_items)
+        sim = self.sim
+        sim.model = self.start_mod
+
+        v = np.random.randn(self.mesh.n_faces)
+        y = np.random.randn(n_items)
+
+        yJv = y @ sim._MeTauDeriv(u, v)
+        vJty = v @ sim._MeTauDeriv(u, y, adjoint=True)
+        np.testing.assert_allclose(yJv, vJty)
+
+    def test_Mf_adjoint(self):
+        """Test Mf adjoint."""
+        n_items = self.mesh.n_faces
+        u = np.random.randn(n_items)
+        sim = self.sim
+        sim.model = self.start_mod
+
+        v = np.random.randn(self.mesh.n_faces)
+        y = np.random.randn(n_items)
+
+        yJv = y @ sim._MfTauDeriv(u, v)
+        vJty = v @ sim._MfTauDeriv(u, y, adjoint=True)
+        np.testing.assert_allclose(yJv, vJty)
+
+    def test_MeI_adjoint(self):
+        """Test MeI adjoint."""
+        n_items = self.mesh.n_edges
+        u = np.random.randn(n_items)
+        sim = self.sim
+        sim.model = self.start_mod
+
+        v = np.random.randn(self.mesh.n_faces)
+        y = np.random.randn(n_items)
+
+        yJv = y @ sim._MeTauIDeriv(u, v)
+        vJty = v @ sim._MeTauIDeriv(u, y, adjoint=True)
+        np.testing.assert_allclose(yJv, vJty)
+
+    def test_MfI_adjoint(self):
+        """Test MfI adjoint."""
+        n_items = self.mesh.n_faces
+        u = np.random.randn(n_items)
+        sim = self.sim
+        sim.model = self.start_mod
+
+        v = np.random.randn(self.mesh.n_faces)
+        y = np.random.randn(n_items)
+
+        yJv = y @ sim._MfTauIDeriv(u, v)
+        vJty = v @ sim._MfTauIDeriv(u, y, adjoint=True)
+        np.testing.assert_allclose(yJv, vJty)
+
+
+class TestSimEdgeProperties(unittest.TestCase):
+    """Tests for edge properties."""
+
+    def setUp(self):
+        """Set up function."""
+        self.mesh = discretize.TensorMesh([5, 6, 7])
+
+        self.sim = SimpleSim(self.mesh, kappaMap=maps.ExpMap())
+        self.start_mod = np.log(1e-2 * np.ones(self.mesh.n_edges)) + np.random.randn(
+            self.mesh.n_edges
+        )
+
+    def test_zero_returns(self):
+        """Test zero returns."""
+        n_e = self.mesh.n_edges
+        sim = self.sim
+
+        v = np.random.rand(n_e)
+        u_e = np.random.rand(n_e)
+
+        # Test zero return on u passed as Zero
+        assert sim._MeKappaDeriv(Zero(), v).__class__ == Zero
+        assert sim._MeKappaIDeriv(Zero(), v).__class__ == Zero
+
+        # Test zero return on v as Zero
+        assert sim._MeKappaDeriv(u_e, Zero()).__class__ == Zero
+        assert sim._MeKappaIDeriv(u_e, Zero()).__class__ == Zero
+
+    def test_forward_expected_shapes(self):
+        """Test forward expected shapes."""
+        sim = self.sim
+        sim.model = self.start_mod
+
+        n_e = self.mesh.n_edges
+        # n_c = self.mesh.n_cells
+        # if U.shape (n_f, )
+        u = np.random.rand(n_e)
+        v = np.random.randn(n_e)
+        u2 = np.random.rand(n_e, 2)
+        v2 = np.random.randn(n_e, 4)
+
+        # These cases should all return an array of shape (n_f, )
+        # if V.shape (n_c, )
+        out = sim._MeKappaDeriv(u, v)
+        assert out.shape == (n_e,)
+        out = sim._MeKappaDeriv(u, v[:, None])
+        assert out.shape == (n_e,)
+        out = sim._MeKappaDeriv(u[:, None], v)
+        assert out.shape == (n_e,)
+        out = sim._MeKappaDeriv(u[:, None], v[:, None])
+        assert out.shape == (n_e,)
+
+        # now check passing multiple V's
+        out = sim._MeKappaDeriv(u, v2)
+        assert out.shape == (n_e, 4)
+        out = sim._MeKappaDeriv(u[:, None], v2)
+        assert out.shape == (n_e, 4)
+
+        # also ensure it properly broadcasted the operation....
+        out_2 = np.empty_like(out)
+        for i in range(v2.shape[1]):
+            out_2[:, i] = sim._MeKappaDeriv(u[:, None], v2[:, i])
+        np.testing.assert_equal(out, out_2)
+
+        # now check for multiple source polarizations
+        out = sim._MeKappaDeriv(u2, v)
+        assert out.shape == (n_e, 2)
+        out = sim._MeKappaDeriv(u2, v[:, None])
+        assert out.shape == (n_e, 2)
+
+        # and with multiple RHS
+        out = sim._MeKappaDeriv(u2, v2)
+        assert out.shape == (n_e, v2.shape[1], 2)
+
+        # and test broadcasting here...
+        out_2 = np.empty_like(out)
+        for i in range(v2.shape[1]):
+            out_2[:, i, :] = sim._MeKappaDeriv(u2, v2[:, i])
+        np.testing.assert_equal(out, out_2)
+
+        # test None as v
+        UM = sim._MeKappaDeriv(u)
+        np.testing.assert_allclose(UM @ v, sim._MeKappaDeriv(u, v))
+
+        UM = sim._MeKappaDeriv(u2)
+        np.testing.assert_allclose(
+            UM @ v, sim._MeKappaDeriv(u2, v).reshape(-1, order="F")
+        )
+
+    def test_adjoint_expected_shapes(self):
+        """Test adjoint expected shapes."""
+        sim = self.sim
+        sim.model = self.start_mod
+
+        n_e = self.mesh.n_edges
+
+        u = np.random.rand(n_e)
+        v = np.random.randn(n_e)
+        v2 = np.random.randn(n_e, 4)
+        u2 = np.random.rand(n_e, 2)
+        v2_2 = np.random.randn(n_e, 2)
+        v3 = np.random.rand(n_e, 4, 2)
+
+        # These cases should all return an array of shape (n_c, )
+        # if V.shape (n_f, )
+        out = sim._MeKappaDeriv(u, v, adjoint=True)
+        assert out.shape == (n_e,)
+        out = sim._MeKappaDeriv(u, v[:, None], adjoint=True)
+        assert out.shape == (n_e,)
+        out = sim._MeKappaDeriv(u[:, None], v, adjoint=True)
+        assert out.shape == (n_e,)
+        out = sim._MeKappaDeriv(u[:, None], v[:, None], adjoint=True)
+        assert out.shape == (n_e,)
+
+        # now check passing multiple V's
+        out = sim._MeKappaDeriv(u, v2, adjoint=True)
+        assert out.shape == (n_e, 4)
+        out = sim._MeKappaDeriv(u[:, None], v2, adjoint=True)
+        assert out.shape == (n_e, 4)
+
+        # also ensure it properly broadcasted the operation....
+        out_2 = np.empty_like(out)
+        for i in range(v2.shape[1]):
+            out_2[:, i] = sim._MeKappaDeriv(u, v2[:, i], adjoint=True)
+        np.testing.assert_equal(out, out_2)
+
+        # now check for multiple source polarizations
+        out = sim._MeKappaDeriv(u2, v2_2, adjoint=True)
+        assert out.shape == (n_e,)
+        out = sim._MeKappaDeriv(u2, v2_2, adjoint=True)
+        assert out.shape == (n_e,)
+
+        # and with multiple RHS
+        out = sim._MeKappaDeriv(u2, v3, adjoint=True)
+        assert out.shape == (n_e, v3.shape[1])
+
+        # and test broadcasting here...
+        out_2 = np.empty_like(out)
+        for i in range(v2.shape[1]):
+            out_2[:, i] = sim._MeKappaDeriv(u2, v3[:, i, :], adjoint=True)
+        np.testing.assert_equal(out, out_2)
+
+        # test None as v
+        UMT = sim._MeKappaDeriv(u, adjoint=True)
+        np.testing.assert_allclose(UMT @ v, sim._MeKappaDeriv(u, v, adjoint=True))
+
+        UMT = sim._MeKappaDeriv(u2, adjoint=True)
+        np.testing.assert_allclose(
+            UMT @ v2_2.reshape(-1, order="F"), sim._MeKappaDeriv(u2, v2_2, adjoint=True)
+        )
+
+    def test_adjoint_opp_shapes(self):
+        """Test adjoint opp shapes."""
+        sim = self.sim
+        sim.model = self.start_mod
+
+        n_e = self.mesh.n_edges
+
+        u = np.random.rand(n_e)
+        u2 = np.random.rand(n_e, 2)
+
+        y = np.random.rand(n_e)
+        y2 = np.random.rand(n_e, 4)
+
+        v = np.random.randn(n_e)
+        v2 = np.random.randn(n_e, 4)
+        v2_2 = np.random.randn(n_e, 2)
+        v3 = np.random.rand(n_e, 4, 2)
+
+        # u1, y1 -> v1
+        vJy = v @ sim._MeKappaDeriv(u, y)
+        yJtv = y @ sim._MeKappaDeriv(u, v, adjoint=True)
+        np.testing.assert_allclose(vJy, yJtv)
+
+        # u1, y2 -> v2
+        vJy = np.sum(v2 * sim._MeKappaDeriv(u, y2))
+        yJtv = np.sum(y2 * sim._MeKappaDeriv(u, v2, adjoint=True))
+        np.testing.assert_allclose(vJy, yJtv)
+
+        # u2, y1 -> v2_2
+        vJy = np.sum(v2_2 * sim._MeKappaDeriv(u2, y))
+        yJtv = np.sum(y * sim._MeKappaDeriv(u2, v2_2, adjoint=True))
+        np.testing.assert_allclose(vJy, yJtv)
+
+        # u2, y2 -> v3
+        vJy = np.sum(v3 * sim._MeKappaDeriv(u2, y2))
+        yJtv = np.sum(y2 * sim._MeKappaDeriv(u2, v3, adjoint=True))
+        np.testing.assert_allclose(vJy, yJtv)
+
+        # Also test Inverse opp, just to be sure...
+        # u1, y1 -> v1
+        vJy = v @ sim._MeKappaIDeriv(u, y)
+        yJtv = y @ sim._MeKappaIDeriv(u, v, adjoint=True)
+        np.testing.assert_allclose(vJy, yJtv)
+
+        # u1, y2 -> v2
+        vJy = np.sum(v2 * sim._MeKappaIDeriv(u, y2))
+        yJtv = np.sum(y2 * sim._MeKappaIDeriv(u, v2, adjoint=True))
+        np.testing.assert_allclose(vJy, yJtv)
+
+        # u2, y1 -> v2_2
+        vJy = np.sum(v2_2 * sim._MeKappaIDeriv(u2, y))
+        yJtv = np.sum(y * sim._MeKappaIDeriv(u2, v2_2, adjoint=True))
+        np.testing.assert_allclose(vJy, yJtv)
+
+        # u2, y2 -> v3
+        vJy = np.sum(v3 * sim._MeKappaIDeriv(u2, y2))
+        yJtv = np.sum(y2 * sim._MeKappaIDeriv(u2, v3, adjoint=True))
+        np.testing.assert_allclose(vJy, yJtv)
+
+    def test_Me_deriv(self):
+        """Test Me deriv."""
+        u = np.random.randn(self.mesh.n_edges)
+        sim = self.sim
+        x0 = self.start_mod
+
+        def f(x):
+            sim.model = x
+            d = sim._MeKappa @ u
+
+            def Jvec(v):
+                sim.model = x0
+                return sim._MeKappaDeriv(u, v)
+
+            return d, Jvec
+
+        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+
+    def test_MeI_deriv(self):
+        """Test MeI derive."""
+        u = np.random.randn(self.mesh.n_edges)
+        sim = self.sim
+        x0 = self.start_mod
+
+        def f(x):
+            sim.model = x
+            d = sim._MeKappaI @ u
+
+            def Jvec(v):
+                sim.model = x0
+                return sim._MeKappaIDeriv(u, v)
+
+            return d, Jvec
+
+        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+
+    def test_Me_adjoint(self):
+        """Test Me adjoint."""
+        n_items = self.mesh.n_edges
+        u = np.random.randn(n_items)
+        sim = self.sim
+        sim.model = self.start_mod
+
+        v = np.random.randn(self.mesh.n_edges)
+        y = np.random.randn(n_items)
+
+        yJv = y @ sim._MeKappaDeriv(u, v)
+        vJty = v @ sim._MeKappaDeriv(u, y, adjoint=True)
+        np.testing.assert_allclose(yJv, vJty)
+
+    def test_MeI_adjoint(self):
+        """Test MeI adjoint."""
+        n_items = self.mesh.n_edges
+        u = np.random.randn(n_items)
+        sim = self.sim
+        sim.model = self.start_mod
+
+        v = np.random.randn(self.mesh.n_edges)
+        y = np.random.randn(n_items)
+
+        yJv = y @ sim._MeKappaIDeriv(u, v)
+        vJty = v @ sim._MeKappaIDeriv(u, y, adjoint=True)
+        np.testing.assert_allclose(yJv, vJty)
+
+
 def test_bad_derivative_stash():
+    """Test bad derivative stash."""
     mesh = discretize.TensorMesh([5, 6, 7])
     sim = SimpleSim(mesh, sigmaMap=maps.ExpMap())
     sim.model = np.random.rand(mesh.n_cells)
@@ -815,6 +1497,7 @@ def test_bad_derivative_stash():
 
 
 def test_solver_defaults(caplog, info_logging):
+    """Test solver defaults."""
     mesh = discretize.TensorMesh([2, 2, 2])
     sim = BasePDESimulation(mesh)
     # Check that logging.info was created
@@ -825,9 +1508,7 @@ def test_solver_defaults(caplog, info_logging):
 
 @pytest.mark.parametrize("solver_class", [pymatsolver.SolverLU, pymatsolver.Solver])
 def test_performance_warning_on_solver(solver_class):
-    """
-    Test PerformanceWarning when setting an inefficient solver.
-    """
+    """Test PerformanceWarning when setting an inefficient solver."""
     mesh = discretize.TensorMesh([2, 2, 2])
     regex = re.escape(
         f"The 'pymatsolver.{solver_class.__name__}' solver might lead to high "
@@ -838,6 +1519,7 @@ def test_performance_warning_on_solver(solver_class):
 
 
 def test_bad_solver():
+    """Test bad solver."""
     mesh = discretize.TensorMesh([2, 2, 2])
     msg = re.escape("BasePDESimulation.solver must be a class")
     with pytest.raises(TypeError, match=msg):
@@ -849,11 +1531,13 @@ def test_bad_solver():
 
 
 def test_mesh_required():
+    """Test mesh required."""
     with pytest.raises(TypeError):
         BasePDESimulation()
 
 
 def test_bad_mesh():
+    """Test bad mesh."""
     with pytest.raises(TypeError):
         # should error on anything besides a discretize.base.BaseMesh
         BasePDESimulation(np.array([1, 2, 3]))
