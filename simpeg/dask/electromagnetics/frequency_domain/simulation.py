@@ -56,7 +56,7 @@ def compute_rows(
     simulation,
     Ainv_deriv_u,
     count,
-    block_shapes,
+    blocks_receiver_derivs,
     deriv_m,
     fields,
     addresses,
@@ -66,50 +66,50 @@ def compute_rows(
     """
     Evaluate the sensitivities for the block or data
     """
-    # for ind, shape in zip(indices, block_shapes, strict=True):
-    inds = np.hstack([addresses[ind][1][0] for ind in indices])
-    shape = np.sum(block_shapes)
-    if Ainv_deriv_u.ndim == 1:
-        deriv_columns = Ainv_deriv_u[:, np.newaxis]
-    else:
-        deriv_indices = np.arange(count, count + shape)
-        deriv_columns = Ainv_deriv_u[:, deriv_indices]
+    for ind in indices:
+        if Ainv_deriv_u.ndim == 1:
+            deriv_columns = Ainv_deriv_u[:, np.newaxis]
+        else:
+            deriv_indices = np.arange(
+                count, count + blocks_receiver_derivs[ind].shape[1]
+            )
+            deriv_columns = Ainv_deriv_u[:, deriv_indices]
 
-    source = simulation.survey.source_list[addresses[indices[0]][0][0]]
+        source = simulation.survey.source_list[addresses[ind][0][0]]
 
-    if isinstance(source, PlanewaveXYPrimary):
-        source_fields = fields
-    else:
-        source_fields = fields[:, inds]
+        if isinstance(source, PlanewaveXYPrimary):
+            source_fields = fields
+        else:
+            source_fields = fields[:, addresses[ind][0][0]]
 
-    dA_dmT = simulation.getADeriv(
-        source.frequency,
-        source_fields,
-        deriv_columns,
-        adjoint=True,
-    )
-    dRHS_dmT = simulation.getRHSDeriv(
-        source.frequency,
-        source,
-        deriv_columns,
-        adjoint=True,
-    )
+        dA_dmT = simulation.getADeriv(
+            source.frequency,
+            source_fields,
+            deriv_columns,
+            adjoint=True,
+        )
 
-    du_dmT = -dA_dmT
-    if not isinstance(dRHS_dmT, Zero):
-        du_dmT += dRHS_dmT
-    if not isinstance(deriv_m, Zero):
-        du_dmT += deriv_m
+        dRHS_dmT = simulation.getRHSDeriv(
+            source.frequency,
+            source,
+            deriv_columns,
+            adjoint=True,
+        )
 
-    values = np.array(du_dmT, dtype=complex).reshape((du_dmT.shape[0], -1)).real.T
+        du_dmT = -dA_dmT
+        if not isinstance(dRHS_dmT, Zero):
+            du_dmT += dRHS_dmT
+        if not isinstance(deriv_m, Zero):
+            du_dmT += deriv_m
 
-    inds = np.hstack([addresses[ind][1][1] for ind in indices])
-    if isinstance(Jmatrix, zarr.Array):
-        Jmatrix.set_orthogonal_selection((inds, slice(None)), values)
-    else:
-        Jmatrix[inds, :] = values
+        values = np.array(du_dmT, dtype=complex).reshape((du_dmT.shape[0], -1)).real.T
 
-    count += shape
+        if isinstance(Jmatrix, zarr.Array):
+            Jmatrix.set_orthogonal_selection(
+                (addresses[ind][1][1], slice(None)), values
+            )
+        else:
+            Jmatrix[addresses[ind][1][1], :] = values
 
     return None
 
@@ -309,7 +309,6 @@ def compute_J(self, m, f=None):
             n_threads,
             worker=worker,
         )
-
     for A in Ainv.values():
         A.clean()
 
@@ -351,10 +350,6 @@ def parallel_block_compute(
     block_delayed = []
     block_indices = np.array_split(np.arange(len(addresses)), n_threads)
     for indices in block_indices:
-        if len(indices) == 0:
-            continue
-
-        block_shapes = [blocks_receiver_derivs[ind].shape[1] for ind in indices]
         if client:
             block_delayed.append(
                 client.submit(
@@ -362,7 +357,7 @@ def parallel_block_compute(
                     simulation,
                     ATinvdf_duT,
                     count,
-                    block_shapes,
+                    blocks_receiver_derivs,
                     Zero(),
                     fields_array,
                     addresses,
@@ -380,7 +375,7 @@ def parallel_block_compute(
                         simulation,
                         ATinvdf_duT,
                         count,
-                        block_shapes,
+                        blocks_receiver_derivs,
                         Zero(),
                         fields_array,
                         addresses,
@@ -391,7 +386,7 @@ def parallel_block_compute(
                     shape=(n_rows, m_size),
                 )
             )
-        count += np.sum(block_shapes)
+        count += np.sum([blocks_receiver_derivs[ind].shape[1] for ind in indices])
 
     if client:
         return client.gather(block_delayed)
