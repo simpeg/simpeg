@@ -7,7 +7,7 @@ from ....utils import Zero
 from ...simulation import getJtJdiag, Jvec, Jtvec, Jmatrix
 import numpy as np
 import scipy.sparse as sp
-
+from time import time
 from dask import array, compute, delayed
 from simpeg.dask.utils import get_parallel_blocks
 from simpeg.electromagnetics.natural_source.sources import PlanewaveXYPrimary
@@ -182,7 +182,9 @@ def fields(self, m=None, return_Ainv=False):
         A = self.getA(freq)
         rhs = self.getRHS(freq)
         Ainv_solve = self.solver(sp.csr_matrix(A), **self.solver_opts)
+
         u = Ainv_solve * rhs
+
         sources = self.survey.get_sources_by_frequency(freq)
         f[sources, self._solutionType] = u
         Ainv[freq] = Ainv_solve
@@ -212,7 +214,7 @@ def compute_J(self, m, f=None):
     m_size = m.size
     compute_row_size = np.ceil(self.max_chunk_size / (A_i.A.shape[0] * 32.0 * 1e-6))
     blocks = get_parallel_blocks(
-        self.survey.source_list, compute_row_size, optimize=True
+        self.survey.source_list, compute_row_size, optimize=False
     )
 
     if self.store_sensitivities == "disk":
@@ -238,7 +240,7 @@ def compute_J(self, m, f=None):
 
     fields_array = f[:, self._solutionType]
     blocks_receiver_derivs = []
-
+    ct = time()
     if client:
         fields_array = client.scatter(f[:, self._solutionType], workers=worker)
         fields = client.scatter(f, workers=worker)
@@ -272,13 +274,13 @@ def compute_J(self, m, f=None):
                     block,
                 )
             )
-
+    print(f"Derivatives time: {time() - ct}")
     # Dask process for all derivatives
     if client:
         blocks_receiver_derivs = client.gather(blocks_receiver_derivs)
     else:
         blocks_receiver_derivs = compute(blocks_receiver_derivs)[0]
-
+    ct = time()
     for block_derivs_chunks, addresses_chunks in zip(
         blocks_receiver_derivs, blocks, strict=True
     ):
@@ -293,7 +295,7 @@ def compute_J(self, m, f=None):
             client,
             worker,
         )
-
+    print(f"Solve time: {time() - ct}")
     for A in Ainv.values():
         A.clean()
 
