@@ -7,7 +7,7 @@ from ....utils import Zero
 from ...simulation import getJtJdiag, Jvec, Jtvec, Jmatrix
 import numpy as np
 import scipy.sparse as sp
-from time import time
+
 from dask import array, compute, delayed
 from simpeg.dask.utils import get_parallel_blocks
 from simpeg.electromagnetics.natural_source.sources import PlanewaveXYPrimary
@@ -56,7 +56,7 @@ def compute_rows(
     simulation,
     Ainv_deriv_u,
     count,
-    blocks_receiver_derivs,
+    block_shapes,
     deriv_m,
     fields,
     addresses,
@@ -66,50 +66,50 @@ def compute_rows(
     """
     Evaluate the sensitivities for the block or data
     """
-    for ind in indices:
-        if Ainv_deriv_u.ndim == 1:
-            deriv_columns = Ainv_deriv_u[:, np.newaxis]
-        else:
-            deriv_indices = np.arange(
-                count, count + blocks_receiver_derivs[ind].shape[1]
-            )
-            deriv_columns = Ainv_deriv_u[:, deriv_indices]
+    # for ind, shape in zip(indices, block_shapes, strict=True):
+    inds = np.hstack([addresses[ind][1][0] for ind in indices])
+    shape = np.sum(block_shapes)
+    if Ainv_deriv_u.ndim == 1:
+        deriv_columns = Ainv_deriv_u[:, np.newaxis]
+    else:
+        deriv_indices = np.arange(count, count + shape)
+        deriv_columns = Ainv_deriv_u[:, deriv_indices]
 
-        source = simulation.survey.source_list[addresses[ind][0][0]]
+    source = simulation.survey.source_list[addresses[indices[0]][0][0]]
 
-        if isinstance(source, PlanewaveXYPrimary):
-            source_fields = fields
-        else:
-            source_fields = fields[:, addresses[ind][0][0]]
+    if isinstance(source, PlanewaveXYPrimary):
+        source_fields = fields
+    else:
+        source_fields = fields[:, inds]
 
-        dA_dmT = simulation.getADeriv(
-            source.frequency,
-            source_fields,
-            deriv_columns,
-            adjoint=True,
-        )
+    dA_dmT = simulation.getADeriv(
+        source.frequency,
+        source_fields,
+        deriv_columns,
+        adjoint=True,
+    )
+    dRHS_dmT = simulation.getRHSDeriv(
+        source.frequency,
+        source,
+        deriv_columns,
+        adjoint=True,
+    )
 
-        dRHS_dmT = simulation.getRHSDeriv(
-            source.frequency,
-            source,
-            deriv_columns,
-            adjoint=True,
-        )
+    du_dmT = -dA_dmT
+    if not isinstance(dRHS_dmT, Zero):
+        du_dmT += dRHS_dmT
+    if not isinstance(deriv_m, Zero):
+        du_dmT += deriv_m
 
-        du_dmT = -dA_dmT
-        if not isinstance(dRHS_dmT, Zero):
-            du_dmT += dRHS_dmT
-        if not isinstance(deriv_m, Zero):
-            du_dmT += deriv_m
+    values = np.array(du_dmT, dtype=complex).reshape((du_dmT.shape[0], -1)).real.T
 
-        values = np.array(du_dmT, dtype=complex).reshape((du_dmT.shape[0], -1)).real.T
+    inds = np.hstack([addresses[ind][1][1] for ind in indices])
+    if isinstance(Jmatrix, zarr.Array):
+        Jmatrix.set_orthogonal_selection((inds, slice(None)), values)
+    else:
+        Jmatrix[inds, :] = values
 
-        if isinstance(Jmatrix, zarr.Array):
-            Jmatrix.set_orthogonal_selection(
-                (addresses[ind][1][1], slice(None)), values
-            )
-        else:
-            Jmatrix[addresses[ind][1][1], :] = values
+    count += shape
 
     return None
 
@@ -253,7 +253,7 @@ def compute_J(self, m, f=None):
 
     fields_array = f[:, self._solutionType]
     blocks_receiver_derivs = []
-    ct = time()
+
     if client:
         fields_array = client.scatter(f[:, self._solutionType], workers=worker)
         fields = client.scatter(f, workers=worker)
@@ -293,8 +293,7 @@ def compute_J(self, m, f=None):
         blocks_receiver_derivs = client.gather(blocks_receiver_derivs)
     else:
         blocks_receiver_derivs = compute(blocks_receiver_derivs)[0]
-    print(f"Derivatives time: {time() - ct}")
-    ct = time()
+
     for block_derivs_chunks, addresses_chunks in zip(
         blocks_receiver_derivs, blocks, strict=True
     ):
@@ -310,7 +309,7 @@ def compute_J(self, m, f=None):
             n_threads,
             worker=worker,
         )
-    print(f"Solve time: {time() - ct}")
+
     for A in Ainv.values():
         A.clean()
 
@@ -352,6 +351,10 @@ def parallel_block_compute(
     block_delayed = []
     block_indices = np.array_split(np.arange(len(addresses)), n_threads)
     for indices in block_indices:
+        if len(indices) == 0:
+            continue
+
+        block_shapes = [blocks_receiver_derivs[ind].shape[1] for ind in indices]
         if client:
             block_delayed.append(
                 client.submit(
@@ -359,7 +362,7 @@ def parallel_block_compute(
                     simulation,
                     ATinvdf_duT,
                     count,
-                    blocks_receiver_derivs,
+                    block_shapes,
                     Zero(),
                     fields_array,
                     addresses,
@@ -377,7 +380,7 @@ def parallel_block_compute(
                         simulation,
                         ATinvdf_duT,
                         count,
-                        blocks_receiver_derivs,
+                        block_shapes,
                         Zero(),
                         fields_array,
                         addresses,
@@ -388,7 +391,7 @@ def parallel_block_compute(
                     shape=(n_rows, m_size),
                 )
             )
-        count += np.sum([blocks_receiver_derivs[ind].shape[1] for ind in indices])
+        count += np.sum(block_shapes)
 
     if client:
         return client.gather(block_delayed)
