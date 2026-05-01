@@ -1,4 +1,5 @@
 """3D FDEM simulation classes."""
+
 import numpy as np
 import scipy.sparse as sp
 from discretize.utils import Zero, mkvc
@@ -68,7 +69,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
     fieldsPair = FieldsFDEM
     permittivity = props.PhysicalProperty("Dielectric permittivity (F/m)")
 
-    def __init__(
+    def __init__(  # noqa D107
         self,
         mesh,
         survey=None,
@@ -446,6 +447,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
         For definitions of the discrete magnetic (:math:`\mathbf{s_m}`) and electric
         (:math:`\mathbf{s_e}`) source terms for each simulation, see the *Notes* sections
         of the docstrings for:
+
         * :class:`.frequency_domain.Simulation3DElectricField`
         * :class:`.frequency_domain.Simulation3DMagneticField`
         * :class:`.frequency_domain.Simulation3DCurrentDensity`
@@ -592,13 +594,13 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
     * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and
-    electric source terms, respectively
+      electric source terms, respectively
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
     * :math:`\mathbf{M_f}` is the face inner-product matrix
     * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
-    projected to edges
+      projected to edges
     * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse
-    permeabilities projected to faces
+      permeabilities projected to faces
 
     By cancelling like-terms and combining the discrete expressions to solve for the electric
     field, we obtain:
@@ -609,8 +611,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
     where
 
     * :math:`\mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\sigma}}`
-    * :math:`\mathbf{q} = - i \omega \mathbf{s_e}
-    - i \omega \mathbf{C^T M_{f\frac{1}{\mu}} s_m }`
+    * :math:`\mathbf{q}=-i\omega \mathbf{s_e} - i \omega \mathbf{C^T M_{f\frac{1}{\mu}} s_m }`
 
     """
 
@@ -629,9 +630,9 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         where
 
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
-        projected to edges
+          projected to edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse
-        permeabilities projected to faces
+          permeabilities projected to faces
 
         See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
@@ -669,9 +670,9 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         where
 
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
-        projected to edges
+          projected to edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse
-        permeabilities projected to faces
+          permeabilities projected to faces
 
         See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
@@ -723,9 +724,9 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         where
 
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
-        projected to edges
+          projected to edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse
-        permeabilities projected to faces
+          permeabilities projected to faces
 
         See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
@@ -780,9 +781,9 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         where
 
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
-        projected to edges
+          projected to edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse
-        permeabilities projected to faces
+          permeabilities projected to faces
 
         See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
@@ -836,9 +837,9 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and
-        electric source terms, respectively
+          electric source terms, respectively
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrices for inverse
-        permeabilities projected to faces
+          permeabilities projected to faces
 
         See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
@@ -871,9 +872,9 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic
-        and electric source terms, respectively
+          and electric source terms, respectively
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrices for inverse
-        permeabilities projected to faces
+          permeabilities projected to faces
 
         See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
@@ -1008,13 +1009,13 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 
     * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and
-    electric source terms, respectively
+      electric source terms, respectively
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
     * :math:`\mathbf{M_f}` is the face inner-product matrix
     * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
-    projected to edges
+      projected to edges
     * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse
-    permeabilities projected to faces
+      permeabilities projected to faces
 
     By cancelling like-terms and combining the discrete expressions to solve for the
     magnetic flux density, we obtain:
@@ -1024,9 +1025,8 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 
     where
 
-    * :math:`\mathbf{A} = \mathbf{C M_{e\sigma}^{-1} C^T M_{f\frac{1}{\mu}}}
-    + i\omega \mathbf{I}`
-    * :math:`\mathbf{q} = \mathbf{C M_{e\sigma}^{-1} s_e} - i \omega \mathbf{s_m}`
+    * :math:`\mathbf{A}=\mathbf{C M_{e\sigma}^{-1}C^T M_{f\frac{1}{\mu}}}+i\omega \mathbf{I}`
+    * :math:`\mathbf{q}=\mathbf{C M_{e\sigma}^{-1} s_e} - i \omega \mathbf{s_m}`
 
     """
 
@@ -1047,9 +1047,9 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         * :math:`\mathbf{I}` is the identity matrix
         * :math:`\mathbf{C}` is the curl operator
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
-        projected to edges
+          projected to edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse
-        permeabilities projected to faces
+          permeabilities projected to faces
 
         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
@@ -1094,9 +1094,9 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         * :math:`\mathbf{I}` is the identity matrix
         * :math:`\mathbf{C}` is the curl operator
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
-        projected to edges
+          projected to edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse
-        permeabilities projected to faces
+          permeabilities projected to faces
 
         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
@@ -1160,9 +1160,9 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         * :math:`\mathbf{I}` is the identity matrix
         * :math:`\mathbf{C}` is the curl operator
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
-        projected to edges
+          projected to edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse
-        permeabilities projected to faces
+          permeabilities projected to faces
 
         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
@@ -1221,9 +1221,9 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         * :math:`\mathbf{I}` is the identity matrix
         * :math:`\mathbf{C}` is the curl operator
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
-        projected to edges
+          projected to edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse
-        permeabilities projected to faces
+          permeabilities projected to faces
 
         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
@@ -1284,9 +1284,9 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic
-        and electric source terms, respectively
+          and electric source terms, respectively
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for
-        conductivities projected to edges
+          conductivities projected to edges
 
         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
@@ -1331,9 +1331,9 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic
-        and electric source terms, respectively
+          and electric source terms, respectively
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
-        projected to edges
+          projected to edges
 
         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
@@ -1482,13 +1482,13 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
     * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and
-    electric source terms, respectively
+      electric source terms, respectively
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
     * :math:`\mathbf{M_f}` is the face inner-product matrix
     * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected
-    to faces
+      to faces
     * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected
-    to edges
+      to edges
 
     By cancelling like-terms and combining the discrete expressions to solve for the
     current density, we obtain:
@@ -1527,9 +1527,9 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         where
 
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities
-        projected to faces
+          projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities
-        projected to edges
+          projected to edges
 
         See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
@@ -1572,9 +1572,9 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         where
 
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities
-        projected to faces
+          projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities
-        projected to edges
+          projected to edges
 
         See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
@@ -1631,9 +1631,9 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         where
 
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities
-        projected to faces
+          projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities
-        projected to edges
+          projected to edges
 
         See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
@@ -1697,9 +1697,9 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         where
 
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities
-        projected to faces
+          projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities
-        projected to edges
+          projected to edges
 
         See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
@@ -1760,9 +1760,9 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic
-        and electric source terms, respectively
+          and electric source terms, respectively
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrices for permeabilities
-        projected to edges
+          projected to edges
 
         See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
@@ -1800,9 +1800,9 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and
-        electric source terms, respectively
+          electric source terms, respectively
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrices for permeabilities
-        projected to edges
+          projected to edges
 
         See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
@@ -1954,13 +1954,13 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
 
     * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and
-    electric source terms, respectively
+      electric source terms, respectively
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
     * :math:`\mathbf{M_f}` is the face inner-product matrix
     * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities
-    projected to faces
+      projected to faces
     * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities
-    projected to edges
+      projected to edges
 
     By cancelling like-terms and combining the discrete expressions to solve for the
     magnetic field, we obtain:
@@ -1991,9 +1991,9 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         where
 
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities
-        projected to faces
+          projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities
-        projected to edges
+          projected to edges
 
         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
         for a full description of the formulation.
@@ -2031,9 +2031,9 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         where
 
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities
-        projected to faces
+          projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities
-        projected to edges
+          projected to edges
 
         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
         for a full description of the formulation.
@@ -2087,9 +2087,9 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         where
 
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities
-        projected to faces
+          projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities
-        projected to edges
+          projected to edges
 
         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
         for a full description of the formulation.
@@ -2145,9 +2145,9 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         where
 
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities
-        projected to faces
+          projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities
-        projected to edges
+          projected to edges
 
         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
         for a full description of the formulation.
@@ -2199,11 +2199,11 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
 
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic
-        and electric source terms, respectively
+          and electric source terms, respectively
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrices for permeabilities
-        projected to edges
+          projected to edges
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrices for resistivities
-        projected to faces
+          projected to faces
 
         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
         for a full description of the formulation.
@@ -2242,11 +2242,11 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
 
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic
-        and electric source terms, respectively
+          and electric source terms, respectively
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrices for permeabilities
-        projected to edges
+          projected to edges
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrices for resistivities
-        projected to faces
+          projected to faces
 
         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
         for a full description of the formulation.
@@ -2343,7 +2343,7 @@ class Simulation3DHierarchicalElectricField(
         \vec{J} &= \sigma \vec{E} \\
         \vec{H} &= \mu^{-1} \vec{B}
 
-    We then take the inner products of all previous expressions with a vector test function 
+    We then take the inner products of all previous expressions with a vector test function
     math:`\vec{u}`. Through vector calculus identities and the divergence theorem, we obtain:
 
     .. math::
@@ -2419,9 +2419,8 @@ class Simulation3DHierarchicalElectricField(
 
     where
 
-    * :math:`\mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\Sigma}}`
-    * :math:`\mathbf{q} = - i \omega \mathbf{s_e}
-    - i \omega \mathbf{C^T M_{f\frac{1}{\mu}} s_m }`
+    * :math:`\mathbf{A}=\mathbf{C^T M_{f\frac{1}{\mu}} C}+i\omega \mathbf{M_{e\Sigma}}`
+    * :math:`\mathbf{q}=-i\omega \mathbf{s_e}-i \omega\mathbf{C^T M_{f\frac{1}{\mu}} s_m }`
 
     """
 
@@ -2545,9 +2544,8 @@ class Simulation3DHierarchicalMagneticFluxDensity(
 
     where
 
-    * :math:`\mathbf{A} = \mathbf{C M_{e\Sigma}^{-1} C^T M_{f\frac{1}{\mu}}}
-      + i\omega \mathbf{I}`
-    * :math:`\mathbf{q} = \mathbf{C M_{e\Sigma}^{-1} s_e} - i \omega \mathbf{s_m}`
+    * :math:`\mathbf{A}=\mathbf{C M_{e\Sigma}^{-1}C^T M_{f\frac{1}{\mu}}}+i\omega \mathbf{I}`
+    * :math:`\mathbf{q}=\mathbf{C M_{e\Sigma}^{-1}s_e}-i \omega \mathbf{s_m}`
 
     """
 

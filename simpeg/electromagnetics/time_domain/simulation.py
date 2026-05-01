@@ -1,4 +1,5 @@
 """3D TDEM simulations."""
+
 import numpy as np
 import scipy.sparse as sp
 
@@ -26,7 +27,8 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
     .. math::
         \begin{aligned}
-        \nabla \times \vec{e} + \frac{\partial \vec{b}}{\partial t} &= -\frac{\partial \vec{s}_m}{\partial t} \\
+        \nabla \times \vec{e} + \frac{\partial \vec{b}}{\partial t}
+        &= -\frac{\partial \vec{s}_m}{\partial t} \\
         \nabla \times \vec{h} - \vec{j} &= \vec{s}_e
         \end{aligned}
 
@@ -53,7 +55,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         Threshold used when determining the unique time-step lengths.
     """
 
-    def __init__(self, mesh, survey=None, dt_threshold=1e-8, **kwargs):
+    def __init__(self, mesh, survey=None, dt_threshold=1e-8, **kwargs):  # noqa D107
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.dt_threshold = dt_threshold
         if self.muMap is not None:
@@ -487,14 +489,13 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         return s_m, s_e
 
     def getInitialFields(self):
-        """Returns the fields for all sources at the initial time.
+        """Return the fields for all sources at the initial time.
 
         Returns
         -------
         (n_edges or n_faces, n_sources) numpy.ndarray
             The fields for all sources at the initial time.
         """
-
         Srcs = self.survey.source_list
 
         if self._fieldType in ["b", "j"]:
@@ -533,8 +534,8 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             A TDEM source.
         v : numpy.ndarray
             A vector of appropriate dimension. When `adjoint` is ``False``, `v` is a
-            (n_param,) numpy.ndarray. When `adjoint` is ``True``, `v` is a (n_edges or n_faces,)
-            numpy.ndarray.
+            (n_param,) numpy.ndarray. When `adjoint` is ``True``, `v` is a
+            (n_edges or n_faces,) numpy.ndarray.
         adjoint : bool
             Whether to perform the adjoint operation.
         f : .time_domain.fields.BaseTDEMFields, optional
@@ -677,8 +678,8 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         \vec{j} &= \sigma \vec{e} \\
         \vec{h} &= \mu^{-1} \vec{b}
 
-    We then take the inner products of all previous expressions with a vector test function :math:`\vec{u}`.
-    Through vector calculus identities and the divergence theorem, we obtain:
+    We then take the inner products of all previous expressions with a vector test function
+    :math:`\vec{u}`. Through vector calculus identities and the divergence theorem, we obtain:
 
     .. math::
         & \int_\Omega \vec{u} \cdot (\nabla \times \vec{e}) \, dv
@@ -714,13 +715,13 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
     * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic
-    and electric source terms, respectively
+      and electric source terms, respectively
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
     * :math:`\mathbf{M_f}` is the face inner-product matrix
     * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
-    projected to edges
+      projected to edges
     * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse
-    permeabilities projected to faces
+      permeabilities projected to faces
 
     By cancelling like-terms and combining the discrete expressions in terms of the
     magnetic flux density, we obtain:
@@ -795,7 +796,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{M_{e \sigma}}` is the conductivity inner-product matrix on edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inverse permeability inner-product
-        matrix on faces
+          matrix on faces
 
         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
@@ -816,7 +817,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         C = self.mesh.edge_curl
         MeSigmaI = self.MeSigmaI
         MfMui = self.MfMui
-        I = speye(self.mesh.n_faces)
+        I = speye(self.mesh.n_faces)  # noqa E741
 
         A = 1.0 / dt * I + (C * (MeSigmaI * (C.T.tocsr() * MfMui)))
 
@@ -840,14 +841,14 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{M_{e \sigma}}` is the conductivity inner-product matrix on edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inverse permeability inner-product
-        matrix on faces
+          matrix on faces
 
         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
 
-        Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a vector
-        and :math:`\mathbf{b_k}` is the discrete solution for time-step *k*, this method assumes
-        the discrete solution is fixed and returns
+        Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a
+        vector and :math:`\mathbf{b_k}` is the discrete solution for time-step *k*, this
+        method assumes the discrete solution is fixed and returns
 
         .. math::
             \frac{\partial (\mathbf{A_k \, b_k})}{\partial \mathbf{m}} \, \mathbf{v}
@@ -901,7 +902,8 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         .. math::
             \mathbf{B}_k = -\frac{1}{\Delta t_k} \mathbf{I}
 
-        where :math:`\Delta t_k` is the step length and :math:`\mathbf{I}` is the identity matrix.
+        where :math:`\Delta t_k` is the step length and :math:`\mathbf{I}` is the identity
+        matrix.
 
         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
@@ -933,14 +935,15 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         .. math::
             \mathbf{B}_k = -\frac{1}{\Delta t_k} \mathbf{I}
 
-        where :math:`\Delta t_k` is the step length and :math:`\mathbf{I}` is the identity matrix.
+        where :math:`\Delta t_k` is the step length and :math:`\mathbf{I}` is the identity
+        matrix.
 
         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
 
-        Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a vector
-        and :math:`\mathbf{b_{k-1}}` is the discrete solution for the previous time-step,
-        this method assumes the discrete solution is fixed and returns
+        Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a
+        vector and :math:`\mathbf{b_{k-1}}` is the discrete solution for the previous
+        time-step, this method assumes the discrete solution is fixed and returns
 
         .. math::
             \frac{\partial (\mathbf{B_k \, b_{k-1}})}{\partial \mathbf{m}} \, \mathbf{v}
@@ -992,9 +995,9 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         * :math:`\Delta t_k` is the step length
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and
-        electric source terms, respectively
+          electric source terms, respectively
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
-        projected to edges
+          projected to edges
 
         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
@@ -1034,8 +1037,10 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
         * :math:`\Delta t_k` is the step length
         * :math:`\mathbf{C}` is the discrete curl operator
-        * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
-        * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities projected to edges
+        * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and
+          electric source terms, respectively
+        * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
+          projected to edges
 
         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticFluxDensity`
         for a full description of the formulation.
@@ -1174,13 +1179,13 @@ class Simulation3DElectricField(BaseTDEMSimulation):
 
     * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and
-    electric source terms, respectively
+      electric source terms, respectively
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
     * :math:`\mathbf{M_f}` is the face inner-product matrix
     * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
-    projected to edges
+      projected to edges
     * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse
-    permeabilities projected to faces
+      permeabilities projected to faces
 
     By cancelling like-terms and combining the discrete expressions in terms of the
     electric field, we obtain:
@@ -1241,7 +1246,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
     Fields_Derivs = FieldsDerivativesEB
 
     # @profile
-    def Jtvec(self, m, v, f=None):
+    def Jtvec(self, m, v, f=None):  # noqa D102
         # Doctring inherited from parent class.
         if f is None:
             f = self.fields(m)
@@ -1418,7 +1423,7 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{M_{e \sigma}}` is the conductivity inner-product matrix on edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inverse permeability
-        inner-product matrix on faces
+          inner-product matrix on faces
 
         See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
@@ -1458,14 +1463,14 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{M_{e \sigma}}` is the conductivity inner-product matrix on edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inverse permeability inner-product
-        matrix on faces
+          matrix on faces
 
         See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
 
-        Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a vector
-        and :math:`\mathbf{e_k}` is the discrete solution for time-step *k*, this method assumes
-        the discrete solution is fixed and returns
+        Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a
+        vector and :math:`\mathbf{e_k}` is the discrete solution for time-step *k*, this
+        method assumes the discrete solution is fixed and returns
 
         .. math::
             \frac{\partial (\mathbf{A_k \, e_k})}{\partial \mathbf{m}} \, \mathbf{v}
@@ -1602,9 +1607,9 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         * :math:`\Delta t_k` is the step length
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic
-        and electric source terms, respectively
+          and electric source terms, respectively
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrices for
-        inverse permeabilities projected to faces
+          inverse permeabilities projected to faces
 
         See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
@@ -1641,12 +1646,14 @@ class Simulation3DElectricField(BaseTDEMSimulation):
             - \frac{1}{\Delta t_k} \mathbf{C^T M_{f\frac{1}{\mu}} }
             \big [ \mathbf{s}_{\mathbf{m}, k} - \mathbf{s}_{\mathbf{m}, k-1} \big ]
 
-        
+
 
         * :math:`\Delta t_k` is the step length
         * :math:`\mathbf{C}` is the discrete curl operator
-        * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric source terms, respectively
-        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrices for inverse permeabilities projected to faces
+        * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and
+          electric source terms, respectively
+        * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrices for inverse
+          permeabilities projected to faces
 
         See the *Notes* section of the doc strings for :class:`Simulation3DElectricField`
         for a full description of the formulation.
@@ -1703,9 +1710,9 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         .. math::
             \mathbf{A_{dc}} = \mathbf{G^T \, M_{e\sigma} \, G}
 
-        where :math:`\mathbf{G}` is the nodal gradient operator with imposed boundary conditions,
-        and :math:`\mathbf{M_{e\sigma}}` is the inner product matrix for conductivities
-        projected to edges.
+        where :math:`\mathbf{G}` is the nodal gradient operator with imposed boundary
+        conditions, and :math:`\mathbf{M_{e\sigma}}` is the inner product matrix for
+        conductivities projected to edges.
 
         The electric fields at the initial time :math:`\mathbf{e_0}` are obtained by
         applying the nodal gradient operator. I.e.:
@@ -1755,7 +1762,8 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         Parameters
         ----------
         u : (n_nodes,) numpy.ndarray
-            The solution for the fields for the current model; i.e. electric potentials at nodes.
+            The solution for the fields for the current model; i.e. electric potentials
+            at nodes.
         v : numpy.ndarray
             The vector. (n_param,) for the standard operation. (n_nodes,) for the
             adjoint operation.
@@ -1849,7 +1857,8 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
     set of discrete inner-products:
 
     .. math::
-        &\mathbf{u_e^T C^T M_f \, e } + \mathbf{u_e^T M_e} \frac{\partial \mathbf{b}}{\partial t}
+        &\mathbf{u_e^T C^T M_f \, e }
+        + \mathbf{u_e^T M_e} \frac{\partial \mathbf{b}}{\partial t}
         = - \mathbf{u_e^T} \, \frac{\partial \mathbf{s_m}}{\partial t} \\
         &\mathbf{u_f^T C \, h} - \mathbf{u_f^T j} = \mathbf{u_f^T s_e} \\
         &\mathbf{u_f^T M_f e} = \mathbf{u_f^T M_{f\rho} \, j} \\
@@ -1859,22 +1868,25 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
 
     * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and electric
-    source terms, respectively
+      source terms, respectively
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
     * :math:`\mathbf{M_f}` is the face inner-product matrix
     * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities projected
-    to edges
+      to edges
     * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities projected
-    to faces
+      to faces
 
-    Cancelling like-terms and combining the discrete expressions in terms of the magnetic field, we obtain:
+    Cancelling like-terms and combining the discrete expressions in terms of the magnetic
+    field, we obtain:
 
     .. math::
-        \mathbf{C^T M_{f\rho} C \, h} + \mathbf{M_{e\mu}} \frac{\partial \mathbf{h}}{\partial t}
+        \mathbf{C^T M_{f\rho} C \, h}
+        + \mathbf{M_{e\mu}} \frac{\partial \mathbf{h}}{\partial t}
         = \mathbf{C^T M_{f\rho} s_e} - \frac{\partial \mathbf{s_m}}{\partial t}
 
     Finally, we discretize in time according to backward Euler. The discrete magnetic field
-    on mesh edges at time :math:`t_k > t_0` is obtained by solving the following at each time-step:
+    on mesh edges at time :math:`t_k > t_0` is obtained by solving the following at
+    each time-step:
 
     .. math::
         \mathbf{A}_k \mathbf{h}_k = \mathbf{q}_k - \mathbf{B}_k \mathbf{h}_{k-1}
@@ -1974,9 +1986,9 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
         for a full description of the formulation.
 
-        Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a vector
-        and :math:`\mathbf{h_k}` is the discrete solution for time-step *k*, this method assumes
-        the discrete solution is fixed and returns
+        Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a
+        vector and :math:`\mathbf{h_k}` is the discrete solution for time-step *k*, this
+        method assumes the discrete solution is fixed and returns
 
         .. math::
             \frac{\partial (\mathbf{A_k \, h_k})}{\partial \mathbf{m}} \, \mathbf{v}
@@ -2106,9 +2118,9 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         * :math:`\Delta t_k` is the step length
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic
-        and electric source terms, respectively
+          and electric source terms, respectively
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resisitivites
-        projected to faces
+          projected to faces
 
         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
         for a full description of the formulation.
@@ -2144,9 +2156,9 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
         * :math:`\Delta t_k` is the step length
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and
-        electric source terms, respectively
+          electric source terms, respectively
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resisitivites
-        projected to faces
+          projected to faces
 
         See the *Notes* section of the doc strings for :class:`Simulation3DMagneticField`
         for a full description of the formulation.
@@ -2356,13 +2368,13 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
 
     * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic
-    and electric source terms, respectively
+      and electric source terms, respectively
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
     * :math:`\mathbf{M_f}` is the face inner-product matrix
     * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities
-    projected to edges
+      projected to edges
     * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities
-    projected to faces
+      projected to faces
 
     Cancelling like-terms and combining the discrete expressions in terms of the current
     density, we obtain:
@@ -2487,9 +2499,9 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
 
-        Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a vector
-        and :math:`\mathbf{j_k}` is the discrete solution for time-step *k*, this method assumes
-        the discrete solution is fixed and returns
+        Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a
+        vector and :math:`\mathbf{j_k}` is the discrete solution for time-step *k*, this
+        method assumes the discrete solution is fixed and returns
 
         .. math::
             \frac{\partial (\mathbf{A_k \, j_k})}{\partial \mathbf{m}} \, \mathbf{v}
@@ -2580,9 +2592,9 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
 
-        Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a vector
-        and :math:`\mathbf{j_{k-1}}` is the discrete solution for the previous time-step,
-        this method assumes the discrete solution is fixed and returns
+        Where :math:`\mathbf{m}` are the set of model parameters, :math:`\mathbf{v}` is a
+        vector and :math:`\mathbf{j_{k-1}}` is the discrete solution for the previous
+        time-step, this method assumes the discrete solution is fixed and returns
 
         .. math::
             \frac{\partial (\mathbf{B_k \, j_{k-1}})}{\partial \mathbf{m}} \, \mathbf{v}
@@ -2630,9 +2642,9 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         * :math:`\Delta t_k` is the step length
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and
-        electric source terms, respectively
+          electric source terms, respectively
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities
-        projected to edges
+          projected to edges
 
         See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
@@ -2677,9 +2689,9 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
         * :math:`\Delta t_k` is the step length
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic
-        and electric source terms, respectively
+          and electric source terms, respectively
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities
-        projected to edges
+          projected to edges
 
         See the *Notes* section of the doc strings for :class:`Simulation3DCurrentDensity`
         for a full description of the formulation.
