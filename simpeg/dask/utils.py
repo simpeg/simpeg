@@ -1,5 +1,4 @@
 import numpy as np
-from multiprocessing import cpu_count
 
 
 def compute_chunk_sizes(M, N, target_chunk_size):
@@ -81,7 +80,7 @@ def get_parallel_blocks(
         for block in blocks:
             flatten_blocks += block
 
-        chunks = np.array_split(np.arange(len(flatten_blocks)), cpu_count())
+        chunks = np.array_split(np.arange(len(flatten_blocks)), thread_count)
         return [
             [flatten_blocks[i] for i in chunk] for chunk in chunks if len(chunk) > 0
         ]
