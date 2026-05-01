@@ -34,10 +34,12 @@ class BaseFDEMSimulation(BaseEMSimulation):
         \end{aligned}
 
     where the constitutive relations between fields and fluxes are given by:
+
     * :math:`\vec{J} = \sigma \vec{E}`
     * :math:`\vec{B} = \mu \vec{H}`
 
     and:
+
     * :math:`\vec{S}_m` represents a magnetic source term
     * :math:`\vec{S}_e` represents a current source term
 
@@ -587,6 +589,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         &\mathbf{u_f^T M_f h} = \mathbf{u_f^T M_{f \mu} b}
 
     where
+
     * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and
     electric source terms, respectively
@@ -624,6 +627,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
             \mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\sigma}}
 
         where
+
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
         projected to edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse
@@ -663,6 +667,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
             \mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\sigma}}
 
         where
+
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
         projected to edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse
@@ -716,6 +721,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
             \mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\sigma}}
 
         where
+
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
         projected to edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse
@@ -772,6 +778,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
             \mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\sigma}}
 
         where
+
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
         projected to edges
         * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse
@@ -826,6 +833,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
             \mathbf{q} = - i \omega \mathbf{s_e} - i \omega \mathbf{C^T M_{f\frac{1}{\mu}} s_m }
 
         where
+
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and
         electric source terms, respectively
@@ -860,6 +868,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
             \mathbf{q} = -i \omega \mathbf{s_e} - i \omega \mathbf{C^T M_{f\frac{1}{\mu}} s_m }
 
         where
+
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic
         and electric source terms, respectively
@@ -996,6 +1005,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         &\mathbf{u_f^T M_f h} = \mathbf{u_f^T M_{f \mu} b}
 
     where
+
     * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and
     electric source terms, respectively
@@ -1013,6 +1023,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         \mathbf{A \, b} = \mathbf{q}
 
     where
+
     * :math:`\mathbf{A} = \mathbf{C M_{e\sigma}^{-1} C^T M_{f\frac{1}{\mu}}}
     + i\omega \mathbf{I}`
     * :math:`\mathbf{q} = \mathbf{C M_{e\sigma}^{-1} s_e} - i \omega \mathbf{s_m}`
@@ -1032,6 +1043,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
             \mathbf{A} = \mathbf{C M_{e\sigma}^{-1} C^T M_{f\frac{1}{\mu}}} + i\omega \mathbf{I}
 
         where
+
         * :math:`\mathbf{I}` is the identity matrix
         * :math:`\mathbf{C}` is the curl operator
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
@@ -1078,6 +1090,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
             \mathbf{A} = \mathbf{C M_{e\sigma}^{-1} C^T M_{f\frac{1}{\mu}}} + i\omega \mathbf{I}
 
         where
+
         * :math:`\mathbf{I}` is the identity matrix
         * :math:`\mathbf{C}` is the curl operator
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
@@ -1143,6 +1156,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
             \mathbf{A} = \mathbf{C M_{e\sigma}^{-1} C^T M_{f\frac{1}{\mu}}} + i\omega \mathbf{I}
 
         where
+
         * :math:`\mathbf{I}` is the identity matrix
         * :math:`\mathbf{C}` is the curl operator
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
@@ -1203,6 +1217,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
             \mathbf{A} = \mathbf{C M_{e\sigma}^{-1} C^T M_{f\frac{1}{\mu}}} + i\omega \mathbf{I}
 
         where
+
         * :math:`\mathbf{I}` is the identity matrix
         * :math:`\mathbf{C}` is the curl operator
         * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
@@ -1266,6 +1281,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
             \mathbf{q} = \mathbf{C M_{e\sigma}^{-1} s_e} - i \omega \mathbf{s_m }
 
         where
+
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic
         and electric source terms, respectively
@@ -1312,6 +1328,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
             \mathbf{q} = \mathbf{C M_{e\sigma}^{-1} s_e} - i \omega \mathbf{s_m }
 
         where
+
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic
         and electric source terms, respectively
@@ -1462,6 +1479,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         &\mathbf{u_e^T M_e b} = \mathbf{u_e^T M_{e \mu} h}
 
     where
+
     * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and
     electric source terms, respectively
@@ -1479,6 +1497,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         \mathbf{A \, j} = \mathbf{q}
 
     where
+
     * :math:`\mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T M_{f\rho} + i\omega \mathbf{I}`
     * :math:`\mathbf{q} = - i \omega \mathbf{s_e} - i \omega \mathbf{C M_{e\mu}^{-1} s_m}`
 
@@ -1506,6 +1525,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
             \mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T M_{f\rho}} + i\omega \mathbf{I}
 
         where
+
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities
         projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities
@@ -1550,6 +1570,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
             \mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T M_{f\rho}} + i\omega \mathbf{I}
 
         where
+
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities
         projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities
@@ -1608,6 +1629,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
             \mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T M_{f\rho}} + i\omega \mathbf{I}
 
         where
+
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities
         projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities
@@ -1673,6 +1695,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
             \mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T M_{f\rho}} + i\omega \mathbf{I}
 
         where
+
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities
         projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities
@@ -1734,6 +1757,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
             \mathbf{q} = - i \omega \mathbf{s_e} - i \omega \mathbf{C M_{e\mu}^{-1} s_m}
 
         where
+
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic
         and electric source terms, respectively
@@ -1773,6 +1797,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
             \mathbf{q} = - i \omega \mathbf{s_e} - i \omega \mathbf{C M_{e\mu}^{-1} s_m}
 
         where
+
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and
         electric source terms, respectively
@@ -1926,6 +1951,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         &\mathbf{u_e^T M_e b} = \mathbf{u_e^T M_{e \mu} h}
 
     where
+
     * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic and
     electric source terms, respectively
@@ -1943,6 +1969,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         \mathbf{A \, h} = \mathbf{q}
 
     where
+
     * :math:`\mathbf{A} = \mathbf{C^T M_{f\rho} C} + i\omega \mathbf{M_{e\mu}}`
     * :math:`\mathbf{q} = \mathbf{C^T M_{f\rho} s_e} - i\omega \mathbf{s_m}`
 
@@ -1962,6 +1989,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
             \mathbf{A} = \mathbf{C^T M_{f\rho} C} + i\omega \mathbf{M_{e\mu}}
 
         where
+
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities
         projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities
@@ -2001,6 +2029,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
             \mathbf{A} = \mathbf{C^T M_{f\rho} C} + i\omega \mathbf{M_{e\mu}}
 
         where
+
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities
         projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities
@@ -2056,6 +2085,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
             \mathbf{A} = \mathbf{C^T M_{f\rho} C} + i\omega \mathbf{M_{e\mu}}
 
         where
+
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities
         projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities
@@ -2113,6 +2143,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
             \mathbf{A} = \mathbf{C^T M_{f\rho} C} + i\omega \mathbf{M_{e\mu}}
 
         where
+
         * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities
         projected to faces
         * :math:`\mathbf{M_{e\mu}}` is the inner-product matrix for permeabilities
@@ -2165,6 +2196,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
             \mathbf{q} = \mathbf{C^T M_{f\rho} s_e} - i\omega \mathbf{s_m}
 
         where
+
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic
         and electric source terms, respectively
@@ -2207,6 +2239,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
             \mathbf{q} = \mathbf{C^T M_{f\rho} s_e} - i\omega \mathbf{s_m}
 
         where
+
         * :math:`\mathbf{C}` is the discrete curl operator
         * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic
         and electric source terms, respectively
@@ -2278,8 +2311,16 @@ class Simulation3DHierarchicalElectricField(
     This simulation solves for the electric field at each frequency.
     In this formulation, the electric fields are defined on mesh edges and the
     magnetic flux density is defined on mesh faces; i.e. it is an EB formulation.
-    The hierarchical framework allows electrical properties to be defined at
-    cell centers, mesh faces and/or mesh edges.
+    This simulation adopts the hierarchical framework wherein:
+
+    * Thick structures are parameterized as conductivities at cell centers. This property
+      and the corresponding mapping are set with `sigma` and `sigmaMap`.
+    * Sheet-like structures can be parameterized as conductances on mesh faces. This property
+      and the corresponding mapping are set with `tau` and `tauMap`.
+    * Wire-like structures can be parameterized as area-integrated conductivities on
+      mesh edges. This property and the corresponding mapping as set with `kappa` and
+      `kappaMap`.
+
     See the *Notes* section for a comprehensive description of the formulation.
 
     Notes
@@ -2327,8 +2368,8 @@ class Simulation3DHierarchicalElectricField(
     .. math::
         \int_\Omega \vec{u} \cdot \vec{j} \, dv =&
         \sum_{n}^{nc} \int \vec{u} \cdot \sigma_n \vec{e} \, dv \\
-        + \sum_{n}^{nf} \int \vec{u} \cdot \tau_n \vec{e} \, da \\
-        + \sum_{n}^{ne} \int \vec{u} \cdot \kappa_n \vec{e} \, d\ell
+        &+ \sum_{n}^{nf} \int \vec{u} \cdot \tau_n \vec{e} \, da \\
+        &+ \sum_{n}^{ne} \int \vec{u} \cdot \kappa_n \vec{e} \, d\ell
 
     where :math:`\sigma_n` is the conductivity in cell *n*, :math:`\tau_n` is the face
     conductance on face *n*, and :math:`\kappa_n` is the area-integrated conductivity
@@ -2349,25 +2390,26 @@ class Simulation3DHierarchicalElectricField(
         &\mathbf{u_e^T M_e j} = \mathbf{u_e^T M_{e \Sigma} e} \\
         &\mathbf{u_f^T M_f h} = \mathbf{u_f^T M_{f \mu} b}
 
-    where:
+    where
 
     .. math::
         \mathbf{M_{e\Sigma}} = \mathbf{M_{e\sigma} + M_{e\tau} + M_{e\kappa}}
 
     and
+
     * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic
-    and electric source terms, respectively
+      and electric source terms, respectively
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
     * :math:`\mathbf{M_f}` is the face inner-product matrix
     * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
-    projected to edges
+      projected to edges
     * :math:`\mathbf{M_{e\tau}}` is the inner-product matrix for conductances
-    projected to edges
+      projected to edges
     * :math:`\mathbf{M_{e\kappa}}` is the inner-product matrix for area integrated
-    conductivities projected to edges
+      conductivities projected to edges
     * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse
-    permeabilities projected to faces
+      permeabilities projected to faces
 
     By cancelling like-terms and combining the discrete expressions to solve for
     the electric field, we obtain:
@@ -2376,6 +2418,7 @@ class Simulation3DHierarchicalElectricField(
         \mathbf{A \, e} = \mathbf{q}
 
     where
+
     * :math:`\mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\Sigma}}`
     * :math:`\mathbf{q} = - i \omega \mathbf{s_e}
     - i \omega \mathbf{C^T M_{f\frac{1}{\mu}} s_m }`
@@ -2393,8 +2436,16 @@ class Simulation3DHierarchicalMagneticFluxDensity(
     This simulation solves for the magnetic flux density at each frequency.
     In this formulation, the electric fields are defined on mesh edges and the
     magnetic flux density is defined on mesh faces; i.e. it is an EB formulation.
-    The hierarchical framework allows electrical properties to be defined at
-    cell centers, mesh faces and/or mesh edges.
+    This simulation adopts the hierarchical framework wherein:
+
+    * Thick structures are parameterized as conductivities at cell centers. This property
+      and the corresponding mapping are set with `sigma` and `sigmaMap`.
+    * Sheet-like structures can be parameterized as conductances on mesh faces. This property
+      and the corresponding mapping are set with `tau` and `tauMap`.
+    * Wire-like structures can be parameterized as area-integrated conductivities on
+      mesh edges. This property and the corresponding mapping as set with `kappa` and
+      `kappaMap`.
+
     See the *Notes* section for a comprehensive description of the formulation.
 
     Notes
@@ -2436,6 +2487,20 @@ class Simulation3DHierarchicalMagneticFluxDensity(
 
     Assuming natural boundary conditions, the surface integral is zero.
 
+    The hierarchical approach assumes the existence of infinitessimally thin plate-like
+    regions between adjacent mesh faces and infinitessimally thin wire-like regions
+    between adjacent mesh edges. We re-express the inner-product with Ohm's law as follows:
+
+    .. math::
+        \int_\Omega \vec{u} \cdot \vec{j} \, dv =&
+        \sum_{n}^{nc} \int \vec{u} \cdot \sigma_n \vec{e} \, dv \\
+        &+ \sum_{n}^{nf} \int \vec{u} \cdot \tau_n \vec{e} \, da \\
+        &+ \sum_{n}^{ne} \int \vec{u} \cdot \kappa_n \vec{e} \, d\ell
+
+    where :math:`\sigma_n` is the conductivity in cell *n*, :math:`\tau_n` is the face
+    conductance on face *n*, and :math:`\kappa_n` is the area-integrated conductivity
+    on edge *n*.
+
     The above expressions are discretized in space according to the finite volume method.
     The discrete electric fields :math:`\mathbf{e}` are defined on mesh edges,
     and the discrete magnetic flux densities :math:`\mathbf{b}` are defined on mesh faces.
@@ -2457,19 +2522,20 @@ class Simulation3DHierarchicalMagneticFluxDensity(
         \mathbf{M_{e\Sigma}} = \mathbf{M_{e\sigma} + M_{e\tau} + M_{e\kappa}}
 
     and
+
     * :math:`\mathbf{C}` is the discrete curl operator
     * :math:`\mathbf{s_m}` and :math:`\mathbf{s_e}` are the integrated magnetic
-    and electric source terms, respectively
+      and electric source terms, respectively
     * :math:`\mathbf{M_e}` is the edge inner-product matrix
     * :math:`\mathbf{M_f}` is the face inner-product matrix
     * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for electrical conductivities
-    projected to edges
+      projected to edges
     * :math:`\mathbf{M_{e\tau}}` is the inner-product matrix for conductances
-    projected to edges
+      projected to edges
     * :math:`\mathbf{M_{e\kappa}}` is the inner-product matrix for area integrated
-    conductivities projected to edges
+      conductivities projected to edges
     * :math:`\mathbf{M_{f\frac{1}{\mu}}}` is the inner-product matrix for inverse
-    permeabilities projected to faces
+      permeabilities projected to faces
 
     By cancelling like-terms and combining the discrete expressions to solve for the
     magnetic flux density, we obtain:
@@ -2478,8 +2544,9 @@ class Simulation3DHierarchicalMagneticFluxDensity(
         \mathbf{A \, b} = \mathbf{q}
 
     where
+
     * :math:`\mathbf{A} = \mathbf{C M_{e\Sigma}^{-1} C^T M_{f\frac{1}{\mu}}}
-    + i\omega \mathbf{I}`
+      + i\omega \mathbf{I}`
     * :math:`\mathbf{q} = \mathbf{C M_{e\Sigma}^{-1} s_e} - i \omega \mathbf{s_m}`
 
     """
