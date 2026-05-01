@@ -1,6 +1,4 @@
-"""
-Injection and interpolation map classes.
-"""
+"""Injection and interpolation map classes."""
 
 import discretize
 import numpy as np
@@ -18,11 +16,9 @@ from ..utils.code_utils import deprecate_property
 
 
 class Mesh2Mesh(IdentityMap):
-    """
-    Takes a model on one mesh are translates it to another mesh.
-    """
+    """Takes a model on one mesh are translates it to another mesh."""
 
-    def __init__(self, meshes, active_cells=None, **kwargs):
+    def __init__(self, meshes, active_cells=None, **kwargs):  # noqa D107
         # Sanity checks for the meshes parameter
         try:
             mesh, mesh2 = meshes
@@ -50,11 +46,22 @@ class Mesh2Mesh(IdentityMap):
     # reset to not accepted None for mesh
     @IdentityMap.mesh.setter
     def mesh(self, value):
+        """Return the mesh are mapping to.
+
+        Parameters
+        ----------
+        discretize.base.BaseMesh
+            The mesh where you want to define the new model. The mesh you are mapping to.
+
+        Returns
+        -------
+        discretize.base.BaseMesh
+        """
         self._mesh = validate_type("mesh", value, discretize.base.BaseMesh, cast=False)
 
     @property
     def mesh2(self):
-        """The source mesh used for the mapping.
+        """The mesh you want to map from.
 
         Returns
         -------
@@ -94,6 +101,16 @@ class Mesh2Mesh(IdentityMap):
 
     @property
     def P(self):
+        """Return the mapping operator.
+
+        Mapping from one mesh to another is a linear operation.
+        This property returns the linear operator.
+
+        Returns
+        -------
+        (n_cells_1, n_cells_2) numpy.ndarray
+            The linear operator that maps from mesh 1 to mesh 2.
+        """
         if getattr(self, "_P", None) is None:
             self._P = self.mesh2.get_interpolation_matrix(
                 (
@@ -122,6 +139,23 @@ class Mesh2Mesh(IdentityMap):
         return self.P * m
 
     def deriv(self, m, v=None):
+        """Compute derivative of the mapping with respect to the model.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters
+        v : (n_param,) numpy.ndarray, optional
+            A vector.
+
+        Returns
+        -------
+        numpy.ndarray
+            When *v* is ``None``, a (n_cells, n_param) numpy.ndaray is returned which
+            represents the derivative of the mapping with respect to the model. When
+            *v* is a vector, an (n_cells,) numpy.ndarray representing the derivative of
+            the mapping times the vector is returned.
+        """
         if v is not None:
             return self.P * v
         return self.P
@@ -155,7 +189,7 @@ class InjectActiveCells(IdentityMap):
         The physical property value assigned to all inactive cells in the mesh
     """
 
-    def __init__(
+    def __init__(  # noqa D107
         self,
         mesh,
         active_cells=None,
@@ -244,7 +278,7 @@ class InjectActiveCells(IdentityMap):
 
     @property
     def shape(self):
-        """Dimensions of the mapping
+        """Dimensions of the mapping.
 
         Returns
         -------
@@ -272,7 +306,9 @@ class InjectActiveCells(IdentityMap):
         return self.P * m + self.value_inactive
 
     def inverse(self, u):
-        r"""Recover the model parameters (active cells) from a set of physical
+        r"""Compute the inverse projection operation.
+
+        Recover the model parameters (active cells) from a set of physical
         property values defined on the entire mesh.
 
         For a discrete set of model parameters :math:`\mathbf{m}` defined
@@ -301,7 +337,7 @@ class InjectActiveCells(IdentityMap):
         return self.P.T * u
 
     def deriv(self, m, v=None):
-        r"""Derivative of the mapping with respect to the input parameters.
+        r"""Return derivative of the mapping with respect to the input parameters.
 
         For a discrete set of model parameters :math:`\mathbf{m}` defined
         on a set of active cells, the mapping :math:`\mathbf{u}(\mathbf{m})`
@@ -371,7 +407,7 @@ class InjectActiveFaces(IdentityMap):
 
     """
 
-    def __init__(self, mesh, indActive=None, valInactive=0.0, nF=None):
+    def __init__(self, mesh, indActive=None, valInactive=0.0, nF=None):  # noqa D107
         self.mesh = mesh
         self.nF = nF or mesh.nF
 
@@ -384,7 +420,7 @@ class InjectActiveFaces(IdentityMap):
 
     @property
     def valInactive(self):
-        """The physical property value assigned to all inactive faces in the mesh.
+        """Return physical property value assigned to all inactive faces.
 
         Returns
         -------
@@ -407,18 +443,17 @@ class InjectActiveFaces(IdentityMap):
 
     @property
     def indActive(self):
-        """
+        """Return indices of active mesh faces.
 
         Returns
         -------
         numpy.ndarray of bool
-
         """
         return self._indActive
 
     @property
     def shape(self):
-        """Dimensions of the mapping
+        """Dimensions of the mapping.
 
         Returns
         -------
@@ -446,7 +481,9 @@ class InjectActiveFaces(IdentityMap):
         return self.P * m + self.valInactive
 
     def inverse(self, u):
-        r"""Recover the model parameters (active faces) from a set of physical
+        r"""Compute the inverse projection operation.
+
+        Recover the model parameters (active faces) from a set of physical
         property values defined on the entire mesh.
 
         For a discrete set of model parameters :math:`\mathbf{m}` defined
@@ -475,7 +512,7 @@ class InjectActiveFaces(IdentityMap):
         return self.P.T * u
 
     def deriv(self, m, v=None):
-        r"""Derivative of the mapping with respect to the input parameters.
+        r"""Return derivative of the mapping with respect to the input parameters.
 
         For a discrete set of model parameters :math:`\mathbf{m}` defined
         on a set of active faces, the mapping :math:`\mathbf{u}(\mathbf{m})`
@@ -545,7 +582,7 @@ class InjectActiveEdges(IdentityMap):
 
     """
 
-    def __init__(self, mesh, indActive=None, valInactive=0.0, nE=None):
+    def __init__(self, mesh, indActive=None, valInactive=0.0, nE=None):  # noqa D107
         self.mesh = mesh
         self.nE = nE or mesh.nE
 
@@ -558,7 +595,7 @@ class InjectActiveEdges(IdentityMap):
 
     @property
     def valInactive(self):
-        """The physical property value assigned to all inactive edges in the mesh.
+        """Return physical property value defined for all inactive edges.
 
         Returns
         -------
@@ -581,18 +618,17 @@ class InjectActiveEdges(IdentityMap):
 
     @property
     def indActive(self):
-        """
+        """Return indices of the edges.
 
         Returns
         -------
         numpy.ndarray of bool.
-
         """
         return self._indActive
 
     @property
     def shape(self):
-        """Dimensions of the mapping
+        """Return dimensions of the mapping.
 
         Returns
         -------
@@ -620,7 +656,9 @@ class InjectActiveEdges(IdentityMap):
         return self.P * m + self.valInactive
 
     def inverse(self, u):
-        r"""Recover the model parameters (active edges) from a set of physical
+        r"""Compute the inverse projection operation.
+
+        Recover the model parameters (active edges) from a set of physical
         property values defined on the entire mesh.
 
         For a discrete set of model parameters :math:`\mathbf{m}` defined
@@ -649,7 +687,7 @@ class InjectActiveEdges(IdentityMap):
         return self.P.T * u
 
     def deriv(self, m, v=None):
-        r"""Derivative of the mapping with respect to the input parameters.
+        r"""Return derivative of the mapping with respect to the input parameters.
 
         For a discrete set of model parameters :math:`\mathbf{m}` defined
         on a set of active edges, the mapping :math:`\mathbf{u}(\mathbf{m})`
