@@ -10,8 +10,6 @@ from geoana.em.static import (
 )
 from scipy.constants import mu_0
 
-# from discretize import SimplexMesh  # unused for now
-
 from ...utils import Zero, sdiag
 from ...utils.code_utils import (
     validate_callable,
