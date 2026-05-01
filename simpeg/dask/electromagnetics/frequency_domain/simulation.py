@@ -75,6 +75,7 @@ def compute_rows(
             )
             deriv_columns = Ainv_deriv_u[:, deriv_indices]
 
+        count += blocks_receiver_derivs[ind].shape[1]
         source = simulation.survey.source_list[addresses[ind][0][0]]
 
         if isinstance(source, PlanewaveXYPrimary):
@@ -227,7 +228,10 @@ def compute_J(self, m, f=None):
     m_size = m.size
     compute_row_size = np.ceil(self.max_chunk_size / (A_i.A.shape[0] * 32.0 * 1e-6))
     blocks = get_parallel_blocks(
-        self.survey.source_list, compute_row_size, optimize=False
+        self.survey.source_list,
+        compute_row_size,
+        optimize=False,
+        thread_count=n_threads,
     )
 
     if self.store_sensitivities == "disk":
@@ -336,9 +340,7 @@ def parallel_block_compute(
     n_threads,
     worker=None,
 ):
-    m_size = m.size
     block_stack = sp.hstack(blocks_receiver_derivs).toarray()
-
     ATinvdf_duT = A_i * block_stack
 
     if client:
@@ -367,23 +369,18 @@ def parallel_block_compute(
                 )
             )
         else:
-            n_rows = np.sum([addresses[ind][1][2] for ind in indices])
             delayed_eval = delayed(compute_rows)
             block_delayed.append(
-                array.from_delayed(
-                    delayed_eval(
-                        simulation,
-                        ATinvdf_duT,
-                        count,
-                        blocks_receiver_derivs,
-                        Zero(),
-                        fields_array,
-                        addresses,
-                        Jmatrix,
-                        indices,
-                    ),
-                    dtype=np.float32,
-                    shape=(n_rows, m_size),
+                delayed_eval(
+                    simulation,
+                    ATinvdf_duT,
+                    count,
+                    blocks_receiver_derivs,
+                    Zero(),
+                    fields_array,
+                    addresses,
+                    Jmatrix,
+                    indices,
                 )
             )
         count += np.sum([blocks_receiver_derivs[ind].shape[1] for ind in indices])
