@@ -47,7 +47,6 @@ def times():
 
 def get_survey(receiver_type, orientation, locations, times):
     """Return test survey."""
-
     rx1 = getattr(tdem.receivers, "Point" + receiver_type)(
         locations=locations, times=times, orientation=orientation
     )
@@ -185,7 +184,7 @@ class TestDerivatives:
         locations,
         times,
     ):
-        """Setup test."""
+        """Get setup for tests."""
         survey = get_survey(
             receiver_type,
             orientation,

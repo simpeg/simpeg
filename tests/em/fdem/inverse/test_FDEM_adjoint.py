@@ -1,3 +1,5 @@
+"""Adjoint tests for FDEM problems."""
+
 import numpy as np
 from scipy.constants import mu_0
 from SimPEG.electromagnetics.utils.testing_utils import (
@@ -37,6 +39,7 @@ addrandoms = True
 )
 @pytest.mark.parametrize("sim_type", ["e", "b", "e_hier", "b_hier", "h", "j"])
 def test_adjoint(sim_type, src_type, receiver_type, receiver_dir, receiver_comp):
+    """Perform adjoint test for FDEM problems."""
     rx_type = (receiver_type, receiver_dir, receiver_comp)
     if "hier" in sim_type:
         prb = get_FDEM_hierarchical_problem(sim_type[0], rx_type, [src_type], freq)

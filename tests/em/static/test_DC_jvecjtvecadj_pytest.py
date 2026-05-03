@@ -1,3 +1,5 @@
+"""Derivative and adjoint tests for 3D DC problems."""
+
 import numpy as np
 import pytest
 import discretize
@@ -28,6 +30,7 @@ ABS_TOL = 1e-20
 
 @pytest.fixture
 def base_mesh():
+    """Return test mesh."""
     aSpacing = 2.5
     nElecs = 5
     surveySize = nElecs * aSpacing - aSpacing
@@ -45,16 +48,19 @@ def base_mesh():
 
 @pytest.fixture(params=["dipole-pole", "pole-dipole", "pole-pole"])
 def survey_type(request):
+    """Return survey typs."""
     return request.param
 
 
 @pytest.fixture(params=["volt", "apparent_resistivity"])
 def data_type(request):
+    """Return data type."""
     return request.param
 
 
 @pytest.fixture
 def survey(base_mesh, survey_type, data_type):
+    """Get test survey."""
     mesh, aSpacing, nElecs, surveySize = base_mesh
 
     source_list = dc.utils.WennerSrcList(nElecs, aSpacing, in2D=True)
@@ -80,6 +86,7 @@ def survey(base_mesh, survey_type, data_type):
 
 @pytest.fixture(params=["cell_centered", "nodal"])
 def simulation(request, base_mesh, survey):
+    """Get test simulation."""
     mesh, *_ = base_mesh
 
     if request.param == "cell_centered":
@@ -96,6 +103,7 @@ def simulation(request, base_mesh, survey):
 
 @pytest.fixture
 def inverse_setup(simulation, base_mesh):
+    """Get setup for inversion."""
     mesh, *_ = base_mesh
 
     m0 = np.ones(mesh.nC)
@@ -125,6 +133,7 @@ def inverse_setup(simulation, base_mesh):
 
 
 def test_misfit(inverse_setup):
+    """Test misfit."""
     sim = inverse_setup["simulation"]
     m0 = inverse_setup["m0"]
 
@@ -138,6 +147,7 @@ def test_misfit(inverse_setup):
 
 
 def test_adjoint(inverse_setup):
+    """Test adjoint."""
     sim = inverse_setup["simulation"]
     mesh = inverse_setup["mesh"]
     m0 = inverse_setup["m0"]
@@ -154,6 +164,7 @@ def test_adjoint(inverse_setup):
 
 
 def test_dataObj(inverse_setup):
+    """Test data object."""
     dmis = inverse_setup["dmis"]
     m0 = inverse_setup["m0"]
 
@@ -169,6 +180,7 @@ def test_dataObj(inverse_setup):
 
 @pytest.fixture
 def fields_problem():
+    """Get simulation for fields test."""
     cs = 10
     nc = 20
     npad = 10
@@ -211,6 +223,7 @@ def fields_problem():
 
 
 def test_fields_derivative(fields_problem):
+    """Test derivatives for fields."""
     prob, sigma_map = fields_problem
 
     rng = np.random.default_rng(40)
@@ -223,6 +236,7 @@ def test_fields_derivative(fields_problem):
 
 
 def test_fields_adjoint(fields_problem):
+    """Test adjoint for fields."""
     prob, sigma_map = fields_problem
 
     rng = np.random.default_rng(42)
@@ -249,6 +263,7 @@ def test_fields_adjoint(fields_problem):
 
 @pytest.fixture
 def storeJ_simulation(base_mesh, survey):
+    """Test store J simulation."""
     mesh, *_ = base_mesh
 
     sim = dc.simulation.Simulation3DCellCentered(
@@ -266,6 +281,7 @@ def storeJ_simulation(base_mesh, survey):
 
 
 def test_storeJ_runs(storeJ_simulation):
+    """Test that store J runs."""
     mesh = storeJ_simulation.mesh
     m0 = np.ones(mesh.nC)
 
@@ -279,6 +295,7 @@ def test_storeJ_runs(storeJ_simulation):
 
 
 def test_hierarchical():
+    """Test derivatives for hierarchical physical properties."""
     aSpacing = 2.5
     nElecs = 10
     surveySize = nElecs * aSpacing - aSpacing

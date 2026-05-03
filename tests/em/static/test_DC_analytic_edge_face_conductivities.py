@@ -1,21 +1,18 @@
+"""Analytic tests for hierarchical electrical properties."""
+
 import discretize
 import numpy as np
-import pytest
-from scipy.constants import mu_0
-from simpeg.utils import ndgrid, model_builder
+from simpeg.utils import ndgrid
 from simpeg import maps
 from simpeg.electromagnetics.static import resistivity as dcr
 
 ABS_TOL = 1e-13
 REL_TOL = 0.08
 
-import matplotlib.pyplot as plt
-
 
 # ONLY PASSES IN THE LINEAR REGIME
 def test_layer_conductance_to_analytic():
     """Validate 1D analytic solution for thin layer against layer as face conductances."""
-
     # Some static parameters
     location_a = np.r_[-20, 0, 0]
     locations_m = ndgrid(np.linspace(0, 30, 4), 0, 0)
@@ -98,7 +95,6 @@ def test_layer_conductance_to_analytic():
 
 def test_edge_conductivity():
     """Cross check for a thin conductive wire."""
-
     # Some static parameters
     location_a = np.r_[-40, 0, 0]
     location_b = np.r_[40, 0, 0]

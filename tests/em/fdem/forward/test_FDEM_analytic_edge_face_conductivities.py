@@ -1,3 +1,5 @@
+"""Analytic tests for hierarchical physical properties."""
+
 import discretize
 import numpy as np
 import pytest
@@ -148,7 +150,6 @@ def test_layer_conductance_to_analytic(mesh_type, formulation, rx_type, orientat
 
 def test_edge_conductivity():
     """Cross check for a thin conductive wire."""
-
     # Some static parameters
     location_a = np.r_[-40, 0, 0]
     location_b = np.r_[40, 0, 0]

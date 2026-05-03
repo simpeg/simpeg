@@ -3,7 +3,6 @@
 import discretize
 import numpy as np
 import pytest
-from scipy.constants import mu_0
 from simpeg import maps
 from simpeg.utils import ndgrid
 from simpeg.electromagnetics import time_domain as tdem

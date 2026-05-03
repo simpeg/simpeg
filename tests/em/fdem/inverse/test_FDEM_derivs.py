@@ -1,3 +1,5 @@
+"""Derivative tests for FDEM problems."""
+
 import numpy as np
 from scipy.constants import mu_0
 from discretize.tests import check_derivative
@@ -34,6 +36,7 @@ addrandoms = True
 )
 @pytest.mark.parametrize("sim_type", ["e", "b", "e_hier", "b_hier"])
 def test_deriv(sim_type, src_type, receiver_type, receiver_dir, receiver_comp):
+    """Perform derivative test."""
     rx_type = (receiver_type, receiver_dir, receiver_comp)
 
     if "hier" in sim_type:
