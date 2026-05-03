@@ -25,6 +25,7 @@ ABS_TOL = 1e-20
 # Fixtures
 # =========================
 
+
 @pytest.fixture
 def base_mesh():
     aSpacing = 2.5
@@ -103,9 +104,7 @@ def inverse_setup(simulation, base_mesh):
     dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
     reg = regularization.WeightedLeastSquares(mesh)
 
-    opt = optimization.InexactGaussNewton(
-        maxIterLS=20, maxIter=10, cg_maxiter=6
-    )
+    opt = optimization.InexactGaussNewton(maxIterLS=20, maxIter=10, cg_maxiter=6)
 
     invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
     inv = inversion.BaseInversion(invProb)
@@ -124,6 +123,7 @@ def inverse_setup(simulation, base_mesh):
 # Core tests
 # =========================
 
+
 def test_misfit(inverse_setup):
     sim = inverse_setup["simulation"]
     m0 = inverse_setup["m0"]
@@ -133,7 +133,7 @@ def test_misfit(inverse_setup):
         m0,
         plotIt=False,
         num=3,
-        random_seed=40
+        random_seed=40,
     )
 
 
@@ -158,17 +158,14 @@ def test_dataObj(inverse_setup):
     m0 = inverse_setup["m0"]
 
     assert tests.check_derivative(
-        lambda m: [dmis(m), dmis.deriv(m)],
-        m0,
-        plotIt=False,
-        num=3,
-        random_seed=40
+        lambda m: [dmis(m), dmis.deriv(m)], m0, plotIt=False, num=3, random_seed=40
     )
 
 
 # =========================
 # Fields test (separate)
 # =========================
+
 
 @pytest.fixture
 def fields_problem():
@@ -222,9 +219,7 @@ def test_fields_derivative(fields_problem):
     def fun(x):
         return prob.dpred(x), lambda x: prob.Jvec(x0, x)
 
-    assert tests.check_derivative(
-        fun, x0, num=3, plotIt=False, random_seed=40
-    )
+    assert tests.check_derivative(fun, x0, num=3, plotIt=False, random_seed=40)
 
 
 def test_fields_adjoint(fields_problem):
@@ -250,6 +245,7 @@ def test_fields_adjoint(fields_problem):
 # =========================
 # storeJ cleanup test
 # =========================
+
 
 @pytest.fixture
 def storeJ_simulation(base_mesh, survey):
@@ -281,6 +277,7 @@ def test_storeJ_runs(storeJ_simulation):
 # hierarchical test
 # =========================
 
+
 def test_hierarchical():
     aSpacing = 2.5
     nElecs = 10
@@ -296,9 +293,7 @@ def test_hierarchical():
         "CCN",
     )
 
-    survey = dc.survey.Survey(
-        dc.utils.WennerSrcList(nElecs, aSpacing, in2D=False)
-    )
+    survey = dc.survey.Survey(dc.utils.WennerSrcList(nElecs, aSpacing, in2D=False))
 
     wire_map = maps.Wires(
         ("log_sigma", mesh.n_cells),

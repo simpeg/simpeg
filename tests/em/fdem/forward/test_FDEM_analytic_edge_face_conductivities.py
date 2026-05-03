@@ -9,6 +9,7 @@ from simpeg.electromagnetics import frequency_domain as fdem
 ABS_TOL = 1e-13
 REL_TOL = 0.1
 
+
 @pytest.mark.parametrize("orientation", ["x", "z"])
 @pytest.mark.parametrize("rx_type", ["MagneticFluxDensity"])
 @pytest.mark.parametrize("formulation", ["MagneticFluxDensity", "ElectricField"])
@@ -225,19 +226,27 @@ def test_edge_conductivity():
         rx_sigma = []
         rx_kappa = []
         for comp in ["real", "imag"]:
-            rx_sigma.append(fdem.receivers.PointElectricField(
-                locations=locations_rx, orientation="x", component=comp
-            ))
-            rx_kappa.append(fdem.receivers.PointElectricField(
-                locations=locations_rx, orientation="x", component=comp
-            ))
+            rx_sigma.append(
+                fdem.receivers.PointElectricField(
+                    locations=locations_rx, orientation="x", component=comp
+                )
+            )
+            rx_kappa.append(
+                fdem.receivers.PointElectricField(
+                    locations=locations_rx, orientation="x", component=comp
+                )
+            )
 
-        src_sigma.append(fdem.sources.LineCurrent(
-            rx_sigma, frequency=freq, location=np.c_[location_a, location_b].T
-        ))
-        src_kappa.append(fdem.sources.LineCurrent(
-            rx_kappa, frequency=freq, location=np.c_[location_a, location_b].T
-        ))
+        src_sigma.append(
+            fdem.sources.LineCurrent(
+                rx_sigma, frequency=freq, location=np.c_[location_a, location_b].T
+            )
+        )
+        src_kappa.append(
+            fdem.sources.LineCurrent(
+                rx_kappa, frequency=freq, location=np.c_[location_a, location_b].T
+            )
+        )
 
     survey_sigma = fdem.Survey(src_sigma)
     survey_kappa = fdem.Survey(src_kappa)

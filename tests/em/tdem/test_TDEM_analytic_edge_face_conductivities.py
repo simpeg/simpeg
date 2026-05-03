@@ -1,4 +1,5 @@
 """Numerical tests for hierarchical properties."""
+
 import discretize
 import numpy as np
 import pytest
@@ -15,6 +16,7 @@ CASES_LIST = [
     ("ElectricField", "TREE"),
     ("MagneticFluxDensity", "TREE"),
 ]
+
 
 @pytest.mark.parametrize("formulation, mesh_type", CASES_LIST)
 def test_layer_conductance_to_analytic(formulation, mesh_type):
@@ -151,6 +153,7 @@ def test_layer_conductance_to_analytic(formulation, mesh_type):
     numeric_solution = sim_3d.dpred(tau_3d)
 
     np.testing.assert_allclose(numeric_solution, analytic_solution, rtol=REL_TOL)
+
 
 def test_edge_conductivity():
     """Cross check for a thin conductive wire."""

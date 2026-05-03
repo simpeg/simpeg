@@ -1,4 +1,5 @@
 """Derivative and adjoint tests."""
+
 import pytest
 import numpy as np
 import discretize
@@ -42,6 +43,7 @@ def locations():
 def times():
     """Return receiver times."""
     return np.logspace(-4, -3, 20)
+
 
 def get_survey(receiver_type, orientation, locations, times):
     """Return test survey."""
