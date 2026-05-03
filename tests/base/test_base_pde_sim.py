@@ -1,3 +1,5 @@
+"""Test for base PDE simulations."""
+
 import re
 import pymatsolver
 from simpeg.base import (
@@ -37,7 +39,7 @@ class SimpleSim(BasePDESimulation):
         "Edge conductivity, conductivity times area (Sm)"
     )
 
-    def __init__(
+    def __init__(  # noqa D107
         self,
         mesh,
         survey=None,

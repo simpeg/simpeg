@@ -1,3 +1,5 @@
+"""Tests for mapping objects."""
+
 from copy import deepcopy
 import numpy as np
 import unittest
