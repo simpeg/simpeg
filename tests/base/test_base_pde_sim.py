@@ -1088,7 +1088,7 @@ class TestSimSurfaceProperties(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, random_seed=12312, plotIt=False)
 
     def test_Mf_deriv(self):
         """Test Mf deriv."""
@@ -1106,7 +1106,7 @@ class TestSimSurfaceProperties(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, random_seed=542353, plotIt=False)
 
     def test_MeI_deriv(self):
         """Test MeI derive."""
@@ -1124,7 +1124,7 @@ class TestSimSurfaceProperties(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, random_seed=47594, plotIt=False)
 
     def test_MfI_deriv(self):
         """Test MfI deriv."""
@@ -1142,7 +1142,7 @@ class TestSimSurfaceProperties(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, random_seed=2950, plotIt=False)
 
     def test_Me_adjoint(self):
         """Test Me adjoint."""
@@ -1427,7 +1427,7 @@ class TestSimEdgeProperties(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, random_seed=3284, plotIt=False)
 
     def test_MeI_deriv(self):
         """Test MeI derive."""
@@ -1445,7 +1445,7 @@ class TestSimEdgeProperties(unittest.TestCase):
 
             return d, Jvec
 
-        assert check_derivative(f, x0=x0, num=3, plotIt=False)
+        assert check_derivative(f, x0=x0, num=3, random_seed=4372, plotIt=False)
 
     def test_Me_adjoint(self):
         """Test Me adjoint."""
