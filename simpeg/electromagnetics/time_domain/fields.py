@@ -54,7 +54,7 @@ class FieldsTDEM(TimeFields):
         return self.aliasFields[fieldType][1]
 
     def _eDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
-        if adjoint is True:
+        if adjoint:
             return (
                 self._eDeriv_u(tInd, src, v, adjoint),
                 self._eDeriv_m(tInd, src, v, adjoint),
@@ -62,7 +62,7 @@ class FieldsTDEM(TimeFields):
         return self._eDeriv_u(tInd, src, dun_dm_v) + self._eDeriv_m(tInd, src, v)
 
     def _bDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
-        if adjoint is True:
+        if adjoint:
             return (
                 self._bDeriv_u(tInd, src, v, adjoint),
                 self._bDeriv_m(tInd, src, v, adjoint),
@@ -70,7 +70,7 @@ class FieldsTDEM(TimeFields):
         return self._bDeriv_u(tInd, src, dun_dm_v) + self._bDeriv_m(tInd, src, v)
 
     def _dbdtDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
-        if adjoint is True:
+        if adjoint:
             return (
                 self._dbdtDeriv_u(tInd, src, v, adjoint),
                 self._dbdtDeriv_m(tInd, src, v, adjoint),
@@ -78,7 +78,7 @@ class FieldsTDEM(TimeFields):
         return self._dbdtDeriv_u(tInd, src, dun_dm_v) + self._dbdtDeriv_m(tInd, src, v)
 
     def _hDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
-        if adjoint is True:
+        if adjoint:
             return (
                 self._hDeriv_u(tInd, src, v, adjoint),
                 self._hDeriv_m(tInd, src, v, adjoint),
@@ -86,7 +86,7 @@ class FieldsTDEM(TimeFields):
         return self._hDeriv_u(tInd, src, dun_dm_v) + self._hDeriv_m(tInd, src, v)
 
     def _dhdtDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
-        if adjoint is True:
+        if adjoint:
             return (
                 self._dhdtDeriv_u(tInd, src, v, adjoint),
                 self._dhdtDeriv_m(tInd, src, v, adjoint),
@@ -94,7 +94,7 @@ class FieldsTDEM(TimeFields):
         return self._dhdtDeriv_u(tInd, src, dun_dm_v) + self._dhdtDeriv_m(tInd, src, v)
 
     def _jDeriv(self, tInd, src, dun_dm_v, v, adjoint=False):
-        if adjoint is True:
+        if adjoint:
             return (
                 self._jDeriv_u(tInd, src, v, adjoint),
                 self._jDeriv_m(tInd, src, v, adjoint),
@@ -232,12 +232,12 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
         return dbdt
 
     def _dbdtDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-        if adjoint is True:
+        if adjoint:
             return -self._eDeriv_u(tInd, src, self._edgeCurl.T * dun_dm_v, adjoint)
         return -(self._edgeCurl * self._eDeriv_u(tInd, src, dun_dm_v))
 
     def _dbdtDeriv_m(self, tInd, src, v, adjoint=False):
-        if adjoint is True:
+        if adjoint:
             return -(self._eDeriv_m(tInd, src, self._edgeCurl.T * v, adjoint))
         return -(
             self._edgeCurl * self._eDeriv_m(tInd, src, v)
@@ -251,7 +251,7 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
         return e
 
     def _eDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-        if adjoint is True:
+        if adjoint:
             return self._MfMui.T * (self._edgeCurl * (self._MeSigmaI.T * dun_dm_v))
         return self._MeSigmaI * (self._edgeCurl.T * (self._MfMui * dun_dm_v))
 
@@ -261,7 +261,7 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
 
         _, s_eDeriv = src.evalDeriv(self._times[tInd], self, adjoint=adjoint)
 
-        if adjoint is True:
+        if adjoint:
             return self._MeSigmaIDeriv(
                 -s_e + self._edgeCurl.T * (self._MfMui * bSolution), v, adjoint
             ) - s_eDeriv(self._MeSigmaI.T * v)
@@ -696,7 +696,7 @@ class Fields3DMagneticField(FieldsTDEM):
 
     def _eDeriv_m(self, tInd, src, v, adjoint=False):
         j = mkvc(self[src, "j", tInd])
-        if adjoint is True:
+        if adjoint:
             return self._MfRhoDeriv(
                 j, self.simulation.MfI.T * v, adjoint
             ) + self._jDeriv_m(tInd, src, self._MfRho * v)
@@ -813,7 +813,7 @@ class Fields3DCurrentDensity(FieldsTDEM):
         MfRho = self._MfRho
         MeMuI = self._MeMuI
 
-        if adjoint is True:
+        if adjoint:
             return -MfRho.T * (C * (MeMuI.T * dun_dm_v))
         return -MeMuI * (C.T * (MfRho * dun_dm_v))
 
@@ -822,7 +822,7 @@ class Fields3DCurrentDensity(FieldsTDEM):
         C = self._edgeCurl
         MeMuI = self._MeMuI
 
-        if adjoint is True:
+        if adjoint:
             return -self._MfRhoDeriv(jSolution, C * (MeMuI * v), adjoint)
         return -MeMuI * (C.T * (self._MfRhoDeriv(jSolution, v)))
 
@@ -832,7 +832,7 @@ class Fields3DCurrentDensity(FieldsTDEM):
         )
 
     def _eDeriv_u(self, tInd, src, dun_dm_v, adjoint=False):
-        if adjoint is True:
+        if adjoint:
             return self._MfRho.T * (self.simulation.MfI.T * dun_dm_v)
         return self.simulation.MfI * (self._MfRho * dun_dm_v)
 

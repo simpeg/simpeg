@@ -1,3 +1,5 @@
+"""3D DC resistivity simulation classes."""
+
 import numpy as np
 import scipy.sparse as sp
 
@@ -9,7 +11,7 @@ from ....utils import (
     validate_active_indices,
 )
 from ....data import Data
-from ....base import BaseElectricalPDESimulation
+from ....base import BaseElectricalPDESimulation, BaseHierarchicalElectricalSimulation
 from ....base.pde_simulation import _inner_mat_mul_op
 from .survey import Survey
 from .fields import Fields3DCellCentered, Fields3DNodal
@@ -18,15 +20,34 @@ from discretize.utils import make_boundary_bool
 
 
 class BaseDCSimulation(BaseElectricalPDESimulation):
-    """
-    Base DC Problem
+    r"""Base class for 3D DC resistivity simulation.
+
+    This class is used to define properties and methods necessary for solving the
+    3D direct current resistivity problem using mimetic finite volume. The PDE we are
+    solving is given by:
+
+    .. math::
+        \nabla \cdot \sigma \nabla \phi = - I \delta (r)
+
+    where we are solving for the electric potential :math:`\phi` is the electric potential.
+    The electrical conductivity is given by :math:`\sigma`, and :math:`I \delta (r)`
+    represents current *I* injected at point *r*.
+    Child classes of ``BaseDCSimulation`` solve the above expression numerically
+    for various cases using mimetic finite volume.
+
+    Parameters
+    ----------
+    mesh : discretize.base.BaseMesh
+        The mesh.
+    survey : .resistivity.survey.Survey
+        The DC resistivity survey.
     """
 
     _mini_survey = None
 
     Ainv = None
 
-    def __init__(
+    def __init__(  # noqa D107
         self,
         mesh,
         survey=None,
@@ -64,7 +85,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
     @property
     def storeJ(self):
-        """Whether to store the sensitivity matrix
+        """Whether to store the sensitivity matrix.
 
         Returns
         -------
@@ -78,7 +99,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
     @property
     def surface_faces(self):
-        """Array defining which boundary faces to interpret as surfaces of Neumann boundary
+        """Return which boundary faces to interpret as surfaces of Neumann boundary.
 
         DC problems will always enforce a Neumann boundary on surface interfaces.
         The default (available on semi-structured grids) assumes the top interface
@@ -86,7 +107,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
         Returns
         -------
-        None or (n_bf, ) numpy.ndarray of bool
+        None or (n_bf,) numpy.ndarray of bool
         """
         return self._surface_faces
 
@@ -98,6 +119,18 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         self._surface_faces = value
 
     def fields(self, m=None, calcJ=True):
+        """Compute and return the fields for the model provided.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model.
+
+        Returns
+        -------
+        .resistivity.fields.FieldsDC
+            The DC fields object.
+        """
         if m is not None:
             self.model = m
 
@@ -113,6 +146,28 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return f
 
     def getJ(self, m, f=None):
+        r"""Compute the sensitivity matrix for a given model.
+
+        Where :math:`\mathbf{d}` are the data, :math:`\mathbf{m}` are the model parameters,
+        and the sensitivity matrix is defined as:
+
+        .. math::
+            \mathbf{J} = \dfrac{\partial \mathbf{d}}{\partial \mathbf{m}}
+
+        this method computes and returns the sensitivity matrix.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        f : .resistivity.fields.FieldsDC, optional
+            Fields solved for all sources.
+
+        Returns
+        -------
+        (n_data, n_param) numpy.ndarray
+            The sensitivity matrix times.
+        """
         self.model = m
         if getattr(self, "_Jmatrix", None) is None:
             if f is None:
@@ -120,7 +175,8 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
             self._Jmatrix = self._Jtvec(m, v=None, f=f).T
         return self._Jmatrix
 
-    def dpred(self, m=None, f=None):
+    def dpred(self, m=None, f=None):  # noqa D102
+        # Docstring inherited from parent class.
         if self._mini_survey is not None:
             # Temporarily set self.survey to self._mini_survey
             survey = self.survey
@@ -135,8 +191,30 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return self._mini_survey_data(data)
 
     def getJtJdiag(self, m, W=None, f=None):
-        """
-        Return the diagonal of JtJ
+        r"""Return the diagonal of JtJ.
+
+        Where :math:`\mathbf{d}` are the data, :math:`\mathbf{m}` are the model parameters,
+        and the sensitivity matrix is defined as:
+
+        .. math::
+            \mathbf{J} = \dfrac{\partial \mathbf{d}}{\partial \mathbf{m}}
+
+        this method computes and returns the diagnal elements
+        of :math:`\mathbf{J^T J}`.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        W : (n_param,) numpy.ndarray, optional
+            Cell weights.
+        f : .resistivity.fields.FieldsDC, optional
+            Fields solved for all sources.
+
+        Returns
+        -------
+        (n_param,) numpy.ndarray
+            The diagonal of :math:`\mathbf{J^T J}`.
         """
         if getattr(self, "_gtgdiag", None) is None:
             J = self.getJ(m, f=f)
@@ -154,8 +232,34 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return self._gtgdiag
 
     def Jvec(self, m, v, f=None):
-        """
-        Compute sensitivity matrix (J) and vector (v) product.
+        r"""Compute the sensitivity matrix times a vector.
+
+        Where :math:`\mathbf{d}` are the data, :math:`\mathbf{m}` are the model parameters,
+        and the sensitivity matrix is defined as:
+
+        .. math::
+            \mathbf{J} = \dfrac{\partial \mathbf{d}}{\partial \mathbf{m}}
+
+        this method computes and returns the matrix-vector product:
+
+        .. math::
+            \mathbf{J v}
+
+        for a given vector :math:`v`.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        v : (n_param,) numpy.ndarray
+            The vector.
+        f : .resistivity.fields.FieldsDC, optional
+            Fields solved for all sources.
+
+        Returns
+        -------
+        (n_data,) numpy.ndarray
+            The sensitivity matrix times a vector.
         """
         if f is None:
             f = self.fields(m)
@@ -187,10 +291,35 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return self._mini_survey_data(Jv)
 
     def Jtvec(self, m, v, f=None):
-        """
-        Compute adjoint sensitivity matrix (J^T) and vector (v) product.
-        """
+        r"""Compute the adjoint sensitivity matrix times a vector.
 
+        Where :math:`\mathbf{d}` are the data, :math:`\mathbf{m}` are the model parameters,
+        and the sensitivity matrix is defined as:
+
+        .. math::
+            \mathbf{J} = \dfrac{\partial \mathbf{d}}{\partial \mathbf{m}}
+
+        this method computes and returns the matrix-vector product:
+
+        .. math::
+            \mathbf{J^T v}
+
+        for a given vector :math:`v`.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters.
+        v : (n_data,) numpy.ndarray
+            The vector.
+        f : .resistivity.fields.FieldsDC, optional
+            Fields solved for all sources.
+
+        Returns
+        -------
+        (n_param,) numpy.ndarray
+            The adjoint sensitivity matrix times a vector.
+        """
         if f is None:
             f = self.fields(m)
 
@@ -203,11 +332,11 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return self._Jtvec(m, v=v, f=f)
 
     def _Jtvec(self, m, v=None, f=None):
-        """
-        Compute adjoint sensitivity matrix (J^T) and vector (v) product.
-        Full J matrix can be computed by inputing v=None
-        """
+        """Compute adjoint sensitivity matrix (J^T) and vector (v) product.
 
+        This method does the actual computation of J-transpose times a vector.
+        Or when *v* = ``None``, it returns the full transpose of the sensitivity matrix.
+        """
         if self._mini_survey is not None:
             survey = self._mini_survey
         else:
@@ -263,12 +392,15 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
             return (self._mini_survey_data(Jtv.T)).T
 
     def getSourceTerm(self):
-        """
-        Evaluates the sources, and puts them in matrix form
-        :rtype: tuple
-        :return: q (nC or nN, nSrc)
-        """
+        r"""Return the discrete source term for all sources.
 
+        Returns
+        -------
+        numpy.ndarray
+            The source terms for number of unique source locations.
+            (n_cells, n_sources) for cell centered formulations.
+            (n_nodes, n_sources) for nodal formulations.
+        """
         if getattr(self, "_q", None) is None:
             if self._mini_survey is not None:
                 Srcs = self._mini_survey.source_list
@@ -290,10 +422,21 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
     @property
     def _delete_on_model_update(self):
+        """List of model-dependent attributes to clean upon model update.
+
+        Some of the simulation's attributes are model-dependent. This property specifies
+        the model-dependent attributes that much be cleared when the model is updated.
+
+        Returns
+        -------
+        list of str
+            List of the model-dependent attributes to clean upon model update.
+        """
         toDelete = super()._delete_on_model_update
         return toDelete + ["_Jmatrix", "_gtgdiag"]
 
     def _mini_survey_data(self, d_mini):
+        """Get mini survey data."""
         if self._mini_survey is not None:
             out = d_mini[self._invs[0]]  # AM
             out[self._dipoles[0]] -= d_mini[self._invs[1]]  # AN
@@ -304,6 +447,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         return out
 
     def _mini_survey_dataT(self, v):
+        """Get transpose of mini survey data."""
         if self._mini_survey is not None:
             out = np.zeros(self._mini_survey.nD)
             # Need to use ufunc.at because there could be repeated indices
@@ -319,15 +463,104 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
 
 
 class Simulation3DCellCentered(BaseDCSimulation):
-    """
-    3D cell centered DC problem
+    r"""3D cell centered DC resistivity simulation class.
+
+    Where :math:`\phi` is the electric potential, :math:`\rho` is the electrical resistivity,
+    and :math:`I \delta (r)` represents a grounded source which injects static current *I* at
+    location *r*, the 3D DC resistivity problem is define according to the following PDE:
+
+    .. math::
+        \nabla \cdot \frac{1}{\rho} \nabla \phi = - I \delta (r)
+
+    The ``Simulation3DCellCentered`` class uses the mimetic finite volume approach to solve for
+    the discrete electric potentials at cell centers. See the *Notes* section for a
+    comprehensive description of the formulation.
+
+    Notes
+    -----
+    To derive the discrete solution, we start by considering Ampere's law and Faraday's law.
+    In the static regime, all time-derivative are zero. By also taking the divergence of
+    Ampere's law, we obtain:
+
+    .. math::
+        &\nabla \times \vec{e} = 0\\
+        &\nabla \cdot \vec{j} = - \nabla \cdot \vec{j}_s
+
+    where :math:`\vec{e}` is the electric field, :math:`\vec{j}` is the current density outside
+    the grounded source and and :math:`\vec{j}_s` is the source current density. The constitutive
+    relation between the electric field and current density is given by Ohm's law:
+
+    .. math::
+        \vec{e} = \rho \vec{j}
+
+    where :math:`\rho` is the electrical resistivity.
+
+    Faraday's law implies the electric field can be defined as the gradient of a scalar
+    potential :math:`\phi` as follows:
+
+    .. math::
+        \phi = -\nabla \phi
+
+    For a source representing current *I* injected at point *r*, the static form of Ampere's
+    law becomes:
+
+    .. math::
+        \nabla \cdot \vec{j} = - I \delta (r)
+
+    For a vector test function :math:`\vec{u}` and a scalar test function :math:`\psi`, we
+    take the inner products with the three previous equations. Through vector calculus
+    identities and the divergence theorem, we obtain:
+
+    .. math::
+        & \int_\Omega \vec{u} \cdot \vec{e} \, dv
+        = \int_\Omega \vec{u} \cdot \rho \vec{j} \, dv \\
+        & \int_\Omega \psi ( \nabla \cdot \vec{j} ) \, dv =
+        - I \int_\Omega \psi \, \delta (r) \, dv \\
+        & \int_\Omega \vec{u} \cdot \vec{e} \, dv =
+        \int_\Omega (\nabla \cdot \vec{u}) \phi \, dv
+        - \oint_{\partial \Omega} (\vec{u} \cdot \hat{n} ) \, \phi \, da
+
+    where the surface integral defines the boundary conditions.
+
+    The above expressions are discretized in space according to the finite volume method.
+    The discrete current densities :math:`\mathbf{j}` are defined on mesh faces,
+    and the discrete electric potential :math:`\boldsymbol{\phi}` are defined at cell centers.
+    This implies :math:`\mathbf{u}` and :math:`\mathbf{e}` must be defined on mesh faces,
+    and :math:`\boldsymbol{\psi}` must be defined at cell centers. We obtain the following
+    set of discrete inner-products:
+
+    .. math::
+        &\mathbf{u^T M_f \, e} = \mathbf{u^T M_{f\rho} \, j} \\
+        &\boldsymbol{\psi^T} \mathbf{M_c D j} = \boldsymbol{\psi^T} \mathbf{q} \\
+        &\mathbf{u^T M_f e} = \mathbf{u^T (D^T - B ) M_c} \boldsymbol{\phi}
+
+    where
+
+    * :math:`\mathbf{D}` is the divergence operator (faces to cell centers)
+    * :math:`\mathbf{q}` is an integrated source term
+    * :math:`\mathbf{B}` is a matrix that implements boundary conditions
+    * :math:`\mathbf{M_c}` is the cell inner-product matrix
+    * :math:`\mathbf{M_f}` is the face inner-product matrix
+    * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities
+      projected to faces
+
+    By combining the discrete equations to form a discrete solution in terms of the
+    discrete electric potential on mesh nodes, we obtain:
+
+    .. math::
+        \big [ \mathbf{M_c D M_{r\rho}^{-1} (D^T - B ) M_c} \big ] \boldsymbol{\phi}
+        = \mathbf{q}
+
+    Note that :math:`\mathbf{D^T - B}` is effectively a gradient operator that has been
+    modified to implement the boundary conditions.
+
     """
 
     _solutionType = "phiSolution"
     _formulation = "HJ"  # CC potentials means J is on faces
     fieldsPair = Fields3DCellCentered
 
-    def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
+    def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):  # noqa D107
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.bc_type = bc_type
         self.setBC()
@@ -353,11 +586,32 @@ class Simulation3DCellCentered(BaseDCSimulation):
         )
 
     def getA(self, resistivity=None):
-        """
-        Make the A matrix for the cell centered DC resistivity problem
-        A = D MfRhoI G
-        """
+        r"""Return the system matrix.
 
+        This method generates and returns the system matrix for the cell-centered DC
+        resistivity problem. The system matrix is given by:
+
+        .. math::
+            \mathbf{A} = \mathbf{M_c D M_{f\rho} (G - B) M_c}
+
+        where
+
+        * :math:`\mathbf{D}` is the divergence operator (faces to cell centers)
+        * :math:`\mathbf{B}` is a matrix that implements boundary conditions
+        * :math:`\mathbf{M_c}` is the cell inner-product matrix
+        * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities
+          projected to faces
+
+        Parameters
+        ----------
+        resistivity : (n_cells,) numpy.ndarray
+            Electrical resistivities defined at cell centers
+
+        Returns
+        -------
+        (n_cells, n_cells) sp.sparse.csr_matrix
+            The system matrix.
+        """
         D = self.Div
         G = self.Grad
         if resistivity is None:
@@ -379,6 +633,55 @@ class Simulation3DCellCentered(BaseDCSimulation):
         return A
 
     def getADeriv(self, u, v, adjoint=False):
+        r"""Get cnductivity derivative operation for the system matrix times a vector.
+
+        The system matrix is given by:
+
+        .. math::
+            \mathbf{A} = \mathbf{M_c D M_{f\rho} (G - B) M_c}
+
+        where
+
+        * :math:`\mathbf{D}` is the divergence operator (faces to cell centers)
+        * :math:`\mathbf{B}` is a matrix that implements boundary conditions
+        * :math:`\mathbf{M_c}` is the cell inner-product matrix
+        * :math:`\mathbf{M_{f\rho}}` is the inner-product matrix for resistivities
+          projected to faces
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DCellCentered`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}` are the set of model parameters defining the
+        electromagnetic properties :math:`\mathbf{v}` is a vector and
+        :math:`\boldsymbol{\phi}` is the discrete electric potential solution, this
+        method assumes the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{A} \, \boldsymbol{\phi})}{\partial \mathbf{m}} \,
+            \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{A} \, \boldsymbol{\phi})}{\partial \mathbf{m}}^T
+            \, \mathbf{v}
+
+        Parameters
+        ----------
+        u : (n_cells,) numpy.ndarray
+            The solution for the electric potentials.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (n_cells,) for the adjoint
+            operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (n_cells,) for the standard operation.
+            (n_param,) for the adjoint operation.
+        """
         if self.rhoMap is not None:
             D = self.Div
             G = self.Grad
@@ -391,25 +694,35 @@ class Simulation3DCellCentered(BaseDCSimulation):
         return Zero()
 
     def getRHS(self):
-        """
-        RHS for the DC problem
-        q
-        """
+        """Compute and return right-hand sides for all sources.
 
+        For This method computes and returns the right-hand sides used to solve the
+        discrete finite volume solution for all sources.
+
+        Returns
+        -------
+        (n_cells, n_sources) numpy.ndarray
+            The right-hand sides.
+        """
         RHS = self.getSourceTerm()
 
         return RHS
 
     def getRHSDeriv(self, source, v, adjoint=False):
+        """Get derivative of the right-hand side with respect to the model.
+
+        For ``Simulation3DCellCentered``, the derivative of the right-hand side with respect
+        to the model is zero.
+
+        Returns
+        -------
+        simpeg.utils.Zero
+            The SimPEG zero operator.
         """
-        Derivative of the right hand side with respect to the model
-        """
-        # TODO: add qDeriv for RHS depending on m
-        # qDeriv = source.evalDeriv(self, adjoint=adjoint)
-        # return qDeriv
         return Zero()
 
     def setBC(self):
+        """Set the boundary conditions for the gradient operator."""
         mesh = self.mesh
         V = sp.diags(mesh.cell_volumes)
         self.Div = V @ mesh.face_divergence
@@ -464,7 +777,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
                         is_t[:, :, -1] = True
                     is_t = is_t.reshape(-1, order="F")[is_b]
                     not_top = np.ones(boundary_faces.shape[0], dtype=bool)
-                    not_top[-len(is_t) :] = ~is_t
+                    not_top[-len(is_t) :] = ~is_t  # noqa E203
                     self.surface_faces = ~not_top
                 else:
                     raise NotImplementedError(
@@ -481,15 +794,102 @@ class Simulation3DCellCentered(BaseDCSimulation):
 
 
 class Simulation3DNodal(BaseDCSimulation):
-    """
-    3D nodal DC problem
+    r"""3D nodal DC resistivity simulation class.
+
+    Where :math:`\phi` is the electric potential, :math:`\sigma` is the electrical conductivity,
+    and :math:`I \delta (r)` represents a grounded source which injects static current *I* at
+    location *r*, the DC resistivity problem is given by:
+
+    .. math::
+        \nabla \cdot \sigma \nabla \phi = - I \delta (r)
+
+    The ``Simulation3DNodal`` class uses the mimetic finite volume approach to solve for
+    the discrete electric potentials at mesh nodes. See the *Notes* section for a
+    comprehensive description of the formulation.
+
+    Notes
+    -----
+    To derive the discrete solution, we start by considering Ampere's law and Faraday's law.
+    In the static regime, all time-derivative are zero. By also taking the divergence of
+    Ampere's law, we obtain:
+
+    .. math::
+        &\nabla \times \vec{e} = 0\\
+        &\nabla \cdot \vec{j} = - \nabla \cdot \vec{j}_s
+
+    where :math:`\vec{e}` is the electric field, :math:`\vec{j}` is the current density outside
+    the grounded source and and :math:`\vec{j}_s` is the source current density. The constitutive
+    relation between the electric field and current density is given by Ohm's law:
+
+    .. math::
+        \vec{j} = \sigma \vec{e}
+
+    where :math:`\sigma` is the electrical conductivity.
+
+    Faraday's law implies the electric field can be defined as the gradient of a scalar
+    potential :math:`\phi` as follows:
+
+    .. math::
+        \phi = -\nabla \phi
+
+    For a source representing current *I* injected at point *r*, the static form of Ampere's
+    law becomes:
+
+    .. math::
+        \nabla \cdot \vec{j} = - I \delta (r)
+
+    For a vector test function :math:`\vec{u}` and a scalar test function :math:`\psi`, we
+    take the inner products with the three previous equations. Through vector calculus
+    identities and the divergence theorem, we obtain:
+
+    .. math::
+        & \int_\Omega \vec{u} \cdot \vec{j} \, dv =
+        \int_\Omega \vec{u} \cdot \sigma \vec{e} \, dv \\
+        & \int_\Omega \vec{u} \cdot \vec{e} \, dv =
+        - \int_\Omega \vec{u} \cdot \nabla \phi \, dv \\
+        & -\int_\Omega \nabla \psi \cdot \vec{j} \, dv
+        +\oint_{\partial \Omega} \psi (\vec{j} \cdot \hat{n}) \, da =
+        -I \int_\Omega \psi \, \delta (r) dv
+
+    where the surface integral defines the boundary conditions.
+
+    The above expressions are discretized in space according to the finite volume method.
+    The discrete electric fields :math:`\mathbf{e}` are defined on mesh edges,
+    and the discrete electric potentials :math:`\boldsymbol{\phi}` are defined on nodes.
+    This implies :math:`\mathbf{j}` and :math:`\mathbf{u}` must be defined on mesh edges,
+    and :math:`\boldsymbol{\psi}` must be defined on nodes. We obtain the following
+    set of discrete inner-products:
+
+    .. math::
+        &\mathbf{u^T M_e \, j} = \mathbf{u^T M_{e\sigma} \, e} \\
+        &\mathbf{u^T M_e \, e} = -\mathbf{u^T M_e G} \boldsymbol{\phi} \\
+        &-\boldsymbol{\psi} \mathbf{(G^T - B) M_e \, j} = \boldsymbol{\psi} \mathbf{q}
+
+    where
+
+    * :math:`\mathbf{G}` is the nodal gradient operator
+    * :math:`\mathbf{q}` is an integrated source term
+    * :math:`\mathbf{B}` is a matrix that applies boundary conditions
+    * :math:`\mathbf{M_e}` is the edge inner-product matrix
+    * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
+      projected to edges
+
+    By combining the discrete equations to form a discrete solution in terms of the
+    discrete electric potential on mesh nodes, we obtain:
+
+    .. math::
+        \big [ \mathbf{(G^T - B) M_{e\sigma} G} \big ] \boldsymbol{\phi} = \mathbf{q}
+
+    Note that :math:`\mathbf{G^T - B}` effectively acts as a divergence operator in which
+    boundary conditions have been applied.
+
     """
 
     _solutionType = "phiSolution"
     _formulation = "EB"  # N potentials means B is on faces
     fieldsPair = Fields3DNodal
 
-    def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
+    def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):  # noqa 107
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         # Not sure why I need to do this
         # To evaluate mesh.aveE2CC, this is required....
@@ -502,7 +902,7 @@ class Simulation3DNodal(BaseDCSimulation):
 
     @property
     def bc_type(self):
-        """Type of boundary condition to use for simulation.
+        """Get type of boundary condition to use for simulation.
 
         Returns
         -------
@@ -521,9 +921,30 @@ class Simulation3DNodal(BaseDCSimulation):
         )
 
     def getA(self, resistivity=None):
-        """
-        Make the A matrix for the cell centered DC resistivity problem
-        A = G.T MeSigma G
+        r"""Return the system matrix.
+
+        This method generates and returns the system matrix for the nodal DC
+        resistivity problem. The system matrix is given by:
+
+        .. math::
+            \mathbf{A} = \mathbf{(G^T - B) M_{e\sigma} G}
+
+        where
+
+        * :math:`\mathbf{G}` is the nodal gradient operator
+        * :math:`\mathbf{B}` is a matrix that implements boundary conditions
+        * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
+          projected to edges
+
+        Parameters
+        ----------
+        resistivity : (n_cells,) numpy.ndarray
+            Electrical resistivities defined at cell centers
+
+        Returns
+        -------
+        (n_nodes, n_nodes) sp.sparse.csr_matrix
+            The system matrix.
         """
         if resistivity is None:
             MeSigma = self.MeSigma
@@ -555,9 +976,53 @@ class Simulation3DNodal(BaseDCSimulation):
         return A
 
     def getADeriv(self, u, v, adjoint=False):
-        """
-        Product of the derivative of our system matrix with respect to the
-        model and a vector
+        r"""Get cnductivity derivative operation for the system matrix times a vector.
+
+        The system matrix is given by:
+
+        .. math::
+            \mathbf{A} = \mathbf{(G^T - B) M_{e\sigma} G}
+
+        where
+
+        * :math:`\mathbf{G}` is the nodal gradient operator
+        * :math:`\mathbf{B}` is a matrix that implements boundary conditions
+        * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
+          projected to edges
+
+        See the *Notes* section of the doc strings for :class:`Simulation3DNodal`
+        for a full description of the formulation.
+
+        Where :math:`\mathbf{m}` are the set of model parameters defining the
+        electromagnetic properties :math:`\mathbf{v}` is a vector and
+        :math:`\boldsymbol{\phi}` is the discrete electric potential solution, this
+        method assumes the discrete solution is fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{A} \, \boldsymbol{\phi})}{\partial \mathbf{m}} \,
+            \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{A} \, \boldsymbol{\phi})}{\partial \mathbf{m}}^T
+            \, \mathbf{v}
+
+        Parameters
+        ----------
+        u : (n_nodes,) numpy.ndarray
+            The solution for the electric potentials.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (n_nodes,) for the adjoint
+            operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of system matrix times a vector. (n_nodes,) for the standard operation.
+            (n_param,) for the adjoint operation.
         """
         Grad = self.mesh.nodal_gradient
         if not adjoint:
@@ -571,6 +1036,7 @@ class Simulation3DNodal(BaseDCSimulation):
         return out
 
     def setBC(self):
+        """Set boundary conditions for the divergence operation."""
         if self.bc_type == "Dirichlet":
             # do nothing
             raise ValueError(
@@ -624,7 +1090,7 @@ class Simulation3DNodal(BaseDCSimulation):
                         is_t[:, :, -1] = True
                     is_t = is_t.reshape(-1, order="F")[is_b]
                     not_top = np.ones(boundary_faces.shape[0], dtype=bool)
-                    not_top[-len(is_t) :] = ~is_t
+                    not_top[-len(is_t) :] = ~is_t  # noqa E203
                 else:
                     raise NotImplementedError(
                         f"Unable to infer surface boundaries for {type(mesh)}, please "
@@ -644,30 +1110,169 @@ class Simulation3DNodal(BaseDCSimulation):
             self._AvgBC = AvgN2Fb.T @ AvgCC2Fb
 
     def getRHS(self):
-        """
-        RHS for the DC problem
-        q
-        """
+        """Compute and return right-hand sides for all sources.
 
+        For This method computes and returns the right-hand sides used to solve the
+        discrete finite volume solution for all sources.
+
+        Returns
+        -------
+        (n_nodes, n_sources) numpy.ndarray
+            The right-hand sides.
+        """
         RHS = self.getSourceTerm()
         return RHS
 
     def getRHSDeriv(self, source, v, adjoint=False):
+        """Get derivative of the right-hand side with respect to the model.
+
+        For ``Simulation3DNodal``, the derivative of the right-hand side with respect
+        to the model is zero.
+
+        Returns
+        -------
+        simpeg.utils.Zero
+            The SimPEG zero operator.
         """
-        Derivative of the right hand side with respect to the model
-        """
-        # TODO: add qDeriv for RHS depending on m
-        # qDeriv = source.evalDeriv(self, adjoint=adjoint)
-        # return qDeriv
         return Zero()
 
     @property
     def _clear_on_sigma_update(self):
-        """
-        These matrices are deleted if there is an update to the conductivity
-        model
+        """Add items to be cleared upon updating the `sigma` property.
+
+        Returns
+        -------
+        list
+            All of the items to be cleared up updating the `sigma` property.
         """
         return super()._clear_on_sigma_update + ["_MBC_sigma"]
+
+
+class Simulation3DHierarchicalNodal(
+    BaseHierarchicalElectricalSimulation, Simulation3DNodal
+):
+    r"""3D hierarchical nodal DC resistivity simulation class.
+
+    Where :math:`\phi` is the electric potential, :math:`\sigma` is the electrical conductivity,
+    and :math:`I \delta (r)` represents a grounded source which injects static current *I* at
+    location *r*, the DC resistivity problem is given by:
+
+    .. math::
+        \nabla \cdot \sigma \nabla \phi = - I \delta (r)
+
+    The ``Simulation3DHierarchicalNodal`` class uses the mimetic finite volume approach to
+    solve for the discrete electric potentials at mesh nodes. This simulation adopts the
+    hierarchical framework wherein:
+
+    * Thick structures are parameterized as conductivities at cell centers. This property
+      and the corresponding mapping are set with `sigma` and `sigmaMap`.
+    * Sheet-like structures can be parameterized as conductances on mesh faces. This property
+      and the corresponding mapping are set with `tau` and `tauMap`.
+    * Wire-like structures can be parameterized as area-integrated conductivities on
+      mesh edges. This property and the corresponding mapping as set with `kappa` and
+      `kappaMap`.
+
+    See the *Notes* section for a comprehensive description of the formulation.
+
+    Notes
+    -----
+    To derive the discrete solution, we start by considering Ampere's law and Faraday's law.
+    In the static regime, all time-derivative are zero. By also taking the divergence of
+    Ampere's law, we obtain:
+
+    .. math::
+        &\nabla \times \vec{e} = 0\\
+        &\nabla \cdot \vec{j} = - \nabla \cdot \vec{j}_s
+
+    where :math:`\vec{e}` is the electric field, :math:`\vec{j}` is the current density outside
+    the grounded source and and :math:`\vec{j}_s` is the source current density. The constitutive
+    relation between the electric field and current density is given by Ohm's law:
+
+    .. math::
+        \vec{j} = \sigma \vec{e}
+
+    where :math:`\sigma` is the electrical conductivity.
+
+    Faraday's law implies the electric field can be defined as the gradient of a scalar
+    potential :math:`\phi` as follows:
+
+    .. math::
+        \phi = -\nabla \phi
+
+    For a source representing current *I* injected at point *r*, the static form of Ampere's
+    law becomes:
+
+    .. math::
+        \nabla \cdot \vec{j} = - I \delta (r)
+
+    For a vector test function :math:`\vec{u}` and a scalar test function :math:`\psi`, we
+    take the inner products with the three previous equations. Through vector calculus
+    identities and the divergence theorem, we obtain:
+
+    .. math::
+        & \int_\Omega \vec{u} \cdot \vec{j} \, dv =
+        \int_\Omega \vec{u} \cdot \sigma \vec{e} \, dv \\
+        & \int_\Omega \vec{u} \cdot \vec{e} \, dv =
+        - \int_\Omega \vec{u} \cdot \nabla \phi \, dv \\
+        & -\int_\Omega \nabla \psi \cdot \vec{j} \, dv
+        +\oint_{\partial \Omega} \psi (\vec{j} \cdot \hat{n}) \, da =
+        -I \int_\Omega \psi \, \delta (r) dv
+
+    where the surface integral defines the boundary conditions.
+
+    The hierarchical approach assumes the existence of infinitessimally thin plate-like
+    regions between adjacent mesh faces and infinitessimally thin wire-like regions
+    between adjacent mesh edges. We re-express the inner-product with Ohm's law as follows:
+
+    .. math::
+        \int_\Omega \vec{u} \cdot \vec{j} \, dv =&
+        \sum_{n}^{nc} \int \vec{u} \cdot \sigma_n \vec{e} \, dv \\
+        &+ \sum_{n}^{nf} \int \vec{u} \cdot \tau_n \vec{e} \, da \\
+        &+ \sum_{n}^{ne} \int \vec{u} \cdot \kappa_n \vec{e} \, d\ell
+
+    where :math:`\sigma_n` is the conductivity in cell *n*, :math:`\tau_n` is the face
+    conductance on face *n*, and :math:`\kappa_n` is the area-integrated conductivity
+    on edge *n*.
+
+    The above expressions are discretized in space according to the finite volume method.
+    The discrete electric fields :math:`\mathbf{e}` are defined on mesh edges,
+    and the discrete electric potentials :math:`\boldsymbol{\phi}` are defined on nodes.
+    This implies :math:`\mathbf{j}` and :math:`\mathbf{u}` must be defined on mesh edges,
+    and :math:`\boldsymbol{\psi}` must be defined on nodes. We obtain the following
+    set of discrete inner-products:
+
+    .. math::
+        &\mathbf{u^T M_e \, j} = \mathbf{u^T M_{e\Sigma} \, e} \\
+        &\mathbf{u^T M_e \, e} = -\mathbf{u^T M_e G} \boldsymbol{\phi} \\
+        &-\boldsymbol{\psi} \mathbf{(G^T - B) M_e \, j} = \boldsymbol{\psi} \mathbf{q}
+
+    where:
+
+    .. math::
+        \mathbf{M_{e\Sigma}} = \mathbf{M_{e\sigma} + M_{e\tau} + M_{e\kappa}}
+
+    and
+
+    * :math:`\mathbf{G}` is the nodal gradient operator
+    * :math:`\mathbf{q}` is an integrated source term
+    * :math:`\mathbf{B}` is a matrix that applies boundary conditions
+    * :math:`\mathbf{M_e}` is the edge inner-product matrix
+    * :math:`\mathbf{M_{e\sigma}}` is the inner-product matrix for conductivities
+      projected to edges
+    * :math:`\mathbf{M_{e\tau}}` is the inner-product matrix for conductances
+      projected to edges
+    * :math:`\mathbf{M_{e\kappa}}` is the inner-product matrix for area integrated
+      conductivities projected to edges
+
+    By combining the discrete equations to form a discrete solution in terms of the
+    discrete electric potential on mesh nodes, we obtain:
+
+    .. math::
+        \big [ \mathbf{(G^T - B) M_{e\Sigma} G} \big ] \boldsymbol{\phi} = \mathbf{q}
+
+    """
+
+    pass
 
 
 Simulation3DCellCentred = Simulation3DCellCentered  # UK and US!
