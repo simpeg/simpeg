@@ -1,5 +1,5 @@
 import numpy as np
-from ..regularization import BaseSimilarityMeasure
+from ..regularization import BaseSimilarityMeasure, CrossGradient, WeightedLeastSquares
 from ..utils import eigenvalue_by_power_iteration
 from ..optimization import IterationPrinters, StoppingCriteria
 from ._directives import InversionDirective, SaveOutputEveryIteration
@@ -377,3 +377,48 @@ class MovingAndMultiTargetStopping(InversionDirective):
             / np.linalg.norm(self.opt.x_last),
         )
         self.opt.stopNextIteration = True
+
+
+class ScaleMaximimumDerivatives(InversionDirective):
+    """
+    Directive for scaling the components of the regularization
+    based on the maximum derivatives.
+    """
+
+    def __init__(self, cross_gradient, **kwargs):
+        if not isinstance(cross_gradient, CrossGradient):
+            raise TypeError("cross_gradient must be a CrossGradient regularization.")
+
+        self.cross_gradient = cross_gradient
+        self.base_regularization = WeightedLeastSquares(
+            cross_gradient.regularization_mesh, alpha_s=0.0
+        )
+        super().__init__(**kwargs)
+
+    def initialize(self):
+        """
+        Sets up the regularization mechanism with base length scale.
+        """
+        n_cells = self.cross_gradient.regularization_mesh.n_cells
+        self.cross_gradient.set_weights(
+            base_length_scale=np.full(
+                n_cells, self.cross_gradient.regularization_mesh.base_length**4.0
+            ),
+            max_deriv=np.ones(n_cells),
+        )
+
+    def endIter(self):
+
+        max_deriv = []
+        # derivatives = np.abs(self.cross_gradient.deriv(self.opt.xc)).max()
+        for _, wire in self.cross_gradient.wire_map.maps:
+            component = wire * self.opt.xc
+            max_deriv.append(component.max() - component.min())
+
+        if np.prod(max_deriv) == 0:
+            return
+
+        scale = np.prod(max_deriv) ** -1.0
+        values = np.full(self.cross_gradient.regularization_mesh.n_cells, scale)
+
+        self.cross_gradient.set_weights(max_deriv=values)
