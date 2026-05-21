@@ -395,30 +395,23 @@ class ScaleMaximimumDerivatives(InversionDirective):
         )
         super().__init__(**kwargs)
 
-    def initialize(self):
-        """
-        Sets up the regularization mechanism with base length scale.
-        """
-        n_cells = self.cross_gradient.regularization_mesh.n_cells
-        self.cross_gradient.set_weights(
-            base_length_scale=np.full(
-                n_cells, self.cross_gradient.regularization_mesh.base_length**4.0
-            ),
-            max_deriv=np.ones(n_cells),
-        )
-
     def endIter(self):
+        """
+        End of iteration update.
 
+        Scale the cross-gradient term based on the maximum smoothness derivative of each component.
+        """
         max_deriv = []
-        # derivatives = np.abs(self.cross_gradient.deriv(self.opt.xc)).max()
         for _, wire in self.cross_gradient.wire_map.maps:
             component = wire * self.opt.xc
-            max_deriv.append(component.max() - component.min())
+            max_deriv.append(
+                (component.max() - component.min())
+                / self.cross_gradient.regularization_mesh.base_length**2.0
+            )
 
-        if np.prod(max_deriv) == 0:
+        scale = np.min([max_deriv[0] ** 2.0, max_deriv[1] ** 2.0, np.prod(max_deriv)])
+        if scale == 0:
             return
 
-        scale = np.prod(max_deriv) ** -1.0
-        values = np.full(self.cross_gradient.regularization_mesh.n_cells, scale)
-
+        values = np.full(self.cross_gradient.regularization_mesh.n_cells, scale**-1)
         self.cross_gradient.set_weights(max_deriv=values)
