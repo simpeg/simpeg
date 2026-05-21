@@ -445,7 +445,7 @@ class CrossGradient(BaseSimilarityMeasure):
             )  # factor of 2 from derviative of | grad m1 x grad m2 | ^2
 
     @property
-    def units(self) -> list[str] | None:
+    def units(self) -> tuple[str]:
         """Units for the model parameters.
 
         Some regularization classes behave differently depending on the units; e.g. 'radian'.
@@ -458,14 +458,18 @@ class CrossGradient(BaseSimilarityMeasure):
         return self._units
 
     @units.setter
-    def units(self, units: list[str] | None):
+    def units(self, units: tuple[str] | None):
         if (
             units is not None
-            and not isinstance(units, list)
+            and not isinstance(units, list | tuple)
             and not all(isinstance(u, str) for u in units)
         ):
             raise TypeError(
                 f"'units' must be None or a list of str. "
                 f"Value of type {type(units)} provided."
             )
+
+        if units is None:
+            units = ("metric", "metric")
+
         self._units = units

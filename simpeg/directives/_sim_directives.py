@@ -379,10 +379,10 @@ class MovingAndMultiTargetStopping(InversionDirective):
         self.opt.stopNextIteration = True
 
 
-class ScaleMaximimumDerivatives(InversionDirective):
+class ScaleMaximumDerivatives(InversionDirective):
     """
     Directive for scaling the components of the regularization
-    based on the maximum theoritical derivatives of model gradients.
+    based on the maximum theoretical derivatives of model gradients.
     """
 
     def __init__(self, cross_gradient: CrossGradient, **kwargs):

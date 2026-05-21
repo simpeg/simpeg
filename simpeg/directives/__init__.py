@@ -150,7 +150,7 @@ from ._sim_directives import (
     PairedBetaEstimate_ByEig,
     PairedBetaSchedule,
     MovingAndMultiTargetStopping,
-    ScaleMaximimumDerivatives,
+    ScaleMaximumDerivatives,
 )
 
 ### Deprecated class
