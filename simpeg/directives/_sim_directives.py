@@ -1,5 +1,5 @@
 import numpy as np
-from ..regularization import BaseSimilarityMeasure, CrossGradient, WeightedLeastSquares
+from ..regularization import BaseSimilarityMeasure, CrossGradient
 from ..utils import eigenvalue_by_power_iteration
 from ..optimization import IterationPrinters, StoppingCriteria
 from ._directives import InversionDirective, SaveOutputEveryIteration
@@ -382,24 +382,20 @@ class MovingAndMultiTargetStopping(InversionDirective):
 class ScaleMaximimumDerivatives(InversionDirective):
     """
     Directive for scaling the components of the regularization
-    based on the maximum derivatives.
+    based on the maximum theoritical derivatives of model gradients.
     """
 
-    def __init__(self, cross_gradient, **kwargs):
+    def __init__(self, cross_gradient: CrossGradient, **kwargs):
         if not isinstance(cross_gradient, CrossGradient):
             raise TypeError("cross_gradient must be a CrossGradient regularization.")
 
         self.cross_gradient = cross_gradient
-        self.base_regularization = WeightedLeastSquares(
-            cross_gradient.regularization_mesh, alpha_s=0.0
-        )
+
         super().__init__(**kwargs)
 
     def endIter(self):
         """
         End of iteration update.
-
-        Scale the cross-gradient term based on the maximum smoothness derivative of each component.
         """
         max_deriv = []
         for _, wire in self.cross_gradient.wire_map.maps:
