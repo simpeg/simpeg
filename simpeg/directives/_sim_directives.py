@@ -1,5 +1,5 @@
 import numpy as np
-from ..regularization import BaseSimilarityMeasure
+from ..regularization import BaseSimilarityMeasure, CrossGradient
 from ..utils import eigenvalue_by_power_iteration
 from ..optimization import IterationPrinters, StoppingCriteria
 from ._directives import InversionDirective, SaveOutputEveryIteration
@@ -377,3 +377,37 @@ class MovingAndMultiTargetStopping(InversionDirective):
             / np.linalg.norm(self.opt.x_last),
         )
         self.opt.stopNextIteration = True
+
+
+class ScaleMaximumDerivatives(InversionDirective):
+    """
+    Directive for scaling the components of the regularization
+    based on the maximum theoretical derivatives of model gradients.
+    """
+
+    def __init__(self, cross_gradient: CrossGradient, **kwargs):
+        if not isinstance(cross_gradient, CrossGradient):
+            raise TypeError("cross_gradient must be a CrossGradient regularization.")
+
+        self.cross_gradient = cross_gradient
+
+        super().__init__(**kwargs)
+
+    def endIter(self):
+        """
+        End of iteration update.
+        """
+        max_deriv = []
+        for _, wire in self.cross_gradient.wire_map.maps:
+            component = wire * self.opt.xc
+            max_deriv.append(
+                (component.max() - component.min())
+                / self.cross_gradient.regularization_mesh.base_length**2.0
+            )
+
+        scale = np.min([max_deriv[0] ** 2.0, max_deriv[1] ** 2.0, np.prod(max_deriv)])
+        if scale == 0:
+            return
+
+        values = np.full(self.cross_gradient.regularization_mesh.n_cells, scale**-1)
+        self.cross_gradient.set_weights(max_deriv=values)
