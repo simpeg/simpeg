@@ -289,14 +289,14 @@ class SaveArrayGeoH5(BaseSaveGeoH5, ABC):
                         }
                     )
                     # Re-assign the data type
-                    if channel not in self.data_type[component].keys():
-                        self.data_type[component][channel] = data.entity_type
+                    if ii not in self.data_type[component].keys():
+                        self.data_type[component][ii] = data.entity_type
                         type_name = f"{self._attribute_type}_{component}" + f"_{label}"
                         data.entity_type.name = type_name
                     else:
                         data.entity_type = w_s.find_type(
-                            self.data_type[component][channel].uid,
-                            type(self.data_type[component][channel]),
+                            self.data_type[component][ii].uid,
+                            type(self.data_type[component][ii]),
                         )
 
 
