@@ -161,8 +161,10 @@ class VectorInversion(InversionDirective):
                 self.opt.xc = model
 
         if (
-            self.invProb.phi_d < self.target
-        ) and self.mode == "cartesian" and self.inversion_type == "magnetic vector":
+            (self.invProb.phi_d < self.target)
+            and self.mode == "cartesian"
+            and self.inversion_type == "magnetic vector"
+        ):
             print("Switching MVI to spherical coordinates")
             self.mode = "spherical"
             self.cartesian_model = model

@@ -510,6 +510,32 @@ class SavePropertyGroup(BaseSaveGeoH5):
                     prop_group.add_properties(properties)
 
 
+class SaveModelGroup(SavePropertyGroup):
+    """
+    Save the model as a property group in the geoh5 file
+    """
+
+    def __init__(
+        self,
+        h5_object,
+        group_type: GroupTypeEnum = GroupTypeEnum.MULTI,
+        **kwargs,
+    ):
+        self.group_type = group_type
+
+        super().__init__(h5_object, **kwargs)
+
+    def get_names(
+        self, component: str, channel: int | None, iteration: int
+    ) -> tuple[str, str]:
+        """
+        Format the data and property_group name.
+        """
+        channel_name, _ = super().get_names(component, channel, iteration)
+
+        return channel_name, component
+
+
 class SaveLPModelGroup(SavePropertyGroup):
     """
     Save the model as a property group in the geoh5 file
