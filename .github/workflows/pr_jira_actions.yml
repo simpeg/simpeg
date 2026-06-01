@@ -2,10 +2,11 @@ name: JIRA actions
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, edited]
 
 jobs:
   call-workflow-pr_jira_actions:
+    if: github.event.action != 'edited' || github.event.changes.title != null
     uses: MiraGeoscience/CI-tools/.github/workflows/reusable-jira-pr_actions.yml@v3
     permissions:
       contents: read

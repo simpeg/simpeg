@@ -14,7 +14,7 @@ concurrency:
 jobs:
   call-workflow-conda-publish:
     name: Publish development conda package on JFrog Artifactory
-    uses: MiraGeoscience/CI-tools/.github/workflows/reusable-python-publish_rattler_package.yml@v2
+    uses: MiraGeoscience/CI-tools/.github/workflows/reusable-python-publish_rattler_package.yml@v3
     permissions:
       contents: write
     with:
@@ -29,7 +29,7 @@ jobs:
       JFROG_ARTIFACTORY_TOKEN: ${{ secrets.JFROG_ARTIFACTORY_TOKEN }}
   call-workflow-pypi-publish:
     name: Publish development pypi package (JFrog Artifactory, TestPyPI)
-    uses: MiraGeoscience/CI-tools/.github/workflows/reusable-python-publish_pypi_package.yml@v2
+    uses: MiraGeoscience/CI-tools/.github/workflows/reusable-python-publish_pypi_package.yml@v3
     permissions:
       contents: write
     with:
