@@ -17,7 +17,11 @@ source:
 build:
   number: 0
   noarch: python
-  script: ${{ PYTHON }} -m pip install .[dask] -vv --no-deps
+  script:
+    env:
+      POETRY_DYNAMIC_VERSIONING_BYPASS: "${{ version }}"
+    content:
+      ${{ PYTHON }} -m pip install .[dask] -vv --no-deps
 
 requirements:
   host:
