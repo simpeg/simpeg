@@ -21,7 +21,7 @@ build:
     env:
       POETRY_DYNAMIC_VERSIONING_BYPASS: "${{ version }}"
     content:
-      ${{ PYTHON }} -m pip install .[dask] -vv --no-deps
+      ${{ PYTHON }} -m pip install .[dask] -vv --no-deps --no-build-isolation
 
 requirements:
   host:
