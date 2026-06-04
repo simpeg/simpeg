@@ -1625,6 +1625,8 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
             value = validate_ndarray_with_shape(
                 "active_set_grad_scale", value, shape=("*",)
             )
+            if np.any(value < 0.0):
+                raise ValueError("active_set_grad_scale must be >= 0.0")
 
         self._active_set_grad_scale = value
 
