@@ -1529,7 +1529,7 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
         cg_rtol: float = None,
         cg_atol: float = None,
         step_active_set: bool = True,
-        active_set_grad_scale: float = 1e-2,
+        active_set_grad_scale: float | np.ndarray = 1e-2,
         **kwargs,
     ):
         if (val := kwargs.pop("tolCG", None)) is not None:
