@@ -1619,9 +1619,14 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
 
     @active_set_grad_scale.setter
     def active_set_grad_scale(self, value: float):
-        self._active_set_grad_scale = validate_float(
-            "active_set_grad_scale", value, min_val=0, inclusive_min=True
-        )
+        try:
+            value = validate_float("active_set_grad_scale", value)
+        except TypeError:
+            value = validate_ndarray_with_shape(
+                "active_set_grad_scale", value, shape=("*",)
+            )
+
+        self._active_set_grad_scale = value
 
     @timeIt
     def findSearchDirection(self):
