@@ -731,7 +731,7 @@ class Tipper(BaseNaturalSourceRx):
 
         Phx = self.getP(mesh, "Fx", 1)
         Phy = self.getP(mesh, "Fy", 1)
-        Phz = self.getP(mesh, "Fz", 1)
+        Phz = self.getP(mesh, "Fz", 0)
         hx = Phx @ h
         hy = Phy @ h
         hz = Phz @ h
