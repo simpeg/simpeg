@@ -28,9 +28,10 @@ Receivers
   :toctree: generated/
 
   receivers.Impedance
+  receivers.Tipper
   receivers.Admittance
   receivers.ApparentConductivity
-  receivers.Tipper
+  receivers.RotationInvariantTransferFunction
 
 Sources
 =======

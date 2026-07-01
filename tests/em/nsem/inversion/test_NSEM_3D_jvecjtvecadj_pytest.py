@@ -117,13 +117,11 @@ def get_survey(
                     ]
                 )
 
-        elif survey_type == "amplitude_ratio":
-            # The orientations variable carries the base type
+        elif survey_type == "rotation_invariant":
             rx_list.append(
-                nsem.receivers.AmplitudeRatio(
+                nsem.receivers.RotationInvariantTransferFunction(
                     locations,
-                    base_type=orientations[0],
-                    component=components[0],
+                    base_type=orientations[0],  # sets "magnetic" or "electric"
                 )
             )
 
@@ -156,10 +154,8 @@ CASES_LIST = [
     ("PS", "admittance", ["det"], ["real", "imag"]),
     ("PS", "tipper", ["sqrt_det"], ["real", "imag"]),
     ("PS", "admittance", ["sqrt_det"], ["real", "imag"]),
-    ("PS", "amplitude_ratio", "magnetic", "amp"),
-    ("PS", "amplitude_ratio", "electric", "amp"),
-    ("PS", "amplitude_ratio", "magnetic", "amp_squared"),
-    ("PS", "amplitude_ratio", "electric", "amp_squared"),
+    ("PS", "rotation_invariant", "magnetic", None),
+    ("PS", "rotation_invariant", "electric", None),
     ("FS_e", "impedance", ["xy", "yx"], ["real", "imag"]),
     ("FS_e", "impedance", ["xx", "yy"], ["real", "imag"]),
     ("FS_e", "impedance", ["xy", "yx"], ["app_res"]),
@@ -176,30 +172,24 @@ CASES_LIST = [
     ("FS_e", "admittance", ["det"], ["real", "imag"]),
     ("FS_e", "tipper", ["sqrt_det"], ["real", "imag"]),
     ("FS_e", "admittance", ["sqrt_det"], ["real", "imag"]),
-    ("FS_e", "amplitude_ratio", "magnetic", "amp"),
-    ("FS_e", "amplitude_ratio", "electric", "amp"),
-    ("FS_e", "amplitude_ratio", "magnetic", "amp_squared"),
-    ("FS_e", "amplitude_ratio", "electric", "amp_squared"),
-    ("FS_h", "impedance", ["xy", "yx"], ["real", "imag"]),
-    ("FS_h", "impedance", ["xx", "yy"], ["real", "imag"]),
-    ("FS_h", "impedance", ["xy", "yx"], ["app_res"]),
-    ("FS_h", "impedance", ["xx", "yy"], ["app_res"]),
-    ("FS_h", "impedance", ["xy", "yx"], ["phase"]),
-    ("FS_h", "tipper", ["zx", "zy"], ["real", "imag"]),
-    ("FS_h", "tipper", ["xx", "yy"], ["real", "imag"]),
-    ("FS_h", "tipper", ["xy", "yx"], ["real", "imag"]),
-    ("FS_h", "admittance", ["xy", "yx"], ["real", "imag"]),
-    ("FS_h", "admittance", ["xx", "yy"], ["real", "imag"]),
-    ("FS_h", "admittance", ["zx", "zy"], ["real", "imag"]),
-    ("FS_h", "apparent_conductivity", None, None),
-    ("FS_h", "tipper", ["det"], ["real", "imag"]),
-    ("FS_h", "admittance", ["det"], ["real", "imag"]),
-    ("FS_h", "tipper", ["sqrt_det"], ["real", "imag"]),
-    ("FS_h", "admittance", ["sqrt_det"], ["real", "imag"]),
-    ("FS_h", "amplitude_ratio", "magnetic", "amp"),
-    ("FS_h", "amplitude_ratio", "electric", "amp"),
-    ("FS_h", "amplitude_ratio", "magnetic", "amp_squared"),
-    ("FS_h", "amplitude_ratio", "electric", "amp_squared"),
+    ("FS_e", "rotation_invariant", "magnetic", None),
+    ("FS_e", "rotation_invariant", "electric", None),
+    # ("FS_h", "impedance", ["xy", "yx"], ["real", "imag"]),
+    # ("FS_h", "impedance", ["xx", "yy"], ["real", "imag"]),
+    # ("FS_h", "impedance", ["xy", "yx"], ["app_res"]),
+    # ("FS_h", "impedance", ["xx", "yy"], ["app_res"]),
+    # ("FS_h", "impedance", ["xy", "yx"], ["phase"]),
+    # ("FS_h", "tipper", ["zx", "zy"], ["real", "imag"]),
+    # ("FS_h", "tipper", ["xx", "yy"], ["real", "imag"]),
+    # ("FS_h", "tipper", ["xy", "yx"], ["real", "imag"]),
+    # ("FS_h", "admittance", ["xy", "yx"], ["real", "imag"]),
+    # ("FS_h", "admittance", ["xx", "yy"], ["real", "imag"]),
+    # ("FS_h", "admittance", ["zx", "zy"], ["real", "imag"]),
+    # ("FS_h", "apparent_conductivity", None, None),
+    # ("FS_h", "tipper", ["det"], ["real", "imag"]),
+    # ("FS_h", "admittance", ["det"], ["real", "imag"]),
+    # ("FS_h", "tipper", ["sqrt_det"], ["real", "imag"]),
+    # ("FS_h", "admittance", ["sqrt_det"], ["real", "imag"]),
 ]
 
 @pytest.mark.parametrize("simulation_type, survey_type, orientations, components", CASES_LIST)

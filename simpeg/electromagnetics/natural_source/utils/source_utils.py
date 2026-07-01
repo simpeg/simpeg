@@ -1,4 +1,5 @@
 """Utility functions for NSEM sources."""
+
 import numpy as np
 from warnings import warn
 from scipy.constants import mu_0
