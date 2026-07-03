@@ -125,6 +125,14 @@ def get_survey(
                 )
             )
 
+        elif survey_type == "cross_product":
+            rx_list.append(
+                nsem.receivers.RotationInvariantCrossProduct(
+                    locations,
+                    base_type=orientations[0],  # sets "magnetic" or "electric"
+                )
+            )
+
         # MobileMT is app_cond
         elif survey_type == "apparent_conductivity":
             rx_list.extend([nsem.receivers.ApparentConductivity(locations)])
@@ -156,6 +164,8 @@ CASES_LIST = [
     ("PS", "admittance", ["sqrt_det"], ["real", "imag"]),
     ("PS", "rotation_invariant", "magnetic", None),
     ("PS", "rotation_invariant", "electric", None),
+    ("PS", "cross_product", "magnetic", None),
+    ("PS", "cross_product", "electric", None),
     ("FS_e", "impedance", ["xy", "yx"], ["real", "imag"]),
     ("FS_e", "impedance", ["xx", "yy"], ["real", "imag"]),
     ("FS_e", "impedance", ["xy", "yx"], ["app_res"]),
@@ -174,6 +184,8 @@ CASES_LIST = [
     ("FS_e", "admittance", ["sqrt_det"], ["real", "imag"]),
     ("FS_e", "rotation_invariant", "magnetic", None),
     ("FS_e", "rotation_invariant", "electric", None),
+    ("FS_e", "cross_product", "magnetic", None),
+    ("FS_e", "cross_product", "electric", None),
     # ("FS_h", "impedance", ["xy", "yx"], ["real", "imag"]),
     # ("FS_h", "impedance", ["xx", "yy"], ["real", "imag"]),
     # ("FS_h", "impedance", ["xy", "yx"], ["app_res"]),

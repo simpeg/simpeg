@@ -1512,13 +1512,15 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
         )
 
 
-class RotationInvariantTransferFunction(BaseNaturalSourceRx):
-    r"""Rotation invariant transfer function.
+class GramMatrixDeterminantAmplitude(BaseNaturalSourceRx):
+    r"""Rotation invariant transfer function from the Gram matrix.
 
     Receiver class for simulating a data that are invariant to sensor orientation
-    for either an electric or magnetic base station. For a magnetic base station
-    the quantity is unitless. For an electric base station, the units are A/V.
-    See the *Notes* section for a formal definition of the datum.
+    for either an electric or magnetic base station. The datum is based on taking
+    the amplitude of the determinant of Gram matrix for transfer functions
+    derived from three-component airborne magnetic fields. For a magnetic base
+    station the quantity is unitless. For an electric base station, the units
+    are A$^2$/V$^2$. See the *Notes* section for a formal definition of the datum.
 
     Notes
     -----
@@ -1543,9 +1545,11 @@ class RotationInvariantTransferFunction(BaseNaturalSourceRx):
     For this system, the rotation invariant transfer function is defined as:
 
     .. math::
-        | \mathbf{T} | = \bigg (
-        \dfrac{det (\mathbf{H_r H_r^\ast}) }{det (\mathbf{H_b H_b^\ast})}
+        \widehat{\mathbf{T}} = \bigg (
+        \dfrac{det (\mathbf{H_r H_r^\dagger}) }{det (\mathbf{H_b H_b^\dagger})}
         \bigg )^{1/2}
+
+    where $\dagger$ denotes the Hermitian.
 
     Now consider an acquisition system that measures 3-component magnetic fields
     in the air and electric fields at a base station. The fundamental set of
@@ -1564,8 +1568,8 @@ class RotationInvariantTransferFunction(BaseNaturalSourceRx):
     For this system, the rotation invariant transfer function is defined as:
 
     .. math::
-        | \mathbf{Y} | = \bigg (
-        \dfrac{det (\mathbf{H_r H_r^\ast}) }{det (\mathbf{E_b E_b^\ast})}
+        \widehat{\mathbf{Y}} = \bigg (
+        \dfrac{det (\mathbf{H_r H_r^\dagger}) }{det (\mathbf{E_b E_b^\dagger})}
         \bigg )^{1/2}
 
 
@@ -1872,6 +1876,341 @@ class RotationInvariantTransferFunction(BaseNaturalSourceRx):
                 )
             ).real
         )
+
+        return scale * (bot * dtop_v - top * dbot_v) / (bot * bot)
+
+    def eval(self, src, mesh, f):  # noqa: A003
+        # Docstring inherited from parent class (Impedance).
+        return self._eval_transfer_function(src, mesh, f)
+
+    def evalDeriv(
+        self, src, mesh, f, du_dm_v=None, v=None, adjoint=False
+    ):  # noqa: A003
+        # Docstring inherited from parent class (Impedance).
+        return self._eval_transfer_function_deriv(
+            src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
+        )
+
+
+class CrossProductDeterminantAmplitude(BaseNaturalSourceRx):
+    r"""Rotation invariant transfer function from the transfer function cross-product.
+
+    Receiver class for simulating a data that are invariant to sensor orientation
+    for either an electric or magnetic base station. The datum is based on taking
+    the amplitude of the determinant of the cross-product of transfer functions
+    derived from three-component airborne magnetic fields. For a magnetic base
+    station the quantity is unitless. For an electric base station, the units
+    are A$^2$/V$^2$. See the *Notes* section for a formal definition of the datum.
+
+    Notes
+    -----
+
+    Consider an acquisition system that measures 3-component magnetic fields
+    in the air and magnetic fields at a base station. The fundamental set of
+    transfer functions (i.e. tippers) that can be generated from these
+    measurements is given by:
+
+    .. math::
+        \begin{bmatrix}
+        T_{xx} & T_{yx} & T_{zx} \\ T_{xy} & T_{yy} & T_{zy}
+        \end{bmatrix} = \begin{bmatrix}
+        H_x^{(x)} & H_y^{(x)} \\ H_x^{(y)} & H_y^{(y)}
+        \end{bmatrix}_b^{-1} \, \begin{bmatrix}
+        H_x^{(x)} & H_y^{(x)} & H_z^{(x)} \\ H_x^{(y)} & H_y^{(y)} & H_z^{(y)}
+        \end{bmatrix}_r
+
+    where subscript :math:`b` denotes the base station location and subscript
+    :math:`r` denotes the mobile receiver location.
+
+    For this system, the rotation invariant transfer function is defined as:
+
+    .. math::
+        | \mathbf{T} | = \bigg (
+        p_x p_x^\ast + p_y p_y^\ast + p_z p_z^\ast
+        \bigg )^{1/2}
+
+    where $\ast$ denotes the complex conjugate and
+
+    .. math::
+        \begin{split}
+        p_x &= T_{yx}T_{zy} - T_{zx}T_{yy}\\
+        p_y &= T_{zx}T_{xy} - T_{xx}T_{zy}\\
+        p_z &= T_{xx}T_{yy} - T_{yx}T_{xy}
+        \end{split}
+
+    Now consider an acquisition system that measures 3-component magnetic fields
+    in the air and electric fields at a base station. The fundamental set of
+    transfer functions (i.e. admittances) that can be generated from these
+    measurements is given by:
+
+    .. math::
+        \begin{bmatrix}
+        Y_{xx} & Y_{yx} & Y_{zx} \\ Y_{xy} & Y_{yy} & Y_{zy}
+        \end{bmatrix} = \begin{bmatrix}
+        E_x^{(x)} & E_y^{(x)} \\ E_x^{(y)} & E_y^{(y)}
+        \end{bmatrix}_b^{-1} \, \begin{bmatrix}
+        H_x^{(x)} & H_y^{(x)} & H_z^{(x)} \\ H_x^{(y)} & H_y^{(y)} & H_z^{(y)}
+        \end{bmatrix}_r
+
+    For this system, the rotation invariant transfer function is defined as:
+
+    .. math::
+        | \mathbf{Y} | = \bigg (
+        q_x q_x^\ast + q_y q_y^\ast + q_z q_z^\ast
+        \bigg )^{1/2}
+
+    where $\ast$ denotes the complex conjugate and
+
+    .. math::
+        \begin{split}
+        p_x &= Y_{yx}Y_{zy} - Y_{zx}Y_{yy}\\
+        p_y &= Y_{zx}Y_{xy} - Y_{xx}Y_{zy}\\
+        p_z &= Y_{xx}Y_{yy} - Y_{yx}Y_{xy}
+        \end{split}
+
+    Parameters
+    ----------
+    locations_h : (n_loc, n_dim) array_like
+        Locations where the roving magnetic fields are measured.
+    locations_base : (n_loc, n_dim) array_like, optional
+        Locations where the base station magnetic fields are measured. Defaults to
+        the same locations as the roving magnetic fields measurements,
+        `locations_r`.
+    base_type : {'magnetic', 'electric'}
+        Whether magnetic or electric fields are measured at the base station.
+        For magnetic fields, the quantity is unitless. For electric fields,
+        the quantity has units A/V.
+    storeProjections : bool
+        Whether to cache to internal projection matrices.
+    """
+
+    _loc_names = ("Roving magnetic field", "Base station field")
+
+    def __init__(
+        self,
+        locations_h,
+        locations_base=None,
+        base_type="magnetic",
+        storeProjections=False,
+    ):
+        if locations_base is None:
+            locations_base = locations_h
+        super().__init__(
+            locations1=locations_h,
+            locations2=locations_base,
+            storeProjections=storeProjections,
+        )
+        self.base_type = base_type
+
+    @property
+    def locations_h(self):
+        """Roving magnetic field measurement locations.
+
+        Returns
+        -------
+        numpy.ndarray
+            Roving locations where the magnetic field is measured for all receiver data.
+        """
+        return self._locations[0]
+
+    @property
+    def locations_base(self):
+        """Base station magnetic field measurement locations.
+
+        Returns
+        -------
+        numpy.ndarray
+            Base station locations where the horizontal magnetic fields are measured.
+        """
+        return self._locations[1]
+
+    @property
+    def base_type(self):
+        r"""Whether a 'magnetic' or 'electric' base station is used.
+
+        Returns
+        -------
+        str
+            Base station type; i.e. "magnetic" or "electric"
+        """
+        return self._base_type
+
+    @base_type.setter
+    def base_type(self, var):
+        self._base_type = validate_string("base_type", var, ["magnetic", "electric"])
+
+    def _eval_transfer_function(self, src, mesh, f):
+
+        if mesh.dim < 3:
+            raise NotImplementedError(
+                "'AmplitudeRatio' transfer function only for 3D simulation."
+            )
+
+        h = f[src, "h"]
+        h_grid = "F" if f.simulation._formulation == "EB" else "E"
+        hx = self.getP(mesh, h_grid + "x", 1) @ h
+        hy = self.getP(mesh, h_grid + "y", 1) @ h
+        hz = self.getP(mesh, h_grid + "z", 1) @ h
+
+        if self.base_type == "magnetic":
+            bx = self.getP(mesh, h_grid + "x", 0) @ h
+            by = self.getP(mesh, h_grid + "y", 0) @ h
+
+        else:
+            e = f[src, "e"]
+            b_grid = "E" if f.simulation._formulation == "EB" else "F"
+            bx = self.getP(mesh, b_grid + "x", 0) @ e
+            by = self.getP(mesh, b_grid + "y", 0) @ e
+
+        top_12 = np.abs(hx[:, 0]*hy[:, 1] - hy[:, 0]*hx[:, 1])**2  # abs(det(H12))**2
+        top_13 = np.abs(hx[:, 0]*hz[:, 1] - hz[:, 0]*hx[:, 1])**2  # abs(det(H13))**2
+        top_23 = np.abs(hy[:, 0]*hz[:, 1] - hz[:, 0]*hy[:, 1])**2  # abs(det(H23))**2
+
+        # abs(det(B B*)) = abs(det(B))**2
+        bot = np.abs(bx[:, 0]*by[:, 1] - bx[:, 1]*by[:, 0]) ** 2
+
+        return np.sqrt((top_12 + top_13 + top_23) / bot)
+
+    def _eval_transfer_function_deriv(
+        self, src, mesh, f, du_dm_v=None, v=None, adjoint=False
+    ):
+
+        if mesh.dim < 3:
+            raise NotImplementedError(
+                "'AmplitudeSquared' transfer function only for 3D simulation."
+            )
+
+        h = f[src, "h"]
+        h_grid = "F" if f.simulation._formulation == "EB" else "E"
+        Phx = self.getP(mesh, h_grid + "x", 1)
+        Phy = self.getP(mesh, h_grid + "y", 1)
+        Phz = self.getP(mesh, h_grid + "z", 1)
+
+        hx = Phx @ h
+        hy = Phy @ h
+        hz = Phz @ h
+
+        if self.base_type == "magnetic":
+
+            Pbx = self.getP(mesh, h_grid + "x", 0)
+            Pby = self.getP(mesh, h_grid + "y", 0)
+
+            bx = Pbx @ h
+            by = Pby @ h
+
+        else:
+
+            b_grid = "E" if f.simulation._formulation == "EB" else "F"
+            Pbx = self.getP(mesh, b_grid + "x", 0)
+            Pby = self.getP(mesh, b_grid + "y", 0)
+
+            e = f[src, "e"]
+            bx = Pbx @ e
+            by = Pby @ e
+
+        # Entries of HH*. Note that vec_h21 = conj(vec_h12)
+        det_h12 = hx[:, 0]*hy[:, 1] - hy[:, 0]*hx[:, 1]  # det(H12)
+        det_h13 = hx[:, 0]*hz[:, 1] - hz[:, 0]*hx[:, 1]  # det(H13)
+        det_h23 = hy[:, 0]*hz[:, 1] - hz[:, 0]*hy[:, 1]  # det(H23)
+        top = np.abs(det_h12)**2 + np.abs(det_h13)**2 + np.abs(det_h23)**2
+
+        # abs(det(B B*)) = abs(det(B))**2
+        det_b = bx[:, 0]*by[:, 1] - bx[:, 1]*by[:, 0]
+        bot = np.abs(det_b)**2
+
+        scale = 0.5 / np.sqrt(top / bot)
+
+        # ADJOINT
+        if adjoint:
+
+            # J_T * v = d_top_T * a_v + d_bot_T * b
+            a_v = scale * v / bot  # term 1
+            b_v = -scale * top * v / bot**2  # term 2
+
+            a_v = np.repeat(mkvc(a_v, n_dims=2), 2, axis=-1)
+            b_v = np.repeat(mkvc(b_v, n_dims=2), 2, axis=-1)
+
+            # derivatives for det(HH*)
+            px = np.c_[
+                det_h12.conjugate() * hy[:, 1] + det_h13.conjugate() * hz[:, 1],
+                -det_h12.conjugate() * hy[:, 0] - det_h13.conjugate() * hz[:, 0]
+            ] * a_v
+            py = np.c_[
+                -det_h12.conjugate() * hx[:, 1] + det_h23.conjugate() * hz[:, 1],
+                det_h12.conjugate() * hx[:, 0] - det_h23.conjugate() * hz[:, 0]
+            ] * a_v
+            pz = np.c_[
+                -det_h13.conjugate() * hx[:, 1] - det_h23.conjugate() * hy[:, 1],
+                det_h13.conjugate() * hx[:, 0] + det_h23.conjugate() * hy[:, 0]
+            ] * a_v
+
+            # derivatives for det(BB*)
+            qx = np.c_[
+                det_b.conjugate() * by[:, 1],
+                -det_b.conjugate() * by[:, 0]
+            ] * b_v
+            qy = np.c_[
+                -det_b.conjugate() * bx[:, 1],
+                det_b.conjugate() * bx[:, 0]
+            ] * b_v
+
+            h_v = 2 * (Phx.T @ px + Phy.T @ py + Phz.T @ pz)
+            b_v = 2 * (Pbx.T @ qx + Pby.T @ qy)
+
+            if self.base_type == "magnetic":
+
+                return f._hDeriv(src, None, h_v + b_v, adjoint=True)
+
+            else:
+
+                fu_b_v, fm_b_v = f._eDeriv(src, None, b_v, adjoint=True)
+                fu_h_v, fm_h_v = f._hDeriv(src, None, h_v, adjoint=True)
+                return fu_b_v + fu_h_v, fm_b_v + fm_h_v
+
+        # JVEC
+        dh_v = f._hDeriv(src, du_dm_v, v, adjoint=False)
+        dhx_v = Phx @ dh_v
+        dhy_v = Phy @ dh_v
+        dhz_v = Phz @ dh_v
+
+        if self.base_type == "magnetic":
+            db_v = dh_v
+        else:
+            db_v = f._eDeriv(src, du_dm_v, v, adjoint=False)
+
+        dbx_v = Pbx @ db_v
+        dby_v = Pby @ db_v
+
+        # cancel and its 2x the real of the conjugate x the deriv
+        dtop_v = 2 * (
+            det_h12.conjugate() * (
+                dhx_v[:, 0] * hy[:, 1] +
+                hx[:, 0] * dhy_v[:, 1] -
+                dhy_v[:, 0] * hx[:, 1] -
+                hy[:, 0] * dhx_v[:, 1]
+            ) +
+            det_h13.conjugate() * (
+                dhx_v[:, 0] * hz[:, 1] +
+                hx[:, 0] * dhz_v[:, 1] -
+                dhz_v[:, 0] * hx[:, 1] -
+                hz[:, 0] * dhx_v[:, 1]
+            ) +
+            det_h23.conjugate() * (
+                dhy_v[:, 0] * hz[:, 1] +
+                hy[:, 0] * dhz_v[:, 1] -
+                dhz_v[:, 0] * hy[:, 1] -
+                hz[:, 0] * dhy_v[:, 1]
+            )
+        ).real
+
+        dbot_v = 2 * (
+            det_b.conjugate() * (
+                dbx_v[:, 0] * by[:, 1] +
+                bx[:, 0] * dby_v[:, 1] -
+                dby_v[:, 0] * bx[:, 1] -
+                by[:, 0] * dbx_v[:, 1]
+            )
+        ).real
 
         return scale * (bot * dtop_v - top * dbot_v) / (bot * bot)
 
