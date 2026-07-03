@@ -293,70 +293,70 @@ def test_analytic_halfspace_solution(
         )
 
 
-# CASES_LIST_CROSSCHECK = [
-#     ("impedance", "real"),
-#     ("impedance", "imag"),
-#     ("tipper", "real"),
-#     ("tipper", "imag"),
-#     ("admittance", "real"),
-#     ("admittance", "imag"),
-#     ("apparent_conductivity", None),
-# ]
+CASES_LIST_CROSSCHECK = [
+    ("impedance", "real"),
+    ("impedance", "imag"),
+    ("tipper", "real"),
+    ("tipper", "imag"),
+    ("admittance", "real"),
+    ("admittance", "imag"),
+    ("apparent_conductivity", None),
+]
 
-# # PRIMARY-SECONDARY DOESN'T SEEM TO WORK UNLESS THE PADDING IS EXTREME.
-# @pytest.mark.parametrize("survey_type, component", CASES_LIST_CROSSCHECK)
-# def test_simulation_3d_crosscheck(
-#     survey_type, component, frequencies, locations, mesh, mapping
-# ):
-#     # Numerical solution
-#     survey_ps = get_survey(
-#         "primary_secondary", locations, frequencies, survey_type, component, None
-#     )
-#     survey_1d = get_survey(
-#         "fictitious_source", locations, frequencies, survey_type, component, None
-#     )
+# PRIMARY-SECONDARY DOESN'T SEEM TO WORK UNLESS THE PADDING IS EXTREME.
+@pytest.mark.parametrize("survey_type, component", CASES_LIST_CROSSCHECK)
+def test_simulation_3d_crosscheck(
+    survey_type, component, frequencies, locations, mesh, mapping
+):
+    # Numerical solution
+    survey_ps = get_survey(
+        "primary_secondary", locations, frequencies, survey_type, component, None
+    )
+    survey_1d = get_survey(
+        "fictitious_source", locations, frequencies, survey_type, component, None
+    )
 
-#     model_block = get_model(mesh, "block")
-#     model_hs = get_model(mesh, "halfspace")
-#     mesh_1d = TensorMesh([mesh.h[-1]], origin=[mesh.origin[-1]])
-#     model_1d = get_model(mesh_1d, "halfspace")
+    model_block = get_model(mesh, "block")
+    model_hs = get_model(mesh, "halfspace")
+    mesh_1d = TensorMesh([mesh.h[-1]], origin=[mesh.origin[-1]])
+    model_1d = get_model(mesh_1d, "halfspace")
 
-#     sim_ps = nsem.simulation.Simulation3DPrimarySecondary(
-#         mesh, survey=survey_ps, sigmaPrimary=model_hs, sigmaMap=mapping, solver=get_default_solver(),
-#     )
-#     sim_fs = nsem.simulation.Simulation3DElectricFieldFictitious(
-#         mesh, survey=survey_1d, sigma_background=model_1d, sigmaMap=mapping, solver=get_default_solver(),
-#     )
+    sim_ps = nsem.simulation.Simulation3DPrimarySecondary(
+        mesh, survey=survey_ps, sigmaPrimary=model_hs, sigmaMap=mapping, solver=get_default_solver(),
+    )
+    sim_fs = nsem.simulation.Simulation3DElectricFieldFictitious(
+        mesh, survey=survey_1d, sigma_background=model_1d, sigmaMap=mapping, solver=get_default_solver(),
+    )
 
-#     dpred_ps = sim_ps.dpred(model_block)
-#     dpred_fs = sim_fs.dpred(model_block)
+    dpred_ps = sim_ps.dpred(model_block)
+    dpred_fs = sim_fs.dpred(model_block)
 
-#     np.testing.assert_allclose(
-#         dpred_ps, dpred_fs, rtol=REL_TOLERANCE_2, atol=ABS_TOLERANCE_2
-#     )
+    np.testing.assert_allclose(
+        dpred_ps, dpred_fs, rtol=REL_TOLERANCE_2, atol=ABS_TOLERANCE_2
+    )
 
-# def test_symmetry_for_appcon(frequencies, locations, mesh, mapping):
-#     """Test the app con is symmetric across the y-axis."""
-#     # Numerical solution
-#     survey = get_survey(
-#         "primary_secondary", locations, frequencies, "apparent_conductivity", None, None
-#     )
-#     model_hs = get_model(mesh, "halfspace")  # 1e-2 halfspace
-#     model_block = get_model(mesh, "block")
-#     sim = nsem.simulation.Simulation3DPrimarySecondary(
-#         mesh,
-#         survey=survey,
-#         sigmaPrimary=model_hs,
-#         sigmaMap=mapping,
-#         solver=get_default_solver(),
-#     )
-#     solution = sim.dpred(model_block)
+def test_symmetry_for_appcon(frequencies, locations, mesh, mapping):
+    """Test the app con is symmetric across the y-axis."""
+    # Numerical solution
+    survey = get_survey(
+        "primary_secondary", locations, frequencies, "apparent_conductivity", None, None
+    )
+    model_hs = get_model(mesh, "halfspace")  # 1e-2 halfspace
+    model_block = get_model(mesh, "block")
+    sim = nsem.simulation.Simulation3DPrimarySecondary(
+        mesh,
+        survey=survey,
+        sigmaPrimary=model_hs,
+        sigmaMap=mapping,
+        solver=get_default_solver(),
+    )
+    solution = sim.dpred(model_block)
 
-#     n_pt = int(np.sqrt(np.shape(locations)[0]))
-#     n_freq = len(frequencies)
+    n_pt = int(np.sqrt(np.shape(locations)[0]))
+    n_freq = len(frequencies)
 
-#     solution = solution.reshape((n_freq, n_pt, n_pt))
-#     solution_flipped = np.flip(solution, axis=-1)
+    solution = solution.reshape((n_freq, n_pt, n_pt))
+    solution_flipped = np.flip(solution, axis=-1)
 
-#     # Error
-#     np.testing.assert_allclose(solution, solution_flipped, atol=ABS_TOLERANCE)
+    # Error
+    np.testing.assert_allclose(solution, solution_flipped, atol=ABS_TOLERANCE)
