@@ -109,7 +109,8 @@ def get_survey(
                 rx_list.extend(
                     [
                         nsem.receivers.Admittance(
-                            locations,
+                            locations_h=locations,
+                            locations_e=np.zeros_like(locations),
                             orientation=orient,
                             component=comp,
                         )
@@ -117,25 +118,46 @@ def get_survey(
                     ]
                 )
 
-        elif survey_type == "rotation_invariant":
-            rx_list.append(
-                nsem.receivers.RotationInvariantTransferFunction(
-                    locations,
-                    base_type=orientations[0],  # sets "magnetic" or "electric"
-                )
-            )
-
-        elif survey_type == "cross_product":
-            rx_list.append(
-                nsem.receivers.RotationInvariantCrossProduct(
-                    locations,
-                    base_type=orientations[0],  # sets "magnetic" or "electric"
-                )
-            )
-
         # MobileMT is app_cond
         elif survey_type == "apparent_conductivity":
-            rx_list.extend([nsem.receivers.ApparentConductivity(locations)])
+            rx_list.extend([
+                nsem.receivers.ApparentConductivity(
+                    locations_h=locations,
+                    locations_base=np.zeros_like(locations)
+                )
+            ])
+
+        # Horizontal determinanet
+        elif survey_type == "det_horizontal":
+            rx_list = [
+                nsem.receivers.HorizontalDeterminant(
+                    locations_h=locations,
+                    locations_base=np.zeros_like(locations),
+                    base_type=orientations[0],
+                    component=comp,
+                )
+                for comp in components
+            ]
+
+        # Determinant ampliutde of the Gram matrix
+        elif survey_type == "gram_amp":
+            rx_list = [
+                nsem.receivers.GramMatrixDeterminantAmplitude(
+                    locations,
+                    locations_base=np.zeros_like(locations),
+                    base_type=orientations[0])
+            ]
+
+        # Determinant amplitude of the cross product
+        elif survey_type == "cross_amp":
+            rx_list = [
+                nsem.receivers.CrossProductDeterminantAmplitude(
+                    locations,
+                    locations_base=np.zeros_like(locations),
+                    base_type=orientations[0])
+            ]
+
+
 
         if simulation_type == "PS":
             source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
@@ -157,15 +179,12 @@ CASES_LIST = [
     ("PS", "admittance", ["xy", "yx"], ["real", "imag"]),
     ("PS", "admittance", ["xx", "yy"], ["real", "imag"]),
     ("PS", "admittance", ["zx", "zy"], ["real", "imag"]),
-    ("PS", "apparent_conductivity", None, None),
-    ("PS", "tipper", ["det"], ["real", "imag"]),
-    ("PS", "admittance", ["det"], ["real", "imag"]),
-    ("PS", "tipper", ["sqrt_det"], ["real", "imag"]),
-    ("PS", "admittance", ["sqrt_det"], ["real", "imag"]),
-    ("PS", "rotation_invariant", "magnetic", None),
-    ("PS", "rotation_invariant", "electric", None),
-    ("PS", "cross_product", "magnetic", None),
-    ("PS", "cross_product", "electric", None),
+    ("PS", "det_horizontal", "electric", ["real", "imag"]),
+    ("PS", "det_horizontal", "magnetic", ["real", "imag"]),
+    ("PS", "gram_amp", "electric", None),
+    ("PS", "gram_amp", "magnetic", None),
+    ("PS", "cross_amp", "magnetic", None),
+    ("PS", "cross_amp", "electric", None),
     ("FS_e", "impedance", ["xy", "yx"], ["real", "imag"]),
     ("FS_e", "impedance", ["xx", "yy"], ["real", "imag"]),
     ("FS_e", "impedance", ["xy", "yx"], ["app_res"]),
@@ -177,15 +196,12 @@ CASES_LIST = [
     ("FS_e", "admittance", ["xy", "yx"], ["real", "imag"]),
     ("FS_e", "admittance", ["xx", "yy"], ["real", "imag"]),
     ("FS_e", "admittance", ["zx", "zy"], ["real", "imag"]),
-    ("FS_e", "apparent_conductivity", None, None),
-    ("FS_e", "tipper", ["det"], ["real", "imag"]),
-    ("FS_e", "admittance", ["det"], ["real", "imag"]),
-    ("FS_e", "tipper", ["sqrt_det"], ["real", "imag"]),
-    ("FS_e", "admittance", ["sqrt_det"], ["real", "imag"]),
-    ("FS_e", "rotation_invariant", "magnetic", None),
-    ("FS_e", "rotation_invariant", "electric", None),
-    ("FS_e", "cross_product", "magnetic", None),
-    ("FS_e", "cross_product", "electric", None),
+    ("FS_e", "det_horizontal", "electric", ["real", "imag"]),
+    ("FS_e", "det_horizontal", "magnetic", ["real", "imag"]),
+    ("FS_e", "gram_amp", "electric", None),
+    ("FS_e", "gram_amp", "magnetic", None),
+    ("FS_e", "cross_amp", "magnetic", None),
+    ("FS_e", "cross_amp", "electric", None),
     # ("FS_h", "impedance", ["xy", "yx"], ["real", "imag"]),
     # ("FS_h", "impedance", ["xx", "yy"], ["real", "imag"]),
     # ("FS_h", "impedance", ["xy", "yx"], ["app_res"]),

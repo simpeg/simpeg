@@ -31,7 +31,10 @@ Receivers
   receivers.Tipper
   receivers.Admittance
   receivers.ApparentConductivity
+  receivers.HorizontalDeterminant
   receivers.RotationInvariantTransferFunction
+  receivers.GramMatrixDeterminantAmplitude
+  receivers.CrossProductDeterminantAmplitude
 
 Sources
 =======
