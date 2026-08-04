@@ -1108,7 +1108,14 @@ class Simulation2DElectricFieldFictitious(Simulation3DElectricFieldFictitious):
 
     fieldsPair = Fields2DElectricField
 
-    def __init__(self, mesh, survey=None, sigma_background=None, **kwargs):
+    def __init__(
+        self,
+        mesh,
+        survey=None,
+        sigma_background=None,
+        storeJ=True,
+        **kwargs
+    ):
 
         if mesh.dim != 2:
             raise ValueError(
@@ -1116,7 +1123,11 @@ class Simulation2DElectricFieldFictitious(Simulation3DElectricFieldFictitious):
             )
 
         super().__init__(
-            mesh=mesh, survey=survey, sigma_background=sigma_background, **kwargs
+            mesh=mesh,
+            survey=survey,
+            sigma_background=sigma_background,
+            storeJ=storeJ,
+            **kwargs
         )
 
     @property
@@ -1248,6 +1259,26 @@ class Simulation2DElectricFieldFictitious(Simulation3DElectricFieldFictitious):
             return self.MccMuiDeriv(C * u).T * (C * v)
 
         return C.T * (self.MccMuiDeriv(C * u) * v)
+
+    def Jvec(self, m, v, f=None):
+        # Docstring is inherited.
+
+        if self.storeJ:
+            J = self.getJ(m, f=f)
+            return J.dot(v)
+
+        else:
+            return super().Jvec(m, v, f)
+
+    def Jtvec(self, m, v, f=None):
+        # Docstring is inherited.
+
+        if self.storeJ:
+            J = self.getJ(m, f=f)
+            return J.T.dot(v)
+
+        else:
+            return super().Jtvec(m, v, f)
 
 
 # SHOULD WE HAVE THE OPTION OF RHO BACKGROUND???
@@ -1559,7 +1590,14 @@ class Simulation2DMagneticFieldFictitious(Simulation3DMagneticFieldFictitious):
 
     fieldsPair = Fields2DMagneticField
 
-    def __init__(self, mesh, survey=None, sigma_background=None, **kwargs):
+    def __init__(
+        self,
+        mesh,
+        survey=None,
+        sigma_background=None,
+        storeJ=True,
+        **kwargs
+    ):
 
         if mesh.dim != 2:
             raise ValueError(
@@ -1567,7 +1605,11 @@ class Simulation2DMagneticFieldFictitious(Simulation3DMagneticFieldFictitious):
             )
 
         super().__init__(
-            mesh=mesh, survey=survey, sigma_background=sigma_background, **kwargs
+            mesh=mesh,
+            survey=survey,
+            sigma_background=sigma_background,
+            storeJ=storeJ,
+            **kwargs
         )
 
     @property
@@ -1694,3 +1736,23 @@ class Simulation2DMagneticFieldFictitious(Simulation3DMagneticFieldFictitious):
         if adjoint:
             return self.MccRhoDeriv(C * u, C * v, adjoint)
         return C.T * self.MccRhoDeriv(C * u, v, adjoint)
+
+    def Jvec(self, m, v, f=None):
+        # Docstring is inherited.
+
+        if self.storeJ:
+            J = self.getJ(m, f=f)
+            return J.dot(v)
+
+        else:
+            return super().Jvec(m, v, f)
+
+    def Jtvec(self, m, v, f=None):
+        # Docstring is inherited.
+
+        if self.storeJ:
+            J = self.getJ(m, f=f)
+            return J.T.dot(v)
+
+        else:
+            return super().Jtvec(m, v, f)
