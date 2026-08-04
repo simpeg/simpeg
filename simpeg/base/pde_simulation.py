@@ -880,14 +880,14 @@ class BaseMagneticPDESimulation(BasePDESimulation):
 
 @with_line_property_mass_matrices("kappa")
 class BaseElectricalEdgePropertyPDESimulation(BaseElectricalPDESimulation):
-    """Base class for simulations with edge electricl properties.
+    """Base class for simulations with edge electrical properties.
 
     An electrical simulation can inherit this class and it will replace MeSigma
     operations with the heirarchical operators.
     """
 
     kappa, kappaMap, kappaDeriv = props.Invertible(
-        "Electrical conductivity times thickness on face elements (S).",
+        "Electrical conductivity times cross-sectional area on edge elements (Sm).",
         optional=True,
     )
 
@@ -920,14 +920,14 @@ class BaseElectricalEdgePropertyPDESimulation(BaseElectricalPDESimulation):
 
 @with_surface_property_mass_matrices("tau")
 class BaseElectricalFacePropertyPDESimulation(BaseElectricalPDESimulation):
-    """Base class for simulations with face electricl properties.
+    """Base class for simulations with face electrical properties.
 
     An electrical simulation can inherit this class and it will replace MeSigma
     operations with the heirarchical operators.
     """
 
     tau, tauMap, tauDeriv = props.Invertible(
-        "Electrical conductivity times cross-sectional area on edge elements (Sm).",
+        "Electrical conductivity times thickness on face elements (S).",
         optional=True,
     )
 
