@@ -88,7 +88,7 @@ class Simulation1DRecursive(BaseSimulation):
         if value is not None:
             value = validate_type("survey", value, Survey, cast=False)
             for src in value.source_list:
-                if type(src) is not Planewave:
+                if not isinstance(src, Planewave):
                     raise NotImplementedError(
                         (
                             "Simulation1DRecursive defines sources using the "
@@ -96,7 +96,7 @@ class Simulation1DRecursive(BaseSimulation):
                         )
                     )
                 for rx in src.receiver_list:
-                    if type(rx) is not Impedance:
+                    if not isinstance(rx, Impedance):
                         raise NotImplementedError(
                             (
                                 "Simulation1DRecursive only supports the Impedance "
