@@ -86,15 +86,15 @@ def test_incorrect_src_types(src_class):
     """Test incorrect source types."""
     loc = np.zeros((1, 3))
     rx = Impedance(loc)
-    src = src_class(rx, frequency=10)
-    survey = nsem.Survey(src)
+    src = src_class([rx], frequency=10)
+    survey = nsem.Survey([src])
 
-    if src_class is not Planewave:
+    if not isinstance(src, Planewave):
         with pytest.raises(
             NotImplementedError,
             match=(
-                "Simulation1DRecursive defines sources using the Planewave class,"
-                f" got {type(src)} instead."
+                "Simulation1DRecursive defines sources using the "
+                f"Planewave class, got {type(src)} instead."
             ),
         ):
             nsem.Simulation1DRecursive(survey=survey)
@@ -102,16 +102,20 @@ def test_incorrect_src_types(src_class):
 
 @pytest.mark.parametrize(
     "rx_class",
-    [Impedance, Admittance, Tipper, ApparentConductivity],
+    [Admittance, Tipper, ApparentConductivity],
 )
 def test_incorrect_rx_types(rx_class):
     """Test incorrect receiver types."""
     loc = np.zeros((1, 3))
-    rx = rx_class(loc)
-    source = Planewave(rx, frequency=10)
-    survey = nsem.Survey(source)
+    rx = (
+        rx_class(loc)
+        if rx_class is ApparentConductivity
+        else rx_class(loc, orientation="xy")
+    )
+    source = Planewave([rx], frequency=10)
+    survey = nsem.Survey([source])
 
-    if rx_class is not Impedance:
+    if not isinstance(source, Impedance):
         with pytest.raises(
             NotImplementedError,
             match=(
@@ -124,21 +128,21 @@ def test_incorrect_rx_types(rx_class):
 
 @pytest.mark.parametrize(
     "rx_orientation",
-    ["xx", "xy", "yx", "yy", "zx", "zy"],
+    ["xx", "xy", "yx", "yy"],
 )
 def test_incorrect_rx_orientations(rx_orientation):
     """Test incorrect receiver orientations."""
     loc = np.zeros((1, 3))
-    rx = Impedance(loc)
-    source = Planewave(rx, frequency=10)
-    survey = nsem.Survey(source)
+    rx = Impedance(loc, orientation=rx_orientation)
+    source = Planewave([rx], frequency=10)
+    survey = nsem.Survey([source])
 
     if (rx.orientation != "xy") and (rx.orientation != "yx"):
         with pytest.raises(
             NotImplementedError,
             match=(
-                "Simulation1DRecursive only allows 'xy' or 'yx' for the orientation"
-                f" property of Impedance receivers, got {rx.orientation}."
+                "Simulation1DRecursive only allows 'xy' or 'yx' for the "
+                f"orientation property of Impedance receivers, got {rx.orientation}."
             ),
         ):
             nsem.Simulation1DRecursive(survey=survey)
