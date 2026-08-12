@@ -45,10 +45,6 @@ def primary_e_1d_solution(
     skin_depth_factor : float
         Number of additional skin depths added to the bottom of the 1D mesh
         where the discrete solution is solved.
-    n_pad : int
-        Number of padding cells added to the bottom of discrete 1D solution.
-        This ensures accuracy of the 1D solution at the bottom of the mesh
-        supplied by the user.
 
     Returns
     -------
@@ -119,14 +115,8 @@ def primary_e_1d_solution(
         )
 
     # Generate extended 1D mesh and conductivity model to solve 1D problem
-    if n_pad is not None:
-        warn(
-            "Number of padding cells no longer set directly with 'n_pad'. "
-            "Use 'skin_depth_factor' to set extent of padding for 1D mesh."
-        )
-    else:
-        skin_depth = np.sqrt(2 / (omega(freq) * mu_0 * sigma_1d[0]))
-        n_pad = int(np.ceil(skin_depth_factor * skin_depth / hz[0]))
+    skin_depth = np.sqrt(2 / (omega(freq) * mu_0 * sigma_1d[0]))
+    n_pad = int(np.ceil(skin_depth_factor * skin_depth / hz[0]))
 
     hz_ext = np.pad(hz, (n_pad, 0), mode="edge")
     mesh_ext = TensorMesh([hz_ext], origin=[mesh.origin[-1] - hz[0] * n_pad])
@@ -219,10 +209,6 @@ def primary_h_1d_solution(
     skin_depth_factor : float
         Number of additional skin depths added to the bottom of the 1D mesh
         where the discrete solution is solved.
-    n_pad : int
-        Number of padding cells added to the bottom of discrete 1D solution.
-        This ensures accuracy of the 1D solution at the bottom of the mesh
-        supplied by the user.
 
     Returns
     -------
@@ -292,14 +278,8 @@ def primary_h_1d_solution(
         )
 
     # Generate extended 1D mesh and resistivity model to solve 1D problem
-    if n_pad is not None:
-        warn(
-            "Number of padding cells no longer set directly with 'n_pad'. "
-            "Use 'skin_depth_factor' to set extent of padding for 1D mesh."
-        )
-    else:
-        skin_depth = np.sqrt(2 / (omega(freq) * mu_0 * sigma_1d[0]))
-        n_pad = int(np.ceil(skin_depth_factor * skin_depth / hz[0]))
+    skin_depth = np.sqrt(2 / (omega(freq) * mu_0 * sigma_1d[0]))
+    n_pad = int(np.ceil(skin_depth_factor * skin_depth / hz[0]))
 
     hz_ext = np.pad(hz, (n_pad, 0), mode="edge")
     mesh_ext = TensorMesh([hz_ext], origin=[mesh.origin[-1] - hz[0] * n_pad])
