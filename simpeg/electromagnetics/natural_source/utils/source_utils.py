@@ -3,7 +3,6 @@ Utility functions for NSEM sources.
 """
 
 import numpy as np
-from warnings import warn
 from scipy.constants import mu_0
 import scipy.sparse as sp
 from discretize import TensorMesh
