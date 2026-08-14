@@ -19,7 +19,6 @@ def primary_e_1d_solution(
     top_bc="dirichlet",
     bot_bc="robin",
     skin_depth_factor=3,
-    n_pad=None,
 ):
     r"""Compute 1D electric field solution on nodes.
 
@@ -183,7 +182,6 @@ def primary_h_1d_solution(
     top_bc="dirichlet",
     bot_bc="robin",
     skin_depth_factor=3,
-    n_pad=None,
 ):
     r"""Compute 1D magnetic field solution on nodes.
 
