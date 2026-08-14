@@ -79,7 +79,6 @@ def test_layer_conductance_to_analytic():
     survey_3d = dcr.Survey(src_3d)
 
     sim_3d = dcr.simulation.Simulation3DHierarchicalNodal(
-        # mesh=mesh, survey=survey_3d, sigma=sigma_3d, tauMap=tau_map
         mesh=mesh, survey=survey_3d, sigma=sigma_3d, face_conductance_map=tau_map
     )
 
@@ -186,7 +185,6 @@ def test_edge_conductivity():
         mesh=mesh,
         survey=survey_kappa,
         sigma=sigma_0,
-        # kappaMap=maps.IdentityMap(nP=mesh.n_edges),
         edge_area_conductance_map=maps.IdentityMap(nP=mesh.n_edges),
     )
 

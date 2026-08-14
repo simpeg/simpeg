@@ -25,8 +25,6 @@ from simpeg.utils import get_default_solver
 # define a very simple class...
 @with_property_mass_matrices("sigma")
 @with_property_mass_matrices("mu")
-# @with_surface_property_mass_matrices("tau")
-# @with_line_property_mass_matrices("kappa")
 @with_surface_property_mass_matrices("face_conductance", "tau")
 @with_line_property_mass_matrices("edge_area_conductance", "kappa")
 class SimpleSim(BasePDESimulation):
@@ -36,10 +34,6 @@ class SimpleSim(BasePDESimulation):
     rho, rhoMap, rhoDeriv = props.Invertible("Electrical conductivity (S/m)")
     props.Reciprocal(sigma, rho)
     mu, muMap, muDeriv = props.Invertible("Magnetic Permeability")
-    # tau, tauMap, tauDeriv = props.Invertible("Face conductivity, conductance (S)")
-    # kappa, kappaMap, kappaDeriv = props.Invertible(
-    #     "Edge conductivity, conductivity times area (Sm)"
-    # )
     face_conductance, face_conductance_map, face_conductance_deriv = props.Invertible(
         "Face conductivity, conductance (S)"
     )
@@ -55,10 +49,6 @@ class SimpleSim(BasePDESimulation):
         sigmaMap=None,
         mu=mu_0,
         muMap=None,
-        # tau=None,
-        # tauMap=None,
-        # kappa=None,
-        # kappaMap=None,
         face_conductance=None,
         face_conductance_map=None,
         edge_area_conductance=None,
@@ -67,14 +57,10 @@ class SimpleSim(BasePDESimulation):
         super().__init__(mesh=mesh, survey=survey)
         self.sigma = sigma
         self.mu = mu
-        # self.tau = tau
-        # self.kappa = kappa
         self.face_conductance = face_conductance
         self.edge_area_conductance = edge_area_conductance
         self.sigmaMap = sigmaMap
         self.muMap = muMap
-        # self.tauMap = tauMap
-        # self.kappaMap = kappaMap
         self.face_conductance_map = face_conductance_map
         self.edge_area_conductance_map = edge_area_conductance_map
 
@@ -84,10 +70,8 @@ class SimpleSim(BasePDESimulation):
         toDelete = super()._delete_on_model_update
         if self.sigmaMap is not None or self.rhoMap is not None:
             toDelete = toDelete + self._clear_on_sigma_update
-        # if self.tauMap is not None:
         if self.face_conductance_map is not None:
             toDelete = toDelete + self._clear_on_tau_update
-        # if self.kappaMap is not None:
         if self.edge_area_conductance_map is not None:
             toDelete = toDelete + self._clear_on_kappa_update
         return toDelete
@@ -879,8 +863,6 @@ class TestSimSurfaceProperties(unittest.TestCase):
     def setUp(self):
         """Set up function."""
         self.mesh = discretize.TensorMesh([5, 6, 7])
-
-        # self.sim = SimpleSim(self.mesh, tauMap=maps.ExpMap())
         self.sim = SimpleSim(self.mesh, face_conductance_map=maps.ExpMap())
         self.start_mod = np.log(1e-2 * np.ones(self.mesh.n_faces)) + np.random.randn(
             self.mesh.n_faces
@@ -1226,8 +1208,6 @@ class TestSimEdgeProperties(unittest.TestCase):
     def setUp(self):
         """Set up function."""
         self.mesh = discretize.TensorMesh([5, 6, 7])
-
-        # self.sim = SimpleSim(self.mesh, kappaMap=maps.ExpMap())
         self.sim = SimpleSim(self.mesh, edge_area_conductance_map=maps.ExpMap())
         self.start_mod = np.log(1e-2 * np.ones(self.mesh.n_edges)) + np.random.randn(
             self.mesh.n_edges

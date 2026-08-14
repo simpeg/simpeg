@@ -67,8 +67,6 @@ def get_simulation(simulation_class, mesh, survey):
     if "Hierarchical" in simulation_class:
         sigma_map, tau_map, kappa_map = get_wire_mappings(mesh)
         sim.sigmaMap = sigma_map
-        # sim.tauMap = tau_map
-        # sim.kappaMap = kappa_map
         sim.face_conductance_map = tau_map
         sim.edge_area_conductance_map = kappa_map
     else:
