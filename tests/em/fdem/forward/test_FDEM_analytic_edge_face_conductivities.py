@@ -138,7 +138,10 @@ def test_layer_conductance_to_analytic(mesh_type, formulation, rx_type, orientat
     else:
         sim_3d = fdem.Simulation3DHierarchicalElectricField(
             # mesh=mesh, survey=survey_3d, sigma=sigma_3d, tauMap=tau_map
-            mesh=mesh, survey=survey_3d, sigma=sigma_3d, face_conductance_map=tau_map
+            mesh=mesh,
+            survey=survey_3d,
+            sigma=sigma_3d,
+            face_conductance_map=tau_map,
         )
 
     # COMPUTE SOLUTIONS
