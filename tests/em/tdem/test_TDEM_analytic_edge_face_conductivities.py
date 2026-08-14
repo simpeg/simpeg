@@ -141,7 +141,10 @@ def test_layer_conductance_to_analytic(formulation, mesh_type):
     if formulation == "MagneticFluxDensity":
         sim_3d = tdem.Simulation3DHierarchicalMagneticFluxDensity(
             # mesh=mesh, survey=survey_3d, sigma=sigma_3d, tauMap=tau_map
-            mesh=mesh, survey=survey_3d, sigma=sigma_3d, face_conductance_map=tau_map
+            mesh=mesh,
+            survey=survey_3d,
+            sigma=sigma_3d,
+            face_conductance_map=tau_map,
         )
     else:
         sim_3d = tdem.Simulation3DHierarchicalElectricField(
