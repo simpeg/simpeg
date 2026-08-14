@@ -223,8 +223,10 @@ def get_FDEM_hierarchical_problem(
             mesh,
             survey=survey,
             sigmaMap=sigma_map,
-            tauMap=tau_map,
-            kappaMap=kappa_map,
+            # tauMap=tau_map,
+            # kappaMap=kappa_map,
+            face_conductance_map=tau_map,
+            edge_area_conductance_map=kappa_map,
             muMap=mu_map,
         )
 
@@ -234,8 +236,10 @@ def get_FDEM_hierarchical_problem(
             mesh,
             survey=survey,
             sigmaMap=sigma_map,
-            tauMap=tau_map,
-            kappaMap=kappa_map,
+            # tauMap=tau_map,
+            # kappaMap=kappa_map,
+            face_conductance_map=tau_map,
+            edge_area_conductance_map=kappa_map,
             muMap=mu_map,
         )
 

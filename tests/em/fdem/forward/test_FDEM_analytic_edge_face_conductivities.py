@@ -132,11 +132,13 @@ def test_layer_conductance_to_analytic(mesh_type, formulation, rx_type, orientat
     # DEFINE THE SIMULATIONS
     if formulation == "MagneticFluxDensity":
         sim_3d = fdem.Simulation3DHierarchicalMagneticFluxDensity(
-            mesh=mesh, survey=survey_3d, sigma=sigma_3d, tauMap=tau_map
+            # mesh=mesh, survey=survey_3d, sigma=sigma_3d, tauMap=tau_map
+            mesh=mesh, survey=survey_3d, sigma=sigma_3d, face_conductance_map=tau_map
         )
     else:
         sim_3d = fdem.Simulation3DHierarchicalElectricField(
-            mesh=mesh, survey=survey_3d, sigma=sigma_3d, tauMap=tau_map
+            # mesh=mesh, survey=survey_3d, sigma=sigma_3d, tauMap=tau_map
+            mesh=mesh, survey=survey_3d, sigma=sigma_3d, face_conductance_map=tau_map
         )
 
     # COMPUTE SOLUTIONS
@@ -259,7 +261,8 @@ def test_edge_conductivity():
         mesh=mesh,
         survey=survey_kappa,
         sigma=sigma_0,
-        kappaMap=maps.IdentityMap(nP=mesh.n_edges),
+        # kappaMap=maps.IdentityMap(nP=mesh.n_edges),
+        edge_area_conductance_map=maps.IdentityMap(nP=mesh.n_edges),
     )
 
     # COMPUTE SOLUTIONS
