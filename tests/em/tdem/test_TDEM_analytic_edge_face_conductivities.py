@@ -149,7 +149,10 @@ def test_layer_conductance_to_analytic(formulation, mesh_type):
     else:
         sim_3d = tdem.Simulation3DHierarchicalElectricField(
             # mesh=mesh, survey=survey_3d, sigma=sigma_3d, tauMap=tau_map
-            mesh=mesh, survey=survey_3d, sigma=sigma_3d, face_conductance_map=tau_map
+            mesh=mesh,
+            survey=survey_3d,
+            sigma=sigma_3d,
+            face_conductance_map=tau_map,
         )
     sim_3d.time_steps = time_steps
 
