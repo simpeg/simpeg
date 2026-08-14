@@ -480,8 +480,10 @@ def with_surface_property_mass_matrices(property_name, alias_name=None):
             if getattr(self, stash_name, None) is None:
                 M_prop_deriv = self.mesh.get_face_inner_product_surface_deriv(
                     np.ones(self.mesh.n_faces)
-                # )(np.ones(self.mesh.n_faces)) * getattr(self, f"{arg.lower()}Deriv")
-                )(np.ones(self.mesh.n_faces)) * getattr(self, f"{property_name.lower()}_deriv")
+                    # )(np.ones(self.mesh.n_faces)) * getattr(self, f"{arg.lower()}Deriv")
+                )(np.ones(self.mesh.n_faces)) * getattr(
+                    self, f"{property_name.lower()}_deriv"
+                )
                 setattr(self, stash_name, M_prop_deriv)
             return _inner_mat_mul_op(getattr(self, stash_name), u, v=v, adjoint=adjoint)
 
