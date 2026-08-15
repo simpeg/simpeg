@@ -2838,10 +2838,10 @@ class Simulation3DHierarchicalElectricField(
     * Thick structures are parameterized as conductivities at cell centers. This property
       and the corresponding mapping are set with `sigma` and `sigmaMap`.
     * Sheet-like structures can be parameterized as conductances on mesh faces. This property
-      and the corresponding mapping are set with `tau` and `tauMap`.
+      and the corresponding mapping are set with `face_conductance` and `face_conductance_map`.
     * Wire-like structures can be parameterized as area-integrated conductivities on
-      mesh edges. This property and the corresponding mapping as set with `kappa` and
-      `kappaMap`.
+      mesh edges. This property and the corresponding mapping as set with
+      `edge_area_conductance` and `edge_area_conductance_map`.
 
     See the *Notes* section for a comprehensive description of the formulation.
 
@@ -3000,8 +3000,8 @@ class Simulation3DHierarchicalElectricField(
         items = super()._delete_on_model_update
         if (
             (self.sigmaMap is not None)
-            | (self.tauMap is not None)
-            | (self.kappaMap is not None)
+            | (self.face_conductance_map is not None)
+            | (self.edge_area_conductance_map is not None)
         ):
             items = items + ["_Adcinv"]  # clear DC matrix factors on any model updates
 
@@ -3022,10 +3022,10 @@ class Simulation3DHierarchicalMagneticFluxDensity(
     * Thick structures are parameterized as conductivities at cell centers. This property
       and the corresponding mapping are set with `sigma` and `sigmaMap`.
     * Sheet-like structures can be parameterized as conductances on mesh faces. This property
-      and the corresponding mapping are set with `tau` and `tauMap`.
+      and the corresponding mapping are set with `face_conductance` and `face_conductance_map`.
     * Wire-like structures can be parameterized as area-integrated conductivities on
-      mesh edges. This property and the corresponding mapping as set with `kappa` and
-      `kappaMap`.
+      mesh edges. This property and the corresponding mapping as set with
+      `edge_area_conductance` and `edge_area_conductance_map`.
 
     See the *Notes* section for a comprehensive description of the formulation.
 

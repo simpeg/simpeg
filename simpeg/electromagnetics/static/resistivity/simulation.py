@@ -1167,10 +1167,10 @@ class Simulation3DHierarchicalNodal(
     * Thick structures are parameterized as conductivities at cell centers. This property
       and the corresponding mapping are set with `sigma` and `sigmaMap`.
     * Sheet-like structures can be parameterized as conductances on mesh faces. This property
-      and the corresponding mapping are set with `tau` and `tauMap`.
+      and the corresponding mapping are set with `face_conductance` and `face_conductance_map`.
     * Wire-like structures can be parameterized as area-integrated conductivities on
-      mesh edges. This property and the corresponding mapping as set with `kappa` and
-      `kappaMap`.
+      mesh edges. This property and the corresponding mapping as set with
+      `edge_area_conductance` and `edge_area_conductance_map`.
 
     See the *Notes* section for a comprehensive description of the formulation.
 
