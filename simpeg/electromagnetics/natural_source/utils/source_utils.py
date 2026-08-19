@@ -18,7 +18,7 @@ def primary_e_1d_solution(
     freq,
     top_bc="dirichlet",
     bot_bc="robin",
-    skin_depth_factor=3,
+    skin_depth_factor=3.0,
 ):
     r"""Compute 1D electric field solution on nodes.
 
