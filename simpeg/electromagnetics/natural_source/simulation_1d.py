@@ -261,6 +261,14 @@ class Simulation1DRecursive(BaseSimulation):
                     pm = 1
                 elif rx.orientation == "yx":
                     pm = -1
+                else:
+                    msg = (
+                        f"Invalid receiver orientation '{rx.orientation}' "
+                        f"for receiver '{rx}'. "
+                        "Only 'xy' and 'yx' orientations are supported for "
+                        f"the {type(self).__name__} class."
+                    )
+                    raise ValueError(msg)
 
                 if rx.component == "real":
                     d.append(pm * np.real(Z[i_freq]))
