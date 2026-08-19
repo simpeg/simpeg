@@ -1,4 +1,4 @@
-name : Reviewdog PR Annotations
+name: Reviewdog PR Annotations
 
 # =========
 # IMPORTANT
@@ -53,7 +53,7 @@ jobs:
       - name: Setup Python env
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install dependencies to run the flake8 checks
         run: .ci/install_style.sh
@@ -66,6 +66,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           path: pr_source
           persist-credentials: false
+          allow-unsafe-pr-checkout: true
 
       - name: flake8 review
         uses: reviewdog/action-flake8@v3
@@ -90,7 +91,7 @@ jobs:
       - name: Setup Python env
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install dependencies to run the black checks
         run: .ci/install_style.sh
@@ -101,11 +102,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          path: 'pr_source'
+          path: "pr_source"
           persist-credentials: false
+          allow-unsafe-pr-checkout: true
 
       - uses: reviewdog/action-black@v3
         with:
-          workdir: 'pr_source'
+          workdir: "pr_source"
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-pr-review
