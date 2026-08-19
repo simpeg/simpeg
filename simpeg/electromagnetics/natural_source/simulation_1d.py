@@ -318,10 +318,18 @@ class Simulation1DRecursive(BaseSimulation):
             Js_row = Js[i_freq]
             for rx in src.receiver_list:
 
-                if rx.orientation == "yx":
+                if rx.orientation == "xy":
+                    pm = 1
+                elif rx.orientation == "yx":
                     pm = -1
                 else:
-                    pm = 1
+                    msg = (
+                        f"Invalid receiver orientation '{rx.orientation}' "
+                        f"for receiver '{rx}'. "
+                        "Only 'xy' and 'yx' orientations are supported for "
+                        f"the {type(self).__name__} class."
+                    )
+                    raise ValueError(msg)
 
                 if rx.component == "real":
                     Jrows = pm * np.real(Js_row)
