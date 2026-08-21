@@ -29,62 +29,78 @@ REMOVED_IGNORE = [
     "ActiveCells",
 ]
 
-MAPS_TO_EXCLUDE_2D = [
-    "ComboMap",
-    "ActiveCells",
-    "EffectiveSusceptibilityMap",
-    "InjectActiveCells",
-    "LogMap",
-    "LinearMap",
-    "ReciprocalMap",
-    "PolynomialPetroClusterMap",
-    "Surject2Dto3D",
-    "Map2Dto3D",
-    "Mesh2Mesh",
-    "ParametricPolyMap",
-    "PolyMap",
-    "ParametricSplineMap",
-    "SplineMap",
-    "BaseParametric",
-    "ParametricBlock",
-    "ParametricEllipsoid",
-    "ParametricCasingAndLayer",
-    "ParametricLayer",
-    "ParametricBlockInLayer",
-    "Projection",
-    "SelfConsistentEffectiveMedium",
-    "SumMap",
-    "SurjectUnits",
-    "TileMap",
-] + REMOVED_IGNORE
-MAPS_TO_EXCLUDE_3D = [
-    "ComboMap",
-    "ActiveCells",
-    "EffectiveSusceptibilityMap",
-    "InjectActiveCells",
-    "LogMap",
-    "LinearMap",
-    "ReciprocalMap",
-    "PolynomialPetroClusterMap",
-    "CircleMap",
-    "ParametricCircleMap",
-    "Mesh2Mesh",
-    "BaseParametric",
-    "ParametricBlock",
-    "ParametricEllipsoid",
-    "ParametricPolyMap",
-    "PolyMap",
-    "ParametricSplineMap",
-    "SplineMap",
-    "ParametricCasingAndLayer",
-    "ParametricLayer",
-    "ParametricBlockInLayer",
-    "Projection",
-    "SelfConsistentEffectiveMedium",
-    "SumMap",
-    "SurjectUnits",
-    "TileMap",
-] + REMOVED_IGNORE
+TRANSFER_FUNCTION_MAPS = [
+    "ArctanMap",
+    "ErfMap",
+    "PiecewiseLinearMap",
+    "ScaledLogisticSigmoidMap",
+    "SineTransferMap",
+]
+
+MAPS_TO_EXCLUDE_2D = (
+    [
+        "ComboMap",
+        "ActiveCells",
+        "EffectiveSusceptibilityMap",
+        "InjectActiveCells",
+        "LogMap",
+        "LinearMap",
+        "ReciprocalMap",
+        "PolynomialPetroClusterMap",
+        "Surject2Dto3D",
+        "Map2Dto3D",
+        "Mesh2Mesh",
+        "ParametricPolyMap",
+        "PolyMap",
+        "ParametricSplineMap",
+        "SplineMap",
+        "BaseParametric",
+        "ParametricBlock",
+        "ParametricEllipsoid",
+        "ParametricCasingAndLayer",
+        "ParametricLayer",
+        "ParametricBlockInLayer",
+        "Projection",
+        "SelfConsistentEffectiveMedium",
+        "SumMap",
+        "SurjectUnits",
+        "TileMap",
+    ]
+    + REMOVED_IGNORE
+    + TRANSFER_FUNCTION_MAPS
+)
+MAPS_TO_EXCLUDE_3D = (
+    [
+        "ComboMap",
+        "ActiveCells",
+        "EffectiveSusceptibilityMap",
+        "InjectActiveCells",
+        "LogMap",
+        "LinearMap",
+        "ReciprocalMap",
+        "PolynomialPetroClusterMap",
+        "CircleMap",
+        "ParametricCircleMap",
+        "Mesh2Mesh",
+        "BaseParametric",
+        "ParametricBlock",
+        "ParametricEllipsoid",
+        "ParametricPolyMap",
+        "PolyMap",
+        "ParametricSplineMap",
+        "SplineMap",
+        "ParametricCasingAndLayer",
+        "ParametricLayer",
+        "ParametricBlockInLayer",
+        "Projection",
+        "SelfConsistentEffectiveMedium",
+        "SumMap",
+        "SurjectUnits",
+        "TileMap",
+    ]
+    + REMOVED_IGNORE
+    + TRANSFER_FUNCTION_MAPS
+)
 
 
 def test_IdentityMap_init():
@@ -640,6 +656,110 @@ def test_logit_limits():
     assert logit_map * np.r_[50] == np.r_[-1]
 
 
+@pytest.mark.parametrize(
+    "map_class, kwargs",
+    [
+        (maps.ArctanMap, {}),
+        (maps.ArctanMap, {"half_width": 2.5, "scale": 2.0, "shift": -1.0}),
+        (maps.ErfMap, {}),
+        (maps.ErfMap, {"half_width": 0.5, "scale": 3.0, "shift": 1.0}),
+        (maps.ScaledLogisticSigmoidMap, {}),
+        (maps.ScaledLogisticSigmoidMap, {"half_width": 3.0}),
+        (maps.SineTransferMap, {}),
+        (maps.SineTransferMap, {"half_width": 2.0, "scale": 2.0, "shift": -1.0}),
+    ],
+)
+def test_transfer_function_maps_derivative(map_class, kwargs):
+    """
+    Test the derivative of the bounded transfer function maps (ArctanMap, ErfMap,
+    ScaledLogisticSigmoidMap and SineTransferMap) against a numerical derivative check.
+    """
+    nP = 8
+    mapping = map_class(nP=nP, **kwargs)
+    rng = np.random.default_rng(seed=52)
+    m = rng.normal(scale=2.0, size=nP)
+    assert mapping.test(m=m, random_seed=52)
+
+
+@pytest.mark.parametrize(
+    "map_class", [maps.ArctanMap, maps.ErfMap, maps.ScaledLogisticSigmoidMap]
+)
+def test_transfer_function_maps_inverse(map_class):
+    """
+    Test that the transfer function maps with a closed-form inverse recover the
+    original model.
+    """
+    nP = 6
+    mapping = map_class(nP=nP)
+    rng = np.random.default_rng(seed=53)
+    m = rng.normal(scale=1.0, size=nP)
+    d = mapping * m
+    m_rec = mapping.inverse(d)
+    np.testing.assert_allclose(m, m_rec, atol=1e-8)
+
+
+def test_transfer_function_maps_saturate():
+    """
+    ArctanMap, ErfMap, ScaledLogisticSigmoidMap and SineTransferMap should saturate
+    to shift +/- scale * (their theoretical bound) as the model goes to +/- infinity.
+    """
+    m = np.array([-1e6, 1e6])
+
+    mapping = maps.ArctanMap(nP=2)
+    np.testing.assert_allclose(mapping * m, [0.0, 1.0], atol=1e-6)
+
+    mapping = maps.ErfMap(nP=2)
+    np.testing.assert_allclose(mapping * m, [0.0, 1.0], atol=1e-6)
+
+    mapping = maps.ScaledLogisticSigmoidMap(nP=2)
+    np.testing.assert_allclose(mapping * m, [0.0, 1.0], atol=1e-6)
+
+    mapping = maps.SineTransferMap(nP=2)
+    np.testing.assert_allclose(mapping * m, [0.0, 1.0])
+
+
+def test_sine_transfer_map_not_invertible():
+    """SineTransferMap is not globally invertible; it should raise NotImplementedError."""
+    mapping = maps.SineTransferMap(nP=3)
+    with pytest.raises(NotImplementedError):
+        mapping.inverse(np.array([0.1, 0.2, 0.3]))
+
+
+class TestPiecewiseLinearMap:
+    """Tests for ``PiecewiseLinearMap``."""
+
+    def test_transform(self):
+        xp = np.array([0.0, 5.0, 10.0])
+        fp = np.array([0.0, 10.0, 10.0])
+        mapping = maps.PiecewiseLinearMap(xp, fp, nP=6)
+        m = np.array([-1.0, 0.0, 2.5, 5.0, 7.5, 15.0])
+        expected = np.array([0.0, 0.0, 5.0, 10.0, 10.0, 10.0])
+        np.testing.assert_allclose(mapping * m, expected)
+
+    def test_transform_unsorted_control_points(self):
+        """``xp``/``fp`` do not need to be pre-sorted."""
+        xp = np.array([2.0, 0.0, 1.0])
+        fp = np.array([10.0, 0.0, 10.0])
+        mapping = maps.PiecewiseLinearMap(xp, fp, nP=4)
+        m = np.array([-1.0, 0.5, 1.5, 3.0])
+        expected = np.array([0.0, 5.0, 10.0, 10.0])
+        np.testing.assert_allclose(mapping * m, expected)
+
+    def test_deriv(self):
+        xp = np.array([0.0, 5.0, 10.0])
+        fp = np.array([0.0, 10.0, 10.0])
+        mapping = maps.PiecewiseLinearMap(xp, fp, nP=4)
+        m = np.array([-2.0, 2.5, 7.5, 12.0])
+        assert mapping.test(m=m, random_seed=54)
+
+    def test_inverse_not_implemented(self):
+        xp = np.array([0.0, 1.0, 2.0])
+        fp = np.array([0.0, 10.0, 10.0])
+        mapping = maps.PiecewiseLinearMap(xp, fp, nP=3)
+        with pytest.raises(NotImplementedError):
+            mapping.inverse(np.array([1.0, 2.0, 3.0]))
+
+
 class TestWires(unittest.TestCase):
     def test_basic(self):
         mesh = discretize.TensorMesh([10, 10, 10])
@@ -794,6 +914,11 @@ def test_linearity():
         maps.PolynomialPetroClusterMap(),
         maps.IdentityMap() + maps.ExpMap(),  # A simple SumMap
         maps.ChiMap() * maps.ExpMap(),  # A simple ComboMap
+        maps.ArctanMap(),
+        maps.ErfMap(),
+        maps.ScaledLogisticSigmoidMap(),
+        maps.SineTransferMap(),
+        maps.PiecewiseLinearMap(np.r_[0.0, 1.0, 2.0], np.r_[0.0, 1.0, 1.0]),
     ]
 
     assert all(m.is_linear for m in linear_maps)

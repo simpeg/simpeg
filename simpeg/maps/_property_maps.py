@@ -1594,12 +1594,16 @@ class ArctanMap(IdentityMap):
         else:
             return sp.diags(dtan)
 
+    @property
+    def is_linear(self):
+        return False
+
 
 class PiecewiseLinearMap(IdentityMap):
 
     def __init__(self, xp, fp, **kwargs):
         xp = np.asarray(xp, dtype=float)
-        fp = np.asarray(fp, dtpye=float)
+        fp = np.asarray(fp, dtype=float)
         xp_sort = np.argsort(xp)
         self._xp = np.r_[-np.inf, xp[xp_sort], np.inf]
         fp = fp[xp_sort]
@@ -1627,6 +1631,10 @@ class PiecewiseLinearMap(IdentityMap):
         if v is not None:
             return df * v
         return sp.diags(df)
+
+    @property
+    def is_linear(self):
+        return False  # because the derivative value depends on "m" (even though the function used by this is piecwise linear)
 
 
 class SineTransferMap(IdentityMap):
@@ -1669,6 +1677,10 @@ class SineTransferMap(IdentityMap):
             return d_map * v
         return sp.diags(d_map)
 
+    @property
+    def is_linear(self):
+        return False
+
 
 class ErfMap(IdentityMap):
     _base_half_width = 2 * np.sqrt(np.log(2))
@@ -1691,18 +1703,22 @@ class ErfMap(IdentityMap):
         super().__init__(**kwargs)
 
     def _transform(self, x):
-        x_scale = self._base_half_width / self.half_width
-        return self.scale / 2 * erf(x * x_scale) + self.shift
+        x_scale = self._base_half_width / self._half_width
+        return self._scale / 2 * erf(x * x_scale) + self._shift
 
     def inverse(self, y):
-        x_scale = self._base_half_width / self.half_width
-        return erfinv((y - self.shift) / self.scale) / x_scale
+        x_scale = self._base_half_width / self._half_width
+        return erfinv(2 * (y - self._shift) / self._scale) / x_scale
 
     def deriv(self, m, v=None):
-        x_scale = self._base_half_width / self.deriv_half_width
+        x_scale = self._base_half_width / self._deriv_half_width
         m = x_scale * m
 
-        d_erf = (self.scale * x_scale / np.sqrt(np.pi)) * np.exp(-m * m)
+        d_erf = (self._scale * x_scale / np.sqrt(np.pi)) * np.exp(-m * m)
         if v is not None:
             return d_erf * v
         return sp.diags(d_erf)
+
+    @property
+    def is_linear(self):
+        return False
