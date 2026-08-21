@@ -7,7 +7,7 @@ from numbers import Real
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import mu_0
-from scipy.special import expit, logit
+from scipy.special import expit, logit, erf, erfinv
 from discretize.utils import mkvc, sdiag, rotation_matrix_from_normals
 
 from ._base import IdentityMap
@@ -1524,3 +1524,185 @@ class SelfConsistentEffectiveMedium(IdentityMap):
     @property
     def is_linear(self):
         return False
+
+
+class ScaledLogisticSigmoidMap(LogisticSigmoidMap):
+    _base_half_width = 2 * np.log(3 + 2 * np.sqrt(2))
+
+    def __init__(self, half_width=1.0, deriv_half_width=None, **kwargs):
+        super().__init__(**kwargs)
+        self._half_width = validate_float(
+            "half_width", half_width, min_val=0.0, inclusive_min=False
+        )
+        self._deriv_half_width = (
+            self._half_width
+            if deriv_half_width is None
+            else validate_float(
+                "deriv_half_width", deriv_half_width, min_val=0.0, inclusive_min=False
+            )
+        )
+
+    def _transform(self, x):
+        m_scale = self._base_half_width / self._half_width
+        return super()._transform(x * m_scale)
+
+    def inverse(self, y):
+        m_scale = self._base_half_width / self._half_width
+        return super().inverse(y) / m_scale
+
+    def deriv(self, m, v=None):
+        m_scale = self._base_half_width / self._deriv_half_width
+        dm_v = super().deriv(m * m_scale, v)
+        if v is not None:
+            return dm_v * m_scale
+        return sp.diags(np.full_like(m, m_scale)) @ dm_v
+
+
+class ArctanMap(IdentityMap):
+
+    def __init__(
+        self, half_width=1, scale=1 / np.pi, shift=0.5, deriv_half_width=None, **kwargs
+    ):
+        self._half_width = validate_float(
+            "half_width", half_width, min_val=0.0, inclusive_min=False
+        )
+        self._deriv_half_width = (
+            self._half_width
+            if deriv_half_width is None
+            else validate_float(
+                "deriv_half_width", deriv_half_width, min_val=0.0, inclusive_min=False
+            )
+        )
+        self._scale = validate_float("scale", scale)
+        self._shift = validate_float("shift", shift)
+        super().__init__(**kwargs)
+
+    def _transform(self, x):
+        x_scale = 2 / self._half_width
+        return self._scale * np.arctan(x * x_scale) + self._shift
+
+    def inverse(self, y):
+        x_scale = 2 / self._half_width
+        return np.tan((y - self._shift) / self._scale) / x_scale
+
+    def deriv(self, m, v=None):
+        x_scale = 2 / self._deriv_half_width
+        x = m * x_scale
+        dtan = self._scale * x_scale / (x * x + 1)
+        if v is not None:
+            return dtan * v
+        else:
+            return sp.diags(dtan)
+
+
+class PiecewiseLinearMap(IdentityMap):
+
+    def __init__(self, xp, fp, **kwargs):
+        xp = np.asarray(xp, dtype=float)
+        fp = np.asarray(fp, dtpye=float)
+        xp_sort = np.argsort(xp)
+        self._xp = np.r_[-np.inf, xp[xp_sort], np.inf]
+        fp = fp[xp_sort]
+        self._fp = np.r_[fp[0], fp, fp[-1]]
+
+        # construct linear interpolator function
+        self._df = np.diff(self._fp) / np.diff(self._xp)
+        super().__init__(**kwargs)
+
+    def _transform(self, x):
+        intervals = np.searchsorted(self._xp, x)
+        n_ps = len(self._xp) - 2
+        xp = self._xp[np.minimum(intervals, n_ps)]
+        fp = self._fp[intervals]
+        df = self._df[intervals - 1]
+        y = df * (x - xp) + fp
+        return y
+
+    def inverse(self, y):
+        raise NotImplementedError("Cannot uniquely invert a piecewise linear map")
+
+    def deriv(self, m, v=None):
+        intervals = np.searchsorted(self._xp, m)
+        df = self._df[intervals - 1]
+        if v is not None:
+            return df * v
+        return sp.diags(df)
+
+
+class SineTransferMap(IdentityMap):
+    _base_half_width = np.pi
+
+    def __init__(
+        self, half_width=1, scale=1 / np.pi, shift=0.5, deriv_half_width=None, **kwargs
+    ):
+        self._half_width = validate_float(
+            "half_width", half_width, min_val=0.0, inclusive_min=False
+        )
+        self._deriv_half_width = (
+            self._half_width
+            if deriv_half_width is None
+            else validate_float(
+                "deriv_half_width", deriv_half_width, min_val=0.0, inclusive_min=False
+            )
+        )
+        self._scale = validate_float("scale", scale)
+        self._shift = validate_float("shift", shift)
+        super().__init__(**kwargs)
+
+    def _transform(self, x):
+        x_scale = self._base_half_width / self._half_width
+        x = x_scale * x
+        np.maximum(x, -np.pi, out=x)
+        np.minimum(x, np.pi, out=x)
+        return self._scale / 2 * (np.sin(x) + x) + self._shift
+
+    def inverse(self, y):
+        raise NotImplementedError("Cannot uniquely invert a cosine transfer map")
+
+    def deriv(self, m, v=None):
+        x_scale = self._base_half_width / self._deriv_half_width
+        x = x_scale * m
+        np.maximum(x, -np.pi, out=x)
+        np.minimum(x, np.pi, out=x)
+        d_map = self._scale * x_scale / 2 * (np.cos(x) + 1)
+        if v is not None:
+            return d_map * v
+        return sp.diags(d_map)
+
+
+class ErfMap(IdentityMap):
+    _base_half_width = 2 * np.sqrt(np.log(2))
+
+    def __init__(
+        self, half_width=1, scale=1, shift=0.5, deriv_half_width=None, **kwargs
+    ):
+        self._half_width = validate_float(
+            "half_width", half_width, min_val=0.0, inclusive_min=False
+        )
+        self._deriv_half_width = (
+            self._half_width
+            if deriv_half_width is None
+            else validate_float(
+                "deriv_half_width", deriv_half_width, min_val=0.0, inclusive_min=False
+            )
+        )
+        self._scale = validate_float("scale", scale)
+        self._shift = validate_float("shift", shift)
+        super().__init__(**kwargs)
+
+    def _transform(self, x):
+        x_scale = self._base_half_width / self.half_width
+        return self.scale / 2 * erf(x * x_scale) + self.shift
+
+    def inverse(self, y):
+        x_scale = self._base_half_width / self.half_width
+        return erfinv((y - self.shift) / self.scale) / x_scale
+
+    def deriv(self, m, v=None):
+        x_scale = self._base_half_width / self.deriv_half_width
+        m = x_scale * m
+
+        d_erf = (self.scale * x_scale / np.sqrt(np.pi)) * np.exp(-m * m)
+        if v is not None:
+            return d_erf * v
+        return sp.diags(d_erf)
