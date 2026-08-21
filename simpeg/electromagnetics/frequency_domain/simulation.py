@@ -24,10 +24,10 @@ class BaseFDEMSimulation(BaseEMSimulation, DielectricPermittivity):
     Maxwell's equations are expressed as:
 
     .. math::
-        \begin{align}
+        \begin{aligned}
         \nabla \times \vec{E} + i\omega \vec{B} &= - i \omega \vec{S}_m \\
         \nabla \times \vec{H} - \vec{J} &= \vec{S}_e
-        \end{align}
+        \end{aligned}
 
     where the constitutive relations between fields and fluxes are given by:
 
@@ -529,10 +529,10 @@ class Simulation3DElectricField(BaseFDEMSimulation):
     :math:`+i\omega t` Fourier convention is used:
 
     .. math::
-        \begin{align}
-        &\nabla \times \vec{E} + i\omega \vec{B} = - i \omega \vec{S}_m \\
+        \begin{aligned}
+        &\nabla \times \vec{E} + i\omega \vec{B} = \vec{S}_m \\
         &\nabla \times \vec{H} - \vec{J} = \vec{S}_e
-        \end{align}
+        \end{aligned}
 
     where :math:`\vec{S}_e` is an electric source term that defines a source current density,
     and :math:`\vec{S}_m` magnetic source term that defines a source magnetic flux density.
@@ -549,7 +549,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
     .. math::
         & \int_\Omega \vec{u} \cdot (\nabla \times \vec{E}) \, dv
         + i \omega \int_\Omega \vec{u} \cdot \vec{B} \, dv
-        = - i \omega \int_\Omega \vec{u} \cdot \vec{S}_m \, dv \\
+        = \int_\Omega \vec{u} \cdot \vec{S}_m \, dv \\
         & \int_\Omega (\nabla \times \vec{u}) \cdot \vec{H} \, dv
         - \oint_{\partial \Omega} \vec{u} \cdot (\vec{H} \times \hat{n}) \, da
         - \int_\Omega \vec{u} \cdot \vec{J} \, dv
@@ -568,7 +568,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
     set of discrete inner-products:
 
     .. math::
-        &\mathbf{u_f^T M_f C e} + i \omega \mathbf{u_f^T M_f b} = - i \omega \mathbf{u_f^T M_f s_m} \\
+        &\mathbf{u_f^T M_f C e} + i \omega \mathbf{u_f^T M_f b} = \mathbf{u_f^T M_f s_m} \\
         &\mathbf{u_e^T C^T M_f h} - \mathbf{u_e^T M_e j} = \mathbf{u_e^T s_e} \\
         &\mathbf{u_e^T M_e j} = \mathbf{u_e^T M_{e \sigma} e} \\
         &\mathbf{u_f^T M_f h} = \mathbf{u_f^T M_{f \mu} b}
@@ -590,7 +590,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
     where
 
     * :math:`\mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\sigma}}`
-    * :math:`\mathbf{q} = - i \omega \mathbf{s_e} - i \omega \mathbf{C^T M_{f\frac{1}{\mu}} s_m }`
+    * :math:`\mathbf{q} = - i \omega \mathbf{s_e} + \mathbf{C^T M_{f\frac{1}{\mu}} s_m }`
 
     """
 
@@ -797,7 +797,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         The right-hand side for each source is constructed according to:
 
         .. math::
-            \mathbf{q} = - i \omega \mathbf{s_e} - i \omega \mathbf{C^T M_{f\frac{1}{\mu}} s_m }
+            \mathbf{q} = - i \omega \mathbf{s_e} + \mathbf{C^T M_{f\frac{1}{\mu}} s_m }
 
         where
 
@@ -831,7 +831,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         The right-hand side for each source is constructed according to:
 
         .. math::
-            \mathbf{q} = -i \omega \mathbf{s_e} - i \omega \mathbf{C^T M_{f\frac{1}{\mu}} s_m }
+            \mathbf{q} = -i \omega \mathbf{s_e} + \mathbf{C^T M_{f\frac{1}{\mu}} s_m }
 
         where
 
@@ -919,10 +919,10 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     :math:`+i\omega t` Fourier convention is used:
 
     .. math::
-        \begin{align}
-        &\nabla \times \vec{E} + i\omega \vec{B} = - i \omega \vec{S}_m \\
+        \begin{aligned}
+        &\nabla \times \vec{E} + i\omega \vec{B} = \vec{S}_m \\
         &\nabla \times \vec{H} - \vec{J} = \vec{S}_e
-        \end{align}
+        \end{aligned}
 
     where :math:`\vec{S}_e` is an electric source term that defines a source current density,
     and :math:`\vec{S}_m` magnetic source term that defines a source magnetic flux density.
@@ -939,7 +939,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     .. math::
         & \int_\Omega \vec{u} \cdot (\nabla \times \vec{E}) \, dv
         + i \omega \int_\Omega \vec{u} \cdot \vec{B} \, dv
-        = - i \omega \int_\Omega \vec{u} \cdot \vec{S}_m \, dv \\
+        = \int_\Omega \vec{u} \cdot \vec{S}_m \, dv \\
         & \int_\Omega (\nabla \times \vec{u}) \cdot \vec{H} \, dv
         - \oint_{\partial \Omega} \vec{u} \cdot (\vec{H} \times \hat{n}) \, da
         - \int_\Omega \vec{u} \cdot \vec{J} \, dv
@@ -958,7 +958,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     set of discrete inner-products:
 
     .. math::
-        &\mathbf{u_f^T M_f C e} + i \omega \mathbf{u_f^T M_f b} = - i \omega \mathbf{u_f^T M_f s_m} \\
+        &\mathbf{u_f^T M_f C e} + i \omega \mathbf{u_f^T M_f b} = \mathbf{u_f^T M_f s_m} \\
         &\mathbf{u_e^T C^T M_f h} - \mathbf{u_e^T M_e j} = \mathbf{u_e^T s_e} \\
         &\mathbf{u_e^T M_e j} = \mathbf{u_e^T M_{e\sigma} e} \\
         &\mathbf{u_f^T M_f h} = \mathbf{u_f^T M_{f \mu} b}
@@ -980,7 +980,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     where
 
     * :math:`\mathbf{A} = \mathbf{C M_{e\sigma}^{-1} C^T M_{f\frac{1}{\mu}}} + i\omega \mathbf{I}`
-    * :math:`\mathbf{q} = \mathbf{C M_{e\sigma}^{-1} s_e} - i \omega \mathbf{s_m}`
+    * :math:`\mathbf{q} = \mathbf{C M_{e\sigma}^{-1} s_e} + \mathbf{s_m}`
 
     """
 
@@ -1216,7 +1216,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         The right-hand side for each source is constructed according to:
 
         .. math::
-            \mathbf{q} = \mathbf{C M_{e\sigma}^{-1} s_e} - i \omega \mathbf{s_m }
+            \mathbf{q} = \mathbf{C M_{e\sigma}^{-1} s_e} + \mathbf{s_m }
 
         where
 
@@ -1262,7 +1262,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
         The right-hand side for each source is constructed according to:
 
         .. math::
-            \mathbf{q} = \mathbf{C M_{e\sigma}^{-1} s_e} - i \omega \mathbf{s_m }
+            \mathbf{q} = \mathbf{C M_{e\sigma}^{-1} s_e} + \mathbf{s_m }
 
         where
 
@@ -1363,10 +1363,10 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
     :math:`+i\omega t` Fourier convention is used:
 
     .. math::
-        \begin{align}
-        &\nabla \times \vec{E} + i\omega \vec{B} = - i \omega \vec{S}_m \\
+        \begin{aligned}
+        &\nabla \times \vec{E} + i\omega \vec{B} = \vec{S}_m \\
         &\nabla \times \vec{H} - \vec{J} = \vec{S}_e
-        \end{align}
+        \end{aligned}
 
     where :math:`\vec{S}_e` is an electric source term that defines a source current density,
     and :math:`\vec{S}_m` magnetic source term that defines a source magnetic flux density.
@@ -1385,7 +1385,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         & \int_\Omega (\nabla \times \vec{u}) \cdot \vec{E} \; dv
         - \oint_{\partial \Omega} \vec{u} \cdot (\vec{E} \times \hat{n} ) \, da
         + i \omega \int_\Omega \vec{u} \cdot \vec{B} \, dv
-        = - i \omega \int_\Omega \vec{u} \cdot \vec{S}_m dv \\
+        = \int_\Omega \vec{u} \cdot \vec{S}_m dv \\
         & \int_\Omega \vec{u} \cdot (\nabla \times \vec{H} ) \, dv
         - \int_\Omega \vec{u} \cdot \vec{J} \, dv = \int_\Omega \vec{u} \cdot \vec{S}_j \, dv\\
         & \int_\Omega \vec{u} \cdot \vec{E} \, dv = \int_\Omega \vec{u} \cdot \rho \vec{J} \, dv \\
@@ -1402,7 +1402,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
     set of discrete inner-products:
 
     .. math::
-        &\mathbf{u_e^T C^T M_f \, e } + i \omega \mathbf{u_e^T M_e b} = - i\omega \mathbf{u_e^T s_m} \\
+        &\mathbf{u_e^T C^T M_f \, e } + i \omega \mathbf{u_e^T M_e b} = \mathbf{u_e^T s_m} \\
         &\mathbf{u_f^T C \, h} - \mathbf{u_f^T j} = \mathbf{u_f^T s_e} \\
         &\mathbf{u_f^T M_f e} = \mathbf{u_f^T M_{f\rho} j} \\
         &\mathbf{u_e^T M_e b} = \mathbf{u_e^T M_{e \mu} h}
@@ -1424,7 +1424,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
     where
 
     * :math:`\mathbf{A} = \mathbf{C M_{e\mu}^{-1} C^T M_{f\rho} + i\omega \mathbf{I}`
-    * :math:`\mathbf{q} = - i \omega \mathbf{s_e} - i \omega \mathbf{C M_{e\mu}^{-1} s_m}`
+    * :math:`\mathbf{q} = - i \omega \mathbf{s_e} + \mathbf{C M_{e\mu}^{-1} s_m}`
 
     """
 
@@ -1655,7 +1655,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         The right-hand side for each source is constructed according to:
 
         .. math::
-            \mathbf{q} = - i \omega \mathbf{s_e} - i \omega \mathbf{C M_{e\mu}^{-1} s_m}
+            \mathbf{q} = - i \omega \mathbf{s_e} + \mathbf{C M_{e\mu}^{-1} s_m}
 
         where
 
@@ -1694,7 +1694,7 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
         The right-hand side for each source is constructed according to:
 
         .. math::
-            \mathbf{q} = - i \omega \mathbf{s_e} - i \omega \mathbf{C M_{e\mu}^{-1} s_m}
+            \mathbf{q} = - i \omega \mathbf{s_e} + \mathbf{C M_{e\mu}^{-1} s_m}
 
         where
 
@@ -1798,10 +1798,10 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
     :math:`+i\omega t` Fourier convention is used:
 
     .. math::
-        \begin{align}
-        &\nabla \times \vec{E} + i\omega \vec{B} = - i \omega \vec{S}_m \\
+        \begin{aligned}
+        &\nabla \times \vec{E} + i\omega \vec{B} = \vec{S}_m \\
         &\nabla \times \vec{H} - \vec{J} = \vec{S}_e
-        \end{align}
+        \end{aligned}
 
     where :math:`\vec{S}_e` is an electric source term that defines a source current density,
     and :math:`\vec{S}_m` magnetic source term that defines a source magnetic flux density.
@@ -1820,7 +1820,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         & \int_\Omega (\nabla \times \vec{u}) \cdot \vec{E} \; dv
         - \oint_{\partial \Omega} \vec{u} \cdot (\vec{E} \times \hat{n} ) \, da
         + i \omega \int_\Omega \vec{u} \cdot \vec{B} \, dv
-        = - i \omega \int_\Omega \vec{u} \cdot \vec{S}_m dv \\
+        = \int_\Omega \vec{u} \cdot \vec{S}_m dv \\
         & \int_\Omega \vec{u} \cdot (\nabla \times \vec{H} ) \, dv
         - \int_\Omega \vec{u} \cdot \vec{J} \, dv = \int_\Omega \vec{u} \cdot \vec{S}_j \, dv\\
         & \int_\Omega \vec{u} \cdot \vec{E} \, dv = \int_\Omega \vec{u} \cdot \rho \vec{J} \, dv \\
@@ -1837,7 +1837,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
     set of discrete inner-products:
 
     .. math::
-        &\mathbf{u_e^T C^T M_f \, e } + i \omega \mathbf{u_e^T M_e b} = - i\omega \mathbf{u_e^T s_m} \\
+        &\mathbf{u_e^T C^T M_f \, e } + i \omega \mathbf{u_e^T M_e b} = \mathbf{u_e^T s_m} \\
         &\mathbf{u_f^T C \, h} - \mathbf{u_f^T j} = \mathbf{u_f^T s_e} \\
         &\mathbf{u_f^T M_f e} = \mathbf{u_f^T M_{f\rho} j} \\
         &\mathbf{u_e^T M_e b} = \mathbf{u_e^T M_{e \mu} h}
@@ -1859,7 +1859,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
     where
 
     * :math:`\mathbf{A} = \mathbf{C^T M_{f\rho} C} + i\omega \mathbf{M_{e\mu}}`
-    * :math:`\mathbf{q} = \mathbf{C^T M_{f\rho} s_e} - i\omega \mathbf{s_m}`
+    * :math:`\mathbf{q} = \mathbf{C^T M_{f\rho} s_e} + \mathbf{s_m}`
 
     """
 
@@ -2065,7 +2065,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         The right-hand side for each source is constructed according to:
 
         .. math::
-            \mathbf{q} = \mathbf{C^T M_{f\rho} s_e} - i\omega \mathbf{s_m}
+            \mathbf{q} = \mathbf{C^T M_{f\rho} s_e} + \mathbf{s_m}
 
         where
 
@@ -2106,7 +2106,7 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
         The right-hand side for each source is constructed according to:
 
         .. math::
-            \mathbf{q} = \mathbf{C^T M_{f\rho} s_e} - i\omega \mathbf{s_m}
+            \mathbf{q} = \mathbf{C^T M_{f\rho} s_e} + \mathbf{s_m}
 
         where
 

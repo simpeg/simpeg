@@ -606,5 +606,42 @@ def test_rx_loc_shapes(rx_class, n_locs1, n_locs2, orientation, component):
     np.testing.assert_allclose(J, J[0], rtol=1e-12)
 
 
+@pytest.mark.parametrize("prop", ["conductivity", "permeability"])
+def test_real_vs_complex(prop):
+    """just makes sure that it respect a complex conductivity, in that it is different
+    from the real value.
+    """
+    offsets = np.linspace(5, 20, 10)
+    rx1_locs = np.pad(offsets[:, None], ((0, 0), (0, 2)), constant_values=0)
+    rx_list = [
+        fdem.receivers.PointMagneticField(rx1_locs, orientation="x", component="real"),
+        fdem.receivers.PointMagneticField(rx1_locs, orientation="x", component="imag"),
+    ]
+
+    src = fdem.sources.MagDipole(rx_list, frequency=0.1)
+    srv = fdem.Survey(src)
+
+    sim = fdem.Simulation1DLayered(survey=srv, sigma=[1.0])
+    if prop == "conductivity":
+        sim.eta = 0.5
+    else:
+        sim.dchi = 1.0
+
+    d_c = sim.dpred(None)
+
+    # create another simulation that is just the real part of sigma and mu
+    sim_real = fdem.Simulation1DLayered(survey=srv, sigma=[1.0])
+
+    # hijack these to just return the real values from the complex valued simulation
+    # that way we are sure the two simulations have the same real parts of mu and sigma
+    # but different imaginary portions
+    sim_real.compute_complex_sigma = lambda f: sim.compute_complex_sigma(f).real
+    sim_real.compute_complex_mu = lambda f: sim.compute_complex_mu(f).real
+
+    d_r = sim_real.dpred(None)
+
+    assert np.all(d_r != d_c)
+
+
 if __name__ == "__main__":
     unittest.main()

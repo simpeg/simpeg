@@ -32,6 +32,7 @@ from ..utils import (
     Zero,
     eigenvalue_by_power_iteration,
     validate_string,
+    get_logger,
 )
 from ..utils.code_utils import (
     deprecate_property,
@@ -257,12 +258,12 @@ class DirectiveList(object):
 
     Parameters
     ----------
-    directives : list of simpeg.directives.InversionDirective
-        List of directives.
+    *directives : simpeg.directives.InversionDirective
+        Directives for the inversion.
     inversion : simpeg.inversion.BaseInversion
         The inversion associated with the directives list.
     debug : bool
-        Whether or not to print debugging information.
+        Whether to print debugging information.
 
     """
 
@@ -333,8 +334,11 @@ class DirectiveList(object):
             getattr(r, ruleType)()
 
     def validate(self):
-        [directive.validate(self) for directive in self.dList]
+        [directive.validate(self) for directive in self]
         return True
+
+    def __iter__(self):
+        return iter(self.dList)
 
 
 class BaseBetaEstimator(InversionDirective):
@@ -656,7 +660,8 @@ class BetaSchedule(InversionDirective):
         self._coolingRate = validate_integer("coolingRate", value, min_val=1)
 
     def endIter(self):
-        if self.opt.iter > 0 and self.opt.iter % self.coolingRate == 0:
+        it = self.opt.iter
+        if 0 < it < self.opt.maxIter and it % self.coolingRate == 0:
             if self.verbose:
                 print(
                     "BetaSchedule is cooling Beta. Iteration: {0:d}".format(
@@ -1161,6 +1166,12 @@ class TargetMisfit(InversionDirective):
             )
         self._phi_d_star = value
         self._target = None
+
+    def initialize(self):
+        logger = get_logger()
+        logger.info(
+            f"Directive {self.__class__.__name__}: Target data misfit is {self.target}"
+        )
 
     def endIter(self):
         if self.invProb.phi_d < self.target:
@@ -2314,51 +2325,58 @@ class UpdateSensitivityWeights(InversionDirective):
     r"""
     Sensitivity weighting for linear and non-linear least-squares inverse problems.
 
-    This directive computes the root-mean squared sensitivities for the
-    forward simulation(s) attached to the inverse problem, then truncates
-    and scales the result to create cell weights which are applied in the regularization.
-    The underlying theory is provided below in the `Notes` section.
+    This directive computes the root-mean squared sensitivities for the forward
+    simulation(s) attached to the inverse problem, then truncates and scales the result
+    to create cell weights which are applied in the regularization.
 
-    This directive **requires** that the map for the regularization function is either
-    class:`simpeg.maps.Wires` or class:`simpeg.maps.Identity`. In other words, the
-    sensitivity weighting cannot be applied for parametric inversion. In addition,
-    the simulation(s) connected to the inverse problem **must** have a ``getJ`` or
-    ``getJtJdiag`` method.
+    .. important::
 
-    This directive's place in the :class:`DirectivesList` **must** be
-    before any directives which update the preconditioner for the inverse problem
-    (i.e. :class:`UpdatePreconditioner`), and **must** be before any directives that
-    estimate the starting trade-off parameter (i.e. :class:`EstimateBeta_ByEig`
-    and :class:`EstimateBetaMaxDerivative`).
+        This directive **requires** that the map for the regularization function is
+        either :class:`simpeg.maps.Wires` or :class:`simpeg.maps.IdentityMap`. In other
+        words, the sensitivity weighting cannot be applied for parametric inversion. In
+        addition, the simulation(s) connected to the inverse problem **must** have
+        a ``getJ`` or ``getJtJdiag`` method.
+
+    .. important::
+
+        This directive **must** be placed before any directives which update the
+        preconditioner for the inverse problem (i.e. :class:`UpdatePreconditioner`), and
+        **must** be before any directives that estimate the starting trade-off parameter
+        (i.e. :class:`BetaEstimate_ByEig` and :class:`BetaEstimateMaxDerivative`).
 
     Parameters
     ----------
     every_iteration : bool
         When ``True``, update sensitivity weighting at every model update; non-linear problems.
         When ``False``, create sensitivity weights for starting model only; linear problems.
-    threshold : float
+    threshold_value : float
         Threshold value for smallest weighting value.
     threshold_method : {'amplitude', 'global', 'percentile'}
         Threshold method for how `threshold_value` is applied:
 
-            - amplitude:
-                the smallest root-mean squared sensitivity is a fractional percent of the largest value; must be between 0 and 1.
-            - global:
-                `threshold_value` is added to the cell weights prior to normalization; must be greater than 0.
-            - percentile:
-                the smallest root-mean squared sensitivity is set using percentile threshold; must be between 0 and 100.
+        - amplitude:
+            The smallest root-mean squared sensitivity is a fractional percent of the
+            largest value; must be between 0 and 1.
+        - global:
+            The ``threshold_value`` is added to the cell weights prior to normalization;
+            must be greater than 0.
+        - percentile:
+            The smallest root-mean squared sensitivity is set using percentile
+            threshold; must be between 0 and 100.
 
     normalization_method : {'maximum', 'min_value', None}
         Normalization method applied to sensitivity weights.
 
         Options are:
 
-            - maximum:
-                sensitivity weights are normalized by the largest value such that the largest weight is equal to 1.
-            - minimum:
-                sensitivity weights are normalized by the smallest value, after thresholding, such that the smallest weights are equal to 1.
-            - ``None``:
-                normalization is not applied.
+        - maximum:
+            Sensitivity weights are normalized by the largest value such that the
+            largest weight is equal to 1.
+        - minimum:
+            Sensitivity weights are normalized by the smallest value, after
+            thresholding, such that the smallest weights are equal to 1.
+        - ``None``:
+            Normalization is not applied.
 
     Notes
     -----

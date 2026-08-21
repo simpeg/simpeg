@@ -2,7 +2,13 @@
 Custom warnings that can be used across SimPEG.
 """
 
-__all__ = ["PerformanceWarning"]
+__all__ = ["BreakingChangeWarning", "PerformanceWarning"]
+
+
+class BreakingChangeWarning(Warning):
+    """
+    Warning to let users know about a breaking change that was introduced.
+    """
 
 
 class PerformanceWarning(Warning):

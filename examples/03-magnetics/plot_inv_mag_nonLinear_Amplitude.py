@@ -134,7 +134,7 @@ ind = utils.model_builder.get_indices_block(
     np.r_[-20, -20, -10],
     np.r_[20, 20, 25],
     mesh.gridCC,
-)[0]
+)
 
 # Assign magnetization value, inducing field strength will
 # be applied in by the :class:`simpeg.PF.Magnetics` problem
@@ -243,7 +243,7 @@ reg.reference_model = np.zeros(nC)
 
 # Specify how the optimization will proceed, set susceptibility bounds to inf
 opt = optimization.ProjectedGNCG(
-    maxIter=20, lower=-np.inf, upper=np.inf, maxIterLS=20, maxIterCG=20, tolCG=1e-3
+    maxIter=20, lower=-np.inf, upper=np.inf, maxIterLS=20, cg_maxiter=20, cg_rtol=1e-3
 )
 
 # Define misfit function (obs-calc)
@@ -367,7 +367,7 @@ dmis = data_misfit.L2DataMisfit(simulation=simulation, data=data_obj)
 
 # Add directives to the inversion
 opt = optimization.ProjectedGNCG(
-    maxIter=30, lower=0.0, upper=1.0, maxIterLS=20, maxIterCG=20, tolCG=1e-3
+    maxIter=30, lower=0.0, upper=1.0, maxIterLS=20, cg_maxiter=20, cg_rtol=1e-3
 )
 
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)

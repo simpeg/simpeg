@@ -9,10 +9,11 @@ in the time-domain for controlled sources. Here, electric displacement is ignore
 and functionality is used to solve:
 
 .. math::
-    \begin{align}
+
+    \begin{aligned}
     \nabla \times \vec{e} + \frac{\partial \vec{b}}{\partial t} &= -\frac{\partial \vec{s}_m}{\partial t} \\
     \nabla \times \vec{h} - \vec{j} &= \vec{s}_e
-    \end{align}
+    \end{aligned}
 
 where the constitutive relations between fields and fluxes are given by:
 

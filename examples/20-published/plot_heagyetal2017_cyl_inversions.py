@@ -99,7 +99,7 @@ def run(plotIt=True, saveFig=False):
     dmisfit = data_misfit.L2DataMisfit(simulation=prbFD, data=dataFD)
     regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].active_cells]])
     reg = regularization.WeightedLeastSquares(regMesh)
-    opt = optimization.InexactGaussNewton(maxIterCG=10)
+    opt = optimization.InexactGaussNewton(cg_maxiter=10)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
     # Inversion Directives
@@ -145,7 +145,7 @@ def run(plotIt=True, saveFig=False):
     dmisfit = data_misfit.L2DataMisfit(simulation=prbTD, data=dataTD)
     regMesh = discretize.TensorMesh([mesh.h[2][mapping.maps[-1].active_cells]])
     reg = regularization.WeightedLeastSquares(regMesh)
-    opt = optimization.InexactGaussNewton(maxIterCG=10)
+    opt = optimization.InexactGaussNewton(cg_maxiter=10)
     invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
     # directives

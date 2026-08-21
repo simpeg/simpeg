@@ -9,10 +9,10 @@ in the frequency-domain for controlled sources. Where a :math:`+i\omega t`
 Fourier convention is used, this module is used to solve problems of the form:
 
 .. math::
-    \begin{align}
+    \begin{aligned}
     \nabla \times \vec{E} + i\omega \vec{B} &= - i \omega \vec{S}_m \\
     \nabla \times \vec{H} - \vec{J} &= \vec{S}_e
-    \end{align}
+    \end{aligned}
 
 where the constitutive relations between fields and fluxes are given by:
 

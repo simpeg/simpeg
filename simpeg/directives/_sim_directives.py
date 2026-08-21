@@ -11,41 +11,37 @@ from ._directives import InversionDirective, SaveOutputEveryIteration
 #                                                                             #
 ###############################################################################
 class SimilarityMeasureInversionPrinters:
-    betas = {
+    beta = {
         "title": "betas",
-        "value": lambda M: ["{:.2e}".format(elem) for elem in M.parent.betas],
+        "value": lambda M: [f"{elem:1.2e}" for elem in M.parent.betas],
         "width": 26,
-        "format": "%s",
+        "format": lambda v: f"{v!s}",
     }
     lambd = {
         "title": "lambda",
         "value": lambda M: M.parent.lambd,
         "width": 10,
-        "format": "%1.2e",
+        "format": lambda v: f"{v:1.2e}",
     }
-    phi_d_list = {
+    phi_d = {
         "title": "phi_d",
-        "value": lambda M: ["{:.2e}".format(elem) for elem in M.parent.phi_d_list],
+        "value": lambda M: [f"{elem:1.2e}" for elem in M.parent.dmisfit._last_obj_vals],
         "width": 26,
-        "format": "%s",
+        "format": lambda v: f"{v!s}",
     }
-    phi_m_list = {
+    phi_m = {
         "title": "phi_m",
-        "value": lambda M: ["{:.2e}".format(elem) for elem in M.parent.phi_m_list],
+        "value": lambda M: [
+            f"{elem:1.2e}" for elem in M.parent.reg._last_obj_vals[:-1]
+        ],
         "width": 26,
-        "format": "%s",
+        "format": lambda v: f"{v!s}",
     }
     phi_sim = {
         "title": "phi_sim",
-        "value": lambda M: M.parent.phi_sim,
+        "value": lambda M: M.parent.reg._last_obj_vals[-1],
         "width": 10,
-        "format": "%1.2e",
-    }
-    iterationCG = {
-        "title": "iterCG",
-        "value": lambda M: M.cg_count,
-        "width": 10,
-        "format": "%3d",
+        "format": lambda v: f"{v:1.2e}",
     }
 
 
@@ -62,13 +58,15 @@ class SimilarityMeasureInversionDirective(InversionDirective):
 
     printers = [
         IterationPrinters.iteration,
-        SimilarityMeasureInversionPrinters.betas,
+        SimilarityMeasureInversionPrinters.beta,
         SimilarityMeasureInversionPrinters.lambd,
         IterationPrinters.f,
-        SimilarityMeasureInversionPrinters.phi_d_list,
-        SimilarityMeasureInversionPrinters.phi_m_list,
+        SimilarityMeasureInversionPrinters.phi_d,
+        SimilarityMeasureInversionPrinters.phi_m,
         SimilarityMeasureInversionPrinters.phi_sim,
-        SimilarityMeasureInversionPrinters.iterationCG,
+        IterationPrinters.iterationCG,
+        IterationPrinters.iteration_CG_rel_residual,
+        IterationPrinters.iteration_CG_abs_residual,
     ]
 
     def initialize(self):
@@ -108,13 +106,9 @@ class SimilarityMeasureInversionDirective(InversionDirective):
 
     def endIter(self):
         # compute attribute values
-        phi_d = []
-        for dmis in self.dmisfit.objfcts:
-            phi_d.append(dmis(self.opt.xc))
+        phi_d = self.dmisfit._last_obj_vals
 
-        phi_m = []
-        for reg in self.reg.objfcts:
-            phi_m.append(reg(self.opt.xc))
+        phi_m = self.reg._last_obj_vals
 
         # pass attributes values to invProb
         self.invProb.phi_d_list = phi_d

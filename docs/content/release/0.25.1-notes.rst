@@ -1,0 +1,88 @@
+.. _0.25.1_notes:
+
+============================
+SimPEG v0.25.1 Release Notes
+============================
+
+February 12th, 2026
+
+.. contents:: Highlights
+    :depth: 3
+
+Updates
+=======
+
+In this patch release we included a few bugfixes:
+
+- allow complex mu for forward time-domain em1d by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1739
+- Relaxes LogisticSigmoidMap bound restrictions by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1741
+- Temporary patch GMMs to be compatible with sklearn 1.8.0 by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1742
+- Fix bug in apparent conductivity by `@dccowan <https://github.com/dccowan>`__ in
+  https://github.com/simpeg/simpeg/pull/1736
+- Fix bug in IP effects on EM1D simulations by `@GrindingTheophile <https://github.com/GrindingTheophile>`__ in
+  https://github.com/simpeg/simpeg/pull/1729
+- Hide ``BreakingChangeWarning`` from ``get_indices_block`` by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1746
+- Fix bug in VRM effects on EM1D simulations by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1748
+- Fix for issue #1712 by `@TomSHudsonFST <https://github.com/TomSHudsonFST>`__ in
+  https://github.com/simpeg/simpeg/pull/1738
+
+And some improvements to the documentation:
+
+- Fix argument name in ``UpdateSensitivityWeights`` docs by `@santisoler <https://github.com/santisoler>`__
+  in https://github.com/simpeg/simpeg/pull/1737
+- Improve docs of GMM classes by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1743
+- Improve docs of ``Survey.drape_electrodes_on_topography`` by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1749
+
+
+Contributors
+============
+
+This is a combination of contributors and reviewers who have made contributions
+towards this release (in no particular order):
+
+* `@dccowan <https://github.com/dccowan>`__
+* `@GrindingTheophile <https://github.com/GrindingTheophile>`__
+* `@jcapriot <https://github.com/jcapriot>`__
+* `@santisoler <https://github.com/santisoler>`__
+* `@TomSHudsonFST <https://github.com/TomSHudsonFST>`__
+
+We would like to highlight the work made by new contributors:
+
+- `@GrindingTheophile <https://github.com/GrindingTheophile>`__ made their first contribution in
+  https://github.com/simpeg/simpeg/pull/1729
+- `@TomSHudsonFST <https://github.com/TomSHudsonFST>`__ made their first contribution in
+  https://github.com/simpeg/simpeg/pull/1738
+
+
+Pull Requests
+=============
+
+- Fix argument name in ``UpdateSensitivityWeights`` docs by `@santisoler <https://github.com/santisoler>`__
+  in https://github.com/simpeg/simpeg/pull/1737
+- allow complex mu for forward time-domain em1d by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1739
+- Relaxes LogisticSigmoidMap bound restrictions by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1741
+- Temporary patch GMMs to be compatible with sklearn 1.8.0 by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1742
+- Fix bug in apparent conductivity by `@dccowan <https://github.com/dccowan>`__ in
+  https://github.com/simpeg/simpeg/pull/1736
+- Improve docs of GMM classes by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1743
+- Fix bug in IP effects on EM1D simulations by `@GrindingTheophile <https://github.com/GrindingTheophile>`__ in
+  https://github.com/simpeg/simpeg/pull/1729
+- Hide ``BreakingChangeWarning`` from ``get_indices_block`` by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1746
+- Fix bug in VRM effects on EM1D simulations by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1748
+- Fix for issue #1712 by `@TomSHudsonFST <https://github.com/TomSHudsonFST>`__ in
+  https://github.com/simpeg/simpeg/pull/1738
+- Improve docs of ``Survey.drape_electrodes_on_topography`` by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1749

@@ -93,12 +93,12 @@ npadx = 7  # number of padding cells in the x-direction
 npady = 7  # number of padding cells in the y-direction
 npadz = 11  # number of padding cells in the z-direction
 
-core_domain_x = np.r_[-11.5, 11.5]  # extent of uniform cells in the x-direction
-core_domain_z = np.r_[-2.0, 0.0]  # extent of uniform cells in the z-direction
+xmin, xmax = -11.5, 11.5  # extent of uniform cells in the x-direction
+zmin, zmax = -2.0, 0.0  # extent of uniform cells in the z-direction
 
 # number of cells in the core region
-ncx = int(np.diff(core_domain_x) / csx)
-ncz = int(np.diff(core_domain_z) / csz)
+ncx = int((xmax - xmin) / csx)
+ncz = int((zmax - zmin) / csx)
 
 # create a 3D tensor mesh
 mesh = discretize.TensorMesh(
@@ -279,7 +279,7 @@ ax = plot_data(dclean)
 
 dmisfit = data_misfit.L2DataMisfit(simulation=prob, data=data)
 reg = regularization.WeightedLeastSquares(inversion_mesh)
-opt = optimization.InexactGaussNewton(maxIterCG=10, remember="xc")
+opt = optimization.InexactGaussNewton(cg_maxiter=10, remember="xc")
 invProb = inverse_problem.BaseInvProblem(dmisfit, reg, opt)
 
 betaest = directives.BetaEstimate_ByEig(beta0_ratio=0.05, n_pw_iter=1, random_seed=1)
