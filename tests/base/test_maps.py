@@ -682,6 +682,35 @@ def test_transfer_function_maps_derivative(map_class, kwargs):
 
 
 @pytest.mark.parametrize(
+    "map_class, kwargs",
+    [
+        (maps.ArctanMap, {}),
+        (maps.ArctanMap, {"half_width": 2.5, "scale": 2.0, "shift": -1.0}),
+        (maps.ErfMap, {}),
+        (maps.ErfMap, {"half_width": 0.5, "scale": 3.0, "shift": 1.0}),
+        (maps.ScaledLogisticSigmoidMap, {}),
+        (maps.ScaledLogisticSigmoidMap, {"half_width": 3.0}),
+        (maps.SineTransferMap, {}),
+        (maps.SineTransferMap, {"half_width": 2.0, "scale": 2.0, "shift": -1.0}),
+    ],
+)
+def test_transfer_function_maps_deriv_v(map_class, kwargs):
+    """
+    Test the ``v`` argument of ``deriv`` for the transfer function maps.
+
+    ``deriv(m, v=v)`` should return the same result as multiplying the full
+    derivative matrix returned by ``deriv(m)`` (i.e. with ``v=None``) by ``v``.
+    """
+    nP = 8
+    mapping = map_class(nP=nP, **kwargs)
+    rng = np.random.default_rng(seed=55)
+    m = rng.normal(scale=2.0, size=nP)
+    v = rng.normal(size=nP)
+    derivative = mapping.deriv(m)
+    np.testing.assert_allclose(derivative @ v, mapping.deriv(m, v=v))
+
+
+@pytest.mark.parametrize(
     "map_class", [maps.ArctanMap, maps.ErfMap, maps.ScaledLogisticSigmoidMap]
 )
 def test_transfer_function_maps_inverse(map_class):
@@ -751,6 +780,20 @@ class TestPiecewiseLinearMap:
         mapping = maps.PiecewiseLinearMap(xp, fp, nP=4)
         m = np.array([-2.0, 2.5, 7.5, 12.0])
         assert mapping.test(m=m, random_seed=54)
+
+    def test_deriv_v(self):
+        """
+        ``deriv(m, v=v)`` should return the same result as multiplying the full
+        derivative matrix returned by ``deriv(m)`` (i.e. with ``v=None``) by ``v``.
+        """
+        xp = np.array([0.0, 5.0, 10.0])
+        fp = np.array([0.0, 10.0, 10.0])
+        mapping = maps.PiecewiseLinearMap(xp, fp, nP=4)
+        m = np.array([-2.0, 2.5, 7.5, 12.0])
+        rng = np.random.default_rng(seed=56)
+        v = rng.normal(size=4)
+        derivative = mapping.deriv(m)
+        np.testing.assert_allclose(derivative @ v, mapping.deriv(m, v=v))
 
     def test_inverse_not_implemented(self):
         xp = np.array([0.0, 1.0, 2.0])
