@@ -96,7 +96,7 @@ local_scheme = "node-and-date"
 [tool.coverage.run]
 branch = true
 source = ["simpeg", "tests", "examples", "tutorials"]
-concurrency = ["multiprocessing"]
+concurrency = ["thread", "multiprocessing"]
 parallel = true
 sigterm = true
 
