@@ -145,9 +145,12 @@ def download(url, folder=".", overwrite=False, verbose=True):
     # download files
     urllist = url if isinstance(url, list) else [url]
     for u, f in zip(urllist, downloadpath):
-        print("Downloading {}".format(u))
+        if verbose:
+            print("Downloading {}".format(u))
         urlretrieve(u, f)
-        print("   saved to: " + f)
+        if verbose:
+            print("   saved to: " + f)
 
-    print("Download completed!")
+    if verbose:
+        print("Download completed!")
     return downloadpath if isinstance(url, list) else downloadpath[0]

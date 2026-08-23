@@ -4,6 +4,7 @@ import numpy as np
 import scipy.sparse as sp
 import os
 import shutil
+import urllib.request
 from simpeg.utils import (
     sdiag,
     sub2ind,
@@ -318,6 +319,38 @@ class TestDownload(unittest.TestCase):
         # clean up
         shutil.rmtree(os.path.expanduser("./test_urls"))
         shutil.rmtree(os.path.expanduser("./test_url"))
+
+
+class TestDownloadVerbose:
+    """
+    Tests for the verbose argument of the download function
+    """
+
+    URL = "https://example.com/simpeg/data.txt"
+
+    @pytest.fixture(autouse=True)
+    def mock_urlretrieve(self, monkeypatch):
+        def urlretrieve(url, filename):
+            with open(filename, "w") as fid:
+                fid.write("data")
+
+        monkeypatch.setattr(urllib.request, "urlretrieve", urlretrieve)
+
+    def test_silent(self, tmp_path, capsys):
+        download(self.URL, folder=str(tmp_path), verbose=False)
+        assert capsys.readouterr().out == ""
+
+    def test_silent_on_existing_file(self, tmp_path, capsys):
+        download(self.URL, folder=str(tmp_path), overwrite=True, verbose=False)
+        download(self.URL, folder=str(tmp_path), overwrite=True, verbose=False)
+        assert capsys.readouterr().out == ""
+
+    def test_verbose(self, tmp_path, capsys):
+        file_name = download(self.URL, folder=str(tmp_path), verbose=True)
+        output = capsys.readouterr().out
+        assert self.URL in output
+        assert file_name in output
+        assert "Download completed!" in output
 
 
 class TestCoterminalAngle:
