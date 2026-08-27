@@ -1171,166 +1171,8 @@ class Admittance(_ElectricAndMagneticReceiver):
         )
 
 
-class ApparentConductivity(_ElectricAndMagneticReceiver):
-    r"""Receiver class for simulating apparent conductivity data (3D problems only).
-
-    This class is used to simulate an apparent conductivity datum, in S/m, as defined by:
-
-    .. math::
-        \sigma_{app} = \mu_0 \omega \dfrac{\bar{H}^2}{ \bar{E} ^2}
-
-    where :math:`\omega` is the angular frequency in rad/s,
-
-    .. math::
-        \bar{H} \big |^2 = \big | \vec{H}^{(x)} \big |^2 + \big | \vec{H}^{(y)} \big |^2
-
-    and
-
-    .. math::
-        \bar{E}^2= \Big [ \big | E_x^{(x)} \big |^2 + \big | E_y^{(x)} \big |^2 \Big ]
-        = \Big [ \big | E_x^{(y)} \big |^2 + \big | E_y^{(y)} \big |^2 \Big ]
-
-    Parameters
-    ----------
-    locations_e : (n_loc, n_dim) array_like
-        Locations where the electric fields are measured.
-    locations_h : (n_loc, n_dim) array_like, optional
-        Locations where the magnetic fields are measured. Defaults to the same
-        locations as electric field measurements, `locations_e`.
-    storeProjections : bool
-        Whether to cache to internal projection matrices.
-
-    Notes
-    -----
-    It is important to take the amplitudes of the fields resulting from x and y planewave
-    polarizations separately, then summing. Adding the fields from x and y planewaves then
-    summing can result in simulated anomalies which do not presented entirely over
-    conductive/resistive targets.
-    """
-    def __init__(self, locations_e, locations_h=None, storeProjections=False):  # noqa: D102
-        if locations_h is None:
-            locations_h = locations_e
-        super().__init__(
-            locations1=locations_e,
-            locations2=locations_h,
-            storeProjections=storeProjections,
-        )
-
-    def _eval_apparent_conductivity(self, src, mesh, f):
-        if mesh.dim < 3:
-            raise NotImplementedError(
-                "ApparentConductivity receiver not implemented for dim < 3."
-            )
-
-        e = f[src, "e"]
-        h = f[src, "h"]
-
-        e_grid = "E" if f.simulation._formulation == "EB" else "F"
-        h_grid = "F" if f.simulation._formulation == "EB" else "E"
-
-        ex = self.getP(mesh, e_grid + "x", 0) @ e
-        ey = self.getP(mesh, e_grid + "y", 0) @ e
-        hx = self.getP(mesh, h_grid + "x", 1) @ h
-        hy = self.getP(mesh, h_grid + "y", 1) @ h
-        hz = self.getP(mesh, h_grid + "z", 1) @ h
-
-        top = np.sum(np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2, axis=-1)
-        bot = np.sum(np.abs(ex) ** 2 + np.abs(ey) ** 2, axis=-1)
-
-        return (2 * np.pi * src.frequency * mu_0) * top / bot
-
-    def _eval_apparent_conductivity_deriv(
-        self, src, mesh, f, du_dm_v=None, v=None, adjoint=False
-    ):
-        if mesh.dim < 3:
-            raise NotImplementedError(
-                "Admittance receiver not implemented for dim < 3."
-            )
-
-        # Compute admittances
-        e = f[src, "e"]
-        h = f[src, "h"]
-
-        e_grid = "E" if f.simulation._formulation == "EB" else "F"
-        h_grid = "F" if f.simulation._formulation == "EB" else "E"
-
-        Pex = self.getP(mesh, e_grid + "x", 0)
-        Pey = self.getP(mesh, e_grid + "y", 0)
-        Phx = self.getP(mesh, h_grid + "x", 1)
-        Phy = self.getP(mesh, h_grid + "y", 1)
-        Phz = self.getP(mesh, h_grid + "z", 1)
-
-        ex = Pex @ e
-        ey = Pey @ e
-        hx = Phx @ h
-        hy = Phy @ h
-        hz = Phz @ h
-
-        fact = 2 * np.pi * src.frequency * mu_0
-        top = np.sum(np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2, axis=-1)
-        bot = np.sum(np.abs(ex) ** 2 + np.abs(ey) ** 2, axis=-1)
-
-        # ADJOINT
-        if adjoint:
-            # Compute: J_T * v = d_top_T * a_v + d_bot_T * b
-            a_v = fact * v / bot  # term 1
-            b_v = -fact * top * v / bot**2  # term 2
-
-            a_v = np.repeat(mkvc(a_v, n_dims=2), 2, axis=-1)
-            b_v = np.repeat(mkvc(b_v, n_dims=2), 2, axis=-1)
-
-            hx *= a_v
-            hy *= a_v
-            hz *= a_v
-            ex *= b_v
-            ey *= b_v
-
-            e_v = 2 * (Pex.T @ ex + Pey.T @ ey).conjugate()
-            h_v = 2 * (Phx.T @ hx + Phy.T @ hy + Phz.T @ hz).conjugate()
-
-            fu_e_v, fm_e_v = f._eDeriv(src, None, e_v, adjoint=True)
-            fu_h_v, fm_h_v = f._hDeriv(src, None, h_v, adjoint=True)
-
-            return fu_e_v + fu_h_v, fm_e_v + fm_h_v
-
-        # JVEC
-        de_v = f._eDeriv(src, du_dm_v, v, adjoint=False)
-        dh_v = f._hDeriv(src, du_dm_v, v, adjoint=False)
-
-        dex_v = Pex @ de_v
-        dey_v = Pey @ de_v
-        dhx_v = Phx @ dh_v
-        dhy_v = Phy @ dh_v
-        dhz_v = Phz @ dh_v
-
-        # Imaginary components cancel and its 2x the real of the conjugate x the deriv
-        dtop_v = 2 * np.sum(
-            (
-                hx.conjugate() * dhx_v + hy.conjugate() * dhy_v + hz.conjugate() * dhz_v
-            ).real,
-            axis=-1,
-        )
-        dbot_v = 2 * np.sum(
-            (ex.conjugate() * dex_v + ey.conjugate() * dey_v).real, axis=-1
-        )
-
-        return fact * (bot * dtop_v - top * dbot_v) / (bot * bot)
-
-    def eval(self, src, mesh, f):  # noqa: A003 D102
-        # Docstring inherited from parent class (BaseNaturalSourceRx)
-        return self._eval_apparent_conductivity(src, mesh, f)
-
-    def evalDeriv(  # noqa: D102
-        self, src, mesh, f, du_dm_v=None, v=None, adjoint=False
-    ):
-        # Docstring inherited from parent class (BaseNaturalSourceRx)
-        return self._eval_apparent_conductivity_deriv(
-            src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
-        )
-
-
-class GramMatrixDeterminantAmplitude(BaseNaturalSourceRx):
-    r"""Rotation invariant transfer function from the Gram matrix.
+class RootGramDeterminant(BaseNaturalSourceRx):
+    r"""Orientation invariant transfer function using the root Gram matrix determinant.
 
     Receiver class for simulating a data that are invariant to sensor orientation
     for either an electric or magnetic base station. The datum is based on taking
@@ -1358,7 +1200,7 @@ class GramMatrixDeterminantAmplitude(BaseNaturalSourceRx):
     where subscript :math:`b` denotes the base station location and subscript
     :math:`r` denotes the mobile receiver location.
 
-    For this system, the rotation invariant transfer function is defined as:
+    For this system, the orientation invariant transfer function is defined as:
 
     .. math::
         \widehat{\mathbf{T}} = \bigg (
@@ -1381,7 +1223,7 @@ class GramMatrixDeterminantAmplitude(BaseNaturalSourceRx):
         H_x^{(x)} & H_y^{(x)} & H_z^{(x)} \\ H_x^{(y)} & H_y^{(y)} & H_z^{(y)}
         \end{bmatrix}_r
 
-    For this system, the rotation invariant transfer function is defined as:
+    For this system, the orientation invariant transfer function is defined as:
 
     .. math::
         \widehat{\mathbf{Y}} = \bigg (
@@ -1705,8 +1547,8 @@ class GramMatrixDeterminantAmplitude(BaseNaturalSourceRx):
         )
 
 
-class CrossProductDeterminantAmplitude(GramMatrixDeterminantAmplitude):
-    r"""Rotation invariant transfer function from the transfer function cross-product.
+class CrossProductAmplitude(GramMatrixDeterminantAmplitude):
+    r"""Orientation invariant transfer function from the cross-product amplitude.
 
     Receiver class for simulating a data that are invariant to sensor orientation
     for either an electric or magnetic base station. The datum is based on taking
@@ -1734,7 +1576,7 @@ class CrossProductDeterminantAmplitude(GramMatrixDeterminantAmplitude):
     where subscript :math:`b` denotes the base station location and subscript
     :math:`r` denotes the mobile receiver location.
 
-    For this system, the rotation invariant transfer function is defined as:
+    For this system, the orientation invariant transfer function is defined as:
 
     .. math::
         | \mathbf{T} | = \bigg (
@@ -1764,7 +1606,7 @@ class CrossProductDeterminantAmplitude(GramMatrixDeterminantAmplitude):
         H_x^{(x)} & H_y^{(x)} & H_z^{(x)} \\ H_x^{(y)} & H_y^{(y)} & H_z^{(y)}
         \end{bmatrix}_r
 
-    For this system, the rotation invariant transfer function is defined as:
+    For this system, the orientation invariant transfer function is defined as:
 
     .. math::
         | \mathbf{Y} | = \bigg (
@@ -2275,3 +2117,162 @@ class HorizontalDeterminant(GramMatrixDeterminantAmplitude):
         if adjoint:
             return deriv
         return getattr(deriv, self.component)
+
+
+
+class ApparentConductivity(_ElectricAndMagneticReceiver):
+    r"""Receiver class for simulating apparent conductivity data (3D problems only).
+
+    This class is used to simulate an apparent conductivity datum, in S/m, as defined by:
+
+    .. math::
+        \sigma_{app} = \mu_0 \omega \dfrac{\bar{H}^2}{ \bar{E} ^2}
+
+    where :math:`\omega` is the angular frequency in rad/s,
+
+    .. math::
+        \bar{H} \big |^2 = \big | \vec{H}^{(x)} \big |^2 + \big | \vec{H}^{(y)} \big |^2
+
+    and
+
+    .. math::
+        \bar{E}^2= \Big [ \big | E_x^{(x)} \big |^2 + \big | E_y^{(x)} \big |^2 \Big ]
+        = \Big [ \big | E_x^{(y)} \big |^2 + \big | E_y^{(y)} \big |^2 \Big ]
+
+    Parameters
+    ----------
+    locations_e : (n_loc, n_dim) array_like
+        Locations where the electric fields are measured.
+    locations_h : (n_loc, n_dim) array_like, optional
+        Locations where the magnetic fields are measured. Defaults to the same
+        locations as electric field measurements, `locations_e`.
+    storeProjections : bool
+        Whether to cache to internal projection matrices.
+
+    Notes
+    -----
+    It is important to take the amplitudes of the fields resulting from x and y planewave
+    polarizations separately, then summing. Adding the fields from x and y planewaves then
+    summing can result in simulated anomalies which do not presented entirely over
+    conductive/resistive targets.
+    """
+    def __init__(self, locations_e, locations_h=None, storeProjections=False):  # noqa: D102
+        if locations_h is None:
+            locations_h = locations_e
+        super().__init__(
+            locations1=locations_e,
+            locations2=locations_h,
+            storeProjections=storeProjections,
+        )
+
+    def _eval_apparent_conductivity(self, src, mesh, f):
+        if mesh.dim < 3:
+            raise NotImplementedError(
+                "ApparentConductivity receiver not implemented for dim < 3."
+            )
+
+        e = f[src, "e"]
+        h = f[src, "h"]
+
+        e_grid = "E" if f.simulation._formulation == "EB" else "F"
+        h_grid = "F" if f.simulation._formulation == "EB" else "E"
+
+        ex = self.getP(mesh, e_grid + "x", 0) @ e
+        ey = self.getP(mesh, e_grid + "y", 0) @ e
+        hx = self.getP(mesh, h_grid + "x", 1) @ h
+        hy = self.getP(mesh, h_grid + "y", 1) @ h
+        hz = self.getP(mesh, h_grid + "z", 1) @ h
+
+        top = np.sum(np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2, axis=-1)
+        bot = np.sum(np.abs(ex) ** 2 + np.abs(ey) ** 2, axis=-1)
+
+        return (2 * np.pi * src.frequency * mu_0) * top / bot
+
+    def _eval_apparent_conductivity_deriv(
+        self, src, mesh, f, du_dm_v=None, v=None, adjoint=False
+    ):
+        if mesh.dim < 3:
+            raise NotImplementedError(
+                "Admittance receiver not implemented for dim < 3."
+            )
+
+        # Compute admittances
+        e = f[src, "e"]
+        h = f[src, "h"]
+
+        e_grid = "E" if f.simulation._formulation == "EB" else "F"
+        h_grid = "F" if f.simulation._formulation == "EB" else "E"
+
+        Pex = self.getP(mesh, e_grid + "x", 0)
+        Pey = self.getP(mesh, e_grid + "y", 0)
+        Phx = self.getP(mesh, h_grid + "x", 1)
+        Phy = self.getP(mesh, h_grid + "y", 1)
+        Phz = self.getP(mesh, h_grid + "z", 1)
+
+        ex = Pex @ e
+        ey = Pey @ e
+        hx = Phx @ h
+        hy = Phy @ h
+        hz = Phz @ h
+
+        fact = 2 * np.pi * src.frequency * mu_0
+        top = np.sum(np.abs(hx) ** 2 + np.abs(hy) ** 2 + np.abs(hz) ** 2, axis=-1)
+        bot = np.sum(np.abs(ex) ** 2 + np.abs(ey) ** 2, axis=-1)
+
+        # ADJOINT
+        if adjoint:
+            # Compute: J_T * v = d_top_T * a_v + d_bot_T * b
+            a_v = fact * v / bot  # term 1
+            b_v = -fact * top * v / bot**2  # term 2
+
+            a_v = np.repeat(mkvc(a_v, n_dims=2), 2, axis=-1)
+            b_v = np.repeat(mkvc(b_v, n_dims=2), 2, axis=-1)
+
+            hx *= a_v
+            hy *= a_v
+            hz *= a_v
+            ex *= b_v
+            ey *= b_v
+
+            e_v = 2 * (Pex.T @ ex + Pey.T @ ey).conjugate()
+            h_v = 2 * (Phx.T @ hx + Phy.T @ hy + Phz.T @ hz).conjugate()
+
+            fu_e_v, fm_e_v = f._eDeriv(src, None, e_v, adjoint=True)
+            fu_h_v, fm_h_v = f._hDeriv(src, None, h_v, adjoint=True)
+
+            return fu_e_v + fu_h_v, fm_e_v + fm_h_v
+
+        # JVEC
+        de_v = f._eDeriv(src, du_dm_v, v, adjoint=False)
+        dh_v = f._hDeriv(src, du_dm_v, v, adjoint=False)
+
+        dex_v = Pex @ de_v
+        dey_v = Pey @ de_v
+        dhx_v = Phx @ dh_v
+        dhy_v = Phy @ dh_v
+        dhz_v = Phz @ dh_v
+
+        # Imaginary components cancel and its 2x the real of the conjugate x the deriv
+        dtop_v = 2 * np.sum(
+            (
+                hx.conjugate() * dhx_v + hy.conjugate() * dhy_v + hz.conjugate() * dhz_v
+            ).real,
+            axis=-1,
+        )
+        dbot_v = 2 * np.sum(
+            (ex.conjugate() * dex_v + ey.conjugate() * dey_v).real, axis=-1
+        )
+
+        return fact * (bot * dtop_v - top * dbot_v) / (bot * bot)
+
+    def eval(self, src, mesh, f):  # noqa: A003 D102
+        # Docstring inherited from parent class (BaseNaturalSourceRx)
+        return self._eval_apparent_conductivity(src, mesh, f)
+
+    def evalDeriv(  # noqa: D102
+        self, src, mesh, f, du_dm_v=None, v=None, adjoint=False
+    ):
+        # Docstring inherited from parent class (BaseNaturalSourceRx)
+        return self._eval_apparent_conductivity_deriv(
+            src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
+        )
