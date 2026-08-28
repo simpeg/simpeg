@@ -190,7 +190,8 @@ CASES_LIST = [
 
 @pytest.mark.parametrize("survey_type, orientations, components", CASES_LIST)
 class TestDerivatives:
-    """Perofrm derivative convergence test."""
+    """Perform derivative convergence test."""
+
     def get_setup_objects(
         self,
         survey_type,
