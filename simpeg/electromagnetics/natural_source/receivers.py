@@ -2062,6 +2062,7 @@ class HorizontalDeterminant(RootGramDeterminant):
     storeProjections : bool
         Whether to cache to internal projection matrices.
     """
+
     _loc_names = ("Roving magnetic field", "Base station field")
 
     def __init__(  # noqa: D107
