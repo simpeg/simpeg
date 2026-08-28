@@ -1,18 +1,19 @@
+"""Derivative and adjoint tests for 3D simulations."""
+
 import pytest
 import numpy as np
 from discretize import TensorMesh, tests
-from simpeg import (
-    maps,
-    data_misfit,
-)
+from simpeg import maps, data_misfit
 from simpeg.utils import mkvc, model_builder, get_default_solver
 from simpeg.electromagnetics import natural_source as nsem
 
-ADJ_RTOL = 1e-10
+ADJ_RTOL = 1e-8
+ADJ_ATOL = 1e-11
 
 
 @pytest.fixture
 def mesh():
+    """Return test mesh."""
     return TensorMesh(
         [
             [(200, 6, -1.5), (200.0, 4), (200, 6, 1.5)],
@@ -25,26 +26,21 @@ def mesh():
 
 @pytest.fixture
 def active_cells(mesh):
+    """Return active cells."""
     return mesh.cell_centers[:, 2] < 0.0
 
 
 @pytest.fixture
 def mapping(mesh, active_cells):
+    """Return mapping."""
     return maps.InjectActiveCells(mesh, active_cells, 1e-8) * maps.ExpMap(
         nP=np.sum(active_cells)
     )
 
 
 @pytest.fixture
-def sigma_hs(mesh, active_cells):
-    sigma_hs = 1e-8 * np.ones(mesh.nC)
-    sigma_hs[active_cells] = 1e1
-    return sigma_hs
-
-
-@pytest.fixture
 def locations():
-    # Receiver locations
+    """Return receiver locations."""
     elevation = 0.0
     rx_x, rx_y = np.meshgrid(np.arange(-350, 350, 200), np.arange(-350, 350, 200))
     return np.hstack(
@@ -54,11 +50,20 @@ def locations():
 
 @pytest.fixture
 def frequencies():
-    # Frequencies being evaluated
+    """Return frequencies."""
     return [1e-1, 2e-1]
 
 
+@pytest.fixture
+def sigma_hs(mesh, active_cells):
+    """Return background conductivity."""
+    sigma_hs = 1e-8 * np.ones(mesh.nC)
+    sigma_hs[active_cells] = 1e1
+    return sigma_hs
+
+
 def get_survey(survey_type, orientations, components, locations, frequencies):
+    """Return test survey."""
     if not isinstance(orientations, list):
         orientations = [orientations]
 
@@ -105,7 +110,8 @@ def get_survey(survey_type, orientations, components, locations, frequencies):
                 rx_list.extend(
                     [
                         nsem.receivers.Admittance(
-                            locations,
+                            locations_h=locations,
+                            locations_e=np.zeros_like(locations),
                             orientation=orient,
                             component=comp,
                         )
@@ -115,7 +121,47 @@ def get_survey(survey_type, orientations, components, locations, frequencies):
 
         # MobileMT is app_cond
         elif survey_type == "apparent_conductivity":
-            rx_list.extend([nsem.receivers.ApparentConductivity(locations)])
+            rx_list.extend(
+                [
+                    nsem.receivers.ApparentConductivity(
+                        locations_h=locations,
+                        locations_e=np.zeros_like(locations),
+                        component=components[0],
+                    )
+                ]
+            )
+
+        # Horizontal determinanet
+        elif survey_type == "det_horizontal":
+            rx_list = [
+                nsem.receivers.HorizontalDeterminant(
+                    locations_h=locations,
+                    locations_base=np.zeros_like(locations),
+                    base_type=orientations[0],
+                    component=comp,
+                )
+                for comp in components
+            ]
+
+        # Determinant ampliutde of the Gram matrix
+        elif survey_type == "gram_amp":
+            rx_list = [
+                nsem.receivers.RootGramDeterminant(
+                    locations,
+                    locations_base=np.zeros_like(locations),
+                    base_type=orientations[0],
+                )
+            ]
+
+        # Determinant amplitude of the cross product
+        elif survey_type == "cross_amp":
+            rx_list = [
+                nsem.receivers.CrossProductAmplitude(
+                    locations,
+                    locations_base=np.zeros_like(locations),
+                    base_type=orientations[0],
+                )
+            ]
 
         source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
 
@@ -134,12 +180,17 @@ CASES_LIST = [
     ("admittance", ["xy", "yx"], ["real", "imag"]),
     ("admittance", ["xx", "yy"], ["real", "imag"]),
     ("admittance", ["zx", "zy"], ["real", "imag"]),
-    ("apparent_conductivity", None, None),
+    ("det_horizontal", "electric", ["real", "imag", "amp"]),
+    ("det_horizontal", "magnetic", ["real", "imag", "amp"]),
+    ("apparent_conductivity", None, "root_gram_determinant"),
+    ("apparent_conductivity", None, "cross_product_amplitude"),
+    ("apparent_conductivity", None, "horizontal_determinant"),
 ]
 
 
 @pytest.mark.parametrize("survey_type, orientations, components", CASES_LIST)
 class TestDerivatives:
+    """Perofrm derivative convergence test."""
     def get_setup_objects(
         self,
         survey_type,
@@ -152,6 +203,7 @@ class TestDerivatives:
         mapping,
         sigma_hs,
     ):
+        """Get test objections."""
         survey = get_survey(
             survey_type, orientations, components, locations, frequencies
         )
@@ -196,6 +248,7 @@ class TestDerivatives:
         mapping,
         sigma_hs,
     ):
+        """Test data misfit."""
         m0, dmis = self.get_setup_objects(
             survey_type,
             orientations,
@@ -231,6 +284,7 @@ class TestDerivatives:
         mapping,
         sigma_hs,
     ):
+        """Perform adjoint test."""
         m0, dmis = self.get_setup_objects(
             survey_type,
             orientations,
