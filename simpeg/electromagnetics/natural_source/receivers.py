@@ -2252,7 +2252,6 @@ class ApparentConductivity(_BaseOrientationInvariant):
             )
 
 
-
 @deprecate_class(removal_version="0.24.0", error=True, replace_docstring=False)
 class PointNaturalSource(Impedance):
     """
