@@ -64,7 +64,9 @@ def frequencies():
     return [1e1, 2e1]
 
 
-def get_survey(simulation_type, locations, frequencies, survey_type, component, orientation):
+def get_survey(
+    simulation_type, locations, frequencies, survey_type, component, orientation
+):
     source_list = []
 
     for f in frequencies:
@@ -175,12 +177,23 @@ CASES_LIST_HALFSPACE = [
 ]
 
 
-@pytest.mark.parametrize("solution_type, survey_type, component, orientation", CASES_LIST_HALFSPACE)
+@pytest.mark.parametrize(
+    "solution_type, survey_type, component, orientation", CASES_LIST_HALFSPACE
+)
 def test_analytic_halfspace_solution(
-    solution_type, survey_type, component, orientation, frequencies, locations, mesh, mapping
+    solution_type,
+    survey_type,
+    component,
+    orientation,
+    frequencies,
+    locations,
+    mesh,
+    mapping,
 ):
     # Numerical solution
-    survey = get_survey(solution_type, locations, frequencies, survey_type, component, orientation)
+    survey = get_survey(
+        solution_type, locations, frequencies, survey_type, component, orientation
+    )
     model_hs = get_model(mesh, "halfspace")  # 1e-2 halfspace
     if (orientation == "xy" and survey_type == "impedance") or (
         orientation == "yx" and survey_type == "admittance"
@@ -193,7 +206,10 @@ def test_analytic_halfspace_solution(
             mesh_1d = TensorMesh([mesh.h[-1]], origin=[mesh.origin[-1]])
             sigma_1d = get_model(mesh_1d, "halfspace")
             sim = nsem.simulation.Simulation2DElectricFieldFictitious(
-                mesh, survey=survey, sigmaMap=mapping, sigma_background=sigma_1d,
+                mesh,
+                survey=survey,
+                sigmaMap=mapping,
+                sigma_background=sigma_1d,
             )
     elif (
         (orientation == "yx" and survey_type == "impedance")
@@ -208,7 +224,10 @@ def test_analytic_halfspace_solution(
             mesh_1d = TensorMesh([mesh.h[-1]], origin=[mesh.origin[-1]])
             sigma_1d = get_model(mesh_1d, "halfspace")
             sim = nsem.simulation.Simulation2DMagneticFieldFictitious(
-                mesh, survey=survey, sigmaMap=mapping, sigma_background=sigma_1d,
+                mesh,
+                survey=survey,
+                sigmaMap=mapping,
+                sigma_background=sigma_1d,
             )
 
     numeric_solution = sim.dpred(model_hs)

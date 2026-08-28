@@ -1108,14 +1108,7 @@ class Simulation2DElectricFieldFictitious(Simulation3DElectricFieldFictitious):
 
     fieldsPair = Fields2DElectricField
 
-    def __init__(
-        self,
-        mesh,
-        survey=None,
-        sigma_background=None,
-        storeJ=True,
-        **kwargs
-    ):
+    def __init__(self, mesh, survey=None, sigma_background=None, storeJ=True, **kwargs):
 
         if mesh.dim != 2:
             raise ValueError(
@@ -1127,7 +1120,7 @@ class Simulation2DElectricFieldFictitious(Simulation3DElectricFieldFictitious):
             survey=survey,
             sigma_background=sigma_background,
             storeJ=storeJ,
-            **kwargs
+            **kwargs,
         )
 
     @property
@@ -1590,14 +1583,7 @@ class Simulation2DMagneticFieldFictitious(Simulation3DMagneticFieldFictitious):
 
     fieldsPair = Fields2DMagneticField
 
-    def __init__(
-        self,
-        mesh,
-        survey=None,
-        sigma_background=None,
-        storeJ=True,
-        **kwargs
-    ):
+    def __init__(self, mesh, survey=None, sigma_background=None, storeJ=True, **kwargs):
 
         if mesh.dim != 2:
             raise ValueError(
@@ -1609,7 +1595,7 @@ class Simulation2DMagneticFieldFictitious(Simulation3DMagneticFieldFictitious):
             survey=survey,
             sigma_background=sigma_background,
             storeJ=storeJ,
-            **kwargs
+            **kwargs,
         )
 
     @property

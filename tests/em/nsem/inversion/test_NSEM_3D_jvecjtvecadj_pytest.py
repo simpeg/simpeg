@@ -1,4 +1,5 @@
 """Derivative and adjoint tests for 3D simulations."""
+
 import pytest
 import numpy as np
 from discretize import TensorMesh, tests
@@ -8,6 +9,7 @@ from simpeg.electromagnetics import natural_source as nsem
 
 ADJ_RTOL = 1e-8
 ADJ_ATOL = 1e-11
+
 
 @pytest.fixture
 def mesh():
@@ -21,10 +23,12 @@ def mesh():
         "CCC",
     )
 
+
 @pytest.fixture
 def active_cells(mesh):
     """Return active cells."""
     return mesh.cell_centers[:, 2] < 0.0
+
 
 @pytest.fixture
 def mapping(mesh, active_cells):
@@ -32,6 +36,7 @@ def mapping(mesh, active_cells):
     return maps.InjectActiveCells(mesh, active_cells, 1e-8) * maps.ExpMap(
         nP=np.sum(active_cells)
     )
+
 
 @pytest.fixture
 def locations():
@@ -42,10 +47,12 @@ def locations():
         (mkvc(rx_x, 2), mkvc(rx_y, 2), elevation + np.zeros((np.prod(rx_x.shape), 1)))
     )
 
+
 @pytest.fixture
 def frequencies():
     """Return frequencies."""
     return [1e-1, 2e-1]
+
 
 def get_sigma_background(mesh, simulation_type, active_cells):
     """Return background conductivity."""
@@ -58,6 +65,7 @@ def get_sigma_background(mesh, simulation_type, active_cells):
         sigma_1d = 1e-8 * np.ones(n_layers)
         sigma_1d[0 : int(n_layers / 2)] = 1e1
         return sigma_1d
+
 
 def get_survey(
     simulation_type, survey_type, orientations, components, locations, frequencies
@@ -120,12 +128,15 @@ def get_survey(
 
         # MobileMT is app_cond
         elif survey_type == "apparent_conductivity":
-            rx_list.extend([
-                nsem.receivers.ApparentConductivity(
-                    locations_h=locations,
-                    locations_base=np.zeros_like(locations)
-                )
-            ])
+            rx_list.extend(
+                [
+                    nsem.receivers.ApparentConductivity(
+                        locations_h=locations,
+                        locations_e=np.zeros_like(locations),
+                        component=components[0],
+                    )
+                ]
+            )
 
         # Horizontal determinanet
         elif survey_type == "det_horizontal":
@@ -142,22 +153,22 @@ def get_survey(
         # Determinant ampliutde of the Gram matrix
         elif survey_type == "gram_amp":
             rx_list = [
-                nsem.receivers.GramMatrixDeterminantAmplitude(
+                nsem.receivers.RootGramDeterminant(
                     locations,
                     locations_base=np.zeros_like(locations),
-                    base_type=orientations[0])
+                    base_type=orientations[0],
+                )
             ]
 
         # Determinant amplitude of the cross product
         elif survey_type == "cross_amp":
             rx_list = [
-                nsem.receivers.CrossProductDeterminantAmplitude(
+                nsem.receivers.CrossProductAmplitude(
                     locations,
                     locations_base=np.zeros_like(locations),
-                    base_type=orientations[0])
+                    base_type=orientations[0],
+                )
             ]
-
-
 
         if simulation_type == "PS":
             source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
@@ -196,8 +207,11 @@ CASES_LIST = [
     ("FS_e", "admittance", ["xy", "yx"], ["real", "imag"]),
     ("FS_e", "admittance", ["xx", "yy"], ["real", "imag"]),
     ("FS_e", "admittance", ["zx", "zy"], ["real", "imag"]),
-    ("FS_e", "det_horizontal", "electric", ["real", "imag"]),
-    ("FS_e", "det_horizontal", "magnetic", ["real", "imag"]),
+    ("FS_e", "det_horizontal", "electric", ["real", "imag", "amp"]),
+    ("FS_e", "det_horizontal", "magnetic", ["real", "imag", "amp"]),
+    ("FS_e", "apparent_conductivity", None, "root_gram_determinant"),
+    ("FS_e", "apparent_conductivity", None, "cross_product_amplitude"),
+    ("FS_e", "apparent_conductivity", None, "horizontal_determinant"),
     ("FS_e", "gram_amp", "electric", None),
     ("FS_e", "gram_amp", "magnetic", None),
     ("FS_e", "cross_amp", "magnetic", None),
@@ -220,9 +234,13 @@ CASES_LIST = [
     # ("FS_h", "admittance", ["sqrt_det"], ["real", "imag"]),
 ]
 
-@pytest.mark.parametrize("simulation_type, survey_type, orientations, components", CASES_LIST)
+
+@pytest.mark.parametrize(
+    "simulation_type, survey_type, orientations, components", CASES_LIST
+)
 class TestDerivatives:
     """Derivative and adjoint test for primary-secondary formulation."""
+
     def get_setup_objects(
         self,
         simulation_type,
