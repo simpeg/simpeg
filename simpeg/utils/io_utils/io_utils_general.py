@@ -146,10 +146,10 @@ def download(url, folder=".", overwrite=False, verbose=True):
     urllist = url if isinstance(url, list) else [url]
     for u, f in zip(urllist, downloadpath):
         if verbose:
-            print("Downloading {}".format(u))
+            print(f"Downloading {u}")
         urlretrieve(u, f)
         if verbose:
-            print("   saved to: " + f)
+            print(f"   saved to: {f}")
 
     if verbose:
         print("Download completed!")

@@ -328,7 +328,7 @@ class TestDownloadVerbose:
 
     URL = "https://example.com/simpeg/data.txt"
 
-    @pytest.fixture(autouse=True)
+    @pytest.fixture
     def mock_urlretrieve(self, monkeypatch):
         def urlretrieve(url, filename):
             with open(filename, "w") as fid:
@@ -336,16 +336,16 @@ class TestDownloadVerbose:
 
         monkeypatch.setattr(urllib.request, "urlretrieve", urlretrieve)
 
-    def test_silent(self, tmp_path, capsys):
+    def test_silent(self, tmp_path, capsys, mock_urlretrieve):
         download(self.URL, folder=str(tmp_path), verbose=False)
         assert capsys.readouterr().out == ""
 
-    def test_silent_on_existing_file(self, tmp_path, capsys):
+    def test_silent_on_existing_file(self, tmp_path, capsys, mock_urlretrieve):
         download(self.URL, folder=str(tmp_path), overwrite=True, verbose=False)
         download(self.URL, folder=str(tmp_path), overwrite=True, verbose=False)
         assert capsys.readouterr().out == ""
 
-    def test_verbose(self, tmp_path, capsys):
+    def test_verbose(self, tmp_path, capsys, mock_urlretrieve):
         file_name = download(self.URL, folder=str(tmp_path), verbose=True)
         output = capsys.readouterr().out
         assert self.URL in output
