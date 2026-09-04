@@ -445,7 +445,7 @@ intersphinx_mapping = {
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "properties": ("https://propertiespy.readthedocs.io/en/latest/", None),
     "discretize": ("https://discretize.simpeg.xyz/en/main/", None),
-    "pymatsolver": ("https://pymatsolver.readthedocs.io/en/latest/", None),
+    "pymatsolver": ("https://simpeg.xyz/pymatsolver/", None),
     "sklearn": ("https://scikit-learn.org/stable/", None),
 }
 numpydoc_xref_param_type = True
