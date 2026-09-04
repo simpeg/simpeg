@@ -692,7 +692,7 @@ class Simulation3DIntegral(BasePFSimulation):
         Compute the diagonal of ``G.T @ G`` without building the ``G`` matrix.
 
         Parameters
-        -----------
+        ----------
         weights : (nD,) array
             Array with data weights. It should be the diagonal of the ``W``
             matrix, squared.
@@ -906,7 +906,7 @@ class SimulationEquivalentSourceLayer(
         Compute the diagonal of ``G.T @ G`` without building the ``G`` matrix.
 
         Parameters
-        -----------
+        ----------
         weights : (nD,) array
             Array with data weights. It should be the diagonal of the ``W``
             matrix, squared.

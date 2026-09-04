@@ -372,7 +372,7 @@ class SyntheticData(Data):
         numpy.ndarray
 
         Notes
-        --------
+        -----
         This array should be indexing the data object
         using a tuple of the survey's sources and receivers.
 
