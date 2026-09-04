@@ -84,26 +84,18 @@ This practice also allows you to uninstall SimPEG if so desired:
 Check your installation
 -----------------------
 
-You should be able to open a terminal within simpeg/tutorials and run an
-example, i.e.
+You should be able to import SimPEG by opening a terminal or a Jupyter Notebook and running:
 
-.. code::
+.. code:: python
 
-    python 02-linear_inversion/plot_inv_1_inversion_lsq.py
+    import simpeg
 
-or you can download and run the :ref:`notebook from the docs
-<sphx_glr_content_tutorials_02-linear_inversion_plot_inv_1_inversion_lsq.py>`.
 
-.. image:: ../../tutorials/02-linear_inversion/images/sphx_glr_plot_inv_1_inversion_lsq_003.png
+You can also check the installed version by accesing ``simpeg.__version__``:
 
-You are now set up to SimPEG!
+.. code:: python
 
-.. note::
-
-   If all is not well, please submit an issue_ and `change this file`_!
-
-.. _issue: https://github.com/simpeg/simpeg/issues
-.. _change this file: https://github.com/simpeg/simpeg/edit/main/docs/content/getting_started/contributing/setting-up-environment.rst
+    print(simpeg.__version__)
 
 
 .. _configure-pre-commit:
