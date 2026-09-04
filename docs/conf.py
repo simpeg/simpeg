@@ -585,3 +585,29 @@ redirects.update(
         "content/user_guide": "../content/user-guide/index.html",
     }
 )
+
+
+def build_contributing_redirects() -> dict:
+    """
+    Build dictionary for redirects after moving the contributors guide.
+
+    Redirects old links from ``"content/user-guide/getting-started/contributing"`` to
+    ``"content/user-guide/contributing"``.
+    """
+    files = [
+        "working-with-github.html",
+        "setting-up-environment.html",
+        "code-style.html",
+        "documentation.html",
+        "testing.html",
+        "pull-requests.html",
+        "advanced.html",
+    ]
+    old = "content/user-guide/getting-started/contributing"
+    new = "../../contributing"
+    redirects = {f"{old}/{f}": f"{new}/{f}" for f in files}
+    redirects[f"{old}/index.html"] = f"{new}/introduction.html"
+    return redirects
+
+
+redirects.update(build_contributing_redirects())

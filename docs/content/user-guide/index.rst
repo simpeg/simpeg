@@ -17,7 +17,6 @@ For details on the available classes and functions in SimPEG, please visit the
   getting-started/about-simpeg.rst
   getting-started/big_picture
   getting-started/installing
-  getting-started/contributing/index.rst
   getting-started/citing.rst
   getting-started/version-compatibility.rst
 
@@ -28,6 +27,20 @@ For details on the available classes and functions in SimPEG, please visit the
 
   how-to-guide/choosing-solvers
   how-to-guide/move-mesh-to-survey.rst
+
+.. toctree::
+  :glob:
+  :maxdepth: 1
+  :caption: Contributing
+
+  contributing/introduction.rst
+  contributing/working-with-github.rst
+  contributing/setting-up-environment.rst
+  contributing/code-style.rst
+  contributing/documentation.rst
+  contributing/testing.rst
+  contributing/pull-requests.rst
+  contributing/advanced.rst
 
 .. toctree::
   :glob:
