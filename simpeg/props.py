@@ -197,12 +197,22 @@ class PhysicalProperty:
                     stacklevel=4,
                 )
         else:
-            value = validate_ndarray_with_shape(
-                f"{type(obj).__name__}.{self.name}",
-                value,
-                shape=self.shape,
-                dtype=self.dtype,
-            )
+            try:
+                value = validate_ndarray_with_shape(
+                    f"{type(obj).__name__}.{self.name}",
+                    value,
+                    shape=self.shape,
+                    dtype=self.dtype,
+                )
+            except TypeError:
+                if isinstance(value, maps.IdentityMap):
+                    cls_name = type(obj).__name__
+                    raise TypeError(
+                        f"Cannot assign a mapping directly to `{cls_name}.{self.name}`. Instead "
+                        f"pass `{self.name}=mapping` to the constructor, or call "
+                        f"`{cls_name}.parametrize({self.name}=mapping)`."
+                    ) from None
+                raise
         setattr(obj, self.private_name, value)
 
     def get_reciprocal(self, objtype):

@@ -9,6 +9,7 @@ import discretize.base
 from ..props import _add_deprecated_physical_property_functions
 from ..simulation import BaseSimulation
 from .. import props
+from .. import maps
 from scipy.constants import mu_0
 
 from ..utils import (
@@ -638,12 +639,21 @@ class BaseElectricalPDESimulation(BasePDESimulation):
     def sigma(self, value):
         if value is not None:
             prop = type(self).sigma
-            value = validate_ndarray_with_shape(
-                f"`{type(self).__name__}.sigma`",
-                value,
-                shape=[(), (1,), (self.mesh.n_cells,)],
-                dtype=float,
-            )
+            try:
+                value = validate_ndarray_with_shape(
+                    f"`{type(self).__name__}.sigma`",
+                    value,
+                    shape=[(), (1,), (self.mesh.n_cells,)],
+                    dtype=float,
+                )
+            except TypeError:
+                if isinstance(value, maps.IdentityMap):
+                    raise TypeError(
+                        f"Cannot assign a mapping directly to `{type(self).__name__}.sigma`. "
+                        f"Instead pass `sigma=mapping` to the constructor, or call "
+                        f"`{type(self).__name__}.parametrize(sigma=mapping)`."
+                    ) from None
+                raise
             setattr(self, prop.private_name, value)
 
         for mat in self._clear_on_sigma_update:
@@ -664,12 +674,21 @@ class BaseElectricalPDESimulation(BasePDESimulation):
     def rho(self, value):
         if value is not None:
             prop = type(self).rho
-            value = validate_ndarray_with_shape(
-                f"`{type(self).__name__}.rho`",
-                value,
-                shape=[(), (1,), (self.mesh.n_cells,)],
-                dtype=float,
-            )
+            try:
+                value = validate_ndarray_with_shape(
+                    f"`{type(self).__name__}.rho`",
+                    value,
+                    shape=[(), (1,), (self.mesh.n_cells,)],
+                    dtype=float,
+                )
+            except TypeError:
+                if isinstance(value, maps.IdentityMap):
+                    raise TypeError(
+                        f"Cannot assign a mapping directly to `{type(self).__name__}.rho`. "
+                        f"Instead pass `rho=mapping` to the constructor, or call "
+                        f"`{type(self).__name__}.parametrize(rho=mapping)`."
+                    ) from None
+                raise
             setattr(self, prop.private_name, value)
 
         for mat in self._clear_on_rho_update:
