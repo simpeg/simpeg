@@ -1,5 +1,6 @@
 import inspect
 import warnings
+from types import MappingProxyType
 
 import numpy as np
 
@@ -366,6 +367,27 @@ class PhysicalPropertyMetaclass(type):
         newcls._nested_modelers = nested_modelers
         newcls._has_nested_models = len(nested_modelers) > 0
 
+        # collect all `PhysicalProperty` descriptors visible on this class, walking
+        # the MRO from base to derived so subclass overrides win. A subclass that
+        # shadows an inherited PhysicalProperty with a non-PhysicalProperty attribute
+        # must also drop the stale inherited entry.
+        physical_properties = {}
+        for parent in reversed(newcls.__mro__):
+            for key, value in vars(parent).items():
+                if isinstance(value, PhysicalProperty):
+                    physical_properties[key] = value
+                elif key in physical_properties:
+                    del physical_properties[key]
+
+        newcls.physical_properties = MappingProxyType(physical_properties)
+        newcls.invertible_properties = MappingProxyType(
+            {
+                key: value
+                for key, value in physical_properties.items()
+                if value.invertible
+            }
+        )
+
         return newcls
 
 
@@ -430,11 +452,34 @@ class ParametrizationList:
 
 
 class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
+    """Base class giving a class `PhysicalProperty` descriptors and a `model`.
+
+    Attributes
+    ----------
+    physical_properties : dict[str, PhysicalProperty]
+        Which physical properties are defined on this class, keyed by attribute
+        name. Set by `PhysicalPropertyMetaclass` from the `PhysicalProperty`
+        descriptors visible on the class (including inherited ones).
+    invertible_properties : dict[str, PhysicalProperty]
+        The subset of `physical_properties` whose `PhysicalProperty.invertible`
+        is `True`.
+    """
+
+    # Placeholder values so the attribute (with its type and docstring below) is
+    # statically visible to IDEs, type checkers, and Sphinx. `PhysicalPropertyMetaclass`
+    # overwrites these with the real, per-class computed values right after the class
+    # is created; see `PhysicalPropertyMetaclass.__new__`.
+    physical_properties: dict[str, "PhysicalProperty"] = MappingProxyType({})
+    """Which physical properties are defined on this class, keyed by attribute name."""
+
+    invertible_properties: dict[str, "PhysicalProperty"] = MappingProxyType({})
+    """The subset of `physical_properties` that are invertible."""
+
     def __init__(self, model=None, **kwargs):
         self.model = model
         # A helper for initializing leftover property keyword arguments.
         if kwargs:
-            props = self.physical_properties()
+            props = self.physical_properties
             prop_kwargs = {}
             other_kwargs = {}
             for key, value in kwargs.items():
@@ -482,35 +527,6 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
             inp = {prop1.name: inp1}
 
         self._init_property(**inp)
-
-    @classmethod
-    def physical_properties(cls) -> dict[str, PhysicalProperty]:
-        """Which physical properties are defined on this class.
-
-        The dictionary keys are the physical property names, and their respective values
-        are a `PhysicalPropertyInfo` namedtuple with `invertible` and `optional` attributes.
-
-        Returns
-        -------
-        dict[str, PhysicalProperty]
-        """
-
-        props = {}
-        for attr_name in dir(cls):
-            attr = getattr(cls, attr_name)
-            if isinstance(attr, PhysicalProperty):
-                props[attr_name] = attr
-
-        return props
-
-    @classmethod
-    def invertible_properties(cls) -> dict[str, PhysicalProperty]:
-        all_props = cls.physical_properties()
-        inv_props = {}
-        for name, prop in all_props.items():
-            if prop.invertible:
-                inv_props[name] = prop
-        return inv_props
 
     @property
     def parametrizations(self):
@@ -683,7 +699,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                     "Cannot add model as there are no parametrized properties"
                     ", choose from: ['{}']".format(
                         "', '".join(
-                            set(self.invertible_properties().keys())
+                            set(self.invertible_properties.keys())
                             | self._nested_modelers
                         )
                     )

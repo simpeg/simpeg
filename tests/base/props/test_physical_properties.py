@@ -128,23 +128,21 @@ ALL_PROP_CLASSES = {
     ReciprocalWithNoneDefault,
 }
 
-SIGMA_CLASSES = {
-    cls for cls in ALL_PROP_CLASSES if "sigma" in cls.physical_properties()
-}
-RHO_CLASSES = {cls for cls in ALL_PROP_CLASSES if "rho" in cls.physical_properties()}
+SIGMA_CLASSES = {cls for cls in ALL_PROP_CLASSES if "sigma" in cls.physical_properties}
+RHO_CLASSES = {cls for cls in ALL_PROP_CLASSES if "rho" in cls.physical_properties}
 INVERTIBLE_SIGMA_CLASSES = {cls for cls in SIGMA_CLASSES if cls.sigma.invertible}
 INVERTIBLE_RHO_CLASSES = {cls for cls in RHO_CLASSES if cls.rho.invertible}
 
 RECIPROCAL_CLASSES = {
     cls
     for cls in ALL_PROP_CLASSES
-    if any(prop.has_reciprocal for prop in cls.physical_properties().values())
+    if any(prop.has_reciprocal for prop in cls.physical_properties.values())
 }
 
 DEFAULT_CLASSES = {
     cls
     for cls in ALL_PROP_CLASSES
-    if any(prop.optional for prop in cls.physical_properties().values())
+    if any(prop.optional for prop in cls.physical_properties.values())
 }
 
 
@@ -153,7 +151,7 @@ def test_internal_property_dictionary(modeler):
     params = inspect.signature(modeler).parameters
     params = set(name for name in params if name != "kwargs")
 
-    assert params == set(modeler.physical_properties().keys())
+    assert params == set(modeler.physical_properties.keys())
 
 
 @pytest.mark.parametrize("modeler", RECIPROCAL_CLASSES)
