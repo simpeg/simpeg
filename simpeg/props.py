@@ -38,6 +38,13 @@ class AnisotropyLevel(enum.IntEnum):
     FULL = 3
 
 
+_LOCATION_SIZE_ATTR = {
+    Location.CELL_CENTERS: "n_cells",
+    Location.FACES: "n_faces",
+    Location.EDGES: "n_edges",
+}
+
+
 def _mesh_shape_resolver(location, anisotropy):
     """Build an `fshape` function for a property living at `location` on `obj.mesh`.
 
@@ -45,11 +52,6 @@ def _mesh_shape_resolver(location, anisotropy):
     no special status and can always be replaced with a custom function via
     `PhysicalProperty.shapes`.
     """
-    size_attr = {
-        Location.CELL_CENTERS: "n_cells",
-        Location.FACES: "n_faces",
-        Location.EDGES: "n_edges",
-    }[location]
 
     def fshape(obj):
         mesh = obj.mesh
@@ -57,7 +59,7 @@ def _mesh_shape_resolver(location, anisotropy):
             raise AttributeError(
                 f"`{type(obj).__name__}.mesh` is required to validate this property."
             )
-        size = getattr(mesh, size_attr)
+        size = getattr(mesh, _LOCATION_SIZE_ATTR[location])
         shapes = [(), (1,), (size,)]
         if anisotropy is not AnisotropyLevel.ISOTROPIC and mesh.dim > 1:
             shapes.append((size, mesh.dim))
@@ -72,6 +74,43 @@ def _mesh_tensor_invert(obj, value):
     """Default `invert` for a cell-centered, anisotropy-capable property."""
 
     return inverse_property_tensor(obj.mesh, value)
+
+
+def _reciprocal_output_is_full_tensor(prop, obj, recip_map):
+    """Best-effort check: does `recip_map`'s flattened output size match a
+    full-tensor-per-location array for `prop`'s declared `location`, given
+    `obj.mesh`?
+
+    Used to guard against `maps.ReciprocalMap`, whose elementwise transform/
+    derivative is only correct for scalar, isotropic, or diagonal-anisotropic
+    values -- not a genuine full tensor (with off-diagonal terms).
+
+    If `recip_map`'s own declared output shape is ambiguous (`"*"`, i.e. no
+    `mesh`/`nP` given), falls back to comparing the model's length instead: a
+    map with no declared shape has no way to change the length of what it's
+    given, since it isn't wired to know it should reshape to a specific size --
+    it is, in effect, elementwise/size-preserving. So a model already shaped
+    for a full tensor is a reasonable proxy for the mapping's output shape too.
+    Returns `False` (assume safe) only when neither can be determined.
+    """
+    if prop.location is not Location.CELL_CENTERS:
+        return False
+    mesh = getattr(obj, "mesh", None)
+    if mesh is None or mesh.dim <= 1:
+        return False
+    size = getattr(mesh, _LOCATION_SIZE_ATTR[prop.location])
+    if not size:
+        return False
+    n_full = 3 if mesh.dim == 2 else 6
+
+    output_size = recip_map.shape[0]
+    if isinstance(output_size, (int, np.integer)):
+        return output_size == size * n_full
+
+    model = getattr(obj, "model", None)
+    if model is None:
+        return False
+    return len(model) == size * n_full
 
 
 class PhysicalProperty:
@@ -775,9 +814,23 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         parameters = self.parametrizations
         if attr not in parameters:
             my_class = type(self)
-            recip = getattr(my_class, attr).get_reciprocal(my_class)
+            prop = getattr(my_class, attr)
+            recip = prop.get_reciprocal(my_class)
             if recip and recip.name in parameters:
-                paramer = maps.ReciprocalMap() @ parameters[recip.name]
+                recip_map = parameters[recip.name]
+                if prop.anisotropy is AnisotropyLevel.FULL and (
+                    _reciprocal_output_is_full_tensor(prop, self, recip_map)
+                ):
+                    raise NotImplementedError(
+                        f"Cannot compute the derivative of `{my_class.__name__}.{attr}` "
+                        f"through its parametrized reciprocal `{recip.name}`, which is "
+                        f"currently set as a full-tensor anisotropic property: "
+                        f"`maps.ReciprocalMap`'s derivative is only correct for "
+                        f"scalar, isotropic, or diagonal-anisotropic values. "
+                        f"Parametrize `{attr}` directly instead of `{recip.name}` "
+                        f"to get a correct derivative."
+                    )
+                paramer = maps.ReciprocalMap() @ recip_map
             else:
                 return Zero()
         else:
@@ -956,6 +1009,18 @@ def _add_deprecated_physical_property_functions(
             if (
                 recip_map := getattr(self.parametrizations, recip_name, None)
             ) is not None:
+                prop = getattr(cls, new_name)
+                if prop.anisotropy is AnisotropyLevel.FULL and (
+                    _reciprocal_output_is_full_tensor(prop, self, recip_map)
+                ):
+                    raise NotImplementedError(
+                        f"Cannot compute `{cls_name}.{old_map}` from the "
+                        f"parametrized reciprocal `{recip_name}`, which is "
+                        f"currently set as a full-tensor anisotropic property: "
+                        f"`maps.ReciprocalMap` is only correct for scalar, "
+                        f"isotropic, or diagonal-anisotropic values. Parametrize "
+                        f"`{new_name}` directly instead."
+                    )
                 return maps.ReciprocalMap() @ recip_map
         return None
 

@@ -473,6 +473,73 @@ def test_location_full_anisotropy_reciprocal_inverts_via_discretize(small_2d_mes
     npt.assert_allclose(modeler.sigma, inverse_property_tensor(small_2d_mesh, rho))
 
 
+class _ReshapeMap(maps.IdentityMap):
+    """A trivial map that reshapes its (flat) input to `out_shape`."""
+
+    def __init__(self, nP, out_shape, **kwargs):
+        super().__init__(nP=nP, **kwargs)
+        self.out_shape = out_shape
+
+    def _transform(self, m):
+        return np.asarray(m).reshape(self.out_shape)
+
+    def deriv(self, m, v=None):
+        import scipy.sparse as sp
+
+        return sp.identity(self.nP)
+
+
+def test_reciprocal_deriv_errors_for_full_tensor_parametrization(small_2d_mesh):
+    from discretize.utils import inverse_property_tensor
+
+    n_cells = small_2d_mesh.n_cells
+    modeler = CellCenteredFullAnisotropic(mesh=small_2d_mesh)
+    full_map = _ReshapeMap(nP=n_cells * 3, out_shape=(n_cells, 3))
+    modeler.parametrize(rho=full_map)
+    modeler.model = np.tile(np.array([1.0, 2.0, 0.5]), n_cells)
+
+    # the VALUE is still computed correctly (inverts a concrete evaluated array)
+    npt.assert_allclose(
+        modeler.sigma,
+        inverse_property_tensor(small_2d_mesh, full_map * modeler.model),
+    )
+    # but the DERIVATIVE through `maps.ReciprocalMap` is not correct for a
+    # genuine full tensor, and should error instead of silently being wrong
+    with pytest.raises(NotImplementedError, match="full-tensor anisotropic"):
+        modeler._prop_deriv("sigma")
+
+
+def test_reciprocal_deriv_still_works_for_isotropic_parametrization(small_2d_mesh):
+    n_cells = small_2d_mesh.n_cells
+    modeler = CellCenteredFullAnisotropic(mesh=small_2d_mesh)
+    modeler.parametrize(rho=maps.ExpMap(nP=n_cells))
+    modeler.model = np.zeros(n_cells)
+
+    # a property merely CAPABLE of full anisotropy, but currently parametrized
+    # isotropically, must not be blocked -- this is the overwhelmingly common case
+    modeler._prop_deriv("sigma")
+
+
+def test_reciprocal_deriv_falls_back_to_model_length_for_ambiguous_shape(
+    small_2d_mesh,
+):
+    n_cells = small_2d_mesh.n_cells
+
+    # a wildcard-shaped map (no mesh/nP) can't declare its own output size, so
+    # the guard falls back to the model's length as a proxy
+    modeler = CellCenteredFullAnisotropic(mesh=small_2d_mesh)
+    modeler.parametrize(rho=maps.ExpMap())
+    modeler.model = np.zeros(n_cells * 3)
+    with pytest.raises(NotImplementedError, match="full-tensor anisotropic"):
+        modeler._prop_deriv("sigma")
+
+    # same wildcard map, but an isotropic-length model: not blocked
+    modeler2 = CellCenteredFullAnisotropic(mesh=small_2d_mesh)
+    modeler2.parametrize(rho=maps.ExpMap())
+    modeler2.model = np.zeros(n_cells)
+    modeler2._prop_deriv("sigma")
+
+
 def test_location_and_shape_mutually_exclusive():
     with pytest.raises(ValueError):
         props.PhysicalProperty("x", shape=(), location=props.Location.CELL_CENTERS)
