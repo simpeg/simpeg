@@ -555,16 +555,16 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
     def _prop_deriv(self, attr):
         # TODO Add support for adjoints here and on mapping derivatives
         # TODO Add support for passing v to the parametrization
-        paramers = self.parametrizations
-        if attr not in paramers:
+        parameters = self.parametrizations
+        if attr not in parameters:
             my_class = type(self)
             recip = getattr(my_class, attr).get_reciprocal(my_class)
-            if recip and recip.name in paramers:
-                paramer = maps.ReciprocalMap() @ paramers[recip.name]
+            if recip and recip.name in parameters:
+                paramer = maps.ReciprocalMap() @ parameters[recip.name]
             else:
                 return Zero()
         else:
-            paramer = paramers[attr]
+            paramer = parameters[attr]
         if self.model is not None:
             return paramer.deriv(self.model)
         else:
@@ -639,7 +639,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
     def model(self, value):
         if value is not None:
             # check if I need a model
-            paramers = self.parametrizations
+            parameters = self.parametrizations
             if not self.needs_model:
                 raise AttributeError(
                     "Cannot add model as there are no parametrized properties"
@@ -658,7 +658,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
 
             # Check the model is a good shape
             errors = []
-            for name, mapping in paramers.items():
+            for name, mapping in parameters.items():
                 correct_shape = mapping.shape[1] == "*" or mapping.shape[1] == len(
                     value
                 )
