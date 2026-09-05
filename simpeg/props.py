@@ -746,7 +746,9 @@ def _add_deprecated_physical_property_functions(
     def prop_map(self, value):
         cls_name = type(self).__name__
         warnings.warn(
-            f"Setting `{cls_name}.{old_map}` directly is deprecated. Instead register a parametrization with `{cls_name}.parametrize('{new_name}')`",
+            f"Setting `{cls_name}.{old_map}` directly is deprecated. Instead pass "
+            f"`{new_name}=mapping` to the constructor, or call "
+            f"`{cls_name}.parametrize({new_name}=mapping)`.",
             FutureWarning,
             stacklevel=2,
         )
@@ -755,10 +757,11 @@ def _add_deprecated_physical_property_functions(
     prop_map.__doc__ = f"""
     Mapping from the model to {old_name}
 
-    .. deprecated:: 0.24.0
-        The method of interacting with the physical property is deprecated, instead
-        register a mapping with the `parametrize()` method, and access it using the
-        `parametrizations` property.
+    .. deprecated:: X.Y
+        The method of interacting with the physical property is deprecated. Instead
+        pass `{new_name}=mapping` directly to the constructor (the simplest
+        replacement for most use cases), or call the `parametrize()` method and
+        access it using the `parametrizations` property.
 
     Returns
     -------
@@ -778,7 +781,7 @@ def _add_deprecated_physical_property_functions(
     prop_deriv.__doc__ = f"""
     Derivative of {old_name} w.r.t. the model
 
-    .. deprecated:: 0.24.0
+    .. deprecated:: X.Y
         The method of interacting with the physical property derivative is deprecated. If access is still necessary
         it can be retrieved with `_prop_deriv('{old_name}')`.
 
