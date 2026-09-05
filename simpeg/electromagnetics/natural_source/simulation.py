@@ -295,6 +295,12 @@ class Simulation2DElectricField(BaseFDEMSimulation):
     A
     """
 
+    # getA below builds `MccMui` (via `with_property_mass_matrices`), which
+    # multiplies `mui`/`mu` elementwise against `mesh.cell_volumes` -- this
+    # only works for a scalar-per-cell (isotropic) property.
+    mu = BaseFDEMSimulation.mu.set_feature(anisotropy=props.AnisotropyLevel.ISOTROPIC)
+    mui = BaseFDEMSimulation.mui.set_feature(anisotropy=props.AnisotropyLevel.ISOTROPIC)
+
     _solutionType = "eSolution"
     _formulation = "EB"
     fieldsPair = Fields2DElectricField

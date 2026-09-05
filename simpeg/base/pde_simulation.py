@@ -694,11 +694,13 @@ class BaseMagneticPDESimulation(BasePDESimulation):
         reciprocal="mui",
         default=mu_0,
         location=props.Location.CELL_CENTERS,
+        anisotropy=props.AnisotropyLevel.FULL,
     )
     mui = props.PhysicalProperty(
         "Inverse Magnetic Permeability (m/H)",
         reciprocal="mu",
         location=props.Location.CELL_CENTERS,
+        anisotropy=props.AnisotropyLevel.FULL,
     )
 
     def __init__(self, mesh, mu=None, mui=None, **kwargs):
