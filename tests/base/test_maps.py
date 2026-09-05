@@ -548,6 +548,38 @@ class MapTests(unittest.TestCase):
 
             self.assertTrue((local_mass - total_mass) / total_mass < 1e-8)
 
+    def test_Tile_finer_local(self):
+        """
+        TileMap should volume-average correctly even when the local mesh is
+        finer than the global mesh in part of the domain. The center-assignment
+        approach used previously left holes (cells dropped from local_active)
+        and scaled the surviving cells by the global/local volume ratio.
+        """
+        hx = np.ones(4)
+        global_mesh = discretize.TreeMesh([hx, hx], diagonal_balance=False)
+        global_mesh.refine(1, diagonal_balance=False)
+        local_mesh = discretize.TreeMesh([hx, hx], diagonal_balance=False)
+        local_mesh.refine(2, diagonal_balance=False)  # finer than the global mesh
+
+        active = np.ones(global_mesh.nC, dtype=bool)
+        tile_map = maps.TileMap(global_mesh, active, local_mesh)
+
+        # no holes: every local cell overlapping the (fully active) global mesh
+        # must remain active
+        self.assertEqual(tile_map.local_active.sum(), local_mesh.nC)
+
+        # a constant model must map to the same constant (no scaling blowup)
+        out = tile_map * np.ones(global_mesh.nC)
+        np.testing.assert_allclose(out, 1.0)
+
+        # mass is conserved
+        model = np.random.randn(int(active.sum()))
+        total_mass = (model * global_mesh.cell_volumes[active]).sum()
+        local_mass = (
+            (tile_map * model) * local_mesh.cell_volumes[tile_map.local_active]
+        ).sum()
+        self.assertAlmostEqual((local_mass - total_mass) / total_mass, 0.0, places=8)
+
     def test_logit_errors(self):
         nP = 10
         scalar_lower = -2

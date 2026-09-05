@@ -1,108 +1,120 @@
-import numpy as np
-import unittest
-from scipy.constants import mu_0
+"""Adjoint tests for 1D simulations."""
 
+import numpy as np
+from scipy.constants import mu_0
 from simpeg.electromagnetics import natural_source as nsem
 from simpeg import maps
-
+import pytest
 
 TOL = 1e-4
-FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
+FLR = 1e-20
 CONDUCTIVITY = 1e1
 MU = mu_0
 
 
-def JvecAdjointTest_1D(sigmaHalf, formulation="PrimSec"):
-    # Frequencies being measured
-    frequencies = np.logspace(0, 4, 21)
+# --- Fixtures ---
+@pytest.fixture
+def frequencies():
+    """Return test frequencies."""
+    return np.logspace(0, 4, 21)
 
-    # Define a receiver for each data type as a list
-    receivers_list = [
-        nsem.receivers.Impedance([[]], component="real"),
-        nsem.receivers.Impedance([[]], component="imag"),
-        nsem.receivers.Impedance([[]], component="app_res"),
-        nsem.receivers.Impedance([[]], component="phase"),
+
+@pytest.fixture
+def receivers_list():
+    """Generate receivers list."""
+    return [
+        nsem.receivers.Impedance([[]], component="real", orientation="xy"),
+        nsem.receivers.Impedance([[]], component="imag", orientation="xy"),
+        nsem.receivers.Impedance([[]], component="app_res", orientation="xy"),
+        nsem.receivers.Impedance([[]], component="phase", orientation="xy"),
+        nsem.receivers.Impedance([[]], component="real", orientation="yx"),
+        nsem.receivers.Impedance([[]], component="imag", orientation="yx"),
+        nsem.receivers.Impedance([[]], component="app_res", orientation="yx"),
+        nsem.receivers.Impedance([[]], component="phase", orientation="yx"),
     ]
 
-    # Use a list to define the planewave source at each frequency and assign receivers
-    source_list = []
-    for ii in range(0, len(frequencies)):
-        source_list.append(nsem.sources.Planewave(receivers_list, frequencies[ii]))
 
-    # Define the survey object
-    survey = nsem.survey.Survey(source_list)
+@pytest.fixture
+def survey_1d(frequencies, receivers_list):
+    """Generate 1D survey."""
+    source_list = [nsem.sources.Planewave(receivers_list, f) for f in frequencies]
+    return nsem.survey.Survey(source_list)
 
-    # Layer thicknesses
+
+@pytest.fixture
+def simulation_recursive(survey_1d):
+    """Set up recursive 1D simulation."""
     layer_thicknesses = np.array([200, 100])
-
-    # Layer conductivities
     sigma_model = np.array([0.001, 0.01, 0.1])
 
-    # Define a mapping for conductivities, thicknesses
     mapping = maps.Wires(("sigma", 3), ("thicknesses", 2))
 
-    simulation = nsem.simulation_1d.Simulation1DRecursive(
-        survey=survey,
+    sim = nsem.simulation_1d.Simulation1DRecursive(
+        survey=survey_1d,
         sigmaMap=mapping.sigma,
         thicknessesMap=mapping.thicknesses,
     )
 
     m = np.r_[sigma_model, layer_thicknesses]
-    u = simulation.fields(m)
+    u = sim.fields(m)
+
+    return sim, m, u
+
+
+@pytest.fixture
+def primary_secondary_setup():
+    """Set up primary-secondary simulation."""
+    survey, sigma, sigBG, mesh = nsem.utils.test_utils.setup1DSurvey(
+        1e-2, tD=False, structure=False
+    )
+
+    sim = nsem.Simulation1DPrimarySecondary(
+        mesh,
+        survey=survey,
+        sigmaPrimary=sigBG,
+        sigmaMap=maps.IdentityMap(mesh),
+    )
+
+    m = sigma
+    u = sim.fields(m)
+
+    return sim, m, u, survey
+
+
+# --- Tests ---
+def test_JvecAdjoint_All(primary_secondary_setup):
+    """Test adjoint all."""
+    simulation, m, u, survey = primary_secondary_setup
 
     rng = np.random.default_rng(seed=1983)
     v = rng.uniform(size=survey.nD)
+    w = rng.uniform(size=simulation.mesh.nC)
+
+    vJw = v.ravel().dot(simulation.Jvec(m, w, u))
+    wJtv = w.ravel().dot(simulation.Jtvec(m, v, u))
+
+    tol = np.max([TOL * (10 ** int(np.log10(np.abs(vJw)))), FLR])
+
+    print(" vJw   wJtv  vJw - wJtv     tol    abs(vJw - wJtv) < tol")
+    print(vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol)
+
+    np.testing.assert_allclose(vJw, wJtv, atol=TOL)
+
+
+def test_JvecAdjoint_All_1D(simulation_recursive):
+    """Test adjoint for 1D recursie."""
+    simulation, m, u = simulation_recursive
+
+    rng = np.random.default_rng(seed=1983)
+    v = rng.uniform(size=simulation.survey.nD)
     w = rng.uniform(size=len(m))
 
     vJw = v.dot(simulation.Jvec(m, w, u))
     wJtv = w.dot(simulation.Jtvec(m, v, u))
+
     tol = np.max([TOL * (10 ** int(np.log10(np.abs(vJw)))), FLR])
+
     print(" vJw   wJtv  vJw - wJtv     tol    abs(vJw - wJtv) < tol")
     print(vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol)
-    return np.abs(vJw - wJtv) < tol
 
-
-def JvecAdjointTest(sigmaHalf, formulation="PrimSec"):
-    forType = "PrimSec" not in formulation
-    survey, sigma, sigBG, m1d = nsem.utils.test_utils.setup1DSurvey(
-        sigmaHalf, tD=forType, structure=False
-    )
-    print("Adjoint test of e formulation for {:s} comp \n".format(formulation))
-
-    if "PrimSec" in formulation:
-        problem = nsem.Simulation1DPrimarySecondary(
-            m1d, survey=survey, sigmaPrimary=sigBG, sigmaMap=maps.IdentityMap(m1d)
-        )
-    else:
-        raise NotImplementedError(
-            "Only {} formulations are implemented.".format(formulation)
-        )
-    m = sigma
-    u = problem.fields(m)
-
-    rng = np.random.default_rng(seed=1983)
-    v = rng.uniform(size=survey.nD)
-    # print problem.PropMap.PropModel.nP
-    w = rng.uniform(size=problem.mesh.nC)
-
-    vJw = v.ravel().dot(problem.Jvec(m, w, u))
-    wJtv = w.ravel().dot(problem.Jtvec(m, v, u))
-    tol = np.max([TOL * (10 ** int(np.log10(np.abs(vJw)))), FLR])
-    print(" vJw   wJtv  vJw - wJtv     tol    abs(vJw - wJtv) < tol")
-    print(vJw, wJtv, vJw - wJtv, tol, np.abs(vJw - wJtv) < tol)
-    return np.abs(vJw - wJtv) < tol
-
-
-class NSEM_1D_AdjointTests(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def test_JvecAdjoint_All(self):
-        self.assertTrue(JvecAdjointTest(1e-2))
-
-    def test_JvecAdjoint_All_1D(self):
-        self.assertTrue(JvecAdjointTest_1D(1e-2))
-
-
-if __name__ == "__main__":
-    unittest.main()
+    np.testing.assert_allclose(vJw, wJtv, atol=TOL)

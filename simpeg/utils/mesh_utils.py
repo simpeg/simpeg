@@ -136,7 +136,7 @@ def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top"):
         A tensor or tree mesh.
     active_cells : numpy.ndarray of bool or int
         Active cells index; i.e. indices of cells below surface
-    topo_cell_cutoff : {"top", "center"}
+    topo_cell_cutoff : {"top", "center"}, optional
         String to specify the cutoff for ground cells and the locations of
         the discrete topography. For "top", ground cells lie entirely below
         the surface topography and the discrete topography is defined on the
@@ -196,7 +196,11 @@ def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top"):
             dz = 0.0
         return np.c_[mesh.cell_centers[inds, :-1], mesh.cell_centers[inds, -1] + dz]
     else:
-        raise NotImplementedError(f"{type(mesh)} mesh is not supported.")
+        msg = (
+            f"Invalid mesh of type '{type(mesh).__name__}'. "
+            "`get_discrete_topography` only supports TensorMesh and TreeMesh."
+        )
+        raise TypeError(msg)
 
 
 def shift_to_discrete_topography(
@@ -217,15 +221,16 @@ def shift_to_discrete_topography(
     pts : (n, dim) numpy.ndarray
         The original set of points being shifted relative to the discretize
         surface topography.
-    active_cells : numpy.ndarray of int or bool, optional
+    active_cells : numpy.ndarray of int or bool
         Index array for all cells lying below the surface topography.
-    topo_cell_cutoff : {"top", "center"}
+    topo_cell_cutoff : {"top", "center"}, optional
         String to specify the cutoff for ground cells and the locations of the discrete
         topography. For "top", ground cells lie entirely below the surface topography
         and the discrete topography is defined on the top faces of surface cells.
         For "center", only the cell centers must lie below the surface topography and
         the discrete topography is defined at the centers of surface cells.
-        The topography is defined using the 'topo' input parameter.
+        The topography is defined using the ``active_cells`` parameter: the topography
+        is obtained as the topmost surface of active cells.
     heights : float or (n,) numpy.ndarray, optional
         Height(s) relative to the true surface topography. Used to preserve flight
         heights or borehole depths.
@@ -237,11 +242,17 @@ def shift_to_discrete_topography(
     -------
     (n, dim) numpy.ndarray
         The set of points shifted relative to the discretize surface topography.
+
+    See also
+    --------
+    :func:`simpeg.utils.get_discrete_topography`
     """
     if mesh._meshType != "TENSOR" and mesh._meshType != "TREE":
-        raise NotImplementedError(
-            "shift_to_discrete_topography only supported for TensorMesh and TreeMesh'."
+        msg = (
+            f"Invalid mesh of type '{type(mesh).__name__}'. "
+            "`shift_to_discrete_topography` only supports TensorMesh and TreeMesh."
         )
+        raise TypeError(msg)
 
     if not isinstance(heights, (int, float)) and len(pts) != len(heights):
         raise ValueError(

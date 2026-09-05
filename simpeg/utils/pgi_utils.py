@@ -53,34 +53,36 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
     """
     Weighted Gaussian mixture class
 
-    This class upon the GaussianMixture class from Scikit-Learn.
-    Two main modifications:
+    This class is built upon the :class:`sklearn.mixture.GaussianMixture` class from
+    scikit-learn, with two main modifications:
 
-        1. Each sample/observation is given a weight, the volume of the
-        corresponding discretize.BaseMesh cell, when fitting the
-        Gaussian Mixture Model (GMM). More volume gives more importance, ensuing a
-        mesh-free evaluation of the clusters of the geophysical model.
+    1. Each sample/observation is given a weight, the volume of the corresponding
+       :class:`discretize.base.BaseMesh` cell, when fitting the Gaussian Mixture Model
+       (GMM). More volume gives more importance, ensuing a mesh-free evaluation of the
+       clusters of the geophysical model.
+    2. When set manually, the proportions can be set either globally (normal behavior)
+       or cell-by-cell (improvements).
 
-        2. When set manually, the proportions can be set either globally (normal behavior)
-        or cell-by-cell (improvements)
+    .. attention::
 
-    Disclaimer: this class built upon the GaussianMixture class from Scikit-Learn.
-    New functionalitie are added, as well as modifications to
-    existing functions, to serve the purposes pursued within SimPEG.
-    This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)
-    and we are grateful for their contributions to the open-source community.
+        This class built upon the :class:`sklearn.mixture.GaussianMixture` class from
+        scikit-learn. New functionalities are added, as well as modifications to
+        existing functions, to serve the purposes pursued within SimPEG. This use is
+        allowed by the scikit-learn licensing (BSD-3-Clause License) and we are grateful
+        for their contributions to the open-source community.
 
-    Addtional parameters to provide, compared to sklearn.mixture.gaussian_mixture:
+    There are some additional parameters to provide to this class, compared to
+    :class:`sklearn.mixture.GaussianMixture`.
 
     Parameters
     ----------
     n_components : int
         Number of components
-    mesh : discretize.BaseMesh
-        ``TensorMesh`` or ``QuadTree`` or Octree) mesh: the volume
-        of the cells give each sample/observations its weight in the fitting proces
-    actv : numpy.ndarry, optional
-        Active indexes
+    mesh : discretize.base.BaseMesh
+        :class:`discretize.TensorMesh` or :class:`discretize.TreeMesh` mesh. The volume
+        of the cells give each sample/observations its weight in the fitting process.
+    actv : array, optional
+        Active indices.
     """
 
     @requires({"sklearn": sklearn})
@@ -256,11 +258,34 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
 
         return weights
 
-    def _check_parameters(self, X):
+    def _warn_xp_not_numpy(self, xp):
+        """
+        Raise warning if the passed array API is not Numpy.
+
+        SimPEG's Gaussian Mixture Models don't currently support other array APIs beside
+        Numpy, so it's better to warn users that are intending to use another API.
+        """
+        if xp is None or xp is np:
+            return
+        try:
+            module = xp.__array_namespace_info__.__module__
+        except AttributeError:
+            module = "unknown"
+        if module.lower() != "numpy":
+            warnings.warn(
+                "Using array API is not supported in SimPEG's Gaussian Mixture Models "
+                "yet. Numpy will be used instead.",
+                UserWarning,
+                stacklevel=2,
+            )
+
+    def _check_parameters(self, X, xp=None):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         Check the Gaussian mixture parameters are well defined.
         """
+        self._warn_xp_not_numpy(xp)
+
         n_samples, n_features = X.shape
         if self.covariance_type not in ["spherical", "tied", "diag", "full"]:
             raise ValueError(
@@ -289,7 +314,7 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
                 n_features,
             )
 
-    def _initialize_parameters(self, X, random_state):
+    def _initialize_parameters(self, X, random_state, xp=None):
         """
         [modified from Scikit-Learn.mixture._base]
         Initialize the model parameters.
@@ -300,6 +325,8 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
         random_state : RandomState
             A random number generator instance.
         """
+        self._warn_xp_not_numpy(xp)
+
         n_samples, _ = X.shape
 
         if self.init_params == "kmeans":
@@ -322,7 +349,7 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
 
         self._initialize(X, resp)
 
-    def _m_step(self, X, log_resp):
+    def _m_step(self, X, log_resp, xp=None):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         M step.
@@ -334,6 +361,8 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
             Logarithm of the posterior probabilities (or responsibilities) of
             the point of each sample in X.
         """
+        self._warn_xp_not_numpy(xp)
+
         n_samples, _ = X.shape
         Volume = np.mean(self.cell_volumes)
         weights, self.means_, self.covariances_ = self._estimate_gaussian_parameters(
@@ -409,7 +438,7 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
         }[covariance_type](respVol, X, nk, means, reg_covar)
         return nk, means, covariances
 
-    def _e_step(self, X):
+    def _e_step(self, X, xp=None):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         E step.
@@ -426,6 +455,7 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
             Logarithm of the posterior probabilities (or responsibilities) of
             the point of each sample in X.
         """
+        self._warn_xp_not_numpy(xp)
         log_prob_norm, log_resp = self._estimate_log_prob_resp(X)
         return np.average(log_prob_norm, weights=self.cell_volumes), log_resp
 
@@ -823,49 +853,53 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
 
 class GaussianMixtureWithPrior(WeightedGaussianMixture):
     """
-    This class built upon the WeightedGaussianMixture, which itself built upon from
-    the mixture.gaussian_mixture.GaussianMixture class from Scikit-Learn.
+    This class built upon the :class:`~simpeg.utils.WeightedGaussianMixture`, which
+    itself built upon from the :clas::`sklearn.mixture.GaussianMixture` class from
+    scikit-learn.
 
-    In addition to weights samples/observations by the cells volume of the mesh,
-    this class uses a posterior approach to fit the GMM parameters. This means
-    it takes prior parameters, passed through `WeightedGaussianMixture` gmmref.
+    In addition to weights samples/observations by the cells volume of the mesh, this
+    class uses a posterior approach to fit the GMM parameters. This means it takes prior
+    parameters, passed through :class:`~simpeg.utils.WeightedGaussianMixture`
+    ``gmmref``.
     The prior distribution for each parameters (proportions, means, covariances) is
-    defined through a conjugate or semi-conjugate approach (prior_type), to the choice of the user.
-    See Astic & Oldenburg 2019: A framework for petrophysically and geologically
-    guided geophysical inversion (https://doi.org/10.1093/gji/ggz389) for more information.
+    defined through a conjugate or semi-conjugate approach (prior_type), to the choice
+    of the user. See Astic & Oldenburg 2019: A framework for petrophysically and
+    geologically guided geophysical inversion (https://doi.org/10.1093/gji/ggz389) for
+    more information.
 
-    Disclaimer: this class built upon the GaussianMixture class from Scikit-Learn.
-    New functionalitie are added, as well as modifications to
-    existing functions, to serve the purposes pursued within SimPEG.
-    This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)
-    and we are grateful for their contributions to the open-source community.
+    .. attention::
 
-    Addtional parameters to provide, compared to `WeightedGaussianMixture`:
+        This class built upon the :class:`sklearn.mixture.GaussianMixture` class from
+        scikit-learn. New functionalities are added, as well as modifications to
+        existing functions, to serve the purposes pursued within SimPEG. This use is
+        allowed by the scikit-learn licensing (BSD-3-Clause License) and we are grateful
+        for their contributions to the open-source community.
+
+    There are some additional parameters to provide to this class, compared to
+    :class:`~simpeg.utils.WeightedGaussianMixture`.
 
     Parameters
     ----------
-    kappa : numpy.ndarray
-        strength of the confidence in the prior means
-    nu : numpy.ndarry
-        strength of the confidence in the prior covariances
-    zeta : numpy.ndarry
-        strength of the confidence in the prior proportions
+    kappa : array
+        Strength of the confidence in the prior means
+    nu : array
+        Strength of the confidence in the prior covariances
+    zeta : array
+        Strength of the confidence in the prior proportions
     prior_type : str
         Choose from one of the following:
-
-            - "semi": semi-conjugate prior, the means and covariances priors are indepedent
-            - "full": conjugate prior, the means and covariances priors are inter-depedent
-
+        - "semi": semi-conjugate prior, the means and covariances priors are independent
+        - "full": conjugate prior, the means and covariances priors are inter-dependent
     update_covariances : bool
         Choose from two options:
-
         - ``True``: semi or conjugate prior by averaging the covariances
         - ``False``: alternative (not conjugate) prior: average the precisions instead
-
-    fixed_membership : numpy.ndarray of int, optional
-        A 2d numpy.ndarray to fix the membership to a chosen lithology of particular cells.
-        The first column contains the numeric index of the cells, the second column the respective lithology index.
-        Shape is (index of the fixed cell, lithology index) fixed_membership:
+    fixed_membership : array of int, optional
+        A 2D :class:`numpy.ndarray` to fix the membership to a chosen lithology of
+        particular cells.
+        The first column contains the numeric index of the cells, the second column the
+        respective lithology index.
+        Shape is ``(index of the fixed cell, lithology index)``.
     """
 
     @requires({"sklearn": sklearn})
@@ -1250,7 +1284,7 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
     """Gaussian mixture class for non-linear relationships.
 
     This class built upon the WeightedGaussianMixture, which itself built upon from
-    the mixture.gaussian_mixture.GaussianMixture class from Scikit-Learn.
+    the mixture.gaussian_mixture.GaussianMixture class from scikit-learn.
 
     In addition to weights samples/observations by the cells volume of the mesh,
     this class can be given specified nonlinear relationships between physical properties.
@@ -1258,13 +1292,14 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
     list of mapping (cluster_mapping argument). Functions are added and modified
     to fill that purpose, in particular the `fit` and  `samples` functions.
 
-    Disclaimer: this class built upon the GaussianMixture class from Scikit-Learn.
+    Disclaimer: this class built upon the GaussianMixture class from scikit-learn.
     New functionalitie are added, as well as modifications to
     existing functions, to serve the purposes pursued within SimPEG.
-    This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)
+    This use is allowed by the scikit-learn licensing (BSD-3-Clause License)
     and we are grateful for their contributions to the open-source community.
 
-    Addtional parameters to provide, compared to `WeightedGaussianMixture`:
+    There are some additional parameters to provide to this class, compared to
+    :class:`~simpeg.utils.WeightedGaussianMixture`.
 
     Parameters
     ----------
@@ -1316,7 +1351,7 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
             # **kwargs
         )
 
-    def _initialize(self, X, resp):
+    def _initialize(self, X, resp, xp=None):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         Initialization of the Gaussian mixture parameters.
@@ -1326,6 +1361,8 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
         X : array-like, shape (n_samples, n_features)
         resp : array-like, shape (n_samples, n_components)
         """
+        self._warn_xp_not_numpy(xp)
+
         n_samples, _ = X.shape
 
         weights, means, covariances = self._estimate_gaussian_parameters(
@@ -1412,10 +1449,12 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
 
         return -0.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det
 
-    def _estimate_log_prob(self, X):
+    def _estimate_log_prob(self, X, xp=None):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         """
+        self._warn_xp_not_numpy(xp)
+
         return self._estimate_log_gaussian_prob(
             X,
             self.means_,
@@ -1424,10 +1463,14 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
             self.cluster_mapping,
         )
 
-    def _estimate_gaussian_parameters(self, X, resp, reg_covar, covariance_type):
+    def _estimate_gaussian_parameters(
+        self, X, resp, reg_covar, covariance_type, xp=None
+    ):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         """
+        self._warn_xp_not_numpy(xp)
+
         respVol = self.cell_volumes.reshape(-1, 1) * resp
         nk = respVol.sum(axis=0) + 10 * np.finfo(resp.dtype).eps
         # stupid lazy piece of junk code to get the shapes right
@@ -1526,7 +1569,7 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
 
         return (X, y)
 
-    def _m_step(self, X, log_resp):
+    def _m_step(self, X, log_resp, xp=None):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         M step.
@@ -1537,6 +1580,8 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
             Logarithm of the posterior probabilities (or responsibilities) of
             the point of each sample in X.
         """
+        self._warn_xp_not_numpy(xp)
+
         n_samples, _ = X.shape
         (
             self.weights_,
@@ -1554,33 +1599,40 @@ class GaussianMixtureWithNonlinearRelationships(WeightedGaussianMixture):
 class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrior):
     """Gaussian mixture class for non-linear relationships with priors.
 
-    This class built upon the `GaussianMixtureWithPrior`, which itself built upon from
-    the `WeightedGaussianMixture`, built up from the
-    mixture.gaussian_mixture.GaussianMixture class from Scikit-Learn.
+    This class built upon the :class:`~simpeg.utils.GaussianMixtureWithPrior`, which
+    itself built upon from the :class:`~simpeg.utils.WeightedGaussianMixture`, built up
+    from the :class:`sklearn.mixture.GaussianMixture` class from scikit-learn.
 
     In addition to weights samples/observations by the cells volume of the mesh
-    (from `WeightedGaussianMixture`), and nonlinear relationships for each cluster
-    (from `GaussianMixtureWithNonlinearRelationships`), this class uses a
-    posterior approach to fit the GMM parameters (from `GaussianMixtureWithPrior`).
-    It takes prior parameters, passed through `WeightedGaussianMixture` gmmref.
+    (from :class:`~simpeg.utils.WeightedGaussianMixture`), and nonlinear relationships
+    for each cluster (from
+    :class:`~simpeg.utils.GaussianMixtureWithNonlinearRelationships`),
+    this class uses a
+    posterior approach to fit the GMM parameters (from
+    :class:`~simpeg.utils.GaussianMixtureWithPrior`).
+    It takes prior parameters, passed through
+    :class:`~simpeg.utils.WeightedGaussianMixture` ``gmmref``.
     The prior distribution for each parameters (proportions, means, covariances) is
     defined through a conjugate or semi-conjugate approach (prior_type), to the choice of the user.
     See Astic & Oldenburg 2019: A framework for petrophysically and geologically
     guided geophysical inversion (https://doi.org/10.1093/gji/ggz389) for more information.
 
-    Disclaimer: this class built upon the GaussianMixture class from Scikit-Learn.
-    New functionalitie are added, as well as modifications to
-    existing functions, to serve the purposes pursued within SimPEG.
-    This use is allowed by the Scikit-Learn licensing (BSD-3-Clause License)
-    and we are grateful for their contributions to the open-source community.
+    .. attention::
 
-    Addtional parameters to provide, compared to `GaussianMixtureWithPrior`:
+        This class built upon the :class:`sklearn.mixture.GaussianMixture` class from
+        scikit-learn. New functionalities are added, as well as modifications to
+        existing functions, to serve the purposes pursued within SimPEG. This use is
+        allowed by the scikit-Learn licensing (BSD-3-Clause License) and we are grateful
+        for their contributions to the open-source community.
+
+    There are some additional parameters to provide to this class, compared to
+    :class:`~simpeg.utils.GaussianMixtureWithPrior`.
 
     Parameters
     ----------
     cluster_mapping : (n_components) list
-        List of mapping describing a nonlinear relationships between physical properties; one per cluster/unit.
-
+        List of mapping describing a nonlinear relationships between physical
+        properties; one per cluster/unit.
     """
 
     @requires({"sklearn": sklearn})
@@ -1634,7 +1686,7 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
             # **kwargs
         )
 
-    def _initialize(self, X, resp):
+    def _initialize(self, X, resp, xp=None):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         Initialization of the Gaussian mixture parameters.
@@ -1643,6 +1695,8 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
         X : array-like, shape (n_samples, n_features)
         resp : array-like, shape (n_samples, n_components)
         """
+        self._warn_xp_not_numpy(xp)
+
         n_samples, _ = X.shape
 
         weights, means, covariances = self._estimate_gaussian_parameters(
@@ -1728,7 +1782,8 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
 
         return -0.5 * (n_features * np.log(2 * np.pi) + log_prob) + log_det
 
-    def _estimate_log_prob(self, X):
+    def _estimate_log_prob(self, X, xp=None):
+        self._warn_xp_not_numpy(xp)
         return self._estimate_log_gaussian_prob(
             X,
             self.means_,
@@ -1769,7 +1824,7 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
             )[k]
         return nk, means, covariances
 
-    def _m_step(self, X, log_resp):
+    def _m_step(self, X, log_resp, xp=None):
         """
         [modified from Scikit-Learn.mixture.gaussian_mixture]
         M step.
@@ -1780,6 +1835,8 @@ class GaussianMixtureWithNonlinearRelationshipsWithPrior(GaussianMixtureWithPrio
             Logarithm of the posterior probabilities (or responsibilities) of
             the point of each sample in X.
         """
+        self._warn_xp_not_numpy(xp)
+
         n_samples, _ = X.shape
         (
             self.weights_,

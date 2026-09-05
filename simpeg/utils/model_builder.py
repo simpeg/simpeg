@@ -34,7 +34,11 @@ def add_block(cell_centers, model, p0, p1, prop_value):
     if isinstance(cell_centers, BaseMesh):
         cell_centers = cell_centers.cell_centers
 
-    ind = get_indices_block(p0, p1, cell_centers)
+    # Hide BreakingChangeWarning coming from get_indices_block
+    with warnings.catch_warnings():
+        warnings.simplefilter(action="ignore", category=BreakingChangeWarning)
+        ind = get_indices_block(p0, p1, cell_centers)
+
     new_model = model.copy()
     new_model[ind] = prop_value
     return new_model
@@ -185,7 +189,11 @@ def create_block_in_wholespace(
         pass
 
     sigma = np.zeros(cell_centers.shape[0]) + background_value
-    ind = get_indices_block(p0, p1, cell_centers)
+
+    # Hide BreakingChangeWarning coming from get_indices_block
+    with warnings.catch_warnings():
+        warnings.simplefilter(action="ignore", category=BreakingChangeWarning)
+        ind = get_indices_block(p0, p1, cell_centers)
 
     sigma[ind] = block_value
 
@@ -358,7 +366,10 @@ def create_2_layer_model(cell_centers, depth, top_value=1.0, bottom_value=0.0):
     # The depth is always defined on the last one.
     p1[len(p1) - 1] -= depth
 
-    ind = get_indices_block(p0, p1, cell_centers)
+    # Hide BreakingChangeWarning coming from get_indices_block
+    with warnings.catch_warnings():
+        warnings.simplefilter(action="ignore", category=BreakingChangeWarning)
+        ind = get_indices_block(p0, p1, cell_centers)
 
     sigma[ind] = top_value
 

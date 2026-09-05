@@ -377,6 +377,13 @@ class SimulationNDCellCentered(BaseTimeSimulation, BasePDESimulation):
         z = np.zeros((self.mesh.nC, B.shape[1]))
         du_dm = np.vstack((z, AinvB))
         J = self.survey.deriv(self, f, du_dm_v=du_dm)  # not multiplied by v
+
+        # Patch: cast J into an ndarray if it's a np.matrix.
+        # We should update the survey and receivers to make use of sparray instead of
+        # spmatrix.
+        if isinstance(J, np.matrix):
+            J = np.asarray(J)
+
         return J
 
     @utils.timeIt

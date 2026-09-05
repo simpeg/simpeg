@@ -1,3 +1,4 @@
+import re
 import pytest
 import numpy as np
 from discretize import TensorMesh, TreeMesh, SimplexMesh
@@ -97,10 +98,18 @@ def test_mesh_type_error():
     active_cells = get_active_cells(mesh)
     pts = get_points(dim)
 
-    with pytest.raises(NotImplementedError):
+    msg = re.escape(
+        f"Invalid mesh of type '{type(mesh).__name__}'. "
+        "`shift_to_discrete_topography` only supports TensorMesh and TreeMesh."
+    )
+    with pytest.raises(TypeError, match=msg):
         shift_to_discrete_topography(mesh, pts, active_cells)
 
-    with pytest.raises(NotImplementedError):
+    msg = re.escape(
+        f"Invalid mesh of type '{type(mesh).__name__}'. "
+        "`get_discrete_topography` only supports TensorMesh and TreeMesh."
+    )
+    with pytest.raises(TypeError, match=msg):
         get_discrete_topography(mesh, active_cells)
 
 
