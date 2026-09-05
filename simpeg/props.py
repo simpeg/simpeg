@@ -382,7 +382,10 @@ class ParametrizationList:
         if key in self.__slots__:
             super().__setattr__(key, value)
         elif key in self._fields:
-            raise AttributeError(f"'Cannot set attribute '{key}'") from None
+            raise AttributeError(
+                f"Cannot set attribute '{key}': '{type(self).__name__}' is read-only. "
+                f"Use `HasModel.parametrize({key}=mapping)` instead."
+            ) from None
         else:
             raise AttributeError(
                 f"'{type(self).__name__}' object has no attribute '{key}'"
@@ -418,6 +421,12 @@ class ParametrizationList:
 
     def values(self):
         return self._fields.values()
+
+    def __str__(self):
+        inner = ", ".join(f"{key}={value!r}" for key, value in self._fields.items())
+        return f"{type(self).__name__}({inner})"
+
+    __repr__ = __str__
 
 
 class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
