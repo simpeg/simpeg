@@ -135,12 +135,31 @@ class PhysicalProperty:
         raise AttributeError(error_message)
 
     def __set__(self, obj: "HasModel", value):
+        recip = self.get_reciprocal(obj)
+        if self.name in obj.parametrizations:
+            removed = self.name
+        elif recip is not None and recip.name in obj.parametrizations:
+            removed = recip.name
+        else:
+            removed = None
+
         if self.fset is not None:
             self.fset(obj, value)
         else:
             self._fset(obj, value)
+
+        if removed is not None:
+            cls_name = type(obj).__name__
+            warnings.warn(
+                f"Assigning a value directly to `{cls_name}.{self.name}` removes the "
+                f"existing parametrization of `{cls_name}.{removed}`; it will no "
+                f"longer be invertible through that mapping.",
+                UserWarning,
+                stacklevel=3,
+            )
+
         obj._remove_parametrization(self.name)
-        if recip := self.get_reciprocal(obj):
+        if recip is not None:
             recip.__delete__(obj)
 
     def __delete__(self, obj: "HasModel"):

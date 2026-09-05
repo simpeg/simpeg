@@ -266,7 +266,7 @@ filterwarnings = [
     # Note change the following to errors once fixed internally.
     '''ignore:Getting `[^.]+\.([^`]+)` directly is deprecated\. If this is still necessary use `[^.]+\.parametrizations\.([^`]+)` instead:FutureWarning''',
     '''ignore:Passing mapping argument [^ ]+ to [^ ]+ is deprecated\. Instead you can now use the [^ ]+ argument\.:FutureWarning''',
-    '''ignore:Setting `[^.]+\.[^`]+` directly is deprecated\. Instead register a parametrization with `[^.]+\.parametrize\('[^']+'\)`:FutureWarning''',
+    '''ignore:Setting `[^.]+\.[^`]+` directly is deprecated\.:FutureWarning''',
     '''ignore:Getting `[^.]+\.[^`]+` is deprecated, use `[^.]+\._prop_deriv\('[^']+'\)` instead\.:FutureWarning''',
 ]
 xfail_strict = true
