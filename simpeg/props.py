@@ -8,6 +8,7 @@ from simpeg.utils import deprecate_property
 from . import maps
 import functools
 from .utils import Zero, validate_type, validate_ndarray_with_shape
+from .typing import MapLike
 
 
 class _Void:
@@ -544,13 +545,17 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
             self._parametrizations = ParametrizationList()
         return self._parametrizations
 
-    def parametrize(self, **kwargs):
+    def parametrize(self, **kwargs: MapLike):
         """Parametrize a physical property, so that its value is dynamically calculated from the model.
 
         Parameters
         ----------
         **kwargs : dict[str, simpeg.maps.IdentityMap]
             Each attribute keyword is parametrized by the given relationship.
+            Accepts any `simpeg.maps.IdentityMap` instance (or, informally,
+            any :class:`~simpeg.typing.MapLike`-shaped object, though only
+            `IdentityMap` subclasses are currently accepted at runtime; see
+            `simpeg.typing.MapLike`'s docstring for why).
 
         Examples
         --------
