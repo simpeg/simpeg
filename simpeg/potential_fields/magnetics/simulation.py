@@ -25,6 +25,7 @@ from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
 from .survey import Survey
 
 from ._numba import choclo, NUMBA_FUNCTIONS_3D, NUMBA_FUNCTIONS_2D
+from ...props import _add_deprecated_physical_property_functions
 
 if choclo is not None:
     CHOCLO_SUPPORTED_COMPONENTS = {
@@ -114,6 +115,7 @@ if choclo is not None:
     }
 
 
+@_add_deprecated_physical_property_functions("chi")
 class Simulation3DIntegral(BasePFSimulation):
     """
     Magnetic simulation in integral form.
@@ -157,13 +159,12 @@ class Simulation3DIntegral(BasePFSimulation):
         ignored.
     """
 
-    chi, chiMap, chiDeriv = props.Invertible("Magnetic Susceptibility (SI)")
+    chi = props.PhysicalProperty("Magnetic Susceptibility (SI)")
 
     def __init__(
         self,
         mesh,
         chi=None,
-        chiMap=None,
         model_type="scalar",
         is_amplitude_data=False,
         engine="geoana",
@@ -172,8 +173,7 @@ class Simulation3DIntegral(BasePFSimulation):
     ):
         self.model_type = model_type
         super().__init__(mesh, engine=engine, numba_parallel=numba_parallel, **kwargs)
-        self.chi = chi
-        self.chiMap = chiMap
+        self._init_property(chi=chi)
 
         self._M = None
         self.is_amplitude_data = is_amplitude_data

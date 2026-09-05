@@ -3,43 +3,35 @@ from functools import cached_property
 import numpy as np
 import scipy.sparse as sp
 
-from .... import maps, props
-from ....base import BasePDESimulation
+from .... import props
+from ....base import BaseElectricalPDESimulation
 from ....utils import mkvc
 from ..resistivity import Simulation2DCellCentered as DC_2D_CC
 from ..resistivity import Simulation2DNodal as DC_2D_N
 from ..resistivity import Simulation3DCellCentered as DC_3D_CC
 from ..resistivity import Simulation3DNodal as DC_3D_N
+from ....props import _add_deprecated_physical_property_functions
 
 
-class BaseIPSimulation(BasePDESimulation):
-    sigma = props.PhysicalProperty("Electrical Conductivity (S/m)")
-    rho = props.PhysicalProperty("Electrical Resistivity (Ohm m)")
-    props.Reciprocal(sigma, rho)
+@_add_deprecated_physical_property_functions("eta")
+class BaseIPSimulation(BaseElectricalPDESimulation):
+    sigma = BaseElectricalPDESimulation.sigma.set_feature(invertible=False)
+    rho = BaseElectricalPDESimulation.rho.set_feature(invertible=False)
 
-    @property
-    def sigmaMap(self):
-        return maps.IdentityMap()
+    eta = props.PhysicalProperty("Electrical Chargeability (V/V)")
 
-    @sigmaMap.setter
-    def sigmaMap(self, arg):
-        pass
+    def _prop_deriv(self, attr):
+        if attr == "sigma":
+            return -sp.diags(self.sigma) @ self._prop_deriv("eta")
+        elif attr == "rho":
+            return sp.diags(self.rho) @ self._prop_deriv("eta")
+        return super()._prop_deriv(attr)
 
-    @property
-    def rhoMap(self):
-        return maps.IdentityMap()
-
-    @rhoMap.setter
-    def rhoMap(self, arg):
-        pass
-
-    @property
-    def sigmaDeriv(self):
-        return -sp.diags(self.sigma) @ self.etaDeriv
-
-    @property
-    def rhoDeriv(self):
-        return sp.diags(self.rho) @ self.etaDeriv
+    def is_parametrized(self, attr):
+        if attr == "sigma" or attr == "rho":
+            return True
+        else:
+            return super().is_parametrized(attr)
 
     @cached_property
     def _scale(self):
@@ -60,8 +52,6 @@ class BaseIPSimulation(BasePDESimulation):
                     scale[src_rx_slice] = mkvc(1.0 / rx.eval(src, self.mesh, f))
         return scale
 
-    eta, etaMap, etaDeriv = props.Invertible("Electrical Chargeability (V/V)")
-
     def __init__(
         self,
         mesh,
@@ -69,16 +59,13 @@ class BaseIPSimulation(BasePDESimulation):
         sigma=None,
         rho=None,
         eta=None,
-        etaMap=None,
         Ainv=None,  # A DC's Ainv
         _f=None,  # A pre-computed DC field
         **kwargs,
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
-        self.sigma = sigma
-        self.rho = rho
-        self.eta = eta
-        self.etaMap = etaMap
+        self._init_recip_properties(sigma=sigma, rho=rho)
+        self._init_property(eta=eta)
         if Ainv is not None:
             self.Ainv = Ainv
         self._f = _f
@@ -113,6 +100,7 @@ class BaseIPSimulation(BasePDESimulation):
         return self._pred
 
     def getJtJdiag(self, m, W=None, f=None):
+        self.model = m
         if getattr(self, "_gtgdiag", None) is None:
             J = self.getJ(m, f=f)
             if W is None:

@@ -175,7 +175,7 @@ def ColeCole(f, sig_inf=1e-2, eta=0.1, tau=0.1, c=1):
 
     """
 
-    if np.isscalar(sig_inf):
+    if np.ndim(sig_inf) == 0:
         w = 2 * np.pi * f
         sigma = sig_inf - sig_inf * eta / (1 + (1 - eta) * (1j * w * tau) ** c)
     else:

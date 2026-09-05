@@ -415,9 +415,9 @@ def dependent_property(name, value, children, doc):
         return getattr(self, name, value)
 
     def fset(self, val):
-        if (np.isscalar(val) and getattr(self, name, value) == val) or val is getattr(
-            self, name, value
-        ):
+        if (
+            (np.ndim(val) == 0) and getattr(self, name, value) == val
+        ) or val is getattr(self, name, value):
             return  # it is the same!
         for child in children:
             if hasattr(self, child):
@@ -1089,7 +1089,9 @@ def validate_ndarray_with_shape(property_name, var, shape=None, dtype=float):
         shape_error = False
         dim_error = var.ndim > len(shp)
         if not dim_error:
-            if len(shp) == 1:
+            if len(shp) == 0:
+                var_array = np.asarray(var)
+            elif len(shp) == 1:
                 var_array = np.atleast_1d(var)
             elif len(shp) == 2:
                 var_array = np.atleast_2d(var)
