@@ -1,9 +1,11 @@
+import enum
 import inspect
 import warnings
 from types import MappingProxyType
 
 import numpy as np
 
+from discretize.utils import inverse_property_tensor
 from simpeg.utils import deprecate_property
 from . import maps
 import functools
@@ -16,6 +18,62 @@ class _Void:
     pass
 
 
+class Location(enum.Enum):
+    """Where a `PhysicalProperty` lives relative to a mesh."""
+
+    CELL_CENTERS = "cell_centers"
+    FACES = "faces"
+    EDGES = "edges"
+
+
+class AnisotropyLevel(enum.IntEnum):
+    """The level of anisotropy a `PhysicalProperty` supports.
+
+    Values align with discretize's ``TensorType`` classification
+    (isotropic=1, diagonal-anisotropic=2, full-tensor-anisotropic=3).
+    """
+
+    ISOTROPIC = 1
+    DIAGONAL = 2
+    FULL = 3
+
+
+def _mesh_shape_resolver(location, anisotropy):
+    """Build an `fshape` function for a property living at `location` on `obj.mesh`.
+
+    This is a convenience default derived from `location`/`anisotropy`; it has
+    no special status and can always be replaced with a custom function via
+    `PhysicalProperty.shapes`.
+    """
+    size_attr = {
+        Location.CELL_CENTERS: "n_cells",
+        Location.FACES: "n_faces",
+        Location.EDGES: "n_edges",
+    }[location]
+
+    def fshape(obj):
+        mesh = obj.mesh
+        if mesh is None:
+            raise AttributeError(
+                f"`{type(obj).__name__}.mesh` is required to validate this property."
+            )
+        size = getattr(mesh, size_attr)
+        shapes = [(), (1,), (size,)]
+        if anisotropy is not AnisotropyLevel.ISOTROPIC and mesh.dim > 1:
+            shapes.append((size, mesh.dim))
+            if anisotropy is AnisotropyLevel.FULL:
+                shapes.append((size, 3 if mesh.dim == 2 else 6))
+        return shapes
+
+    return fshape
+
+
+def _mesh_tensor_invert(obj, value):
+    """Default `invert` for a cell-centered, anisotropy-capable property."""
+
+    return inverse_property_tensor(obj.mesh, value)
+
+
 class PhysicalProperty:
 
     def __init__(
@@ -26,9 +84,13 @@ class PhysicalProperty:
         dtype=float,
         reciprocal=None,
         invertible=True,
+        location=None,
+        anisotropy=AnisotropyLevel.ISOTROPIC,
+        invert=None,
         fget=None,
         fset=None,
         fdel=None,
+        fshape=None,
         doc=None,
     ):
         self.short_details = short_details
@@ -41,14 +103,75 @@ class PhysicalProperty:
         self._reciprocal = reciprocal
         self.invertible = invertible
 
+        if location is not None and shape is not None:
+            raise ValueError(
+                "Cannot specify `location` together with `shape`; `location` "
+                "builds a default shape resolver automatically. Pass an explicit "
+                "`fshape` alongside `location` instead if a custom resolver is needed."
+            )
+        if location is None and anisotropy is not AnisotropyLevel.ISOTROPIC:
+            raise ValueError("`anisotropy` can only be set when `location` is given.")
+        if (
+            location in (Location.FACES, Location.EDGES)
+            and anisotropy is not AnisotropyLevel.ISOTROPIC
+        ):
+            raise ValueError(
+                "Anisotropy beyond ISOTROPIC is only supported at "
+                f"`Location.CELL_CENTERS`, got location={location}, "
+                f"anisotropy={anisotropy}."
+            )
+        self.location = location
+        self.anisotropy = anisotropy
+
+        # `fshape` is the generic override hook: PhysicalProperty itself has no
+        # built-in notion of a mesh/location beyond this. `location` is only a
+        # convenience that builds a default `fshape` (below) when one isn't
+        # already given; it can always be overridden via `.shapes()`.
+        self.fshape = fshape
+        self.invert = invert
+        self._derive_shape_and_invert()
+
         self.fget = fget
         self.fset = fset
         self.fdel = fdel
         self.__doc__ = doc
 
+    def _derive_shape_and_invert(self):
+        """Populate `fshape`/`invert` from `location`/`anisotropy` if not already set.
+
+        Only fills in a default when the corresponding hook is still `None` —
+        an explicitly given (or previously overridden) `fshape`/`invert` is
+        never replaced. Called from `__init__`, and from `set_feature` after
+        resetting `fshape`/`invert` to `None` when `location`/`anisotropy`
+        are among the features being changed (see `set_feature`).
+        """
+        if self.location is not None and self.fshape is None:
+            self.fshape = _mesh_shape_resolver(self.location, self.anisotropy)
+
+        if (
+            self.location is Location.CELL_CENTERS
+            and self.anisotropy is not AnisotropyLevel.ISOTROPIC
+            and self.invert is None
+        ):
+            self.invert = _mesh_tensor_invert
+
     def build_doc(self):
         # buildup my doc string
-        if self.shape is None:
+        if self.location is not None:
+            loc_str = {
+                Location.CELL_CENTERS: "cell-centered",
+                Location.FACES: "face-defined",
+                Location.EDGES: "edge-defined",
+            }[self.location]
+            aniso_str = {
+                AnisotropyLevel.ISOTROPIC: "isotropic",
+                AnisotropyLevel.DIAGONAL: "isotropic or diagonally-anisotropic",
+                AnisotropyLevel.FULL: (
+                    "isotropic, diagonally-anisotropic, or fully-anisotropic"
+                ),
+            }[self.anisotropy]
+            shape_str = f"scalar, or {loc_str} ({aniso_str}) "
+        elif self.shape is None:
             shape_str = ""
         else:
             shape_str = f"{self.shape} "
@@ -106,7 +229,7 @@ class PhysicalProperty:
             else:
                 r_value = recip._fget(obj, from_reciprocal=self.name)
             if r_value is not None:
-                return 1.0 / r_value
+                return self._invert(obj, r_value)
         # This point in the code would mean:
         # * my getter successfully returned None
         # and
@@ -120,7 +243,7 @@ class PhysicalProperty:
             val = recip.default
             # If it wasn't None, try to invert it.
             if val is not None:
-                val = 1 / val
+                val = self._invert(obj, val)
             return val
 
         # This point would be all errors
@@ -218,11 +341,12 @@ class PhysicalProperty:
                     stacklevel=4,
                 )
         else:
+            shape = self.fshape(obj) if self.fshape is not None else self.shape
             try:
                 value = validate_ndarray_with_shape(
                     f"{type(obj).__name__}.{self.name}",
                     value,
-                    shape=self.shape,
+                    shape=shape,
                     dtype=self.dtype,
                 )
             except TypeError:
@@ -235,6 +359,12 @@ class PhysicalProperty:
                     ) from None
                 raise
         setattr(obj, self.private_name, value)
+
+    def _invert(self, obj, value):
+        """Invert `value` (my reciprocal's value) to produce my own value."""
+        if self.invert is not None:
+            return self.invert(obj, value)
+        return 1.0 / value
 
     def get_reciprocal(self, objtype):
         """Return the reciprocal property defined on the object's class
@@ -276,9 +406,13 @@ class PhysicalProperty:
             dtype=self.dtype,
             reciprocal=self._reciprocal,
             invertible=self.invertible,
+            location=self.location,
+            anisotropy=self.anisotropy,
+            invert=self.invert,
             fget=self.fget,
             fset=self.fset,
             fdel=self.fdel,
+            fshape=self.fshape,
             doc=self.__doc__,
         )
         return copy
@@ -301,6 +435,16 @@ class PhysicalProperty:
         new_prop.fdel = fdel
         return new_prop
 
+    def shapes(self, fshape):
+        """Decorate a function used to compute this PhysicalProperty's valid shape(s) dynamically.
+
+        The function should accept the `HasModel` instance and return a shape
+        (or list of shapes) suitable for `simpeg.utils.validate_ndarray_with_shape`.
+        """
+        new_prop = self.shallow_copy()
+        new_prop.fshape = fshape
+        return new_prop
+
     def set_feature(self, **features):
         new_prop = self.shallow_copy()
         for attr, value in features.items():
@@ -309,6 +453,20 @@ class PhysicalProperty:
                     f"{attr} is not a valid attribute of PhysicalProperty."
                 )
             setattr(new_prop, attr, value)
+
+        # `fshape`/`invert` may have been derived from the *original*
+        # `location`/`anisotropy` at construction time. If either changed here
+        # (without also explicitly overriding `fshape`/`invert` in this same
+        # call), the stale derived hooks must be rebuilt for the new values --
+        # otherwise they'd silently keep validating/inverting against the old
+        # anisotropy level.
+        if "location" in features or "anisotropy" in features:
+            if "fshape" not in features:
+                new_prop.fshape = None
+            if "invert" not in features:
+                new_prop.invert = None
+            new_prop._derive_shape_and_invert()
+
         return new_prop
 
 

@@ -4,6 +4,7 @@ from discretize.utils import Zero
 
 from ...utils import mkvc
 from ... import maps
+from ... import props
 from ..frequency_domain.simulation import BaseFDEMSimulation, Simulation3DElectricField
 from ..frequency_domain.survey import Survey
 from ..utils import omega
@@ -522,6 +523,14 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
     """
     A
     """
+
+    # getA below builds `MccRho` (via `with_property_mass_matrices`), which
+    # multiplies `rho`/`sigma` elementwise against `mesh.cell_volumes` -- this
+    # only works for a scalar-per-cell (isotropic) property.
+    sigma = BaseFDEMSimulation.sigma.set_feature(
+        anisotropy=props.AnisotropyLevel.ISOTROPIC
+    )
+    rho = BaseFDEMSimulation.rho.set_feature(anisotropy=props.AnisotropyLevel.ISOTROPIC)
 
     _solutionType = "hSolution"
     _formulation = "HJ"

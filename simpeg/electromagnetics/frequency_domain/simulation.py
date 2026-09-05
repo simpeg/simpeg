@@ -3,7 +3,7 @@ import scipy.sparse as sp
 from discretize.utils import Zero
 
 from ... import props
-from ...utils import mkvc, validate_type, validate_ndarray_with_shape
+from ...utils import mkvc, validate_type
 from ..base import BaseEMSimulation
 from ..utils import omega
 from .survey import Survey
@@ -68,7 +68,10 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     fieldsPair = FieldsFDEM
     permittivity = props.PhysicalProperty(
-        "Dielectric permittivity (F/m)", default=None, invertible=False
+        "Dielectric permittivity (F/m)",
+        default=None,
+        invertible=False,
+        location=props.Location.CELL_CENTERS,
     )
 
     def __init__(
@@ -87,22 +90,12 @@ class BaseFDEMSimulation(BaseEMSimulation):
 
     @permittivity.setter
     def permittivity(self, value):
-        prop = type(self).permittivity
         if value is not None:
             warnings.warn(
                 "Simulations using permittivity have not yet been thoroughly tested and derivatives are not implemented. Contributions welcome!",
                 stacklevel=2,
             )
-            value = validate_ndarray_with_shape(
-                f"{type(self).__name__}.permittivity",
-                value,
-                shape=[
-                    (),
-                    (1,),
-                    (self.mesh.n_cells,),
-                ],
-            )
-        setattr(self, prop.private_name, value)
+        type(self).permittivity._fset(self, value)
 
     @property
     def survey(self):

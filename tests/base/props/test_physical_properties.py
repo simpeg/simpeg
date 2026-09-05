@@ -390,5 +390,227 @@ def test_optional_inverted():
     assert modeler.sigma == 10
 
 
+# --- Location / AnisotropyLevel / fshape override mechanism -----------------
+
+
+class _MeshHasModel(props.HasModel):
+    """A HasModel subclass with a plain (non-PhysicalProperty) mesh attribute."""
+
+    def __init__(self, mesh=None, **kwargs):
+        self.mesh = mesh
+        super().__init__(**kwargs)
+
+
+class CellCenteredIsotropic(_MeshHasModel):
+    sigma = props.PhysicalProperty(
+        "Electrical conductivity (S/m)", location=props.Location.CELL_CENTERS
+    )
+
+    def __init__(self, mesh=None, sigma=None, **kwargs):
+        super().__init__(mesh=mesh, **kwargs)
+        self._init_property(sigma=sigma)
+
+
+class CellCenteredFullAnisotropic(_MeshHasModel):
+    sigma = props.PhysicalProperty(
+        "Electrical conductivity (S/m)",
+        reciprocal="rho",
+        location=props.Location.CELL_CENTERS,
+        anisotropy=props.AnisotropyLevel.FULL,
+    )
+    rho = props.PhysicalProperty(
+        "Electrical resistivity (Ohm m)",
+        reciprocal="sigma",
+        location=props.Location.CELL_CENTERS,
+        anisotropy=props.AnisotropyLevel.FULL,
+    )
+
+    def __init__(self, mesh=None, sigma=None, rho=None, **kwargs):
+        super().__init__(mesh=mesh, **kwargs)
+        self._init_recip_properties(sigma=sigma, rho=rho)
+
+
+@pytest.fixture
+def small_2d_mesh():
+    import discretize
+
+    return discretize.TensorMesh([3, 3])
+
+
+def test_location_isotropic_rejects_anisotropic_shape(small_2d_mesh):
+    modeler = CellCenteredIsotropic(mesh=small_2d_mesh)
+    n_cells = small_2d_mesh.n_cells
+
+    # scalar, and per-cell isotropic values are still accepted
+    modeler.sigma = 1.0
+    modeler.sigma = np.full(n_cells, 1.0)
+
+    # diagonal/full-tensor anisotropic shapes are rejected (anisotropy=ISOTROPIC)
+    with pytest.raises(ValueError):
+        modeler.sigma = np.ones((n_cells, small_2d_mesh.dim))
+    with pytest.raises(ValueError):
+        modeler.sigma = np.ones((n_cells, 3))
+
+
+def test_location_full_anisotropy_accepts_all_shapes(small_2d_mesh):
+    modeler = CellCenteredFullAnisotropic(mesh=small_2d_mesh)
+    n_cells = small_2d_mesh.n_cells
+
+    modeler.rho = 1.0
+    modeler.rho = np.full(n_cells, 1.0)
+    modeler.rho = np.ones((n_cells, small_2d_mesh.dim))  # diagonal
+    modeler.rho = np.ones((n_cells, 3))  # full-tensor (2D: 3 params)
+
+
+def test_location_full_anisotropy_reciprocal_inverts_via_discretize(small_2d_mesh):
+    from discretize.utils import inverse_property_tensor
+
+    modeler = CellCenteredFullAnisotropic(mesh=small_2d_mesh)
+    n_cells = small_2d_mesh.n_cells
+    rho = np.tile(np.array([1.0, 2.0, 0.5]), (n_cells, 1))
+    modeler.rho = rho
+
+    npt.assert_allclose(modeler.sigma, inverse_property_tensor(small_2d_mesh, rho))
+
+
+def test_location_and_shape_mutually_exclusive():
+    with pytest.raises(ValueError):
+        props.PhysicalProperty("x", shape=(), location=props.Location.CELL_CENTERS)
+
+
+def test_anisotropy_requires_location():
+    with pytest.raises(ValueError):
+        props.PhysicalProperty("x", anisotropy=props.AnisotropyLevel.FULL)
+
+
+@pytest.mark.parametrize("location", [props.Location.FACES, props.Location.EDGES])
+@pytest.mark.parametrize(
+    "anisotropy", [props.AnisotropyLevel.DIAGONAL, props.AnisotropyLevel.FULL]
+)
+def test_anisotropy_not_supported_off_cell_centers(location, anisotropy):
+    with pytest.raises(ValueError):
+        props.PhysicalProperty("x", location=location, anisotropy=anisotropy)
+
+
+def test_manual_invert_overrides_auto_derived(small_2d_mesh):
+    calls = []
+
+    def custom_invert(obj, value):
+        calls.append(value)
+        return value * 0 + 42.0
+
+    class Custom(_MeshHasModel):
+        sigma = props.PhysicalProperty(
+            "sigma",
+            reciprocal="rho",
+            location=props.Location.CELL_CENTERS,
+            anisotropy=props.AnisotropyLevel.FULL,
+            invert=custom_invert,
+        )
+        rho = props.PhysicalProperty(
+            "rho",
+            reciprocal="sigma",
+            location=props.Location.CELL_CENTERS,
+            anisotropy=props.AnisotropyLevel.FULL,
+        )
+
+        def __init__(self, mesh=None, sigma=None, rho=None, **kwargs):
+            super().__init__(mesh=mesh, **kwargs)
+            self._init_recip_properties(sigma=sigma, rho=rho)
+
+    modeler = Custom(mesh=small_2d_mesh, rho=2.0)
+    result = modeler.sigma
+    assert len(calls) == 1
+    npt.assert_allclose(result, 42.0)
+
+
+def test_set_feature_rederives_shape_and_invert_for_anisotropy(small_2d_mesh):
+    """set_feature(anisotropy=...) must rebuild fshape/invert, not just the attribute.
+
+    Regression test: `fshape`/`invert` are closures baked in from `location`/
+    `anisotropy` at construction time. A naive `set_feature` (plain setattr)
+    would change `.anisotropy` cosmetically while the shape validator/inverter
+    kept silently using the OLD level.
+    """
+    full = props.PhysicalProperty(
+        "x",
+        reciprocal="y",
+        location=props.Location.CELL_CENTERS,
+        anisotropy=props.AnisotropyLevel.FULL,
+    )
+    restricted = full.set_feature(anisotropy=props.AnisotropyLevel.ISOTROPIC)
+    assert restricted.anisotropy is props.AnisotropyLevel.ISOTROPIC
+
+    class Restricted(_MeshHasModel):
+        x = restricted
+        y = props.PhysicalProperty(
+            "y",
+            reciprocal="x",
+            location=props.Location.CELL_CENTERS,
+            anisotropy=props.AnisotropyLevel.ISOTROPIC,
+        )
+
+        def __init__(self, mesh=None, x=None, y=None, **kwargs):
+            super().__init__(mesh=mesh, **kwargs)
+            self._init_recip_properties(x=x, y=y)
+
+    modeler = Restricted(mesh=small_2d_mesh)
+    n_cells = small_2d_mesh.n_cells
+    modeler.x = np.full(n_cells, 1.0)  # isotropic still accepted
+    with pytest.raises(ValueError):
+        modeler.x = np.ones((n_cells, 3))  # full-tensor must now be rejected
+
+    # `invert` must also have been rebuilt to the plain elementwise fallback,
+    # not the tensor-aware one inherited from the original FULL declaration.
+    modeler.y = 2.0
+    npt.assert_allclose(modeler.x, 0.5)
+
+
+def test_shapes_decorator_generic_override():
+    """The core `.shapes()` mechanism, with no `location` involved at all."""
+
+    class ActiveCellsLike(props.HasModel):
+        sigma = props.PhysicalProperty("sigma")
+
+        def __init__(self, active_subset=None, sigma=None, **kwargs):
+            self.active_subset = active_subset
+            super().__init__(**kwargs)
+            self._init_property(sigma=sigma)
+
+        @sigma.shapes
+        def sigma(self):
+            size = len(self.active_subset) if self.active_subset is not None else 5
+            return [(), (1,), (size,)]
+
+    modeler = ActiveCellsLike(active_subset=[0, 1, 2])
+    modeler.sigma = np.ones(3)
+    with pytest.raises(ValueError):
+        modeler.sigma = np.ones(5)
+
+
+def test_shapes_decorator_survives_setter_shallow_copy():
+    """`.setter()` must not silently drop a `.shapes()` override (or vice versa)."""
+
+    class Custom(props.HasModel):
+        sigma = props.PhysicalProperty("sigma")
+
+        def __init__(self, sigma=None, **kwargs):
+            super().__init__(**kwargs)
+            self._init_property(sigma=sigma)
+
+        @sigma.shapes
+        def sigma(self):
+            return [(3,)]
+
+        @sigma.setter
+        def sigma(self, value):
+            type(self).sigma._fset(self, value)
+
+    modeler = Custom()
+    modeler.sigma = np.ones(3)
+    with pytest.raises(ValueError):
+        modeler.sigma = np.ones(4)
+
+
 if __name__ == "__main__":
     unittest.main()

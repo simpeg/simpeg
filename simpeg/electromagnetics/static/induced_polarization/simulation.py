@@ -15,8 +15,14 @@ from ....props import _add_deprecated_physical_property_functions
 
 @_add_deprecated_physical_property_functions("eta")
 class BaseIPSimulation(BaseElectricalPDESimulation):
-    sigma = BaseElectricalPDESimulation.sigma.set_feature(invertible=False)
-    rho = BaseElectricalPDESimulation.rho.set_feature(invertible=False)
+    # `_prop_deriv` below builds `sp.diags(self.sigma)`/`sp.diags(self.rho)`,
+    # which requires a 1D (isotropic) array -- it isn't tensor-aware.
+    sigma = BaseElectricalPDESimulation.sigma.set_feature(
+        invertible=False, anisotropy=props.AnisotropyLevel.ISOTROPIC
+    )
+    rho = BaseElectricalPDESimulation.rho.set_feature(
+        invertible=False, anisotropy=props.AnisotropyLevel.ISOTROPIC
+    )
 
     eta = props.PhysicalProperty("Electrical Chargeability (V/V)")
 

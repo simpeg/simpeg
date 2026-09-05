@@ -9,12 +9,10 @@ import discretize.base
 from ..props import _add_deprecated_physical_property_functions
 from ..simulation import BaseSimulation
 from .. import props
-from .. import maps
 from scipy.constants import mu_0
 
 from ..utils import (
     validate_type,
-    validate_ndarray_with_shape,
     get_default_solver,
     get_logger,
     PerformanceWarning,
@@ -623,12 +621,14 @@ class BaseElectricalPDESimulation(BasePDESimulation):
     sigma = props.PhysicalProperty(
         "Electrical conductivity (S/m)",
         reciprocal="rho",
-        shape=[(), (1,), ("mesh.n_cells",)],
+        location=props.Location.CELL_CENTERS,
+        anisotropy=props.AnisotropyLevel.FULL,
     )
     rho = props.PhysicalProperty(
         "Electrical resistivity (Ohm m)",
         reciprocal="sigma",
-        shape=[(), (1,), ("mesh.n_cells",)],
+        location=props.Location.CELL_CENTERS,
+        anisotropy=props.AnisotropyLevel.FULL,
     )
 
     def __init__(self, mesh, sigma=None, rho=None, **kwargs):
@@ -637,24 +637,7 @@ class BaseElectricalPDESimulation(BasePDESimulation):
 
     @sigma.setter
     def sigma(self, value):
-        if value is not None:
-            prop = type(self).sigma
-            try:
-                value = validate_ndarray_with_shape(
-                    f"`{type(self).__name__}.sigma`",
-                    value,
-                    shape=[(), (1,), (self.mesh.n_cells,)],
-                    dtype=float,
-                )
-            except TypeError:
-                if isinstance(value, maps.IdentityMap):
-                    raise TypeError(
-                        f"Cannot assign a mapping directly to `{type(self).__name__}.sigma`. "
-                        f"Instead pass `sigma=mapping` to the constructor, or call "
-                        f"`{type(self).__name__}.parametrize(sigma=mapping)`."
-                    ) from None
-                raise
-            setattr(self, prop.private_name, value)
+        type(self).sigma._fset(self, value)
 
         for mat in self._clear_on_sigma_update:
             if hasattr(self, mat):
@@ -672,24 +655,7 @@ class BaseElectricalPDESimulation(BasePDESimulation):
 
     @rho.setter
     def rho(self, value):
-        if value is not None:
-            prop = type(self).rho
-            try:
-                value = validate_ndarray_with_shape(
-                    f"`{type(self).__name__}.rho`",
-                    value,
-                    shape=[(), (1,), (self.mesh.n_cells,)],
-                    dtype=float,
-                )
-            except TypeError:
-                if isinstance(value, maps.IdentityMap):
-                    raise TypeError(
-                        f"Cannot assign a mapping directly to `{type(self).__name__}.rho`. "
-                        f"Instead pass `rho=mapping` to the constructor, or call "
-                        f"`{type(self).__name__}.parametrize(rho=mapping)`."
-                    ) from None
-                raise
-            setattr(self, prop.private_name, value)
+        type(self).rho._fset(self, value)
 
         for mat in self._clear_on_rho_update:
             if hasattr(self, mat):
@@ -724,9 +690,16 @@ class BaseElectricalPDESimulation(BasePDESimulation):
 @with_property_mass_matrices("mui")
 class BaseMagneticPDESimulation(BasePDESimulation):
     mu = props.PhysicalProperty(
-        "Magnetic Permeability (H/m)", reciprocal="mui", default=mu_0
+        "Magnetic Permeability (H/m)",
+        reciprocal="mui",
+        default=mu_0,
+        location=props.Location.CELL_CENTERS,
     )
-    mui = props.PhysicalProperty("Inverse Magnetic Permeability (m/H)", reciprocal="mu")
+    mui = props.PhysicalProperty(
+        "Inverse Magnetic Permeability (m/H)",
+        reciprocal="mu",
+        location=props.Location.CELL_CENTERS,
+    )
 
     def __init__(self, mesh, mu=None, mui=None, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
@@ -734,15 +707,7 @@ class BaseMagneticPDESimulation(BasePDESimulation):
 
     @mu.setter
     def mu(self, value):
-        if value is not None:
-            prop = type(self).mu
-            value = validate_ndarray_with_shape(
-                f"`{type(self).__name__}.mu`",
-                value,
-                shape=[(), (1,), (self.mesh.n_cells,)],
-                dtype=float,
-            )
-            setattr(self, prop.private_name, value)
+        type(self).mu._fset(self, value)
 
         for mat in self._clear_on_mu_update:
             if hasattr(self, mat):
@@ -760,15 +725,7 @@ class BaseMagneticPDESimulation(BasePDESimulation):
 
     @mui.setter
     def mui(self, value):
-        if value is not None:
-            prop = type(self).mui
-            value = validate_ndarray_with_shape(
-                f"`{type(self).__name__}.mui`",
-                value,
-                shape=[(), (1,), (self.mesh.n_cells,)],
-                dtype=float,
-            )
-            setattr(self, prop.private_name, value)
+        type(self).mui._fset(self, value)
 
         for mat in self._clear_on_mui_update:
             if hasattr(self, mat):
