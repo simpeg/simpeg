@@ -113,6 +113,29 @@ def _reciprocal_output_is_full_tensor(prop, obj, recip_map):
     return len(model) == size * n_full
 
 
+def _shape_size(shape):
+    """Total element count implied by a single shape tuple, or `None` if any
+    dimension is `"*"` (unresolvable)."""
+    total = 1
+    for dim in shape:
+        if dim == "*":
+            return None
+        total *= dim
+    return total
+
+
+def _expected_output_sizes(prop, obj):
+    """The set of valid flattened output lengths for `prop` on `obj`, given its
+    declared `fshape`/`shape`. Returns an empty set if `prop` declares no
+    shape constraint at all, or if every declared shape contains a wildcard.
+    """
+    shape = prop.fshape(obj) if prop.fshape is not None else prop.shape
+    if shape is None:
+        return set()
+    shapes = [shape] if isinstance(shape, tuple) else shape
+    return {size for size in (_shape_size(s) for s in shapes) if size is not None}
+
+
 class PhysicalProperty:
 
     def __init__(
@@ -777,10 +800,46 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                     f"{type(self).__name__}.{attr} is not an invertible PhysicalProperty and cannot be parametrized"
                 )
 
-            # cleanup myself and my reciprocal
+            # cleanup myself and my reciprocal first, so the consistency
+            # checks below don't compare against an entry about to be replaced
             prop.__delete__(self)
             if recip := prop.get_reciprocal(self):
                 recip.__delete__(self)
+
+            # validate the mapping's output length against `attr`'s expected shape(s)
+            valid_sizes = _expected_output_sizes(prop, self)
+            output_size = parametrization.shape[0]
+            if (
+                valid_sizes
+                and isinstance(output_size, (int, np.integer))
+                and output_size not in valid_sizes
+            ):
+                raise ValueError(
+                    f"The mapping assigned to `{type(self).__name__}.{attr}` has "
+                    f"an output length of {output_size}, but `{attr}` expects a "
+                    f"length of one of {sorted(valid_sizes)}."
+                )
+
+            # validate the mapping's input length (nP) is consistent with any
+            # other already-parametrized property -- `model` is a single shared
+            # vector applied to every parametrization on this instance
+            input_size = parametrization.shape[1]
+            if isinstance(input_size, (int, np.integer)):
+                for other_attr, other_map in self.parametrizations.items():
+                    other_input = other_map.shape[1]
+                    if (
+                        isinstance(other_input, (int, np.integer))
+                        and other_input != input_size
+                    ):
+                        raise ValueError(
+                            f"Cannot parametrize `{type(self).__name__}.{attr}` "
+                            f"with a mapping expecting a model of length "
+                            f"{input_size}: `{other_attr}` is already "
+                            f"parametrized with a mapping expecting a model of "
+                            f"length {other_input}. All parametrizations on a "
+                            f"`{type(self).__name__}` instance must accept the "
+                            f"same model length."
+                        )
 
             self.parametrizations._fields[attr] = parametrization
 

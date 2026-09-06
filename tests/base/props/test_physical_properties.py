@@ -540,9 +540,63 @@ def test_reciprocal_deriv_falls_back_to_model_length_for_ambiguous_shape(
     modeler2._prop_deriv("sigma")
 
 
+def test_reciprocal_deriv_catches_combomap_resolved_full_tensor_shape(
+    small_2d_mesh,
+):
+    """A ComboMap chaining a wildcard-shaped map with a size-fixing map now
+    resolves a concrete shape (via ComboMap's shape propagation), so this
+    is caught by the primary shape check -- no need for the model-length
+    fallback at all.
+    """
+    n_cells = small_2d_mesh.n_cells
+    n_full = 3  # 2D full-tensor parameter count
+
+    fixed_map = maps.Projection(n_cells * n_full, np.arange(n_cells * n_full))
+    combo = maps.ComboMap([maps.ExpMap(), fixed_map])
+    assert combo.shape == (n_cells * n_full, n_cells * n_full)
+
+    modeler = CellCenteredFullAnisotropic(mesh=small_2d_mesh)
+    modeler.parametrize(rho=combo)
+    modeler.model = np.zeros(n_cells * n_full)
+    with pytest.raises(NotImplementedError, match="full-tensor anisotropic"):
+        modeler._prop_deriv("sigma")
+
+
 def test_location_and_shape_mutually_exclusive():
     with pytest.raises(ValueError):
         props.PhysicalProperty("x", shape=(), location=props.Location.CELL_CENTERS)
+
+
+def test_parametrize_validates_mapping_output_length(small_2d_mesh):
+    n_cells = small_2d_mesh.n_cells
+    modeler = CellCenteredIsotropic(mesh=small_2d_mesh)
+
+    with pytest.raises(ValueError, match="output length"):
+        modeler.parametrize(sigma=maps.IdentityMap(nP=n_cells + 1))
+
+    # a matching output length is accepted
+    modeler.parametrize(sigma=maps.IdentityMap(nP=n_cells))
+
+    # a wildcard-shaped mapping can't be checked, so it's accepted regardless
+    modeler2 = CellCenteredIsotropic(mesh=small_2d_mesh)
+    modeler2.parametrize(sigma=maps.ExpMap())
+
+
+def test_parametrize_validates_consistent_input_length():
+    modeler = MultipleInvertible()
+    modeler.parametrize(sigma=maps.IdentityMap(nP=5))
+
+    with pytest.raises(ValueError, match="model of length"):
+        modeler.parametrize(rho=maps.IdentityMap(nP=7))
+
+    # a consistent input length across independently-parametrized properties
+    # is accepted
+    modeler2 = MultipleInvertible()
+    modeler2.parametrize(sigma=maps.IdentityMap(nP=5))
+    modeler2.parametrize(rho=maps.IdentityMap(nP=5))
+
+    # re-parametrizing the SAME attribute must not conflict with itself
+    modeler2.parametrize(sigma=maps.IdentityMap(nP=5))
 
 
 def test_anisotropy_requires_location():
