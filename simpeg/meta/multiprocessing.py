@@ -246,6 +246,59 @@ class _SimulationProcess(Process):
         self.result_queue.join_thread()
 
 
+def _spawn_chunk_processes(n_sim, n_processes, build_chunk):
+    """Split `n_sim` items into contiguous chunks, one worker process each.
+
+    Shared by every `Multiprocessing*Simulation.__init__`: they differ only
+    in how a chunk's combined simulation is built, which is supplied here
+    via `build_chunk`.
+
+    Parameters
+    ----------
+    n_sim : int
+        Total number of individual simulations to distribute.
+    n_processes : int
+        Number of worker processes to aim for. Chunks are sized as evenly
+        as possible; if `n_processes > n_sim` the extra, zero-sized chunks
+        are simply skipped, so fewer processes than requested may result.
+    build_chunk : callable
+        Called with `(i_start, i_end)` for each contiguous chunk and must
+        return the combined simulation to send to that chunk's process.
+
+    Returns
+    -------
+    processes : list of _SimulationProcess
+    data_offsets : numpy.ndarray
+    """
+    chunk_sizes = min(n_processes, n_sim) * [n_sim // n_processes]
+    for i in range(n_sim % n_processes):
+        chunk_sizes[i] += 1
+
+    i_start = 0
+    chunk_nd = []
+    processes = []
+    try:
+        for chunk in chunk_sizes:
+            if chunk == 0:
+                continue
+            i_end = i_start + chunk
+            sim_chunk = build_chunk(i_start, i_end)
+            chunk_nd.append(sim_chunk.survey.nD)
+            p = _SimulationProcess()
+            processes.append(p)
+            p.start()
+            p.set_sim(sim_chunk)
+            i_start = i_end
+    except Exception:
+        for p in processes:
+            if p.is_alive():
+                p.terminate()
+        raise
+
+    data_offsets = np.cumsum(np.r_[0, chunk_nd])
+    return processes, data_offsets
+
+
 class MultiprocessingMetaSimulation(MetaSimulation):
     """Multiprocessing version of simulation of simulations.
 
@@ -304,38 +357,14 @@ class MultiprocessingMetaSimulation(MetaSimulation):
         if n_processes is None:
             n_processes = cpu_count()
 
-        # split simulation,mappings up into chunks
-        # (Which are currently defined using MetaSimulations)
-        n_sim = len(simulations)
-        chunk_sizes = min(n_processes, n_sim) * [n_sim // n_processes]
-        for i in range(n_sim % n_processes):
-            chunk_sizes[i] += 1
+        def build_chunk(i_start, i_end):
+            return self._chunk_sim_class(
+                self.simulations[i_start:i_end], self.mappings[i_start:i_end]
+            )
 
-        i_start = 0
-        chunk_nd = []
-        processes = []
-        try:
-            for chunk in chunk_sizes:
-                if chunk == 0:
-                    continue
-                i_end = i_start + chunk
-                sim_chunk = self._chunk_sim_class(
-                    self.simulations[i_start:i_end], self.mappings[i_start:i_end]
-                )
-                chunk_nd.append(sim_chunk.survey.nD)
-                p = _SimulationProcess()
-                processes.append(p)
-                p.start()
-                p.set_sim(sim_chunk)
-                i_start = i_end
-        except Exception:
-            for p in processes:
-                if p.is_alive():
-                    p.terminate()
-            raise
-
-        self._sim_processes = processes
-        self._data_offsets = np.cumsum(np.r_[0, chunk_nd])
+        self._sim_processes, self._data_offsets = _spawn_chunk_processes(
+            len(simulations), n_processes, build_chunk
+        )
         atexit.register(self._atexit_cleanup)
 
     def _atexit_cleanup(self):
@@ -554,35 +583,10 @@ class MultiprocessingRepeatedSimulation(
         if n_processes is None:
             n_processes = cpu_count()
 
-        # split mappings up into chunks
-        n_sim = len(mappings)
-        chunk_sizes = min(n_processes, n_sim) * [n_sim // n_processes]
-        for i in range(n_sim % n_processes):
-            chunk_sizes[i] += 1
+        def build_chunk(i_start, i_end):
+            return RepeatedSimulation(self.simulation, self.mappings[i_start:i_end])
 
-        processes = []
-        i_start = 0
-        chunk_nd = []
-        try:
-            for chunk in chunk_sizes:
-                if chunk == 0:
-                    continue
-                i_end = i_start + chunk
-                sim_chunk = RepeatedSimulation(
-                    self.simulation, self.mappings[i_start:i_end]
-                )
-                chunk_nd.append(sim_chunk.survey.nD)
-                p = _SimulationProcess()
-                processes.append(p)
-                p.start()
-                p.set_sim(sim_chunk)
-                i_start = i_end
-        except Exception:
-            for p in processes:
-                if p.is_alive():
-                    p.terminate()
-            raise
-
-        self._data_offsets = np.cumsum(np.r_[0, chunk_nd])
-        self._sim_processes = processes
+        self._sim_processes, self._data_offsets = _spawn_chunk_processes(
+            len(mappings), n_processes, build_chunk
+        )
         atexit.register(self._atexit_cleanup)
