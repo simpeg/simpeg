@@ -70,9 +70,6 @@ class _SimulationProcess(Process):
         # everything here is local to the process
         # a place to cache items locally
         _cached_items = {}
-        # errors from fire-and-forget ops (no matching client-side `get()`),
-        # deferred until the next op that actually touches that sim_key.
-        _pending_errors = {}
 
         # The queues are shared between the head process and the worker processes
         # We use them to communicate between the two.
@@ -99,21 +96,11 @@ class _SimulationProcess(Process):
                     _cached_items.pop(key, None)
                 elif op == _Op.STORE_MODEL:
                     sim_key, m = args
-                    if sim_key in _pending_errors:
-                        raise _pending_errors.pop(sim_key)
                     sim = _cached_items[sim_key]
-                    try:
-                        sim.model = m
-                    except Exception as err:
-                        # No client code reads a result for this op, so we
-                        # can't put this on r_queue without desyncing the
-                        # protocol. Stash it and raise it on the next op
-                        # that touches this sim, which does have a reader.
-                        _pending_errors[sim_key] = err
+                    sim.model = m
+                    r_queue.put(None)
                 elif op == _Op.CREATE_FIELDS:
                     (sim_key,) = args
-                    if sim_key in _pending_errors:
-                        raise _pending_errors.pop(sim_key)
                     sim = _cached_items[sim_key]
                     f_key = uuid.uuid4().hex
                     # Put the key immediately so the client isn't blocked
@@ -130,8 +117,6 @@ class _SimulationProcess(Process):
                     _cached_items[f_key] = fields
                 elif op == _Op.DPRED:
                     sim_key, f_key = args
-                    if sim_key in _pending_errors:
-                        raise _pending_errors.pop(sim_key)
                     sim = _cached_items[sim_key]
                     fields = _cached_items[f_key]
                     if isinstance(fields, Exception):
@@ -140,8 +125,6 @@ class _SimulationProcess(Process):
                     r_queue.put(d_pred)
                 elif op == _Op.JVEC:
                     sim_key, v, f_key = args
-                    if sim_key in _pending_errors:
-                        raise _pending_errors.pop(sim_key)
                     sim = _cached_items[sim_key]
                     fields = _cached_items[f_key]
                     if isinstance(fields, Exception):
@@ -150,8 +133,6 @@ class _SimulationProcess(Process):
                     r_queue.put(jvec)
                 elif op == _Op.JTVEC:
                     sim_key, v, f_key = args
-                    if sim_key in _pending_errors:
-                        raise _pending_errors.pop(sim_key)
                     sim = _cached_items[sim_key]
                     fields = _cached_items[f_key]
                     if isinstance(fields, Exception):
@@ -160,8 +141,6 @@ class _SimulationProcess(Process):
                     r_queue.put(jtvec)
                 elif op == _Op.JTJ_DIAG:
                     sim_key, w, f_key = args
-                    if sim_key in _pending_errors:
-                        raise _pending_errors.pop(sim_key)
                     sim = _cached_items[sim_key]
                     fields = _cached_items[f_key]
                     if isinstance(fields, Exception):
@@ -185,10 +164,14 @@ class _SimulationProcess(Process):
         self._my_sim = future
         return future
 
-    def store_model(self, m):
+    def start_store_model(self, m):
         self._check_closed()
         sim = self._my_sim
         self.task_queue.put((_Op.STORE_MODEL, (sim.item_id, m)))
+
+    def store_model(self, m):
+        self.start_store_model(m)
+        self._get_result()
 
     def get_fields(self):
         self._check_closed()
@@ -371,8 +354,14 @@ class MultiprocessingMetaSimulation(MetaSimulation):
         updated = HasModel.model.fset(self, value)
         # Only send the model to the internal simulations if it was updated.
         if updated:
+            # Dispatch to every process before waiting on any of them, so
+            # the workers validate the model in parallel; then check each
+            # result immediately so a failure surfaces from this assignment
+            # instead of being deferred to a later, unrelated op.
             for p in self._sim_processes:
-                p.store_model(self._model)
+                p.start_store_model(self._model)
+            for p in self._sim_processes:
+                p.result()
 
     def fields(self, m):
         """Create fields for every simulation.

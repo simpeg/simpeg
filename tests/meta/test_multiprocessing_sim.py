@@ -301,6 +301,122 @@ def test_worker_error_propagation():
         parallel_sim.join()
 
 
+class _FlakyModelSimulation:
+    """Minimal test double (not a real BaseSimulation) whose `model`
+    setter fails exactly once. Used to check that a failure storing the
+    model on a worker process is raised immediately by `store_model`,
+    instead of being deferred until a later, unrelated op touches that
+    worker.
+    """
+
+    _set_count = 0
+
+    def __init__(self):
+        self._model = None
+
+    @property
+    def model(self):
+        return self._model
+
+    @model.setter
+    def model(self, value):
+        self._set_count += 1
+        if self._set_count == 1:
+            raise ValueError("synthetic model failure")
+        self._model = value
+
+    def fields(self, m):
+        return None
+
+    def dpred(self, m, f):
+        return np.zeros(1)
+
+
+def test_store_model_error_propagation():
+    # Regression test: a failure while storing the model on a worker
+    # process must be raised immediately by `store_model` itself, not
+    # deferred until a later op (e.g. `get_fields`/`dpred`) happens to
+    # touch that worker.
+    p = _SimulationProcess()
+    p.start()
+    try:
+        p.set_sim(_FlakyModelSimulation())
+        with pytest.raises(ValueError, match="synthetic model failure"):
+            p.store_model(np.zeros(1))
+
+        # The same worker just failed a request; a later, unrelated
+        # request must still succeed cleanly, proving the request/
+        # response queue wasn't left desynced by the earlier failure.
+        p.store_model(np.zeros(1))
+        fields_future = p.get_fields()
+        p.start_dpred(fields_future)
+        d = p.result()
+        np.testing.assert_allclose(d, np.zeros(1))
+    finally:
+        p.join()
+
+
+class _FlakyModelDCSimulation(dc.Simulation3DNodal):
+    """A test double whose `model` setter fails exactly once.
+
+    Used to exercise `MultiprocessingMetaSimulation`'s model setter:
+    assigning `.model` on the meta-simulation must raise immediately
+    when a worker fails to store it, rather than deferring the error to
+    the next unrelated call (e.g. `dpred`).
+    """
+
+    _model_set_count = 0
+
+    @dc.Simulation3DNodal.model.setter
+    def model(self, value):
+        if value is not None:
+            self._model_set_count += 1
+            if self._model_set_count == 1:
+                raise ValueError("synthetic model failure")
+        dc.Simulation3DNodal.model.fset(self, value)
+
+
+def test_model_assignment_error_propagation():
+    # Regression test: a failure storing the model on a worker process
+    # must be raised immediately by the `.model = ...` assignment that
+    # triggered it, not deferred until a later, unrelated call.
+    mesh = TensorMesh([8, 8, 8], origin="CCN")
+    rx_locs = np.mgrid[-0.25:0.25:3j, -0.25:0.25:3j, 0:1:1j].reshape(3, -1).T
+    rxs = dc.receivers.Pole(rx_locs)
+    source_locs = np.mgrid[-0.5:0.5:4j, 0:1:1j, 0:1:1j].reshape(3, -1).T
+    src_list = [dc.sources.Pole([rxs], location=loc) for loc in source_locs]
+    survey = dc.Survey(src_list)
+
+    flaky_sim = _FlakyModelDCSimulation(
+        mesh, survey=survey, sigmaMap=maps.IdentityMap()
+    )
+    reference_sim = dc.Simulation3DNodal(
+        mesh, survey=survey, sigmaMap=maps.IdentityMap()
+    )
+
+    m_test = np.arange(mesh.n_cells) / mesh.n_cells + 0.1
+
+    parallel_sim = MultiprocessingMetaSimulation(
+        [flaky_sim], [maps.IdentityMap()], n_processes=1
+    )
+    serial_sim = MetaSimulation([reference_sim], [maps.IdentityMap()])
+
+    try:
+        with pytest.raises(ValueError, match="synthetic model failure"):
+            parallel_sim.model = m_test
+
+        # A fresh assignment (of a genuinely different model, so it isn't
+        # skipped as a no-op update) must succeed, and later calls must
+        # match the serial reference, proving no stray item was left
+        # behind in the worker's result queue by the earlier failure.
+        m_retry = m_test * 2
+        d_mult = parallel_sim.dpred(m_retry)
+        d_full = serial_sim.dpred(m_retry)
+        np.testing.assert_allclose(d_full, d_mult, rtol=1e-06)
+    finally:
+        parallel_sim.join()
+
+
 class _BigResultSimulation:
     """Minimal test double (not a real BaseSimulation): `fields()` is a
     no-op and `dpred()` returns a large array. Used to check that a result
