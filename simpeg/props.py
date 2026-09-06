@@ -1001,6 +1001,33 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                     f"'{type(self).__name__}.model' had a length of {len(value)} but expected a different "
                     f"length for mappings : \n    " + "\n    ".join(errors)
                 )
+
+            # For mappings whose output shape couldn't be resolved statically
+            # (and so weren't checked against the property's expected shape at
+            # `parametrize()` time, see `_expected_output_sizes`), assume the
+            # output length matches the model's length: a map with no declared
+            # shape has no way to signal a size change, so it's effectively
+            # elementwise/size-preserving -- no need to evaluate the mapping
+            # just to check this.
+            errors = []
+            for name, mapping in parameters.items():
+                if mapping.shape[0] != "*":
+                    continue
+                prop = getattr(type(self), name)
+                valid_sizes = _expected_output_sizes(prop, self)
+                if valid_sizes and len(value) not in valid_sizes:
+                    errors.append(
+                        f"The parametrization, {mapping}, for '{type(self).__name__}.{name}' "
+                        f"has an unresolved output shape; the model's length ({len(value)}) "
+                        f"is not one of `{name}`'s expected sizes: {sorted(valid_sizes)}"
+                    )
+            if len(errors) > 0:
+                raise ValueError(
+                    f"'{type(self).__name__}.model' had a length of {len(value)} but is not "
+                    f"valid for the following parametrizations with unresolved output shapes"
+                    f":\n    " + "\n    ".join(errors)
+                )
+
             previous = getattr(self, "_model", None)
             try:
                 for modeler_name in self._nested_modelers:

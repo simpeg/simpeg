@@ -599,6 +599,25 @@ def test_parametrize_validates_consistent_input_length():
     modeler2.parametrize(sigma=maps.IdentityMap(nP=5))
 
 
+def test_model_validates_unresolved_shape_against_model_length(small_2d_mesh):
+    """A wildcard-shaped mapping's output shape can't be checked at
+    `parametrize()` time, but once a concrete model is assigned, its length
+    is used as a size-preserving proxy (without evaluating the mapping) and
+    checked against the property's expected sizes.
+    """
+    n_cells = small_2d_mesh.n_cells
+
+    modeler = CellCenteredFullAnisotropic(mesh=small_2d_mesh)
+    modeler.parametrize(rho=maps.ExpMap())
+    with pytest.raises(ValueError, match="unresolved output shape"):
+        modeler.model = np.zeros(n_cells + 2)
+
+    # a length matching one of rho's expected sizes (here, full-tensor) is accepted
+    modeler2 = CellCenteredFullAnisotropic(mesh=small_2d_mesh)
+    modeler2.parametrize(rho=maps.ExpMap())
+    modeler2.model = np.zeros(n_cells * 3)
+
+
 def test_anisotropy_requires_location():
     with pytest.raises(ValueError):
         props.PhysicalProperty("x", anisotropy=props.AnisotropyLevel.FULL)
