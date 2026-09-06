@@ -108,6 +108,103 @@ def test_IdentityMap_init():
         maps.IdentityMap(nP="x")
 
 
+def test_combomap_shape_propagation():
+    # A map created without a fixed nP has shape ('*', '*') and should
+    # pick up a concrete dimension from a neighboring mapping.
+    free_map = maps.ExpMap()
+    fixed_map = maps.Projection(1, np.zeros(5, dtype=int))
+
+    combo = maps.ComboMap([free_map, fixed_map])
+    assert combo.shape == (5, 1)
+    assert combo.nP == 1
+
+    # propagation should cascade through several free maps chained together
+    combo = maps.ComboMap([maps.ExpMap(), maps.ExpMap(), fixed_map])
+    assert combo.shape == (5, 1)
+
+    # a chain made entirely of free maps stays unresolved
+    combo = maps.ComboMap([maps.ExpMap(), maps.ExpMap()])
+    assert combo.shape == ("*", "*")
+    assert combo.nP == "*"
+
+    # nesting an already-resolved ComboMap inside another should not lose
+    # the resolved dimension
+    inner = maps.ComboMap([maps.ExpMap(), fixed_map])
+    outer = maps.ComboMap([maps.ExpMap(), inner])
+    assert outer.shape == (5, 1)
+
+    # genuine mismatches between fixed dimensions must still raise, even
+    # when a free map sits between them
+    with pytest.raises(ValueError):
+        maps.ComboMap(
+            [maps.Projection(3, np.zeros(2, dtype=int)), maps.ExpMap(), fixed_map]
+        )
+
+
+def test_combomap_shape_is_cached():
+    fixed_map = maps.Projection(1, np.zeros(5, dtype=int))
+    combo = maps.ComboMap([maps.ExpMap(), fixed_map])
+    assert combo.shape == (5, 1)
+
+    # reassigning .maps must recompute (and re-cache) the shape
+    combo.maps = [maps.IdentityMap(nP=3)]
+    assert combo.shape == (3, 3)
+
+    # .maps is a tuple, so it can't be mutated in place in a way that
+    # would make the cached shape stale; reassignment is required instead
+    assert isinstance(combo.maps, tuple)
+    with pytest.raises(AttributeError):
+        combo.maps.append(maps.ExpMap())
+
+    # mutating the original list passed in does not affect the stored maps
+    original = [maps.ExpMap(), fixed_map]
+    combo = maps.ComboMap(original)
+    original.append(maps.IdentityMap(nP=99))
+    assert combo.shape == (5, 1)
+    assert len(combo.maps) == 2
+
+
+def test_combomap_maps_validation():
+    with pytest.raises(ValueError):
+        maps.ComboMap([])
+
+    with pytest.raises(TypeError):
+        maps.ComboMap([maps.ExpMap(), "not a map"])
+
+    with pytest.raises(ValueError):
+        maps.ComboMap([maps.IdentityMap(nP=3), maps.IdentityMap(nP=5)])
+
+    # a single mapping (not wrapped in a list) is also accepted
+    combo = maps.ComboMap(maps.ExpMap(nP=4))
+    assert combo.shape == (4, 4)
+
+
+def test_summap_shape_propagation():
+    summap = maps.SumMap([maps.ExpMap(), maps.IdentityMap(nP=7)])
+    assert summap.shape == (7, 7)
+    assert summap.nP == 7
+
+    summap = maps.SumMap([maps.ExpMap(), maps.ExpMap()])
+    assert summap.shape == ("*", "*")
+    assert summap.nP == "*"
+
+    # .maps is an immutable tuple, decoupled from the list passed in
+    assert isinstance(summap.maps, tuple)
+    original = [maps.ExpMap(), maps.IdentityMap(nP=7)]
+    summap = maps.SumMap(original)
+    original.append(maps.IdentityMap(nP=99))
+    assert summap.shape == (7, 7)
+    assert len(summap.maps) == 2
+
+
+def test_summap_maps_validation():
+    with pytest.raises(ValueError):
+        maps.SumMap([])
+
+    with pytest.raises(ValueError):
+        maps.SumMap([maps.IdentityMap(nP=3), maps.IdentityMap(nP=5)])
+
+
 class MapTests(unittest.TestCase):
     def setUp(self):
         maps2test2D = [M for M in dir(maps) if M not in MAPS_TO_EXCLUDE_2D]
