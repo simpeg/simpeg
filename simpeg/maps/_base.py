@@ -465,13 +465,15 @@ class ComboMap(IdentityMap):
 
     @property
     def maps(self):
-        r"""The list of mappings being combined.
+        r"""The mappings being combined.
 
         Returns
         -------
-        list of simpeg.maps.IdentityMap
-            The list of mappings, ordered from last applied to first
-            applied.
+        tuple of simpeg.maps.IdentityMap
+            The mappings, ordered from last applied to first applied. This
+            is a ``tuple`` (rather than a ``list``) so it cannot be mutated
+            in a way that would make the cached :py:attr:`shape` stale;
+            assign a new value to ``maps`` instead.
         """
         return self._maps
 
@@ -502,8 +504,8 @@ class ComboMap(IdentityMap):
 
             resolved.append(m)
 
-        self._maps = resolved
-        self._shape = _resolve_combo_shape(resolved)
+        self._maps = tuple(resolved)
+        self._shape = _resolve_combo_shape(self._maps)
 
     @property
     def shape(self):
@@ -830,18 +832,21 @@ class SumMap(ComboMap):
 
     @property
     def maps(self):
-        r"""The list of mappings being summed.
+        r"""The mappings being summed.
 
         Returns
         -------
-        list of simpeg.maps.IdentityMap
-            The list of mappings being summed together.
+        tuple of simpeg.maps.IdentityMap
+            The mappings being summed together. This is a ``tuple``
+            (rather than a ``list``) so it cannot be mutated in a way
+            that would make the cached :py:attr:`shape` stale; assign a
+            new value to ``maps`` instead.
         """
         return self._maps
 
     @maps.setter
     def maps(self, value):
-        value = validate_list_of_types("maps", value, IdentityMap, min_n=1)
+        value = tuple(validate_list_of_types("maps", value, IdentityMap, min_n=1))
 
         shape0, shape1 = value[0].shape
         for ii, m in enumerate(value):
