@@ -152,7 +152,7 @@ def DCAnalyticSphere(
     halfspace=False,
 ):
     """
-    Parameters:
+    Parameters
 
     :param array txloc: A (+) current electrode location (x, y, z)
     :param array xc: x center of depressed sphere
