@@ -90,8 +90,7 @@ You should be able to import SimPEG by opening a terminal or a Jupyter Notebook 
 
     import simpeg
 
-
-You can also check the installed version by accesing ``simpeg.__version__``:
+You can check the installed version by accesing ``simpeg.__version__``:
 
 .. code:: python
 
