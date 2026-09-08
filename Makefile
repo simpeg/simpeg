@@ -1,7 +1,8 @@
 STYLE_CHECK_FILES = simpeg examples tutorials tests
 GITHUB_ACTIONS=.github/workflows
+TEST_TARGET=tests
 
-.PHONY: help docs clean check black flake flake-all check-actions
+.PHONY: help docs clean check black flake flake-all check-actions test
 
 help:
 	@echo "Commands:"
@@ -11,6 +12,7 @@ help:
 	@echo "  flake         checks code style with flake8"
 	@echo "  flake-all     checks code style with flake8 (full set of rules)"
 	@echo "  check-actions lint GitHub Actions workflows (with zizmor)"
+	@echo "  test          run all tests with pytest"
 	@echo ""
 
 docs:
@@ -36,3 +38,6 @@ flake-all:
 
 check-actions:
 	zizmor ${GITHUB_ACTIONS}
+
+test:
+	pytest -v --cov --cov-config="pyproject.toml" -W "ignore::DeprecationWarning" "${TEST_TARGET}"
