@@ -400,8 +400,8 @@ class TestIO_DCIP3D(unittest.TestCase):
             pp_sources.append(dc.sources.Pole(pp_receivers, a_loc))
             dpdp_sources.append(dc.sources.Dipole(dpdp_receivers, a_loc, b_loc))
 
-        self.pp_survey = dc.survey.Survey(pp_sources, survey_type="pole-pole")
-        self.dpdp_survey = dc.survey.Survey(dpdp_sources, survey_type="dipole-dipole")
+        self.pp_survey = dc.survey.Survey(pp_sources)
+        self.dpdp_survey = dc.survey.Survey(dpdp_sources)
 
         # Define data and uncertainties. In this case nD = 6
         n_data = len(xa) * len(xm)

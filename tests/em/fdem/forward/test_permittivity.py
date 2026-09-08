@@ -6,7 +6,6 @@ from scipy.constants import epsilon_0
 import geoana
 import discretize
 from simpeg.electromagnetics import frequency_domain as fdem
-from pymatsolver import Pardiso
 
 
 # set up the mesh
@@ -83,7 +82,6 @@ def print_comparison(
             forward_only=True,
             sigma=conductivity,
             permittivity=epsilon,
-            solver=Pardiso,
         ),
         lambda survey, epsilon: fdem.Simulation3DMagneticFluxDensity(
             mesh,
@@ -91,7 +89,6 @@ def print_comparison(
             forward_only=True,
             sigma=conductivity,
             permittivity=epsilon,
-            solver=Pardiso,
         ),
     ],
 )
@@ -138,7 +135,6 @@ def test_mag_dipole(epsilon, frequency, simulation):
             forward_only=True,
             sigma=conductivity,
             permittivity=epsilon,
-            solver=Pardiso,
         ),
         lambda survey, epsilon: fdem.Simulation3DMagneticField(
             mesh,
@@ -146,7 +142,6 @@ def test_mag_dipole(epsilon, frequency, simulation):
             forward_only=True,
             sigma=conductivity,
             permittivity=epsilon,
-            solver=Pardiso,
         ),
     ],
 )
@@ -223,7 +218,6 @@ def test_cross_check_e_dipole(epsilon_r, frequency):
         forward_only=True,
         sigma=sigma,
         permittivity=rel_permittivity * epsilon_0,
-        solver=Pardiso,
     )
 
     # H-formulation
@@ -240,7 +234,6 @@ def test_cross_check_e_dipole(epsilon_r, frequency):
         forward_only=True,
         sigma=sigma,
         permittivity=rel_permittivity * epsilon_0,
-        solver=Pardiso,
     )
 
     # compute fields
@@ -315,7 +308,6 @@ def test_cross_check_b_dipole(epsilon_r, frequency):
         forward_only=True,
         sigma=sigma,
         permittivity=rel_permittivity * epsilon_0,
-        solver=Pardiso,
     )
 
     # E-formulation
@@ -330,7 +322,6 @@ def test_cross_check_b_dipole(epsilon_r, frequency):
         forward_only=True,
         sigma=sigma,
         permittivity=rel_permittivity * epsilon_0,
-        solver=Pardiso,
     )
 
     # compute fields

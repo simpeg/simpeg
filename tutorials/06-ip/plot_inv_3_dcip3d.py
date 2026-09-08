@@ -63,11 +63,6 @@ except ImportError:
     has_plotly = False
     pass
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import SolverLU as Solver
-
 mpl.rcParams.update({"font.size": 16})
 
 # sphinx_gallery_thumbnail_number = 7
@@ -323,7 +318,7 @@ starting_conductivity_model = background_conductivity * np.ones(nC)
 #
 
 dc_simulation = dc.Simulation3DNodal(
-    mesh, survey=dc_survey, sigmaMap=conductivity_map, solver=Solver, storeJ=True
+    mesh, survey=dc_survey, sigmaMap=conductivity_map, storeJ=True
 )
 
 #################################################################
@@ -357,7 +352,9 @@ dc_regularization.reference_model_in_smooth = (
 )
 
 # Define how the optimization problem is solved.
-dc_optimization = optimization.InexactGaussNewton(maxIter=15, maxIterCG=30, tolCG=1e-2)
+dc_optimization = optimization.InexactGaussNewton(
+    maxIter=15, cg_maxiter=30, cg_rtol=1e-2
+)
 
 # Here we define the inverse problem that is to be solved
 dc_inverse_problem = inverse_problem.BaseInvProblem(
@@ -591,7 +588,6 @@ ip_simulation = ip.Simulation3DNodal(
     survey=ip_survey,
     etaMap=chargeability_map,
     sigma=conductivity_map * recovered_conductivity_model,
-    solver=Solver,
     storeJ=True,
 )
 
@@ -618,7 +614,7 @@ ip_regularization = regularization.WeightedLeastSquares(
 
 # Define how the optimization problem is solved.
 ip_optimization = optimization.ProjectedGNCG(
-    maxIter=15, lower=0.0, upper=10, maxIterCG=30, tolCG=1e-2
+    maxIter=15, lower=0.0, upper=10, cg_maxiter=30, cg_rtol=1e-3
 )
 
 # Here we define the inverse problem that is to be solved

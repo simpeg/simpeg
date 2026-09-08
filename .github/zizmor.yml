@@ -1,0 +1,17 @@
+# Zizmor configuration
+# --------------------
+#
+# This file configures zizmor. This is not a workflow that gets run in GitHub
+# Actions.
+#
+# References: https://woodruffw.github.io/zizmor/configuration
+
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        # Mimic default behaviour: official actions can get pinned by tag.
+        actions/*: ref-pin
+        # Allow to use tags to pin reviewdog actions.
+        reviewdog/action-black: ref-pin
+        reviewdog/action-flake8: ref-pin

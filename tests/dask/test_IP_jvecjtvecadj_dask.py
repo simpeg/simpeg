@@ -73,8 +73,12 @@ class IPProblemTests2DN(unittest.TestCase):
         # Find cells that lie below surface topography
         ind_active = ds.utils.active_from_xyz(mesh, topo_2d)
         # Shift electrodes to the surface of discretized topography
-        dc_data.survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
-        ip_data.survey.drape_electrodes_on_topography(mesh, ind_active, option="top")
+        dc_data.survey.drape_electrodes_on_topography(
+            mesh, ind_active, option="top", shift_horizontal=False
+        )
+        ip_data.survey.drape_electrodes_on_topography(
+            mesh, ind_active, option="top", shift_horizontal=False
+        )
 
         # Define conductivity model in S/m (or resistivity model in Ohm m)
         air_conductivity = 1e-8
@@ -97,7 +101,7 @@ class IPProblemTests2DN(unittest.TestCase):
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=5, maxIter=1, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=5
+            maxIterLS=5, maxIter=1, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=5
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -117,6 +121,7 @@ class IPProblemTests2DN(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=66346,
         )
         self.assertTrue(passed)
 
@@ -133,7 +138,11 @@ class IPProblemTests2DN(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -162,12 +171,12 @@ class IPProblemTestsCC(unittest.TestCase):
             mesh=mesh, survey=survey, sigma=sigma, etaMap=maps.IdentityMap(mesh)
         )
         mSynth = np.ones(mesh.nC) * 0.1
-        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -187,6 +196,7 @@ class IPProblemTestsCC(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -203,7 +213,11 @@ class IPProblemTestsCC(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -232,12 +246,12 @@ class IPProblemTestsN(unittest.TestCase):
             mesh=mesh, survey=survey, sigma=sigma, etaMap=maps.IdentityMap(mesh)
         )
         mSynth = np.ones(mesh.nC) * 0.1
-        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -256,6 +270,7 @@ class IPProblemTestsN(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -272,7 +287,11 @@ class IPProblemTestsN(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -305,12 +324,12 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
             storeJ=True,
         )
         mSynth = np.ones(mesh.nC) * 0.1
-        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -329,6 +348,7 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -345,7 +365,11 @@ class IPProblemTestsCC_storeJ(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -385,12 +409,12 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
             storeJ=True,
         )
         mSynth = np.ones(mesh.nC) * 0.1
-        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(data=dobs, simulation=simulation)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -409,6 +433,7 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 
@@ -425,7 +450,11 @@ class IPProblemTestsN_storeJ(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=41,
         )
         self.assertTrue(passed)
 

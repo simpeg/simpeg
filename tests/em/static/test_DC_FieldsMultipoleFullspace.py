@@ -5,11 +5,6 @@ from simpeg import utils
 import numpy as np
 from simpeg.electromagnetics import resistivity as dc
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import SolverLU as Solver
-
 from geoana.em import fdem
 from scipy.constants import mu_0, epsilon_0
 
@@ -106,14 +101,14 @@ class DC_CC_MultipoleFullspaceTests(unittest.TestCase):
         ROI_large_TSE = np.array([75, -75, 75])
         ROI_largeInds = utils.model_builder.get_indices_block(
             ROI_large_BNW, ROI_large_TSE, faceGrid
-        )[0]
+        )
         # print(ROI_largeInds.shape)
 
         ROI_small_BNW = np.array([-4, 4, -4])
         ROI_small_TSE = np.array([4, -4, 4])
         ROI_smallInds = utils.model_builder.get_indices_block(
             ROI_small_BNW, ROI_small_TSE, faceGrid
-        )[0]
+        )
         # print(ROI_smallInds.shape)
 
         ROIfaceInds = np.setdiff1d(ROI_largeInds, ROI_smallInds)
@@ -131,7 +126,6 @@ class DC_CC_MultipoleFullspaceTests(unittest.TestCase):
         simulation = dc.Simulation3DCellCentered(
             self.mesh, survey=self.survey, sigma=self.sigma, bc_type="Dirichlet"
         )
-        simulation.solver = Solver
 
         f = simulation.fields()
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
@@ -157,7 +151,6 @@ class DC_CC_MultipoleFullspaceTests(unittest.TestCase):
         simulation = dc.simulation.Simulation3DCellCentered(
             self.mesh, survey=self.survey, sigma=self.sigma, bc_type="Mixed"
         )
-        simulation.solver = Solver
 
         f = simulation.fields()
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
@@ -175,7 +168,6 @@ class DC_CC_MultipoleFullspaceTests(unittest.TestCase):
         simulation = dc.Simulation3DCellCentered(
             self.mesh, survey=self.survey, sigma=self.sigma, bc_type="Neumann"
         )
-        simulation.solver = Solver
 
         f = simulation.fields()
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])
@@ -280,14 +272,14 @@ class DC_N_MultipoleFullspaceTests(unittest.TestCase):
         ROI_large_TSE = np.array([75, -75, 75])
         ROI_largeInds = utils.model_builder.get_indices_block(
             ROI_large_BNW, ROI_large_TSE, edgeGrid
-        )[0]
+        )
         # print(ROI_largeInds.shape)
 
         ROI_small_BNW = np.array([-4, 4, -4])
         ROI_small_TSE = np.array([4, -4, 4])
         ROI_smallInds = utils.model_builder.get_indices_block(
             ROI_small_BNW, ROI_small_TSE, edgeGrid
-        )[0]
+        )
         # print(ROI_smallInds.shape)
 
         ROIedgeInds = np.setdiff1d(ROI_largeInds, ROI_smallInds)
@@ -305,7 +297,6 @@ class DC_N_MultipoleFullspaceTests(unittest.TestCase):
         simulation = dc.simulation.Simulation3DNodal(
             self.mesh, survey=self.survey, sigma=self.sigma
         )
-        simulation.solver = Solver
 
         f = simulation.fields()
         eNumeric = utils.mkvc(f[self.survey.source_list, "e"])

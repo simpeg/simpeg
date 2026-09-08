@@ -15,8 +15,6 @@ from simpeg.utils import mkvc
 from simpeg.electromagnetics import resistivity as dc
 import shutil
 
-np.random.seed(40)
-
 TOL = 1e-5
 FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order
 
@@ -45,13 +43,13 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
         )
 
         mSynth = np.ones(mesh.nC)
-        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -71,6 +69,7 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=54,
         )
         self.assertTrue(passed)
 
@@ -87,7 +86,11 @@ class DCProblemTestsCC_storeJ(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=6
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=6,
+            random_seed=1234,
         )
         self.assertTrue(passed)
 
@@ -123,13 +126,13 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
         )
 
         mSynth = np.ones(mesh.nC)
-        dobs = simulation.make_synthetic_data(mSynth, add_noise=True)
+        dobs = simulation.make_synthetic_data(mSynth, add_noise=True, random_seed=40)
 
         # Now set up the problem to do some minimization
         dmis = data_misfit.L2DataMisfit(simulation=simulation, data=dobs)
         reg = regularization.WeightedLeastSquares(mesh)
         opt = optimization.InexactGaussNewton(
-            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, maxIterCG=6
+            maxIterLS=20, maxIter=10, tolF=1e-6, tolX=1e-6, tolG=1e-6, cg_maxiter=6
         )
         invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=1e4)
         inv = inversion.BaseInversion(invProb)
@@ -149,6 +152,7 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
             self.m0,
             plotIt=False,
             num=3,
+            random_seed=883,
         )
         self.assertTrue(passed)
 
@@ -165,7 +169,11 @@ class DCProblemTestsN_storeJ(unittest.TestCase):
 
     def test_dataObj(self):
         passed = tests.check_derivative(
-            lambda m: [self.dmis(m), self.dmis.deriv(m)], self.m0, plotIt=False, num=3
+            lambda m: [self.dmis(m), self.dmis.deriv(m)],
+            self.m0,
+            plotIt=False,
+            num=3,
+            random_seed=78523,
         )
         self.assertTrue(passed)
 

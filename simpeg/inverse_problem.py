@@ -1,10 +1,13 @@
+import textwrap
+
 import numpy as np
 import scipy.sparse as sp
 import gc
+
 from .data_misfit import BaseDataMisfit
 from .regularization import BaseRegularization, WeightedLeastSquares, Sparse
 from .objective_function import BaseObjectiveFunction, ComboObjectiveFunction
-from .optimization import Minimize
+from .optimization import Minimize, BFGS
 from .utils import (
     call_hooks,
     timeIt,
@@ -12,9 +15,10 @@ from .utils import (
     validate_float,
     validate_type,
     validate_ndarray_with_shape,
+    get_logger,
 )
-from .simulation import DefaultSolver
 from .version import __version__ as simpeg_version
+from .utils import get_default_solver
 
 
 class BaseInvProblem:
@@ -29,6 +33,7 @@ class BaseInvProblem:
         debug=False,
         counter=None,
         print_version=True,
+        init_bfgs=True,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -45,6 +50,7 @@ class BaseInvProblem:
         self.counter = counter
         self.model = None
         self.print_version = print_version
+        self.init_bfgs = init_bfgs
         # TODO: Remove: (and make iteration printers better!)
         self.opt.parent = self
         self.reg.parent = self
@@ -96,7 +102,7 @@ class BaseInvProblem:
         self._counter = value
 
     @property
-    def dmisfit(self):
+    def dmisfit(self) -> ComboObjectiveFunction:
         """The data misfit.
 
         Returns
@@ -113,7 +119,7 @@ class BaseInvProblem:
         self._dmisfit = value
 
     @property
-    def reg(self):
+    def reg(self) -> ComboObjectiveFunction:
         """The regularization object for the inversion
 
         Returns
@@ -144,7 +150,7 @@ class BaseInvProblem:
         self._opt = validate_type("opt", value, Minimize, cast=False)
 
     @property
-    def deleteTheseOnModelUpdate(self):
+    def _delete_on_model_update(self):
         """A list of properties stored on this object to delete when the model is updated
 
         Returns
@@ -170,10 +176,19 @@ class BaseInvProblem:
             value = validate_ndarray_with_shape(
                 "model", value, shape=[("*",), ("*", "*")], dtype=None
             )
-        for prop in self.deleteTheseOnModelUpdate:
+        for prop in self._delete_on_model_update:
             if hasattr(self, prop):
                 delattr(self, prop)
         self._model = value
+
+    @property
+    def init_bfgs(self):
+        """Initialize BFGS minimizers with the inverse of the regularization's Hessian."""
+        return self._init_bfgs
+
+    @init_bfgs.setter
+    def init_bfgs(self, value):
+        self._init_bfgs = validate_type("init_bfgs", value, bool)
 
     @call_hooks("startup")
     def startup(self, m0):
@@ -187,12 +202,14 @@ class BaseInvProblem:
         if self.print_version:
             print(f"\nRunning inversion with SimPEG v{simpeg_version}")
 
+        logger = get_logger()
+
         for fct in self.reg.objfcts:
             if (
                 hasattr(fct, "reference_model")
                 and getattr(fct, "reference_model", None) is None
             ):
-                print(
+                logger.info(
                     "simpeg.InvProblem will set Regularization.reference_model to m0."
                 )
                 fct.reference_model = m0
@@ -202,40 +219,35 @@ class BaseInvProblem:
 
         self.model = m0
 
-        solver = DefaultSolver
-        set_default = True
-        for objfct in self.dmisfit.objfcts:
-            if (
-                isinstance(objfct, BaseDataMisfit)
-                and getattr(objfct.simulation, "solver", None) is not None
-            ):
-                solver = objfct.simulation.solver
-                solver_opts = objfct.simulation.solver_opts
-                print(
-                    """
-                        simpeg.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
-                        ***Done using same Solver, and solver_opts as the {} problem***
-                        """.format(
-                        objfct.simulation.__class__.__name__
-                    )
-                )
-                set_default = False
-                break
-        if set_default:
-            print(
-                """
-                    simpeg.InvProblem is setting bfgsH0 to the inverse of the eval2Deriv.
-                    ***Done using the default solver {} and no solver_opts.***
-                    """.format(
-                    DefaultSolver.__name__
-                )
-            )
-            solver = DefaultSolver
-            solver_opts = {}
+        if self.init_bfgs and isinstance(self.opt, BFGS):
 
-        self.opt.bfgsH0 = solver(
-            sp.csr_matrix(self.reg.deriv2(self.model)), **solver_opts
-        )
+            sim = None  # Find the first sim in data misfits that has a non None solver attribute
+            for objfct in self.dmisfit.objfcts:
+                if (
+                    isinstance(objfct, BaseDataMisfit)
+                    and getattr(objfct.simulation, "solver", None) is not None
+                ):
+                    sim = objfct.simulation
+                    break
+            if sim is not None:
+                solver = sim.solver
+                solver_opts = sim.solver_opts
+                msg = f"""
+                    simpeg.InvProblem is setting bfgsH0 to the inverse of the reg.deriv2
+                    using the same solver as the {sim.__class__.__name__} simulation with the 'is_symmetric=True` option set.
+                    """
+            else:
+                solver = get_default_solver()
+                msg = f"""
+                    simpeg.InvProblem is setting bfgsH0 to the inverse of the reg.deriv2.
+                    using the default solver {solver.__name__} with the 'is_symmetric=True` option set.
+                    """
+                solver_opts = dict(is_symmetric=True)
+
+            logger.info(textwrap.dedent(msg))
+            self.opt.bfgsH0 = solver(
+                sp.csr_matrix(self.reg.deriv2(self.model)), **solver_opts
+            )
 
     @property
     def warmstart(self):

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import numbers
 import numpy as np
 import scipy.sparse as sp
@@ -204,12 +202,17 @@ class BaseObjectiveFunction(BaseSimPEG):
         **kwargs,
     ):
         print("Testing {0!s} Deriv".format(self.__class__.__name__))
+        rng = np.random.default_rng(seed=random_seed)
         if x is None:
-            rng = np.random.default_rng(seed=random_seed)
             n_params = rng.integers(low=100, high=1_000) if self.nP == "*" else self.nP
             x = rng.standard_normal(size=n_params)
         return check_derivative(
-            lambda m: [self(m), self.deriv(m)], x, num=num, plotIt=plotIt, **kwargs
+            lambda m: [self(m), self.deriv(m)],
+            x,
+            num=num,
+            plotIt=plotIt,
+            random_seed=rng,
+            **kwargs,
         )
 
     def _test_deriv2(
@@ -234,6 +237,7 @@ class BaseObjectiveFunction(BaseSimPEG):
             num=num,
             expectedOrder=expectedOrder,
             plotIt=plotIt,
+            random_seed=rng,
             **kwargs,
         )
 
@@ -412,6 +416,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
         self.objfcts = objfcts
         self._multipliers = multipliers
         self._unpack_on_add = unpack_on_add
+        self._last_obj_vals = [np.nan] * len(objfcts)
 
     def __len__(self):
         return len(self.multipliers)
@@ -450,6 +455,7 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
     def __call__(self, m, f=None):
         """Evaluate the objective functions for a given model."""
         fct = 0.0
+        obj_vals = []
         for i, phi in enumerate(self):
             multiplier, objfct = phi
             if multiplier == 0.0:  # don't evaluate the fct
@@ -459,6 +465,8 @@ class ComboObjectiveFunction(BaseObjectiveFunction):
             else:
                 objective_func_value = objfct(m)
             fct += multiplier * objective_func_value
+            obj_vals.append(objective_func_value)
+        self._last_obj_vals = obj_vals
         return fct
 
     def deriv(self, m, f=None):

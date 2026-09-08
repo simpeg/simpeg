@@ -1,4 +1,8 @@
+import re
+import warnings
+import dask
 import pytest
+import sklearn
 import numpy as np
 import unittest
 import discretize
@@ -342,6 +346,61 @@ class TestCustomPrintMethod:
         gmm = gmm_class(gmmref=gmmref)
         # Run the custom private method: it should not raise any error
         gmm._custom_print_verbose_msg_init_end(3)
+
+
+class TestWarnXP:
+    """
+    Test warning if the ``xp`` parameter is not Numpy.
+    """
+
+    @pytest.fixture
+    def mesh(self):
+        """Sample mesh"""
+        mesh = discretize.TensorMesh([8, 7, 6])
+        return mesh
+
+    @pytest.fixture
+    def model(self, mesh):
+        """Sample model."""
+        model = np.ones(mesh.n_cells, dtype=np.float64)
+        return model
+
+    @pytest.fixture
+    def gmmref(self, mesh, model):
+        """Sample GMM"""
+        active_cells = np.ones(mesh.n_cells, dtype=bool)
+        gmmref = WeightedGaussianMixture(
+            mesh=mesh,
+            actv=active_cells,
+            n_components=1,
+            covariance_type="full",
+            max_iter=1000,
+            n_init=10,
+            tol=1e-8,
+            warm_start=True,
+        )
+        gmmref.fit(model.reshape(-1, 1))
+        return gmmref
+
+    @pytest.mark.parametrize("xp", (None, np, sklearn.externals.array_api_compat.numpy))
+    def test_no_warning(self, gmmref, xp):
+        """
+        Test if no warning is thrown.
+        """
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            gmmref._warn_xp_not_numpy(xp)
+
+    @pytest.mark.parametrize("xp", (dask,))
+    def test_warning(self, gmmref, xp):
+        """
+        Test if warning is thrown.
+        """
+        msg = re.escape(
+            "Using array API is not supported in SimPEG's Gaussian Mixture Models"
+        )
+        with pytest.warns(UserWarning, match=msg):
+            gmmref._warn_xp_not_numpy(xp)
 
 
 if __name__ == "__main__":

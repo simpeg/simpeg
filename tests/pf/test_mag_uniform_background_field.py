@@ -4,7 +4,7 @@ Test the UniformBackgroundField class
 
 import pytest
 import numpy as np
-from simpeg.potential_fields.magnetics import UniformBackgroundField, SourceField, Point
+from simpeg.potential_fields.magnetics import UniformBackgroundField, Point
 
 
 def test_invalid_parameters_argument():
@@ -15,15 +15,6 @@ def test_invalid_parameters_argument():
     msg = r"__init__\(\) got an unexpected keyword argument 'parameters'"
     with pytest.raises(TypeError, match=msg):
         UniformBackgroundField(parameters=parameters)
-
-
-def test_deprecated_source_field():
-    """
-    Test if instantiating a magnetics.source.SourceField object raises an error
-    """
-    msg = "SourceField has been removed, please use UniformBackgroundField."
-    with pytest.raises(NotImplementedError, match=msg):
-        SourceField()
 
 
 @pytest.mark.parametrize("receiver_as_list", (True, False))

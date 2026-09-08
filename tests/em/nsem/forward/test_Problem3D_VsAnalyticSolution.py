@@ -5,8 +5,6 @@ import numpy as np
 from simpeg.electromagnetics import natural_source as nsem
 
 
-np.random.seed(1100)
-
 TOLr = 1
 TOLp = 2
 FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order

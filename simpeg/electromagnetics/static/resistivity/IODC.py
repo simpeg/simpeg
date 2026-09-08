@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
 import warnings
@@ -7,6 +6,12 @@ import warnings
 from discretize import TensorMesh, TreeMesh
 from discretize.base import BaseMesh
 from discretize.utils import refine_tree_xyz, unpack_widths, active_from_xyz
+from discretize.utils import requires as module_requires
+
+try:
+    import pandas
+except ImportError:
+    pandas = False
 
 from ....utils import (
     sdiag,
@@ -1283,6 +1288,7 @@ class IO:
         survey.topo = topo
         return survey
 
+    @module_requires({"pandas": pandas})
     def write_to_csv(self, fname, dobs, standard_deviation=None, **kwargs):
         uncert = kwargs.pop("uncertainty", None)
         if uncert is not None:
@@ -1300,7 +1306,7 @@ class IO:
             dobs,
             standard_deviation,
         ]
-        df = pd.DataFrame(
+        df = pandas.DataFrame(
             data=data,
             columns=[
                 "Ax",
@@ -1317,8 +1323,9 @@ class IO:
         )
         df.to_csv(fname)
 
+    @module_requires({"pandas": pandas})
     def read_dc_data_csv(self, fname, dim=2):
-        df = pd.read_csv(fname)
+        df = pandas.read_csv(fname)
         if dim == 2:
             a_locations = df[["Ax", "Az"]].values
             b_locations = df[["Bx", "Bz"]].values
@@ -1352,8 +1359,9 @@ class IO:
             raise NotImplementedError()
         return survey
 
+    @module_requires({"pandas": pandas})
     def read_topo_csv(self, fname, dim=2):
         if dim == 2:
-            df = pd.read_csv(fname)
+            df = pandas.read_csv(fname)
             topo = df[["X", "Z"]].values
         return topo

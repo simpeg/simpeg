@@ -73,7 +73,7 @@ survey = prob.make_synthetic_data(mtrue, relative_error=std, add_noise=True)
 # Setup the inverse problem
 reg = regularization.WeightedLeastSquares(mesh, alpha_s=1.0, alpha_x=1.0)
 dmis = data_misfit.L2DataMisfit(data=survey, simulation=prob)
-opt = optimization.ProjectedGNCG(maxIter=10, maxIterCG=50, tolCG=1e-4)
+opt = optimization.ProjectedGNCG(maxIter=10, cg_maxiter=50, cg_rtol=1e-3)
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 directiveslist = [
     directives.BetaEstimate_ByEig(beta0_ratio=1e-5),
@@ -114,7 +114,7 @@ reg = regularization.PGI(
 )
 
 # Optimization
-opt = optimization.ProjectedGNCG(maxIter=20, maxIterCG=50, tolCG=1e-4)
+opt = optimization.ProjectedGNCG(maxIter=20, cg_maxiter=50, cg_rtol=1e-3)
 opt.remember("xc")
 
 # Setup new inverse problem

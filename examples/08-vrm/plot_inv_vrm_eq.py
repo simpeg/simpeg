@@ -124,7 +124,7 @@ survey_vrm = VRM.Survey(source_listVRM)
 problem_vrm = VRM.Simulation3DLinear(
     mesh,
     survey=survey_vrm,
-    indActive=topoCells,
+    active_cells=topoCells,
     refinement_factor=3,
     refinement_distance=[1.25, 2.5, 3.75],
 )
@@ -176,7 +176,7 @@ actCells = (mesh.gridCC[:, 2] < 0.0) & (mesh.gridCC[:, 2] > -2.0)
 problem_inv = VRM.Simulation3DLinear(
     mesh,
     survey=survey_vrm,
-    indActive=actCells,
+    active_cells=actCells,
     refinement_factor=3,
     refinement_distance=[1.25, 2.5, 3.75],
 )
@@ -201,7 +201,7 @@ reg = regularization.Smallness(
 )
 
 opt = optimization.ProjectedGNCG(
-    maxIter=20, lower=0.0, upper=1e-2, maxIterLS=20, tolCG=1e-4
+    maxIter=20, lower=0.0, upper=1e-2, maxIterLS=20, cg_rtol=1e-4
 )
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
 directives = [

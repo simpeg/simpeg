@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.constants import mu_0
 
-from .... import Solver
+from pymatsolver import Solver
 from ....utils import sdiag
 
 from .analytic_1d import getEHfields
@@ -34,7 +34,7 @@ def get1DEfields(m1d, sigma, freq, sourceAmp=1.0):
     ## Note: The analytic solution is derived with e^iwt
     bc = np.r_[Etot[0], Etot[-1]]
     # The right hand side
-    rhs = Aio * bc
+    rhs = -Aio * bc
     # Solve the system
     Aii_inv = Solver(Aii)
     eii = Aii_inv * rhs

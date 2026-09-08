@@ -30,11 +30,6 @@ class Point(BaseRx):
     def __init__(
         self, locations=None, times=None, field_type=None, orientation="z", **kwargs
     ):
-        if kwargs.pop("fieldType", None):
-            raise AttributeError(
-                "'fieldType' is a deprecated property. Please use 'field_type' instead."
-                "'fieldType' be removed in SimPEG 0.17.0."
-            )
         if field_type is None:
             raise AttributeError(
                 "VRM receiver class cannot be instantiated witout 'field_type"
@@ -179,18 +174,6 @@ class SquareLoop(Point):
         quadrature_order=3,
         **kwargs,
     ):
-        if "nTurns" in kwargs:
-            raise AttributeError(
-                "'nTurns' is a deprecated property. Please use 'n_turns' instead."
-                "'nTurns' be removed in SimPEG 0.17.0."
-            )
-
-        if "quadOrder" in kwargs:
-            raise AttributeError(
-                "'quadOrder' is a deprecated property. Please use 'quadrature_order' instead."
-                "'quadOrder' be removed in SimPEG 0.17.0."
-            )
-
         super(SquareLoop, self).__init__(
             locations=locations,
             times=times,

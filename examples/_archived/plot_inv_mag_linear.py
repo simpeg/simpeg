@@ -91,7 +91,7 @@ def run(plotIt=True):
         survey=survey,
         mesh=mesh,
         chiMap=idenMap,
-        ind_active=actv,
+        active_cells=actv,
     )
 
     # Compute linear forward operator and compute some data
@@ -120,7 +120,7 @@ def run(plotIt=True):
 
     # Add directives to the inversion
     opt = optimization.ProjectedGNCG(
-        maxIter=20, lower=0.0, upper=1.0, maxIterLS=20, maxIterCG=20, tolCG=1e-3
+        maxIter=20, lower=0.0, upper=1.0, maxIterLS=20, cg_maxiter=20, cg_rtol=1e-3
     )
     invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
     betaest = directives.BetaEstimate_ByEig(beta0_ratio=1e-1)
@@ -128,7 +128,7 @@ def run(plotIt=True):
     # Here is where the norms are applied
     # Use pick a threshold parameter empirically based on the distribution of
     #  model parameters
-    IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=40)
+    IRLS = directives.UpdateIRLS(f_min_change=1e-3, max_irls_iterations=40)
     saveDict = directives.SaveOutputEveryIteration(save_txt=False)
     update_Jacobi = directives.UpdatePreconditioner()
     # Add sensitivity weights
@@ -291,7 +291,7 @@ def run(plotIt=True):
         axs = plt.subplot()
         axs.plot(saveDict.phi_d, "k", lw=2)
         axs.plot(
-            np.r_[IRLS.iterStart, IRLS.iterStart],
+            np.r_[IRLS.metrics.start_irls_iter, IRLS.metrics.start_irls_iter],
             np.r_[0, np.max(saveDict.phi_d)],
             "k:",
         )
@@ -299,7 +299,7 @@ def run(plotIt=True):
         twin = axs.twinx()
         twin.plot(saveDict.phi_m, "k--", lw=2)
         axs.text(
-            IRLS.iterStart,
+            IRLS.metrics.start_irls_iter,
             0,
             "IRLS Steps",
             va="bottom",

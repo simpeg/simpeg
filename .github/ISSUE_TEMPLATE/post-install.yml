@@ -9,7 +9,8 @@ body:
     label: "Steps to reproduce:"
     description: >
       Please describe the installation method (e.g. building from source,
-      Anaconda, pip), your OS and SimPEG, NumPy, Scipy, and Python version information.
+      Miniforge, Anaconda, pip), your OS and SimPEG, NumPy, Scipy, and Python
+      version information.
     placeholder: |
       If running in a conda environment you could paste the output of `conda list` here.
   validations:

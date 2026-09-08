@@ -39,11 +39,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
-try:
-    from pymatsolver import Pardiso as Solver
-except ImportError:
-    from simpeg import SolverLU as Solver
-
 # sphinx_gallery_thumbnail_number = 3
 
 ###################################################################
@@ -156,7 +151,9 @@ cbar.set_label("Conductivity [S/m]", rotation=270, labelpad=15, size=12)
 time_steps = [(5e-06, 20), (0.0001, 20), (0.001, 21)]
 
 tdem_simulation = tdem.simulation.Simulation3DMagneticFluxDensity(
-    mesh, survey=tdem_survey, sigmaMap=model_map, solver=Solver
+    mesh,
+    survey=tdem_survey,
+    sigmaMap=model_map,
 )
 
 tdem_simulation.time_steps = time_steps
@@ -256,7 +253,7 @@ ind_active = np.ones(mesh.nC, dtype="bool")
 vrm_simulation = vrm.Simulation3DLogUniform(
     mesh,
     survey=vrm_survey,
-    indActive=ind_active,
+    active_cells=ind_active,
     refinement_factor=1,
     refinement_distance=[100.0],
     chi0=chi0_model,

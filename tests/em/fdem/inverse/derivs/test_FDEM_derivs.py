@@ -40,8 +40,9 @@ def derivTest(fdemType, comp, src):
     def fun(x):
         return prb.dpred(x), lambda x: prb.Jvec(x0, x)
 
-    np.random.seed(1983)  # set a random seed for check_derivative
-    return tests.check_derivative(fun, x0, num=2, plotIt=False, eps=FLR)
+    return tests.check_derivative(
+        fun, x0, num=2, plotIt=False, eps=FLR, random_seed=6521
+    )
 
 
 class FDEM_DerivTests(unittest.TestCase):

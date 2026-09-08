@@ -2,7 +2,6 @@ from simpeg.electromagnetics.static import resistivity as dc
 from simpeg.electromagnetics.static.utils.static_utils import generate_dcip_sources_line
 from simpeg import maps
 import numpy as np
-from pymatsolver import Pardiso
 import discretize
 import os
 
@@ -173,7 +172,6 @@ class DC2DMiniaturizeTest(unittest.TestCase):
         self.sim1 = dc.Simulation2DNodal(
             survey=survey,
             mesh=mesh,
-            solver=Pardiso,
             storeJ=False,
             sigmaMap=maps.IdentityMap(mesh),
             miniaturize=False,
@@ -182,7 +180,6 @@ class DC2DMiniaturizeTest(unittest.TestCase):
         self.sim2 = dc.Simulation2DNodal(
             survey=survey,
             mesh=mesh,
-            solver=Pardiso,
             storeJ=False,
             sigmaMap=maps.IdentityMap(mesh),
             miniaturize=True,
@@ -271,7 +268,6 @@ class DC3DMiniaturizeTest(unittest.TestCase):
         self.sim1 = dc.Simulation3DNodal(
             survey=survey,
             mesh=mesh,
-            solver=Pardiso,
             storeJ=False,
             sigmaMap=maps.IdentityMap(mesh),
             miniaturize=False,
@@ -280,7 +276,6 @@ class DC3DMiniaturizeTest(unittest.TestCase):
         self.sim2 = dc.Simulation3DNodal(
             survey=survey,
             mesh=mesh,
-            solver=Pardiso,
             storeJ=False,
             sigmaMap=maps.IdentityMap(mesh),
             miniaturize=True,

@@ -110,7 +110,7 @@ survey_vrm = VRM.Survey(src_list_vrm)
 problem_vrm = VRM.Simulation3DLinear(
     mesh,
     survey=survey_vrm,
-    indActive=topoCells,
+    active_cells=topoCells,
     refinement_factor=3,
     refinement_distance=[1.25, 2.5, 3.75],
 )

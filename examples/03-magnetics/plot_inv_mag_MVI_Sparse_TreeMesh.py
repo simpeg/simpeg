@@ -1,8 +1,8 @@
 """
-Magnetic inversion on a TreeMesh
-================================
+Magnetic inversion on a TreeMesh with remanence
+===============================================
 
-In this example, we demonstrate the use of a Magnetic Vector Inverison
+In this example, we demonstrate the use of a Magnetic Vector Inversion
 on 3D TreeMesh for the inversion of magnetics affected by remanence.
 The mesh is auto-generated based
 on the position of the observation locations and topography.
@@ -11,8 +11,7 @@ We invert the data twice, first for a smooth starting model using the
 Cartesian coordinate system, and second for a compact model using
 the Spherical formulation.
 
-The inverse problem uses the :class:'simpeg.regularization.Sparse'
-that
+The inverse problem uses the :class:`simpeg.regularization.Sparse`.
 
 """
 
@@ -30,7 +29,7 @@ from simpeg import (
 from simpeg import utils
 from simpeg.utils import mkvc
 
-from discretize.utils import active_from_xyz, mesh_builder_xyz, refine_tree_xyz
+from discretize.utils import active_from_xyz, mesh_builder_xyz
 from simpeg.potential_fields import magnetics
 import scipy as sp
 import numpy as np
@@ -112,9 +111,7 @@ padDist = np.ones((3, 2)) * 100
 mesh = mesh_builder_xyz(
     xyzLoc, h, padding_distance=padDist, depth_core=100, mesh_type="tree"
 )
-mesh = refine_tree_xyz(
-    mesh, topo, method="surface", octree_levels=[4, 4], finalize=True
-)
+mesh.refine_surface(topo, padding_cells_by_level=[4, 4], finalize=True)
 
 
 # Define an active cells from topo
@@ -135,15 +132,15 @@ model = np.zeros((mesh.nC, 3))
 # Convert the inclination declination to vector in Cartesian
 M_xyz = utils.mat_utils.dip_azimuth2cartesian(M[0], M[1])
 
-# Get the indicies of the magnetized block
+# Get the indices of the magnetized block
 ind = utils.model_builder.get_indices_block(
     np.r_[-20, -20, -10],
     np.r_[20, 20, 25],
     mesh.gridCC,
-)[0]
+)
 
 # Assign magnetization values
-model[ind, :] = np.kron(np.ones((ind.shape[0], 1)), M_xyz * 0.05)
+model[ind, :] = np.kron(np.ones((ind.size, 1)), M_xyz * 0.05)
 
 # Remove air cells
 model = model[actv, :]
@@ -156,7 +153,7 @@ idenMap = maps.IdentityMap(nP=nC * 3)
 
 # Create the simulation
 simulation = magnetics.simulation.Simulation3DIntegral(
-    survey=survey, mesh=mesh, chiMap=idenMap, ind_active=actv, model_type="vector"
+    survey=survey, mesh=mesh, chiMap=idenMap, active_cells=actv, model_type="vector"
 )
 
 # Compute some data and add some random noise
@@ -246,7 +243,7 @@ dmis.W = 1.0 / data_object.standard_deviation
 
 # Add directives to the inversion
 opt = optimization.ProjectedGNCG(
-    maxIter=10, lower=-10, upper=10.0, maxIterLS=20, maxIterCG=20, tolCG=1e-4
+    maxIter=10, lower=-10, upper=10.0, maxIterLS=20, cg_maxiter=20, cg_rtol=1e-3
 )
 
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt)
@@ -260,7 +257,9 @@ sensitivity_weights = directives.UpdateSensitivityWeights()
 # Here is where the norms are applied
 # Use a threshold parameter empirically based on the distribution of
 #  model parameters
-IRLS = directives.Update_IRLS(f_min_change=1e-3, max_irls_iterations=2, beta_tol=5e-1)
+IRLS = directives.UpdateIRLS(
+    f_min_change=1e-3, max_irls_iterations=2, misfit_tolerance=5e-1
+)
 
 # Pre-conditioner
 update_Jacobi = directives.UpdatePreconditioner()
@@ -335,25 +334,23 @@ opt = optimization.ProjectedGNCG(
     lower=lower_bound,
     upper=upper_bound,
     maxIterLS=20,
-    maxIterCG=30,
-    tolCG=1e-3,
-    stepOffBoundsFact=1e-3,
+    cg_maxiter=30,
+    cg_rtol=1e-3,
+    active_set_grad_scale=1e-3,
 )
 opt.approxHinv = None
 
 invProb = inverse_problem.BaseInvProblem(dmis, reg, opt, beta=beta)
 
 # Here is where the norms are applied
-irls = directives.Update_IRLS(
+irls = directives.UpdateIRLS(
     f_min_change=1e-4,
     max_irls_iterations=20,
-    minGNiter=1,
-    beta_tol=0.5,
-    coolingRate=1,
-    coolEps_q=True,
-    sphericalDomain=True,
+    misfit_tolerance=0.5,
 )
-
+scale_spherical = directives.SphericalUnitsWeights(
+    amplitude=wires.amp, angles=[reg_t, reg_p]
+)
 # Special directive specific to the mag amplitude problem. The sensitivity
 # weights are updated between each iteration.
 spherical_projection = directives.ProjectSphericalBounds()
@@ -362,7 +359,13 @@ update_Jacobi = directives.UpdatePreconditioner()
 
 inv = inversion.BaseInversion(
     invProb,
-    directiveList=[spherical_projection, irls, sensitivity_weights, update_Jacobi],
+    directiveList=[
+        scale_spherical,
+        spherical_projection,
+        irls,
+        sensitivity_weights,
+        update_Jacobi,
+    ],
 )
 
 mrec_MVI_S = inv.run(m_start)

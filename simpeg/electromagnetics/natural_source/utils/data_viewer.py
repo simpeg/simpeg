@@ -71,9 +71,9 @@ class NSEM_data_viewer:
                 ]
             )
         )
-        if rx.PointNaturalSource in unique_rx:
+        if rx.Impedance in unique_rx:
             self.station_figs.append(ApparentResPhsStationPlot())
-        if rx.Point3DTipper in unique_rx:
+        if rx.Tipper in unique_rx:
             self.station_figs.append(TipperAmplitudeStationPlot())
 
         self.freqency_figs = []

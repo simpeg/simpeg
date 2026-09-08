@@ -1,0 +1,372 @@
+.. _0.25.0_notes:
+
+============================
+SimPEG v0.25.0 Release Notes
+============================
+
+October 22nd, 2025
+
+.. contents:: Highlights
+    :depth: 3
+
+Updates
+=======
+
+New features
+------------
+
+New differential simulation for magnetic fields
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This release ships with a new and improved version of the magnetic differential
+simulation
+:class:`~simpeg.potential_fields.magnetics.Simulation3DDifferential` by
+`@johnweis0480 <https://github.com/johnweis0480>`__.
+This simulation computes the magnetic field on every cell of the mesh by
+numerically solving the magnetostatic PDE. It accounts for
+self-demagnetization effects, model both induced and remanent magnetizations,
+and is faster and less memory intensive than the integral simulation for large
+problems.
+
+See https://github.com/simpeg/simpeg/pull/1682 for more details.
+
+Add utility function to shift electrodes to discrete topography
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A new :func:`simpeg.utils.shift_to_discrete_topography` function shifts
+locations relative to discrete surface topography. When performing MT surveys,
+we measure electric fields at the Earth's surface.
+Similar to DC/IP, the original measurement locations of the electric fields can
+end up in air cells when we discretize surface topography. This function allows
+the user to shift locations relative to discrete topography on Tensor and Tree
+meshes.
+For Airborne NSEM, they also allow the user to preserve the original flight
+heights.
+
+See https://github.com/simpeg/simpeg/pull/1683 for more details.
+
+Calculate B/H fields with a step-off waveform closed-loop wire source in TDEM
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We can now calculate the B and H fields using a closed-loop wire as source in
+the TDEM code with a step-off waveform.
+The simulation will first compute the vector potential using the Biot-Savart
+Law and then take the curl of it to get the initial :math:`\mathbf{B}` field.
+
+See https://github.com/simpeg/simpeg/pull/1651 for more details.
+
+Sensitivity matrix as a ``LinearOperator`` in gravity and magnetic equivalent layers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Gravity and magnetic equivalent sources can now define the sensitivity
+matrix ``J`` as a :class:`scipy.sparse.linalg.LinearOperator` when
+``store_sensitivities="forward_only"``. This extends the behaviour previously
+implemented in the integral gravity and magnetic simulations to the
+equivalent layer classes.
+
+See https://github.com/simpeg/simpeg/pull/1674 and
+https://github.com/simpeg/simpeg/pull/1676 for more details.
+
+Choosing the default solver is easier now
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The :func:`~simpeg.utils.get_default_solver` can now be imported directly from
+:mod:`simpeg.utils` making it easier to use it.
+
+Check out the new How to Guide on :ref:`choosing-solvers` for more information
+on how we can use this function.
+
+Improved inversion printout
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The information table displayed during an inversion has been improved. Now, the
+zero-th iteration corresponds to the status of the inversion problem **before**
+any optimization steps, while subsequent iterations show information **after**
+each iteration but before directives are applied.
+The final iteration of the inversion is shown in the last row of the table.
+Additionally, some non-very-useful messages have been removed to produce
+a cleaner output.
+
+See https://github.com/simpeg/simpeg/pull/1626 for more details.
+
+Standardized directives for saving outputs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Directives that store and save inversion outputs have been
+standardized and made more reliable. They now respect the output directory
+chosen by the user, and output filenames follow a standardized
+``name-timestamp-iteration`` format to make it easier to sort and identify
+files from different inversions.
+
+See https://github.com/simpeg/simpeg/pull/1657 for more details.
+
+Updates to the Conjugate Gradient minimizers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The conjugate gradient minimizers were updated to be consistent with the latest
+versions of SciPy. They can now accept both relative and absolute tolerances
+through the ``cg_rtol`` and ``cg_atol`` arguments, respectively.
+
+The ``tolCG`` argument will be removed in the future, making ``cg_rtol`` and
+``cg_atol`` the preferred way to set tolerances in these minimizers.
+
+See https://github.com/simpeg/simpeg/pull/1656 for more details.
+
+
+
+Documentation
+-------------
+
+This release introduces a fresh new landing page for SimPEG docs, and a new
+**How to Guide** section in our :ref:`user_guide` with pages on
+:ref:`choosing-solvers` and :ref:`how-to-move-mesh`.
+
+We also included a new page that clarifies Python and Numpy
+:ref:`version-compatibility` with SimPEG, and explain the criteria for dropping
+older versions of our dependencies.
+
+We started removing the gravity, magnetic and DC tutorials from SimPEG's docs,
+as part of our plan of moving all tutorials to our `User Tutorials
+<https://simpeg.xyz/user-tutorials>`_.
+
+Now we can navigate our docs using our arrow keys in the keyboard (for those
+power users that don't want to leave the keyboard) thanks to `@prisae
+<https://github.com/prisae>`__.
+
+Finally, we improved and fixed a few things in the docs: mathematical
+expressions, added missing classes to the API reference, updated admonitions in
+docstrings, and more.
+
+Bugfixes
+--------
+
+In this release we included a few bugfixes:
+
+- Fixes sign error in 1D field calculation. by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1662
+- Fix beta cooling in ``UpdateIRLS`` directive by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1659
+- Fix bug in phase for recursive 1d NSEM simulation by `@dccowan <https://github.com/dccowan>`__ in
+  https://github.com/simpeg/simpeg/pull/1679
+- Fix bug on ``Impedance.eval`` when orientation is “xx” or “yy” by
+  `@dccowan <https://github.com/dccowan>`__ in https://github.com/simpeg/simpeg/pull/1692
+- Fix magnetic dipole source for for HJ formulation by `@lheagy <https://github.com/lheagy>`__ in
+  https://github.com/simpeg/simpeg/pull/1575
+- Fix bug with duplicated current in ``LineCurrent.Mejs`` by `@santisoler <https://github.com/santisoler>`__
+  in https://github.com/simpeg/simpeg/pull/1718
+
+Breaking changes
+----------------
+
+We introduced a few breaking changes in SimPEG v0.25.0.
+
+Dropped support for Python 3.10
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We dropped support for Python 3.10, inline with our
+:ref:`version-compatibility` schedule. So, remember to use Python 3.11 or higher
+when installing SimPEG v0.25.0. If you still need to use Python 3.10, please
+pin your SimPEG version to v0.24.0.
+
+Modified how mappings are applied in regularizations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We updated how mappings are applied in most of our regularization classes
+(:class:`~simpeg.regularization.WeightedLeastSquares`,
+:class:`~simpeg.regularization.Smallness`,
+:class:`~simpeg.regularization.SmoothnessFirstOrder`,
+:class:`~simpeg.regularization.Sparse`,
+etc.). The ``mapping`` was applied, for example in the
+:class:`~simpeg.regularization.Smallness` regularization, to the difference
+between the ``model`` and the ``reference_model``:
+
+.. math::
+
+    \phi (\mathbf{m}) =
+    \left\lVert
+    \mathbf{W} \left[ \mu(\mathbf{m} - \mathbf{m}^\text{ref}) \right]
+    \right\rVert^2.
+
+where :math:`\mu()` is the ``mapping``.
+
+Since SimPEG v0.25.0 the regularizations are applied to the difference between
+the *mapped* model and the *mapped* regularization model:
+
+.. math::
+
+    \phi (\mathbf{m}) =
+    \left\lVert
+    \mathbf{W} \left[ \mu(\mathbf{m}) - \mu(\mathbf{m}^\text{ref}) \right]
+    \right\rVert^2.
+
+This impacts only non-linear mappings, since the two expressions are equivalent
+for linear ones.
+
+Changed the output of :func:`~simpeg.utils.model_builder.get_indices_block`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The :func:`~simpeg.utils.model_builder.get_indices_block` function previously
+returned a tuple with just a single element: the array with cell indices that
+correspond the given block. We standardized its output to be in agreement with
+similar functions in the module. It now returns a single NumPy array with the
+cell indices of the block.
+
+If you were using this function as follows, where you used to extract the first
+element of the tuple:
+
+.. code:: python
+
+    ind = get_indices_block(p0, p1, mesh.cell_centers)[0]
+
+You'll need to update it to:
+
+.. code:: python
+
+    ind = get_indices_block(p0, p1, mesh.cell_centers)
+
+An informative warning will be printed out every time the function is used to
+remind users of this new behaviour.
+
+Removals
+~~~~~~~~
+
+We also removed several deprecated items marked for removal in previous
+releases, including:
+
+- The ``Data.index_dictionary`` property. Use the new ``get_slice`` method of
+  ``Survey`` (for example:
+  :meth:`simpeg.potential_fields.gravity.Survey.get_slice`).
+- The ``gtg_diagonal`` property from gravity simulation.
+- The ``components`` property from gravity and magnetic surveys.
+
+
+Contributors
+============
+
+Contributors:
+
+* `@dccowan <https://github.com/dccowan>`__
+* `@jcapriot <https://github.com/jcapriot>`__
+* `@johnweis0480 <https://github.com/johnweis0480>`__
+* `@lheagy <https://github.com/lheagy>`__
+* `@prisae <https://github.com/prisae>`__
+* `@santisoler <https://github.com/santisoler>`__
+* `@williamjsdavis <https://github.com/williamjsdavis>`__
+* `@YingHuuu <https://github.com/YingHuuu>`__
+* `@domfournier <https://github.com/domfournier>`__
+
+
+Pull Requests
+=============
+
+- Update docstring descriptions for gravity gradient component guv by
+  `@williamjsdavis <https://github.com/williamjsdavis>`__ in https://github.com/simpeg/simpeg/pull/1665
+- Clean up Numba functions for potential field simulations by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1663
+- Make directives submodules private by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1667
+- Ensure misfit is purely real valued by `@prisae <https://github.com/prisae>`__ in
+  https://github.com/simpeg/simpeg/pull/1524
+- Add key navigation to docs by `@prisae <https://github.com/prisae>`__ in
+  https://github.com/simpeg/simpeg/pull/1668
+- Add missing map classes to the API reference by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1672
+- Replace sklearn deprecated method for ``validate_data`` function by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1673
+- Remove ``BaseSurvey.counter`` property by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1640
+- Fixes sign error in 1D field calculation. by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1662
+- Allow use of ``J`` as ``LinearOperator`` in mag equivalent layers by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1676
+- Fix beta cooling in ``UpdateIRLS`` directive by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1659
+- Allow use of ``J`` as ``LinearOperator`` in gravity equivalent layers
+  by `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1674
+- Improve admonitions in gravity simulation by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1677
+- Have an option to take a step when the Linesearch breaks by `@lheagy <https://github.com/lheagy>`__ in
+  https://github.com/simpeg/simpeg/pull/1581
+- Fix bug in phase for recursive 1d NSEM simulation by `@dccowan <https://github.com/dccowan>`__ in
+  https://github.com/simpeg/simpeg/pull/1679
+- Use conda-forge as only channel in Azure pipelines by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1688
+- Expose solver utility functions in ``simpeg.utils`` by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1678
+- Use logging while setting default solver in PDE simulations by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1670
+- Use ``Impedance`` and ``Tipper`` in examples and tests by `@santisoler <https://github.com/santisoler>`__
+  in https://github.com/simpeg/simpeg/pull/1690
+- Fix bug on ``Impedance.eval`` when orientation is “xx” or “yy” by
+  `@dccowan <https://github.com/dccowan>`__ in https://github.com/simpeg/simpeg/pull/1692
+- Remove deprecated objects missed in v0.24.0 by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1658
+- Update magnetic simulation using differential formulation by
+  `@johnweis0480 <https://github.com/johnweis0480>`__ in https://github.com/simpeg/simpeg/pull/1682
+- Standardize output directives and make them more reliable by `@jcapriot <https://github.com/jcapriot>`__
+  in https://github.com/simpeg/simpeg/pull/1657
+- Make tests error on implicit complex to real by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1696
+- Avoids calculating unused values for boundary conditions on DC 2D
+  simulations by `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1698
+- Add How to Guide page on how to choose a solver by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1695
+- Make Logger a bit quieter when running pytest by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1697
+- CG Minimizer Updates by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1656
+- Add top level descriptions to missing to functions by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1702
+- Update meeting times in README.rst by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1700
+- Add ``_faceDiv`` attribute to FDEM H ``Fields`` by `@lheagy <https://github.com/lheagy>`__ in
+  https://github.com/simpeg/simpeg/pull/1346
+- Improve landing page of docs by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1701
+- Add How to Guide page on moving mesh to survey area by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1699
+- Remove gravity and magnetic tutorials by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1704
+- Minor fixes to docs of ``UpdateSensitivityWeights`` by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1705
+- Update iteration print out by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1626
+- Fix magnetic dipole source for for HJ formulation by `@lheagy <https://github.com/lheagy>`__ in
+  https://github.com/simpeg/simpeg/pull/1575
+- Drop support for Python 3.10 by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1708
+- Add documentation page for version compatibility by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1707
+- Remove DC resistivity tutorials by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1710
+- Improve dipole source tests by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1711
+- Update deprecated calls in examples, tutorials, and tests to inexact
+  CG minimizers by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1703
+- Make ``ComplexMap.deriv`` to return a sparse diagonal matrix by
+  `@lheagy <https://github.com/lheagy>`__ in https://github.com/simpeg/simpeg/pull/1686
+- Standardize signature of mappings’ ``deriv`` method by `@YingHuuu <https://github.com/YingHuuu>`__ in
+  https://github.com/simpeg/simpeg/pull/1407
+- Update how mappings are applied in regularizations by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1605
+- Simple fix for pymatsolver 0.4.0 by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1717
+- Fix bug with duplicated current in ``LineCurrent.Mejs`` by `@santisoler <https://github.com/santisoler>`__
+  in https://github.com/simpeg/simpeg/pull/1718
+- Minor fixes to LaTeX equations in regularizations by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1720
+- Fix return of ``get_indices_block`` by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1713
+- Remove deprecated bits marked for removal in v0.25.0 by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1719
+- Add shift to discrete topography for NSEM by `@dccowan <https://github.com/dccowan>`__ in
+  https://github.com/simpeg/simpeg/pull/1683
+- Deprecate unused arguments in ``drape_electrodes_on_topography`` by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1723
+- Fix LaTeX equations in ``Simulation3DDifferential`` by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1726
+- Implement a closed loop as a TDEM source by `@lheagy <https://github.com/lheagy>`__ in
+  https://github.com/simpeg/simpeg/pull/1651
+- Allow for specifying ramp start and ramp end in ``RampOffWaveform`` by
+  `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1714
