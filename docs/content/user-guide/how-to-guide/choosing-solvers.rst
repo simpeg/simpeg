@@ -20,18 +20,9 @@ The choice of an appropriate solver can affect the computation time required to
 solve the PDE. Generally we recommend using direct solvers over iterative solvers
 for SimPEG, but be aware that direct solvers have much larger memory requirements.
 
-The ``Pardiso`` solver wraps the `oneMKL PARDISO
-<https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2023-0/onemkl-pardiso-parallel-direct-sparse-solver-iface.html>`_
-solver available for x86_64 CPUs.
-
-The ``Mumps`` solver wraps `MUMPS
-<https://mumps-solver.org/index.php?page=home>`_, a fast solver available for
-all CPU brands, including Apple silicon architecture.
-
-The ``SolverLU`` wraps SciPy's :func:`scipy.sparse.linalg.splu`. The
-performance of this solver is not up to the level of ``Mumps`` and ``Pardiso``.
-Usage of the ``SolveLU`` is recommended only when it's not possible to use
-other faster solvers.
+- The :class:`~pymatsolver.Pardiso` solver wraps the `oneMKL PARDISO <https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2023-0/onemkl-pardiso-parallel-direct-sparse-solver-iface.html>`_ solver available for x86_64 CPUs.
+- The :class:`~pymatsolver.Mumps` solver wraps `MUMPS <https://mumps-solver.org/index.php?page=home>`_, a fast solver available for all CPU brands, including Apple silicon architecture.
+- The :class:`~pymatsolver.SolverLU` wraps SciPy's :func:`scipy.sparse.linalg.splu`. The performance of this solver is not up to the level of :class:`~pymatsolver.Mumps` and :class:`~pymatsolver.Pardiso`. Usage of the :class:`~pymatsolver.SolveLU` is recommended only when it's not possible to use other faster solvers.
 
 
 The default solver
@@ -75,18 +66,18 @@ We can then use this solver in a simulation:
 
 .. note::
 
-    The priority list used to choose a default solver is: 
+    The priority list used to choose a default solver is:
 
-    1) ``Pardiso``
-    2) ``Mumps``
-    3) ``SolverLU``
+    1) :class:`pymatsolver.Pardiso`
+    2) :class:`pymatsolver.Mumps`
+    3) :class:`pymatsolver.SolverLU`
 
 
 Setting solvers manually
 ------------------------
 
 Alternatively, we can manually set a solver. For example, if we want to use
-``Mumps`` in our DC resistivity simulation, we can import
+MUMPS in our DC resistivity simulation, we can import
 :class:`pymatsolver.Mumps` and pass it to our simulation:
 
 .. code:: python
@@ -99,12 +90,14 @@ Alternatively, we can manually set a solver. For example, if we want to use
 
 .. note::
 
-   When sharing your notebook or script with a colleague, keep in mind that
-   your code might not work if ``Pardiso`` is not available in their system.
+   When sharing this code with a colleague, keep in mind that
+   it might not work if MUMPS is not available in their system.
 
    For such scenarios, we recommend using the
    :func:`simpeg.utils.get_default_solver` function, that will always return
    a suitable solver for the current system.
 
-Ultimately, choosing the best solver is a mixture of the problem you are solving and your current system. Experiment with different solvers yourself to choose the best.
+Ultimately, choosing the best solver is a mixture of the problem you are solving
+and your current system. Experiment with different solvers yourself to choose
+the best.
 
