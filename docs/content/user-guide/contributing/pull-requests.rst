@@ -37,11 +37,11 @@ it might take some time for us to get your PR.
 Merging a Pull Request
 ----------------------
 
-The ``@simpeg/simpeg-admin`` will merge a Pull Request to the `main` branch
+The ``@simpeg/simpeg-admin`` will merge a Pull Request to the ``main`` branch
 using the `Squash and Merge
 <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/about-pull-request-merges#squash-and-merge-your-commits>`_
-strategy: all commits made to the PR branch will be _squashed_ to a single
-commit that will be added to `main`.
+strategy: all commits made to the PR branch will be *squashed* to a single
+commit that will be added to ``main``.
 
 SimPEG admins will ensure that the commit message is descriptive and
 comprehensive. Contributors can help by providing a descriptive and

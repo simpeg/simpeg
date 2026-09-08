@@ -20,8 +20,8 @@ class FieldsTDEM(TimeFields):
     simulation : .time_domain.BaseTDEMSimulation
         The TDEM simulation object used to compute the discrete field solution.
 
-    Example
-    -------
+    Examples
+    --------
     We want to access the fields for a discrete solution with :math:`\mathbf{e}` discretized
     to edges and :math:`\mathbf{b}` discretized to faces. To extract the fields for all sources
     and all time steps:
@@ -164,8 +164,8 @@ class Fields3DMagneticFluxDensity(FieldsTDEM):
     simulation : .time_domain.Simulation3DMagneticFluxDensity
         The TDEM simulation object associated with the fields.
 
-    Example
-    -------
+    Examples
+    --------
     The ``Fields3DMagneticFluxDensity`` object stores the total magnetic flux density solution
     on mesh faces. To extract the discrete electric fields and magnetic flux
     densities for all sources and time-steps:
@@ -363,8 +363,8 @@ class Fields3DElectricField(FieldsTDEM):
     simulation : .time_domain.Simulation3DElectricField
         The TDEM simulation object associated with the fields.
 
-    Example
-    -------
+    Examples
+    --------
     The ``Fields3DElectricField`` object stores the total electric field solution
     on mesh edges. To extract the discrete electric fields and db/dt
     for all sources and time-steps:
@@ -525,8 +525,8 @@ class Fields3DMagneticField(FieldsTDEM):
     simulation : .time_domain.Simulation3DMagneticField
         The TDEM simulation object associated with the fields.
 
-    Example
-    -------
+    Examples
+    --------
     The ``Fields3DMagneticField`` object stores the total magnetic field solution
     on mesh edges. To extract the discrete magnetic fields and current density
     for all sources and time-steps:
@@ -735,8 +735,8 @@ class Fields3DCurrentDensity(FieldsTDEM):
     simulation : .time_domain.Simulation3DCurrentDensity
         The TDEM simulation object associated with the fields.
 
-    Example
-    -------
+    Examples
+    --------
     The ``Fields3DCurrentDensity`` object stores the total current density solution
     on mesh faces. To extract the discrete current densities and magnetic fields
     for all sources and time-steps:
