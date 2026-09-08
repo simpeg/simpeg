@@ -16,21 +16,21 @@ One can manually run Black_, flake8_, and Ruff_ anytime.
 
 - Run ``black`` on SimPEG directories that contain Python source files:
 
-   .. code::
+  .. code:: bash
 
-      black .
+     black .
 
 - Run ``flake8`` on the whole project with:
 
-   .. code::
+  .. code:: bash
 
-      flake8
+     flake8
 
 - Run ``ruff`` on the whole project with:
 
-   .. code::
+  .. code:: bash
 
-      ruff check
+     ruff check
 
 .. important::
 
