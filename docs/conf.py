@@ -482,7 +482,7 @@ sphinx_gallery_conf = {
     # path to your examples scripts
     "examples_dirs": ["../examples"] + tutorial_dirs,
     "gallery_dirs": ["content/user-guide/examples"] + tut_gallery_dirs,
-    "within_subsection_order": FileNameSortKey,
+    "within_subsection_order": "FileNameSortKey",
     "filename_pattern": "\.py",
     "backreferences_dir": "content/api/generated/backreferences",
     "doc_module": "simpeg",
