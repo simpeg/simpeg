@@ -60,6 +60,7 @@ dependencies:
   - flake8-rst-docstrings==0.3.0
   - flake8-docstrings==1.7.0
   - zizmor # lint GitHub Actions workflows
+  - ruff
 
 # recommended
   - jupyter
