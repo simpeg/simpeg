@@ -1,5 +1,4 @@
 import re
-import warnings
 import pytest
 from pymatsolver import SolverCG
 
@@ -34,17 +33,3 @@ def test_default_error():
 
     # make sure we didn't accidentally set the default.
     assert initial_default is after_default
-
-
-def test_deprecation_warning():
-    """Test deprecation warning for the warn argument."""
-    regex = re.escape("The `warn` argument has been deprecated and will be removed in")
-    with pytest.warns(FutureWarning, match=regex):
-        get_default_solver(warn=True)
-
-
-def test_no_deprecation_warning():
-    """Test if no deprecation warning is issued with default parameters."""
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")  # raise error if warning was raised
-        get_default_solver()
