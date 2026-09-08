@@ -1,6 +1,6 @@
 STYLE_CHECK_FILES = simpeg examples tutorials tests
 GITHUB_ACTIONS=.github/workflows
-TEST_TARGET=test
+TEST_TARGET=tests
 
 .PHONY: help docs clean check black flake flake-all check-actions test
 
@@ -40,4 +40,4 @@ check-actions:
 	zizmor ${GITHUB_ACTIONS}
 
 test:
-	pytest -v --cov --cov-config="pyproject.toml" -W "ignore::DeprecationWarning" ${TEST_TARGET}
+	pytest -v --cov --cov-config="pyproject.toml" -W "ignore::DeprecationWarning" "${TEST_TARGET}"
