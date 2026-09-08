@@ -46,7 +46,7 @@ jobs:
 
     steps:
       - name: Checkout target repository source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -61,7 +61,7 @@ jobs:
       # Checkout PR branch.
       # TREAT THIS CODE AS MALICIOUS, DON'T RUN CODE FROM THIS BRANCH.
       - name: checkout pull request source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           path: pr_source
@@ -84,7 +84,7 @@ jobs:
 
     steps:
       - name: Checkout target repository source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -99,7 +99,7 @@ jobs:
       # Checkout PR branch.
       # TREAT THIS CODE AS MALICIOUS, DON'T RUN CODE FROM THIS BRANCH.
       - name: checkout pull request source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           path: "pr_source"
