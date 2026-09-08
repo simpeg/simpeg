@@ -94,7 +94,7 @@ example, i.e.
 or you can download and run the :ref:`notebook from the docs
 <sphx_glr_content_tutorials_02-linear_inversion_plot_inv_1_inversion_lsq.py>`.
 
-.. image:: ../../tutorials/02-linear_inversion/images/sphx_glr_plot_inv_1_inversion_lsq_003.png
+.. image:: ../tutorials/02-linear_inversion/images/sphx_glr_plot_inv_1_inversion_lsq_003.png
 
 You are now set up to SimPEG!
 
