@@ -8,12 +8,8 @@ name = 'simpeg'
 description = "SimPEG: Simulation and Parameter Estimation in Geophysics"
 readme = 'README.rst'
 requires-python = '>=3.11'
-authors = [
-  {name = 'SimPEG developers', email = 'rowanc1@gmail.com'},
-]
-keywords = [
-    'geophysics', 'inverse problem'
-]
+authors = [{ name = 'SimPEG developers', email = 'rowanc1@gmail.com' }]
+keywords = ['geophysics', 'inverse problem']
 dependencies = [
     "numpy>=1.22",
     "scipy>=1.12",
@@ -57,7 +53,7 @@ plotting = ["plotly"]
 sklearn = ["scikit-learn>=1.2"]
 pandas = ["pandas"]
 all = [
-    "simpeg[dask,choclo,plotting,reporting,sklearn,pandas]"
+    "simpeg[dask,choclo,plotting,reporting,sklearn,pandas]",
 ] # all optional *runtime* dependencies (not related to development)
 style = [
     "black==24.3.0",
@@ -84,14 +80,8 @@ docs = [
     "memory_profiler",
     "python-kaleido",
 ]
-tests = [
-    "simpeg[all,docs]",
-    "pytest",
-    "pytest-cov",
-]
-dev = [
-    "simpeg[all,style,docs,tests]",
-] # the whole kit and caboodle
+tests = ["simpeg[all,docs]", "pytest", "pytest-cov"]
+dev = ["simpeg[all,style,docs,tests]"] # the whole kit and caboodle
 
 [tool.setuptools]
 py-modules = ['SimPEG']
@@ -106,6 +96,10 @@ local_scheme = "node-and-date"
 [tool.coverage.run]
 branch = true
 source = ["simpeg", "tests", "examples", "tutorials"]
+concurrency = ["thread", "multiprocessing"]
+parallel = true
+sigterm = true
+
 
 [tool.coverage.report]
 ignore_errors = false
@@ -142,7 +136,14 @@ target-version = ['py310', 'py311', 'py312']
 [tool.flake8]
 extend-ignore = [
     # Default ignores by flake (added here for when ignore gets overwritten)
-    'E121','E123','E126','E226','E24','E704','W503','W504',
+    'E121',
+    'E123',
+    'E126',
+    'E226',
+    'E24',
+    'E704',
+    'W503',
+    'W504',
     # Too many leading '#' for block comment
     'E266',
     # Line too long (82 > 79 characters)
@@ -248,13 +249,7 @@ ignore = [
     'RST499',
 ]
 
-rst-roles = [
-    'class',
-    'func',
-    'mod',
-    'meth',
-    'ref',
-]
+rst-roles = ['class', 'func', 'mod', 'meth', 'ref']
 
 # pyproject.toml
 [tool.pytest.ini_options]
