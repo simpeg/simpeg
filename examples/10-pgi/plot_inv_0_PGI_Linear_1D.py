@@ -66,7 +66,7 @@ mtrue[mesh.cell_centers_x > 0.45] = -0.5
 mtrue[mesh.cell_centers_x > 0.6] = 0
 
 # simpeg problem and survey
-prob = simulation.LinearSimulation(mesh, G=G, model_map=maps.IdentityMap())
+prob = simulation.LinearSimulation(G=G, model_map=maps.IdentityMap())
 std = 0.01
 survey = prob.make_synthetic_data(mtrue, relative_error=std, add_noise=True)
 

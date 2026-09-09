@@ -6,6 +6,7 @@ import discretize
 from simpeg import utils, maps
 from simpeg.electromagnetics import resistivity as dc
 from simpeg.electromagnetics import induced_polarization as ip
+import pytest
 
 
 class IPProblemAnalyticTests(unittest.TestCase):
@@ -217,6 +218,13 @@ class ApparentChargeability3DTest(unittest.TestCase):
             plt.show()
 
         self.assertLess(err, 0.05)
+
+
+@pytest.mark.parametrize("prop", ["sigma", "rho"])
+def test_overrode_is_parametrized(prop):
+    mesh = discretize.TensorMesh([1, 1, 1])
+    ip_sim = ip.simulation.Simulation3DCellCentered(mesh=mesh, sigma=1, eta=0.1)
+    assert ip_sim.is_parametrized(prop)
 
 
 if __name__ == "__main__":

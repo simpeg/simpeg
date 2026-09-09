@@ -4,8 +4,7 @@ import scipy.sparse as sp
 from ..simulation import BaseSimulation
 from ..survey import BaseSurvey
 from ..maps import IdentityMap
-from ..utils import validate_list_of_types, validate_type
-from ..props import HasModel
+from ..utils import validate_list_of_types, validate_type, validate_ndarray_with_shape
 import itertools
 import warnings
 
@@ -148,8 +147,7 @@ class MetaSimulation(BaseSimulation):
             if mapping.shape[1] != model_len:
                 raise ValueError("All mappings must have the same input length")
             map_out_shape = mapping.shape[0]
-            for name in sim._act_map_names:
-                sim_mapping = getattr(sim, name)
+            for name, sim_mapping in sim.parametrizations.items():
                 sim_in_shape = sim_mapping.shape[1]
                 if (
                     map_out_shape != "*"
@@ -158,23 +156,27 @@ class MetaSimulation(BaseSimulation):
                 ):
                     raise ValueError(
                         f"Simulation and mapping at index {i} inconsistent. "
-                        f"Simulation mapping shape {sim_in_shape} incompatible with "
+                        f"Simulation.{name} mapping shape {sim_in_shape} incompatible with "
                         f"input mapping shape {map_out_shape}."
                     )
         self._mappings = value
 
     @property
-    def _act_map_names(self):
-        # Implement this here to trick the model setter to know about
-        # how long an input model should be.
-        # essentially it points to the first mapping.
-        return ["_model_map"]
+    def _expected_model_length(self):
+        return self.mappings[0].shape[1]
 
-    @property
-    def _model_map(self):
-        # all of the mappings have the same input shape, so just return
-        # the first one.
-        return self.mappings[0]
+    def _update_model(self, value):
+        if value is not None:
+            # check if it was the correct shape
+            value = validate_ndarray_with_shape(
+                "model", value, shape=(self._expected_model_length,), dtype=float
+            )
+        previous = getattr(self, "_model", None)
+        updated = (
+            value is None or previous is None or not np.array_equal(value, previous)
+        )
+        self._model = value
+        return updated
 
     @property
     def model(self):
@@ -182,8 +184,7 @@ class MetaSimulation(BaseSimulation):
 
     @model.setter
     def model(self, value):
-        updated = HasModel.model.fset(self, value)
-        # Only send the model to the internal simulations if it was updated.
+        updated = self._update_model(value)
         if not self._repeat_sim and updated:
             for mapping, sim in zip(self.mappings, self.simulations):
                 if value is not None:

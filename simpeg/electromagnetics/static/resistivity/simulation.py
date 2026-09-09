@@ -379,7 +379,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
         return A
 
     def getADeriv(self, u, v, adjoint=False):
-        if self.rhoMap is not None:
+        if self.is_parametrized("rho"):
             D = self.Div
             G = self.Grad
             MfRhoIDeriv = self.MfRhoIDeriv
@@ -564,7 +564,7 @@ class Simulation3DNodal(BaseDCSimulation):
             out = Grad.T @ self.MeSigmaDeriv(Grad @ u, v, adjoint)
         else:
             out = self.MeSigmaDeriv(Grad @ u, Grad @ v, adjoint)
-        if self.bc_type != "Neumann" and self.sigmaMap is not None:
+        if self.bc_type != "Neumann" and self.is_parametrized("sigma"):
             if getattr(self, "_MBC_sigma", None) is None:
                 self._MBC_sigma = self._AvgBC @ self.sigmaDeriv
             out += _inner_mat_mul_op(self._MBC_sigma, u, v, adjoint)
