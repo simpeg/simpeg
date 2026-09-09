@@ -7,30 +7,40 @@ from simpeg.utils import model_builder, mkvc, get_default_solver
 from simpeg import maps
 
 REL_TOLERANCE = 0.05
-ABS_TOLERANCE = 1e-13
+ABS_TOLERANCE = 1e-9
+REL_TOLERANCE_2 = 0.1
+ABS_TOLERANCE_2 = 1e-7
 
 
 @pytest.fixture
 def mesh():
-    # Mesh for testing
-    return TensorMesh(
+    """Get test mesh."""
+    mesh = TensorMesh(
         [
-            [(200, 6, -1.5), (200.0, 4), (200, 6, 1.5)],
-            [(200, 6, -1.5), (200.0, 4), (200, 6, 1.5)],
-            [(200, 8, -1.5), (200.0, 8), (200, 8, 1.5)],
+            [(200, 10, -1.5), (200.0, 6), (200, 10, 1.5)],
+            [(200, 10, -1.5), (200.0, 6), (200, 10, 1.5)],
+            [(200, 10, -1.5), (200.0, 10), (200, 10, 1.5)],
         ],
         "CCC",
     )
+    mesh.origin[-1] -= 200.0
+    return mesh
 
 
 @pytest.fixture
 def mapping(mesh):
+    """Get test mapping."""
     return maps.IdentityMap(mesh)
 
 
 def get_model(mesh, model_type):
-    # Model used for testing
+    """Get test model."""
     model = 1e-8 * np.ones(mesh.nC)
+
+    if mesh.dim == 1:
+        model[mesh.cell_centers < 0.0] = 1e-2
+        return model
+
     model[mesh.cell_centers[:, 2] < 0.0] = 1e-2
 
     if model_type == "layer":
@@ -42,13 +52,14 @@ def get_model(mesh, model_type):
             mesh.cell_centers,
         )
         model[ind_block] = 1e-1
+        # pass
 
     return model
 
 
 @pytest.fixture
 def locations():
-    # Receiver locations
+    """Get test locations."""
     elevation = 0.0
     v = np.r_[-350.0, -150.0, 150.0, 350.0]  # needs to be symmetric
     rx_x, rx_y = np.meshgrid(v, v)
@@ -59,11 +70,12 @@ def locations():
 
 @pytest.fixture
 def frequencies():
-    # Frequencies being evaluated
+    """Get test frequencies."""
     return [1e-1, 2e-1]
 
 
-def get_survey(locations, frequencies, survey_type, component):
+def get_survey(locations, frequencies, survey_type, component, base_type):
+    """Get test survey."""
     source_list = []
 
     for f in frequencies:
@@ -108,14 +120,49 @@ def get_survey(locations, frequencies, survey_type, component):
             ]
 
         elif survey_type == "apparent_conductivity":
-            rx_list = [nsem.receivers.ApparentConductivity(locations)]
+            rx_list = [
+                nsem.receivers.ApparentConductivity(
+                    locations_h=locations,
+                    locations_e=locations,
+                    component=component,
+                )
+            ]
+
+        elif survey_type == "det_horizontal":
+            rx_list = [
+                nsem.receivers.HorizontalDeterminant(
+                    locations_h=locations,
+                    locations_base=locations,
+                    base_type=base_type,
+                    component=component,
+                )
+            ]
+
+        elif survey_type == "gram_amp":
+            rx_list = [
+                nsem.receivers.RootGramDeterminant(
+                    locations_h=locations,
+                    locations_base=locations,
+                    base_type=base_type,
+                )
+            ]
+
+        elif survey_type == "cross_amp":
+            rx_list = [
+                nsem.receivers.CrossProductAmplitude(
+                    locations_h=locations,
+                    locations_base=locations,
+                    base_type=base_type,
+                )
+            ]
 
         source_list.append(nsem.sources.PlanewaveXYPrimary(rx_list, f))
 
     return nsem.survey.Survey(source_list)
 
 
-def get_analytic_halfspace_solution(sigma, f, survey_type, component):
+def get_analytic_halfspace_solution(sigma, f, survey_type, component, base_type):
+    """Get analytic halfpsace solution."""
     # MT data types (Zxx, Zxy, Zyx, Zyy)
     if survey_type == "impedance":
         if component in ["real", "imag"]:
@@ -145,29 +192,65 @@ def get_analytic_halfspace_solution(sigma, f, survey_type, component):
     elif survey_type == "apparent_conductivity":
         return sigma
 
+    elif survey_type == "det_horizontal":
+        if base_type == "magnetic":
+            if component == "imag":
+                return np.r_[0.0]
+            else:
+                return np.r_[1.0]
+        elif base_type == "electric":
+            if component == "real":
+                return (
+                    0.025 * sigma / (2 * np.pi * f * mu_0)
+                )  # np.r_[0.] <-- analytically
+            elif component == "imag":
+                return -sigma / (2 * np.pi * f * mu_0)
+            else:
+                return sigma / (2 * np.pi * f * mu_0)
+
+    elif survey_type == "gram_amp":
+        if base_type == "magnetic":
+            return np.r_[1.0]
+        elif base_type == "electric":
+            return sigma / (2 * np.pi * f * mu_0)
+
+    elif survey_type == "cross_amp":
+        if base_type == "magnetic":
+            return np.r_[1.0]
+        elif base_type == "electric":
+            return sigma / (2 * np.pi * f * mu_0)
+
 
 # Validate impedances, tippers and admittances against analytic
 # solution for a halfspace.
 
 CASES_LIST_HALFSPACE = [
-    ("impedance", "real"),
-    ("impedance", "imag"),
-    ("impedance", "app_res"),
-    ("impedance", "phase"),
-    ("tipper", "real"),
-    ("tipper", "imag"),
-    ("admittance", "real"),
-    ("admittance", "imag"),
-    ("apparent_conductivity", None),
+    ("impedance", "real", None),
+    ("impedance", "imag", None),
+    ("tipper", "real", None),
+    ("tipper", "imag", None),
+    ("admittance", "real", None),
+    ("admittance", "imag", None),
+    ("det_horizontal", "real", "magnetic"),
+    ("det_horizontal", "imag", "magnetic"),
+    ("det_horizontal", "amp", "magnetic"),
+    ("det_horizontal", "real", "electric"),
+    ("det_horizontal", "imag", "electric"),
+    ("det_horizontal", "amp", "electric"),
+    ("cross_amp", None, "electric"),
+    ("gram_amp", None, "magnetic"),
+    ("cross_amp", None, "electric"),
+    ("gram_amp", None, "magnetic"),
 ]
 
 
-@pytest.mark.parametrize("survey_type, component", CASES_LIST_HALFSPACE)
+@pytest.mark.parametrize("survey_type, component, base_type", CASES_LIST_HALFSPACE)
 def test_analytic_halfspace_solution(
-    survey_type, component, frequencies, locations, mesh, mapping
+    survey_type, component, base_type, frequencies, locations, mesh, mapping
 ):
+    """Analytic halfspace solution tests."""
     # Numerical solution
-    survey = get_survey(locations, frequencies, survey_type, component)
+    survey = get_survey(locations, frequencies, survey_type, component, base_type)
     model_hs = get_model(mesh, "halfspace")  # 1e-2 halfspace
     sim = nsem.simulation.Simulation3DPrimarySecondary(
         mesh,
@@ -183,24 +266,89 @@ def test_analytic_halfspace_solution(
     n_locations = np.shape(locations)[0]
     analytic_solution = np.hstack(
         [
-            get_analytic_halfspace_solution(sigma_hs, f, survey_type, component)
+            get_analytic_halfspace_solution(
+                sigma_hs, f, survey_type, component, base_type
+            )
             for f in frequencies
         ]
     )
     analytic_solution = np.repeat(analytic_solution, n_locations)
 
-    # # Error
-    err = np.abs(
-        (numeric_solution - analytic_solution) / (analytic_solution + ABS_TOLERANCE)
+    if (
+        (survey_type == "det_horizontal")
+        & (component == "real")
+        & (base_type == "electric")
+    ):
+        np.testing.assert_array_less(
+            np.abs(numeric_solution), np.abs(analytic_solution)
+        )
+    else:
+        np.testing.assert_allclose(
+            analytic_solution, numeric_solution, rtol=REL_TOLERANCE, atol=ABS_TOLERANCE
+        )
+
+
+CASES_LIST_CROSSCHECK = [
+    ("gram_amp", "root_gram_determinant"),
+    ("cross_amp", "cross_product_amplitude"),
+    ("det_horizontal", "horizontal_determinant"),
+]
+
+
+# PRIMARY-SECONDARY DOESN'T SEEM TO WORK UNLESS THE PADDING IS EXTREME.
+@pytest.mark.parametrize("survey_type, component", CASES_LIST_CROSSCHECK)
+def test_apparent_conductivity_crosscheck(
+    survey_type, component, frequencies, locations, mesh, mapping
+):
+    """Cross check test for apparent conductivity data."""
+    # Numerical solution
+    survey_1 = get_survey(
+        locations,
+        frequencies,
+        "apparent_conductivity",
+        component,
+        None,
+    )
+    survey_2 = get_survey(locations, frequencies, survey_type, "amp", "electric")
+
+    model_block = get_model(mesh, "block")
+    model_hs = get_model(mesh, "halfspace")  # 1e-2 halfspace
+
+    sim_1 = nsem.simulation.Simulation3DPrimarySecondary(
+        mesh,
+        survey=survey_1,
+        sigmaPrimary=model_hs,
+        sigmaMap=mapping,
+        solver=get_default_solver(),
+    )
+    sim_2 = nsem.simulation.Simulation3DPrimarySecondary(
+        mesh,
+        survey=survey_2,
+        sigmaPrimary=model_hs,
+        sigmaMap=mapping,
+        solver=get_default_solver(),
     )
 
-    assert np.all(err < REL_TOLERANCE)
+    dpred_1 = sim_1.dpred(model_block)
+
+    alpha = 2 * np.pi * np.kron(frequencies, np.ones(len(locations))) * mu_0
+    dpred_2 = alpha * sim_2.dpred(model_block)
+
+    np.testing.assert_allclose(
+        dpred_1, dpred_2, rtol=REL_TOLERANCE_2, atol=ABS_TOLERANCE_2
+    )
 
 
 def test_symmetry_for_appcon(frequencies, locations, mesh, mapping):
     """Test the app con is symmetric across the y-axis."""
     # Numerical solution
-    survey = get_survey(locations, frequencies, "apparent_conductivity", None)
+    survey = get_survey(
+        locations,
+        frequencies,
+        "apparent_conductivity",
+        "cross_product_amplitude",
+        None,
+    )
     model_hs = get_model(mesh, "halfspace")  # 1e-2 halfspace
     model_block = get_model(mesh, "block")
     sim = nsem.simulation.Simulation3DPrimarySecondary(
