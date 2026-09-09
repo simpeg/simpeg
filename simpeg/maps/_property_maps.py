@@ -7,7 +7,7 @@ from numbers import Real
 import numpy as np
 import scipy.sparse as sp
 from scipy.constants import mu_0
-from scipy.special import expit, logit
+from scipy.special import expit, logit, erf, erfinv
 from discretize.utils import mkvc, sdiag, rotation_matrix_from_normals
 
 from ._base import IdentityMap
@@ -1520,6 +1520,457 @@ class SelfConsistentEffectiveMedium(IdentityMap):
         Compute the concentration given the effective conductivity
         """
         return self._sc2phaseEMTSpheroidsinversetransform(sige)
+
+    @property
+    def is_linear(self):
+        return False
+
+
+class ScaledLogisticSigmoidMap(LogisticSigmoidMap):
+    r"""Logistic sigmoid mapping parameterized by the width of its transition zone.
+
+    ``ScaledLogisticSigmoidMap`` behaves like :class:`.LogisticSigmoidMap`, except that
+    instead of using the natural width of the logistic sigmoid, the model is rescaled so
+    that ``half_width`` directly controls how wide the transition between
+    ``lower_bound`` and ``upper_bound`` is. Where :math:`\mathbf{m}` is a set of model
+    parameters, the mapping is defined as:
+
+    .. math::
+        \mathbf{u}(\mathbf{m}) = \textrm{lower\_bound} +
+        (\textrm{upper\_bound} - \textrm{lower\_bound}) \cdot
+        \textrm{sigmoid} \! \left( \frac{w_0}{\textrm{half\_width}} \, \mathbf{m} \right)
+
+    where :math:`\textrm{sigmoid}(x) = 1/(1 + e^{-x})` and
+    :math:`w_0 = 2 \log(3 + 2\sqrt{2})` is the full width at half maximum (FWHM) of the
+    derivative of the standard logistic sigmoid. Because of this normalization,
+    ``half_width`` is the full width (in model space, centered on 0) over which the
+    derivative of :math:`\mathbf{u}(\mathbf{m})` remains at least half of its peak value;
+    smaller values of ``half_width`` produce a sharper, more step-like transition between
+    the bounds.
+
+    Parameters
+    ----------
+    half_width : float
+        Full width (centered at 0) of the region over which the derivative of the mapping
+        is at least half of its peak value; controls the sharpness of the transition
+        between ``lower_bound`` and ``upper_bound``. Must be strictly positive.
+        Default is 1.
+    deriv_half_width : None or float
+        Half-width used when evaluating :py:meth:`deriv`. If ``None`` (default), the
+        value of ``half_width`` is used. Setting this independently of ``half_width``
+        allows the derivative used during inversion to be smoothed or widened relative
+        to the forward transform.
+    lower_bound, upper_bound, mesh, nP
+        See :class:`.LogisticSigmoidMap`.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from simpeg.maps import ScaledLogisticSigmoidMap
+
+    >>> mapping = ScaledLogisticSigmoidMap(nP=5, half_width=2.0)
+    >>> m = np.array([-2.0, -1.0, 0.0, 1.0, 2.0])
+    >>> mapping * m
+    array([0.02859548, 0.14644661, 0.5       , 0.85355339, 0.97140452])
+    """
+
+    _base_half_width = 2 * np.log(3 + 2 * np.sqrt(2))
+
+    def __init__(self, half_width=1.0, deriv_half_width=None, **kwargs):
+        super().__init__(**kwargs)
+        self._half_width = validate_float(
+            "half_width", half_width, min_val=0.0, inclusive_min=False
+        )
+        self._deriv_half_width = (
+            self._half_width
+            if deriv_half_width is None
+            else validate_float(
+                "deriv_half_width", deriv_half_width, min_val=0.0, inclusive_min=False
+            )
+        )
+
+    def _transform(self, x):
+        m_scale = self._base_half_width / self._half_width
+        return super()._transform(x * m_scale)
+
+    def inverse(self, y):
+        m_scale = self._base_half_width / self._half_width
+        return super().inverse(y) / m_scale
+
+    def deriv(self, m, v=None):
+        m_scale = self._base_half_width / self._deriv_half_width
+        dm_v = super().deriv(m * m_scale, v)
+        if v is not None:
+            return dm_v * m_scale
+        return sp.diags(np.full_like(m, m_scale)) @ dm_v
+
+
+class ArctanMap(IdentityMap):
+    r"""Mapping that transforms model parameters through a scaled arctangent transfer function.
+
+    Where :math:`\mathbf{m}` is a set of model parameters, ``ArctanMap`` creates a mapping
+    :math:`\mathbf{u}(\mathbf{m})` that passes each parameter through an arctangent, then
+    scales and shifts the result:
+
+    .. math::
+        \mathbf{u}(\mathbf{m}) = \textrm{shift} + \textrm{scale} \cdot
+        \arctan \! \left( \frac{2}{\textrm{half\_width}} \, \mathbf{m} \right)
+
+    As :math:`m_i \rightarrow \pm \infty`, :math:`\arctan` saturates at :math:`\pm \pi/2`, so
+    ``ArctanMap`` maps the model onto the bounded interval
+    :math:`(\textrm{shift} - \textrm{scale}\, \pi/2,\ \textrm{shift} + \textrm{scale}\, \pi/2)`.
+    With the default ``scale = 1/pi`` and ``shift = 0.5``, this interval is :math:`(0, 1)`.
+
+    The ``half_width`` parameter controls how quickly the mapping transitions between its
+    bounds: it is the full width (in model space, centered on 0) over which the derivative
+    of the mapping remains at least half of its peak value. Smaller ``half_width`` values
+    produce a steeper, more step-like transfer function.
+
+    Parameters
+    ----------
+    half_width : float
+        Full width (centered at 0) of the region over which the derivative of the mapping
+        is at least half of its peak value; controls the sharpness of the transition.
+        Must be strictly positive. Default is 1.
+    scale : float
+        Scales the output of the arctangent transfer function. Default is :math:`1/\pi`.
+    shift : float
+        Shifts the (scaled) output of the arctangent transfer function. Default is 0.5.
+    deriv_half_width : None or float
+        Half-width used when evaluating :py:meth:`deriv`. If ``None`` (default), the
+        value of ``half_width`` is used. Setting this independently of ``half_width``
+        allows the derivative used during inversion to be smoothed or widened relative
+        to the forward transform.
+    mesh : discretize.BaseMesh
+        The number of parameters accepted by the mapping is set to equal the number
+        of mesh cells.
+    nP : int
+        Set the number of parameters accepted by the mapping directly.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from simpeg.maps import ArctanMap
+
+    >>> mapping = ArctanMap(nP=5, half_width=2.0)
+    >>> m = np.array([-2.0, -1.0, 0.0, 1.0, 2.0])
+    >>> mapping * m
+    array([0.14758362, 0.25      , 0.5       , 0.75      , 0.85241638])
+    """
+
+    def __init__(
+        self, half_width=1, scale=1 / np.pi, shift=0.5, deriv_half_width=None, **kwargs
+    ):
+        self._half_width = validate_float(
+            "half_width", half_width, min_val=0.0, inclusive_min=False
+        )
+        self._deriv_half_width = (
+            self._half_width
+            if deriv_half_width is None
+            else validate_float(
+                "deriv_half_width", deriv_half_width, min_val=0.0, inclusive_min=False
+            )
+        )
+        self._scale = validate_float("scale", scale)
+        self._shift = validate_float("shift", shift)
+        super().__init__(**kwargs)
+
+    def _transform(self, x):
+        x_scale = 2 / self._half_width
+        return self._scale * np.arctan(x * x_scale) + self._shift
+
+    def inverse(self, y):
+        x_scale = 2 / self._half_width
+        return np.tan((y - self._shift) / self._scale) / x_scale
+
+    def deriv(self, m, v=None):
+        x_scale = 2 / self._deriv_half_width
+        x = m * x_scale
+        dtan = self._scale * x_scale / (x * x + 1)
+        if v is not None:
+            return dtan * v
+        else:
+            return sp.diags(dtan)
+
+    @property
+    def is_linear(self):
+        return False
+
+
+class PiecewiseLinearMap(IdentityMap):
+    r"""Mapping that transforms model parameters through a piecewise-linear transfer function.
+
+    Where :math:`\mathbf{m}` is a set of model parameters and :math:`(\mathbf{x}_p,
+    \mathbf{f}_p)` are a set of ``n`` control points sorted by :math:`\mathbf{x}_p`,
+    ``PiecewiseLinearMap`` creates a mapping :math:`\mathbf{u}(\mathbf{m})` that linearly
+    interpolates between the control points, holding the output constant outside of the
+    range spanned by :math:`\mathbf{x}_p`:
+
+    .. math::
+        u(m) =
+        \begin{cases}
+            (f_p)_1 & m \leq (x_p)_1 \\[4pt]
+            (f_p)_i + \dfrac{(f_p)_{i+1} - (f_p)_i}{(x_p)_{i+1} - (x_p)_i}
+                \big(m - (x_p)_i\big) & (x_p)_i < m \leq (x_p)_{i+1} \\[8pt]
+            (f_p)_n & m > (x_p)_n
+        \end{cases}
+
+    applied element-wise to every entry of :math:`\mathbf{m}`. This is equivalent to
+    :func:`numpy.interp` evaluated at each :math:`m_i`, but is used here as a
+    differentiable transfer function.
+
+    Parameters
+    ----------
+    xp : (n) array_like
+        The x-locations of the control points defining the piecewise-linear function.
+        They do not need to be sorted; they are sorted internally along with ``fp``.
+    fp : (n) array_like
+        The function values at each of the control points in ``xp``.
+    mesh : discretize.BaseMesh
+        The number of parameters accepted by the mapping is set to equal the number
+        of mesh cells.
+    nP : int
+        Set the number of parameters accepted by the mapping directly.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from simpeg.maps import PiecewiseLinearMap
+
+    >>> xp = np.array([0.0, 1.0, 2.0])
+    >>> fp = np.array([0.0, 10.0, 10.0])
+    >>> mapping = PiecewiseLinearMap(xp, fp, nP=6)
+    >>> m = np.array([-1.0, 0.0, 0.5, 1.0, 1.5, 3.0])
+    >>> mapping * m
+    array([ 0.,  0.,  5., 10., 10., 10.])
+    """
+
+    def __init__(self, xp, fp, **kwargs):
+        xp = np.asarray(xp, dtype=float)
+        fp = np.asarray(fp, dtype=float)
+        xp_sort = np.argsort(xp)
+        self._xp = np.r_[-np.inf, xp[xp_sort], np.inf]
+        fp = fp[xp_sort]
+        self._fp = np.r_[fp[0], fp, fp[-1]]
+
+        # construct linear interpolator function
+        self._df = np.diff(self._fp) / np.diff(self._xp)
+        super().__init__(**kwargs)
+
+    def _transform(self, x):
+        intervals = np.searchsorted(self._xp, x)
+        n_ps = len(self._xp) - 2
+        xp = self._xp[np.minimum(intervals, n_ps)]
+        fp = self._fp[intervals]
+        df = self._df[intervals - 1]
+        y = df * (x - xp) + fp
+        return y
+
+    def inverse(self, y):
+        raise NotImplementedError("Cannot uniquely invert a piecewise linear map")
+
+    def deriv(self, m, v=None):
+        intervals = np.searchsorted(self._xp, m)
+        df = self._df[intervals - 1]
+        if v is not None:
+            return df * v
+        return sp.diags(df)
+
+    @property
+    def is_linear(self):
+        return False  # because the derivative value depends on "m" (even though the function used by this is piecwise linear)
+
+
+class SineTransferMap(IdentityMap):
+    r"""Mapping that transforms model parameters through a raised-cosine transfer function.
+
+    Where :math:`\mathbf{m}` is a set of model parameters, ``SineTransferMap`` creates a
+    mapping :math:`\mathbf{u}(\mathbf{m})` whose derivative is a raised-cosine (Hann-like)
+    window of full width ``half_width`` centered on 0; :math:`\mathbf{u}(\mathbf{m})` is
+    therefore the (scaled and shifted) integral of that window:
+
+    .. math::
+        \mathbf{u}(\mathbf{m}) = \textrm{shift} + \frac{\textrm{scale}}{2}
+        \Big( \sin(\mathbf{x}) + \mathbf{x} \Big), \quad
+        \mathbf{x} = \textrm{clip}\!\left(
+        \frac{\pi}{\textrm{half\_width}} \, \mathbf{m},\ -\pi,\ \pi \right)
+
+    Because :math:`x` is clipped to :math:`[-\pi, \pi]`, the mapping saturates outside of
+    :math:`|m| = \textrm{half\_width}/2`, giving the bounded output range
+    :math:`(\textrm{shift} - \textrm{scale}\, \pi/2,\ \textrm{shift} + \textrm{scale}\, \pi/2)`.
+    With the default ``scale = 1/pi`` and ``shift = 0.5``, this range is :math:`(0, 1)`.
+    ``half_width`` is the full width (in model space, centered on 0) over which the
+    derivative of the mapping is at least half of its peak value, and also marks where the
+    mapping saturates; smaller values produce a steeper, more step-like transition.
+
+    Because the mapping is constant for :math:`|m| \geq \textrm{half\_width}/2`, it is not
+    globally invertible; calling :py:meth:`inverse` raises ``NotImplementedError``.
+
+    Parameters
+    ----------
+    half_width : float
+        Full width (centered at 0) of the region over which the mapping transitions
+        between its bounds. Must be strictly positive. Default is 1.
+    scale : float
+        Scales the output of the transfer function. Default is :math:`1/\pi`.
+    shift : float
+        Shifts the (scaled) output of the transfer function. Default is 0.5.
+    deriv_half_width : None or float
+        Half-width used when evaluating :py:meth:`deriv`. If ``None`` (default), the
+        value of ``half_width`` is used. Setting this independently of ``half_width``
+        allows the derivative used during inversion to be smoothed or widened relative
+        to the forward transform.
+    mesh : discretize.BaseMesh
+        The number of parameters accepted by the mapping is set to equal the number
+        of mesh cells.
+    nP : int
+        Set the number of parameters accepted by the mapping directly.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from simpeg.maps import SineTransferMap
+
+    >>> mapping = SineTransferMap(nP=5, half_width=4.0)
+    >>> m = np.array([-2.0, -1.0, 0.0, 1.0, 2.0])
+    >>> mapping * m
+    array([0.09084506, 0.26246046, 0.5       , 0.73753954, 0.90915494])
+    """
+
+    _base_half_width = np.pi
+
+    def __init__(
+        self, half_width=1, scale=1 / np.pi, shift=0.5, deriv_half_width=None, **kwargs
+    ):
+        self._half_width = validate_float(
+            "half_width", half_width, min_val=0.0, inclusive_min=False
+        )
+        self._deriv_half_width = (
+            self._half_width
+            if deriv_half_width is None
+            else validate_float(
+                "deriv_half_width", deriv_half_width, min_val=0.0, inclusive_min=False
+            )
+        )
+        self._scale = validate_float("scale", scale)
+        self._shift = validate_float("shift", shift)
+        super().__init__(**kwargs)
+
+    def _transform(self, x):
+        x_scale = self._base_half_width / self._half_width
+        x = x_scale * x
+        np.maximum(x, -np.pi, out=x)
+        np.minimum(x, np.pi, out=x)
+        return self._scale / 2 * (np.sin(x) + x) + self._shift
+
+    def inverse(self, y):
+        raise NotImplementedError("Cannot uniquely invert a cosine transfer map")
+
+    def deriv(self, m, v=None):
+        x_scale = self._base_half_width / self._deriv_half_width
+        x = x_scale * m
+        np.maximum(x, -np.pi, out=x)
+        np.minimum(x, np.pi, out=x)
+        d_map = self._scale * x_scale / 2 * (np.cos(x) + 1)
+        if v is not None:
+            return d_map * v
+        return sp.diags(d_map)
+
+    @property
+    def is_linear(self):
+        return False
+
+
+class ErfMap(IdentityMap):
+    r"""Mapping that transforms model parameters through a scaled error-function transfer function.
+
+    Where :math:`\mathbf{m}` is a set of model parameters, ``ErfMap`` creates a mapping
+    :math:`\mathbf{u}(\mathbf{m})` that passes each parameter through the Gauss error
+    function, then scales and shifts the result:
+
+    .. math::
+        \mathbf{u}(\mathbf{m}) = \textrm{shift} + \frac{\textrm{scale}}{2}
+        \,\textrm{erf} \! \left( \frac{w_0}{\textrm{half\_width}} \, \mathbf{m} \right),
+        \quad w_0 = 2\sqrt{\ln 2}
+
+    As :math:`m_i \rightarrow \pm \infty`, :math:`\textrm{erf}` saturates at :math:`\pm 1`,
+    so ``ErfMap`` maps the model onto the bounded interval
+    :math:`(\textrm{shift} - \textrm{scale}/2,\ \textrm{shift} + \textrm{scale}/2)`. With
+    the default ``scale = 1`` and ``shift = 0.5``, this interval is :math:`(0, 1)`.
+
+    The constant :math:`w_0 = 2\sqrt{\ln 2}` is the full width at half maximum (FWHM) of
+    the derivative of the unscaled error function, which is a Gaussian. Because of this
+    normalization, ``half_width`` is the full width (in model space, centered on 0) over
+    which the derivative of the mapping remains at least half of its peak value; smaller
+    ``half_width`` values produce a steeper, more step-like transfer function.
+
+    Parameters
+    ----------
+    half_width : float
+        Full width (centered at 0) of the region over which the derivative of the mapping
+        is at least half of its peak value; controls the sharpness of the transition.
+        Must be strictly positive. Default is 1.
+    scale : float
+        Scales the output of the error-function transfer function. Default is 1.
+    shift : float
+        Shifts the (scaled) output of the error-function transfer function. Default is 0.5.
+    deriv_half_width : None or float
+        Half-width used when evaluating :py:meth:`deriv`. If ``None`` (default), the
+        value of ``half_width`` is used. Setting this independently of ``half_width``
+        allows the derivative used during inversion to be smoothed or widened relative
+        to the forward transform.
+    mesh : discretize.BaseMesh
+        The number of parameters accepted by the mapping is set to equal the number
+        of mesh cells.
+    nP : int
+        Set the number of parameters accepted by the mapping directly.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from simpeg.maps import ErfMap
+
+    >>> mapping = ErfMap(nP=5, half_width=2.0)
+    >>> m = np.array([-2.0, -1.0, 0.0, 1.0, 2.0])
+    >>> mapping * m
+    array([0.00926584, 0.11951595, 0.5       , 0.88048405, 0.99073416])
+    """
+
+    _base_half_width = 2 * np.sqrt(np.log(2))
+
+    def __init__(
+        self, half_width=1, scale=1, shift=0.5, deriv_half_width=None, **kwargs
+    ):
+        self._half_width = validate_float(
+            "half_width", half_width, min_val=0.0, inclusive_min=False
+        )
+        self._deriv_half_width = (
+            self._half_width
+            if deriv_half_width is None
+            else validate_float(
+                "deriv_half_width", deriv_half_width, min_val=0.0, inclusive_min=False
+            )
+        )
+        self._scale = validate_float("scale", scale)
+        self._shift = validate_float("shift", shift)
+        super().__init__(**kwargs)
+
+    def _transform(self, x):
+        x_scale = self._base_half_width / self._half_width
+        return self._scale / 2 * erf(x * x_scale) + self._shift
+
+    def inverse(self, y):
+        x_scale = self._base_half_width / self._half_width
+        return erfinv(2 * (y - self._shift) / self._scale) / x_scale
+
+    def deriv(self, m, v=None):
+        x_scale = self._base_half_width / self._deriv_half_width
+        m = x_scale * m
+
+        d_erf = (self._scale * x_scale / np.sqrt(np.pi)) * np.exp(-m * m)
+        if v is not None:
+            return d_erf * v
+        return sp.diags(d_erf)
 
     @property
     def is_linear(self):

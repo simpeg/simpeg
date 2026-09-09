@@ -11,15 +11,20 @@ from ._base import (
 from ._clustering import PolynomialPetroClusterMap
 from ._injection import Mesh2Mesh, InjectActiveCells
 from ._property_maps import (
+    ArctanMap,
     ChiMap,
     ComplexMap,
     EffectiveSusceptibilityMap,
+    ErfMap,
     ExpMap,
     LogisticSigmoidMap,
     LogMap,
     MuRelative,
+    PiecewiseLinearMap,
     ReciprocalMap,
+    ScaledLogisticSigmoidMap,
     SelfConsistentEffectiveMedium,
+    SineTransferMap,
     Weighting,
 )
 from ._parametric import (
