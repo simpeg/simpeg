@@ -98,7 +98,6 @@ from .utils import (
     validate_integer,
     validate_type,
     validate_ndarray_with_shape,
-    deprecate_property,
 )
 
 norm = np.linalg.norm
@@ -1123,13 +1122,6 @@ class InexactCG(object):
     def cg_maxiter(self, value):
         self._cg_maxiter = validate_integer("cg_maxiter", value, min_val=1)
 
-    maxIterCG = deprecate_property(
-        cg_maxiter, old_name="maxIterCG", removal_version="0.26.0", future_warn=True
-    )
-    tolCG = deprecate_property(
-        cg_rtol, old_name="tolCG", removal_version="0.26.0", future_warn=True
-    )
-
 
 class ProjectedGradient(Bounded, InexactCG, Minimize, Remember):
     name = "Projected Gradient"
@@ -1709,25 +1701,3 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
         step[bound] = 0
 
         return step
-
-    stepActiveSet = deprecate_property(
-        step_active_set,
-        old_name="stepActiveSet",
-        removal_version="0.26.0",
-        future_warn=True,
-    )
-
-    stepOffBoundsFact = deprecate_property(
-        active_set_grad_scale,
-        old_name="stepOffBoundsFact",
-        removal_version="0.26.0",
-        future_warn=True,
-    )
-
-    # This was the weird part from before... the default tolerance was used as an absolute tolerance...
-    tolCG = deprecate_property(
-        InexactGaussNewton.cg_atol,
-        old_name="tolCG",
-        removal_version="0.26.0",
-        future_warn=True,
-    )
