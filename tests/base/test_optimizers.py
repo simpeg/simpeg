@@ -337,48 +337,33 @@ class TestInexactGaussNewton:
             optimization.InexactGaussNewton(10)
 
     @pytest.mark.parametrize("on_init", [True, False], ids=["init", "attribute setter"])
-    def test_deprecated_tolCG(self, on_init):
-        match = ".*tolCG has been deprecated.*cg_rtol.*"
+    def test_removed_tolCG(self, on_init):
+        match = ".*tolCG has been removed.*cg_rtol.*"
         if on_init:
-            with pytest.warns(FutureWarning, match=match):
-                opt = optimization.InexactGaussNewton(tolCG=1e-3)
+            with pytest.raises(NotImplementedError, match=match):
+                optimization.InexactGaussNewton(tolCG=1e-3)
         else:
             opt = optimization.InexactGaussNewton()
-            with pytest.warns(FutureWarning, match=match):
+            with pytest.raises(NotImplementedError, match=match):
                 opt.tolCG = 1e-3
 
-        with pytest.warns(FutureWarning, match=match):
-            assert opt.tolCG == 1e-3
-        assert opt.cg_atol == 0.0
-        assert opt.cg_rtol == 1e-3
-
-        # test setting new changes old
-        opt.cg_rtol = 1e-4
-
-        with pytest.warns(FutureWarning, match=match):
-            assert opt.tolCG == 1e-4
+            with pytest.raises(NotImplementedError, match=match):
+                assert opt.tolCG
 
     @pytest.mark.parametrize("on_init", [True, False], ids=["init", "attribute setter"])
-    def test_deprecated_maxIterCG(self, on_init):
+    def test_removed_maxIterCG(self, on_init):
 
-        match = ".*maxIterCG has been deprecated.*"
+        match = ".*maxIterCG has been removed.*"
         if on_init:
-            with pytest.warns(FutureWarning, match=match):
-                opt = optimization.InexactGaussNewton(maxIterCG=3)
+            with pytest.raises(NotImplementedError, match=match):
+                optimization.InexactGaussNewton(maxIterCG=3)
         else:
             opt = optimization.InexactGaussNewton()
-            with pytest.warns(FutureWarning, match=match):
+            with pytest.raises(NotImplementedError, match=match):
                 opt.maxIterCG = 3
 
-        with pytest.warns(FutureWarning, match=match):
-            assert opt.maxIterCG == 3
-
-        assert opt.cg_maxiter == 3
-
-        # test setting new changes old
-        opt.cg_maxiter = 8
-        with pytest.warns(FutureWarning, match=match):
-            assert opt.maxIterCG == 8
+            with pytest.raises(NotImplementedError, match=match):
+                assert opt.maxIterCG
 
 
 class TestProjectedGNCG:
