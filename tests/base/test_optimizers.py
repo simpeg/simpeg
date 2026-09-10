@@ -246,17 +246,12 @@ class TestInexactCGParams:
         ):
             optimization.InexactCG(1e-3)
 
-    def test_deprecated(self):
-        with pytest.warns(FutureWarning, match=".*tolCG has been deprecated.*"):
-            cg_pars = optimization.InexactCG(tolCG=1e-3)
-        assert cg_pars.cg_atol == 0.0
-        assert cg_pars.cg_rtol == 1e-3
-
-        with pytest.warns(FutureWarning, match=".*maxIterCG has been deprecated.*"):
-            cg_pars = optimization.InexactCG(maxIterCG=3)
-        assert cg_pars.cg_atol == 0.0
-        assert cg_pars.cg_rtol == 1e-1
-        assert cg_pars.cg_maxiter == 3
+    def test_removed(self):
+        """Test error after removed deprecated properties."""
+        with pytest.raises(TypeError):
+            optimization.InexactCG(tolCG=1e-3)
+        with pytest.raises(TypeError):
+            optimization.InexactCG(maxIterCG=3)
 
 
 class TestProjectedGradient:
