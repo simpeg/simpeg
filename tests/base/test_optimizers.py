@@ -295,7 +295,7 @@ class TestProjectedGradient:
                 opt.tolCG = 1e-3
 
             with pytest.raises(NotImplementedError, match=match):
-                assert opt.tolCG
+                opt.tolCG
 
     @pytest.mark.parametrize("on_init", [True, False], ids=["init", "attribute setter"])
     def test_removed_maxIterCG(self, on_init):
@@ -310,7 +310,7 @@ class TestProjectedGradient:
                 opt.maxIterCG = 3
 
             with pytest.raises(NotImplementedError, match=match):
-                assert opt.maxIterCG
+                opt.maxIterCG
 
 
 class TestInexactGaussNewton:
@@ -348,7 +348,7 @@ class TestInexactGaussNewton:
                 opt.tolCG = 1e-3
 
             with pytest.raises(NotImplementedError, match=match):
-                assert opt.tolCG
+                opt.tolCG
 
     @pytest.mark.parametrize("on_init", [True, False], ids=["init", "attribute setter"])
     def test_removed_maxIterCG(self, on_init):
@@ -363,7 +363,7 @@ class TestInexactGaussNewton:
                 opt.maxIterCG = 3
 
             with pytest.raises(NotImplementedError, match=match):
-                assert opt.maxIterCG
+                opt.maxIterCG
 
 
 class TestProjectedGNCG:
