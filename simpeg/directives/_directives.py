@@ -1857,9 +1857,6 @@ class SaveOutputEveryIteration(SaveEveryIteration):
     """
 
     def __init__(self, on_disk=True, **kwargs):
-        if (save_txt := kwargs.pop("save_txt", None)) is not None:
-            self.save_txt = save_txt
-            on_disk = self.save_txt
         super().__init__(on_disk=on_disk, **kwargs)
 
     def initialize(self):
@@ -1900,7 +1897,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         SaveEveryIteration.on_disk,
         "save_txt",
         removal_version="0.26.0",
-        future_warn=True,
+        error=True,
     )
 
     def endIter(self):
