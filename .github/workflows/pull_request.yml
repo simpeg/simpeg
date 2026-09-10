@@ -53,7 +53,7 @@ jobs:
       - name: Setup Python env
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Install dependencies to run the flake8 checks
         run: .ci/install_style.sh
@@ -91,7 +91,7 @@ jobs:
       - name: Setup Python env
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Install dependencies to run the black checks
         run: .ci/install_style.sh
