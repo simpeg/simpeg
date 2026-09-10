@@ -380,14 +380,11 @@ class TestProjectedGNCG:
             opt = optimization.ProjectedGNCG(cg_rtol=1e-4)
             assert opt.cg_atol == 0.0
             assert opt.cg_rtol == 1e-4
-        # test the old defaults
+        # test the new defaults
         else:
-            with pytest.warns(
-                FutureWarning, match="The defaults for ProjectedGNCG will change.*"
-            ):
-                opt = optimization.ProjectedGNCG()
-            assert opt.cg_rtol == 0.0
-            assert opt.cg_atol == 1e-3
+            opt = optimization.ProjectedGNCG()
+            assert opt.cg_rtol == 1e-3
+            assert opt.cg_atol == 0.0
         assert opt.cg_maxiter == 5
         assert np.isneginf(opt.lower)
         assert np.isposinf(opt.upper)
@@ -412,59 +409,26 @@ class TestProjectedGNCG:
             optimization.ProjectedGNCG(10)
 
     @pytest.mark.parametrize("on_init", [True, False], ids=["init", "attribute setter"])
-    def test_deprecated_tolCG(self, on_init):
-        if on_init:
-            with pytest.warns(
-                FutureWarning, match=".*tolCG has been deprecated.*cg_atol.*"
-            ):
-                opt = optimization.ProjectedGNCG(tolCG=1e-5)
-        else:
-            opt = optimization.ProjectedGNCG()
-            with pytest.warns(
-                FutureWarning, match=".*tolCG has been deprecated.*cg_atol.*"
-            ):
-                opt.tolCG = 1e-5
-
-        with pytest.warns(FutureWarning, match=".*tolCG has been deprecated.*"):
-            assert opt.tolCG == 1e-5
-
-        assert opt.cg_atol == 1e-5
-        assert opt.cg_rtol == 0.0
-
-        # test setting new changes old
-        opt.cg_atol = 1e-4
-
-        with pytest.warns(FutureWarning, match=".*tolCG has been deprecated.*"):
-            assert opt.tolCG == 1e-4
-
-    @pytest.mark.parametrize("on_init", [True, False], ids=["init", "attribute setter"])
     @pytest.mark.parametrize(
-        ("old_name", "new_name", "val1", "val2"),
+        ("old_name", "new_name", "value"),
         [
-            ("maxIterCG", "cg_maxiter", 3, 8),
-            ("stepActiveSet", "step_active_set", True, False),
-            ("stepOffBoundsFact", "active_set_grad_scale", 1.2, 1.4),
+            ("tolCG", "cg_atol", 1e-5),
+            ("maxIterCG", "cg_maxiter", 3),
+            ("stepActiveSet", "step_active_set", True),
+            ("stepOffBoundsFact", "active_set_grad_scale", 1.2),
         ],
-        ids=["maxIterCG", "stepActiveSet", "stepOffBoundsFact"],
+        ids=["tolCG", "maxIterCG", "stepActiveSet", "stepOffBoundsFact"],
     )
-    def test_deprecated_maxIterCG(self, on_init, old_name, new_name, val1, val2):
+    def test_removed_properties(self, on_init, old_name, new_name, value):
 
-        match = f".*{old_name} has been deprecated.*"
+        match = f".*{old_name} has been removed.*{new_name}.*"
         if on_init:
-            with pytest.warns(FutureWarning, match=match):
-                opt = optimization.ProjectedGNCG(**{old_name: val1})
+            with pytest.raises(NotImplementedError, match=match):
+                opt = optimization.ProjectedGNCG(**{old_name: value})
         else:
             opt = optimization.ProjectedGNCG()
-            with pytest.warns(FutureWarning, match=match):
-                setattr(opt, old_name, val1)
-                opt.maxIterCG = 3
+            with pytest.raises(NotImplementedError, match=match):
+                setattr(opt, old_name, value)
 
-        with pytest.warns(FutureWarning, match=match):
-            assert getattr(opt, old_name) == val1
-
-        assert getattr(opt, old_name) == val1
-
-        setattr(opt, new_name, val2)
-
-        with pytest.warns(FutureWarning, match=match):
-            assert getattr(opt, old_name) == val2
+            with pytest.raises(NotImplementedError, match=match):
+                getattr(opt, old_name)
