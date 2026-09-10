@@ -841,13 +841,10 @@ class TestSaveEveryIteration:
         time_name = directive._time_file_name.name
         assert directive._time_iter_file_name.name == time_name + "_###"
 
-    def test_deprecated_fileName(self):
+    def test_removed_fileName(self):
         directive = DummySaveEveryIteration(name="dummy")
-
-        with pytest.warns(FutureWarning, match=r"'fileName' has been deprecated .*"):
-            f_name = directive.fileName
-
-        assert f_name == "dummy"
+        with pytest.raises(AttributeError, match=r"'fileName' has been removed.*"):
+            directive.fileName
 
 
 class TestSaveModelEveryIteration:
