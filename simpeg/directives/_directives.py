@@ -2102,16 +2102,13 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
     # Initialize the output dict
     def __init__(self, on_disk=False, **kwargs):
-        if (save_on_disk := kwargs.pop("saveOnDisk", None)) is not None:
-            self.saveOnDisk = save_on_disk
-            on_disk = self.saveOnDisk
         super().__init__(on_disk=on_disk, **kwargs)
 
     saveOnDisk = deprecate_property(
         SaveEveryIteration.on_disk,
         "saveOnDisk",
         removal_version="0.26.0",
-        future_warn=True,
+        error=True,
     )
 
     @property
