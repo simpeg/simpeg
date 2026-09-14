@@ -16,3 +16,7 @@ repos:
           - flake8-rst-docstrings==0.3.0
           - flake8-docstrings==1.7.0
           - flake8-pyproject==1.2.3
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.6
+    hooks:
+      - id: ruff-check
