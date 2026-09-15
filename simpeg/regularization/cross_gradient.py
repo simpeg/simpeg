@@ -220,12 +220,13 @@ class CrossGradient(BaseSimilarityMeasure):
         grad_m1 = self._calculate_gradient(m1, normalized=normalized, rtol=rtol)
         grad_m2 = self._calculate_gradient(m2, normalized=normalized, rtol=rtol)
 
+        # Expand the vectors with a z coordinate equal to zero if they are 2D
+        if self.regularization_mesh.dim == 2:
+            grad_m1, grad_m2 = _expand_2d_vector(grad_m1), _expand_2d_vector(grad_m2)
+
         # for each model cell, compute the cross product of the gradient vectors.
         cross_prod = np.cross(grad_m1, grad_m2)
-        if self.regularization_mesh.dim == 3:
-            cross_prod = np.linalg.norm(cross_prod, axis=-1)
-
-        return cross_prod
+        return np.linalg.norm(cross_prod, axis=-1)
 
     def __call__(self, model):
         """Evaluate the cross-gradient regularization function for the model provided.
@@ -391,3 +392,53 @@ class CrossGradient(BaseSimilarityMeasure):
             return (
                 2 * np.r_[p1, p2]
             )  # factor of 2 from derviative of | grad m1 x grad m2 | ^2
+
+
+def _expand_2d_vector(a):
+    """
+    Expand a 2D vector into a 3D one by adding a zero as the third element.
+
+    Parameters
+    ----------
+    a : (2,) or (n, 2) array
+        Components of the first vector(s).
+
+    Returns
+    -------
+    expanded : (3,) or (n, 3) array
+        Expanded vector(s) with zero as the third element.
+
+    Examples
+    --------
+    >>> a = np.array([1., 2.])
+    >>> _expand_2d_vector(a)
+    array([1., 2., 0.])
+
+    >>> a = np.array([[1., 2.]])
+    >>> _expand_2d_vector(a)
+    array([[1., 2., 0.]])
+
+    >>> a = np.array([[1., 2.], [3., 4.]])
+    >>> _expand_2d_vector(a)
+    array([[1., 2., 0.],
+           [3., 4., 0.]])
+
+    Notes
+    -----
+    This private funciton is used to expand 2D vectors that are meant to be passed to
+    :func:`numpy.cross` after Numpy remvoe support for passing 2D vectors to it.
+    """
+    if a.ndim == 1:
+        if a.size != 2:
+            msg = f"Invalid array containing vectors with '{a.size}' elements."
+            raise ValueError(msg)
+        expanded = np.r_[a, 0]
+    elif a.ndim == 2:
+        if a.shape[1] != 2:
+            msg = f"Invalid array containing vectors with '{a.shape[1]}' elements."
+            raise ValueError(msg)
+        expanded = np.c_[a, np.zeros(a.shape[0])]
+    else:
+        msg = f"Invalid array with '{a.ndim}' dimensions. Must be a 1D or 2D array."
+        raise ValueError(msg)
+    return expanded

@@ -1,3 +1,5 @@
+import re
+import pytest
 import unittest
 
 import numpy as np
@@ -7,6 +9,8 @@ from simpeg import (
     maps,
     regularization,
 )
+
+from simpeg.regularization.cross_gradient import _expand_2d_vector
 
 
 class CrossGradientTensor2D(unittest.TestCase):
@@ -308,6 +312,66 @@ class CrossGradientTree3D(unittest.TestCase):
         W = cross_grad.deriv2(m)
         Wv = cross_grad.deriv2(m, v)
         np.testing.assert_allclose(Wv, W @ v)
+
+
+class TestExpand2DVector:
+    """
+    Test the ``_expand_2d_vector`` private function.
+
+    .. important::
+
+        This function was added to expand 2D vectors intended to be passed to
+        :func:`numpy.cross` after Numpy removed support for 2D vectors.
+    """
+
+    def test_1dim(self):
+        """Test passing a 1D array with a single vector with 2 elements."""
+        a = np.array([1.0, 2.0])
+        result = _expand_2d_vector(a)
+        expected = np.array([1.0, 2.0, 0.0])
+        np.testing.assert_allclose(expected, result, strict=True)
+
+    @pytest.mark.parametrize(
+        "a",
+        [
+            np.array([1]),
+            np.array([1, 2, 3]),
+            np.array([[1]]),
+            np.array([[1, 2, 3]]),
+            np.array([[1], [2]]),
+            np.array([[1, 2, 3], [4, 5, 6]]),
+        ],
+    )
+    def test_error_elements(self, a):
+        """
+        Test error if the passed vector(s) has not 2 elements.
+        """
+        msg = re.escape("Invalid array containing vectors with")
+        with pytest.raises(ValueError, match=msg):
+            _expand_2d_vector(a)
+
+    @pytest.mark.parametrize(
+        ("a", "expected"),
+        [
+            (np.array([[1.0, 2.0]]), np.array([[1.0, 2.0, 0.0]])),
+            (
+                np.array([[1.0, 2.0], [3.0, 4.0]]),
+                np.array([[1.0, 2.0, 0.0], [3.0, 4.0, 0.0]]),
+            ),
+        ],
+        ids=["single", "multi"],
+    )
+    def test_2dim(self, a, expected):
+        """Test passing a 2D array with vector(s) with 2 elements."""
+        result = _expand_2d_vector(a)
+        np.testing.assert_allclose(expected, result, strict=True)
+
+    def test_error_ndim(self):
+        """Test error if array has more than 2 dimensions."""
+        a = np.arange(6).reshape(3, 2, 1)
+        msg = re.escape("Invalid array with '3' dimensions.")
+        with pytest.raises(ValueError, match=msg):
+            _expand_2d_vector(a)
 
 
 if __name__ == "__main__":
