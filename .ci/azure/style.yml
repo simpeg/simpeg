@@ -6,7 +6,7 @@ jobs:
     steps:
       - task: UsePythonVersion@0
         inputs:
-          versionSpec: "3.11"
+          versionSpec: "3.12"
       - bash: .ci/install_style.sh
         displayName: "Install dependencies to run the checks"
       - script: make black
@@ -19,7 +19,7 @@ jobs:
     steps:
       - task: UsePythonVersion@0
         inputs:
-          versionSpec: "3.11"
+          versionSpec: "3.12"
       - bash: .ci/install_style.sh
         displayName: "Install dependencies to run the checks"
       - script: make flake
@@ -32,7 +32,7 @@ jobs:
     steps:
       - task: UsePythonVersion@0
         inputs:
-          versionSpec: "3.11"
+          versionSpec: "3.12"
       - bash: .ci/install_style.sh
         displayName: "Install dependencies to run the checks"
       - script: make flake-all
