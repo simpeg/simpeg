@@ -220,13 +220,14 @@ class CrossGradient(BaseSimilarityMeasure):
         grad_m1 = self._calculate_gradient(m1, normalized=normalized, rtol=rtol)
         grad_m2 = self._calculate_gradient(m2, normalized=normalized, rtol=rtol)
 
-        # Expand the vectors with a z coordinate equal to zero if they are 2D
         if self.regularization_mesh.dim == 2:
-            grad_m1, grad_m2 = _expand_2d_vector(grad_m1), _expand_2d_vector(grad_m2)
-
-        # for each model cell, compute the cross product of the gradient vectors.
-        cross_prod = np.cross(grad_m1, grad_m2)
-        return np.linalg.norm(cross_prod, axis=-1)
+            result = np.abs(_cross_product_2d(grad_m1, grad_m2))
+        elif self.regularization_mesh.dim == 3:
+            cross_prod = np.cross(grad_m1, grad_m2)
+            result = np.linalg.norm(cross_prod, axis=-1)
+        else:
+            raise ValueError()
+        return result
 
     def __call__(self, model):
         """Evaluate the cross-gradient regularization function for the model provided.
@@ -394,51 +395,62 @@ class CrossGradient(BaseSimilarityMeasure):
             )  # factor of 2 from derviative of | grad m1 x grad m2 | ^2
 
 
-def _expand_2d_vector(a):
+def _cross_product_2d(a, b):
     """
-    Expand a 2D vector into a 3D one by adding a zero as the third element.
+    Compute the cross product between two 2D vectors.
 
     Parameters
     ----------
     a : (2,) or (n, 2) array
-        Components of the first vector(s).
+        First vector(s) to use in the cross product.
+    b : (2,) or (n, 2) array
+        Second vector(s) to use in the cross product.
 
     Returns
     -------
-    expanded : (3,) or (n, 3) array
-        Expanded vector(s) with zero as the third element.
+    c : 1D array
+        Array containing the third coordinate(s) of the cross product vector between
+        ``a`` and ``b``.
+
+    Notes
+    -----
+    This function was added after Numpy dropped support for 2D vectors in
+    :func:`numpy.cross`.
 
     Examples
     --------
     >>> a = np.array([1., 2.])
-    >>> _expand_2d_vector(a)
-    array([1., 2., 0.])
+    >>> b = np.array([3., 4.])
+    >>> _cross_product_2d(a, b)
+    array([-2.])
 
-    >>> a = np.array([[1., 2.]])
-    >>> _expand_2d_vector(a)
-    array([[1., 2., 0.]])
+    >>> a = np.array([[1., 2.], [5., 6.]])
+    >>> b = np.array([[3., 4.], [4., 3.]])
+    >>> _cross_product_2d(a, b)
+    array([-2., -9.])
 
-    >>> a = np.array([[1., 2.], [3., 4.]])
-    >>> _expand_2d_vector(a)
-    array([[1., 2., 0.],
-           [3., 4., 0.]])
+    >>> a = np.array([1., 2.])
+    >>> b = np.array([[3., 4.], [4., 3.]])
+    >>> _cross_product_2d(a, b)
+    array([-2., -5.])
 
-    Notes
-    -----
-    This private funciton is used to expand 2D vectors that are meant to be passed to
-    :func:`numpy.cross` after Numpy remvoe support for passing 2D vectors to it.
     """
-    if a.ndim == 1:
-        if a.size != 2:
-            msg = f"Invalid array containing vectors with '{a.size}' elements."
+    for name, array in {"a": a, "b": b}.items():
+        if array.ndim not in (1, 2):
+            msg = (
+                f"Invalid array '{name}' with '{array.ndim}' dimensions. "
+                "They must be 1D or 2D arrays."
+            )
             raise ValueError(msg)
-        expanded = np.r_[a, 0]
-    elif a.ndim == 2:
-        if a.shape[1] != 2:
-            msg = f"Invalid array containing vectors with '{a.shape[1]}' elements."
+
+        n_elements = array.size if array.ndim == 1 else array.shape[1]
+        if n_elements != 2:
+            msg = (
+                f"Invalid array '{name}' containing vectors with '{n_elements}' "
+                "elements. It must contain 2D vectors."
+            )
             raise ValueError(msg)
-        expanded = np.c_[a, np.zeros(a.shape[0])]
-    else:
-        msg = f"Invalid array with '{a.ndim}' dimensions. Must be a 1D or 2D array."
-        raise ValueError(msg)
-    return expanded
+
+    a, b = np.atleast_2d(a), np.atleast_2d(b)
+    cross_product = a[:, 0] * b[:, 1] - a[:, 1] * b[:, 0]
+    return cross_product
