@@ -1,8 +1,32 @@
+import atexit
+import threading
+from enum import Enum, auto
+from queue import Empty
 from multiprocessing import Process, Queue, cpu_count
 from simpeg.meta import MetaSimulation, SumMetaSimulation, RepeatedSimulation
 from simpeg.props import HasModel
 import uuid
 import numpy as np
+
+
+class _Op(Enum):
+    """The set of operations a `_SimulationProcess` understands.
+
+    Sent as the first element of each task tuple put on a process's
+    `task_queue`; members pickle by reference (name), so this only needs
+    to be importable from the same module path in both processes, which
+    it is since a spawned child re-imports this module.
+    """
+
+    SET_SIM = auto()
+    GET_ITEM = auto()
+    DEL_ITEM = auto()
+    STORE_MODEL = auto()
+    CREATE_FIELDS = auto()
+    DPRED = auto()
+    JVEC = auto()
+    JTVEC = auto()
+    JTJ_DIAG = auto()
 
 
 class SimpleFuture:
@@ -17,7 +41,7 @@ class SimpleFuture:
     # classes stash the simulation, so this requires serializing
     # the simulation (something we explicitly want to avoid in all cases).
     # def result(self):
-    #     self.t_queue.put(("get_item", (self.item_id,)))
+    #     self.t_queue.put((_Op.GET_ITEM, (self.item_id,)))
     #     item = self.r_queue.get()
     #     if isinstance(item, Exception):
     #         raise item
@@ -25,7 +49,7 @@ class SimpleFuture:
 
     def __del__(self):
         if self.sim_process.is_alive():
-            self.sim_process.task_queue.put(("del_item", (self.item_id,)))
+            self.sim_process.task_queue.put((_Op.DEL_ITEM, (self.item_id,)))
 
 
 class _SimulationProcess(Process):
@@ -59,103 +83,125 @@ class _SimulationProcess(Process):
                 break
             op, args = task
             try:
-                if op == "set_sim":
+                if op == _Op.SET_SIM:
                     (sim,) = args
                     sim_key = uuid.uuid4().hex
                     _cached_items[sim_key] = sim
                     r_queue.put(sim_key)
-                elif op == "get_item":
+                elif op == _Op.GET_ITEM:
                     (key,) = args
                     r_queue.put(_cached_items[key])
-                elif op == "del_item":
+                elif op == _Op.DEL_ITEM:
                     (key,) = args
                     _cached_items.pop(key, None)
-                elif op == 0:
-                    # store_model
+                elif op == _Op.STORE_MODEL:
                     sim_key, m = args
                     sim = _cached_items[sim_key]
                     sim.model = m
-                elif op == 1:
-                    # create fields
+                    r_queue.put(None)
+                elif op == _Op.CREATE_FIELDS:
                     (sim_key,) = args
                     sim = _cached_items[sim_key]
                     f_key = uuid.uuid4().hex
+                    # Put the key immediately so the client isn't blocked
+                    # waiting on this (possibly expensive) computation before
+                    # it can move on to dispatching work to other processes.
                     r_queue.put(f_key)
-                    fields = sim.fields(sim.model)
+                    try:
+                        fields = sim.fields(sim.model)
+                    except Exception as err:
+                        # Store the error itself in place of the fields, so
+                        # it surfaces the first time this key is actually
+                        # used, instead of appearing as a stray item here.
+                        fields = err
                     _cached_items[f_key] = fields
-                elif op == 2:
-                    # do dpred
+                elif op == _Op.DPRED:
                     sim_key, f_key = args
                     sim = _cached_items[sim_key]
                     fields = _cached_items[f_key]
+                    if isinstance(fields, Exception):
+                        raise fields
                     d_pred = sim.dpred(sim.model, fields)
                     r_queue.put(d_pred)
-                elif op == 3:
-                    # do jvec
+                elif op == _Op.JVEC:
                     sim_key, v, f_key = args
                     sim = _cached_items[sim_key]
                     fields = _cached_items[f_key]
+                    if isinstance(fields, Exception):
+                        raise fields
                     jvec = sim.Jvec(sim.model, v, fields)
                     r_queue.put(jvec)
-                elif op == 4:
-                    # do jtvec
+                elif op == _Op.JTVEC:
                     sim_key, v, f_key = args
                     sim = _cached_items[sim_key]
                     fields = _cached_items[f_key]
+                    if isinstance(fields, Exception):
+                        raise fields
                     jtvec = sim.Jtvec(sim.model, v, fields)
                     r_queue.put(jtvec)
-                elif op == 5:
-                    # do jtj_diag
+                elif op == _Op.JTJ_DIAG:
                     sim_key, w, f_key = args
                     sim = _cached_items[sim_key]
                     fields = _cached_items[f_key]
+                    if isinstance(fields, Exception):
+                        raise fields
                     jtj = sim.getJtJdiag(sim.model, w, fields)
                     r_queue.put(jtj)
             except Exception as err:
                 r_queue.put(err)
 
+    def _get_result(self):
+        item = self.result_queue.get()
+        if isinstance(item, Exception):
+            raise item
+        return item
+
     def set_sim(self, sim):
         self._check_closed()
-        self.task_queue.put(("set_sim", (sim,)))
-        key = self.result_queue.get()
+        self.task_queue.put((_Op.SET_SIM, (sim,)))
+        key = self._get_result()
         future = SimpleFuture(key, self)
         self._my_sim = future
         return future
 
-    def store_model(self, m):
+    def start_store_model(self, m):
         self._check_closed()
         sim = self._my_sim
-        self.task_queue.put((0, (sim.item_id, m)))
+        self.task_queue.put((_Op.STORE_MODEL, (sim.item_id, m)))
+
+    def store_model(self, m):
+        self.start_store_model(m)
+        self._get_result()
 
     def get_fields(self):
         self._check_closed()
         sim = self._my_sim
-        self.task_queue.put((1, (sim.item_id,)))
-        key = self.result_queue.get()
+        self.task_queue.put((_Op.CREATE_FIELDS, (sim.item_id,)))
+        key = self._get_result()
         future = SimpleFuture(key, self)
         return future
 
     def start_dpred(self, f_future):
         self._check_closed()
         sim = self._my_sim
-        self.task_queue.put((2, (sim.item_id, f_future.item_id)))
+        self.task_queue.put((_Op.DPRED, (sim.item_id, f_future.item_id)))
 
     def start_j_vec(self, v, f_future):
         self._check_closed()
         sim = self._my_sim
-        self.task_queue.put((3, (sim.item_id, v, f_future.item_id)))
+        self.task_queue.put((_Op.JVEC, (sim.item_id, v, f_future.item_id)))
 
     def start_jt_vec(self, v, f_future):
         self._check_closed()
         sim = self._my_sim
-        self.task_queue.put((4, (sim.item_id, v, f_future.item_id)))
+        self.task_queue.put((_Op.JTVEC, (sim.item_id, v, f_future.item_id)))
 
     def start_jtj_diag(self, w, f_future):
         self._check_closed()
         sim = self._my_sim
         self.task_queue.put(
             (
-                5,
+                _Op.JTJ_DIAG,
                 (
                     sim.item_id,
                     w,
@@ -166,16 +212,91 @@ class _SimulationProcess(Process):
 
     def result(self):
         self._check_closed()
-        return self.result_queue.get()
+        return self._get_result()
 
     def join(self, timeout=None):
         self._check_closed()
         self.task_queue.put(None)
         self.task_queue.close()
-        self.result_queue.close()
         self.task_queue.join_thread()
+
+        # A result the caller never read (e.g. because an earlier
+        # collection loop raised before reaching this process) can block
+        # this process's result_queue feeder thread from flushing, which
+        # would otherwise deadlock the plain Process.join() below. Drain
+        # in the background while we wait so that can't happen.
+        stop_draining = threading.Event()
+
+        def _drain():
+            while not stop_draining.is_set():
+                try:
+                    self.result_queue.get(timeout=0.1)
+                except Empty:
+                    continue
+
+        drain_thread = threading.Thread(target=_drain, daemon=True)
+        drain_thread.start()
+        try:
+            super().join(timeout=timeout)
+        finally:
+            stop_draining.set()
+            drain_thread.join()
+
+        self.result_queue.close()
         self.result_queue.join_thread()
-        super().join(timeout=timeout)
+
+
+def _spawn_chunk_processes(n_sim, n_processes, build_chunk):
+    """Split `n_sim` items into contiguous chunks, one worker process each.
+
+    Shared by every `Multiprocessing*Simulation.__init__`: they differ only
+    in how a chunk's combined simulation is built, which is supplied here
+    via `build_chunk`.
+
+    Parameters
+    ----------
+    n_sim : int
+        Total number of individual simulations to distribute.
+    n_processes : int
+        Number of worker processes to aim for. Chunks are sized as evenly
+        as possible; if `n_processes > n_sim` the extra, zero-sized chunks
+        are simply skipped, so fewer processes than requested may result.
+    build_chunk : callable
+        Called with `(i_start, i_end)` for each contiguous chunk and must
+        return the combined simulation to send to that chunk's process.
+
+    Returns
+    -------
+    processes : list of _SimulationProcess
+    data_offsets : numpy.ndarray
+    """
+    chunk_sizes = min(n_processes, n_sim) * [n_sim // n_processes]
+    for i in range(n_sim % n_processes):
+        chunk_sizes[i] += 1
+
+    i_start = 0
+    chunk_nd = []
+    processes = []
+    try:
+        for chunk in chunk_sizes:
+            if chunk == 0:
+                continue
+            i_end = i_start + chunk
+            sim_chunk = build_chunk(i_start, i_end)
+            chunk_nd.append(sim_chunk.survey.nD)
+            p = _SimulationProcess()
+            processes.append(p)
+            p.start()
+            p.set_sim(sim_chunk)
+            i_start = i_end
+    except Exception:
+        for p in processes:
+            if p.is_alive():
+                p.terminate()
+        raise
+
+    data_offsets = np.cumsum(np.r_[0, chunk_nd])
+    return processes, data_offsets
 
 
 class MultiprocessingMetaSimulation(MetaSimulation):
@@ -225,46 +346,51 @@ class MultiprocessingMetaSimulation(MetaSimulation):
     >>> mp.set_start_method("spawn")
     """
 
+    # The type of simulation used to represent each process's chunk of the
+    # work. Subclasses whose combination semantics differ from plain
+    # concatenation (e.g. summing) must override this to match.
+    _chunk_sim_class = MetaSimulation
+
     def __init__(self, simulations, mappings, n_processes=None):
         super().__init__(simulations, mappings)
 
         if n_processes is None:
             n_processes = cpu_count()
 
-        # split simulation,mappings up into chunks
-        # (Which are currently defined using MetaSimulations)
-        n_sim = len(simulations)
-        chunk_sizes = min(n_processes, n_sim) * [n_sim // n_processes]
-        for i in range(n_sim % n_processes):
-            chunk_sizes[i] += 1
-
-        i_start = 0
-        chunk_nd = []
-        processes = []
-        for chunk in chunk_sizes:
-            if chunk == 0:
-                continue
-            i_end = i_start + chunk
-            sim_chunk = MetaSimulation(
+        def build_chunk(i_start, i_end):
+            return self._chunk_sim_class(
                 self.simulations[i_start:i_end], self.mappings[i_start:i_end]
             )
-            chunk_nd.append(sim_chunk.survey.nD)
-            p = _SimulationProcess()
-            processes.append(p)
-            p.start()
-            p.set_sim(sim_chunk)
-            i_start = i_end
 
-        self._sim_processes = processes
-        self._data_offsets = np.cumsum(np.r_[0, chunk_nd])
+        self._sim_processes, self._data_offsets = _spawn_chunk_processes(
+            len(simulations), n_processes, build_chunk
+        )
+        atexit.register(self._atexit_cleanup)
+
+    def _atexit_cleanup(self):
+        # Best-effort fallback for interpreter shutdown when `.join()` was
+        # never called. Uses terminate() (immediate, no queue cooperation
+        # needed) rather than the graceful join() protocol, so this can't
+        # itself hang interpreter shutdown. This must never run as a
+        # side-effect of an error from a normal method call (dpred/Jvec/
+        # etc.) -- only atexit triggers it.
+        for p in getattr(self, "_sim_processes", ()):
+            if p.is_alive():
+                p.terminate()
 
     @MetaSimulation.model.setter
     def model(self, value):
         updated = HasModel.model.fset(self, value)
         # Only send the model to the internal simulations if it was updated.
         if updated:
+            # Dispatch to every process before waiting on any of them, so
+            # the workers validate the model in parallel; then check each
+            # result immediately so a failure surfaces from this assignment
+            # instead of being deferred to a later, unrelated op.
             for p in self._sim_processes:
-                p.store_model(self._model)
+                p.start_store_model(self._model)
+            for p in self._sim_processes:
+                p.result()
 
     def fields(self, m):
         """Create fields for every simulation.
@@ -347,6 +473,8 @@ class MultiprocessingMetaSimulation(MetaSimulation):
         for p in self._sim_processes:
             if p.is_alive():
                 p.join(timeout=timeout)
+        if not any(p.is_alive() for p in self._sim_processes):
+            atexit.unregister(self._atexit_cleanup)
 
 
 class MultiprocessingSumMetaSimulation(
@@ -371,6 +499,8 @@ class MultiprocessingSumMetaSimulation(
         to `multiprocessing.cpu_count()`. The number of processes spawned
         will be the minimum of this number and the number of simulations.
     """
+
+    _chunk_sim_class = SumMetaSimulation
 
     def dpred(self, m=None, f=None):
         if f is None:
@@ -453,28 +583,10 @@ class MultiprocessingRepeatedSimulation(
         if n_processes is None:
             n_processes = cpu_count()
 
-        # split mappings up into chunks
-        n_sim = len(mappings)
-        chunk_sizes = min(n_processes, n_sim) * [n_sim // n_processes]
-        for i in range(n_sim % n_processes):
-            chunk_sizes[i] += 1
+        def build_chunk(i_start, i_end):
+            return RepeatedSimulation(self.simulation, self.mappings[i_start:i_end])
 
-        processes = []
-        i_start = 0
-        chunk_nd = []
-        for chunk in chunk_sizes:
-            if chunk == 0:
-                continue
-            i_end = i_start + chunk
-            sim_chunk = RepeatedSimulation(
-                self.simulation, self.mappings[i_start:i_end]
-            )
-            chunk_nd.append(sim_chunk.survey.nD)
-            p = _SimulationProcess()
-            processes.append(p)
-            p.start()
-            p.set_sim(sim_chunk)
-            i_start = i_end
-
-        self._data_offsets = np.cumsum(np.r_[0, chunk_nd])
-        self._sim_processes = processes
+        self._sim_processes, self._data_offsets = _spawn_chunk_processes(
+            len(mappings), n_processes, build_chunk
+        )
+        atexit.register(self._atexit_cleanup)
