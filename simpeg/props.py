@@ -144,7 +144,12 @@ class PhysicalProperty:
             if scope.mapping is None:
                 # I dont have a reciprocal, or it doesn't have a mapping
                 if scope.reciprocal is None:
-                    return None
+                    if scope.optional:
+                        return None
+                    else:
+                        raise AttributeError(
+                            f"A value for `{scope.mapping.name}` has not been set."
+                        )
                 if scope.reciprocal.mapping is None:
                     reciprocal_val = getattr(self, f"_{scope.reciprocal.name}", None)
                     if reciprocal_val is None:

@@ -12,13 +12,10 @@ soils, Van Genuchten, M Th, Leij, F J, Yates, S R
 """
 
 import matplotlib.pyplot as plt
-
-import discretize
 from simpeg.flow import richards
 
 
 def run(plotIt=True):
-    mesh = discretize.TensorMesh([10])
     VGparams = richards.empirical.VanGenuchtenParams()
     leg = []
     for p in dir(VGparams):
@@ -26,7 +23,7 @@ def run(plotIt=True):
             continue
         leg += [p]
         params = getattr(VGparams, p)
-        k_fun, theta_fun = richards.empirical.van_genuchten(mesh, **params)
+        k_fun, theta_fun = richards.empirical.van_genuchten(**params)
         theta_fun.plot(ax=plt.subplot(121))
         k_fun.plot(ax=plt.subplot(122))
 
