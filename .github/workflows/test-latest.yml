@@ -28,7 +28,7 @@ defaults:
 jobs:
 
   test:
-    name: Test ({{ env.PYTHON }})
+    name: Test (${{ env.PYTHON }})
     runs-on: ubuntu-latest
     env:
       PYTHON: "3.14"
