@@ -1,0 +1,70 @@
+# Test SimPEG against latest Python and dependencies versions
+# ===========================================================
+
+on:
+  # REMOVE PULL REQUEST TRIGGER BEFORE MERGING
+  pull_request:
+
+  # Manually triggered events
+  # workflow_dispatch:
+  #   inputs:
+  #     python:
+  #       description: "Python version"
+  #       required: true
+  #       default: "3.14"
+  #       type: string
+
+
+job:
+
+  test:
+    runs-on: ubuntu-latest
+    env:
+      PYTHON: "3.14"
+      ENVIRONMENT: .ci/environment_test.yml
+      TEST_TARGET: tests/base
+      # TEST_TARGET: tests
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # Need to fetch more than the last commit so that setuptools-scm can
+          # create the correct version string. If the number of commits since
+          # the last release is greater than this, the version still be wrong.
+          # Increase if necessary.
+          fetch-depth: 100
+          # The GitHub token is preserved by default but this job doesn't need
+          # to be able to push to GitHub.
+          persist-credentials: false
+
+      # Need the tags so that setuptools-scm can form a valid version number
+      - name: Fetch git tags
+        run: git fetch origin 'refs/tags/*:refs/tags/*'
+
+      - name: Setup caching for conda packages
+        uses: actions/cache@v6
+        with:
+          path: ~/conda_pkgs_dir
+          key: conda-${{ env.PYTHON }}-${{ hashFiles(${{ env.ENVIRONMENT }}) }}
+
+      - name: Setup Miniforge
+        uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5
+        with:
+          python-version: ${{ env.PYTHON }}
+          miniforge-version: latest
+          channels: conda-forge
+          conda-remove-defaults: "true"
+          activate-environment: simpeg-test
+          environment-file: ${{ env.ENVIRONMENT }}
+
+      - name: List installed packages
+        run: conda list
+
+      - name: Install the package
+        run: python -m pip install --no-deps .
+
+      - name: Run tests
+        run: |
+          pytest -v --cov --cov-config="pyproject.toml" -W "ignore::DeprecationWarning" ${{ env.TEST_TARGET }}
