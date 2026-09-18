@@ -33,7 +33,8 @@ jobs:
     env:
       PYTHON: "3.14"
       ENVIRONMENT: .ci/environment_test.yml
-      TEST_TARGET: tests/base tests/em tests/flow tests/seis tests/utils tests/meta tests/examples tests/pf tests/dask
+      # Test everything beside tests/docs and tests/dask
+      TEST_TARGET: tests/base tests/em tests/flow tests/seis tests/utils tests/meta tests/examples tests/pf
       # TEST_TARGET: tests
 
     steps:
