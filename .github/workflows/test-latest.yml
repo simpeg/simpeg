@@ -77,4 +77,4 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest -v --cov --cov-config="pyproject.toml" -W "ignore::DeprecationWarning" "${{ env.TEST_TARGET }}"
+          pytest -v --cov --cov-config="pyproject.toml" -W "ignore::DeprecationWarning" ${{ env.TEST_TARGET }}
