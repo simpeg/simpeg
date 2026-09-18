@@ -28,11 +28,12 @@ defaults:
 jobs:
 
   test:
+    name: Test ({{ env.PYTHON }})
     runs-on: ubuntu-latest
     env:
       PYTHON: "3.14"
       ENVIRONMENT: .ci/environment_test.yml
-      TEST_TARGET: tests/!(docs)  # Run all tests except for test/docs
+      TEST_TARGET: tests/base tests/em tests/flow tests/seis tests/utils tests/meta tests/examples tests/pf tests/dask
       # TEST_TARGET: tests
 
     steps:
