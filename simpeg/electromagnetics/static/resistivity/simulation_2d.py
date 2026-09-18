@@ -12,6 +12,7 @@ from ....utils import (
     validate_integer,
     validate_active_indices,
 )
+from .... import props
 from ....base import BaseElectricalPDESimulation
 from ....base.pde_simulation import _inner_mat_mul_op
 from ....data import Data
@@ -29,6 +30,17 @@ class BaseDCSimulation2D(BaseElectricalPDESimulation):
     """
     Base 2.5D DC problem
     """
+
+    # The pseudo-2.5D `ky**2` term is built from `MccSigma`/`MnSigma`, which
+    # (via `with_property_mass_matrices`) multiply `sigma`/`rho` elementwise
+    # against `mesh.cell_volumes` -- this only works for a scalar-per-cell
+    # (isotropic) property, not a diagonal- or full-tensor-anisotropic one.
+    sigma = BaseElectricalPDESimulation.sigma.set_feature(
+        anisotropy=props.AnisotropyLevel.ISOTROPIC
+    )
+    rho = BaseElectricalPDESimulation.rho.set_feature(
+        anisotropy=props.AnisotropyLevel.ISOTROPIC
+    )
 
     fieldsPair = Fields2D  # simpeg.EM.Static.Fields_2D
     fieldsPair_fwd = FieldsDC
@@ -703,7 +715,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
             out = Grad.T * self.MeSigmaDeriv(
                 Grad * u, v, adjoint=adjoint
             ) + ky**2 * self.MnSigmaDeriv(u, v, adjoint=adjoint)
-        if self.bc_type != "Neumann" and self.sigmaMap is not None:
+        if self.bc_type != "Neumann" and self.is_parametrized("sigma"):
             if getattr(self, "_MBC_sigma", None) is None:
                 self._MBC_sigma = {}
             if ky not in self._MBC_sigma:

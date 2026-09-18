@@ -14,12 +14,13 @@ API
 
     RandomSeed
     MinimizeCallable
+    MapLike
 
 """
 
 import numpy as np
 import numpy.typing as npt
-from typing import Union, TypeAlias
+from typing import Union, TypeAlias, Protocol, runtime_checkable
 from collections.abc import Callable
 from scipy.sparse.linalg import LinearOperator
 
@@ -73,3 +74,35 @@ It should output up to three values ordered as::
 always be the last. If `return_g == return_H == False`, then only the single argument `f_val` is
 returned.
 """
+
+
+@runtime_checkable
+class MapLike(Protocol):
+    """Structural type describing what a physical property parametrizer needs to support.
+
+    This documents the interface :class:`simpeg.props.PhysicalProperty` relies
+    on when a physical property is parametrized by a mapping, e.g. through
+    :meth:`simpeg.props.HasModel.parametrize`: a ``shape`` attribute, a
+    ``deriv`` method, and support for ``*``/``@`` composition.
+
+    Notes
+    -----
+    This ``Protocol`` is provided for typing and documentation purposes only.
+    :meth:`simpeg.props.HasModel.parametrize` still requires an actual
+    :class:`simpeg.maps.IdentityMap` instance at runtime, not merely an object
+    satisfying this ``Protocol``, since :mod:`simpeg.maps`'s own internals
+    (e.g. :class:`~simpeg.maps.ComboMap` construction) perform their own
+    nominal ``isinstance`` checks against :class:`~simpeg.maps.IdentityMap`.
+    A duck-typed object that only matches this ``Protocol``'s shape could pass
+    a relaxed runtime check here, only to fail later, less legibly, deep
+    inside :mod:`simpeg.maps`.
+    """
+
+    @property
+    def shape(self) -> tuple: ...
+
+    def deriv(self, m, v=None): ...
+
+    def __mul__(self, val): ...
+
+    def __matmul__(self, map1): ...
