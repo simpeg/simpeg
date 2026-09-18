@@ -14,6 +14,7 @@ on:
   #       default: "3.14"
   #       type: string
 
+permissions: {}
 
 jobs:
 
@@ -47,7 +48,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/conda_pkgs_dir
-          key: conda-${{ env.PYTHON }}-${{ hashFiles(${{ env.ENVIRONMENT }}) }}
+          key: conda-${{ env.PYTHON }}-${{ hashFiles(env.ENVIRONMENT) }}
 
       - name: Setup Miniforge
         uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5
@@ -67,4 +68,4 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest -v --cov --cov-config="pyproject.toml" -W "ignore::DeprecationWarning" ${{ env.TEST_TARGET }}
+          pytest -v --cov --cov-config="pyproject.toml" -W "ignore::DeprecationWarning" "${{ env.TEST_TARGET }}"
