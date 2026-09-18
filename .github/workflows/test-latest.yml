@@ -15,7 +15,7 @@ on:
   #       type: string
 
 
-job:
+jobs:
 
   test:
     runs-on: ubuntu-latest
