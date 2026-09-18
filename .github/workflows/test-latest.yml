@@ -30,12 +30,20 @@ jobs:
   test:
     name: Test (latest)
     runs-on: ubuntu-latest
+    strategy:
+      # Allow single workshops in the matrix to fail and continue running the rest.
+      fail-fast: false
+      matrix:
+        test_target:
+          - tests/base tests/flow tests/meta tests/utils
+          - tests/em
+          - tests/examples
+          - tests/pf
+          # Test dask on its own to avoid modifying the implementation of any other tests
+          - tests/dask
     env:
       PYTHON: "3.14"
       ENVIRONMENT: .ci/environment_test.yml
-      # Test everything beside tests/docs and tests/dask
-      TEST_TARGET: tests/base tests/em tests/flow tests/seis tests/utils tests/meta tests/examples tests/pf
-      # TEST_TARGET: tests
 
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE
@@ -79,4 +87,4 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest -v --cov --cov-config="pyproject.toml" -W "ignore::DeprecationWarning" ${{ env.TEST_TARGET }}
+          pytest -v --cov --cov-config="pyproject.toml" -W "ignore::DeprecationWarning" ${{ matrix.test_target }}
