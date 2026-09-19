@@ -4,17 +4,19 @@
 name: Test SimPEG against latest Python
 
 on:
-  # REMOVE PULL REQUEST TRIGGER BEFORE MERGING
-  pull_request:
+  workflow_dispatch:
+    # Manually triggered event. Allow to select Python version in the web interface.
+    inputs:
+      python:
+        description: "Python version"
+        required: true
+        default: "3.14"
+        type: string
 
-  # Manually triggered events
-  # workflow_dispatch:
-  #   inputs:
-  #     python:
-  #       description: "Python version"
-  #       required: true
-  #       default: "3.14"
-  #       type: string
+  schedule:
+    # Run at midnight of every Monday on default branch
+    - cron: "0 0 * * 1"
+      timezone: "UTC"
 
 permissions: {}
 
@@ -44,7 +46,9 @@ jobs:
           # Test dask on its own to avoid modifying the implementation of any other tests
           - tests/dask
     env:
-      PYTHON: "3.14"
+      # Define the Python version conditionally:
+      # if it was manually triggered, use the inputs.python variable, else use a default value.
+      PYTHON: ${{ inputs.python || '3.14' }}
       ENVIRONMENT: .ci/environment_test.yml
 
     steps:
