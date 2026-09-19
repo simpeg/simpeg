@@ -1,6 +1,8 @@
 # Test SimPEG against latest Python and dependencies versions
 # ===========================================================
 
+name: Test SimPEG against latest Python
+
 on:
   # REMOVE PULL REQUEST TRIGGER BEFORE MERGING
   pull_request:
