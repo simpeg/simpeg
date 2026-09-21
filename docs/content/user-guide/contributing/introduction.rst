@@ -71,18 +71,6 @@ fixes a bug, adds a new feature, improves the documentation or extends our
 tests. In the following pages you'll find information on how to get started to
 contribute with new code to SimPEG.
 
-.. toctree::
-   :maxdepth: 1
-
-   working-with-github
-   setting-up-environment
-   code-style
-   documentation
-   testing
-   pull-requests
-   advanced
-
-
 Licensing
 ~~~~~~~~~
 
