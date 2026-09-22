@@ -382,7 +382,7 @@ class BaseFDEMSimulation(BaseEMSimulation):
                         if not isinstance(dRHS_dmT, Zero):
                             du_dmT += dRHS_dmT
                         if not isinstance(df_dmT[0], Zero):
-                            du_dmT += np.hstack(df_dmT)
+                            du_dmT += np.vstack(df_dmT)
 
                         block = np.array(du_dmT, dtype=complex).real.T
 
