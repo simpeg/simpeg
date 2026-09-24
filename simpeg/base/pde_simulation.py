@@ -380,7 +380,7 @@ def with_property_mass_matrices(property_name):
     return decorator
 
 
-def with_surface_property_mass_matrices(property_name, alias_name=None):
+def with_surface_property_mass_matrices(property_name):
     """Generate decorator that automatically populates the face property mass matrices.
 
     Given the property "prop", this will add properties and functions to the class
@@ -388,29 +388,24 @@ def with_surface_property_mass_matrices(property_name, alias_name=None):
 
     For a given property, "prop", they will be named:
 
-    * _MeProp
-    * _MePropDeriv
-    * _MePropI
-    * _MePropIDeriv
-    * _MfProp
-    * _MfPropDeriv
-    * _MfPropI
-    * _MfPropIDeriv
+    * _Me_prop
+    * _Me_prop_deriv
+    * _MeI_prop
+    * _MeI_prop_deriv
+    * _Mf_prop
+    * _Mf_prop_deriv
+    * _MfI_prop
+    * _MfI_prop_deriv
 
     Parameters
     ----------
     property_name : str
         The name of property that users will use when interacting with the class.
         E.g. 'face_conductance'.
-    alias : str, optional
-        Allows the use of a short alias for the property name which constructing
-        property matrices under the hood. E.g. if the alias is 'tau', the
-        decorator will construct the matrix _MeTau.
     """
 
     def decorator(cls):
-        arg = property_name.lower() if alias_name is None else alias_name.lower()
-        arg = arg[0].upper() + arg[1:]
+        arg = property_name.lower()
 
         @property
         def Mf_prop(self):
@@ -422,7 +417,7 @@ def with_surface_property_mass_matrices(property_name, alias_name=None):
                 setattr(self, stash_name, M_prop)
             return getattr(self, stash_name)
 
-        setattr(cls, f"_Mf{arg}", Mf_prop)
+        setattr(cls, f"_Mf_{arg}", Mf_prop)
 
         @property
         def Me_prop(self):
@@ -434,7 +429,7 @@ def with_surface_property_mass_matrices(property_name, alias_name=None):
                 setattr(self, stash_name, M_prop)
             return getattr(self, stash_name)
 
-        setattr(cls, f"_Me{arg}", Me_prop)
+        setattr(cls, f"_Me_{arg}", Me_prop)
 
         @property
         def MfI_prop(self):
@@ -448,7 +443,7 @@ def with_surface_property_mass_matrices(property_name, alias_name=None):
                 setattr(self, stash_name, M_prop)
             return getattr(self, stash_name)
 
-        setattr(cls, f"_Mf{arg}I", MfI_prop)
+        setattr(cls, f"_MfI_{arg}", MfI_prop)
 
         @property
         def MeI_prop(self):
@@ -462,9 +457,9 @@ def with_surface_property_mass_matrices(property_name, alias_name=None):
                 setattr(self, stash_name, M_prop)
             return getattr(self, stash_name)
 
-        setattr(cls, f"_Me{arg}I", MeI_prop)
+        setattr(cls, f"_MeI_{arg}", MeI_prop)
 
-        def MfDeriv_prop(self, u, v=None, adjoint=False):
+        def Mf_prop_deriv(self, u, v=None, adjoint=False):
             """Get derivative of `MfProperty` with respect to the model."""
             if getattr(self, f"{property_name.lower()}_map") is None:
                 return Zero()
@@ -480,9 +475,9 @@ def with_surface_property_mass_matrices(property_name, alias_name=None):
                 setattr(self, stash_name, M_prop_deriv)
             return _inner_mat_mul_op(getattr(self, stash_name), u, v=v, adjoint=adjoint)
 
-        setattr(cls, f"_Mf{arg}Deriv", MfDeriv_prop)
+        setattr(cls, f"_Mf_{arg}_deriv", Mf_prop_deriv)
 
-        def MeDeriv_prop(self, u, v=None, adjoint=False):
+        def Me_prop_deriv(self, u, v=None, adjoint=False):
             """Get derivative of `MeProperty` with respect to the model."""
             # if getattr(self, f"{arg.lower()}Map") is None:
             if getattr(self, f"{property_name.lower()}_map") is None:
@@ -499,35 +494,35 @@ def with_surface_property_mass_matrices(property_name, alias_name=None):
                 setattr(self, stash_name, M_prop_deriv)
             return _inner_mat_mul_op(getattr(self, stash_name), u, v=v, adjoint=adjoint)
 
-        setattr(cls, f"_Me{arg}Deriv", MeDeriv_prop)
+        setattr(cls, f"_Me_{arg}_deriv", Me_prop_deriv)
 
-        def MfIDeriv_prop(self, u, v=None, adjoint=False):
+        def MfI_prop_deriv(self, u, v=None, adjoint=False):
             """Get derivative of `MfPropertyI` with respect to the model."""
             if getattr(self, f"{property_name.lower()}_map") is None:
                 return Zero()
             if isinstance(u, Zero) or isinstance(v, Zero):
                 return Zero()
 
-            MI_prop = getattr(self, f"_Mf{arg}I")
+            MI_prop = getattr(self, f"_MfI_{arg}")
             u = MI_prop @ (MI_prop @ -u)
-            M_prop_deriv = getattr(self, f"_Mf{arg}Deriv")
+            M_prop_deriv = getattr(self, f"_Mf_{arg}_deriv")
             return M_prop_deriv(u, v, adjoint=adjoint)
 
-        setattr(cls, f"_Mf{arg}IDeriv", MfIDeriv_prop)
+        setattr(cls, f"_MfI_{arg}_deriv", MfI_prop_deriv)
 
-        def MeIDeriv_prop(self, u, v=None, adjoint=False):
+        def MeI_prop_deriv(self, u, v=None, adjoint=False):
             """Get derivative of `MePropertyI` with respect to the model."""
             if getattr(self, f"{property_name.lower()}_map") is None:
                 return Zero()
             if isinstance(u, Zero) or isinstance(v, Zero):
                 return Zero()
 
-            MI_prop = getattr(self, f"_Me{arg}I")
+            MI_prop = getattr(self, f"_MeI_{arg}")
             u = MI_prop @ (MI_prop @ -u)
-            M_prop_deriv = getattr(self, f"_Me{arg}Deriv")
+            M_prop_deriv = getattr(self, f"_Me_{arg}_deriv")
             return M_prop_deriv(u, v, adjoint=adjoint)
 
-        setattr(cls, f"_Me{arg}IDeriv", MeIDeriv_prop)
+        setattr(cls, f"_MeI_{arg}_deriv", MeI_prop_deriv)
 
         @property
         def _clear_on_prop_update(self):
@@ -547,7 +542,7 @@ def with_surface_property_mass_matrices(property_name, alias_name=None):
     return decorator
 
 
-def with_line_property_mass_matrices(property_name, alias_name=None):
+def with_line_property_mass_matrices(property_name):
     """Generate decorator that automatically populates the line property mass matrices.
 
     Given the property "prop", this will add properties and functions to the class
@@ -555,25 +550,20 @@ def with_line_property_mass_matrices(property_name, alias_name=None):
 
     For a given property, "prop", they will be named:
 
-    * _MeProp
-    * _MePropDeriv
-    * _MePropI
-    * _MePropIDeriv
+    * _Me_prop
+    * _Me_prop_deriv
+    * _MeI_prop
+    * _MeI_prop_deriv
 
     Parameters
     ----------
     property_name : str
         The name of property that users will use when interacting with the class.
         E.g. 'edge_area_conductivity'.
-    alias : str, optional
-        Allows the use of a short alias for the property name which constructing
-        property matrices under the hood. E.g. if the alias is 'kappa', the
-        decorator will construct the matrix _MeKappa.
     """
 
     def decorator(cls):
-        arg = property_name.lower() if alias_name is None else alias_name.lower()
-        arg = arg[0].upper() + arg[1:]
+        arg = property_name.lower()
 
         @property
         def Me_prop(self):
@@ -585,7 +575,7 @@ def with_line_property_mass_matrices(property_name, alias_name=None):
                 setattr(self, stash_name, M_prop)
             return getattr(self, stash_name)
 
-        setattr(cls, f"_Me{arg}", Me_prop)
+        setattr(cls, f"_Me_{arg}", Me_prop)
 
         @property
         def MeI_prop(self):
@@ -599,9 +589,9 @@ def with_line_property_mass_matrices(property_name, alias_name=None):
                 setattr(self, stash_name, M_prop)
             return getattr(self, stash_name)
 
-        setattr(cls, f"_Me{arg}I", MeI_prop)
+        setattr(cls, f"_MeI_{arg}", MeI_prop)
 
-        def MeDeriv_prop(self, u, v=None, adjoint=False):
+        def Me_prop_deriv(self, u, v=None, adjoint=False):
             """Get derivative of `MeProperty` with respect to the model."""
             if getattr(self, f"{property_name.lower()}_map") is None:
                 return Zero()
@@ -617,21 +607,21 @@ def with_line_property_mass_matrices(property_name, alias_name=None):
                 setattr(self, stash_name, M_prop_deriv)
             return _inner_mat_mul_op(getattr(self, stash_name), u, v=v, adjoint=adjoint)
 
-        setattr(cls, f"_Me{arg}Deriv", MeDeriv_prop)
+        setattr(cls, f"_Me_{arg}_deriv", Me_prop_deriv)
 
-        def MeIDeriv_prop(self, u, v=None, adjoint=False):
+        def MeI_prop_deriv(self, u, v=None, adjoint=False):
             """Get derivative of `MePropertyI` with respect to the model."""
             if getattr(self, f"{property_name.lower()}_map") is None:
                 return Zero()
             if isinstance(u, Zero) or isinstance(v, Zero):
                 return Zero()
 
-            MI_prop = getattr(self, f"_Me{arg}I")
+            MI_prop = getattr(self, f"_MeI_{arg}")
             u = MI_prop @ (MI_prop @ -u)
-            M_prop_deriv = getattr(self, f"_Me{arg}Deriv")
+            M_prop_deriv = getattr(self, f"_Me_{arg}_deriv")
             return M_prop_deriv(u, v, adjoint=adjoint)
 
-        setattr(cls, f"_Me{arg}IDeriv", MeIDeriv_prop)
+        setattr(cls, f"_MeI_{arg}_deriv", MeI_prop_deriv)
 
         @property
         def _clear_on_prop_update(self):
@@ -642,7 +632,7 @@ def with_line_property_mass_matrices(property_name, alias_name=None):
             ]
             return items
 
-        setattr(cls, f"_clear_on_{arg.lower()}_update", _clear_on_prop_update)
+        setattr(cls, f"_clear_on_{arg}_update", _clear_on_prop_update)
         return cls
 
     return decorator
@@ -905,7 +895,7 @@ class BaseMagneticPDESimulation(BasePDESimulation):
         return toDelete
 
 
-@with_line_property_mass_matrices("edge_area_conductance", "kappa")
+@with_line_property_mass_matrices("edge_area_conductance")
 class BaseElectricalEdgePropertyPDESimulation(BaseElectricalPDESimulation):
     """Base class for simulations with edge electrical properties.
 
@@ -934,7 +924,7 @@ class BaseElectricalEdgePropertyPDESimulation(BaseElectricalPDESimulation):
     def __setattr__(self, name, value):
         super().__setattr__(name, value)
         if name == "edge_area_conductance":
-            for mat in self._clear_on_kappa_update:
+            for mat in self._clear_on_edge_area_conductance_update:
                 if hasattr(self, mat):
                     delattr(self, mat)
 
@@ -943,11 +933,11 @@ class BaseElectricalEdgePropertyPDESimulation(BaseElectricalPDESimulation):
         """Set items to delete on updating edge electric properties."""
         toDelete = super()._delete_on_model_update
         if self.edge_area_conductance_map is not None:
-            toDelete = toDelete + self._clear_on_kappa_update
+            toDelete = toDelete + self._clear_on_edge_area_conductance_update
         return toDelete
 
 
-@with_surface_property_mass_matrices("face_conductance", "tau")
+@with_surface_property_mass_matrices("face_conductance")
 class BaseElectricalFacePropertyPDESimulation(BaseElectricalPDESimulation):
     """Base class for simulations with face electrical properties.
 
@@ -975,7 +965,7 @@ class BaseElectricalFacePropertyPDESimulation(BaseElectricalPDESimulation):
         """Set items to delete on updating face electric properties."""
         super().__setattr__(name, value)
         if name == "face_conductance":
-            for mat in self._clear_on_tau_update:
+            for mat in self._clear_on_face_conductance_update:
                 if hasattr(self, mat):
                     delattr(self, mat)
 
@@ -984,7 +974,7 @@ class BaseElectricalFacePropertyPDESimulation(BaseElectricalPDESimulation):
         """Set items to delete on updating face electric properties."""
         toDelete = super()._delete_on_model_update
         if self.face_conductance_map is not None:
-            toDelete = toDelete + self._clear_on_tau_update
+            toDelete = toDelete + self._clear_on_face_conductance_update
         return toDelete
 
 
@@ -1005,9 +995,9 @@ class BaseHierarchicalElectricalSimulation(
         if getattr(self, "__MeSigmaHeirarchical", None) is None:
             M_prop = super().MeSigma
             if self.face_conductance is not None:
-                M_prop += self._MeTau
+                M_prop += self._Me_face_conductance
             if self.edge_area_conductance is not None:
-                M_prop += self._MeKappa
+                M_prop += self._Me_edge_area_conductance
             self.__MeSigmaHeirarchical = M_prop
         return self.__MeSigmaHeirarchical
 
@@ -1026,9 +1016,9 @@ class BaseHierarchicalElectricalSimulation(
         """Compute derivative operation for conductivity inner-produce matrix."""
         out = super().MeSigmaDeriv(u, v, adjoint=adjoint)
         if self.face_conductance_map is not None:
-            out += self._MeKappaDeriv(u, v, adjoint=adjoint)
+            out += self._Me_face_conductance_deriv(u, v, adjoint=adjoint)
         if self.edge_area_conductance_map is not None:
-            out += self._MeTauDeriv(u, v, adjoint=adjoint)
+            out += self._Me_edge_area_conductance_deriv(u, v, adjoint=adjoint)
         return out
 
     def MeSigmaIDeriv(self, u, v=None, adjoint=False):
