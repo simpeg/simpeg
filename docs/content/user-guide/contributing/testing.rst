@@ -29,9 +29,33 @@ should.
 Testing is performed with :code:`pytest` which is available through PyPI.
 Checkout the docs on `pytest <https://docs.pytest.org/>`_.
 
+Testing locally
+---------------
+
+Alternatively, we can run the whole test suite locally by running ``pytest``:
+
+.. code:: bash
+
+    pytest -v --cov --cov-config=pyproject.toml tests
+
+where ``-v`` stands for the ``--verbose`` option, that will make ``pytest`` to show more information regarding the tests.
+By adding the ``--cov`` and the ``--cov-conf`` options, we can also get a coverage report after running the tests locally.
+
+When writing new code and tests for your new feature, we can use ``pytest`` to run *only* those new tests.
+For example, we could run only the tests that live in the ``tests/utils/test_default_solver.py`` file by passing that file only as argument to ``pytest``:
+
+.. code:: bash
+
+    pytest -v tests/utils/test_default_solver.py
+
+
+What to test?
+-------------
+
+Here we list some common things to test for when developing new features for SimPEG.
 
 Compare with known values
--------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In a simple case, you might know the exact value of what the output should be
 and you can :code:`assert` that this is in fact the case. For example,
@@ -80,7 +104,7 @@ to test :code:`Jvec` and :code:`Jtvec`.
 .. _order_test:
 
 Order and Derivative Tests
---------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Order tests can be used when you are testing differential operators (we are
 using a second-order, staggered grid discretization for our operators). For
