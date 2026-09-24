@@ -1007,11 +1007,14 @@ class TestSimSurfaceProperties(unittest.TestCase):
 
         # test None as v
         UMT = sim._Mf_face_conductance_deriv(u, adjoint=True)
-        np.testing.assert_allclose(UMT @ v, sim._Mf_face_conductance_deriv(u, v, adjoint=True))
+        np.testing.assert_allclose(
+            UMT @ v, sim._Mf_face_conductance_deriv(u, v, adjoint=True)
+        )
 
         UMT = sim._Mf_face_conductance_deriv(u2, adjoint=True)
         np.testing.assert_allclose(
-            UMT @ v2_2.reshape(-1, order="F"), sim._Mf_face_conductance_deriv(u2, v2_2, adjoint=True)
+            UMT @ v2_2.reshape(-1, order="F"),
+            sim._Mf_face_conductance_deriv(u2, v2_2, adjoint=True),
         )
 
     def test_adjoint_opp_shapes(self):
@@ -1340,16 +1343,21 @@ class TestSimEdgeProperties(unittest.TestCase):
         # and test broadcasting here...
         out_2 = np.empty_like(out)
         for i in range(v2.shape[1]):
-            out_2[:, i] = sim._Me_edge_area_conductance_deriv(u2, v3[:, i, :], adjoint=True)
+            out_2[:, i] = sim._Me_edge_area_conductance_deriv(
+                u2, v3[:, i, :], adjoint=True
+            )
         np.testing.assert_equal(out, out_2)
 
         # test None as v
         UMT = sim._Me_edge_area_conductance_deriv(u, adjoint=True)
-        np.testing.assert_allclose(UMT @ v, sim._Me_edge_area_conductance_deriv(u, v, adjoint=True))
+        np.testing.assert_allclose(
+            UMT @ v, sim._Me_edge_area_conductance_deriv(u, v, adjoint=True)
+        )
 
         UMT = sim._Me_edge_area_conductance_deriv(u2, adjoint=True)
         np.testing.assert_allclose(
-            UMT @ v2_2.reshape(-1, order="F"), sim._Me_edge_area_conductance_deriv(u2, v2_2, adjoint=True)
+            UMT @ v2_2.reshape(-1, order="F"),
+            sim._Me_edge_area_conductance_deriv(u2, v2_2, adjoint=True),
         )
 
     def test_adjoint_opp_shapes(self):
