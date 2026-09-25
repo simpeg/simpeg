@@ -68,6 +68,7 @@ style = [
     "flake8-rst-docstrings==0.3.0",
     "flake8-docstrings==1.7.0",
     "flake8-pyproject==1.2.3",
+    "ruff==0.16.6",
 ]
 docs = [
     "sphinx",
@@ -255,6 +256,25 @@ rst-roles = [
     'meth',
     'ref',
 ]
+
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+
+[tool.ruff.lint]
+# Select only these rules.
+select = [
+    "D406", # Section name should end with a newline
+    "D406", # Missing dashed underline after section
+    "D408", # Section underline should be in the line following the section's name
+    "D409", # Section underline should match the length of its name
+]
+
+[tool.ruff.lint.pydocstyle]
+# Make ruff to check for numpydoc style in our docs
+convention = "numpy"
+
 
 # pyproject.toml
 [tool.pytest.ini_options]
