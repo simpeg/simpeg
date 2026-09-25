@@ -4,7 +4,6 @@ import scipy.sparse as sp
 from .base import BaseSimilarityMeasure
 from ..utils import validate_type
 
-
 ###############################################################################
 #                                                                             #
 #                                Cross-Gradient                               #

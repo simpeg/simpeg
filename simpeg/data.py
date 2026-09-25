@@ -4,7 +4,6 @@ import warnings
 from .survey import BaseSurvey
 from .utils import mkvc, validate_ndarray_with_shape, validate_float, validate_type
 
-
 __all__ = ["Data", "SyntheticData"]
 
 

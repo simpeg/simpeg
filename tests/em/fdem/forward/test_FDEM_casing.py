@@ -4,7 +4,6 @@ import simpeg.electromagnetics.analytics.FDEMcasing as Casing
 import unittest
 from scipy.constants import mu_0
 
-
 n = 50
 freq = 1.0
 a = 5e-2

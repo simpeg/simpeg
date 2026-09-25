@@ -7,7 +7,6 @@ import geoana
 import discretize
 from simpeg.electromagnetics import frequency_domain as fdem
 
-
 # set up the mesh
 hx = 1
 hz = 1
