@@ -25,6 +25,9 @@ for SimPEG, but be aware that direct solvers have much larger memory requirement
 - The :class:`~pymatsolver.SolverLU` wraps SciPy's :func:`scipy.sparse.linalg.splu`. The performance of this solver is not up to the level of :class:`~pymatsolver.Mumps` and :class:`~pymatsolver.Pardiso`. Usage of the :class:`~pymatsolver.SolveLU` is recommended only when it's not possible to use other faster solvers.
 
 
+For control over Pardiso's CPU usage, see :ref:`pardiso-threads`.
+
+
 The default solver
 ------------------
 
@@ -100,4 +103,3 @@ MUMPS in our DC resistivity simulation, we can import
 Ultimately, choosing the best solver is a mixture of the problem you are solving
 and your current system. Experiment with different solvers yourself to choose
 the best.
-
