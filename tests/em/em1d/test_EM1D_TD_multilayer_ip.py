@@ -14,7 +14,6 @@ import unittest
 from simpeg import maps
 import simpeg.electromagnetics.time_domain as tdem
 
-
 # Survey config (Lin et al 2019)
 SURVEY_CONFIG = dict(
     waveform=dict(

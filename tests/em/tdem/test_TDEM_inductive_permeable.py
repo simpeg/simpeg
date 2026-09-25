@@ -10,7 +10,6 @@ import time
 from simpeg.electromagnetics import time_domain as tdem
 from simpeg import utils, maps
 
-
 plotIt = False
 TOL = 1e-4
 

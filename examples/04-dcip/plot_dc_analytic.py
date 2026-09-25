@@ -12,7 +12,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from simpeg.electromagnetics.static import resistivity as DC
 
-
 cs = 25.0
 hx = [(cs, 7, -1.3), (cs, 21), (cs, 7, 1.3)]
 hy = [(cs, 7, -1.3), (cs, 21), (cs, 7, 1.3)]

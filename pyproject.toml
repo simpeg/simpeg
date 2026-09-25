@@ -60,7 +60,7 @@ all = [
     "simpeg[dask,choclo,plotting,reporting,sklearn,pandas]"
 ] # all optional *runtime* dependencies (not related to development)
 style = [
-    "black==24.3.0",
+    "black==26.3.1",
     "flake8==7.0.0",
     "flake8-bugbear==23.12.2",
     "flake8-builtins==2.2.0",
@@ -137,7 +137,7 @@ exclude_also = [
 directory = "coverage_html_report"
 
 [tool.black]
-required-version = '24.3.0'
+required-version = '26.3.1'
 target-version = ["py312", "py313", "py314"]
 
 [tool.flake8]

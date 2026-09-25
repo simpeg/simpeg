@@ -31,7 +31,6 @@ except ImportError:
 
 from ....utils.plot_utils import plot_1d_layer_model  # noqa: F401
 
-
 try:
     import plotly.graph_objects as grapho
 
