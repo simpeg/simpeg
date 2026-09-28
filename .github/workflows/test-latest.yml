@@ -1,0 +1,96 @@
+# Test SimPEG against latest Python and dependencies versions
+# ===========================================================
+
+name: Test SimPEG against latest Python
+
+on:
+  workflow_dispatch:
+    # Manually triggered event. Allow to select Python version in the web interface.
+    inputs:
+      python:
+        description: "Python version"
+        required: true
+        default: "3.14"
+        type: string
+
+  schedule:
+    # Run at midnight of every Monday on default branch
+    - cron: "0 0 * * 1"
+      timezone: "UTC"
+
+permissions: {}
+
+# Use bash by default in all jobs
+defaults:
+  run:
+    # The -l {0} is necessary for conda environments to be activated
+    # But this breaks on MacOS if using actions/setup-python:
+    # https://github.com/actions/setup-python/issues/132
+    # -e makes sure builds fail if any command fails
+    shell: bash -e -o pipefail -l {0}
+
+jobs:
+
+  test:
+    name: Test (latest)
+    runs-on: ubuntu-latest
+    strategy:
+      # Allow single workshops in the matrix to fail and continue running the rest.
+      fail-fast: false
+      matrix:
+        test_target:
+          - tests/base tests/flow tests/meta tests/utils
+          - tests/em
+          - tests/examples
+          - tests/pf
+          # Test dask on its own to avoid modifying the implementation of any other tests
+          - tests/dask
+    env:
+      # Define the Python version conditionally:
+      # if it was manually triggered, use the inputs.python variable, else use a default value.
+      PYTHON: ${{ inputs.python || '3.14' }}
+      ENVIRONMENT: .ci/environment_test.yml
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # Need to fetch more than the last commit so that setuptools-scm can
+          # create the correct version string. If the number of commits since
+          # the last release is greater than this, the version still be wrong.
+          # Increase if necessary.
+          fetch-depth: 100
+          # The GitHub token is preserved by default but this job doesn't need
+          # to be able to push to GitHub.
+          persist-credentials: false
+
+      # Need the tags so that setuptools-scm can form a valid version number
+      - name: Fetch git tags
+        run: git fetch origin 'refs/tags/*:refs/tags/*'
+
+      - name: Setup caching for conda packages
+        uses: actions/cache@v6
+        with:
+          path: ~/conda_pkgs_dir
+          key: conda-${{ env.PYTHON }}-${{ hashFiles(env.ENVIRONMENT) }}
+
+      - name: Setup Miniforge
+        uses: conda-incubator/setup-miniconda@8ee1f361103df19b6f8c8655fd3967a8ecb162d5
+        with:
+          python-version: ${{ env.PYTHON }}
+          miniforge-version: latest
+          channels: conda-forge
+          conda-remove-defaults: "true"
+          activate-environment: simpeg-test
+          environment-file: ${{ env.ENVIRONMENT }}
+
+      - name: List installed packages
+        run: conda list
+
+      - name: Install the package
+        run: python -m pip install --no-deps .
+
+      - name: Run tests
+        run: |
+          pytest -v --cov --cov-config="pyproject.toml" -W "ignore::DeprecationWarning" ${{ matrix.test_target }}
