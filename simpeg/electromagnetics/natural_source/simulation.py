@@ -19,6 +19,7 @@ from .fields import (
 
 
 def _centers_to_widths(centers):
+    """Cell widths from cell centers measured from the start of the first cell."""
     centers = np.asarray(centers)
     d = np.empty_like(centers)
     n = centers.shape[-1]
@@ -335,8 +336,8 @@ class Simulation2DElectricField(BaseFDEMSimulation):
                     is_b[-1, :] = True
                     P_r = maps.Projection(mesh.n_cells, is_b.reshape(-1, order="F"))
                 else:
-                    h_l = _centers_to_widths(b_e[left][:, 1])
-                    h_r = _centers_to_widths(b_e[right][:, 1])
+                    h_l = _centers_to_widths(b_e[left][:, 1] - mesh.nodes_y[0])
+                    h_r = _centers_to_widths(b_e[right][:, 1] - mesh.nodes_y[0])
                     b_l, b_r, _, __ = mesh.cell_boundary_indices
                     P_l = maps.Projection(mesh.n_cells, b_l)
                     P_r = maps.Projection(mesh.n_cells, b_r)
@@ -565,8 +566,8 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
                     is_b[-1, :] = True
                     P_r = maps.Projection(mesh.n_cells, is_b.reshape(-1, order="F"))
                 else:
-                    h_l = _centers_to_widths(b_e[left][:, 1])
-                    h_r = _centers_to_widths(b_e[right][:, 1])
+                    h_l = _centers_to_widths(b_e[left][:, 1] - mesh.nodes_y[0])
+                    h_r = _centers_to_widths(b_e[right][:, 1] - mesh.nodes_y[0])
                     b_l, b_r, _, __ = mesh.cell_boundary_indices
                     P_l = maps.Projection(mesh.n_cells, b_l)
                     P_r = maps.Projection(mesh.n_cells, b_r)
