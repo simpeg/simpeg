@@ -54,7 +54,6 @@ from simpeg.electromagnetics.static.utils.static_utils import (
 )
 from simpeg.utils.io_utils.io_utils_electromagnetics import read_dcip2d_ubc
 
-
 mpl.rcParams.update({"font.size": 16})
 # sphinx_gallery_thumbnail_number = 7
 
