@@ -1,7 +1,9 @@
 import numpy as np
+import scipy.sparse as sp
 from discretize import TensorMesh, TreeMesh
 from discretize.utils import Zero
 
+from ...base.pde_simulation import _inner_mat_mul_op
 from ...utils import mkvc
 from ... import maps
 from ..frequency_domain.simulation import BaseFDEMSimulation, Simulation3DElectricField
@@ -32,6 +34,35 @@ def _centers_to_widths(centers):
 ###################################
 # 1D problems
 ###################################
+
+
+def _bottom_robin_matrix(n, value):
+    """Sparse (n, n) matrix with ``value`` in the entry for the bottom node."""
+    return sp.csr_matrix(([value], ([0], [0])), shape=(n, n))
+
+
+def _bottom_robin_deriv(prop_deriv, d_value, u, v, adjoint):
+    """Derivative of the bottom Robin term times ``u`` with respect to the model.
+
+    The term only depends on the property of the bottom cell (cell 0), through
+    ``d_value``, and only acts on the bottom node (node 0).
+    """
+    # squeeze like _inner_mat_mul_op, so the shapes of the two parts match
+    u = np.squeeze(np.asarray(u))
+    v = np.squeeze(np.asarray(v))
+    e0 = np.zeros(prop_deriv.shape[0])
+    e0[0] = 1.0
+    deriv_row = prop_deriv.T @ e0
+    if adjoint:
+        coef = d_value * u[0] * v[0]
+        if u.ndim > 1:
+            # sum over the fields stored in the columns of u
+            coef = np.sum(coef)
+        return np.multiply.outer(deriv_row, coef) if np.ndim(coef) else deriv_row * coef
+    d_prop = deriv_row @ v
+    out = np.zeros((u.shape[0],) + np.broadcast(u[0], d_prop).shape, dtype=complex)
+    out[0] = d_value * u[0] * d_prop
+    return out
 
 
 class Simulation1DElectricField(BaseFDEMSimulation):
@@ -87,16 +118,38 @@ class Simulation1DElectricField(BaseFDEMSimulation):
         MeMui = self.MeMui
         MfSigma = self.MfSigma
 
-        return G.T.tocsr() @ MeMui @ G + 1j * omega(freq) * MfSigma
+        A = G.T.tocsr() @ MeMui @ G + 1j * omega(freq) * MfSigma
+        return A + _bottom_robin_matrix(A.shape[0], self._bottom_robin(freq)[0])
+
+    def _bottom_robin(self, freq):
+        r"""Robin (downgoing plane wave) term at the bottom node.
+
+        :math:`i k / \mu` with :math:`k = \sqrt{-i \omega \mu \sigma}` for the
+        bottom cell, and its derivatives with respect to the bottom cell's
+        conductivity and inverse permeability.
+        """
+        sigma = np.atleast_1d(self.sigma)[0]
+        mui = np.atleast_1d(self.mui)[0]
+        value = 1j * np.sqrt(-1j * omega(freq) * sigma * mui)
+        return value, value / (2 * sigma), value / (2 * mui)
 
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
-        return 1j * omega(freq) * self.MfSigmaDeriv(u, v, adjoint=adjoint)
+        dA_v = 1j * omega(freq) * self.MfSigmaDeriv(u, v, adjoint=adjoint)
+        if self.sigmaMap is None:
+            return dA_v
+        d_value = self._bottom_robin(freq)[1]
+        return dA_v + _bottom_robin_deriv(self.sigmaDeriv, d_value, u, v, adjoint)
 
     def getADeriv_mui(self, freq, u, v, adjoint=False):
         G = self.mesh.nodal_gradient
         if adjoint:
-            return self.MeMuiDeriv(G * u, G * v, adjoint)
-        return G.T * self.MeMuiDeriv(G * u, v, adjoint)
+            dA_v = self.MeMuiDeriv(G * u, G * v, adjoint)
+        else:
+            dA_v = G.T * self.MeMuiDeriv(G * u, v, adjoint)
+        if self.muiMap is None:
+            return dA_v
+        d_value = self._bottom_robin(freq)[2]
+        return dA_v + _bottom_robin_deriv(self.muiDeriv, d_value, u, v, adjoint)
 
     def getRHS(self, freq):
         """
@@ -162,20 +215,42 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
         MeRho = self.MeRho
         MnMu = self.MnMu
 
-        return G.T.tocsr() @ MeRho @ G + 1j * omega(freq) * MnMu
+        A = G.T.tocsr() @ MeRho @ G + 1j * omega(freq) * MnMu
+        return A + _bottom_robin_matrix(A.shape[0], self._bottom_robin(freq)[0])
+
+    def _bottom_robin(self, freq):
+        r"""Robin (downgoing plane wave) term at the bottom node.
+
+        :math:`i k \rho` with :math:`k = \sqrt{-i \omega \mu \sigma}` for the
+        bottom cell, and its derivatives with respect to the bottom cell's
+        resistivity and permeability.
+        """
+        rho = np.atleast_1d(self.rho)[0]
+        mu = np.atleast_1d(self.mu)[0]
+        value = 1j * np.sqrt(-1j * omega(freq) * mu * rho)
+        return value, value / (2 * rho), value / (2 * mu)
 
     def getADeriv_rho(self, freq, u, v, adjoint=False):
         G = self.mesh.nodal_gradient
         if adjoint:
-            return self.MeRhoDeriv(G * u, G * v, adjoint)
-        return G.T * self.MeRhoDeriv(G * u, v, adjoint)
+            dA_v = self.MeRhoDeriv(G * u, G * v, adjoint)
+        else:
+            dA_v = G.T * self.MeRhoDeriv(G * u, v, adjoint)
+        if self.rhoMap is None:
+            return dA_v
+        d_value = self._bottom_robin(freq)[1]
+        return dA_v + _bottom_robin_deriv(self.rhoDeriv, d_value, u, v, adjoint)
 
     def getADeriv_mu(self, freq, u, v, adjoint=False):
         MnMuDeriv = self.MnMuDeriv(u)
         if adjoint is True:
-            return 1j * omega(freq) * (MnMuDeriv.T * v)
-
-        return 1j * omega(freq) * (MnMuDeriv * v)
+            dA_v = 1j * omega(freq) * (MnMuDeriv.T * v)
+        else:
+            dA_v = 1j * omega(freq) * (MnMuDeriv * v)
+        if self.muMap is None:
+            return dA_v
+        d_value = self._bottom_robin(freq)[2]
+        return dA_v + _bottom_robin_deriv(self.muDeriv, d_value, u, v, adjoint)
 
     def getRHS(self, freq):
         """
@@ -290,6 +365,43 @@ class Simulation1DPrimarySecondary(Simulation1DElectricField):
 ###################################
 # 2D problems
 ###################################
+def _bottom_robin_ops_2d(mesh):
+    """Operators for a Robin term on the bottom boundary edges of a 2D mesh.
+
+    Returns
+    -------
+    P : (n_bottom_edges, n_edges) scipy.sparse.csr_matrix
+        Selects the edges on the bottom boundary.
+    K : (n_bottom_edges, n_cells) scipy.sparse.csr_matrix
+        The length of each bottom edge, at the cell above it.
+    """
+    edges = np.r_[mesh.edges_x, mesh.edges_y]
+    bottom = np.where(
+        np.isclose(edges[:, 1], mesh.nodes_y[0])
+        & (np.arange(len(edges)) < mesh.n_edges_x)
+    )[0]
+    n_bot = len(bottom)
+    P = sp.csr_matrix(
+        (np.ones(n_bot), (np.arange(n_bot), bottom)), shape=(n_bot, mesh.n_edges)
+    )
+    eps = 1e-3 * mesh.h[1].min()
+    cells = np.atleast_1d(mesh.point2index(edges[bottom] + np.r_[0.0, eps]))
+    K = sp.csr_matrix(
+        (mesh.edge_lengths[bottom], (np.arange(n_bot), cells)),
+        shape=(n_bot, mesh.n_cells),
+    )
+    return P, K
+
+
+def _bottom_robin_deriv_2d(ops, scale, dg_dm, u, v, adjoint):
+    """Model derivative of ``scale * P.T @ diag(K @ g) @ P @ u``."""
+    P, K = ops
+    dKg_dm = K @ dg_dm
+    if adjoint:
+        return _inner_mat_mul_op(dKg_dm, P @ u, P @ (scale * v), adjoint=True)
+    return scale * (P.T @ _inner_mat_mul_op(dKg_dm, P @ u, v))
+
+
 class Simulation2DElectricField(BaseFDEMSimulation):
     """
     A
@@ -419,7 +531,31 @@ class Simulation2DElectricField(BaseFDEMSimulation):
         Mcc_mui = self.MccMui
         Me_sigma = self.MeSigma
 
-        return C.T.tocsr() @ Mcc_mui @ C + 1j * omega(freq) * Me_sigma
+        A = C.T.tocsr() @ Mcc_mui @ C + 1j * omega(freq) * Me_sigma
+        if self._h_bc is None:
+            A = A + self._bottom_robin_matrix(freq)
+        return A
+
+    def _bottom_robin_values(self):
+        sigma = np.broadcast_to(self.sigma, (self.mesh.n_cells,))
+        mui = np.broadcast_to(self.mui, (self.mesh.n_cells,))
+        return sigma, mui, np.sqrt(sigma * mui)
+
+    def _bottom_robin_matrix(self, freq):
+        r"""Robin (downgoing plane wave) term on the bottom boundary edges.
+
+        :math:`\sqrt{i \omega \sigma / \mu}` of the bottom cells, integrated
+        along the bottom boundary.
+        """
+        P, K = self._bottom_robin_ops
+        scale = np.sqrt(1j * omega(freq))
+        return scale * (P.T @ sp.diags(K @ self._bottom_robin_values()[2]) @ P)
+
+    @property
+    def _bottom_robin_ops(self):
+        if getattr(self, "_bottom_robin_ops_cache", None) is None:
+            self._bottom_robin_ops_cache = _bottom_robin_ops_2d(self.mesh)
+        return self._bottom_robin_ops_cache
 
     def getRHS(self, freq):
         """
@@ -440,13 +576,30 @@ class Simulation2DElectricField(BaseFDEMSimulation):
         return 1j * omega(freq) * (M_bc @ h_bc)
 
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
-        return 1j * omega(freq) * self.MeSigmaDeriv(u, v, adjoint=adjoint)
+        dA_v = 1j * omega(freq) * self.MeSigmaDeriv(u, v, adjoint=adjoint)
+        if self._h_bc is not None or self.sigmaMap is None:
+            return dA_v
+        sigma, _, g = self._bottom_robin_values()
+        dg_dm = sp.diags(0.5 * g / sigma) @ self.sigmaDeriv
+        scale = np.sqrt(1j * omega(freq))
+        return dA_v + _bottom_robin_deriv_2d(
+            self._bottom_robin_ops, scale, dg_dm, u, v, adjoint
+        )
 
     def getADeriv_mui(self, freq, u, v, adjoint=False):
         C = self.mesh.edge_curl
         if adjoint:
-            return self.MccMuiDeriv(C * u, C * v, adjoint)
-        return C.T * self.MccMuiDeriv(C * u, v, adjoint)
+            dA_v = self.MccMuiDeriv(C * u, C * v, adjoint)
+        else:
+            dA_v = C.T * self.MccMuiDeriv(C * u, v, adjoint)
+        if self._h_bc is not None or self.muiMap is None:
+            return dA_v
+        _, mui, g = self._bottom_robin_values()
+        dg_dm = sp.diags(0.5 * g / mui) @ self.muiDeriv
+        scale = np.sqrt(1j * omega(freq))
+        return dA_v + _bottom_robin_deriv_2d(
+            self._bottom_robin_ops, scale, dg_dm, u, v, adjoint
+        )
 
     def getADeriv(self, freq, u, v, adjoint=False):
         return self.getADeriv_sigma(freq, u, v, adjoint) + self.getADeriv_mui(
@@ -647,7 +800,31 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
         Mcc_rho = self.MccRho
         Me_mu = self.MeMu
 
-        return C.T.tocsr() @ Mcc_rho @ C + 1j * omega(freq) * Me_mu
+        A = C.T.tocsr() @ Mcc_rho @ C + 1j * omega(freq) * Me_mu
+        if self._e_bc is None:
+            A = A + self._bottom_robin_matrix(freq)
+        return A
+
+    def _bottom_robin_values(self):
+        rho = np.broadcast_to(self.rho, (self.mesh.n_cells,))
+        mu = np.broadcast_to(self.mu, (self.mesh.n_cells,))
+        return rho, mu, np.sqrt(rho * mu)
+
+    def _bottom_robin_matrix(self, freq):
+        r"""Robin (downgoing plane wave) term on the bottom boundary edges.
+
+        :math:`i \sqrt{-i \omega \mu \rho}` of the bottom cells, integrated
+        along the bottom boundary.
+        """
+        P, K = self._bottom_robin_ops
+        scale = 1j * np.sqrt(-1j * omega(freq))
+        return scale * (P.T @ sp.diags(K @ self._bottom_robin_values()[2]) @ P)
+
+    @property
+    def _bottom_robin_ops(self):
+        if getattr(self, "_bottom_robin_ops_cache", None) is None:
+            self._bottom_robin_ops_cache = _bottom_robin_ops_2d(self.mesh)
+        return self._bottom_robin_ops_cache
 
     def getRHS(self, freq):
         """
@@ -670,11 +847,28 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
     def getADeriv_rho(self, freq, u, v, adjoint=False):
         C = self.mesh.edge_curl
         if adjoint:
-            return self.MccRhoDeriv(C * u, C * v, adjoint)
-        return C.T * self.MccRhoDeriv(C * u, v, adjoint)
+            dA_v = self.MccRhoDeriv(C * u, C * v, adjoint)
+        else:
+            dA_v = C.T * self.MccRhoDeriv(C * u, v, adjoint)
+        if self._e_bc is not None or self.rhoMap is None:
+            return dA_v
+        rho, _, g = self._bottom_robin_values()
+        dg_dm = sp.diags(0.5 * g / rho) @ self.rhoDeriv
+        scale = 1j * np.sqrt(-1j * omega(freq))
+        return dA_v + _bottom_robin_deriv_2d(
+            self._bottom_robin_ops, scale, dg_dm, u, v, adjoint
+        )
 
     def getADeriv_mu(self, freq, u, v, adjoint=False):
-        return 1j * omega(freq) * self.MeMuDeriv(u, v, adjoint=adjoint)
+        dA_v = 1j * omega(freq) * self.MeMuDeriv(u, v, adjoint=adjoint)
+        if self._e_bc is not None or self.muMap is None:
+            return dA_v
+        _, mu, g = self._bottom_robin_values()
+        dg_dm = sp.diags(0.5 * g / mu) @ self.muDeriv
+        scale = 1j * np.sqrt(-1j * omega(freq))
+        return dA_v + _bottom_robin_deriv_2d(
+            self._bottom_robin_ops, scale, dg_dm, u, v, adjoint
+        )
 
     def getADeriv(self, freq, u, v, adjoint=False):
         return self.getADeriv_rho(freq, u, v, adjoint) + self.getADeriv_mu(
