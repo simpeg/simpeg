@@ -2045,53 +2045,8 @@ class HorizontalDeterminant(RootGramDeterminant):
     orientation about the tow cable for either an electric or magnetic base station.
     The datum is derived by taking the determinant of the horizontal transfer
     functions. For a magnetic base station the quantity is unitless. For an electric
-    base station, the units are A$^2$/V$^2$. See the *Notes* section for a formal
-    definition of the datum.
-
-    Notes
-    -----
-
-    Consider an acquisition system that measures 3-component magnetic fields
-    in the air and magnetic fields at a base station. The fundamental set of
-    transfer functions (i.e. tippers) that can be generated from these
-    measurements is given by:
-
-    .. math::
-        \begin{bmatrix}
-        T_{xx} & T_{yx} & T_{zx} \\ T_{xy} & T_{yy} & T_{zy}
-        \end{bmatrix} = \begin{bmatrix}
-        H_x^{(x)} & H_y^{(x)} \\ H_x^{(y)} & H_y^{(y)}
-        \end{bmatrix}_b^{-1} \, \begin{bmatrix}
-        H_x^{(x)} & H_y^{(x)} & H_z^{(x)} \\ H_x^{(y)} & H_y^{(y)} & H_z^{(y)}
-        \end{bmatrix}_r
-
-    where subscript :math:`b` denotes the base station location and subscript
-    :math:`r` denotes the mobile receiver location.
-
-    For this system, the horizontal determinant transfer function is defined as:
-
-    .. math::
-
-        \det(T_H) = T_{xx}T_{yy} - T_{yx}T_{xy}
-
-    Now consider an acquisition system that measures 3-component magnetic fields
-    in the air and electric fields at a base station. The fundamental set of
-    transfer functions (i.e. admittances) that can be generated from these
-    measurements is given by:
-
-    .. math::
-        \begin{bmatrix}
-        Y_{xx} & Y_{yx} & Y_{zx} \\ Y_{xy} & Y_{yy} & Y_{zy}
-        \end{bmatrix} = \begin{bmatrix}
-        E_x^{(x)} & E_y^{(x)} \\ E_x^{(y)} & E_y^{(y)}
-        \end{bmatrix}_b^{-1} \, \begin{bmatrix}
-        H_x^{(x)} & H_y^{(x)} & H_z^{(x)} \\ H_x^{(y)} & H_y^{(y)} & H_z^{(y)}
-        \end{bmatrix}_r
-
-    For this system, the horizontal determinant transfer function is defined as:
-
-    .. math::
-        \det(Y_H) = Y_{xx}Y_{yy} - Y_{yx}Y_{xy}
+    base station, the units are :math:`A^2/V^2`.
+    See the *Notes* section for a formal definition of the datum.
 
     Parameters
     ----------
@@ -2111,6 +2066,73 @@ class HorizontalDeterminant(RootGramDeterminant):
         - 'imag': Imaginary component
     storeProjections : bool
         Whether to cache to internal projection matrices.
+
+    Notes
+    -----
+
+    Magnetic base station
+    ~~~~~~~~~~~~~~~~~~~~~
+    Consider an acquisition system that measures 3-component magnetic fields
+    in the air and magnetic fields at a base station. The fundamental set of
+    transfer functions (i.e. tippers) that can be generated from these
+    measurements is given by:
+
+    .. math::
+
+        \begin{bmatrix}
+        T_{xx} & T_{yx} & T_{zx} \\
+        T_{xy} & T_{yy} & T_{zy}
+        \end{bmatrix}
+        =
+        \begin{bmatrix}
+        H_x^{(x)} & H_y^{(x)} \\
+        H_x^{(y)} & H_y^{(y)}
+        \end{bmatrix}_b^{-1}
+        \,
+        \begin{bmatrix}
+        H_x^{(x)} & H_y^{(x)} & H_z^{(x)} \\
+        H_x^{(y)} & H_y^{(y)} & H_z^{(y)}
+        \end{bmatrix}_r
+
+    where subscript :math:`b` denotes the base station location and subscript
+    :math:`r` denotes the mobile receiver location.
+
+    For this system, the horizontal determinant transfer function is defined as:
+
+    .. math::
+
+        \det(T_H) = T_{xx}T_{yy} - T_{yx}T_{xy}
+
+    Electric base station
+    ~~~~~~~~~~~~~~~~~~~~~
+    Now consider an acquisition system that measures 3-component magnetic fields
+    in the air and electric fields at a base station. The fundamental set of
+    transfer functions (i.e. admittances) that can be generated from these
+    measurements is given by:
+
+    .. math::
+
+        \begin{bmatrix}
+        Y_{xx} & Y_{yx} & Y_{zx} \\
+        Y_{xy} & Y_{yy} & Y_{zy}
+        \end{bmatrix}
+        =
+        \begin{bmatrix}
+        E_x^{(x)} & E_y^{(x)} \\
+        E_x^{(y)} & E_y^{(y)}
+        \end{bmatrix}_b^{-1}
+        \,
+        \begin{bmatrix}
+        H_x^{(x)} & H_y^{(x)} & H_z^{(x)} \\
+        H_x^{(y)} & H_y^{(y)} & H_z^{(y)}
+        \end{bmatrix}_r
+
+    For this system, the horizontal determinant transfer function is defined as:
+
+    .. math::
+
+        \det(Y_H) = Y_{xx}Y_{yy} - Y_{yx}Y_{xy}
+
     """
 
     _loc_names = ("Roving magnetic field", "Base station field")
