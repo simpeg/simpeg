@@ -2007,7 +2007,7 @@ class CrossProductAmplitude(RootGramDeterminant):
 
     _loc_names = ("Roving magnetic field", "Base station field")
 
-    def __init__(  # noqa: D107
+    def __init__(
         self,
         locations_h,
         locations_base=None,
@@ -2137,7 +2137,7 @@ class HorizontalDeterminant(RootGramDeterminant):
 
     _loc_names = ("Roving magnetic field", "Base station field")
 
-    def __init__(  # noqa: D107
+    def __init__(
         self,
         locations_h,
         locations_base=None,
@@ -2231,7 +2231,7 @@ class ApparentConductivity(_BaseOrientationInvariant):
         locations_h=None,
         component="cross_product_amplitude",
         storeProjections=False,
-    ):  # noqa: D102
+    ):
         if locations_h is None:
             locations_h = locations_e
         super().__init__(
