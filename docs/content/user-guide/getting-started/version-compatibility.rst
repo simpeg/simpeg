@@ -36,3 +36,5 @@ following releases to ensure compatibility:
       - 0.22.2
     * - 3.10
       - 0.24.0
+    * - 3.11
+      - 0.25.2

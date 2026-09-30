@@ -3,7 +3,7 @@ channels:
   - conda-forge
 dependencies:
 # dependencies
-  - python=3.11
+  - python=3.12
   - numpy>=1.22
   - scipy>=1.12
   - pymatsolver>=0.3
@@ -51,7 +51,7 @@ dependencies:
 
 # style checking
   - pre-commit
-  - black==24.3.0
+  - black==26.3.1
   - flake8==7.0.0
   - flake8-pyproject==1.2.3
   - flake8-bugbear==23.12.2
@@ -60,6 +60,7 @@ dependencies:
   - flake8-rst-docstrings==0.3.0
   - flake8-docstrings==1.7.0
   - zizmor # lint GitHub Actions workflows
+  - ruff
 
 # recommended
   - jupyter
