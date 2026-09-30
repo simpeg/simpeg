@@ -383,6 +383,10 @@ def line_through_faces(
     ----------
     mesh : discretize.TreeMesh
         The OctTreeMesh (3D) for the system.
+    locations : (n, 3) numpy.ndarray
+        The locations of the nodes of the wire path. The current flows from
+        ``locations[0]`` towards ``locations[-1]``. Locations are moved to the
+        closest cell centers.
     normalize_by_area : bool, default: ``True``
         If ``True``, normalize by face area
     check_divergence : bool, default: ``True``
@@ -415,7 +419,7 @@ def line_through_faces(
         if len(dimension) > 1:
             not_aligned_error(i)
         dimension = dimension[0]
-        direction = np.sign(locations[i, dimension] - locations[i + 1, dimension])
+        direction = np.sign(locations[i + 1, dimension] - locations[i, dimension])
 
         if dimension == 0:
             grid_loc = "x"
