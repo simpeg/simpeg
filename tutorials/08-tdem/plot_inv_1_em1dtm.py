@@ -170,7 +170,7 @@ data_object = data.Data(survey, dobs=dobs, standard_deviation=uncertainties)
 inv_thicknesses = np.logspace(0, 1.5, 25)
 
 # Define a mesh for plotting and regularization.
-mesh = TensorMesh([(np.r_[inv_thicknesses, inv_thicknesses[-1]])], "0")
+mesh = TensorMesh([np.r_[inv_thicknesses, inv_thicknesses[-1]]], "0")
 
 
 ########################################################

@@ -5,7 +5,6 @@ from scipy.constants import mu_0
 from ...utils import omega
 from ....utils import validate_type, validate_list_of_types
 
-
 # Define the default component dictionaries
 DEFAULT_COMP_DICT = {
     "xx": {"color": "green", "label": "Imp_xx", "marker": "_", "ls": "None"},
