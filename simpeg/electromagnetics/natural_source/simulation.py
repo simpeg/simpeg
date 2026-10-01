@@ -39,7 +39,7 @@ class Simulation1DElectricField(BaseFDEMSimulation):
     1D finite volume simulation for the natural source electromagnetic problem.
 
     This corresponds to the TE mode 2D simulation where the electric field is
-    located at cell centers and the magnetic flux is on edges.
+    located on nodes and the magnetic field at cell centers.
 
     We are solving the discrete version of
 
@@ -54,12 +54,12 @@ class Simulation1DElectricField(BaseFDEMSimulation):
 
     When we discretize, we obtain:
 
-    where the Magnetic field is defined on edges, and the electric field is
+    where the electric field is defined on nodes, and the magnetic field is
     defined on cell centers.
     """
 
     _solutionType = "eSolution"
-    _formulation = "EB"  # electric-field component is on cell-centers
+    _formulation = "EB"  # electric-field component is on nodes
     fieldsPair = Fields1DElectricField
 
     def __init__(self, mesh, **kwargs):
