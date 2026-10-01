@@ -6,7 +6,6 @@ from ...utils import (
     validate_ndarray_with_shape,
 )
 
-
 #########################################
 # POINT RECEIVER CLASS FOR VRM
 #########################################

@@ -24,7 +24,6 @@ from simpeg.electromagnetics.analytics.TDEM import (
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
-
 #####################################################################
 # Magnetic Fields for a Transient Magnetic Dipole Source
 # ------------------------------------------------------
