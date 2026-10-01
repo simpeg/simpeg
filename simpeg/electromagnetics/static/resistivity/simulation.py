@@ -1,20 +1,19 @@
+import warnings
+
 import numpy as np
-import scipy.sparse as sp
 
 from ....utils import (
     mkvc,
     Zero,
     validate_type,
-    validate_string,
     validate_active_indices,
 )
 from ....data import Data
 from ....base import BaseElectricalPDESimulation
-from ....base.pde_simulation import _inner_mat_mul_op
 from .survey import Survey
 from .fields import Fields3DCellCentered, Fields3DNodal
 from .utils import _mini_pole_pole
-from discretize.utils import make_boundary_bool
+from ._operators import CellCenteredDCOperator, NodalDCOperator
 
 
 class BaseDCSimulation(BaseElectricalPDESimulation):
@@ -330,7 +329,6 @@ class Simulation3DCellCentered(BaseDCSimulation):
     def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.bc_type = bc_type
-        self.setBC()
 
     @property
     def bc_type(self):
@@ -344,51 +342,66 @@ class Simulation3DCellCentered(BaseDCSimulation):
         -----
         Robin and Mixed are equivalent.
         """
-        return self._bc_type
+        return self._dc_operator.bc_type
 
     @bc_type.setter
     def bc_type(self, value):
-        self._bc_type = validate_string(
-            "bc_type", value, ["Dirichlet", "Neumann", ("Robin", "Mixed")]
+        self._dc_operator = CellCenteredDCOperator(
+            self.mesh, bc_type=value, surface_faces=self.surface_faces
         )
+        mesh_type = self.mesh._meshType.lower()
+        # tensor and curvilinear meshes have always stored the default surface faces
+        if self.surface_faces is None and mesh_type in ["tensor", "curv"]:
+            self.surface_faces = self._dc_operator.surface_faces
+        if self.verbose and self.bc_type == "Dirichlet":
+            print("Homogeneous Dirichlet is the natural BC for this CC discretization.")
+
+    @property
+    def Div(self):
+        """Face divergence scaled by the cell volumes.
+
+        Returns
+        -------
+        (n_cells, n_faces) scipy.sparse.csr_matrix
+        """
+        return self._dc_operator.Div
+
+    @property
+    def Grad(self):
+        """Cell gradient with the boundary conditions imposed.
+
+        Returns
+        -------
+        (n_faces, n_cells) scipy.sparse.csr_matrix
+        """
+        return self._dc_operator.Grad
 
     def getA(self, resistivity=None):
         """
         Make the A matrix for the cell centered DC resistivity problem
         A = D MfRhoI G
         """
+        if self.verbose and self.bc_type == "Neumann":
+            print("Perturbing first row of A to remove nullspace for Neumann BC.")
 
-        D = self.Div
-        G = self.Grad
-        if resistivity is None:
-            MfRhoI = self.MfRhoI
-        else:
+        if resistivity is not None:
+            warnings.warn(
+                "The `resistivity` argument of `getA` has been deprecated and will "
+                "be removed in SimPEG v0.28.0. Set the `rho` (or `sigma`) property "
+                "of the simulation instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
             MfRhoI = self.mesh.get_face_inner_product(resistivity, invert_matrix=True)
-        A = D @ MfRhoI @ G
-
-        if self.bc_type == "Neumann":
-            if self.verbose:
-                print("Perturbing first row of A to remove nullspace for Neumann BC.")
-
-            # Handling Null space of A
-            I, J, V = sp.find(A[0, :])
-            for jj in J:
-                A[0, jj] = 0.0
-            A[0, 0] = 1.0
-
-        return A
+            return self._dc_operator._assemble(MfRhoI)
+        return self._dc_operator.system_matrix(self)
 
     def getADeriv(self, u, v, adjoint=False):
-        if self.rhoMap is not None:
-            D = self.Div
-            G = self.Grad
-            MfRhoIDeriv = self.MfRhoIDeriv
-
-            if adjoint:
-                return MfRhoIDeriv(G @ u, D.T @ v, adjoint)
-
-            return D * (MfRhoIDeriv(G @ u, v, adjoint))
-        return Zero()
+        """
+        Product of the derivative of our system matrix with respect to the
+        model and a vector
+        """
+        return self._dc_operator.system_matrix_deriv(self, u, v, adjoint=adjoint)
 
     def getRHS(self):
         """
@@ -410,74 +423,13 @@ class Simulation3DCellCentered(BaseDCSimulation):
         return Zero()
 
     def setBC(self):
-        mesh = self.mesh
-        V = sp.diags(mesh.cell_volumes)
-        self.Div = V @ mesh.face_divergence
-        self.Grad = self.Div.T
+        """Set up the boundary conditions.
 
-        if self.bc_type == "Dirichlet":
-            if self.verbose:
-                print(
-                    "Homogeneous Dirichlet is the natural BC for this CC discretization."
-                )
-            # do nothing
-            return
-        elif self.bc_type == "Neumann":
-            alpha, beta, gamma = 0, 1, 0
-        else:
-            boundary_faces = mesh.boundary_faces
-            boundary_normals = mesh.boundary_face_outward_normals
-            n_bf = len(boundary_faces)
-
-            # Top gets 0 Nuemann
-            alpha = np.zeros(n_bf)
-            beta = np.ones(n_bf)
-            gamma = 0
-
-            # assume a source point at the middle of the top of the mesh
-            middle = np.median(mesh.nodes, axis=0)
-            top_v = np.max(mesh.nodes[:, -1])
-            source_point = np.r_[middle[:-1], top_v]
-
-            # Others: Robin: alpha * phi + d phi dn = 0
-            # where alpha = 1 / r  * r_hat_dot_n
-            # TODO: Implement Zhang et al. (1995)
-
-            r_vec = boundary_faces - source_point
-            r = np.linalg.norm(r_vec, axis=-1)
-            r_hat = r_vec / r[:, None]
-            r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
-
-            if self.surface_faces is None:
-                # determine faces that are on the sides and bottom of the mesh...
-                if mesh._meshType.lower() == "tree":
-                    not_top = boundary_faces[:, -1] != top_v
-                elif mesh._meshType.lower() in ["tensor", "curv"]:
-                    # mesh faces are ordered, faces_x, faces_y, faces_z so...
-                    if mesh.dim == 2:
-                        is_b = make_boundary_bool(mesh.shape_faces_y)
-                        is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
-                        is_t[:, -1] = True
-                    else:
-                        is_b = make_boundary_bool(mesh.shape_faces_z)
-                        is_t = np.zeros(mesh.shape_faces_z, dtype=bool, order="F")
-                        is_t[:, :, -1] = True
-                    is_t = is_t.reshape(-1, order="F")[is_b]
-                    not_top = np.ones(boundary_faces.shape[0], dtype=bool)
-                    not_top[-len(is_t) :] = ~is_t
-                    self.surface_faces = ~not_top
-                else:
-                    raise NotImplementedError(
-                        f"Unable to infer surface boundaries for {type(mesh)}, please "
-                        f"set the `surface_faces` property."
-                    )
-            else:
-                not_top = ~self.surface_faces
-            alpha[not_top] = (r_dot_n / r)[not_top]
-
-        B, bc = mesh.cell_gradient_weak_form_robin(alpha, beta, gamma)
-        # bc should always be 0 because gamma was always 0 above
-        self.Grad = self.Grad - B
+        .. deprecated:: 0.26.0
+            The boundary conditions are set up when ``bc_type`` is assigned.
+        """
+        _warn_setBC()
+        self.bc_type = self.bc_type
 
 
 class Simulation3DNodal(BaseDCSimulation):
@@ -491,14 +443,9 @@ class Simulation3DNodal(BaseDCSimulation):
 
     def __init__(self, mesh, survey=None, bc_type="Robin", **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
-        # Not sure why I need to do this
-        # To evaluate mesh.aveE2CC, this is required....
-        if mesh._meshType == "TREE":
-            mesh.nodal_gradient
-        elif mesh._meshType == "CYL":
+        if mesh._meshType == "CYL":
             bc_type = "Neumann"
         self.bc_type = bc_type
-        self.setBC()
 
     @property
     def bc_type(self):
@@ -512,136 +459,53 @@ class Simulation3DNodal(BaseDCSimulation):
         -----
         Robin and Mixed are equivalent.
         """
-        return self._bc_type
+        return self._dc_operator.bc_type
 
     @bc_type.setter
     def bc_type(self, value):
-        self._bc_type = validate_string(
-            "bc_type", value, ["Neumann", ("Robin", "Mixed")]
+        self._dc_operator = NodalDCOperator(
+            self.mesh, bc_type=value, surface_faces=self.surface_faces
         )
+        # depends on the boundary conditions
+        if hasattr(self, "_MBC_sigma"):
+            del self._MBC_sigma
+        if self.verbose and self.bc_type == "Neumann":
+            print(
+                "Homogeneous Neumann is the natural BC for this nodal discretization."
+            )
 
     def getA(self, resistivity=None):
         """
         Make the A matrix for the cell centered DC resistivity problem
         A = G.T MeSigma G
         """
-        if resistivity is None:
-            MeSigma = self.MeSigma
-        else:
+        if resistivity is not None:
+            warnings.warn(
+                "The `resistivity` argument of `getA` has been deprecated and will "
+                "be removed in SimPEG v0.28.0. Set the `rho` (or `sigma`) property "
+                "of the simulation instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
             MeSigma = self.mesh.get_edge_inner_product(1.0 / resistivity)
-        Grad = self.mesh.nodal_gradient
-        A = Grad.T.tocsr() @ MeSigma @ Grad
-
-        if self.bc_type == "Neumann":
-            # Handling Null space of A
-            I, J, V = sp.find(A[0, :])
-            for jj in J:
-                A[0, jj] = 0.0
-            A[0, 0] = 1.0
-        else:
-            # Dirichlet BC type should already have failed
-            # Also, this will fail if sigma is anisotropic
-            try:
-                A = A + sp.diags(self._AvgBC @ self.sigma, format="csr")
-            except ValueError as err:
-                if len(self.sigma) != len(self.mesh):
-                    raise NotImplementedError(
-                        "Anisotropic conductivity is not supported for Robin boundary "
-                        "conditions, please use 'Neumann'."
-                    )
-                else:
-                    raise err
-
-        return A
+            return self._dc_operator._assemble(MeSigma, self)
+        return self._dc_operator.system_matrix(self)
 
     def getADeriv(self, u, v, adjoint=False):
         """
         Product of the derivative of our system matrix with respect to the
         model and a vector
         """
-        Grad = self.mesh.nodal_gradient
-        if not adjoint:
-            out = Grad.T @ self.MeSigmaDeriv(Grad @ u, v, adjoint)
-        else:
-            out = self.MeSigmaDeriv(Grad @ u, Grad @ v, adjoint)
-        if self.bc_type != "Neumann" and self.sigmaMap is not None:
-            if getattr(self, "_MBC_sigma", None) is None:
-                self._MBC_sigma = self._AvgBC @ self.sigmaDeriv
-            out += _inner_mat_mul_op(self._MBC_sigma, u, v, adjoint)
-        return out
+        return self._dc_operator.system_matrix_deriv(self, u, v, adjoint=adjoint)
 
     def setBC(self):
-        if self.bc_type == "Dirichlet":
-            # do nothing
-            raise ValueError(
-                "Dirichlet conditions are not supported in the Nodal formulation"
-            )
-        elif self.bc_type == "Neumann":
-            if self.verbose:
-                print(
-                    "Homogeneous Neumann is the natural BC for this nodal discretization."
-                )
-            return
-        else:
-            mesh = self.mesh
-            # calculate alpha, beta, gamma at the boundary faces
-            boundary_faces = mesh.boundary_faces
-            boundary_normals = mesh.boundary_face_outward_normals
-            n_bf = len(boundary_faces)
+        """Set up the boundary conditions.
 
-            # Top gets 0 Nuemann
-            alpha = np.zeros(n_bf)
-            # beta = np.ones(n_bf) = 1.0
-
-            # not top get Robin condition
-            # assume a source point at the middle of the top of the mesh
-            middle = np.median(mesh.nodes, axis=0)
-            top_v = np.max(mesh.nodes[:, -1])
-            source_point = np.r_[middle[:-1], top_v]
-
-            # Others: Robin: alpha * phi + d phi dn = 0
-            # where alpha = 1 / r  * r_hat_dot_n
-            # TODO: Implement Zhang et al. (1995)
-
-            r_vec = boundary_faces - source_point
-            r = np.linalg.norm(r_vec, axis=-1)
-            r_hat = r_vec / r[:, None]
-            r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
-
-            # determine faces that are on the sides and bottom of the mesh...
-            if self.surface_faces is None:
-                if mesh._meshType.lower() == "tree":
-                    not_top = boundary_faces[:, -1] != top_v
-                elif mesh._meshType.lower() in ["tensor", "curv"]:
-                    # mesh faces are ordered, faces_x, faces_y, faces_z so...
-                    if mesh.dim == 2:
-                        is_b = make_boundary_bool(mesh.shape_faces_y)
-                        is_t = np.zeros(mesh.shape_faces_y, dtype=bool, order="F")
-                        is_t[:, -1] = True
-                    else:
-                        is_b = make_boundary_bool(mesh.shape_faces_z)
-                        is_t = np.zeros(mesh.shape_faces_z, dtype=bool, order="F")
-                        is_t[:, :, -1] = True
-                    is_t = is_t.reshape(-1, order="F")[is_b]
-                    not_top = np.ones(boundary_faces.shape[0], dtype=bool)
-                    not_top[-len(is_t) :] = ~is_t
-                else:
-                    raise NotImplementedError(
-                        f"Unable to infer surface boundaries for {type(mesh)}, please "
-                        f"set the `surface_faces` property."
-                    )
-            else:
-                not_top = ~self.surface_faces
-
-            alpha[not_top] = (r_dot_n / r)[not_top]
-
-            P_bf = self.mesh.project_face_to_boundary_face
-
-            AvgN2Fb = P_bf @ self.mesh.average_node_to_face
-            AvgCC2Fb = P_bf @ self.mesh.average_cell_to_face
-
-            AvgCC2Fb = sp.diags(alpha * (P_bf @ self.mesh.face_areas)) @ AvgCC2Fb
-            self._AvgBC = AvgN2Fb.T @ AvgCC2Fb
+        .. deprecated:: 0.26.0
+            The boundary conditions are set up when ``bc_type`` is assigned.
+        """
+        _warn_setBC()
+        self.bc_type = self.bc_type
 
     def getRHS(self):
         """
@@ -668,6 +532,15 @@ class Simulation3DNodal(BaseDCSimulation):
         model
         """
         return super()._clear_on_sigma_update + ["_MBC_sigma"]
+
+
+def _warn_setBC():
+    warnings.warn(
+        "`setBC` has been deprecated and will be removed in SimPEG v0.28.0. "
+        "The boundary conditions are set up when `bc_type` is assigned.",
+        FutureWarning,
+        stacklevel=3,
+    )
 
 
 Simulation3DCellCentred = Simulation3DCellCentered  # UK and US!
