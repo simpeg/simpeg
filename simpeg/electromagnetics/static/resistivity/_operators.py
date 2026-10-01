@@ -104,8 +104,16 @@ def _robin_alpha(mesh, surface_faces):
     return alpha
 
 
-def _remove_null_space(A):
-    """Perturb the first row of ``A`` to remove the null space of constants."""
+def _remove_null_space(A, symmetric=False):
+    """Perturb the first row of ``A`` to remove the null space of constants.
+
+    By default, the first row is replaced by a row of the identity. If
+    ``symmetric`` is ``True``, one is added to the first diagonal entry
+    instead, which keeps the matrix symmetric.
+    """
+    if symmetric:
+        A[0, 0] = A[0, 0] + 1.0
+        return A
     I, J, V = sp.find(A[0, :])
     for jj in J:
         A[0, jj] = 0.0
@@ -255,6 +263,11 @@ class NodalDCOperator:
     surface_faces : None or (n_boundary_faces, ) numpy.ndarray of bool, optional
         The boundary faces that are on the surface, used for the Robin
         condition. If ``None``, the faces on the top of the mesh are used.
+    symmetric_null_space_fix : bool, optional
+        How to remove the null space of constants for the Neumann condition.
+        If ``False``, the first row of the system matrix is replaced by a row
+        of the identity. If ``True``, one is added to its first diagonal entry
+        instead, which keeps the system matrix symmetric.
 
     Attributes
     ----------
@@ -272,11 +285,18 @@ class NodalDCOperator:
     the conductivity is updated.
     """
 
-    def __init__(self, mesh, bc_type="Robin", surface_faces=None):
+    def __init__(
+        self,
+        mesh,
+        bc_type="Robin",
+        surface_faces=None,
+        symmetric_null_space_fix=False,
+    ):
         self.mesh = mesh
         self.bc_type = validate_string(
             "bc_type", bc_type, ["Neumann", ("Robin", "Mixed")]
         )
+        self.symmetric_null_space_fix = symmetric_null_space_fix
         self.surface_faces = None
         self.Grad = mesh.nodal_gradient
 
@@ -318,7 +338,7 @@ class NodalDCOperator:
         A = Grad.T.tocsr() @ MeSigma @ Grad
 
         if self.bc_type == "Neumann":
-            A = _remove_null_space(A)
+            A = _remove_null_space(A, symmetric=self.symmetric_null_space_fix)
         else:
             # This will fail if sigma is anisotropic
             sigma = physprops.sigma

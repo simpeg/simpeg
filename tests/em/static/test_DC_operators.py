@@ -120,3 +120,29 @@ def test_resistivity_argument_deprecated(
     if bc_type != "Robin":
         expected = sim_class(mesh, bc_type=bc_type, rho=resistivity)
         np.testing.assert_allclose(A.toarray(), expected.getA().toarray())
+
+
+def test_symmetric_null_space_fix(mesh, model):
+    """Test the two ways of removing the null space give the same fields."""
+    physprops = dc.Simulation3DNodal(mesh, bc_type="Neumann", sigma=np.exp(model))
+    operator = NodalDCOperator(mesh, bc_type="Neumann")
+    symmetric = NodalDCOperator(mesh, bc_type="Neumann", symmetric_null_space_fix=True)
+    A = operator.system_matrix(physprops)
+    A_symmetric = symmetric.system_matrix(physprops)
+    assert abs(A - A.T).max() > 0
+    assert abs(A_symmetric - A_symmetric.T).max() == 0
+
+    # a source term that adds up to zero
+    q = np.zeros(mesh.n_nodes)
+    q[[10, -10]] = [1.0, -1.0]
+    Grad = mesh.nodal_gradient
+    e = Grad @ (physprops.solver(A) * q)
+    e_symmetric = Grad @ (physprops.solver(A_symmetric) * q)
+    np.testing.assert_allclose(e, e_symmetric, atol=1e-10 * np.abs(e).max())
+
+
+def test_tdem_galvanic_not_implemented(mesh):
+    """Test the B formulation does not support the initial DC problem."""
+    simulation = tdem.Simulation3DMagneticFluxDensity(mesh, sigma=1.0)
+    with pytest.raises(NotImplementedError, match="galvanic sources"):
+        simulation.Adcinv
