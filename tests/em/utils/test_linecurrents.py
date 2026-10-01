@@ -6,6 +6,7 @@ from simpeg.electromagnetics.utils import (
 )
 import discretize
 import unittest
+import pytest
 from simpeg.utils import download
 
 
@@ -165,6 +166,82 @@ class LineCurrentFacesTest(unittest.TestCase):
                 )[0]
             )
         )
+
+
+class TestLineCurrentDirection:
+    """
+    Test that line_through_faces and segmented_line_current_source_term agree
+    on the direction of the current: from ``locations[i]`` to ``locations[i + 1]``.
+    """
+
+    mesh = discretize.TensorMesh([np.full(8, 10.0)] * 3, origin="CCC")
+
+    @pytest.mark.parametrize("axis", [0, 1, 2])
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_straight_wire(self, axis, reverse):
+        mesh = self.mesh
+        # wire through cell centers
+        locations = np.full((2, 3), 5.0)
+        locations[:, axis] = [-25.0, 25.0]
+        expected_sign = 1.0
+        if reverse:
+            locations = locations[::-1]
+            expected_sign = -1.0
+
+        faces = line_through_faces(mesh, locations, normalize_by_area=True)
+        edges = segmented_line_current_source_term(mesh, locations)
+
+        faces_split = np.split(faces, np.cumsum(mesh.n_faces_per_direction)[:-1])
+        edges_split = np.split(edges, np.cumsum(mesh.n_edges_per_direction)[:-1])
+
+        for i in range(3):
+            if i == axis:
+                nonzero = faces_split[i][faces_split[i] != 0]
+                assert len(nonzero) > 0
+                np.testing.assert_array_equal(np.sign(nonzero), expected_sign)
+                assert np.sign(edges_split[i].sum()) == expected_sign
+            else:
+                np.testing.assert_array_equal(faces_split[i], 0.0)
+                np.testing.assert_allclose(edges_split[i], 0.0, atol=1e-12)
+
+    def test_loop(self):
+        mesh = self.mesh
+        # counter-clockwise loop (viewed from +z)
+        a, z = 25.0, 5.0
+        locations = np.array(
+            [[-a, -a, z], [a, -a, z], [a, a, z], [-a, a, z], [-a, -a, z]]
+        )
+        faces = line_through_faces(mesh, locations, normalize_by_area=True)
+        edges = segmented_line_current_source_term(mesh, locations)
+
+        faces_split = np.split(faces, np.cumsum(mesh.n_faces_per_direction)[:-1])
+        edges_split = np.split(edges, np.cumsum(mesh.n_edges_per_direction)[:-1])
+        faces_grid = [mesh.faces_x, mesh.faces_y, mesh.faces_z]
+        edges_grid = [mesh.edges_x, mesh.edges_y, mesh.edges_z]
+
+        # the current on faces and edges should circulate counter-clockwise:
+        # (component, coordinate of the segment, position, expected sign)
+        segments = [
+            (0, 1, -a, 1.0),  # bottom: +x
+            (1, 0, a, 1.0),  # right: +y
+            (0, 1, a, -1.0),  # top: -x
+            (1, 0, -a, -1.0),  # left: -y
+        ]
+        for component, coordinate, position, expected_sign in segments:
+            f = faces_split[component]
+            face_inds = np.isclose(faces_grid[component][:, coordinate], position) & (
+                f != 0
+            )
+            assert face_inds.sum() > 0
+            np.testing.assert_array_equal(np.sign(f[face_inds]), expected_sign)
+
+            # edges within a cell of this segment
+            e = edges_split[component]
+            edge_inds = np.abs(edges_grid[component][:, coordinate] - position) < 10
+            assert np.sign(e[edge_inds].sum()) == expected_sign
+
+        # no vertical current
+        np.testing.assert_array_equal(faces_split[2], 0.0)
 
 
 if __name__ == "__main__":
