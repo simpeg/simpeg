@@ -381,9 +381,6 @@ class Simulation3DCellCentered(BaseDCSimulation):
         Make the A matrix for the cell centered DC resistivity problem
         A = D MfRhoI G
         """
-        if self.verbose and self.bc_type == "Neumann":
-            print("Perturbing first row of A to remove nullspace for Neumann BC.")
-
         if resistivity is not None:
             warnings.warn(
                 "The `resistivity` argument of `getA` has been deprecated and will "
@@ -428,7 +425,12 @@ class Simulation3DCellCentered(BaseDCSimulation):
         .. deprecated:: 0.26.0
             The boundary conditions are set up when ``bc_type`` is assigned.
         """
-        _warn_setBC()
+        warnings.warn(
+            "`setBC` has been deprecated and will be removed in SimPEG v0.28.0. "
+            "The boundary conditions are set up when `bc_type` is assigned.",
+            FutureWarning,
+            stacklevel=2,
+        )
         self.bc_type = self.bc_type
 
 
@@ -504,7 +506,12 @@ class Simulation3DNodal(BaseDCSimulation):
         .. deprecated:: 0.26.0
             The boundary conditions are set up when ``bc_type`` is assigned.
         """
-        _warn_setBC()
+        warnings.warn(
+            "`setBC` has been deprecated and will be removed in SimPEG v0.28.0. "
+            "The boundary conditions are set up when `bc_type` is assigned.",
+            FutureWarning,
+            stacklevel=2,
+        )
         self.bc_type = self.bc_type
 
     def getRHS(self):
@@ -532,15 +539,6 @@ class Simulation3DNodal(BaseDCSimulation):
         model
         """
         return super()._clear_on_sigma_update + ["_MBC_sigma"]
-
-
-def _warn_setBC():
-    warnings.warn(
-        "`setBC` has been deprecated and will be removed in SimPEG v0.28.0. "
-        "The boundary conditions are set up when `bc_type` is assigned.",
-        FutureWarning,
-        stacklevel=3,
-    )
 
 
 Simulation3DCellCentred = Simulation3DCellCentered  # UK and US!
