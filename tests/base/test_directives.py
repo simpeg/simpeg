@@ -1164,11 +1164,11 @@ class TestSaveOutputDictEveryIteration(BaseTestOutputDirective):
             files = list(directory.iterdir())
             assert len(files) == len(directive.outDict)
 
-    def test_deprecated(self):
-        with pytest.warns(FutureWarning, match=".*saveOnDisk has been deprecated.*"):
-            directive = directives.SaveOutputDictEveryIteration(saveOnDisk=True)
-
-        assert directive.on_disk
+    def test_removed(self):
+        with pytest.raises(
+            NotImplementedError, match=".*saveOnDisk has been removed.*"
+        ):
+            directives.SaveOutputDictEveryIteration(saveOnDisk=True)
 
     @pytest.mark.parametrize("on_disk", [True, False], ids=["on_disk", "not_on_disk"])
     def test_file_abs_path_optional(self, on_disk):
