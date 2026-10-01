@@ -1,4 +1,3 @@
-import typing
 from pymatsolver import (
     AvailableSolvers,
     Solver,
@@ -43,7 +42,7 @@ else:
     _DEFAULT_SOLVER = SolverLU
 
 
-def get_default_solver() -> typing.type[Base]:
+def get_default_solver() -> type[Base]:
     """Return the default solver used by simpeg.
 
     Returns
@@ -54,7 +53,7 @@ def get_default_solver() -> typing.type[Base]:
     return _DEFAULT_SOLVER
 
 
-def set_default_solver(solver_class: typing.type[Base]):
+def set_default_solver(solver_class: type[Base]):
     """Set the default solver used by simpeg.
 
     Parameters
