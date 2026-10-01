@@ -2,7 +2,7 @@ import numpy as np
 import sys
 import gc
 
-from .... import props
+from ....base import ColeCole
 from .data import Data
 from ....utils import sdiag, validate_type, validate_active_indices
 import scipy.sparse as sp
@@ -15,12 +15,7 @@ from ..induced_polarization import Simulation3DNodal as BaseSimulation3DNodal
 from .survey import Survey
 
 
-class BaseSIPSimulation(BaseIPSimulation):
-    tau, tauMap, tauDeriv = props.Invertible("Time constant (s)")
-    taui, tauiMap, tauiDeriv = props.Invertible("Inverse of time constant (1/s)")
-    props.Reciprocal(tau, taui)
-
-    c, cMap, cDeriv = props.Invertible("Frequency dependency")
+class BaseSIPSimulation(BaseIPSimulation, ColeCole):
 
     Ainv = None
     _f = None
@@ -36,24 +31,15 @@ class BaseSIPSimulation(BaseIPSimulation):
         self,
         mesh,
         survey=None,
+        *,
         tau=0.1,
-        tauMap=None,
-        taui=None,
-        tauiMap=None,
         c=0.5,
-        cMap=None,
         storeJ=False,
         actinds=None,
         storeInnerProduct=True,
         **kwargs,
     ):
-        super().__init__(mesh=mesh, survey=survey, **kwargs)
-        self.tau = tau
-        self.taui = taui
-        self.tauMap = tauMap
-        self.tauiMap = tauiMap
-        self.c = c
-        self.cMap = cMap
+        super().__init__(mesh=mesh, survey=survey, tau=tau, c=c, **kwargs)
         self.storeJ = storeJ
         self.storeInnerProduct = storeInnerProduct
         self.actinds = actinds
