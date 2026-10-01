@@ -68,10 +68,12 @@ Mappings
 .. autosummary::
   :toctree: generated/
 
+  maps.ArctanMap
   maps.BaseParametric
   maps.ChiMap
   maps.ComboMap
   maps.ComplexMap
+  maps.ErfMap
   maps.ExpMap
   maps.IdentityMap
   maps.InjectActiveCells
@@ -88,10 +90,13 @@ Mappings
   maps.ParametricLayer
   maps.ParametricPolyMap
   maps.ParametricSplineMap
+  maps.PiecewiseLinearMap
   maps.PolynomialPetroClusterMap
   maps.Projection
   maps.ReciprocalMap
+  maps.ScaledLogisticSigmoidMap
   maps.SelfConsistentEffectiveMedium
+  maps.SineTransferMap
   maps.SphericalSystem
   maps.SumMap
   maps.Surject2Dto3D
