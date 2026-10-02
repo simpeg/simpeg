@@ -1934,6 +1934,7 @@ class RootGramDeterminant(_BaseOrientationInvariant):
         \bigg )^{1/2}
 
     """
+
     _loc_names = ("Roving magnetic field", "Base station field")
 
     def __init__(
@@ -2100,6 +2101,7 @@ class CrossProductAmplitude(RootGramDeterminant):
         p_z &= Y_{xx}Y_{yy} - Y_{yx}Y_{xy}
         \end{split}
     """
+
     _loc_names = ("Roving magnetic field", "Base station field")
 
     def __init__(
@@ -2225,6 +2227,7 @@ class HorizontalDeterminant(RootGramDeterminant):
         \det(Y_H) = Y_{xx}Y_{yy} - Y_{yx}Y_{xy}
 
     """
+
     _loc_names = ("Roving magnetic field", "Base station field")
 
     def __init__(
