@@ -244,7 +244,7 @@ class Impedance(_ElectricAndMagneticReceiver):
         - 'rho': Apparent resistivity (:math:`\Omega m`)
         - 'phase': Phase angle (degrees)
         - 'complex': The complex impedance is returned. Do not use for inversion!
-    storeProjections : bool
+    storeProjections : bool, optional
         Whether to cache to internal projection matrices.
     """
 
@@ -632,7 +632,7 @@ class Tipper(BaseNaturalSourceRx):
     locations_base : (n_loc, n_dim) array_like, optional
         Locations where the base station magnetic fields are measured. Defaults to
         the same locations as the roving magnetic fields measurements,
-        `locations_r`.
+        `locations_h`.
     orientation : {'xx', 'yx', 'zx', 'zy', 'yy', 'zy'}
         Specifies the tipper element :math:`T_{ij}` corresponding to the data.
     component : {'real', 'imag', 'complex'}
@@ -641,7 +641,7 @@ class Tipper(BaseNaturalSourceRx):
         - 'real': Real component of the tipper (unitless)
         - 'imag': Imaginary component of the tipper (unitless)
         - 'complex': The complex tipper is returned. Do not use for inversion!
-    storeProjections : bool
+    storeProjections : bool, optional
         Whether to cache to internal projection matrices.
     """
 
@@ -934,7 +934,7 @@ class Admittance(_ElectricAndMagneticReceiver):
         - 'real': Real component of the admittance (A/V)
         - 'imag': Imaginary component of the admittance (A/V)
         - 'complex': The complex admittance is returned. Do not use for inversion!
-    storeProjections : bool
+    storeProjections : bool, optional
         Whether to cache to internal projection matrices.
     """
 
@@ -1852,12 +1852,12 @@ class RootGramDeterminant(_BaseOrientationInvariant):
     locations_base : (n_loc, n_dim) array_like, optional
         Locations where the base station magnetic fields are measured. Defaults to
         the same locations as the roving magnetic fields measurements,
-        `locations_r`.
-    base_type : {'magnetic', 'electric'}
+        `locations_h`.
+    base_type : {'magnetic', 'electric'}, optional
         Whether magnetic or electric fields are measured at the base station.
         For magnetic fields, the quantity is unitless. For electric fields,
         the quantity has units A/V.
-    storeProjections : bool
+    storeProjections : bool, optional
         Whether to cache to internal projection matrices.
 
     Notes
@@ -2006,12 +2006,12 @@ class CrossProductAmplitude(RootGramDeterminant):
     locations_base : (n_loc, n_dim) array_like, optional
         Locations where the base station magnetic fields are measured. Defaults to
         the same locations as the roving magnetic fields measurements,
-        `locations_r`.
-    base_type : {'magnetic', 'electric'}
+        `locations_h`.
+    base_type : {'magnetic', 'electric'}, optional
         Whether magnetic or electric fields are measured at the base station.
         For magnetic fields, the quantity is unitless. For electric fields,
         the quantity has units A/V.
-    storeProjections : bool
+    storeProjections : bool, optional
         Whether to cache to internal projection matrices.
 
     Notes
@@ -2126,7 +2126,7 @@ class CrossProductAmplitude(RootGramDeterminant):
         self, src, mesh, f, du_dm_v=None, v=None, adjoint=False
     ):
         # Docstring inherited from parent class (BaseNaturalSourceRX).
-        return eval_cross_product_amplitude_deriv(
+        return _eval_cross_product_amplitude_deriv(
             self, src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
         )
 
@@ -2148,16 +2148,16 @@ class HorizontalDeterminant(RootGramDeterminant):
     locations_base : (n_loc, n_dim) array_like, optional
         Locations where the base station magnetic fields are measured. Defaults to
         the same locations as the roving magnetic fields measurements,
-        `locations_r`.
-    base_type : {'magnetic', 'electric'}
+        `locations_h`.
+    base_type : {'magnetic', 'electric'}, optional
         Whether magnetic or electric fields are measured at the base station.
         For magnetic fields, the quantity is unitless. For electric fields,
         the quantity has units $A^2/V^2$.
-    component : {'real', 'imag'}
+    component : {'real', 'imag'}, optional
         Define the receiver to measure the real or imaginary component:
         - 'real': Real component
         - 'imag': Imaginary component
-    storeProjections : bool
+    storeProjections : bool, optional
         Whether to cache to internal projection matrices.
 
     Notes
@@ -2304,7 +2304,8 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
 
     This class is used to simulate an apparent conductivity datum, in S/m.
 
-    .. admonition:: Breaking change
+    .. warning:: Breaking change
+
         From SimPEG v0.25.3 onward, a new set of formulae have been adopted to
         compute apparent conductivities. These more accurately reflect how apparent
         conductivities can be computed from NSEM fields.
@@ -2316,9 +2317,9 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
     locations_h : (n_loc, n_dim) array_like, optional
         Locations where the magnetic fields are measured. Defaults to the same
         locations as electric field measurements, `locations_e`.
-    component : {"root_gram_determinant", "cross_product_amplitude", "horizontal_determinant"}
-        The method used to generate the appparent conductivity datum.
-    storeProjections : bool
+    formula : {"root_gram_determinant", "cross_product_amplitude", "horizontal_determinant"}
+        The formula used to generate the appparent conductivity datum.
+    storeProjections : bool, optional
         Whether to cache to internal projection matrices.
     """
 
@@ -2328,7 +2329,7 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
         self,
         locations_e,
         locations_h=None,
-        component="cross_product_amplitude",
+        formula="cross_product_amplitude",
         storeProjections=False,
     ):
         super().__init__(
@@ -2336,13 +2337,13 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
             locations2=locations_h,
             storeProjections=storeProjections,
         )
-        self.component = component
+        self.formula = formula
 
     @property
-    def component(self):
+    def formula(self):
         r"""Equation used to generate the apparent conductivity datum.
 
-        The `component` property specifies
+        The `formula` property specifies
         whether the data are derived using:
         - 'root_gram_determinant': Root Gram determinant of the admittance matrix
         - 'cross_product_amplitude': Cross product amplitude of the admittance matrix
@@ -2354,12 +2355,12 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
             Data type; i.e. "root_gram_determinant", "cross_product_amplitude", or
             "horizontal_determinant".
         """
-        return self._component
+        return self._formula
 
-    @component.setter
-    def component(self, var):
-        self._component = validate_string(
-            "component",
+    @formula.setter
+    def formula(self, var):
+        self._formula = validate_string(
+            "formula",
             var,
             [
                 "root_gram_determinant",
@@ -2371,11 +2372,11 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
     def eval(self, src, mesh, f):  # noqa: A003 D102
         # Docstring inherited from parent class
         # scaling by w*mu_0 happens inside function
-        if self._component == "root_gram_determinant":
+        if self._formula == "root_gram_determinant":
             return _eval_root_gram_determinant(self, src, mesh, f)
-        elif self._component == "cross_product_amplitude":
+        elif self._formula == "cross_product_amplitude":
             return _eval_cross_product_amplitude(self, src, mesh, f)
-        elif self._component == "horizontal_determinant":
+        elif self._formula == "horizontal_determinant":
             return _eval_horizontal_determinant(self, src, mesh, f)
 
     def evalDeriv(  # noqa: A003 D102
@@ -2383,15 +2384,15 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
     ):
         # Docstring inherited from parent class
         # scaling by w*mu_0 happens inside function
-        if self._component == "root_gram_determinant":
+        if self._formula == "root_gram_determinant":
             return _eval_root_gram_determinant_deriv(
                 self, src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
             )
-        elif self._component == "cross_product_amplitude":
+        elif self._formula == "cross_product_amplitude":
             return _eval_cross_product_amplitude_deriv(
                 self, src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
             )
-        elif self._component == "horizontal_determinant":
+        elif self._formula == "horizontal_determinant":
             return _eval_horizontal_determinant_deriv(
                 self, src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
             )
