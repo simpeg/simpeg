@@ -126,7 +126,7 @@ def get_survey(survey_type, orientations, components, locations, frequencies):
                     nsem.receivers.ApparentConductivity(
                         locations_h=locations,
                         locations_e=np.zeros_like(locations),
-                        component=components[0],
+                        formula=components[0],
                     )
                 ]
             )
