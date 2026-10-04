@@ -4,8 +4,12 @@ import re
 import pytest
 import numpy as np
 import scipy.sparse as sp
+import discretize
 from discretize.tests import check_derivative
 from numpy.testing import assert_array_almost_equal
+from scipy.constants import mu_0
+from simpeg import maps
+from simpeg.electromagnetics import time_domain as tdem
 from simpeg.electromagnetics.time_domain.sources import (
     ExponentialWaveform,
     HalfSineWaveform,
@@ -662,3 +666,31 @@ class TestExponentialWaveform(unittest.TestCase):
 def test_simple_source():
     waveform = StepOffWaveform()
     assert waveform.eval(0.0) == 1.0
+
+
+def test_mag_dipole_s_e_permeable_simulation():
+    """
+    Test that the electric source term uses the source permeability, not the
+    permeability of the simulation.
+    """
+    h = np.ones(8) * 25.0
+    mesh = discretize.TensorMesh([h, h, h], origin="CCC")
+    source = tdem.sources.CircularLoop(
+        location=np.r_[0.0, 0.0, 30.0], radius=10.0, waveform=RampOffWaveform(5e-4)
+    )
+    simulation = tdem.simulation.Simulation3DElectricField(
+        mesh=mesh,
+        survey=tdem.Survey([source]),
+        time_steps=[(1e-5, 5), (1e-4, 5)],
+        sigmaMap=maps.IdentityMap(mesh),
+    )
+    mu = mu_0 * np.ones(mesh.n_cells)
+    mu[: mesh.n_cells // 2] *= 50.0
+    simulation.mu = mu
+
+    time = 1e-4
+    MfMui = mesh.get_face_inner_product(1.0 / source.mu)
+    b = source._bSrc(simulation)
+    expected = mesh.edge_curl.T * (MfMui * b) * source.waveform.eval(time)
+
+    np.testing.assert_allclose(source.s_e(simulation, time), expected)

@@ -1528,30 +1528,21 @@ class MagDipole(BaseTDEMSrc):
         numpy.ndarray
             Electric source term on mesh.
         """
-        C = simulation.mesh.edge_curl
-        b = self._bSrc(simulation)
+        if getattr(self, "_s_e", None) is None:
+            C = simulation.mesh.edge_curl
+            b = self._bSrc(simulation)
 
-        if simulation._formulation == "EB":
-            MfMui = simulation.mesh.get_face_inner_product(1.0 / self.mu)
+            if simulation._formulation == "EB":
+                MfMui = simulation.mesh.get_face_inner_product(1.0 / self.mu)
+                self._s_e = C.T * (MfMui * b)
 
-            if (
-                self.waveform.has_initial_fields is True
-                and time < simulation.time_steps[1]
-            ):
-                return C.T * (MfMui * b)
-            else:
-                return C.T * (MfMui * b) * self.waveform.eval(time)
+            elif simulation._formulation == "HJ":
+                h = 1.0 / self.mu * b
+                self._s_e = C * h
 
-        elif simulation._formulation == "HJ":
-            h = 1.0 / self.mu * b
-
-            if (
-                self.waveform.has_initial_fields is True
-                and time < simulation.time_steps[1]
-            ):
-                return C * h
-            else:
-                return C * h * self.waveform.eval(time)
+        if self.waveform.has_initial_fields is True and time < simulation.time_steps[1]:
+            return self._s_e
+        return self._s_e * self.waveform.eval(time)
 
 
 class CircularLoop(MagDipole):
