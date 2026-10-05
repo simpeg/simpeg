@@ -1766,12 +1766,8 @@ class SaveEveryIteration(InversionDirective, metaclass=ABCMeta):
 
     @property
     def fileName(self):
-        warnings.warn(
-            "'fileName' has been deprecated and will be removed in SimPEG 0.26.0 use 'file_abs_path'",
-            FutureWarning,
-            stacklevel=2,
-        )
-        return self.file_abs_path.stem
+        msg = "'fileName' has been removed, use 'file_abs_path' instead."
+        raise AttributeError(msg)
 
     @property
     @abstractmethod
@@ -1861,9 +1857,6 @@ class SaveOutputEveryIteration(SaveEveryIteration):
     """
 
     def __init__(self, on_disk=True, **kwargs):
-        if (save_txt := kwargs.pop("save_txt", None)) is not None:
-            self.save_txt = save_txt
-            on_disk = self.save_txt
         super().__init__(on_disk=on_disk, **kwargs)
 
     def initialize(self):
@@ -1904,7 +1897,7 @@ class SaveOutputEveryIteration(SaveEveryIteration):
         SaveEveryIteration.on_disk,
         "save_txt",
         removal_version="0.26.0",
-        future_warn=True,
+        error=True,
     )
 
     def endIter(self):
@@ -2109,16 +2102,13 @@ class SaveOutputDictEveryIteration(SaveEveryIteration):
 
     # Initialize the output dict
     def __init__(self, on_disk=False, **kwargs):
-        if (save_on_disk := kwargs.pop("saveOnDisk", None)) is not None:
-            self.saveOnDisk = save_on_disk
-            on_disk = self.saveOnDisk
         super().__init__(on_disk=on_disk, **kwargs)
 
     saveOnDisk = deprecate_property(
         SaveEveryIteration.on_disk,
         "saveOnDisk",
         removal_version="0.26.0",
-        future_warn=True,
+        error=True,
     )
 
     @property
