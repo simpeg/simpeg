@@ -16,7 +16,6 @@ from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
 
 from ._numba import choclo, NUMBA_FUNCTIONS_3D, NUMBA_FUNCTIONS_2D
 
-
 if choclo is not None:
     from numba import jit
 
@@ -692,7 +691,7 @@ class Simulation3DIntegral(BasePFSimulation):
         Compute the diagonal of ``G.T @ G`` without building the ``G`` matrix.
 
         Parameters
-        -----------
+        ----------
         weights : (nD,) array
             Array with data weights. It should be the diagonal of the ``W``
             matrix, squared.
@@ -906,7 +905,7 @@ class SimulationEquivalentSourceLayer(
         Compute the diagonal of ``G.T @ G`` without building the ``G`` matrix.
 
         Parameters
-        -----------
+        ----------
         weights : (nD,) array
             Array with data weights. It should be the diagonal of the ``W``
             matrix, squared.

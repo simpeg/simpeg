@@ -7,7 +7,6 @@ from ..frequency_domain.fields import FieldsFDEM
 from ...utils import spzeros, Identity, Zero
 from ..utils import omega
 
-
 # ##############
 # #   Fields   #
 # ##############

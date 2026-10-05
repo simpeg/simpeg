@@ -72,7 +72,6 @@ Iteration Printers and Stoppers
 
 """
 
-import warnings
 from collections.abc import Callable
 from typing import Any, Optional
 
@@ -1050,18 +1049,9 @@ class InexactCG(object):
         cg_maxiter: int = 5,
         **kwargs,
     ):
-
-        if (val := kwargs.pop("tolCG", None)) is not None:
-            self.tolCG = val  # Deprecated cg_rtol
-        else:
-            self.cg_rtol = cg_rtol
+        self.cg_rtol = cg_rtol
         self.cg_atol = cg_atol
-
-        if (val := kwargs.pop("maxIterCG", None)) is not None:
-            self.maxIterCG = val
-        else:
-            self.cg_maxiter = cg_maxiter
-
+        self.cg_maxiter = cg_maxiter
         super().__init__(**kwargs)
 
     @property
@@ -1124,10 +1114,10 @@ class InexactCG(object):
         self._cg_maxiter = validate_integer("cg_maxiter", value, min_val=1)
 
     maxIterCG = deprecate_property(
-        cg_maxiter, old_name="maxIterCG", removal_version="0.26.0", future_warn=True
+        cg_maxiter, old_name="maxIterCG", removal_version="0.26.0", error=True
     )
     tolCG = deprecate_property(
-        cg_rtol, old_name="tolCG", removal_version="0.26.0", future_warn=True
+        cg_rtol, old_name="tolCG", removal_version="0.26.0", error=True
     )
 
 
@@ -1524,46 +1514,14 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
         lower: None | float | npt.NDArray[np.float64] = -np.inf,
         upper: None | float | npt.NDArray[np.float64] = np.inf,
         cg_maxiter: int = 5,
-        cg_rtol: float = None,
-        cg_atol: float = None,
+        cg_rtol: float = 1e-3,
+        cg_atol: float = 0.0,
         step_active_set: bool = True,
         active_set_grad_scale: float = 1e-2,
         **kwargs,
     ):
-        if (val := kwargs.pop("tolCG", None)) is not None:
-            # Deprecated path when tolCG is passed.
-            self.tolCG = val
-            cg_atol = val
-            cg_rtol = 0.0
-        elif cg_rtol is None and cg_atol is None:
-            # Note these defaults match previous settings...
-            # but they're not good in general...
-            # Ideally they will change to cg_rtol=1E-3 and cg_atol=0.0
-            warnings.warn(
-                "The defaults for ProjectedGNCG will change in SimPEG 0.26.0. If you want to maintain the "
-                "previous behavior, explicitly set 'cg_atol=1E-3' and 'cg_rtol=0.0'.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            cg_atol = 1e-3
-            cg_rtol = 0.0
-        # defaults for if someone passes just cg_rtol or just cg_atol (to be removed on deprecation removal)
-        # These will likely be the future defaults
-        elif cg_atol is None:
-            cg_atol = 0.0
-        elif cg_rtol is None:
-            cg_rtol = 1e-3
-
-        if (val := kwargs.pop("stepActiveSet", None)) is not None:
-            self.stepActiveSet = val
-        else:
-            self.step_active_set = step_active_set
-
-        if (val := kwargs.pop("stepOffBoundsFact", None)) is not None:
-            self.stepOffBoundsFact = val
-        else:
-            self.active_set_grad_scale = active_set_grad_scale
-
+        self.step_active_set = step_active_set
+        self.active_set_grad_scale = active_set_grad_scale
         super().__init__(
             lower=lower,
             upper=upper,
@@ -1714,14 +1672,14 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
         step_active_set,
         old_name="stepActiveSet",
         removal_version="0.26.0",
-        future_warn=True,
+        error=True,
     )
 
     stepOffBoundsFact = deprecate_property(
         active_set_grad_scale,
         old_name="stepOffBoundsFact",
         removal_version="0.26.0",
-        future_warn=True,
+        error=True,
     )
 
     # This was the weird part from before... the default tolerance was used as an absolute tolerance...
@@ -1729,5 +1687,5 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
         InexactGaussNewton.cg_atol,
         old_name="tolCG",
         removal_version="0.26.0",
-        future_warn=True,
+        error=True,
     )
