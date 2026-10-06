@@ -35,8 +35,8 @@ We raise a :exc:`warnings.FutureWarning` any time that bit of code is accessed o
 .. hint::
 
     We use  :exc:`warnings.FutureWarning` to warn users about deprecations and future removals because this type of warnings are shown by default.
-    Python also ships a :class:`warnings.DeprecationWarning`, which are intended for Python developers.
-    By default, :class:`warnings.DeprecationWarning` are filtered and not shown.
+    Python also ships a :class:`warnings.DeprecationWarning`, which is intended for Python developers.
+    By default, all :class:`warnings.DeprecationWarning` are filtered and not shown.
 
 
 Deprecating functions or classes
@@ -205,8 +205,7 @@ Documenting deprecations
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 When deprecating a function, class, or argument it's a good practice to document such deprecation. We can use the ``deprecated`` admonition.
-
-For example, we can add such admonition when deprecating a function:
+For example, we can add such admonition when deprecating a function, method, or class:
 
 .. code:: python
 
