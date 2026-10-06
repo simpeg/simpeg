@@ -1,7 +1,6 @@
 jobs:
   # Build docs only on scheduled jobs or on a relase
   - job: BuildDocs
-    condition: or(eq(variables['Build.Reason'], 'Schedule'), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
     pool:
       vmImage: ubuntu-latest
     variables:
@@ -21,10 +20,26 @@ jobs:
       - bash: .ci/azure/setup_env.sh
         displayName: Setup SimPEG environment
 
+      # Build docs for deployment (release and nightly build)
       - bash: |
           source activate simpeg-test
           make -C docs html
-        displayName: Building documentation
+        condition: or(eq(variables['Build.Reason'], 'Schedule'), startsWith(variables['build.sourceBranch'], 'refs/tags/'))
+        displayName: "Build documentation"
+
+      # Build docs and check links (noplot)
+      - bash: |
+          source activate simpeg-test
+          make -C docs html-noplot
+        condition: not(or(eq(variables['Build.Reason'], 'Schedule'), startsWith(variables['build.sourceBranch'], 'refs/tags/')))
+        displayName: "Build documentation (noplot)"
+
+      # Check links (noplot)
+      - bash: |
+          source activate simpeg-test
+          make -C docs linkcheck-noplot
+        continueOnError: true
+        displayName: "Check links"
 
       - task: PublishPipelineArtifact@1
         inputs:

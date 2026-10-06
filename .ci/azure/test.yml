@@ -4,7 +4,6 @@ parameters:
   test: ['tests/em',
          'tests/base tests/flow tests/seis tests/utils',
          'tests/meta',
-         'tests/docs -s -v',
          'tests/examples/test_examples_1.py',
          'tests/examples/test_examples_2.py',
          'tests/examples/test_examples_3.py',
@@ -28,9 +27,8 @@ jobs:
             test.target: ${{ test }}
           steps:
 
-          # Checkout simpeg repo, including tags.
-          # We need to sync tags and disable shallow depth in order to get the
-          # SimPEG version while building the docs.
+          # Checkout simpeg repo.
+          # Sync tags and disable shallow depth to get the SimPEG version.
           - checkout: self
             fetchDepth: 0
             fetchTags: true
@@ -44,13 +42,6 @@ jobs:
 
           - bash: .ci/azure/run_tests_with_coverage.sh
             displayName: 'Testing ${{ test }}'
-
-          - task: PublishPipelineArtifact@1
-            inputs:
-              targetPath: $(Build.SourcesDirectory)/docs/_build/html
-              artifactName: html_docs
-            displayName: 'Publish documentation artifact'
-            condition: and(eq('${{ test }}', 'tests/docs -s -v'), succeededOrFailed())
 
           - bash: |
               job="${{ os }}_${{ py_vers }}_${{ test }}"
