@@ -31,7 +31,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Create a mesh
         h = [5, 5, 5]
         padDist = np.ones((3, 2)) * 100
-        nCpad = [2, 4, 2]
+        nCpad = [2, 3, 2]
 
         # Create grid of points for topography
         # Lets create a simple Gaussian topo and set the active cells
