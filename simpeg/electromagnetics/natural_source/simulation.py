@@ -119,7 +119,7 @@ class Simulation1DElectricField(BaseFDEMSimulation):
             This method hasn't been implemented yet for this class.
 
         Raises
-        -------
+        ------
         NotImplementedError
         """
         msg = (
@@ -198,7 +198,7 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
             This method hasn't been implemented yet for this class.
 
         Raises
-        -------
+        ------
         NotImplementedError
         """
         msg = (

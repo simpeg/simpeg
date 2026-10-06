@@ -506,8 +506,7 @@ def test_atexit_cleanup_without_join():
     # otherwise block Python's own atexit machinery from letting the
     # interpreter exit. The atexit fallback registered at construction
     # time must terminate them so the process exits promptly on its own.
-    script = textwrap.dedent(
-        """
+    script = textwrap.dedent("""
         import numpy as np
         from discretize import TensorMesh
         from simpeg import maps
@@ -532,8 +531,7 @@ def test_atexit_cleanup_without_join():
             )
             # Intentionally do NOT call parallel_sim.join(): the atexit
             # fallback must still let this process exit promptly.
-        """
-    )
+        """)
 
     # Don't let pytest-cov / coverage auto-start inside the child: this test
     # only checks exit behaviour, and coverage's startup hook interferes with

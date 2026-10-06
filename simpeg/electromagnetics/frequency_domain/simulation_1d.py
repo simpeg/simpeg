@@ -6,7 +6,6 @@ import numpy as np
 
 from geoana.kernels.tranverse_electric_reflections import rTE_forward, rTE_gradient
 
-
 #######################################################################
 #               SIMULATION FOR A SINGLE SOUNDING
 #######################################################################
