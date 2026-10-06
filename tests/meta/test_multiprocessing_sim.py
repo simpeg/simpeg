@@ -1,3 +1,5 @@
+import multiprocessing
+import os
 import subprocess
 import sys
 import textwrap
@@ -462,6 +464,41 @@ def test_join_does_not_hang_on_unread_result():
     assert not p.is_alive()
 
 
+def test_init_failure_shuts_down_started_workers(monkeypatch):
+    # If setting up a later worker fails, workers that were already started
+    # must be shut down (gracefully, via poison pill) before the error
+    # propagates, not leaked.
+    mesh = TensorMesh([4, 4, 4], origin="CCN")
+    rx_locs = np.mgrid[-0.25:0.25:2j, -0.25:0.25:2j, 0:1:1j].reshape(3, -1).T
+    rxs = dc.receivers.Pole(rx_locs)
+    src_list = [dc.sources.Pole([rxs], location=[x, 0, 0]) for x in (-0.5, 0.5)]
+    survey = dc.Survey(src_list)
+    sims = [
+        dc.Simulation3DNodal(mesh, survey=survey, sigmaMap=maps.IdentityMap())
+        for _ in range(2)
+    ]
+
+    real_set_sim = _SimulationProcess.set_sim
+    calls = []
+
+    def failing_set_sim(self, sim):
+        calls.append(self)
+        if len(calls) == 2:
+            raise RuntimeError("synthetic set_sim failure")
+        return real_set_sim(self, sim)
+
+    monkeypatch.setattr(_SimulationProcess, "set_sim", failing_set_sim)
+
+    with pytest.raises(RuntimeError, match="synthetic set_sim failure"):
+        MultiprocessingMetaSimulation(
+            sims, [maps.IdentityMap(), maps.IdentityMap()], n_processes=2
+        )
+
+    assert len(calls) == 2
+    assert not any(p.is_alive() for p in calls)
+    assert multiprocessing.active_children() == []
+
+
 def test_atexit_cleanup_without_join():
     # Regression test: if a script builds a MultiprocessingMetaSimulation
     # and exits (or an exception propagates to the top level) without ever
@@ -498,8 +535,18 @@ def test_atexit_cleanup_without_join():
         """
     )
 
+    # Don't let pytest-cov / coverage auto-start inside the child: this test
+    # only checks exit behaviour, and coverage's startup hook interferes with
+    # importing numpy in a `-c` script.
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if not k.startswith(("COV_CORE", "COVERAGE"))
+    }
+
     result = subprocess.run(
         [sys.executable, "-c", script],
+        env=env,
         timeout=60,
         capture_output=True,
         text=True,

@@ -98,8 +98,6 @@ branch = true
 source = ["simpeg", "tests", "examples", "tutorials"]
 concurrency = ["thread", "multiprocessing"]
 parallel = true
-sigterm = true
-
 
 [tool.coverage.report]
 ignore_errors = false

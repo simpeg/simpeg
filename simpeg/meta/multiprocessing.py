@@ -246,6 +246,19 @@ class _SimulationProcess(Process):
         self.result_queue.join_thread()
 
 
+def _shutdown_processes(processes, timeout=5.0):
+    """Ask workers to exit via poison pill; terminate any that don't."""
+    for p in processes:
+        if p.is_alive():
+            try:
+                p.join(timeout=timeout)
+            except Exception:
+                pass  # fall through to terminate()
+    for p in processes:
+        if p.is_alive():
+            p.terminate()  # pragma: no cover
+
+
 def _spawn_chunk_processes(n_sim, n_processes, build_chunk):
     """Split `n_sim` items into contiguous chunks, one worker process each.
 
@@ -290,9 +303,7 @@ def _spawn_chunk_processes(n_sim, n_processes, build_chunk):
             p.set_sim(sim_chunk)
             i_start = i_end
     except Exception:
-        for p in processes:
-            if p.is_alive():
-                p.terminate()
+        _shutdown_processes(processes)
         raise
 
     data_offsets = np.cumsum(np.r_[0, chunk_nd])
