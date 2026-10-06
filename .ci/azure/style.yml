@@ -6,7 +6,7 @@ jobs:
     steps:
       - task: UsePythonVersion@0
         inputs:
-          versionSpec: "3.11"
+          versionSpec: "3.12"
       - bash: .ci/install_style.sh
         displayName: "Install dependencies to run the checks"
       - script: make black
@@ -19,7 +19,7 @@ jobs:
     steps:
       - task: UsePythonVersion@0
         inputs:
-          versionSpec: "3.11"
+          versionSpec: "3.12"
       - bash: .ci/install_style.sh
         displayName: "Install dependencies to run the checks"
       - script: make flake
@@ -32,10 +32,23 @@ jobs:
     steps:
       - task: UsePythonVersion@0
         inputs:
-          versionSpec: "3.11"
+          versionSpec: "3.12"
       - bash: .ci/install_style.sh
         displayName: "Install dependencies to run the checks"
       - script: make flake-all
         displayName: "Run flake8"
         env:
           FLAKE8_OPTS: "--exit-zero"
+
+  - job:
+    displayName: Run style checks with Ruff
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: "3.12"
+      - bash: .ci/install_style.sh
+        displayName: "Install dependencies to run the checks"
+      - script: make ruff
+        displayName: "Run ruff"
