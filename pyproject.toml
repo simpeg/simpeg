@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 name = 'simpeg'
 description = "SimPEG: Simulation and Parameter Estimation in Geophysics"
 readme = 'README.rst'
-requires-python = '>=3.11'
+requires-python = '>=3.12'
 authors = [
   {name = 'SimPEG developers', email = 'rowanc1@gmail.com'},
 ]
@@ -19,8 +19,8 @@ dependencies = [
     "scipy>=1.12",
     "pymatsolver>=0.3",
     "matplotlib",
-    "discretize>=0.11",
-    "geoana>=0.7",
+    "discretize>=0.12",
+    "geoana>=0.8.1",
     "libdlf",
     "typing_extensions; python_version<'3.13'",
 ]
@@ -60,7 +60,7 @@ all = [
     "simpeg[dask,choclo,plotting,reporting,sklearn,pandas]"
 ] # all optional *runtime* dependencies (not related to development)
 style = [
-    "black==24.3.0",
+    "black==26.3.1",
     "flake8==7.0.0",
     "flake8-bugbear==23.12.2",
     "flake8-builtins==2.2.0",
@@ -68,6 +68,7 @@ style = [
     "flake8-rst-docstrings==0.3.0",
     "flake8-docstrings==1.7.0",
     "flake8-pyproject==1.2.3",
+    "ruff==0.16.6",
 ]
 docs = [
     "sphinx",
@@ -136,8 +137,8 @@ exclude_also = [
 directory = "coverage_html_report"
 
 [tool.black]
-required-version = '24.3.0'
-target-version = ['py310', 'py311', 'py312']
+required-version = '26.3.1'
+target-version = ["py312", "py313", "py314"]
 
 [tool.flake8]
 extend-ignore = [
@@ -256,12 +257,31 @@ rst-roles = [
     'ref',
 ]
 
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+
+[tool.ruff.lint]
+# Select only these rules.
+select = [
+    "D406", # Section name should end with a newline
+    "D406", # Missing dashed underline after section
+    "D408", # Section underline should be in the line following the section's name
+    "D409", # Section underline should match the length of its name
+]
+
+[tool.ruff.lint.pydocstyle]
+# Make ruff to check for numpydoc style in our docs
+convention = "numpy"
+
+
 # pyproject.toml
 [tool.pytest.ini_options]
 filterwarnings = [
     "error:You are running a pytest without setting a random seed.*:UserWarning",
-    "error:The `index_dictionary` property has been deprecated:FutureWarning",
     'error:The `simpeg\.directives\.[a-z_]+` submodule has been deprecated',
     'error:Casting complex values to real discards the imaginary part',
+    'ignore::simpeg.utils.BreakingChangeWarning',
 ]
 xfail_strict = true

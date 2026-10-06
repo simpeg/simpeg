@@ -249,8 +249,8 @@ class Haverkamp_k(BaseHydraulicConductivity):
     def __call__(self, u):
         Ks, A, gamma = self._get_params()
         P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
-        f_p = P_p * np.ones(len(u)) * Ks  # ensures scalar Ks works
-        f_n = P_n * Ks * A / (A + abs(u) ** gamma)
+        f_p = P_p @ np.full_like(u, fill_value=Ks)
+        f_n = P_n @ (Ks * A / (A + abs(u) ** gamma))
         return f_p + f_n
 
     def derivU(self, u):
@@ -533,8 +533,8 @@ class Vangenuchten_k(BaseHydraulicConductivity):
 
         P_p, P_n = _get_projections(u)  # Compute the positive/negative domains
         theta_e = 1.0 / ((1.0 + abs(alpha * u) ** n) ** m)
-        f_p = P_p * np.ones(len(u)) * Ks  # ensures scalar Ks works
-        f_n = P_n * Ks * theta_e**I * ((1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2)
+        f_p = P_p @ np.full_like(u, fill_value=Ks)
+        f_n = P_n @ (Ks * theta_e**I * ((1.0 - (1.0 - theta_e ** (1.0 / m)) ** m) ** 2))
         return f_p + f_n
 
     def derivM(self, u):

@@ -7,7 +7,6 @@ from simpeg.utils.model_builder import get_indices_sphere
 import numpy as np
 from scipy.constants import mu_0
 
-
 plotIt = False
 
 

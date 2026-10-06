@@ -16,14 +16,6 @@ from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
 
 from ._numba import choclo, NUMBA_FUNCTIONS_3D, NUMBA_FUNCTIONS_2D
 
-try:
-    from warnings import deprecated
-except ImportError:
-    # Use the deprecated decorator provided by typing_extensions (which
-    # supports older versions of Python) if it cannot be imported from
-    # warnings.
-    from typing_extensions import deprecated
-
 if choclo is not None:
     from numba import jit
 
@@ -449,18 +441,6 @@ class Simulation3DIntegral(BasePFSimulation):
                     self._G = self.linear_operator()
         return self._G
 
-    @property
-    @deprecated(
-        "The `gtg_diagonal` property has been deprecated. "
-        "It will be removed in SimPEG v0.25.0.",
-        category=FutureWarning,
-    )
-    def gtg_diagonal(self):
-        """
-        Diagonal of GtG
-        """
-        return getattr(self, "_gtg_diagonal", None)
-
     def evaluate_integral(self, receiver_location, components):
         """
         Compute the forward linear relationship between the model and the physics at a point
@@ -711,7 +691,7 @@ class Simulation3DIntegral(BasePFSimulation):
         Compute the diagonal of ``G.T @ G`` without building the ``G`` matrix.
 
         Parameters
-        -----------
+        ----------
         weights : (nD,) array
             Array with data weights. It should be the diagonal of the ``W``
             matrix, squared.
@@ -925,7 +905,7 @@ class SimulationEquivalentSourceLayer(
         Compute the diagonal of ``G.T @ G`` without building the ``G`` matrix.
 
         Parameters
-        -----------
+        ----------
         weights : (nD,) array
             Array with data weights. It should be the diagonal of the ``W``
             matrix, squared.

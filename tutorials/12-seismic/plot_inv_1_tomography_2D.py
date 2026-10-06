@@ -252,7 +252,7 @@ update_IRLS = directives.UpdateIRLS(
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=2e0)
 
 # Save output at each iteration
-saveDict = directives.SaveOutputEveryIteration(save_txt=False)
+saveDict = directives.SaveOutputEveryIteration(on_disk=False)
 
 # Define the directives as a list
 directives_list = [starting_beta, update_IRLS, saveDict]

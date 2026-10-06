@@ -120,7 +120,7 @@ ind = utils.model_builder.get_indices_block(
     np.r_[-10, -10, -30],
     np.r_[10, 10, -10],
     mesh.gridCC,
-)[0]
+)
 
 # Assign magnetization values
 model[ind] = 0.3
@@ -242,7 +242,7 @@ update_IRLS = directives.UpdateIRLS(
     irls_cooling_factor=1.5,
     misfit_tolerance=1e-2,
 )
-saveDict = directives.SaveOutputEveryIteration(save_txt=False)
+saveDict = directives.SaveOutputEveryIteration(on_disk=False)
 update_Jacobi = directives.UpdatePreconditioner()
 sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
 inv = inversion.BaseInversion(

@@ -105,11 +105,13 @@ def test_no_model_needed(modeler):
     assert not modeler.needs_model
 
 
-def test_deletion_deprecation(modeler):
-    msg = re.escape("HasModel.deleteTheseOnModelUpdate has been deprecated") + ".*"
-    with pytest.warns(FutureWarning, match=msg):
+def test_deletion_removal(modeler):
+    msg = re.escape("HasModel.deleteTheseOnModelUpdate has been removed")
+    with pytest.raises(NotImplementedError, match=msg):
         modeler.deleteTheseOnModelUpdate
 
+
+def test_clean_on_model_update_deprecation(modeler):
     msg = "clean_on_model_update has been deprecated due to repeated functionality.*"
     with pytest.warns(FutureWarning, match=msg):
         modeler.clean_on_model_update

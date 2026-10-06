@@ -6,8 +6,8 @@ dependencies:
   - scipy>=1.12
   - pymatsolver>=0.3
   - matplotlib-base
-  - discretize>=0.11
-  - geoana>=0.7
+  - discretize>=0.12
+  - geoana>=0.8.1
   - libdlf
   - typing_extensions
 

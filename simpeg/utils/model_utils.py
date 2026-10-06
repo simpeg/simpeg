@@ -1,5 +1,5 @@
 import warnings
-from typing import Literal, Optional
+from typing import Literal
 
 import discretize
 import numpy as np
@@ -226,11 +226,11 @@ def _distance_weighting_numba(
 def distance_weighting(
     mesh: discretize.base.BaseMesh,
     reference_locs: np.ndarray,
-    active_cells: Optional[np.ndarray] = None,
-    exponent: Optional[float] = 2.0,
-    threshold: Optional[float] = None,
+    active_cells: np.ndarray | None = None,
+    exponent: float = 2.0,
+    threshold: float | None = None,
     engine: Literal["numba", "scipy"] = "numba",
-    cdist_opts: Optional[dict] = None,
+    cdist_opts: dict | None = None,
 ):
     r"""
     Construct diagonal elements of a distance weighting matrix
@@ -254,7 +254,7 @@ def distance_weighting(
     active_cells : (mesh.n_cells) numpy.ndarray of bool, optional
         Index vector for the active cells on the mesh.
         If ``None``, every cell will be assumed to be active.
-    exponent : float or None, optional
+    exponent : float, optional
         Exponent parameter for distance weighting.
         The exponent should match the natural decay power of the potential
         field. For example, for gravity acceleration, set it to 2; for magnetic
@@ -262,7 +262,7 @@ def distance_weighting(
     threshold : float or None, optional
         Threshold parameters used in the distance weighting.
         If ``None``, it will be set to half of the smallest cell width.
-    engine: str, 'numba' or 'scipy'
+    engine: str, 'numba' or 'scipy', optional
         Pick between a ``scipy.spatial.distance.cdist`` computation (memory
         intensive) or `for` loop implementation, parallelized with numba if
         available. Default to ``"numba"``.
