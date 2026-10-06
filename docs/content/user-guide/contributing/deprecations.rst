@@ -26,7 +26,7 @@ Deprecation
 
 We keep deprecated code in our code base during a sensible amount of time (usually two minor releases), make sure that it behaves in the same way as before, and keep its tests to guarantee that its behavior won't change until the breaking change is introduced.
 
-We raise a :exc:`warnings.FutureWarning` any time that bit of code is accessed or used. Such warning should:
+We raise a ``warnings.FutureWarning`` any time that bit of code is accessed or used. Such warning should:
 
 * warn them about its future removal or change,
 * let them know in which future version the breaking change will get introduced,
@@ -34,7 +34,7 @@ We raise a :exc:`warnings.FutureWarning` any time that bit of code is accessed o
 
 .. hint::
 
-    We use  :exc:`warnings.FutureWarning` to warn users about deprecations and future removals because this type of warnings are shown by default.
+    We use  ``warnings.FutureWarning`` to warn users about deprecations and future removals because this type of warnings are shown by default.
     Python also ships a :class:`warnings.DeprecationWarning`, which is intended for Python developers.
     By default, all :class:`warnings.DeprecationWarning` are filtered and not shown.
 
@@ -146,7 +146,7 @@ Deprecating arguments
 ~~~~~~~~~~~~~~~~~~~~~
 
 When renaming an argument from a function or method we'll need to ensure to raise a
-:exc:`warnings.FutureWarning` within its body. For example, consider an ``InjectActiveCells`` map that takes ``indActive`` as argument for its constructor:
+``warnings.FutureWarning`` within its body. For example, consider an ``InjectActiveCells`` map that takes ``indActive`` as argument for its constructor:
 
 .. code:: python
 
@@ -199,6 +199,30 @@ We want to rename the ``indActive`` argument in favor of ``active_cells``. We ca
    It's recommended to add tests to check the expected behaviour of the function
    to ensure that the warnings and errors are corretly raised, and the arguments
    correctly processed.
+
+
+Testing the deprecations
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+It's recommended to test the deprecation warnings are raised when deprecating a bit of code.
+We can easily check that with the :func:`pytest.warns` context manager.
+For example, we could test if the previous ``InjectActiveCells`` map warns when passing ``indActive`` as argument:
+
+.. code:: python
+
+    import re
+    import pytest
+
+    def test_deprecated_indactive():
+        """Test FutureWarning after passing indActive to InjectActiveCells."""
+        mesh = ...
+        active_cells = ...
+        match = re.escape("Argument 'indActive' is deprecated and will be removed ")
+        with pytest.warns(FutureWarning, match=match):
+            InjectActiveCells(mesh, indActive=active_cells)
+
+If ``InjectActiveCells.__init__`` throws a ``warnings.FutureWarning`` with a message that matches the passed pattern, the tests passes.
+Otherwise, the test will fail.
 
 
 Documenting deprecations
@@ -262,35 +286,36 @@ The same admonition can be added when deprecating arguments:
        def __init__(self, mesh, active_cells=None, **kwargs):
            ...
 
-Testing the deprecations
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-It's recommended to test the deprecation warnings are raised when deprecating a bit of code.
-We can easily check that with the :func:`pytest.raises` context manager.
-
-For example, we could test if the previous ``InjectActiveCells`` map warns when passing ``indActive`` as argument:
-
-.. code:: python
-
-    import re
-    import pytest
-
-    def test_deprecated_indactive():
-        """Test FutureWarning after passing indActive to InjectActiveCells."""
-        mesh = ...
-        active_cells = ...
-        match = re.escape("Argument 'indActive' is deprecated and will be removed ")
-        with pytest.raises(FutureWarning, match=match):
-            InjectActiveCells(mesh, indActive=active_cells)
-
-If ``InjectActiveCells.__init__`` throws a :exc:`warnings.FutureWarning` with a message that matches the passed pattern, the tests passes.
-Otherwise, the test will fail.
-
-
 Removals
 --------
 
 When removing a bit of code it's usually a good practice to raise an error when the old object is accessed, along with information about in which version it got removed and instructions on how to update their code. This way, even if the user missed the deprecation warning, they will receive some information.
+For example, we can raise a warning if the removed ``Simulation3D`` class is instantiated:
+
+
+.. code:: python
+
+   class Simulation3D:
+
+       def __init__(self, *args, **kwargs):
+           msg = (
+               "The Simulation3D class has been removed in SimPEG v0.28.0. "
+               "Use SimulationMagnetic instead."
+           )
+           raise AttributeError(msg)
+
+
+We should also add a test making sure that the ``Simulation3D`` class cannot be instantiated anymore.
+We can use the  :func:`pytest.raises` context manager for that:
+
+
+.. code:: python
+
+   def test_removed_simulation_3d():
+       """Test error after instantiating the removed ``Simulation3D`` class."""
+       with pytest.raises(AttributeError, match="The Simulation3D class has been removed"):
+           Simulation3D()
+
 
 .. important::
 
