@@ -245,7 +245,9 @@ For example, we can add such admonition when deprecating a function, method, or 
 
        .. deprecated:: 0.25.0
 
-          The ``gettopoCC`` function is deprecated and will be removed in SimPEG v0.27.0. This function has been replaced by the :func:`simpeg.utils.get_discrete_topography` function.
+          The ``gettopoCC`` function is deprecated and will be
+          removed in SimPEG v0.27.0. This function has been replaced by the
+          :func:`simpeg.utils.get_discrete_topography` function.
 
        Parameters
        ----------
