@@ -4,7 +4,7 @@ import numpy as np
 
 import pytest
 import matplotlib.pyplot as plt
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
+from discretize.utils import mesh_builder_xyz, active_from_xyz
 from simpeg import (
     directives,
     maps,
