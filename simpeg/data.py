@@ -4,7 +4,6 @@ import warnings
 from .survey import BaseSurvey
 from .utils import mkvc, validate_ndarray_with_shape, validate_float, validate_type
 
-
 __all__ = ["Data", "SyntheticData"]
 
 
@@ -372,7 +371,7 @@ class SyntheticData(Data):
         numpy.ndarray
 
         Notes
-        --------
+        -----
         This array should be indexing the data object
         using a tuple of the survey's sources and receivers.
 
