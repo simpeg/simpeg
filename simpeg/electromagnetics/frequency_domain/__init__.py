@@ -10,7 +10,7 @@ Fourier convention is used, this module is used to solve problems of the form:
 
 .. math::
     \begin{aligned}
-    \nabla \times \vec{E} + i\omega \vec{B} &= - i \omega \vec{S}_m \\
+    \nabla \times \vec{E} + i\omega \vec{B} &= \vec{S}_m \\
     \nabla \times \vec{H} - \vec{J} &= \vec{S}_e
     \end{aligned}
 

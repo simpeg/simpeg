@@ -341,6 +341,10 @@ class BasePFSimulation(LinearSimulation):
                     id1 = id0 + n_c
                     kernel[id0:id1] = rows.astype(dtype, copy=False)
                     id0 = id1
+                # Let the workers exit on their own: Pool.__exit__ would
+                # otherwise terminate() them mid-shutdown.
+                pool.close()
+                pool.join()
 
         # if self.store_sensitivities != "forward_only":
         #     kernel = np.vstack(kernel)
