@@ -2379,7 +2379,7 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
     ):
         # Docstring inherited from parent class
         # scaling by w*mu_0 happens inside function
-        scale = _alpha(src)**-1
+        scale = _alpha(src) ** -1
         if self._formula == "root_gram_determinant":
             return _eval_root_gram_determinant_deriv(
                 self, src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint, scale=scale
