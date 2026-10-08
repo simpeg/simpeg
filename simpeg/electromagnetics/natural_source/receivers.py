@@ -1819,7 +1819,7 @@ def _eval_horizontal_determinant_deriv(
 
     deriv = (bot * dtop_v - top * dbot_v) / (bot * bot)
 
-    if getattr(receiver, "_component") == "amp":
+    if receiver._component == "amp":
         scale *= top / bot
         return (scale.real * deriv.real + scale.imag * deriv.imag) / np.abs(top / bot)
     else:
