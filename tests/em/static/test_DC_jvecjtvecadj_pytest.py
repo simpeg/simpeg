@@ -18,7 +18,6 @@ from simpeg.electromagnetics import resistivity as dc
 from simpeg.electromagnetics.static import utils as static_utils
 import shutil
 
-
 REL_TOL = 1e-5
 ABS_TOL = 1e-20
 
