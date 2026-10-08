@@ -238,8 +238,8 @@ CASES_LIST_HALFSPACE = [
     ("det_horizontal", "imag", "electric"),
     ("det_horizontal", "amp", "electric"),
     ("cross_amp", None, "electric"),
-    ("gram_amp", None, "magnetic"),
-    ("cross_amp", None, "electric"),
+    ("gram_amp", None, "electric"),
+    ("cross_amp", None, "magnetic"),
     ("gram_amp", None, "magnetic"),
 ]
 

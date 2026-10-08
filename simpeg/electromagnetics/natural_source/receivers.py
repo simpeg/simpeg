@@ -1941,9 +1941,9 @@ class RootGramDeterminant(_BaseOrientationInvariant):
         super().__init__(
             locations1=locations_h,
             locations2=locations_base,
+            base_type=base_type,
             storeProjections=storeProjections,
         )
-        self.base_type = base_type
 
     @property
     def locations_h(self):
@@ -2251,7 +2251,7 @@ class HorizontalDeterminant(RootGramDeterminant):
         Returns
         -------
         str
-            Data type; i.e. "real", "imag", "amp"
+            Data type; i.e. "real", "imag", "amp".
         """
         return self._component
 
