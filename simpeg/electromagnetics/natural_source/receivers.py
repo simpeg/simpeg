@@ -1216,12 +1216,11 @@ def _eval_root_gram_determinant(receiver, src, mesh, f):
     # abs(det(B B*)) = abs(det(B))**2
     bot = np.abs(bx[:, 0] * by[:, 1] - bx[:, 1] * by[:, 0]) ** 2
 
-    scale = _alpha(src) if isinstance(receiver, ApparentConductivity) else 1.0
-    return np.sqrt(top / bot) / scale
+    return np.sqrt(top / bot)
 
 
 def _eval_root_gram_determinant_deriv(
-    receiver, src, mesh, f, du_dm_v=None, v=None, adjoint=False
+    receiver, src, mesh, f, du_dm_v=None, v=None, adjoint=False, scale=1.0
 ):
     """Evaluate the derivative for the square root of the determinant of the Gram matrix.
 
@@ -1242,9 +1241,11 @@ def _eval_root_gram_determinant_deriv(
         The derivative of the fields on the mesh with respect to the model,
         times a vector.
     v : numpy.ndarray, optional
-        The vector which being multiplied
+        The vector which being multiplied.
     adjoint : bool
-        If ``True``, return the ajoint
+        If ``True``, return the ajoint.
+    scale : float, optional
+        Apply scaling constant to derivative within the function.
     """
     if mesh.dim < 3:
         raise NotImplementedError(
@@ -1292,10 +1293,7 @@ def _eval_root_gram_determinant_deriv(
     vec_b12 = bx[:, 0] * bx[:, 1].conjugate() + by[:, 0] * by[:, 1].conjugate()
     bot = vec_b11 * vec_b22 - np.abs(vec_b12) ** 2  # abs(det(H H*))
 
-    scale = 0.5 / np.sqrt(top / bot)
-    # Scale by w*mu_0
-    if isinstance(receiver, ApparentConductivity):
-        scale /= _alpha(src)
+    scale *= 0.5 / np.sqrt(top / bot)
 
     # ADJOINT
     if adjoint:
@@ -1477,12 +1475,11 @@ def _eval_cross_product_amplitude(receiver, src, mesh, f):
     # abs(det(B B*)) = abs(det(B))**2
     bot = np.abs(bx[:, 0] * by[:, 1] - bx[:, 1] * by[:, 0]) ** 2
 
-    scale = _alpha(src) if isinstance(receiver, ApparentConductivity) else 1.0
-    return np.sqrt((top_12 + top_13 + top_23) / bot) / scale
+    return np.sqrt((top_12 + top_13 + top_23) / bot)
 
 
 def _eval_cross_product_amplitude_deriv(
-    receiver, src, mesh, f, du_dm_v=None, v=None, adjoint=False
+    receiver, src, mesh, f, du_dm_v=None, v=None, adjoint=False, scale=1.0
 ):
     """Evaluate the derivative for the amplitude of the cross product.
 
@@ -1503,9 +1500,11 @@ def _eval_cross_product_amplitude_deriv(
         The derivative of the fields on the mesh with respect to the model,
         times a vector.
     v : numpy.ndarray, optional
-        The vector which being multiplied
+        The vector which being multiplied.
     adjoint : bool
-        If ``True``, return the ajoint
+        If ``True``, return the ajoint.
+    scale : float, optional
+        Apply scaling constant to derivative within the function.
     """
     if mesh.dim < 3:
         raise NotImplementedError(
@@ -1548,10 +1547,7 @@ def _eval_cross_product_amplitude_deriv(
     det_b = bx[:, 0] * by[:, 1] - bx[:, 1] * by[:, 0]
     bot = np.abs(det_b) ** 2
 
-    scale = 0.5 / np.sqrt(top / bot)
-    # Scale by w*mu_0
-    if isinstance(receiver, ApparentConductivity):
-        scale /= _alpha(src)
+    scale *= 0.5 / np.sqrt(top / bot)
 
     # ADJOINT
     if adjoint:
@@ -1699,13 +1695,13 @@ def _eval_horizontal_determinant(receiver, src, mesh, f):
     top = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
     bot = bx[:, 0] * by[:, 1] - bx[:, 1] * by[:, 0]
 
-    if isinstance(receiver, ApparentConductivity):
-        return np.abs(top / bot) / _alpha(src)
+    if receiver._component == "amp":
+        return np.abs(top / bot)
     return top / bot
 
 
 def _eval_horizontal_determinant_deriv(
-    receiver, src, mesh, f, du_dm_v=None, v=None, adjoint=False
+    receiver, src, mesh, f, du_dm_v=None, v=None, adjoint=False, scale=1.0
 ):
     """Evaluate the derivative for the horizontal determinant transfer function.
 
@@ -1726,9 +1722,11 @@ def _eval_horizontal_determinant_deriv(
         The derivative of the fields on the mesh with respect to the model,
         times a vector.
     v : numpy.ndarray, optional
-        The vector which being multiplied
+        The vector which being multiplied.
     adjoint : bool
-        If ``True``, return the ajoint
+        If ``True``, return the ajoint.
+    scale : float, optional
+        Apply scaling constant to derivative within the function.
     """
     if mesh.dim < 3:
         raise NotImplementedError(
@@ -1765,12 +1763,9 @@ def _eval_horizontal_determinant_deriv(
     # ADJOINT
     if adjoint:
 
-        if isinstance(receiver, ApparentConductivity):
-            scale = _alpha(src) ** -1 * top / bot
+        if receiver._component == "amp":
+            scale *= top / bot
             v = (scale.real - 1j * scale.imag) * v / np.abs(top / bot)
-        elif receiver.component == "amp":
-            scale = _alpha(src) ** -1 * top / bot
-            v = (scale.real - 1j * scale.imag) * v / np.abs(scale)
         elif receiver.component == "imag":
             v = -1j * v
 
@@ -1824,12 +1819,9 @@ def _eval_horizontal_determinant_deriv(
 
     deriv = (bot * dtop_v - top * dbot_v) / (bot * bot)
 
-    if isinstance(receiver, ApparentConductivity):
-        scale = _alpha(src) ** -1 * top / bot
+    if getattr(receiver, "_component") == "amp":
+        scale *= top / bot
         return (scale.real * deriv.real + scale.imag * deriv.imag) / np.abs(top / bot)
-    elif receiver.component == "amp":
-        scale = top / bot
-        return (scale.real * deriv.real + scale.imag * deriv.imag) / np.abs(scale)
     else:
         return getattr(deriv, receiver.component)
 
@@ -2324,6 +2316,7 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
     """
 
     _base_type = "electric"
+    _component = "amp"
 
     def __init__(
         self,
@@ -2375,28 +2368,29 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
         # Docstring inherited from parent class
         # scaling by w*mu_0 happens inside function
         if self._formula == "root_gram_determinant":
-            return _eval_root_gram_determinant(self, src, mesh, f)
+            return _eval_root_gram_determinant(self, src, mesh, f) / _alpha(src)
         elif self._formula == "cross_product_amplitude":
-            return _eval_cross_product_amplitude(self, src, mesh, f)
+            return _eval_cross_product_amplitude(self, src, mesh, f) / _alpha(src)
         elif self._formula == "horizontal_determinant":
-            return _eval_horizontal_determinant(self, src, mesh, f)
+            return _eval_horizontal_determinant(self, src, mesh, f) / _alpha(src)
 
     def evalDeriv(  # noqa: A003 D102
         self, src, mesh, f, du_dm_v=None, v=None, adjoint=False
     ):
         # Docstring inherited from parent class
         # scaling by w*mu_0 happens inside function
+        scale = _alpha(src)**-1
         if self._formula == "root_gram_determinant":
             return _eval_root_gram_determinant_deriv(
-                self, src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
+                self, src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint, scale=scale
             )
         elif self._formula == "cross_product_amplitude":
             return _eval_cross_product_amplitude_deriv(
-                self, src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
+                self, src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint, scale=scale
             )
         elif self._formula == "horizontal_determinant":
             return _eval_horizontal_determinant_deriv(
-                self, src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint
+                self, src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint, scale=scale
             )
 
 
