@@ -1293,14 +1293,14 @@ def _eval_root_gram_determinant_deriv(
     vec_b12 = bx[:, 0] * bx[:, 1].conjugate() + by[:, 0] * by[:, 1].conjugate()
     bot = vec_b11 * vec_b22 - np.abs(vec_b12) ** 2  # abs(det(H H*))
 
-    scale *= 0.5 / np.sqrt(top / bot)
+    factor = 0.5 * scale / np.sqrt(top / bot)
 
     # ADJOINT
     if adjoint:
 
         # J_T * v = d_top_T * a_v + d_bot_T * b
-        a_v = scale * v / bot  # term 1
-        b_v = -scale * top * v / bot**2  # term 2
+        a_v = factor * v / bot  # term 1
+        b_v = -factor * top * v / bot**2  # term 2
 
         a_v = np.repeat(mkvc(a_v, n_dims=2), 2, axis=-1)
         b_v = np.repeat(mkvc(b_v, n_dims=2), 2, axis=-1)
@@ -1429,7 +1429,7 @@ def _eval_root_gram_determinant_deriv(
         ).real
     )
 
-    return scale * (bot * dtop_v - top * dbot_v) / (bot * bot)
+    return factor * (bot * dtop_v - top * dbot_v) / (bot * bot)
 
 
 def _eval_cross_product_amplitude(receiver, src, mesh, f):
@@ -1547,14 +1547,14 @@ def _eval_cross_product_amplitude_deriv(
     det_b = bx[:, 0] * by[:, 1] - bx[:, 1] * by[:, 0]
     bot = np.abs(det_b) ** 2
 
-    scale *= 0.5 / np.sqrt(top / bot)
+    factor = 0.5 * scale / np.sqrt(top / bot)
 
     # ADJOINT
     if adjoint:
 
         # J_T * v = d_top_T * a_v + d_bot_T * b
-        a_v = scale * v / bot  # term 1
-        b_v = -scale * top * v / bot**2  # term 2
+        a_v = factor * v / bot  # term 1
+        b_v = -factor * top * v / bot**2  # term 2
 
         a_v = np.repeat(mkvc(a_v, n_dims=2), 2, axis=-1)
         b_v = np.repeat(mkvc(b_v, n_dims=2), 2, axis=-1)
@@ -1654,7 +1654,7 @@ def _eval_cross_product_amplitude_deriv(
         ).real
     )
 
-    return scale * (bot * dtop_v - top * dbot_v) / (bot * bot)
+    return factor * (bot * dtop_v - top * dbot_v) / (bot * bot)
 
 
 def _eval_horizontal_determinant(receiver, src, mesh, f):
@@ -1764,8 +1764,8 @@ def _eval_horizontal_determinant_deriv(
     if adjoint:
 
         if receiver._component == "amp":
-            scale *= top / bot
-            v = (scale.real - 1j * scale.imag) * v / np.abs(top / bot)
+            factor = scale * top / bot
+            v = (factor.real - 1j * factor.imag) * v / np.abs(top / bot)
         elif receiver.component == "imag":
             v = -1j * v
 
@@ -1820,8 +1820,8 @@ def _eval_horizontal_determinant_deriv(
     deriv = (bot * dtop_v - top * dbot_v) / (bot * bot)
 
     if receiver._component == "amp":
-        scale *= top / bot
-        return (scale.real * deriv.real + scale.imag * deriv.imag) / np.abs(top / bot)
+        factor = scale * top / bot
+        return (factor.real * deriv.real + factor.imag * deriv.imag) / np.abs(top / bot)
     else:
         return getattr(deriv, receiver.component)
 
@@ -1967,7 +1967,7 @@ class RootGramDeterminant(_BaseOrientationInvariant):
         """
         return self._locations[1]
 
-    def eval(self, src, mesh, f):  # noqa: D102 A003
+    def eval(self, src, mesh, f):  # noqa: D102
         # Docstring inherited from parent class (BaseNaturalSourceRX)
         return _eval_root_gram_determinant(self, src, mesh, f)
 
@@ -2267,15 +2267,14 @@ class HorizontalDeterminant(RootGramDeterminant):
             ],
         )
 
-    def eval(self, src, mesh, f):  # noqa: A003 D102
+    def eval(self, src, mesh, f):  # noqa: D102
         # Doctring inherited from parent class (BaseNaturalSourceRx
         vals = _eval_horizontal_determinant(self, src, mesh, f)
         if self.component == "complex":
             return vals
-        elif self.component == "amp":
+        if self.component == "amp":
             return np.abs(vals)
-        else:
-            return getattr(vals, self.component)
+        return getattr(vals, self.component)
 
     def evalDeriv(  # noqa: D102
         self, src, mesh, f, du_dm_v=None, v=None, adjoint=False
@@ -2369,10 +2368,11 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
         # scaling by w*mu_0 happens inside function
         if self._formula == "root_gram_determinant":
             return _eval_root_gram_determinant(self, src, mesh, f) / _alpha(src)
-        elif self._formula == "cross_product_amplitude":
+        if self._formula == "cross_product_amplitude":
             return _eval_cross_product_amplitude(self, src, mesh, f) / _alpha(src)
-        elif self._formula == "horizontal_determinant":
+        if self._formula == "horizontal_determinant":
             return _eval_horizontal_determinant(self, src, mesh, f) / _alpha(src)
+        raise ValueError()  # pragma: nocover
 
     def evalDeriv(  # noqa: A003 D102
         self, src, mesh, f, du_dm_v=None, v=None, adjoint=False
@@ -2384,14 +2384,15 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
             return _eval_root_gram_determinant_deriv(
                 self, src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint, scale=scale
             )
-        elif self._formula == "cross_product_amplitude":
+        if self._formula == "cross_product_amplitude":
             return _eval_cross_product_amplitude_deriv(
                 self, src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint, scale=scale
             )
-        elif self._formula == "horizontal_determinant":
+        if self._formula == "horizontal_determinant":
             return _eval_horizontal_determinant_deriv(
                 self, src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint, scale=scale
             )
+        raise ValueError()  # pragma: nocover
 
 
 @deprecate_class(removal_version="0.24.0", error=True, replace_docstring=False)
