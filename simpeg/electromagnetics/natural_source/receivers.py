@@ -1967,7 +1967,7 @@ class RootGramDeterminant(_BaseOrientationInvariant):
         """
         return self._locations[1]
 
-    def eval(self, src, mesh, f):  # noqa: D102
+    def eval(self, src, mesh, f):  # noqa: A003 D102
         # Docstring inherited from parent class (BaseNaturalSourceRX)
         return _eval_root_gram_determinant(self, src, mesh, f)
 
@@ -2267,7 +2267,7 @@ class HorizontalDeterminant(RootGramDeterminant):
             ],
         )
 
-    def eval(self, src, mesh, f):  # noqa: D102
+    def eval(self, src, mesh, f):  # noqa: A003 D102
         # Doctring inherited from parent class (BaseNaturalSourceRx
         vals = _eval_horizontal_determinant(self, src, mesh, f)
         if self.component == "complex":
