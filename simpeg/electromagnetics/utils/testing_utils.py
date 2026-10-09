@@ -11,7 +11,6 @@ CONDUCTIVITY = 1e1
 MU = mu_0
 freq = 5e-1
 
-
 def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
     cs = 10.0
     ncx, ncy, ncz = 0, 0, 0
@@ -256,6 +255,7 @@ def crossCheckTest(
     verbose=False,
     sigma_only=True,
 ):
+    np.random.default_rng(45)
     def l2norm(r):
         return np.sqrt(r.dot(r))
 

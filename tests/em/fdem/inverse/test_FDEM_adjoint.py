@@ -20,7 +20,6 @@ MU = mu_0
 freq = 1e-1
 addrandoms = True
 
-
 @pytest.mark.parametrize("receiver_comp", ["r", "i"])
 @pytest.mark.parametrize("receiver_dir", ["x", "y", "z"])
 @pytest.mark.parametrize(
@@ -40,6 +39,7 @@ addrandoms = True
 @pytest.mark.parametrize("sim_type", ["e", "b", "e_hier", "b_hier", "h", "j"])
 def test_adjoint(sim_type, src_type, receiver_type, receiver_dir, receiver_comp):
     """Perform adjoint test for FDEM problems."""
+    np.random.default_rng(84)
     rx_type = (receiver_type, receiver_dir, receiver_comp)
     if "hier" in sim_type:
         prb = get_FDEM_hierarchical_problem(sim_type[0], rx_type, [src_type], freq)

@@ -399,57 +399,57 @@ class InjectActiveFaces(IdentityMap):
     ----------
     mesh : discretize.BaseMesh
         A discretize mesh
-    indActive : numpy.ndarray
+    active_faces : numpy.ndarray
         Active faces array. Can be a boolean ``numpy.ndarray`` of length *mesh.nF*
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active faces.
-    valInactive : float or numpy.ndarray
+    value_inactive : float or numpy.ndarray
         The physical property value assigned to all inactive faces in the mesh
 
     """
 
-    def __init__(self, mesh, indActive=None, valInactive=0.0, nF=None):  # noqa D107
+    def __init__(self, mesh, active_faces=None, value_inactive=0.0, nF=None):  # noqa D107
         self.mesh = mesh
         self.nF = nF or mesh.nF
 
-        self._indActive = validate_active_indices("indActive", indActive, self.nF)
-        self._nP = np.sum(self.indActive)
+        self._active_faces = validate_active_indices("active_faces", active_faces, self.nF)
+        self._nP = np.sum(self.active_faces)
 
-        self.P = sp.eye(self.nF, format="csr")[:, self.indActive]
+        self.P = sp.eye(self.nF, format="csr")[:, self.active_faces]
 
-        self.valInactive = valInactive
+        self.value_inactive = value_inactive
 
     @property
-    def valInactive(self):
+    def value_inactive(self):
         """Return physical property value assigned to all inactive faces.
 
         Returns
         -------
         numpy.ndarray
         """
-        return self._valInactive
+        return self._vale_inactive
 
-    @valInactive.setter
-    def valInactive(self, value):
+    @value_inactive.setter
+    def value_inactive(self, value):
         n_inactive = self.nF - self.nP
         try:
-            value = validate_float("valInactive", value)
+            value = validate_float("value_inactive", value)
             value = np.full(n_inactive, value)
         except Exception:
             pass
-        value = validate_ndarray_with_shape("valInactive", value, shape=(n_inactive,))
+        value = validate_ndarray_with_shape("value_inactive", value, shape=(n_inactive,))
 
-        self._valInactive = np.zeros(self.nF, dtype=float)
-        self._valInactive[~self.indActive] = value
+        self._value_inactive = np.zeros(self.nF, dtype=float)
+        self._value_inactive[~self.active_faces] = value
 
     @property
-    def indActive(self):
+    def active_faces(self):
         """Return indices of active mesh faces.
 
         Returns
         -------
         numpy.ndarray of bool
         """
-        return self._indActive
+        return self._active_faces
 
     @property
     def shape(self):
@@ -473,12 +473,12 @@ class InjectActiveFaces(IdentityMap):
         int
             Number of parameters the model acts on; i.e. the number of active faces.
         """
-        return int(self.indActive.sum())
+        return int(self.active_faces.sum())
 
     def _transform(self, m):
         if m.ndim > 1:
-            return self.P * m + self.valInactive[:, None]
-        return self.P * m + self.valInactive
+            return self.P * m + self.value_inactive[:, None]
+        return self.P * m + self.value_inactive
 
     def inverse(self, u):
         r"""Compute the inverse projection operation.
@@ -574,57 +574,57 @@ class InjectActiveEdges(IdentityMap):
     ----------
     mesh : discretize.BaseMesh
         A discretize mesh
-    indActive : numpy.ndarray
+    active_edges : numpy.ndarray
         Active edges array. Can be a boolean ``numpy.ndarray`` of length *mesh.nE*
         or a ``numpy.ndarray`` of ``int`` containing the indices of the active edges.
-    valInactive : float or numpy.ndarray
+    value_inactive : float or numpy.ndarray
         The physical property value assigned to all inactive edges in the mesh.
 
     """
 
-    def __init__(self, mesh, indActive=None, valInactive=0.0, nE=None):  # noqa D107
+    def __init__(self, mesh, active_edges=None, value_inactive=0.0, nE=None):  # noqa D107
         self.mesh = mesh
         self.nE = nE or mesh.nE
 
-        self._indActive = validate_active_indices("indActive", indActive, self.nE)
-        self._nP = np.sum(self.indActive)
+        self._active_edges = validate_active_indices("active_edges", active_edges, self.nE)
+        self._nP = np.sum(self.active_edges)
 
-        self.P = sp.eye(self.nE, format="csr")[:, self.indActive]
+        self.P = sp.eye(self.nE, format="csr")[:, self.active_edges]
 
-        self.valInactive = valInactive
+        self.value_inactive = value_inactive
 
     @property
-    def valInactive(self):
+    def value_inactive(self):
         """Return physical property value defined for all inactive edges.
 
         Returns
         -------
         numpy.ndarray
         """
-        return self._valInactive
+        return self._value_inactive
 
-    @valInactive.setter
-    def valInactive(self, value):
+    @value_inactive.setter
+    def value_inactive(self, value):
         n_inactive = self.nE - self.nP
         try:
-            value = validate_float("valInactive", value)
+            value = validate_float("value_inactive", value)
             value = np.full(n_inactive, value)
         except Exception:
             pass
-        value = validate_ndarray_with_shape("valInactive", value, shape=(n_inactive,))
+        value = validate_ndarray_with_shape("value_inactive", value, shape=(n_inactive,))
 
-        self._valInactive = np.zeros(self.nE, dtype=float)
-        self._valInactive[~self.indActive] = value
+        self._value_inactive = np.zeros(self.nE, dtype=float)
+        self._value_inactive[~self.active_edges] = value
 
     @property
-    def indActive(self):
+    def active_edges(self):
         """Return indices of the edges.
 
         Returns
         -------
         numpy.ndarray of bool.
         """
-        return self._indActive
+        return self._active_edges
 
     @property
     def shape(self):
@@ -648,12 +648,12 @@ class InjectActiveEdges(IdentityMap):
         int
             Number of parameters the model acts on; i.e. the number of active edges.
         """
-        return int(self.indActive.sum())
+        return int(self.active_edges.sum())
 
     def _transform(self, m):
         if m.ndim > 1:
-            return self.P * m + self.valInactive[:, None]
-        return self.P * m + self.valInactive
+            return self.P * m + self.value_inactive[:, None]
+        return self.P * m + self.value_inactive
 
     def inverse(self, u):
         r"""Compute the inverse projection operation.
