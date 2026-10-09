@@ -1,9 +1,10 @@
 import shutil
 import unittest
 import numpy as np
+
 import pytest
 import matplotlib.pyplot as plt
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
+from discretize.utils import mesh_builder_xyz, active_from_xyz
 from simpeg import (
     directives,
     maps,
@@ -30,7 +31,7 @@ class MagInvLinProblemTest(unittest.TestCase):
         # Create a mesh
         h = [5, 5, 5]
         padDist = np.ones((3, 2)) * 100
-        nCpad = [2, 4, 2]
+        nCpad = [2, 3, 2]
 
         # Create grid of points for topography
         # Lets create a simple Gaussian topo and set the active cells
@@ -70,14 +71,7 @@ class MagInvLinProblemTest(unittest.TestCase):
             mesh_type="TREE",
         )
 
-        self.mesh = refine_tree_xyz(
-            self.mesh,
-            topo,
-            method="surface",
-            octree_levels=nCpad,
-            octree_levels_padding=nCpad,
-            finalize=True,
-        )
+        self.mesh.refine_surface(topo, padding_cells_by_level=nCpad, finalize=True)
 
         # Define an active cells from topo
         actv = active_from_xyz(self.mesh, topo)
