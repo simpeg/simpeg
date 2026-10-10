@@ -1,6 +1,4 @@
-"""
-Injection and interpolation map classes.
-"""
+"""Injection and interpolation map classes."""
 
 import discretize
 import numpy as np
@@ -18,11 +16,9 @@ from ..utils.code_utils import deprecate_property
 
 
 class Mesh2Mesh(IdentityMap):
-    """
-    Takes a model on one mesh are translates it to another mesh.
-    """
+    """Takes a model on one mesh are translates it to another mesh."""
 
-    def __init__(self, meshes, active_cells=None, **kwargs):
+    def __init__(self, meshes, active_cells=None, **kwargs):  # noqa D107
         # Sanity checks for the meshes parameter
         try:
             mesh, mesh2 = meshes
@@ -50,11 +46,22 @@ class Mesh2Mesh(IdentityMap):
     # reset to not accepted None for mesh
     @IdentityMap.mesh.setter
     def mesh(self, value):
+        """Return the mesh are mapping to.
+
+        Parameters
+        ----------
+        discretize.base.BaseMesh
+            The mesh where you want to define the new model. The mesh you are mapping to.
+
+        Returns
+        -------
+        discretize.base.BaseMesh
+        """
         self._mesh = validate_type("mesh", value, discretize.base.BaseMesh, cast=False)
 
     @property
     def mesh2(self):
-        """The source mesh used for the mapping.
+        """The mesh you want to map from.
 
         Returns
         -------
@@ -94,6 +101,16 @@ class Mesh2Mesh(IdentityMap):
 
     @property
     def P(self):
+        """Return the mapping operator.
+
+        Mapping from one mesh to another is a linear operation.
+        This property returns the linear operator.
+
+        Returns
+        -------
+        (n_cells_1, n_cells_2) numpy.ndarray
+            The linear operator that maps from mesh 1 to mesh 2.
+        """
         if getattr(self, "_P", None) is None:
             self._P = self.mesh2.get_interpolation_matrix(
                 (
@@ -122,6 +139,23 @@ class Mesh2Mesh(IdentityMap):
         return self.P * m
 
     def deriv(self, m, v=None):
+        """Compute derivative of the mapping with respect to the model.
+
+        Parameters
+        ----------
+        m : (n_param,) numpy.ndarray
+            The model parameters
+        v : (n_param,) numpy.ndarray, optional
+            A vector.
+
+        Returns
+        -------
+        numpy.ndarray
+            When *v* is ``None``, a (n_cells, n_param) numpy.ndaray is returned which
+            represents the derivative of the mapping with respect to the model. When
+            *v* is a vector, an (n_cells,) numpy.ndarray representing the derivative of
+            the mapping times the vector is returned.
+        """
         if v is not None:
             return self.P * v
         return self.P
@@ -155,7 +189,7 @@ class InjectActiveCells(IdentityMap):
         The physical property value assigned to all inactive cells in the mesh
     """
 
-    def __init__(
+    def __init__(  # noqa D107
         self,
         mesh,
         active_cells=None,
@@ -244,7 +278,7 @@ class InjectActiveCells(IdentityMap):
 
     @property
     def shape(self):
-        """Dimensions of the mapping
+        """Dimensions of the mapping.
 
         Returns
         -------
@@ -272,7 +306,9 @@ class InjectActiveCells(IdentityMap):
         return self.P * m + self.value_inactive
 
     def inverse(self, u):
-        r"""Recover the model parameters (active cells) from a set of physical
+        r"""Compute the inverse projection operation.
+
+        Recover the model parameters (active cells) from a set of physical
         property values defined on the entire mesh.
 
         For a discrete set of model parameters :math:`\mathbf{m}` defined
@@ -301,7 +337,7 @@ class InjectActiveCells(IdentityMap):
         return self.P.T * u
 
     def deriv(self, m, v=None):
-        r"""Derivative of the mapping with respect to the input parameters.
+        r"""Return derivative of the mapping with respect to the input parameters.
 
         For a discrete set of model parameters :math:`\mathbf{m}` defined
         on a set of active cells, the mapping :math:`\mathbf{u}(\mathbf{m})`
@@ -329,6 +365,358 @@ class InjectActiveCells(IdentityMap):
             A vector representing a set of model parameters
         v : (nP) numpy.ndarray
             If not ``None``, the method returns the derivative times the vector *v*
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
+        """
+        if v is not None:
+            return self.P * v
+        return self.P
+
+
+class InjectActiveFaces(IdentityMap):
+    r"""Map active faces model to all faces of a mesh.
+
+    The ``InjectActiveFaces`` class is used to define the mapping when
+    the model consists of diagnostic property values defined on a set of active
+    mesh faces; e.g. faces below topography, z-faces only. For a discrete set of
+    model parameters :math:`\mathbf{m}` defined on a set of active
+    faces, the mapping :math:`\mathbf{u}(\mathbf{m})` is defined as:
+
+    .. math::
+        \mathbf{u}(\mathbf{m}) = \mathbf{Pm} + \mathbf{d}\, m_\perp
+
+    where :math:`\mathbf{P}` is a (*nF* , *nP*) projection matrix from
+    active faces to all mesh faces, and :math:`\mathbf{d}` is a
+    (*nF* , 1) matrix that projects the inactive faces value
+    :math:`m_\perp` to all mesh faces.
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        A discretize mesh
+    active_faces : numpy.ndarray
+        Active faces array. Can be a boolean ``numpy.ndarray`` of length *mesh.nF*
+        or a ``numpy.ndarray`` of ``int`` containing the indices of the active faces.
+    value_inactive : float or numpy.ndarray
+        The physical property value assigned to all inactive faces in the mesh
+
+    """
+
+    def __init__(
+        self, mesh, active_faces=None, value_inactive=0.0, nF=None
+    ):  # noqa D107
+        self.mesh = mesh
+        self.nF = nF or mesh.nF
+        self._active_faces = validate_active_indices(
+            "active_faces", active_faces, self.nF
+        )
+        self._nP = np.sum(self.active_faces)
+        self.P = sp.eye(self.nF, format="csr")[:, self.active_faces]
+        self.value_inactive = value_inactive
+
+    @property
+    def value_inactive(self):
+        """Return physical property value assigned to all inactive faces.
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._vale_inactive
+
+    @value_inactive.setter
+    def value_inactive(self, value):
+        n_inactive = self.nF - self.nP
+        if isinstance(value, Number):
+            value = validate_float("value_inactive", value)
+            value = np.full(n_inactive, value)
+        value = validate_ndarray_with_shape(
+            "value_inactive", value, shape=(n_inactive,)
+        )
+
+        self._value_inactive = np.zeros(self.nF, dtype=float)
+        self._value_inactive[~self.active_faces] = value
+
+    @property
+    def active_faces(self):
+        """Return indices of active mesh faces.
+
+        Returns
+        -------
+        numpy.ndarray of bool
+        """
+        return self._active_faces
+
+    @property
+    def shape(self):
+        """Dimensions of the mapping.
+
+        Returns
+        -------
+        tuple of int
+            Where *nP* is the number of active faces and *nF* is
+            number of faces in the mesh, **shape** returns a
+            tuple (*nF* , *nP*).
+        """
+        return (self.nF, self.nP)
+
+    @property
+    def nP(self):
+        """Number of parameters the model acts on.
+
+        Returns
+        -------
+        int
+            Number of parameters the model acts on; i.e. the number of active faces.
+        """
+        return int(self.active_faces.sum())
+
+    def _transform(self, m):
+        if m.ndim > 1:
+            return self.P * m + self.value_inactive[:, None]
+        return self.P * m + self.value_inactive
+
+    def inverse(self, u):
+        r"""Compute the inverse projection operation.
+
+        Recover the model parameters (active faces) from a set of physical
+        property values defined on the entire mesh.
+
+        For a discrete set of model parameters :math:`\mathbf{m}` defined
+        on a set of active faces, the mapping :math:`\mathbf{u}(\mathbf{m})`
+        is defined as:
+
+        .. math::
+            \mathbf{u}(\mathbf{m}) = \mathbf{Pm} + \mathbf{d} \,m_\perp
+
+        where :math:`\mathbf{P}` is a (*nF* , *nP*) projection matrix from
+        active faces to all mesh faces, and :math:`\mathbf{d}` is a
+        (*nR* , 1) matrix that projects the inactive face value
+        :math:`m_\perp` to all mesh faces.
+
+        The inverse mapping is given by:
+
+        .. math::
+            \mathbf{m}(\mathbf{u}) = \mathbf{P^T u}
+
+        Parameters
+        ----------
+        u : (mesh.nF) numpy.ndarray
+            A vector which contains physical property values for all
+            mesh faces.
+        """
+        return self.P.T * u
+
+    def deriv(self, m, v=None):
+        r"""Return derivative of the mapping with respect to the input parameters.
+
+        For a discrete set of model parameters :math:`\mathbf{m}` defined
+        on a set of active faces, the mapping :math:`\mathbf{u}(\mathbf{m})`
+        is defined as:
+
+        .. math::
+            \mathbf{u}(\mathbf{m}) = \mathbf{Pm} + \mathbf{d} \, m_\perp
+
+        where :math:`\mathbf{P}` is a (*nF* , *nP*) projection matrix from
+        active faces to all mesh faces, and :math:`\mathbf{d}` is a
+        (*nF* , 1) matrix that projects the inactive face value
+        :math:`m_\perp` to all inactive mesh faces.
+
+        the **deriv** method returns the derivative of :math:`\mathbf{u}` with respect
+        to the model parameters; i.e.:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}} = \mathbf{P}
+
+        Note that in this case, **deriv** simply returns a sparse projection matrix.
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters.
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*.
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Derivative of the mapping with respect to the model parameters. If the
+            input argument *v* is not ``None``, the method returns the derivative times
+            the vector *v*.
+        """
+        if v is not None:
+            return self.P * v
+        return self.P
+
+
+class InjectActiveEdges(IdentityMap):
+    r"""Map active edges model to all edges of a mesh.
+
+    The ``InjectActiveEdges`` class is used to define the mapping when
+    the model consists of diagnostic property values defined on a set of active
+    mesh edges; e.g. edges below topography, z-edges only. For a discrete set of
+    model parameters :math:`\mathbf{m}` defined on a set of active
+    edges, the mapping :math:`\mathbf{u}(\mathbf{m})` is defined as:
+
+    .. math::
+        \mathbf{u}(\mathbf{m}) = \mathbf{Pm} + \mathbf{d}\, m_\perp
+
+    where :math:`\mathbf{P}` is a (*nE* , *nP*) projection matrix from
+    active edges to all mesh edges, and :math:`\mathbf{d}` is a
+    (*nE* , 1) matrix that projects the inactive edges value
+    :math:`m_\perp` to all mesh edges.
+
+    Parameters
+    ----------
+    mesh : discretize.BaseMesh
+        A discretize mesh
+    active_edges : numpy.ndarray
+        Active edges array. Can be a boolean ``numpy.ndarray`` of length *mesh.nE*
+        or a ``numpy.ndarray`` of ``int`` containing the indices of the active edges.
+    value_inactive : float or numpy.ndarray
+        The physical property value assigned to all inactive edges in the mesh.
+
+    """
+
+    def __init__(
+        self, mesh, active_edges=None, value_inactive=0.0, nE=None
+    ):  # noqa D107
+        self.mesh = mesh
+        self.nE = nE or mesh.nE
+        self._active_edges = validate_active_indices(
+            "active_edges", active_edges, self.nE
+        )
+        self._nP = np.sum(self.active_edges)
+        self.P = sp.eye(self.nE, format="csr")[:, self.active_edges]
+        self.value_inactive = value_inactive
+
+    @property
+    def value_inactive(self):
+        """Return physical property value defined for all inactive edges.
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+        return self._value_inactive
+
+    @value_inactive.setter
+    def value_inactive(self, value):
+        n_inactive = self.nE - self.nP
+        if isinstance(value, Number):
+            value = validate_float("value_inactive", value)
+            value = np.full(n_inactive, value)
+        value = validate_ndarray_with_shape(
+            "value_inactive", value, shape=(n_inactive,)
+        )
+
+        self._value_inactive = np.zeros(self.nE, dtype=float)
+        self._value_inactive[~self.active_edges] = value
+
+    @property
+    def active_edges(self):
+        """Return indices of the edges.
+
+        Returns
+        -------
+        numpy.ndarray of bool.
+        """
+        return self._active_edges
+
+    @property
+    def shape(self):
+        """Return dimensions of the mapping.
+
+        Returns
+        -------
+        tuple of int
+            Where *nP* is the number of active edges and *nE* is
+            number of edges in the mesh, **shape** returns a
+            tuple (*nE* , *nP*).
+        """
+        return (self.nE, self.nP)
+
+    @property
+    def nP(self):
+        """Number of parameters the model acts on.
+
+        Returns
+        -------
+        int
+            Number of parameters the model acts on; i.e. the number of active edges.
+        """
+        return int(self.active_edges.sum())
+
+    def _transform(self, m):
+        if m.ndim > 1:
+            return self.P * m + self.value_inactive[:, None]
+        return self.P * m + self.value_inactive
+
+    def inverse(self, u):
+        r"""Compute the inverse projection operation.
+
+        Recover the model parameters (active edges) from a set of physical
+        property values defined on the entire mesh.
+
+        For a discrete set of model parameters :math:`\mathbf{m}` defined
+        on a set of active edges, the mapping :math:`\mathbf{u}(\mathbf{m})`
+        is defined as:
+
+        .. math::
+            \mathbf{u}(\mathbf{m}) = \mathbf{Pm} + \mathbf{d} \,m_\perp
+
+        where :math:`\mathbf{P}` is a (*nE* , *nP*) projection matrix from
+        active edges to all mesh edges, and :math:`\mathbf{d}` is a
+        (*nE* , 1) matrix that projects the inactive edge value
+        :math:`m_\perp` to all mesh edges.
+
+        The inverse mapping is given by:
+
+        .. math::
+            \mathbf{m}(\mathbf{u}) = \mathbf{P^T u}
+
+        Parameters
+        ----------
+        u : (mesh.nE) numpy.ndarray
+            A vector which contains physical property values for all
+            mesh edges.
+        """
+        return self.P.T * u
+
+    def deriv(self, m, v=None):
+        r"""Return derivative of the mapping with respect to the input parameters.
+
+        For a discrete set of model parameters :math:`\mathbf{m}` defined
+        on a set of active edges, the mapping :math:`\mathbf{u}(\mathbf{m})`
+        is defined as:
+
+        .. math::
+            \mathbf{u}(\mathbf{m}) = \mathbf{Pm} + \mathbf{d} \, m_\perp
+
+        where :math:`\mathbf{P}` is a (*nE* , *nP*) projection matrix from
+        active edges to all mesh edges, and :math:`\mathbf{d}` is a
+        (*nF* , 1) matrix that projects the inactive edge value
+        :math:`m_\perp` to all mesh edges.
+
+        the **deriv** method returns the derivative of :math:`\mathbf{u}` with respect
+        to the model parameters; i.e.:
+
+        .. math::
+            \frac{\partial \mathbf{u}}{\partial \mathbf{m}} = \mathbf{P}
+
+        Note that in this case, **deriv** simply returns a sparse projection matrix.
+
+        Parameters
+        ----------
+        m : (nP) numpy.ndarray
+            A vector representing a set of model parameters.
+        v : (nP) numpy.ndarray
+            If not ``None``, the method returns the derivative times the vector *v*.
 
         Returns
         -------
