@@ -359,7 +359,9 @@ class MagDipole(BaseFDEMSrc):
         \mathbf{M_{\sigma}^e} \mathbf{e^S} =
         -\mathbf{C}^T \mathbf{{M_{\mu^{-1}}^f}^S} \mathbf{b^P}}
 
-    To obtain $\mathbf{b^P}$, we compute it by taking the curl of the vector potential due to a point dipole. This is provided by :py:meth:`geoana.em.static.MagneticDipoleWholeSpace.vector_potential`. Specifically,
+    To obtain $\mathbf{b^P}$, we compute it by taking the curl of the vector potential
+    due to a point dipole. This is provided by
+    :py:meth:`geoana.em.static.MagneticDipoleWholeSpace.vector_potential`. Specifically,
 
     .. math::
 

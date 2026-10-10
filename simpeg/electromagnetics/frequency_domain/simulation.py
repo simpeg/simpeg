@@ -585,7 +585,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
 
     .. math::
         &\mathbf{u_f^T M_f C e} + i \omega \mathbf{u_f^T M_f b} =
-        - i \omega \mathbf{u_f^T M_f s_m} \\
+        \mathbf{u_f^T M_f s_m} \\
         &\mathbf{u_e^T C^T M_f h} - \mathbf{u_e^T M_e j} = \mathbf{u_e^T s_e} \\
         &\mathbf{u_e^T M_e j} = \mathbf{u_e^T M_{e \sigma} e} \\
         &\mathbf{u_f^T M_f h} = \mathbf{u_f^T M_{f \mu} b}
@@ -611,7 +611,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
     where
 
     * :math:`\mathbf{A} = \mathbf{C^T M_{f\frac{1}{\mu}} C} + i\omega \mathbf{M_{e\sigma}}`
-    * :math:`\mathbf{q}=-i\omega \mathbf{s_e} - i \omega \mathbf{C^T M_{f\frac{1}{\mu}} s_m }`
+    * :math:`\mathbf{q} = -i\omega \mathbf{s_e} + \mathbf{C^T M_{f\frac{1}{\mu}} s_m }`
 
     """
 
@@ -1000,7 +1000,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
 
     .. math::
         &\mathbf{u_f^T M_f C e} + i \omega \mathbf{u_f^T M_f b} =
-        - i \omega \mathbf{u_f^T M_f s_m} \\
+        \mathbf{u_f^T M_f s_m} \\
         &\mathbf{u_e^T C^T M_f h} - \mathbf{u_e^T M_e j} = \mathbf{u_e^T s_e} \\
         &\mathbf{u_e^T M_e j} = \mathbf{u_e^T M_{e\sigma} e} \\
         &\mathbf{u_f^T M_f h} = \mathbf{u_f^T M_{f \mu} b}
@@ -1026,7 +1026,7 @@ class Simulation3DMagneticFluxDensity(BaseFDEMSimulation):
     where
 
     * :math:`\mathbf{A}=\mathbf{C M_{e\sigma}^{-1}C^T M_{f\frac{1}{\mu}}}+i\omega \mathbf{I}`
-    * :math:`\mathbf{q}=\mathbf{C M_{e\sigma}^{-1} s_e} - i \omega \mathbf{s_m}`
+    * :math:`\mathbf{q}=\mathbf{C M_{e\sigma}^{-1} s_e} + \mathbf{s_m}`
 
     """
 
@@ -1473,8 +1473,8 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
 
     .. math::
         &\mathbf{u_e^T C^T M_f \, e } + i \omega \mathbf{u_e^T M_e b} =
-        - i\omega \mathbf{u_e^T s_m} \\
-        &\mathbf{u_f^T C \, h} - \mathbf{u_f^T j} = \mathbf{u_f^T s_e} \\
+        \mathbf{u_e^T s_m} \\
+        &\mathbf{u_f^T M_f \, C \, h} - \mathbf{u_f^T M_f \, j} = \mathbf{u_f^T M_f\, s_e} \\
         &\mathbf{u_f^T M_f e} = \mathbf{u_f^T M_{f\rho} j} \\
         &\mathbf{u_e^T M_e b} = \mathbf{u_e^T M_{e \mu} h}
 
@@ -1945,8 +1945,8 @@ class Simulation3DMagneticField(BaseFDEMSimulation):
 
     .. math::
         &\mathbf{u_e^T C^T M_f \, e } + i \omega \mathbf{u_e^T M_e b} =
-        - i\omega \mathbf{u_e^T s_m} \\
-        &\mathbf{u_f^T C \, h} - \mathbf{u_f^T j} = \mathbf{u_f^T s_e} \\
+        \mathbf{u_e^T s_m} \\
+        &\mathbf{u_f^T M_f \, C \, h} - \mathbf{u_f^T M_f \, j} = \mathbf{u_f^T M_f \, s_e} \\
         &\mathbf{u_f^T M_f e} = \mathbf{u_f^T M_{f\rho} j} \\
         &\mathbf{u_e^T M_e b} = \mathbf{u_e^T M_{e \mu} h}
 
@@ -2349,7 +2349,7 @@ class Simulation3DHierarchicalElectricField(
     .. math::
         & \int_\Omega \vec{u} \cdot (\nabla \times \vec{E}) \, dv
         + i \omega \int_\Omega \vec{u} \cdot \vec{B} \, dv
-        = - i \omega \int_\Omega \vec{u} \cdot \vec{S}_m \, dv \\
+        = \int_\Omega \vec{u} \cdot \vec{S}_m \, dv \\
         & \int_\Omega (\nabla \times \vec{u}) \cdot \vec{H} \, dv
         - \oint_{\partial \Omega} \vec{u} \cdot (\vec{H} \times \hat{n}) \, da
         - \int_\Omega \vec{u} \cdot \vec{J} \, dv
@@ -2385,7 +2385,7 @@ class Simulation3DHierarchicalElectricField(
 
     .. math::
         &\mathbf{u_f^T M_f C e} + i \omega \mathbf{u_f^T M_f b} =
-        - i \omega \mathbf{u_f^T M_f s_m} \\
+        \mathbf{u_f^T M_f s_m} \\
         &\mathbf{u_e^T C^T M_f h} - \mathbf{u_e^T M_e j} = \mathbf{u_e^T s_e} \\
         &\mathbf{u_e^T M_e j} = \mathbf{u_e^T M_{e \Sigma} e} \\
         &\mathbf{u_f^T M_f h} = \mathbf{u_f^T M_{f \mu} b}
@@ -2420,7 +2420,7 @@ class Simulation3DHierarchicalElectricField(
     where
 
     * :math:`\mathbf{A}=\mathbf{C^T M_{f\frac{1}{\mu}} C}+i\omega \mathbf{M_{e\Sigma}}`
-    * :math:`\mathbf{q}=-i\omega \mathbf{s_e}-i \omega\mathbf{C^T M_{f\frac{1}{\mu}} s_m }`
+    * :math:`\mathbf{q}= \mathbf{s_e}-i \omega\mathbf{C^T M_{f\frac{1}{\mu}} s_m }`
 
     """
 
@@ -2474,7 +2474,7 @@ class Simulation3DHierarchicalMagneticFluxDensity(
     .. math::
         & \int_\Omega \vec{u} \cdot (\nabla \times \vec{E}) \, dv
         + i \omega \int_\Omega \vec{u} \cdot \vec{B} \, dv
-        = - i \omega \int_\Omega \vec{u} \cdot \vec{S}_m \, dv \\
+        = \int_\Omega \vec{u} \cdot \vec{S}_m \, dv \\
         & \int_\Omega (\nabla \times \vec{u}) \cdot \vec{H} \, dv
         - \oint_{\partial \Omega} \vec{u} \cdot (\vec{H} \times \hat{n}) \, da
         - \int_\Omega \vec{u} \cdot \vec{J} \, dv
@@ -2510,7 +2510,7 @@ class Simulation3DHierarchicalMagneticFluxDensity(
 
     .. math::
         &\mathbf{u_f^T M_f C e} + i \omega \mathbf{u_f^T M_f b} =
-        - i \omega \mathbf{u_f^T M_f s_m} \\
+        \mathbf{u_f^T M_f s_m} \\
         &\mathbf{u_e^T C^T M_f h} - \mathbf{u_e^T M_e j} = \mathbf{u_e^T s_e} \\
         &\mathbf{u_e^T M_e j} = \mathbf{u_e^T M_{e\Sigma} e} \\
         &\mathbf{u_f^T M_f h} = \mathbf{u_f^T M_{f \mu} b}
@@ -2545,7 +2545,7 @@ class Simulation3DHierarchicalMagneticFluxDensity(
     where
 
     * :math:`\mathbf{A}=\mathbf{C M_{e\Sigma}^{-1}C^T M_{f\frac{1}{\mu}}}+i\omega \mathbf{I}`
-    * :math:`\mathbf{q}=\mathbf{C M_{e\Sigma}^{-1}s_e}-i \omega \mathbf{s_m}`
+    * :math:`\mathbf{q}=\mathbf{C M_{e\Sigma}^{-1}s_e} + \mathbf{s_m}`
 
     """
 

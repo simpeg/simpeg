@@ -410,12 +410,9 @@ class InjectActiveFaces(IdentityMap):
     def __init__(self, mesh, active_faces=None, value_inactive=0.0, nF=None):  # noqa D107
         self.mesh = mesh
         self.nF = nF or mesh.nF
-
         self._active_faces = validate_active_indices("active_faces", active_faces, self.nF)
         self._nP = np.sum(self.active_faces)
-
         self.P = sp.eye(self.nF, format="csr")[:, self.active_faces]
-
         self.value_inactive = value_inactive
 
     @property
@@ -431,11 +428,9 @@ class InjectActiveFaces(IdentityMap):
     @value_inactive.setter
     def value_inactive(self, value):
         n_inactive = self.nF - self.nP
-        try:
+        if isinstance(value, Number):
             value = validate_float("value_inactive", value)
             value = np.full(n_inactive, value)
-        except Exception:
-            pass
         value = validate_ndarray_with_shape("value_inactive", value, shape=(n_inactive,))
 
         self._value_inactive = np.zeros(self.nF, dtype=float)
@@ -585,12 +580,9 @@ class InjectActiveEdges(IdentityMap):
     def __init__(self, mesh, active_edges=None, value_inactive=0.0, nE=None):  # noqa D107
         self.mesh = mesh
         self.nE = nE or mesh.nE
-
         self._active_edges = validate_active_indices("active_edges", active_edges, self.nE)
         self._nP = np.sum(self.active_edges)
-
         self.P = sp.eye(self.nE, format="csr")[:, self.active_edges]
-
         self.value_inactive = value_inactive
 
     @property
@@ -606,11 +598,9 @@ class InjectActiveEdges(IdentityMap):
     @value_inactive.setter
     def value_inactive(self, value):
         n_inactive = self.nE - self.nP
-        try:
+        if isinstance(value, Number):
             value = validate_float("value_inactive", value)
             value = np.full(n_inactive, value)
-        except Exception:
-            pass
         value = validate_ndarray_with_shape("value_inactive", value, shape=(n_inactive,))
 
         self._value_inactive = np.zeros(self.nE, dtype=float)
