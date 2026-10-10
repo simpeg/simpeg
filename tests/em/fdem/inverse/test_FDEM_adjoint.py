@@ -20,6 +20,7 @@ MU = mu_0
 freq = 1e-1
 addrandoms = True
 
+
 @pytest.mark.parametrize("receiver_comp", ["r", "i"])
 @pytest.mark.parametrize("receiver_dir", ["x", "y", "z"])
 @pytest.mark.parametrize(
