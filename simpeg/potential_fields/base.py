@@ -1,5 +1,7 @@
 import os
+from functools import partial
 from multiprocessing.pool import Pool
+from multiprocessing.sharedctypes import RawArray
 
 import discretize
 import numpy as np
@@ -13,6 +15,32 @@ try:
     import choclo
 except ImportError:
     choclo = None
+
+# Per-worker state for the multiprocessed kernel build. Only the shared buffer
+# goes through the pool initializer: on spawn platforms a large initializer
+# payload makes the parent start workers one at a time. The simulation instead
+# travels with the task chunks (once per chunk).
+_kernel_worker_state = {}
+
+
+def _init_kernel_worker(shared_buffer, shape, dtype):
+    _kernel_worker_state["kernel"] = np.frombuffer(shared_buffer, dtype=dtype).reshape(
+        shape
+    )
+
+
+def _fill_kernel_rows(simulation, row_start, receiver_location, components):
+    """Compute one receiver's rows and write them straight into the shared kernel.
+
+    Returns the number of rows written so the parent can check that the row
+    offsets it handed out were consistent.
+    """
+    kernel = _kernel_worker_state["kernel"]
+    rows = simulation.evaluate_integral(receiver_location, components)
+    n_rows = rows.shape[0]
+    kernel[row_start : row_start + n_rows] = rows.astype(kernel.dtype, copy=False)
+    return n_rows
+
 
 ###############################################################################
 #                                                                             #
@@ -321,8 +349,8 @@ class BasePFSimulation(LinearSimulation):
         else:
             kernel_shape = (self.survey.nD, n_cells)
         dtype = self.sensitivity_dtype
-        kernel = np.empty(kernel_shape, dtype=dtype)
         if self.n_processes == 1:
+            kernel = np.empty(kernel_shape, dtype=dtype)
             id0 = 0
             for args in self.survey._location_component_iterator():
                 rows = self.evaluate_integral(*args)
@@ -331,20 +359,33 @@ class BasePFSimulation(LinearSimulation):
                 kernel[id0:id1] = rows.astype(dtype, copy=False)
                 id0 = id1
         else:
-            # multiprocessed
-            with Pool(processes=self.n_processes) as pool:
-                id0 = 0
-                for rows in pool.starmap(
-                    self.evaluate_integral, self.survey._location_component_iterator()
-                ):
-                    n_c = rows.shape[0]
-                    id1 = id0 + n_c
-                    kernel[id0:id1] = rows.astype(dtype, copy=False)
-                    id0 = id1
+            # multiprocessed: the workers write their rows directly into one
+            # shared buffer, instead of pickling rows back to be concatenated.
+            n_bytes = int(np.prod(kernel_shape)) * np.dtype(dtype).itemsize
+            shared_buffer = RawArray("b", n_bytes)
+            tasks = []
+            id0 = 0
+            for location, components in self.survey._location_component_iterator():
+                tasks.append((id0, location, components))
+                id0 += len(components)
+            with Pool(
+                processes=self.n_processes,
+                initializer=_init_kernel_worker,
+                initargs=(shared_buffer, kernel_shape, dtype),
+            ) as pool:
+                n_rows_written = pool.starmap(partial(_fill_kernel_rows, self), tasks)
                 # Let the workers exit on their own: Pool.__exit__ would
                 # otherwise terminate() them mid-shutdown.
                 pool.close()
                 pool.join()
+            expected = [len(components) for _, _, components in tasks]
+            if n_rows_written != expected:
+                raise RuntimeError(
+                    "evaluate_integral returned a different number of rows than "
+                    "components; the shared kernel would be corrupt."
+                )
+            # A view onto the shared buffer: no copy, and it keeps the buffer alive.
+            kernel = np.frombuffer(shared_buffer, dtype=dtype).reshape(kernel_shape)
 
         # if self.store_sensitivities != "forward_only":
         #     kernel = np.vstack(kernel)
