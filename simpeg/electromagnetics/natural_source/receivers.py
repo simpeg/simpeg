@@ -1194,14 +1194,16 @@ def _eval_root_gram_determinant(receiver, src, mesh, f):
     hy = receiver.getP(mesh, "Fy", 0) @ h
     hz = receiver.getP(mesh, "Fz", 0) @ h
 
-    if receiver._base_type == "magnetic":
-        bx = receiver.getP(mesh, "Fx", 1) @ h
-        by = receiver.getP(mesh, "Fy", 1) @ h
-
-    else:
-        e = f[src, "e"]
-        bx = receiver.getP(mesh, "Ex", 1) @ e
-        by = receiver.getP(mesh, "Ey", 1) @ e
+    match receiver._base_type:
+        case "magnetic":
+            bx = receiver.getP(mesh, "Fx", 1) @ h
+            by = receiver.getP(mesh, "Fy", 1) @ h
+        case "electric":
+            e = f[src, "e"]
+            bx = receiver.getP(mesh, "Ex", 1) @ e
+            by = receiver.getP(mesh, "Ey", 1) @ e
+        case _:  # pragma: nocover
+            raise ValueError()
 
     # abs(det(H H*))
     top = (
@@ -1261,22 +1263,20 @@ def _eval_root_gram_determinant_deriv(
     hy = Phy @ h
     hz = Phz @ h
 
-    if receiver._base_type == "magnetic":
-
-        Pbx = receiver.getP(mesh, "Fx", 1)
-        Pby = receiver.getP(mesh, "Fy", 1)
-
-        bx = Pbx @ h
-        by = Pby @ h
-
-    else:
-
-        Pbx = receiver.getP(mesh, "Ex", 1)
-        Pby = receiver.getP(mesh, "Ey", 1)
-
-        e = f[src, "e"]
-        bx = Pbx @ e
-        by = Pby @ e
+    match receiver._base_type:
+        case "magnetic":
+            Pbx = receiver.getP(mesh, "Fx", 1)
+            Pby = receiver.getP(mesh, "Fy", 1)
+            bx = Pbx @ h
+            by = Pby @ h
+        case "electric":
+            Pbx = receiver.getP(mesh, "Ex", 1)
+            Pby = receiver.getP(mesh, "Ey", 1)
+            e = f[src, "e"]
+            bx = Pbx @ e
+            by = Pby @ e
+        case _:  # pragma: nocover
+            raise ValueError()
 
     # Entries of HH*. Note that vec_h21 = conj(vec_h12)
     vec_h11 = np.abs(hx[:, 0]) ** 2 + np.abs(hy[:, 0]) ** 2 + np.abs(hz[:, 0]) ** 2
@@ -1347,15 +1347,15 @@ def _eval_root_gram_determinant_deriv(
         h_v = 2 * (Phx.T @ px + Phy.T @ py + Phz.T @ pz)
         b_v = 2 * (Pbx.T @ qx + Pby.T @ qy)
 
-        if receiver._base_type == "magnetic":
-
-            return f._hDeriv(src, None, h_v + b_v, adjoint=True)
-
-        else:
-
-            fu_b_v, fm_b_v = f._eDeriv(src, None, b_v, adjoint=True)
-            fu_h_v, fm_h_v = f._hDeriv(src, None, h_v, adjoint=True)
-            return fu_b_v + fu_h_v, fm_b_v + fm_h_v
+        match receiver._base_type:
+            case "magnetic":
+                return f._hDeriv(src, None, h_v + b_v, adjoint=True)
+            case "electric":
+                fu_b_v, fm_b_v = f._eDeriv(src, None, b_v, adjoint=True)
+                fu_h_v, fm_h_v = f._hDeriv(src, None, h_v, adjoint=True)
+                return fu_b_v + fu_h_v, fm_b_v + fm_h_v
+            case _:  # pragma: nocover
+                raise ValueError()
 
     # JVEC
     dh_v = f._hDeriv(src, du_dm_v, v, adjoint=False)
@@ -1363,10 +1363,13 @@ def _eval_root_gram_determinant_deriv(
     dhy_v = Phy @ dh_v
     dhz_v = Phz @ dh_v
 
-    if receiver._base_type == "magnetic":
-        db_v = dh_v
-    else:
-        db_v = f._eDeriv(src, du_dm_v, v, adjoint=False)
+    match receiver._base_type:
+        case "magnetic":
+            db_v = dh_v
+        case "electric":
+            db_v = f._eDeriv(src, du_dm_v, v, adjoint=False)
+        case _:  # pragma: nocover
+            raise ValueError()
 
     dbx_v = Pbx @ db_v
     dby_v = Pby @ db_v
@@ -1459,14 +1462,16 @@ def _eval_cross_product_amplitude(receiver, src, mesh, f):
     hy = receiver.getP(mesh, "Fy", 0) @ h
     hz = receiver.getP(mesh, "Fz", 0) @ h
 
-    if receiver._base_type == "magnetic":
-        bx = receiver.getP(mesh, "Fx", 1) @ h
-        by = receiver.getP(mesh, "Fy", 1) @ h
-
-    else:
-        e = f[src, "e"]
-        bx = receiver.getP(mesh, "Ex", 1) @ e
-        by = receiver.getP(mesh, "Ey", 1) @ e
+    match receiver._base_type:
+        case "magnetic":
+            bx = receiver.getP(mesh, "Fx", 1) @ h
+            by = receiver.getP(mesh, "Fy", 1) @ h
+        case "electric":
+            e = f[src, "e"]
+            bx = receiver.getP(mesh, "Ex", 1) @ e
+            by = receiver.getP(mesh, "Ey", 1) @ e
+        case _:  # pragma: nocover
+            raise ValueError()
 
     top_12 = np.abs(hx[:, 0] * hy[:, 1] - hy[:, 0] * hx[:, 1]) ** 2  # abs(det(H12))**2
     top_13 = np.abs(hx[:, 0] * hz[:, 1] - hz[:, 0] * hx[:, 1]) ** 2  # abs(det(H13))**2
@@ -1520,22 +1525,20 @@ def _eval_cross_product_amplitude_deriv(
     hy = Phy @ h
     hz = Phz @ h
 
-    if receiver._base_type == "magnetic":
-
-        Pbx = receiver.getP(mesh, "Fx", 1)
-        Pby = receiver.getP(mesh, "Fy", 1)
-
-        bx = Pbx @ h
-        by = Pby @ h
-
-    else:
-
-        Pbx = receiver.getP(mesh, "Ex", 1)
-        Pby = receiver.getP(mesh, "Ey", 1)
-
-        e = f[src, "e"]
-        bx = Pbx @ e
-        by = Pby @ e
+    match receiver._base_type:
+        case "magnetic":
+            Pbx = receiver.getP(mesh, "Fx", 1)
+            Pby = receiver.getP(mesh, "Fy", 1)
+            bx = Pbx @ h
+            by = Pby @ h
+        case "electric":
+            Pbx = receiver.getP(mesh, "Ex", 1)
+            Pby = receiver.getP(mesh, "Ey", 1)
+            e = f[src, "e"]
+            bx = Pbx @ e
+            by = Pby @ e
+        case _:  # pragma: nocover
+            raise ValueError()
 
     # Entries of HH*. Note that vec_h21 = conj(vec_h12)
     det_h12 = hx[:, 0] * hy[:, 1] - hy[:, 0] * hx[:, 1]  # det(H12)
@@ -1589,15 +1592,15 @@ def _eval_cross_product_amplitude_deriv(
         h_v = 2 * (Phx.T @ px + Phy.T @ py + Phz.T @ pz)
         b_v = 2 * (Pbx.T @ qx + Pby.T @ qy)
 
-        if receiver._base_type == "magnetic":
-
-            return f._hDeriv(src, None, h_v + b_v, adjoint=True)
-
-        else:
-
-            fu_b_v, fm_b_v = f._eDeriv(src, None, b_v, adjoint=True)
-            fu_h_v, fm_h_v = f._hDeriv(src, None, h_v, adjoint=True)
-            return fu_b_v + fu_h_v, fm_b_v + fm_h_v
+        match receiver._base_type:
+            case "magnetic":
+                return f._hDeriv(src, None, h_v + b_v, adjoint=True)
+            case "electric":
+                fu_b_v, fm_b_v = f._eDeriv(src, None, b_v, adjoint=True)
+                fu_h_v, fm_h_v = f._hDeriv(src, None, h_v, adjoint=True)
+                return fu_b_v + fu_h_v, fm_b_v + fm_h_v
+            case _:  # pragma: nocover
+                raise ValueError()
 
     # JVEC
     dh_v = f._hDeriv(src, du_dm_v, v, adjoint=False)
@@ -1683,14 +1686,16 @@ def _eval_horizontal_determinant(receiver, src, mesh, f):
     hx = receiver.getP(mesh, "Fx", 0) @ h
     hy = receiver.getP(mesh, "Fy", 0) @ h
 
-    if receiver._base_type == "magnetic":
-        bx = receiver.getP(mesh, "Fx", 1) @ h
-        by = receiver.getP(mesh, "Fy", 1) @ h
-
-    else:
-        e = f[src, "e"]
-        bx = receiver.getP(mesh, "Ex", 1) @ e
-        by = receiver.getP(mesh, "Ey", 1) @ e
+    match receiver._base_type:
+        case "magnetic":
+            bx = receiver.getP(mesh, "Fx", 1) @ h
+            by = receiver.getP(mesh, "Fy", 1) @ h
+        case "electric":
+            e = f[src, "e"]
+            bx = receiver.getP(mesh, "Ex", 1) @ e
+            by = receiver.getP(mesh, "Ey", 1) @ e
+        case _:  # pragma: nocover
+            raise ValueError()
 
     top = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
     bot = bx[:, 0] * by[:, 1] - bx[:, 1] * by[:, 0]
@@ -1740,22 +1745,20 @@ def _eval_horizontal_determinant_deriv(
     hx = Phx @ h
     hy = Phy @ h
 
-    if receiver._base_type == "magnetic":
-
-        Pbx = receiver.getP(mesh, "Fx", 1)
-        Pby = receiver.getP(mesh, "Fy", 1)
-
-        bx = Pbx @ h
-        by = Pby @ h
-
-    else:
-
-        Pbx = receiver.getP(mesh, "Ex", 1)
-        Pby = receiver.getP(mesh, "Ey", 1)
-
-        e = f[src, "e"]
-        bx = Pbx @ e
-        by = Pby @ e
+    match receiver._base_type:
+        case "magnetic":
+            Pbx = receiver.getP(mesh, "Fx", 1)
+            Pby = receiver.getP(mesh, "Fy", 1)
+            bx = Pbx @ h
+            by = Pby @ h
+        case "electric":
+            Pbx = receiver.getP(mesh, "Ex", 1)
+            Pby = receiver.getP(mesh, "Ey", 1)
+            e = f[src, "e"]
+            bx = Pbx @ e
+            by = Pby @ e
+        case _:  # pragma: nocover
+            raise ValueError()
 
     top = hx[:, 0] * hy[:, 1] - hx[:, 1] * hy[:, 0]
     bot = bx[:, 0] * by[:, 1] - bx[:, 1] * by[:, 0]
@@ -1781,25 +1784,28 @@ def _eval_horizontal_determinant_deriv(
         by_v = np.c_[-bx[:, 1], bx[:, 0]] * b_v[:, None]  # terms dey in bot
         b_v = Pbx.T @ bx_v + Pby.T @ by_v
 
-        if receiver._base_type == "magnetic":
-
-            return f._hDeriv(src, None, h_v + b_v, adjoint=True)
-
-        else:
-
-            fu_b_v, fm_b_v = f._eDeriv(src, None, b_v, adjoint=True)
-            fu_h_v, fm_h_v = f._hDeriv(src, None, h_v, adjoint=True)
-            return fu_b_v + fu_h_v, fm_b_v + fm_h_v
+        match receiver._base_type:
+            case "magnetic":
+                return f._hDeriv(src, None, h_v + b_v, adjoint=True)
+            case "electric":
+                fu_b_v, fm_b_v = f._eDeriv(src, None, b_v, adjoint=True)
+                fu_h_v, fm_h_v = f._hDeriv(src, None, h_v, adjoint=True)
+                return fu_b_v + fu_h_v, fm_b_v + fm_h_v
+            case _:  # pragma: nocover
+                raise ValueError()
 
     # JVEC
     dh_v = f._hDeriv(src, du_dm_v, v, adjoint=False)
     dhx_v = Phx @ dh_v
     dhy_v = Phy @ dh_v
 
-    if receiver._base_type == "magnetic":
-        db_v = dh_v
-    else:
-        db_v = f._eDeriv(src, du_dm_v, v, adjoint=False)
+    match receiver._base_type:
+        case "magnetic":
+            db_v = dh_v
+        case "electric":
+            db_v = f._eDeriv(src, du_dm_v, v, adjoint=False)
+        case _:  # pragma: nocover
+            raise ValueError()
 
     dbx_v = Pbx @ db_v
     dby_v = Pby @ db_v
