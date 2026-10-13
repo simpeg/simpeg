@@ -684,7 +684,7 @@ class ParametricPolyMap(IdentityMap):
 
         if v is not None:
             derivative = ColumnStackedMatrix([g1, g2, g3])
-            return derivative * v
+            return derivative @ v
         return sp.csr_matrix(np.c_[g1, g2, g3])
 
     @property
@@ -1068,7 +1068,7 @@ class ParametricSplineMap(IdentityMap):
 
         if v is not None:
             derivative = ColumnStackedMatrix([g1, g2, g3])
-            return derivative * v
+            return derivative @ v
         return sp.csr_matrix(np.c_[g1, g2, g3])
 
     @property
