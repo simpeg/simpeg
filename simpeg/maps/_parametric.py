@@ -20,6 +20,7 @@ from ..utils import (
 )
 from ._base import IdentityMap
 from ..utils.code_utils import deprecate_property
+from ._utils import columns_dot_vector
 
 
 class ParametricCircleMap(IdentityMap):
@@ -244,7 +245,7 @@ class ParametricCircleMap(IdentityMap):
 
         columns = [g1, g2, g3, g4, g5]
         if v is not None:
-            return sum(column * v_i for column, v_i in zip(columns, v, strict=True))
+            return columns_dot_vector(columns, v)
         return sp.csr_matrix(np.c_[*columns])
 
     @property
@@ -682,7 +683,7 @@ class ParametricPolyMap(IdentityMap):
 
         columns = [g1, g2, g3]
         if v is not None:
-            return sum(column * v_i for column, v_i in zip(columns, v, strict=True))
+            return columns_dot_vector(columns, v)
         return sp.csr_matrix(np.c_[*columns])
 
     @property
@@ -1066,7 +1067,7 @@ class ParametricSplineMap(IdentityMap):
 
         columns = [g1, g2, g3]
         if v is not None:
-            return sum(column * v_i for column, v_i in zip(columns, v, strict=True))
+            return columns_dot_vector(columns, v)
         return sp.csr_matrix(np.c_[*columns])
 
     @property
@@ -1487,7 +1488,7 @@ class ParametricLayer(BaseParametric):
             )
         )
         if v is not None:
-            return sum(column * v_i for column, v_i in zip(columns, v, strict=True))
+            return columns_dot_vector(columns, v)
         return sp.csr_matrix(np.vstack(list(columns)).T)
 
 
@@ -1832,12 +1833,10 @@ class ParametricBlock(BaseParametric):
             input argument *v* is not ``None``, the method returns the derivative times
             the vector *v*.
         """
-        derivative = sp.csr_matrix(
-            getattr(self, "_deriv{}D".format(self.mesh.dim))(self.mDict(m))
-        )
+        derivative = getattr(self, "_deriv{}D".format(self.mesh.dim))(self.mDict(m))
         if v is not None:
             return derivative @ v
-        return derivative
+        return sp.csr_matrix(derivative)
 
 
 class ParametricEllipsoid(ParametricBlock):
@@ -2229,25 +2228,26 @@ class ParametricCasingAndLayer(ParametricLayer):
 
     def deriv(self, m, v=None):
         mDict = self.mDict(m)
-        derivative = sp.csr_matrix(
-            np.vstack(
-                [
-                    self._deriv_val_background(mDict),
-                    self._deriv_val_layer(mDict),
-                    self._deriv_val_casing(mDict),
-                    self._deriv_val_insideCasing(mDict),
-                    self._deriv_layer_center(mDict),
-                    self._deriv_layer_thickness(mDict),
-                    self._deriv_casing_radius(mDict),
-                    self._deriv_casing_thickness(mDict),
-                    self._deriv_casing_bottom(mDict),
-                    self._deriv_casing_top(mDict),
-                ]
-            ).T
+        # Define a generator with the columns of the derivative matrix.
+        # The generator allows to avoid storing all columns in memory.
+        columns = (
+            method(mDict)
+            for method in (
+                self._deriv_val_background,
+                self._deriv_val_layer,
+                self._deriv_val_casing,
+                self._deriv_val_insideCasing,
+                self._deriv_layer_center,
+                self._deriv_layer_thickness,
+                self._deriv_casing_radius,
+                self._deriv_casing_thickness,
+                self._deriv_casing_bottom,
+                self._deriv_casing_top,
+            )
         )
         if v is not None:
-            return derivative @ v
-        return derivative
+            return columns_dot_vector(columns, v)
+        return sp.csr_matrix(np.vstack(list(columns)).T)
 
 
 class ParametricBlockInLayer(ParametricLayer):
@@ -2686,11 +2686,7 @@ class ParametricBlockInLayer(ParametricLayer):
             return self._transform3d(m)
 
     def deriv(self, m, v=None):
-        derivative = (
-            sp.csr_matrix(self._deriv2d(m))
-            if self.mesh.dim == 2
-            else sp.csr_matrix(self._deriv3d(m))
-        )
+        derivative = self._deriv2d(m) if self.mesh.dim == 2 else (self._deriv3d(m))
         if v is not None:
             return derivative @ v
-        return derivative
+        return sp.csr_matrix(derivative)
