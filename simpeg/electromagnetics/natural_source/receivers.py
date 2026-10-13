@@ -1828,8 +1828,8 @@ def _eval_horizontal_determinant_deriv(
     if receiver._component == "amp":
         factor = scale * top / bot
         return (factor.real * deriv.real + factor.imag * deriv.imag) / np.abs(top / bot)
-    else:
-        return getattr(deriv, receiver.component)
+
+    return getattr(deriv, receiver.component)
 
 
 class RootGramDeterminant(_BaseOrientationInvariant):
