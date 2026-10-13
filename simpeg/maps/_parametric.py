@@ -2,6 +2,8 @@
 Parametric map classes.
 """
 
+from simpeg.maps._utils import ColumnStackedMatrix
+
 import discretize
 import numpy as np
 from numpy.polynomial import polynomial
@@ -243,7 +245,8 @@ class ParametricCircleMap(IdentityMap):
         )
 
         if v is not None:
-            return sp.csr_matrix(np.c_[g1, g2, g3, g4, g5]) * v
+            derivative = ColumnStackedMatrix([g1, g2, g3, g4, g5])
+            return derivative @ v
         return sp.csr_matrix(np.c_[g1, g2, g3, g4, g5])
 
     @property
@@ -680,7 +683,8 @@ class ParametricPolyMap(IdentityMap):
         g3 = sdiag(alpha * (sig2 - sig1) / (1.0 + (alpha * f) ** 2) / np.pi) * V
 
         if v is not None:
-            return sp.csr_matrix(np.c_[g1, g2, g3]) * v
+            derivative = ColumnStackedMatrix([g1, g2, g3])
+            return derivative * v
         return sp.csr_matrix(np.c_[g1, g2, g3])
 
     @property
@@ -1063,7 +1067,8 @@ class ParametricSplineMap(IdentityMap):
             raise (Exception("Not Implemented for Y and Z, your turn :)"))
 
         if v is not None:
-            return sp.csr_matrix(np.c_[g1, g2, g3]) * v
+            derivative = ColumnStackedMatrix([g1, g2, g3])
+            return derivative * v
         return sp.csr_matrix(np.c_[g1, g2, g3])
 
     @property
@@ -1472,19 +1477,16 @@ class ParametricLayer(BaseParametric):
             the vector *v*.
         """
         mDict = self.mDict(m)
-        derivative = sp.csr_matrix(
-            np.vstack(
-                [
-                    self._deriv_val_background(mDict),
-                    self._deriv_val_layer(mDict),
-                    self._deriv_layer_center(mDict),
-                    self._deriv_layer_thickness(mDict),
-                ]
-            ).T
-        )
+        columns = [
+            self._deriv_val_background(mDict),
+            self._deriv_val_layer(mDict),
+            self._deriv_layer_center(mDict),
+            self._deriv_layer_thickness(mDict),
+        ]
         if v is not None:
+            derivative = ColumnStackedMatrix(columns)
             return derivative @ v
-        return derivative
+        return sp.csr_matrix(np.c_[*columns])
 
 
 class ParametricBlock(BaseParametric):
@@ -1828,12 +1830,10 @@ class ParametricBlock(BaseParametric):
             input argument *v* is not ``None``, the method returns the derivative times
             the vector *v*.
         """
-        derivative = sp.csr_matrix(
-            getattr(self, "_deriv{}D".format(self.mesh.dim))(self.mDict(m))
-        )
+        derivative = getattr(self, "_deriv{}D".format(self.mesh.dim))(self.mDict(m))
         if v is not None:
             return derivative @ v
-        return derivative
+        return sp.csr_matrix(derivative)
 
 
 class ParametricEllipsoid(ParametricBlock):
@@ -2225,25 +2225,22 @@ class ParametricCasingAndLayer(ParametricLayer):
 
     def deriv(self, m, v=None):
         mDict = self.mDict(m)
-        derivative = sp.csr_matrix(
-            np.vstack(
-                [
-                    self._deriv_val_background(mDict),
-                    self._deriv_val_layer(mDict),
-                    self._deriv_val_casing(mDict),
-                    self._deriv_val_insideCasing(mDict),
-                    self._deriv_layer_center(mDict),
-                    self._deriv_layer_thickness(mDict),
-                    self._deriv_casing_radius(mDict),
-                    self._deriv_casing_thickness(mDict),
-                    self._deriv_casing_bottom(mDict),
-                    self._deriv_casing_top(mDict),
-                ]
-            ).T
-        )
+        columns = [
+            self._deriv_val_background(mDict),
+            self._deriv_val_layer(mDict),
+            self._deriv_val_casing(mDict),
+            self._deriv_val_insideCasing(mDict),
+            self._deriv_layer_center(mDict),
+            self._deriv_layer_thickness(mDict),
+            self._deriv_casing_radius(mDict),
+            self._deriv_casing_thickness(mDict),
+            self._deriv_casing_bottom(mDict),
+            self._deriv_casing_top(mDict),
+        ]
         if v is not None:
+            derivative = ColumnStackedMatrix(columns)
             return derivative @ v
-        return derivative
+        return sp.csr_matrix(np.c_[*columns])
 
 
 class ParametricBlockInLayer(ParametricLayer):
@@ -2682,11 +2679,7 @@ class ParametricBlockInLayer(ParametricLayer):
             return self._transform3d(m)
 
     def deriv(self, m, v=None):
-        derivative = (
-            sp.csr_matrix(self._deriv2d(m))
-            if self.mesh.dim == 2
-            else sp.csr_matrix(self._deriv3d(m))
-        )
+        derivative = self._deriv2d(m) if self.mesh.dim == 2 else self._deriv3d(m)
         if v is not None:
             return derivative @ v
-        return derivative
+        return sp.csr_matrix(derivative)
