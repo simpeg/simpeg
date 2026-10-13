@@ -122,10 +122,10 @@ class StepOff(BaseVRMWaveform):
         t0 = self.t0
 
         times = np.kron(np.ones((nC, 1)), times)
-        chi0 = np.kron(np.reshape(chi0, newshape=(nC, 1)), np.ones((1, nT)))
-        dchi = np.kron(np.reshape(dchi, newshape=(nC, 1)), np.ones((1, nT)))
-        tau1 = np.kron(np.reshape(tau1, newshape=(nC, 1)), np.ones((1, nT)))
-        tau2 = np.kron(np.reshape(tau2, newshape=(nC, 1)), np.ones((1, nT)))
+        chi0 = np.kron(np.reshape(chi0, shape=(nC, 1)), np.ones((1, nT)))
+        dchi = np.kron(np.reshape(dchi, shape=(nC, 1)), np.ones((1, nT)))
+        tau1 = np.kron(np.reshape(tau1, shape=(nC, 1)), np.ones((1, nT)))
+        tau2 = np.kron(np.reshape(tau2, shape=(nC, 1)), np.ones((1, nT)))
 
         if fieldType == "h":
             eta = 0.5 * (1 - np.sign(times - t0)) * chi0 + 0.5 * (
@@ -276,10 +276,10 @@ class SquarePulse(StepOff):
         delt = self.delt
 
         times = np.kron(np.ones((nC, 1)), times)
-        chi0 = np.kron(np.reshape(chi0, newshape=(nC, 1)), np.ones((1, nT)))
-        dchi = np.kron(np.reshape(dchi, newshape=(nC, 1)), np.ones((1, nT)))
-        tau1 = np.kron(np.reshape(tau1, newshape=(nC, 1)), np.ones((1, nT)))
-        tau2 = np.kron(np.reshape(tau2, newshape=(nC, 1)), np.ones((1, nT)))
+        chi0 = np.kron(np.reshape(chi0, shape=(nC, 1)), np.ones((1, nT)))
+        dchi = np.kron(np.reshape(dchi, shape=(nC, 1)), np.ones((1, nT)))
+        tau1 = np.kron(np.reshape(tau1, shape=(nC, 1)), np.ones((1, nT)))
+        tau2 = np.kron(np.reshape(tau2, shape=(nC, 1)), np.ones((1, nT)))
 
         if fieldType == "h":
             eta = (np.sign(times - t0 + delt) - np.sign(times - t0)) * (

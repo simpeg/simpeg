@@ -321,7 +321,7 @@ beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=2)
 update_Jacobi = directives.UpdatePreconditioner()
 
 # Options for outputting recovered models and predicted data for each beta.
-save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
+save_iteration = directives.SaveOutputEveryIteration(on_disk=False)
 
 
 update_IRLS = directives.UpdateIRLS(

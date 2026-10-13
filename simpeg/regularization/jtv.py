@@ -3,7 +3,6 @@ import scipy.sparse as sp
 
 from .base import BaseSimilarityMeasure
 
-
 ###############################################################################
 #                                                                             #
 #                            Joint Total Variation                            #

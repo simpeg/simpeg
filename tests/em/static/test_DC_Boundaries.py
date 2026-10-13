@@ -5,7 +5,6 @@ from discretize.utils import example_simplex_mesh
 
 import simpeg.electromagnetics.static.resistivity as dc
 
-
 tens_2d = discretize.TensorMesh([8, 9])
 tens_3d = discretize.TensorMesh([8, 9, 10])
 tree_2d = discretize.TreeMesh([16, 16])

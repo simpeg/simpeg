@@ -3,7 +3,6 @@ from discretize.utils import mkvc
 import warnings
 from ..code_utils import validate_string, validate_type
 
-
 ########################################################################################
 #                  DIRECT CURRENT RESISTIVITY AND INDUCED POLARIZATION
 ########################################################################################

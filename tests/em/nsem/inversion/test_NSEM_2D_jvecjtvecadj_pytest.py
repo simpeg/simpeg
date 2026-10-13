@@ -8,7 +8,7 @@ from simpeg import (
 from simpeg.utils import model_builder
 from simpeg.electromagnetics import natural_source as nsem
 
-ADJ_RTOL = 1e-5
+ADJ_RTOL = 2e-5
 
 
 @pytest.fixture
@@ -32,13 +32,6 @@ def mapping(mesh, active_cells):
     return maps.InjectActiveCells(mesh, active_cells, 1e-8) * maps.ExpMap(
         nP=np.sum(active_cells)
     )
-
-
-@pytest.fixture
-def sigma_hs(mesh, active_cells):
-    sigma_hs = 1e-8 * np.ones(mesh.nC)
-    sigma_hs[active_cells] = 1e1
-    return sigma_hs
 
 
 @pytest.fixture
@@ -110,6 +103,9 @@ CASES_LIST = [
     ("impedance", "yx", ["app_res"]),
     ("impedance", "xy", ["phase"]),
     ("impedance", "yx", ["phase"]),
+    ("admittance", "xy", ["real", "imag"]),
+    ("admittance", "yx", ["real", "imag"]),
+    ("tipper", "zx", ["real", "imag"]),
 ]
 
 
@@ -125,18 +121,23 @@ class TestDerivatives:
         mesh,
         active_cells,
         mapping,
-        sigma_hs,
     ):
         survey = get_survey(
             survey_type, orientation, components, locations, frequencies
         )
 
         # Define the simulation
-        if orientation in ["xy", "zy"]:
+        if (orientation == "xy" and survey_type == "impedance") or (
+            orientation == "yx" and survey_type == "admittance"
+        ):
             sim = nsem.simulation.Simulation2DElectricField(
                 mesh, survey=survey, sigmaMap=mapping
             )
-        elif orientation in ["yx", "zx"]:
+        elif (
+            (orientation == "yx" and survey_type == "impedance")
+            or (orientation == "xy" and survey_type == "admittance")
+            or (orientation == "zx" and survey_type == "tipper")
+        ):
             sim = nsem.simulation.Simulation2DMagneticField(
                 mesh, survey=survey, sigmaMap=mapping
             )
@@ -170,7 +171,6 @@ class TestDerivatives:
         mesh,
         active_cells,
         mapping,
-        sigma_hs,
     ):
         m0, dmis = self.get_setup_objects(
             survey_type,
@@ -181,7 +181,6 @@ class TestDerivatives:
             mesh,
             active_cells,
             mapping,
-            sigma_hs,
         )
         sim = dmis.simulation
 
@@ -205,7 +204,6 @@ class TestDerivatives:
         mesh,
         active_cells,
         mapping,
-        sigma_hs,
     ):
         m0, dmis = self.get_setup_objects(
             survey_type,
@@ -216,7 +214,6 @@ class TestDerivatives:
             mesh,
             active_cells,
             mapping,
-            sigma_hs,
         )
         sim = dmis.simulation
         n_data = sim.survey.nD

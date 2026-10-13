@@ -170,7 +170,7 @@ data_object = data.Data(survey, dobs=dobs, standard_deviation=uncertainties)
 inv_thicknesses = np.logspace(0, 1.5, 25)
 
 # Define a mesh for plotting and regularization.
-mesh = TensorMesh([(np.r_[inv_thicknesses, inv_thicknesses[-1]])], "0")
+mesh = TensorMesh([np.r_[inv_thicknesses, inv_thicknesses[-1]]], "0")
 
 
 ########################################################
@@ -256,7 +256,7 @@ starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e2)
 update_Jacobi = directives.UpdatePreconditioner()
 
 # Options for outputting recovered models and predicted data for each beta.
-save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
+save_iteration = directives.SaveOutputEveryIteration(on_disk=False)
 
 # Directives for the IRLS
 update_IRLS = directives.UpdateIRLS(max_irls_iterations=30, irls_cooling_factor=1.5)

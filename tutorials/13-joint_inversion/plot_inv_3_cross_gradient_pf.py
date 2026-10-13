@@ -371,7 +371,7 @@ starting_beta = directives.PairedBetaEstimate_ByEig(beta0_ratio=1e0)
 beta_schedule = directives.PairedBetaSchedule(cooling_factor=5, cooling_rate=1)
 
 # Options for outputting recovered models and predicted data for each beta.
-save_iteration = directives.SimilarityMeasureSaveOutputEveryIteration(save_txt=False)
+save_iteration = directives.SimilarityMeasureSaveOutputEveryIteration(on_disk=False)
 
 joint_inv_dir = directives.SimilarityMeasureInversionDirective()
 
