@@ -28,15 +28,17 @@ def columns_dot_vector(columns: Iterable[npt.NDArray], vector: npt.NDArray):
 
     Parameters
     ----------
-    columns : iterable of (n,) or (n, m) array
+    columns : iterable of (m,) or (m, p) array
         A collection of the column vectors that form the matrix. They can either be
         1D arrays (a single column each) or 2D arrays (a column block of the matrix).
-    vector : (n,) array
+        The collection should contain a total number of *matrix columns* equal to the
+        size of the expected ``result`` vector (``n``).
+    vector : (m,) array
         Vector that will be used in the dot product.
 
     Returns
     -------
-    result : (size,) vector
+    result : (n,) vector
         Resulting vector.
     """
     empty = True  # flag used to check if the iterable is empty
