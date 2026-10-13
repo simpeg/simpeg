@@ -8,7 +8,6 @@ from simpeg.utils import mkvc, model_builder, get_default_solver
 from simpeg.electromagnetics import natural_source as nsem
 
 ADJ_RTOL = 1e-8
-ADJ_ATOL = 1e-11
 
 
 @pytest.fixture
