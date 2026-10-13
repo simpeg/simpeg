@@ -356,7 +356,7 @@ class IdentityMap:
 
 def _shapes_compatible(shape_a, shape_b):
     r"""Check whether two mapping shapes agree, treating ``'*'`` as a wildcard."""
-    return all(x == "*" or y == "*" or x == y for x, y in zip(shape_a, shape_b))
+    return all(x == "*" or y == "*" or x == y for x, y in zip(shape_a, shape_b, strict=True))
 
 
 def _resolve_combo_shape(maps):
