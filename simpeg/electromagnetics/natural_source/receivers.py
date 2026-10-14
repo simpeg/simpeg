@@ -2303,7 +2303,7 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
 
     .. warning:: Breaking change
 
-        From SimPEG v0.25.3 onward, a new set of formulae have been adopted to
+        From SimPEG v0.26.0 onward, a new set of formulae have been adopted to
         compute apparent conductivities. These more accurately reflect how apparent
         conductivities can be computed from NSEM fields.
 
