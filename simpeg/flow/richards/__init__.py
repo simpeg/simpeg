@@ -28,8 +28,8 @@ Empirical utilities
   :toctree: generated/
 
   empirical.NonLinearModel
-  empirical.BaseWaterRetention
-  empirical.BaseHydraulicConductivity
+  empirical.WaterRetention
+  empirical.HydraulicConductivity
   empirical.Haverkamp_theta
   empirical.Haverkamp_k
   empirical.haverkamp

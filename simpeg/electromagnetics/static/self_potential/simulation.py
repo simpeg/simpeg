@@ -46,7 +46,7 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
     q, qMap, qDeriv = props.Invertible("Charge density accumulation rate (C/(s m^3))")
 
     def __init__(
-        self, mesh, survey=None, sigma=None, rho=None, q=None, qMap=None, **kwargs
+        self, mesh, survey=None, *, sigma=None, rho=None, q=None, qMap=None, **kwargs
     ):
         # These below checks can be commented out, correspondingly do
         # not set sigmaMap and rhoMap to None on the super call, to enable

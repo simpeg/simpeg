@@ -47,7 +47,6 @@ def run(plotIt=True):
     M.set_cell_gradient_BC("dirichlet")
     # We will use the haverkamp empirical model with parameters from Celia1990
     k_fun, theta_fun = richards.empirical.haverkamp(
-        M,
         A=1.1750e06,
         gamma=4.74,
         alpha=1.6110e06,
