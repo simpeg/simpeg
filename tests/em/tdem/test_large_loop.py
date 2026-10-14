@@ -192,8 +192,8 @@ def test_large_loop_trapezoid(simulation_type):
     driven by the source term during the on-time.
     """
 
-    # The mesh is designed for a 50 m half-width loop, with cell centers at
-    # +/-40 m. The HJ source term moves the loop to the nearest cell centers,
+    # The mesh has cell centers at +/-40 m.
+    # The HJ source term moves the loop to the nearest cell centers,
     # so use a 40 m half-width at z = 10 m (also on cell centers) so the 3D
     # and 1D simulations model the same loop.
     tx_halfwidth = 40
