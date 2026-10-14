@@ -427,7 +427,7 @@ class InjectActiveFaces(IdentityMap):
         -------
         numpy.ndarray
         """
-        return self._vale_inactive
+        return self._value_inactive
 
     @value_inactive.setter
     def value_inactive(self, value):
