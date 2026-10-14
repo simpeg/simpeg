@@ -85,8 +85,6 @@ mesh = mesh_builder_xyz(
     xyzLoc, h, padding_distance=padDist, depth_core=100, mesh_type="tree"
 )
 mesh.refine_surface(topo, level=-1, padding_cells_by_level=[3, 3], finalize=True)
-print(mesh)
-breakpoint()
 
 
 # Define an active cells from topo
