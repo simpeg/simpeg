@@ -195,8 +195,8 @@ def test_line_through_faces_direction():
     edges_cc = mesh.average_edge_to_cell_vector @ edges
     on_path = faces_cc != 0
     assert on_path.sum() > 0
-    np.testing.assert_array_equal(
-        np.sign(faces_cc[on_path]), np.sign(edges_cc[on_path])
+    np.testing.assert_equal(
+        np.sign(faces_cc[on_path]), np.sign(edges_cc[on_path]), strict=True
     )
 
 
