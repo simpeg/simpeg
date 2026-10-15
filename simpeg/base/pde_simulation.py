@@ -988,24 +988,24 @@ class BaseHierarchicalElectricalSimulation(
     operations with the heirarchical operators.
     """
 
-    _clean_on_h_prop_update = ["__MeSigmaHeirarchical", "__MeSigmaHeirarchicalI"]
+    _clean_on_h_prop_update = ["_MeSigmaHeirarchical", "_MeSigmaHeirarchicalI"]
 
     @property
     def MeSigma(self):
         """Get conductivity inner-produce matrix."""
-        if getattr(self, "__MeSigmaHeirarchical", None) is None:
+        if getattr(self, "_MeSigmaHeirarchical", None) is None:
             M_prop = super().MeSigma
             if self.face_conductance is not None:
                 M_prop += self._Me_face_conductance
             if self.edge_area_conductance is not None:
                 M_prop += self._Me_edge_area_conductance
-            setattr(self, "__MeSigmaHeirarchical", M_prop)
-        return getattr(self, "__MeSigmaHeirarchical")
+            self._MeSigmaHeirarchical = M_prop
+        return self._MeSigmaHeirarchical
 
     @property
     def MeSigmaI(self):
         """Get inverse of conductivity inner-produce matrix."""
-        if getattr(self, "__MeSigmaHeirarchicalI", None) is None:
+        if getattr(self, "_MeSigmaHeirarchicalI", None) is None:
             if isinstance(self.mesh, discretize.base.BaseRegularMesh):
                 M_prop = sdinv(self.MeSigma)
             else:
@@ -1013,8 +1013,8 @@ class BaseHierarchicalElectricalSimulation(
                     f"Inverse of physical property matrix 'MeSigma' "
                     f"not supported for {type(self.mesh)} meshes."
                 )
-            setattr(self, "__MeSigmaHeirarchicalI", M_prop)
-        return getattr(self, "__MeSigmaHeirarchicalI")
+            self._MeSigmaHeirarchicalI
+        return self._MeSigmaHeirarchicalI
 
     def MeSigmaDeriv(self, u, v=None, adjoint=False):
         """Compute derivative operation for conductivity inner-produce matrix."""
