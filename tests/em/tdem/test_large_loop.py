@@ -194,10 +194,10 @@ def test_large_loop_trapezoid(simulation_type):
 
     # The mesh has cell centers at +/-40 m.
     # The HJ source term moves the loop to the nearest cell centers,
-    # so use a 40 m half-width at z = 10 m (also on cell centers) so the 3D
+    # so use a 40 m half-width at z = 15 m (also on cell centers) so the 3D
     # and 1D simulations model the same loop.
     tx_halfwidth = 40
-    tx_z = 10
+    tx_z = 15
 
     off_time = 5e-4
     waveform = tdem.sources.TrapezoidWaveform(
