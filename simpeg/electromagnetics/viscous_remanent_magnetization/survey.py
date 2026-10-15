@@ -5,7 +5,6 @@ from ...survey import BaseSurvey
 from .sources import BaseSrcVRM
 from ...utils import validate_list_of_types, validate_ndarray_with_shape
 
-
 ############################################
 # BASE VRM SURVEY CLASS
 ############################################

@@ -4,7 +4,6 @@ from simpeg.electromagnetics import natural_source as nsem
 from simpeg import maps
 import unittest
 
-
 TOL_SIGMA = 0.2  # 20% (These are very loose tests)
 TOL_PHASE = 5  # 3 degrees
 

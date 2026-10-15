@@ -6,7 +6,7 @@ import pytest
 import scipy.sparse as sp
 
 from simpeg import maps, models, utils
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
+from discretize.utils import mesh_builder_xyz, active_from_xyz
 import inspect
 
 from simpeg.maps._parametric import (
@@ -508,14 +508,11 @@ class MapTests(unittest.TestCase):
             local_mesh = mesh_builder_xyz(
                 rxLocs, h, padding_distance=padDist, mesh_type="tree"
             )
-            local_mesh = refine_tree_xyz(
-                local_mesh,
-                rxLocs[ii, :].reshape((1, -1)),
-                method="radial",
-                octree_levels=[1],
+            local_mesh.refine_points(
+                points=rxLocs[ii, :].reshape((1, -1)),
+                padding_cells_by_level=[1],
                 finalize=True,
             )
-
             local_meshes.append(local_mesh)
 
         mesh = mesh_builder_xyz(rxLocs, h, padding_distance=padDist, mesh_type="tree")
@@ -547,6 +544,38 @@ class MapTests(unittest.TestCase):
             ).sum()
 
             self.assertTrue((local_mass - total_mass) / total_mass < 1e-8)
+
+    def test_Tile_finer_local(self):
+        """
+        TileMap should volume-average correctly even when the local mesh is
+        finer than the global mesh in part of the domain. The center-assignment
+        approach used previously left holes (cells dropped from local_active)
+        and scaled the surviving cells by the global/local volume ratio.
+        """
+        hx = np.ones(4)
+        global_mesh = discretize.TreeMesh([hx, hx], diagonal_balance=False)
+        global_mesh.refine(1, diagonal_balance=False)
+        local_mesh = discretize.TreeMesh([hx, hx], diagonal_balance=False)
+        local_mesh.refine(2, diagonal_balance=False)  # finer than the global mesh
+
+        active = np.ones(global_mesh.nC, dtype=bool)
+        tile_map = maps.TileMap(global_mesh, active, local_mesh)
+
+        # no holes: every local cell overlapping the (fully active) global mesh
+        # must remain active
+        self.assertEqual(tile_map.local_active.sum(), local_mesh.nC)
+
+        # a constant model must map to the same constant (no scaling blowup)
+        out = tile_map * np.ones(global_mesh.nC)
+        np.testing.assert_allclose(out, 1.0)
+
+        # mass is conserved
+        model = np.random.randn(int(active.sum()))
+        total_mass = (model * global_mesh.cell_volumes[active]).sum()
+        local_mass = (
+            (tile_map * model) * local_mesh.cell_volumes[tile_map.local_active]
+        ).sum()
+        self.assertAlmostEqual((local_mass - total_mass) / total_mass, 0.0, places=8)
 
     def test_logit_errors(self):
         nP = 10

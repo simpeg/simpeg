@@ -3,7 +3,6 @@ from simpeg.electromagnetics import natural_source as nsem
 from simpeg import discretize
 import numpy as np
 
-
 TOL = 1e-6
 
 

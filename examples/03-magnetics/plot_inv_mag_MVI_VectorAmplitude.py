@@ -24,11 +24,10 @@ from simpeg import (
 from simpeg import utils
 from simpeg.utils import mkvc, sdiag
 
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
+from discretize.utils import mesh_builder_xyz, active_from_xyz
 from simpeg.potential_fields import magnetics
 import numpy as np
 import matplotlib.pyplot as plt
-
 
 # sphinx_gallery_thumbnail_number = 3
 
@@ -85,9 +84,7 @@ padDist = np.ones((3, 2)) * 100
 mesh = mesh_builder_xyz(
     xyzLoc, h, padding_distance=padDist, depth_core=100, mesh_type="tree"
 )
-mesh = refine_tree_xyz(
-    mesh, topo, method="surface", octree_levels=[2, 6], finalize=True
-)
+mesh.refine_surface(topo, level=-1, padding_cells_by_level=[3, 3], finalize=True)
 
 
 # Define an active cells from topo
@@ -241,7 +238,6 @@ for ii, (title, mvec) in enumerate(
 
 plt.show()
 
-print("END")
 # Plot the final predicted data and the residual
 # plt.figure()
 # ax = plt.subplot(1, 2, 1)

@@ -133,7 +133,7 @@ def get_survey(
                     nsem.receivers.ApparentConductivity(
                         locations_h=locations,
                         locations_e=np.zeros_like(locations),
-                        component=components[0],
+                        formula=components[0],
                     )
                 ]
             )
@@ -253,6 +253,7 @@ class TestDerivatives:
         active_cells,
         mapping,
     ):
+        """Get test objections."""
         survey = get_survey(
             simulation_type,
             survey_type,
@@ -320,6 +321,7 @@ class TestDerivatives:
         active_cells,
         mapping,
     ):
+        """Test data misfit."""
         m0, dmis = self.get_setup_objects(
             simulation_type,
             survey_type,
@@ -355,6 +357,7 @@ class TestDerivatives:
         active_cells,
         mapping,
     ):
+        """Perform adjoint test."""
         m0, dmis = self.get_setup_objects(
             simulation_type,
             survey_type,

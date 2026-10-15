@@ -131,7 +131,7 @@ def get_survey(
                 nsem.receivers.ApparentConductivity(
                     locations_h=locations,
                     locations_e=locations,
-                    component=component,
+                    formula=component,
                 )
             ]
 
@@ -384,7 +384,6 @@ def test_apparent_conductivity_crosscheck(
     )
 
     dpred_1 = sim_1.dpred(model_block)
-
     alpha = 2 * np.pi * np.kron(frequencies, np.ones(len(locations))) * mu_0
     dpred_2 = alpha * sim_2.dpred(model_block)
 

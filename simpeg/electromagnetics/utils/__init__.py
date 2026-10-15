@@ -16,7 +16,6 @@ Current Utilities
   getStraightLineCurrentIntegral
   segmented_line_current_source_term
   line_through_faces
-  getSourceTermLineCurrentPolygon
 
 Waveform Utilities
 ==================

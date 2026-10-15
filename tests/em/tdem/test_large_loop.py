@@ -8,7 +8,6 @@ from simpeg import maps
 # solver
 from simpeg.utils.solver_utils import get_default_solver
 
-
 Solver = get_default_solver()
 
 # conductivity values

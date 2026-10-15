@@ -8,7 +8,7 @@ import numpy as np
 import scipy.sparse as sp
 from scipy.sparse import csr_matrix as csr
 from discretize.tests import check_derivative
-from discretize.utils import Zero, Identity, mkvc, speye, sdiag
+from discretize.utils import Zero, Identity, mkvc, volume_average
 import uuid
 
 from ..utils import (
@@ -1292,31 +1292,22 @@ class TileMap(IdentityMap):
         Set the projection matrix with partial volumes
         """
         if getattr(self, "_P", None) is None:
-            in_local = self.local_mesh.get_containing_cells(
-                self.global_mesh.cell_centers
-            )
+            # Volume-averaging operator mapping the global mesh onto the local
+            # mesh. This weights by the true partial overlap volume of each
+            # pair of cells, so it is correct regardless of which mesh is finer
+            # in a given region (the center-assignment approach used previously
+            # broke down wherever the local mesh was finer than the global one).
+            vol_avg = volume_average(self.global_mesh, self.local_mesh)
 
-            P = (
-                sp.csr_matrix(
-                    (
-                        self.global_mesh.cell_volumes,
-                        (in_local, np.arange(self.global_mesh.nC)),
-                    ),
-                    shape=(self.local_mesh.nC, self.global_mesh.nC),
-                )
-                * speye(self.global_mesh.nC)[:, self.global_active]
-            )
+            # keep only the active cells of the global model
+            P = vol_avg[:, self.global_active]
 
-            self._local_active = mkvc(np.sum(P, axis=1) > 0)
+            # local cells that receive a contribution from active global cells
+            self._local_active = mkvc(np.asarray(P.sum(axis=1)).ravel() > self.tol)
 
             P = P[self.local_active, :]
 
-            self._P = sp.block_diag(
-                [
-                    sdiag(1.0 / self.local_mesh.cell_volumes[self.local_active]) * P
-                    for ii in range(self.components)
-                ]
-            )
+            self._P = sp.block_diag([P for _ in range(self.components)])
 
         return self._P
 

@@ -15,7 +15,6 @@ from .utils.source_utils import (
 import discretize
 from discretize.utils import volume_average, sdiag
 
-
 #################
 #    Sources    #
 #################
