@@ -1013,7 +1013,7 @@ class BaseHierarchicalElectricalSimulation(
                     f"Inverse of physical property matrix 'MeSigma' "
                     f"not supported for {type(self.mesh)} meshes."
                 )
-            self._MeSigmaHeirarchicalI
+            self._MeSigmaHeirarchicalI = M_prop
         return self._MeSigmaHeirarchicalI
 
     def MeSigmaDeriv(self, u, v=None, adjoint=False):
