@@ -229,4 +229,32 @@ def test_large_loop_trapezoid(simulation_type):
     )
     dpred1d = simulation_1D.dpred(sigma_back)
 
+    # # plot the data, difference and percent difference
+    # import matplotlib.pyplot as plt
+    #
+    # times = rx_times - off_time
+    # n_times = len(times)
+    # fig, ax = plt.subplots(2, 3, figsize=(13, 7), constrained_layout=True)
+    # for i, name in enumerate(["b", "db/dt"]):
+    #     numeric = dpred_numeric[i * n_times : (i + 1) * n_times]
+    #     analytic = dpred1d[i * n_times : (i + 1) * n_times]
+    #     difference = np.abs(numeric - analytic)
+    #     ax[i, 0].loglog(times, np.abs(numeric), "o-", label=f"3D {simulation_type}")
+    #     ax[i, 0].loglog(times, np.abs(analytic), "k--", label="1D")
+    #     ax[i, 1].loglog(times, difference, "o-")
+    #     ax[i, 2].loglog(times, 100 * difference / np.abs(analytic), "o-")
+    #     ax[i, 2].axhline(100 * REL_TOL, color="k", ls=":", label="tolerance")
+    #     ax[i, 0].set_ylabel(f"|{name}|")
+    #     ax[i, 1].set_ylabel(f"|{name} 3D - {name} 1D|")
+    #     ax[i, 2].set_ylabel("difference (%)")
+    # for a in ax[0]:
+    #     a.set_title(f"{simulation_type}, trapezoid waveform")
+    # for a in ax[1]:
+    #     a.set_xlabel("time after shut-off (s)")
+    # for a in ax.flatten():
+    #     a.grid(which="both", alpha=0.3)
+    # ax[0, 0].legend()
+    # ax[0, 2].legend()
+    # plt.show()
+
     np.testing.assert_allclose(dpred_numeric, dpred1d, rtol=REL_TOL)
