@@ -7,6 +7,7 @@ from simpeg.base import (
     with_surface_property_mass_matrices,
     with_line_property_mass_matrices,
     BasePDESimulation,
+    BaseHierarchicalElectricalSimulation,
 )
 from simpeg import props, maps
 from simpeg.utils import PerformanceWarning
@@ -1551,3 +1552,18 @@ def test_bad_mesh():
     with pytest.raises(TypeError):
         # should error on anything besides a discretize.base.BaseMesh
         BasePDESimulation(np.array([1, 2, 3]))
+
+def test_unstructured_mesh():
+    """Test unstructured mesh in heierarchical simulations."""
+    np.random.default_rng(49)
+    mesh = discretize.SimplexMesh(np.random.normal(size=(4, 3)), np.c_[0, 1, 2, 3])
+    sim = BaseHierarchicalElectricalSimulation(
+        mesh=mesh,
+        survey=None,
+        sigma=np.ones(mesh.n_cells),
+        face_conductance=np.ones(mesh.n_faces),
+        edge_area_conductance=np.ones(mesh.n_edges),
+    )
+    with pytest.raises(TypeError):
+        # should error on anything besides a discretize.base.BaseRegularMesh
+        sim.MeSigmaI

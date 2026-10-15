@@ -479,7 +479,6 @@ def with_surface_property_mass_matrices(property_name):
 
         def Me_prop_deriv(self, u, v=None, adjoint=False):
             """Get derivative of `MeProperty` with respect to the model."""
-            # if getattr(self, f"{arg.lower()}Map") is None:
             if getattr(self, f"{property_name.lower()}_map") is None:
                 return Zero()
             if isinstance(u, Zero) or isinstance(v, Zero):
@@ -913,6 +912,7 @@ class BaseElectricalEdgePropertyPDESimulation(BaseElectricalPDESimulation):
     def __init__(
         self,
         mesh,
+        *,
         edge_area_conductance=None,
         edge_area_conductance_map=None,
         **kwargs,
@@ -953,6 +953,7 @@ class BaseElectricalFacePropertyPDESimulation(BaseElectricalPDESimulation):
     def __init__(  # noqa D107
         self,
         mesh,
+        *,
         face_conductance=None,
         face_conductance_map=None,
         **kwargs,
@@ -998,19 +999,22 @@ class BaseHierarchicalElectricalSimulation(
                 M_prop += self._Me_face_conductance
             if self.edge_area_conductance is not None:
                 M_prop += self._Me_edge_area_conductance
-            self.__MeSigmaHeirarchical = M_prop
-        return self.__MeSigmaHeirarchical
+            setattr(self, "__MeSigmaHeirarchical", M_prop)
+        return getattr(self, "__MeSigmaHeirarchical")
 
     @property
     def MeSigmaI(self):
         """Get inverse of conductivity inner-produce matrix."""
         if getattr(self, "__MeSigmaHeirarchicalI", None) is None:
-            # This operation will "work" on unstructured meshes and anisotropic properties,
-            # but it won't be correct as it assumes the matrix is diagonal. Should throw an
-            # error higher up though.
-            M_prop = sdinv(self.MeSigma)
-            self.__MeSigmaHeirarchicalI = M_prop
-        return self.__MeSigmaHeirarchicalI
+            if isinstance(self.mesh, discretize.base.BaseRegularMesh):
+                M_prop = sdinv(self.MeSigma)
+            else:
+                raise TypeError(
+                    f"Inverse of physical property matrix 'MeSigma' "
+                    f"not supported for {type(self.mesh)} meshes."
+                )
+            setattr(self, "__MeSigmaHeirarchicalI", M_prop)
+        return getattr(self, "__MeSigmaHeirarchicalI")
 
     def MeSigmaDeriv(self, u, v=None, adjoint=False):
         """Compute derivative operation for conductivity inner-produce matrix."""
