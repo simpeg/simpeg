@@ -1553,6 +1553,7 @@ def test_bad_mesh():
         # should error on anything besides a discretize.base.BaseMesh
         BasePDESimulation(np.array([1, 2, 3]))
 
+
 def test_unstructured_mesh():
     """Test unstructured mesh in heierarchical simulations."""
     np.random.default_rng(49)
