@@ -40,6 +40,7 @@ For details on the available classes and functions in SimPEG, please visit the
   contributing/documentation.rst
   contributing/testing.rst
   contributing/pull-requests.rst
+  contributing/deprecations.rst
   contributing/advanced.rst
 
 .. toctree::
