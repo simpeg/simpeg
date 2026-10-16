@@ -75,6 +75,8 @@ Mappings
   maps.ExpMap
   maps.IdentityMap
   maps.InjectActiveCells
+  maps.InjectActiveFaces
+  maps.InjectActiveEdges
   maps.LinearMap
   maps.LogisticSigmoidMap
   maps.LogMap
