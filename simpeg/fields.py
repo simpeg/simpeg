@@ -501,7 +501,7 @@ class TimeFields(Fields):
             pointerFields = pointerFields.reshape(pointerShape, order="F")
 
             # First try to return the function as three arguments (without timeInd)
-            if timeInd == slice(None, None, None):
+            if isinstance(timeInd, slice) and timeInd == slice(None, None, None):
                 try:
                     # assume it will take care of integrating over all times
                     return func(pointerFields, srcInd)
