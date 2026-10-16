@@ -1,10 +1,11 @@
 import numpy as np
 import scipy.sparse as sp
+from scipy.constants import mu_0
 from discretize import TensorMesh, TreeMesh
 from discretize.utils import Zero
 
 from ...base.pde_simulation import _inner_mat_mul_op
-from ...utils import mkvc
+from ...utils import mkvc, validate_string
 from ... import maps
 from ..frequency_domain.simulation import BaseFDEMSimulation, Simulation3DElectricField
 from ..frequency_domain.survey import Survey
@@ -672,22 +673,91 @@ class Simulation2DElectricField(BaseFDEMSimulation):
         return items
 
 
-class Simulation2DMagneticField(BaseFDEMSimulation):
+def _log_integral(x, a, b):
+    """Integral of ``ln|x - t|`` over ``t`` from ``a`` to ``b``, for each pair of ``x`` and interval."""
+
+    def antiderivative(u):
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return np.where(u == 0, 0.0, u * np.log(np.abs(u)) - u)
+
+    return antiderivative(b[:, None] - x[None, :]) - antiderivative(
+        a[:, None] - x[None, :]
+    )
+
+
+def _upward_continuation_ops(x, length, x_left, x_right, freq):
+    r"""Anomalous magnetic field along the top from the electric field there.
+
+    Above the top of the mesh the anomalous field decays upward, so the
+    vertical magnetic field along the top, :math:`H_z = -\partial_x E_y / (i
+    \omega \mu_0)`, and the anomalous horizontal field,
+    :math:`H_x - H_{inc}`, are a Hilbert transform pair. Beyond the sides the
+    electric field is taken as constant along the top (the 1D side columns).
+
+    Parameters
+    ----------
+    x, length : (n,) numpy.ndarray
+        Centers and lengths of the top edges, sorted by ``x``.
+    x_left, x_right : float
+        Ends of the top boundary.
+    freq : float
+        Frequency in Hz.
+
+    Returns
+    -------
+    D : (n, n) numpy.ndarray
+    d_left, d_right : (n,) numpy.ndarray
+        The anomalous magnetic field averaged over each top edge is
+        ``D @ e + d_left * e_left + d_right * e_right`` for an electric field
+        ``e`` on the top edges and ``e_left``, ``e_right`` at the two ends.
     """
-    A
+    n = len(x)
+    a, b = x - length / 2, x + length / 2
+    nodes = np.r_[x_left, x, x_right]
+    # slopes of the electric field between consecutive points
+    dx = np.diff(nodes)
+    slope = np.zeros((n + 1, n + 2))
+    slope[np.arange(n + 1), np.arange(n + 1)] = -1 / dx
+    slope[np.arange(n + 1), np.arange(1, n + 2)] = 1 / dx
+    # (1 / pi) * int over each interval of 1 / (x - t), averaged over each top edge
+    hilbert = (_log_integral(nodes[:-1], a, b) - _log_integral(nodes[1:], a, b)) / (
+        np.pi * length[:, None]
+    )
+    ops = hilbert @ (slope * (-1.0 / (1j * omega(freq) * mu_0)))
+    return ops[:, 1:-1], ops[:, 0], ops[:, -1]
+
+
+class Simulation2DMagneticField(BaseFDEMSimulation):
+    """2D natural source simulation solving for the magnetic field.
+
+    The magnetic field in the plane is on edges and the electric field along
+    strike on cell centers. The sides take their electric field from 1D
+    columns of the side cells, and the bottom has a Robin (downgoing plane
+    wave) condition.
+
+    Parameters
+    ----------
+    mesh : discretize.TensorMesh or discretize.TreeMesh
+        A 2D mesh.
+    e_bc : dict, optional
+        Tangential electric field on every boundary edge, indexed by frequency,
+        to use instead of the default boundary conditions.
+    top_boundary : {"robin", "uniform"}
+        Condition on the top of the mesh (see :attr:`top_boundary`).
     """
 
     _solutionType = "hSolution"
     _formulation = "HJ"
     fieldsPair = Fields2DMagneticField
 
-    def __init__(self, mesh, e_bc=None, **kwargs):
+    def __init__(self, mesh, e_bc=None, top_boundary="robin", **kwargs):
         if mesh.dim != 2:
             raise ValueError(
                 f"The mesh must be a 2D mesh. The provided mesh has dimension {mesh.dim}"
             )
 
         super().__init__(mesh, **kwargs)
+        self.top_boundary = top_boundary
 
         for src in self.survey.source_list:
             for rx in src.receiver_list:
@@ -786,6 +856,113 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
             self._e_bc = e_bc
         self._M_bc = mesh.boundary_edge_vector_integral
 
+    @property
+    def top_boundary(self):
+        """Boundary condition on the top of the mesh.
+
+        ``"robin"`` relates the electric field along the top to the magnetic
+        field there by upward continuation: above the mesh the anomalous field
+        decays upward, so the electric field is not fixed along the top. A unit
+        incident magnetic field drives it, and the side columns are normalized
+        to the same incident field, giving the same incident wave on every
+        boundary. This lets the top of the mesh sit close to the surface.
+
+        ``"uniform"`` sets a unit electric field along the top, with each side
+        column normalized to a unit electric field at its top. It needs the top
+        far above the surface.
+
+        Returns
+        -------
+        {"robin", "uniform"}
+        """
+        return self._top_boundary
+
+    @top_boundary.setter
+    def top_boundary(self, value):
+        self._top_boundary = validate_string(
+            "top_boundary", value, ["robin", "uniform"]
+        )
+        self._top_robin_cache = None
+
+    @property
+    def _uses_top_robin(self):
+        return self._e_bc is None and self.top_boundary == "robin"
+
+    def _top_robin_ops(self, freq):
+        """Top edges and the top robin operators.
+
+        Along the top, ``H_x - 1 = D e + d_left e_left + d_right e_right`` (see
+        :func:`_upward_continuation_ops`). Taking out the mean of the corner
+        values, ``e = (e_left + e_right) / 2 + D^-1 (P_top h - 1 - s)`` with
+        ``s = (d_left - d_right) (e_left - e_right) / 2``. The boundary integral
+        of ``D^-1`` is symmetrized: the continuous operator (a logarithmic
+        convolution) is symmetric, and the system matrix must be symmetric for
+        the adjoint solves to reuse the forward factorization. Taking out the
+        mean first keeps a laterally uniform model exact.
+
+        Returns
+        -------
+        cache : dict
+        (B, b_0, u_left, u_right)
+            ``B`` is the symmetrized ``M_top D^-1`` on the top edges, and the
+            right hand side from the top is ``b_0 + u_left e_left + u_right
+            e_right``.
+        """
+        if getattr(self, "_top_robin_cache", None) is None:
+            mesh = self.mesh
+            top = np.asarray(self._b_inds[3]).ravel()
+            top = top[np.argsort(mesh.boundary_edges[top, 0])]
+            P_top = mesh.project_edge_to_boundary_edge.tocsr()[top]
+            self._top_robin_cache = {
+                "top": top,
+                "P_top": P_top,
+                "M_top": self._M_bc[:, top].tocsr(),
+                "x": mesh.boundary_edges[top, 0],
+                "length": mesh.edge_lengths[P_top.indices],
+                "ops": {},
+            }
+        cache = self._top_robin_cache
+        if freq not in cache["ops"]:
+            D, d_left, d_right = _upward_continuation_ops(
+                cache["x"],
+                cache["length"],
+                self.mesh.nodes_x[0],
+                self.mesh.nodes_x[-1],
+                freq,
+            )
+            P_top, M_top = cache["P_top"], cache["M_top"]
+            # M_top D^-1 on the top edges, with M_top diagonal there
+            B = (P_top @ M_top).diagonal()[:, None] * np.linalg.inv(D)
+            B = 0.5 * (B + B.T)
+            mean_part = -0.5 * (M_top @ np.ones(M_top.shape[1]))
+            step_part = 0.5 * (P_top.T @ (B @ (d_left - d_right)))
+            cache["ops"][freq] = (
+                B,
+                P_top.T @ (B @ np.ones(len(d_left))),
+                mean_part + step_part,
+                mean_part - step_part,
+            )
+        return cache, cache["ops"][freq]
+
+    def _side_columns(self, freq):
+        """Electric field of the side columns, and the scaling of each.
+
+        Returns, for the left and right columns, the electric field on the side
+        edges, the electric field at the column top, and the incident magnetic
+        field the column was normalized to.
+        """
+        src = self._sim_left.survey.get_sources_by_frequency(freq)[0]
+        out = []
+        for f in self.boundary_fields():
+            e = f[src, "e"][:, 0]
+            if self._uses_top_robin:
+                # the 1D simulation's h is -H_x of the 2D simulation
+                h_top = -f[src, "h"][-1, 0]
+                out.append((e / h_top, 1 / h_top, h_top))
+            else:
+                out.append((e, 1.0, 1.0))
+        return out
+
     def getA(self, freq):
         r"""
         System matrix
@@ -803,6 +980,11 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
         A = C.T.tocsr() @ Mcc_rho @ C + 1j * omega(freq) * Me_mu
         if self._e_bc is None:
             A = A + self._bottom_robin_matrix(freq)
+        if self._uses_top_robin:
+            # the electric field along the top is D^-1 (P_top h - ...) (see getRHS)
+            cache, (B, _, _, _) = self._top_robin_ops(freq)
+            P_top = cache["P_top"]
+            A = A + P_top.T @ sp.csr_matrix(B) @ P_top
         return A
 
     def _bottom_robin_values(self):
@@ -831,18 +1013,20 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
         Right hand side constructed using Dirichlet boundary conditions
         """
         M_bc = self._M_bc
-        if self._e_bc is None:
-            # left and right have the same 1D survey
-            src = self._sim_left.survey.get_sources_by_frequency(freq)[0]
-            f_left, f_right = self.boundary_fields()
-            e_bc = np.zeros(M_bc.shape[1], dtype=complex)
-            left, right, bot, top = self._b_inds
+        if self._e_bc is not None:
+            return -M_bc @ self._e_bc[freq]
+        (e_left, top_left, _), (e_right, top_right, _) = self._side_columns(freq)
+        e_bc = np.zeros(M_bc.shape[1], dtype=complex)
+        left, right, bot, top = self._b_inds
+        e_bc[left] = e_left
+        e_bc[right] = e_right
+        if not self._uses_top_robin:
             e_bc[top] = 1.0
-            e_bc[left] = f_left[src, "e"][:, 0]
-            e_bc[right] = f_right[src, "e"][:, 0]
-        else:
-            e_bc = self._e_bc[freq]
-        return -M_bc @ e_bc
+            return -M_bc @ e_bc
+        # along the top, D e = (H_x - 1) - d_left e_left - d_right e_right for a
+        # unit incident magnetic field, and the H_x part is in the system matrix
+        _, (_, b_0, u_left, u_right) = self._top_robin_ops(freq)
+        return -M_bc @ e_bc + b_0 + u_left * top_left + u_right * top_right
 
     def getADeriv_rho(self, freq, u, v, adjoint=False):
         C = self.mesh.edge_curl
@@ -883,20 +1067,54 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
         left, right, _, __ = self._b_inds
         src_1d = self._sim_left.survey.get_sources_by_frequency(freq)[0]
 
-        # derivatives from the Jv func of the 1D sim
-        if not adjoint:
-            e_bc_dm_v = np.zeros(M_bc.shape[1], dtype=complex)
-            e_bc_dm_v[left] = f_left.field_deriv_m("e", freq, src_1d, v, adjoint=False)
-            e_bc_dm_v[right] = f_right.field_deriv_m(
-                "e", freq, src_1d, v, adjoint=False
-            )
-            return -(M_bc @ e_bc_dm_v)
-        else:
+        if not self._uses_top_robin:
+            # derivatives from the Jv func of the 1D sim
+            if not adjoint:
+                e_bc_dm_v = np.zeros(M_bc.shape[1], dtype=complex)
+                e_bc_dm_v[left] = f_left.field_deriv_m(
+                    "e", freq, src_1d, v, adjoint=False
+                )
+                e_bc_dm_v[right] = f_right.field_deriv_m(
+                    "e", freq, src_1d, v, adjoint=False
+                )
+                return -(M_bc @ e_bc_dm_v)
             v_dm = -(M_bc.T @ v)
             v_left, v_right = v_dm[left], v_dm[right]
             df_dmT = f_left.field_deriv_m("e", freq, src_1d, v_left, adjoint=True)
             df_dmT += f_right.field_deriv_m("e", freq, src_1d, v_right, adjoint=True)
             return df_dmT
+
+        # with the robin top, each column is scaled by its top magnetic field H,
+        # e -> e / H and its top electric field 1 / H, with H = -h[-1] of the 1D
+        # field, and the top contributes u_left / H_left + u_right / H_right
+        _, (_, _, u_left, u_right) = self._top_robin_ops(freq)
+        columns = self._side_columns(freq)
+        sides = ((f_left, left, u_left), (f_right, right, u_right))
+        if not adjoint:
+            e_bc_dm_v = np.zeros(M_bc.shape[1], dtype=complex)
+            d_top = np.zeros(M_bc.shape[0], dtype=complex)
+            for (f, inds, u_side), (e_s, _, h_top) in zip(sides, columns):
+                de = np.ravel(f.field_deriv_m("e", freq, src_1d, v, adjoint=False))
+                dh = -np.ravel(f.field_deriv_m("h", freq, src_1d, v, adjoint=False))[-1]
+                e_bc_dm_v[inds] = de / h_top - e_s * dh / h_top
+                d_top += u_side * (-dh / h_top**2)
+            return -(M_bc @ e_bc_dm_v) + d_top
+        v = np.ravel(v)
+        v_dm = -(M_bc.T @ v)
+        df_dmT = 0
+        for (f, inds, u_side), (e_s, _, h_top) in zip(sides, columns):
+            w = v_dm[inds]
+            # coefficient of the column's top magnetic field h[-1] (= -H)
+            c_h = np.sum(w * e_s) / h_top + (u_side @ v) / h_top**2
+            v_h = np.zeros(f[src_1d, "h"].shape[0], dtype=complex)
+            v_h[-1] = c_h
+            df_dmT = df_dmT + np.ravel(
+                f.field_deriv_m("e", freq, src_1d, w / h_top, adjoint=True)
+            )
+            df_dmT = df_dmT + np.ravel(
+                f.field_deriv_m("h", freq, src_1d, v_h, adjoint=True)
+            )
+        return df_dmT
 
     def boundary_fields(self, model=None):
         "Returns the 1D field objects at the boundaries"
