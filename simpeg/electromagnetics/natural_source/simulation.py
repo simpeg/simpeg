@@ -366,35 +366,41 @@ class Simulation1DPrimarySecondary(Simulation1DElectricField):
 ###################################
 # 2D problems
 ###################################
-def _bottom_robin_ops_2d(mesh):
-    """Operators for a Robin term on the bottom boundary edges of a 2D mesh.
+def _robin_ops_2d(mesh, sides=True):
+    """Operators for a Robin term on the bottom (and side) boundary edges of a 2D mesh.
 
     Returns
     -------
-    P : (n_bottom_edges, n_edges) scipy.sparse.csr_matrix
-        Selects the edges on the bottom boundary.
-    K : (n_bottom_edges, n_cells) scipy.sparse.csr_matrix
-        The length of each bottom edge, at the cell above it.
+    P : (n_robin_edges, n_edges) scipy.sparse.csr_matrix
+        Selects the edges on the bottom boundary, and on the two sides when
+        ``sides`` is true.
+    K : (n_robin_edges, n_cells) scipy.sparse.csr_matrix
+        The length of each of those edges, at the cell inside it.
     """
     edges = np.r_[mesh.edges_x, mesh.edges_y]
-    bottom = np.where(
-        np.isclose(edges[:, 1], mesh.nodes_y[0])
-        & (np.arange(len(edges)) < mesh.n_edges_x)
-    )[0]
-    n_bot = len(bottom)
-    P = sp.csr_matrix(
-        (np.ones(n_bot), (np.arange(n_bot), bottom)), shape=(n_bot, mesh.n_edges)
+    is_x = np.arange(len(edges)) < mesh.n_edges_x
+    selected = [np.where(np.isclose(edges[:, 1], mesh.nodes_y[0]) & is_x)[0]]
+    inward = [np.r_[0.0, 1.0]]
+    if sides:
+        for x, direction in ((mesh.nodes_x[0], 1.0), (mesh.nodes_x[-1], -1.0)):
+            selected.append(np.where(np.isclose(edges[:, 0], x) & ~is_x)[0])
+            inward.append(np.r_[direction, 0.0])
+    eps = 1e-3 * min(mesh.h[0].min(), mesh.h[1].min())
+    inside = np.vstack(
+        [edges[sel] + eps * normal for sel, normal in zip(selected, inward)]
     )
-    eps = 1e-3 * mesh.h[1].min()
-    cells = np.atleast_1d(mesh.point2index(edges[bottom] + np.r_[0.0, eps]))
+    selected = np.concatenate(selected)
+    n = len(selected)
+    P = sp.csr_matrix((np.ones(n), (np.arange(n), selected)), shape=(n, mesh.n_edges))
+    cells = np.atleast_1d(mesh.point2index(inside))
     K = sp.csr_matrix(
-        (mesh.edge_lengths[bottom], (np.arange(n_bot), cells)),
-        shape=(n_bot, mesh.n_cells),
+        (mesh.edge_lengths[selected], (np.arange(n), cells)),
+        shape=(n, mesh.n_cells),
     )
     return P, K
 
 
-def _bottom_robin_deriv_2d(ops, scale, dg_dm, u, v, adjoint):
+def _robin_deriv_2d(ops, scale, dg_dm, u, v, adjoint):
     """Model derivative of ``scale * P.T @ diag(K @ g) @ P @ u``."""
     P, K = ops
     dKg_dm = K @ dg_dm
@@ -404,21 +410,37 @@ def _bottom_robin_deriv_2d(ops, scale, dg_dm, u, v, adjoint):
 
 
 class Simulation2DElectricField(BaseFDEMSimulation):
-    """
-    A
+    """2D natural source simulation solving for the electric field.
+
+    The electric field in the plane is on edges and the magnetic field along
+    strike on cell centers. The top has a unit magnetic field (exact for this
+    mode, since the magnetic field is constant through the air), the sides take
+    their magnetic field from 1D columns of the side cells, and the bottom has
+    a Robin (downgoing plane wave) condition.
+
+    Parameters
+    ----------
+    mesh : discretize.TensorMesh or discretize.TreeMesh
+        A 2D mesh.
+    h_bc : dict, optional
+        Tangential magnetic field on every boundary edge, indexed by frequency,
+        to use instead of the default boundary conditions.
+    side_boundary : {"robin", "neumann"}
+        Condition on the sides of the mesh (see :attr:`side_boundary`).
     """
 
     _solutionType = "eSolution"
     _formulation = "EB"
     fieldsPair = Fields2DElectricField
 
-    def __init__(self, mesh, h_bc=None, **kwargs):
+    def __init__(self, mesh, h_bc=None, side_boundary="robin", **kwargs):
         if mesh.dim != 2:
             raise ValueError(
                 f"The mesh must be a 2D mesh. The provided mesh has dimension {mesh.dim}"
             )
 
         super().__init__(mesh, **kwargs)
+        self.side_boundary = side_boundary
 
         for src in self.survey.source_list:
             for rx in src.receiver_list:
@@ -517,6 +539,29 @@ class Simulation2DElectricField(BaseFDEMSimulation):
             self._h_bc = h_bc
         self._M_bc = mesh.boundary_edge_vector_integral
 
+    @property
+    def side_boundary(self):
+        """Boundary condition on the two sides of the mesh.
+
+        Both options take the tangential field along each side from a 1D
+        column of the side cells. ``"robin"`` also lets the field scattered by
+        2D structure leave through the sides, with the same outgoing plane wave
+        term as the bottom, which reduces reflections from structure near the
+        sides. ``"neumann"`` prescribes the 1D column's field on the sides.
+
+        Returns
+        -------
+        {"robin", "neumann"}
+        """
+        return self._side_boundary
+
+    @side_boundary.setter
+    def side_boundary(self, value):
+        self._side_boundary = validate_string(
+            "side_boundary", value, ["robin", "neumann"]
+        )
+        self._robin_ops_cache = None
+
     def getA(self, freq):
         r"""
         System matrix
@@ -534,29 +579,31 @@ class Simulation2DElectricField(BaseFDEMSimulation):
 
         A = C.T.tocsr() @ Mcc_mui @ C + 1j * omega(freq) * Me_sigma
         if self._h_bc is None:
-            A = A + self._bottom_robin_matrix(freq)
+            A = A + self._robin_matrix(freq)
         return A
 
-    def _bottom_robin_values(self):
+    def _robin_values(self):
         sigma = np.broadcast_to(self.sigma, (self.mesh.n_cells,))
         mui = np.broadcast_to(self.mui, (self.mesh.n_cells,))
         return sigma, mui, np.sqrt(sigma * mui)
 
-    def _bottom_robin_matrix(self, freq):
-        r"""Robin (downgoing plane wave) term on the bottom boundary edges.
+    def _robin_matrix(self, freq):
+        r"""Robin (outgoing plane wave) term on the bottom and side boundary edges.
 
-        :math:`\sqrt{i \omega \sigma / \mu}` of the bottom cells, integrated
-        along the bottom boundary.
+        :math:`\sqrt{i \omega \sigma / \mu}` of the cells inside the
+        boundary, integrated along it.
         """
-        P, K = self._bottom_robin_ops
+        P, K = self._robin_ops
         scale = np.sqrt(1j * omega(freq))
-        return scale * (P.T @ sp.diags(K @ self._bottom_robin_values()[2]) @ P)
+        return scale * (P.T @ sp.diags(K @ self._robin_values()[2]) @ P)
 
     @property
-    def _bottom_robin_ops(self):
-        if getattr(self, "_bottom_robin_ops_cache", None) is None:
-            self._bottom_robin_ops_cache = _bottom_robin_ops_2d(self.mesh)
-        return self._bottom_robin_ops_cache
+    def _robin_ops(self):
+        if getattr(self, "_robin_ops_cache", None) is None:
+            self._robin_ops_cache = _robin_ops_2d(
+                self.mesh, sides=self.side_boundary == "robin"
+            )
+        return self._robin_ops_cache
 
     def getRHS(self, freq):
         """
@@ -580,12 +627,10 @@ class Simulation2DElectricField(BaseFDEMSimulation):
         dA_v = 1j * omega(freq) * self.MeSigmaDeriv(u, v, adjoint=adjoint)
         if self._h_bc is not None or self.sigmaMap is None:
             return dA_v
-        sigma, _, g = self._bottom_robin_values()
+        sigma, _, g = self._robin_values()
         dg_dm = sp.diags(0.5 * g / sigma) @ self.sigmaDeriv
         scale = np.sqrt(1j * omega(freq))
-        return dA_v + _bottom_robin_deriv_2d(
-            self._bottom_robin_ops, scale, dg_dm, u, v, adjoint
-        )
+        return dA_v + _robin_deriv_2d(self._robin_ops, scale, dg_dm, u, v, adjoint)
 
     def getADeriv_mui(self, freq, u, v, adjoint=False):
         C = self.mesh.edge_curl
@@ -595,12 +640,10 @@ class Simulation2DElectricField(BaseFDEMSimulation):
             dA_v = C.T * self.MccMuiDeriv(C * u, v, adjoint)
         if self._h_bc is not None or self.muiMap is None:
             return dA_v
-        _, mui, g = self._bottom_robin_values()
+        _, mui, g = self._robin_values()
         dg_dm = sp.diags(0.5 * g / mui) @ self.muiDeriv
         scale = np.sqrt(1j * omega(freq))
-        return dA_v + _bottom_robin_deriv_2d(
-            self._bottom_robin_ops, scale, dg_dm, u, v, adjoint
-        )
+        return dA_v + _robin_deriv_2d(self._robin_ops, scale, dg_dm, u, v, adjoint)
 
     def getADeriv(self, freq, u, v, adjoint=False):
         return self.getADeriv_sigma(freq, u, v, adjoint) + self.getADeriv_mui(
@@ -744,13 +787,17 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
         to use instead of the default boundary conditions.
     top_boundary : {"robin", "uniform"}
         Condition on the top of the mesh (see :attr:`top_boundary`).
+    side_boundary : {"robin", "neumann"}
+        Condition on the sides of the mesh (see :attr:`side_boundary`).
     """
 
     _solutionType = "hSolution"
     _formulation = "HJ"
     fieldsPair = Fields2DMagneticField
 
-    def __init__(self, mesh, e_bc=None, top_boundary="robin", **kwargs):
+    def __init__(
+        self, mesh, e_bc=None, top_boundary="robin", side_boundary="robin", **kwargs
+    ):
         if mesh.dim != 2:
             raise ValueError(
                 f"The mesh must be a 2D mesh. The provided mesh has dimension {mesh.dim}"
@@ -758,6 +805,7 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
 
         super().__init__(mesh, **kwargs)
         self.top_boundary = top_boundary
+        self.side_boundary = side_boundary
 
         for src in self.survey.source_list:
             for rx in src.receiver_list:
@@ -855,6 +903,29 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
                     )
             self._e_bc = e_bc
         self._M_bc = mesh.boundary_edge_vector_integral
+
+    @property
+    def side_boundary(self):
+        """Boundary condition on the two sides of the mesh.
+
+        Both options take the tangential field along each side from a 1D
+        column of the side cells. ``"robin"`` also lets the field scattered by
+        2D structure leave through the sides, with the same outgoing plane wave
+        term as the bottom, which reduces reflections from structure near the
+        sides. ``"neumann"`` prescribes the 1D column's field on the sides.
+
+        Returns
+        -------
+        {"robin", "neumann"}
+        """
+        return self._side_boundary
+
+    @side_boundary.setter
+    def side_boundary(self, value):
+        self._side_boundary = validate_string(
+            "side_boundary", value, ["robin", "neumann"]
+        )
+        self._robin_ops_cache = None
 
     @property
     def top_boundary(self):
@@ -979,7 +1050,7 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
 
         A = C.T.tocsr() @ Mcc_rho @ C + 1j * omega(freq) * Me_mu
         if self._e_bc is None:
-            A = A + self._bottom_robin_matrix(freq)
+            A = A + self._robin_matrix(freq)
         if self._uses_top_robin:
             # the electric field along the top is D^-1 (P_top h - ...) (see getRHS)
             cache, (B, _, _, _) = self._top_robin_ops(freq)
@@ -987,26 +1058,28 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
             A = A + P_top.T @ sp.csr_matrix(B) @ P_top
         return A
 
-    def _bottom_robin_values(self):
+    def _robin_values(self):
         rho = np.broadcast_to(self.rho, (self.mesh.n_cells,))
         mu = np.broadcast_to(self.mu, (self.mesh.n_cells,))
         return rho, mu, np.sqrt(rho * mu)
 
-    def _bottom_robin_matrix(self, freq):
-        r"""Robin (downgoing plane wave) term on the bottom boundary edges.
+    def _robin_matrix(self, freq):
+        r"""Robin (outgoing plane wave) term on the bottom and side boundary edges.
 
-        :math:`i \sqrt{-i \omega \mu \rho}` of the bottom cells, integrated
-        along the bottom boundary.
+        :math:`i \sqrt{-i \omega \mu \rho}` of the cells inside the
+        boundary, integrated along it.
         """
-        P, K = self._bottom_robin_ops
+        P, K = self._robin_ops
         scale = 1j * np.sqrt(-1j * omega(freq))
-        return scale * (P.T @ sp.diags(K @ self._bottom_robin_values()[2]) @ P)
+        return scale * (P.T @ sp.diags(K @ self._robin_values()[2]) @ P)
 
     @property
-    def _bottom_robin_ops(self):
-        if getattr(self, "_bottom_robin_ops_cache", None) is None:
-            self._bottom_robin_ops_cache = _bottom_robin_ops_2d(self.mesh)
-        return self._bottom_robin_ops_cache
+    def _robin_ops(self):
+        if getattr(self, "_robin_ops_cache", None) is None:
+            self._robin_ops_cache = _robin_ops_2d(
+                self.mesh, sides=self.side_boundary == "robin"
+            )
+        return self._robin_ops_cache
 
     def getRHS(self, freq):
         """
@@ -1036,23 +1109,19 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
             dA_v = C.T * self.MccRhoDeriv(C * u, v, adjoint)
         if self._e_bc is not None or self.rhoMap is None:
             return dA_v
-        rho, _, g = self._bottom_robin_values()
+        rho, _, g = self._robin_values()
         dg_dm = sp.diags(0.5 * g / rho) @ self.rhoDeriv
         scale = 1j * np.sqrt(-1j * omega(freq))
-        return dA_v + _bottom_robin_deriv_2d(
-            self._bottom_robin_ops, scale, dg_dm, u, v, adjoint
-        )
+        return dA_v + _robin_deriv_2d(self._robin_ops, scale, dg_dm, u, v, adjoint)
 
     def getADeriv_mu(self, freq, u, v, adjoint=False):
         dA_v = 1j * omega(freq) * self.MeMuDeriv(u, v, adjoint=adjoint)
         if self._e_bc is not None or self.muMap is None:
             return dA_v
-        _, mu, g = self._bottom_robin_values()
+        _, mu, g = self._robin_values()
         dg_dm = sp.diags(0.5 * g / mu) @ self.muDeriv
         scale = 1j * np.sqrt(-1j * omega(freq))
-        return dA_v + _bottom_robin_deriv_2d(
-            self._bottom_robin_ops, scale, dg_dm, u, v, adjoint
-        )
+        return dA_v + _robin_deriv_2d(self._robin_ops, scale, dg_dm, u, v, adjoint)
 
     def getADeriv(self, freq, u, v, adjoint=False):
         return self.getADeriv_rho(freq, u, v, adjoint) + self.getADeriv_mu(
