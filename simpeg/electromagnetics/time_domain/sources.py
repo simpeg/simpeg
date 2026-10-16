@@ -1846,10 +1846,10 @@ class LineCurrent(BaseTDEMSrc):
             and on faces for 'HJ' formulation.
         """
         if simulation._formulation == "EB":
-            Grad = simulation.mesh.nodal_gradient
+            Grad = simulation._dc_operator.Grad
             return Grad.T * self.Mejs(simulation)
         elif simulation._formulation == "HJ":
-            Div = sdiag(simulation.mesh.cell_volumes) * simulation.mesh.face_divergence
+            Div = simulation._dc_operator.Div
             return Div * self.Mfjs(simulation)
 
     def phiInitial(self, simulation):
@@ -1871,9 +1871,11 @@ class LineCurrent(BaseTDEMSrc):
 
         """
         if self.waveform.has_initial_fields:
-            RHSdc = self.getRHSdc(simulation)
-            phi = simulation.Adcinv * RHSdc
-            return phi
+            phi_initial = simulation._phi_initial
+            if self not in phi_initial:
+                RHSdc = self.getRHSdc(simulation)
+                phi_initial[self] = simulation.Adcinv * RHSdc
+            return phi_initial[self]
         else:
             return Zero()
 
@@ -1908,7 +1910,7 @@ class LineCurrent(BaseTDEMSrc):
         if self.waveform.has_initial_fields:
             if simulation._formulation == "EB":
                 phi = self.phiInitial(simulation)
-                return -simulation.mesh.nodal_gradient * phi
+                return -simulation._dc_operator.Grad * phi
             else:
                 raise NotImplementedError
         else:
@@ -1932,16 +1934,10 @@ class LineCurrent(BaseTDEMSrc):
             Derivative of initial electric field times a vector
         """
         if self.waveform.has_initial_fields:
-            edc = f[self, "e", 0]
-            Grad = simulation.mesh.nodal_gradient
-            if adjoint is False:
-                AdcDeriv_v = simulation.getAdcDeriv(edc, v, adjoint=adjoint)
-                edcDeriv = Grad * (simulation.Adcinv * AdcDeriv_v)
-                return edcDeriv
-            elif adjoint is True:
-                vec = simulation.Adcinv * (Grad.T * v)
-                edcDerivT = simulation.getAdcDeriv(edc, vec, adjoint=adjoint)
-                return edcDerivT
+            Grad = simulation._dc_operator.Grad
+            if adjoint is True:
+                return -self._phiInitialDeriv(simulation, Grad.T * v, adjoint=True)
+            return -Grad * self._phiInitialDeriv(simulation, v)
         else:
             return Zero()
 
@@ -1961,11 +1957,8 @@ class LineCurrent(BaseTDEMSrc):
         if self.waveform.has_initial_fields:
             if simulation._formulation == "HJ":
                 phi = self.phiInitial(simulation)
-                Div = (
-                    sdiag(simulation.mesh.cell_volumes)
-                    * simulation.mesh.face_divergence
-                )
-                return -simulation.MfRhoI * (Div.T * phi)
+                Grad = simulation._dc_operator.Grad
+                return -simulation.MfRhoI * (Grad * phi)
             else:
                 raise NotImplementedError
         else:
@@ -1994,19 +1987,19 @@ class LineCurrent(BaseTDEMSrc):
             raise NotImplementedError
 
         phi = self.phiInitial(simulation)
-        Div = sdiag(simulation.mesh.cell_volumes) * simulation.mesh.face_divergence
+        Grad = simulation._dc_operator.Grad
 
         if adjoint is True:
             return -(
-                simulation.MfRhoIDeriv(Div.T * phi, v=v, adjoint=True)
+                simulation.MfRhoIDeriv(Grad * phi, v=v, adjoint=True)
                 + self._phiInitialDeriv(
-                    simulation, Div * (simulation.MfRhoI.T * v), adjoint=True
+                    simulation, Grad.T * (simulation.MfRhoI.T * v), adjoint=True
                 )
             )
         phiDeriv = self._phiInitialDeriv(simulation, v)
         return -(
-            simulation.MfRhoIDeriv(Div.T * phi, v=v)
-            + simulation.MfRhoI * (Div.T * phiDeriv)
+            simulation.MfRhoIDeriv(Grad * phi, v=v)
+            + simulation.MfRhoI * (Grad * phiDeriv)
         )
 
     def _getAmmr(self, simulation):

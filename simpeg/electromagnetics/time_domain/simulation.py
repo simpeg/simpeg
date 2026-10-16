@@ -1,9 +1,12 @@
+from functools import cached_property
+
 import numpy as np
 import scipy.sparse as sp
 
 from ...simulation import BaseTimeSimulation
-from ...utils import mkvc, sdiag, speye, Zero, validate_type, validate_float
+from ...utils import mkvc, speye, Zero, validate_type, validate_float
 from ..base import BaseEMSimulation
+from ..static.resistivity._operators import CellCenteredDCOperator, NodalDCOperator
 from .survey import Survey
 from .fields import (
     Fields3DMagneticFluxDensity,
@@ -572,6 +575,119 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
     # Store matrix factors if we need to solve the DC problem to get the
     # initial condition
+    @cached_property
+    def _dc_operator(self):
+        """Discrete operator of the DC resistivity problem for the initial fields.
+
+        The same discretizations as in the DC resistivity simulations are used:
+        the nodal one for the EB formulation, with electric potentials on nodes,
+        and the cell centered one for the HJ formulation, with electric
+        potentials on cell centers.
+
+        Returns
+        -------
+        .resistivity._operators.NodalDCOperator or .resistivity._operators.CellCenteredDCOperator
+        """
+        if self._fieldType == "e":
+            return NodalDCOperator(
+                self.mesh, bc_type="Neumann", symmetric_null_space_fix=True
+            )
+        elif self._fieldType in ["h", "j"]:
+            return CellCenteredDCOperator(self.mesh, bc_type="Dirichlet")
+        raise NotImplementedError(
+            "Support for galvanic sources has not been implemented for "
+            "{}-formulation".format(self._fieldType)
+        )
+
+    def getAdc(self):
+        r"""The system matrix for the DC resistivity problem.
+
+        The solution to the DC resistivity problem is necessary at the initial time for
+        galvanic sources whose currents are non-zero at the initial time.
+        The discrete solution to the 3D DC resistivity problem is expressed as:
+
+        .. math::
+            \mathbf{A_{dc}}\,\boldsymbol{\phi_0} = \mathbf{q_{dc}}
+
+        where :math:`\mathbf{A_{dc}}` is the DC resistivity system matrix,
+        :math:`\boldsymbol{\phi_0}` is the discrete solution for the electric potentials
+        at the initial time, and :math:`\mathbf{q_{dc}}` is the galvanic source term.
+
+        For the electric field formulation, the potentials are on nodes and
+
+        .. math::
+            \mathbf{A_{dc}} = \mathbf{G^T \, M_{e\sigma} \, G}
+
+        where :math:`\mathbf{G}` is the nodal gradient operator and
+        :math:`\mathbf{M_{e\sigma}}` is the inner product matrix for conductivities
+        projected to edges. The initial electric fields are
+        :math:`\mathbf{e_0} = - \mathbf{G} \, \boldsymbol{\phi_0}`.
+
+        For the magnetic field and current density formulations, the potentials are on
+        cell centers and
+
+        .. math::
+            \mathbf{A_{dc}} = \mathbf{D \, M_{f\rho}^{-1} \, G}
+
+        where :math:`\mathbf{D}` is the face divergence operator scaled by the cell
+        volumes, :math:`\mathbf{G}` is the cell gradient operator with imposed boundary
+        conditions, and :math:`\mathbf{M_{f\rho}}` is the inner product matrix for
+        resistivities projected to faces. The initial current densities are
+        :math:`\mathbf{j_0} = - \mathbf{M_{f\rho}^{-1} \, G} \, \boldsymbol{\phi_0}`.
+
+        The matrices are assembled by the same operators as in
+        :class:`.resistivity.Simulation3DNodal` and
+        :class:`.resistivity.Simulation3DCellCentered`.
+
+        Returns
+        -------
+        (n_nodes, n_nodes) or (n_cells, n_cells) sp.sparse.csr_matrix
+            The system matrix for the DC resistivity problem.
+        """
+        return self._dc_operator.system_matrix(self)
+
+    def getAdcDeriv(self, u, v, adjoint=False):
+        r"""Derivative operation for the DC resistivity system matrix times a vector.
+
+        The discrete solution to the 3D DC resistivity problem is expressed as:
+
+        .. math::
+            \mathbf{A_{dc}}\boldsymbol{\phi_0} = \mathbf{q_{dc}}
+
+        where :math:`\mathbf{A_{dc}}` is the DC resistivity system matrix,
+        :math:`\boldsymbol{\phi_0}` is the discrete solution for the electric potentials
+        at the initial time, and :math:`\mathbf{q_{dc}}` is the galvanic source term.
+        For a vector :math:`\mathbf{v}`, this method assumes the discrete solution is
+        fixed and returns
+
+        .. math::
+            \frac{\partial (\mathbf{A_{dc}}\boldsymbol{\phi_0})}{\partial \mathbf{m}} \, \mathbf{v}
+
+        Or the adjoint operation
+
+        .. math::
+            \frac{\partial (\mathbf{A_{dc}}\boldsymbol{\phi_0})}{\partial \mathbf{m}}^T \, \mathbf{v}
+
+        Parameters
+        ----------
+        u : (n_nodes,) or (n_cells,) numpy.ndarray
+            The solution for the current model; i.e. electric potentials on nodes for
+            the electric field formulation, and on cell centers for the magnetic field
+            and current density formulations.
+        v : numpy.ndarray
+            The vector. (n_param,) for the standard operation. (n_nodes,) or (n_cells,)
+            for the adjoint operation.
+        adjoint : bool
+            Whether to perform the adjoint operation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Derivative of the DC resistivity system matrix times a vector. (n_nodes,) or
+            (n_cells,) for the standard operation. (n_param,) for the adjoint operation.
+        """
+        return self._dc_operator.system_matrix_deriv(self, u, v, adjoint=adjoint)
+
     @property
     def Adcinv(self):
         r"""Inverse of the factored system matrix for the DC resistivity problem.
@@ -601,17 +717,29 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         :class:`.resistivity.Simulation3DNodal` to learn
         more about how the DC resistivity problem is solved.
         """
-        if not hasattr(self, "getAdc"):
-            raise NotImplementedError(
-                "Support for galvanic sources has not been implemented for "
-                "{}-formulation".format(self._fieldType)
-            )
         if getattr(self, "_Adcinv", None) is None:
             if self.verbose:
                 print("Factoring the system matrix for the DC problem")
             Adc = self.getAdc()
             self._Adcinv = self.solver(Adc)
         return self._Adcinv
+
+    @property
+    def _phi_initial(self):
+        """Electric potentials at the initial time for the galvanic sources.
+
+        The potentials are stored by the sources the first time they solve the
+        DC resistivity problem, so it is solved only once for each source and
+        model.
+
+        Returns
+        -------
+        dict
+            The electric potentials of each source, with the sources as keys.
+        """
+        if getattr(self, "_phi_initial_cache", None) is None:
+            self._phi_initial_cache = {}
+        return self._phi_initial_cache
 
     @property
     def _delete_on_model_update(self):
@@ -627,8 +755,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         """
         items = super()._delete_on_model_update
         if self.sigmaMap is not None:
-            items = items + ["_Adcinv"]  #: clear DC matrix factors on any model updates
+            # clear DC matrix factors and potentials on any model updates
             # if there is a sigmaMap
+            items = items + ["_Adcinv", "_phi_initial_cache"]
         return items
 
 
@@ -1638,90 +1767,6 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         # right now, we are assuming that s_e, s_m do not depend on the model.
         return Zero()
 
-    def getAdc(self):
-        r"""The system matrix for the DC resistivity problem.
-
-        The solution to the DC resistivity problem is necessary at the initial time for
-        galvanic sources whose currents are non-zero at the initial time.
-        The discrete solution to the 3D DC resistivity problem is expressed as:
-
-        .. math::
-            \mathbf{A_{dc}}\,\boldsymbol{\phi_0} = \mathbf{q_{dc}}
-
-        where :math:`\mathbf{A_{dc}}` is the DC resistivity system matrix, :math:`\boldsymbol{\phi_0}`
-        is the discrete solution for the electric potentials at the initial time, and :math:`\mathbf{q_{dc}}`
-        is the galvanic source term. This method returns the system matrix
-        for the nodal formulation, i.e.:
-
-        .. math::
-            \mathbf{A_{dc}} = \mathbf{G^T \, M_{e\sigma} \, G}
-
-        where :math:`\mathbf{G}` is the nodal gradient operator with imposed boundary conditions,
-        and :math:`\mathbf{M_{e\sigma}}` is the inner product matrix for conductivities projected to edges.
-
-        The electric fields at the initial time :math:`\mathbf{e_0}` are obtained by applying the
-        nodal gradient operator. I.e.:
-
-        .. math::
-            \mathbf{e_0} = \mathbf{G} \, \boldsymbol{\phi_0}
-
-        See the *Notes* section of the doc strings for :class:`.resistivity.Simulation3DNodal`
-        for a full description of the nodal DC resistivity formulation.
-
-        Returns
-        -------
-        (n_nodes, n_nodes) sp.sparse.csr_matrix
-            The system matrix for the DC resistivity problem.
-        """
-        MeSigma = self.MeSigma
-        Grad = self.mesh.nodal_gradient
-        Adc = Grad.T.tocsr() * MeSigma * Grad
-        # Handling Null space of A
-        Adc[0, 0] = Adc[0, 0] + 1.0
-        return Adc
-
-    def getAdcDeriv(self, u, v, adjoint=False):
-        r"""Derivative operation for the DC resistivity system matrix times a vector.
-
-        The discrete solution to the 3D DC resistivity problem is expressed as:
-
-        .. math::
-            \mathbf{A_{dc}}\boldsymbol{\phi_0} = \mathbf{q_{dc}}
-
-        where :math:`\mathbf{A_{dc}}` is the DC resistivity system matrix, :math:`\boldsymbol{\phi_0}`
-        is the discrete solution for the electric potentials at the initial time, and :math:`\mathbf{q_{dc}}`
-        is the galvanic source term. For a vector :math:`\mathbf{v}`, this method assumes
-        the discrete solution is fixed and returns
-
-        .. math::
-            \frac{\partial (\mathbf{A_{dc}}\boldsymbol{\phi_0})}{\partial \mathbf{m}} \, \mathbf{v}
-
-        Or the adjoint operation
-
-        .. math::
-            \frac{\partial (\mathbf{A_{dc}}\boldsymbol{\phi_0})}{\partial \mathbf{m}}^T \, \mathbf{v}
-
-        Parameters
-        ----------
-        u : (n_nodes,) numpy.ndarray
-            The solution for the fields for the current model; i.e. electric potentials at nodes.
-        v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (n_nodes,) for the adjoint operation.
-        adjoint : bool
-            Whether to perform the adjoint operation.
-
-        Returns
-        -------
-        numpy.ndarray
-            Derivative of the DC resistivity system matrix times a vector. (n_nodes,) for the standard operation.
-            (n_param,) for the adjoint operation.
-        """
-        Grad = self.mesh.nodal_gradient
-        if not adjoint:
-            return Grad.T * self.MeSigmaDeriv(-u, v, adjoint)
-        else:
-            return self.MeSigmaDeriv(-u, Grad * v, adjoint)
-
 
 ###############################################################################
 #                                                                             #
@@ -2116,88 +2161,6 @@ class Simulation3DMagneticField(BaseTDEMSimulation):
             return self.MfRhoDeriv(s_e, C * v, adjoint)
         # assumes no source derivs
         return C.T * self.MfRhoDeriv(s_e, v, adjoint)
-
-    # I DON'T THINK THIS IS CURRENTLY USED BY THE H-FORMULATION.
-    def getAdc(self):
-        r"""The system matrix for the DC resistivity problem.
-
-        The solution to the DC resistivity problem is necessary at the initial time for
-        galvanic sources whose currents are non-zero at the initial time.
-        The discrete solution to the 3D DC resistivity problem is expressed as:
-
-        .. math::
-            \mathbf{A_{dc}}\,\boldsymbol{\phi_0} = \mathbf{q_{dc}}
-
-        where :math:`\mathbf{A_{dc}}` is the DC resistivity system matrix, :math:`\boldsymbol{\phi_0}`
-        is the discrete solution for the electric potentials at the initial time, and :math:`\mathbf{q_{dc}}`
-        is the galvanic source term. This method returns the system matrix
-        for the cell-centered formulation, i.e.:
-
-        .. math::
-            \mathbf{D \, M_{f\rho}^{-1} \, G}
-
-        where :math:`\mathbf{D}` is the face divergence operator, :math:`\mathbf{G}` is the cell gradient
-        operator with imposed boundary conditions, and :math:`\mathbf{M_{f\rho}}` is the inner product
-        matrix for resistivities projected to faces.
-
-        See the *Notes* section of the doc strings for
-        :class:`.resistivity.Simulation3DCellCentered`
-        for a full description of the cell centered DC resistivity formulation.
-
-        Returns
-        -------
-        (n_cells, n_cells) sp.sparse.csr_matrix
-            The system matrix for the DC resistivity problem.
-        """
-        D = sdiag(self.mesh.cell_volumes) * self.mesh.face_divergence
-        G = D.T
-        MfRhoI = self.MfRhoI
-        return D * MfRhoI * G
-
-    def getAdcDeriv(self, u, v, adjoint=False):
-        r"""Derivative operation for the DC resistivity system matrix times a vector.
-
-        The discrete solution to the 3D DC resistivity problem is expressed as:
-
-        .. math::
-            \mathbf{A_{dc}}\boldsymbol{\phi_0} = \mathbf{q_{dc}}
-
-        where :math:`\mathbf{A_{dc}}` is the DC resistivity system matrix, :math:`\boldsymbol{\phi_0}`
-        is the discrete solution for the electric potentials at the initial time, and :math:`\mathbf{q_{dc}}`
-        is the galvanic source term. For a vector :math:`\mathbf{v}`, this method assumes
-        the discrete solution is fixed and returns
-
-        .. math::
-            \frac{\partial (\mathbf{A_{dc}}\boldsymbol{\phi_0})}{\partial \mathbf{m}} \, \mathbf{v}
-
-        Or the adjoint operation
-
-        .. math::
-            \frac{\partial (\mathbf{A_{dc}}\boldsymbol{\phi_0})}{\partial \mathbf{m}}^T \, \mathbf{v}
-
-        Parameters
-        ----------
-        u : (n_cells,) numpy.ndarray
-            The solution for the fields for the current model; i.e. electric potentials at cell centers.
-        v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (n_cells,) for the adjoint operation.
-        adjoint : bool
-            Whether to perform the adjoint operation.
-
-        Returns
-        -------
-        numpy.ndarray
-            Derivative of the DC resistivity system matrix times a vector. (n_cells,) for the standard operation.
-            (n_param,) for the adjoint operation.
-        """
-        D = sdiag(self.mesh.cell_volumes) * self.mesh.face_divergence
-        G = D.T
-
-        if adjoint:
-            # This is the same as
-            #      self.MfRhoIDeriv(G * u, D.T * v, adjoint=True)
-            return self.MfRhoIDeriv(G * u, G * v, adjoint=True)
-        return D * self.MfRhoIDeriv(G * u, v)
 
 
 # ------------------------------- Simulation3DCurrentDensity ------------------------------- #
@@ -2608,88 +2571,3 @@ class Simulation3DCurrentDensity(BaseTDEMSimulation):
             (n_param,) for the adjoint operation.
         """
         return Zero()  # assumes no derivs on sources
-
-    def getAdc(self):
-        r"""The system matrix for the DC resistivity problem.
-
-        The solution to the DC resistivity problem is necessary at the initial time for
-        galvanic sources whose currents are non-zero at the initial time.
-        The discrete solution to the 3D DC resistivity problem is expressed as:
-
-        .. math::
-            \mathbf{A_{dc}}\,\boldsymbol{\phi_0} = \mathbf{q_{dc}}
-
-        where :math:`\mathbf{A_{dc}}` is the DC resistivity system matrix, :math:`\boldsymbol{\phi_0}`
-        is the discrete solution for the electric potentials at the initial time, and :math:`\mathbf{q_{dc}}`
-        is the galvanic source term. This method returns the system matrix
-        for the cell-centered formulation, i.e.:
-
-        .. math::
-            \mathbf{D \, M_{f\rho}^{-1} \, G}
-
-        where :math:`\mathbf{D}` is the face divergence operator, :math:`\mathbf{G}` is the cell gradient
-        operator with imposed boundary conditions, and :math:`\mathbf{M_{f\rho}}` is the inner product
-        matrix for resistivities projected to faces.
-
-        The current density at the initial time :math:`\mathbf{j_0}` are obtained by applying:
-
-        .. math::
-            \mathbf{j_0} = \mathbf{M_{f\rho}^{-1} \, G} \, \boldsymbol{\phi_0}
-
-        See the *Notes* section of the doc strings for :class:`.resistivity.Simulation3DCellCentered`
-        for a full description of the cell centered DC resistivity formulation.
-
-        Returns
-        -------
-        (n_cells, n_cells) sp.sparse.csr_matrix
-            The system matrix for the DC resistivity problem.
-        """
-        D = sdiag(self.mesh.cell_volumes) * self.mesh.face_divergence
-        G = D.T
-        MfRhoI = self.MfRhoI
-        return D * MfRhoI * G
-
-    def getAdcDeriv(self, u, v, adjoint=False):
-        r"""Derivative operation for the DC resistivity system matrix times a vector.
-
-        The discrete solution to the 3D DC resistivity problem is expressed as:
-
-        .. math::
-            \mathbf{A_{dc}}\boldsymbol{\phi_0} = \mathbf{q_{dc}}
-
-        where :math:`\mathbf{A_{dc}}` is the DC resistivity system matrix, :math:`\boldsymbol{\phi_0}`
-        is the discrete solution for the electric potentials at the initial time, and :math:`\mathbf{q_{dc}}`
-        is the galvanic source term. For a vector :math:`\mathbf{v}`, this method assumes
-        the discrete solution is fixed and returns
-
-        .. math::
-            \frac{\partial (\mathbf{A_{dc}}\boldsymbol{\phi_0})}{\partial \mathbf{m}} \, \mathbf{v}
-
-        Or the adjoint operation
-
-        .. math::
-            \frac{\partial (\mathbf{A_{dc}}\boldsymbol{\phi_0})}{\partial \mathbf{m}}^T \, \mathbf{v}
-
-        Parameters
-        ----------
-        u : (n_cells,) numpy.ndarray
-            The solution for the fields for the current model; i.e. electric potentials at cell centers.
-        v : numpy.ndarray
-            The vector. (n_param,) for the standard operation. (n_cells,) for the adjoint operation.
-        adjoint : bool
-            Whether to perform the adjoint operation.
-
-        Returns
-        -------
-        numpy.ndarray
-            Derivative of the DC resistivity system matrix times a vector. (n_cells,) for the standard operation.
-            (n_param,) for the adjoint operation.
-        """
-        D = sdiag(self.mesh.cell_volumes) * self.mesh.face_divergence
-        G = D.T
-
-        if adjoint:
-            # This is the same as
-            #      self.MfRhoIDeriv(G * u, D.T * v, adjoint=True)
-            return self.MfRhoIDeriv(G * u, G * v, adjoint=True)
-        return D * self.MfRhoIDeriv(G * u, v)
