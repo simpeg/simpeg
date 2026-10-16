@@ -81,8 +81,8 @@ class Simulation1DElectricField(BaseFDEMSimulation):
 
         sigma E_y = \partial_z H_x
 
-    with default boundary conditions that $H_x[z_max] = 1$ (a plane wave source at
-    the top of the domain), and $H_x[z_min] = 0$.
+    with a unit magnetic field at the top of the domain (the plane wave source) and
+    a Robin (downgoing plane wave) condition at the bottom.
 
     When we discretize, we obtain:
 
@@ -112,7 +112,9 @@ class Simulation1DElectricField(BaseFDEMSimulation):
 
             \mathbf{A} =
                 \mathbf{G}^\top \mathbf{M}^e_{\mu^{-1}} \mathbf{G}
-                + 1\omega \mathbf{M}^f_\sigma
+                + i\omega \mathbf{M}^f_\sigma + \mathbf{R}
+
+        where :math:`\mathbf{R}` is the Robin term at the bottom node.
         """
 
         G = self.mesh.nodal_gradient
@@ -154,7 +156,7 @@ class Simulation1DElectricField(BaseFDEMSimulation):
 
     def getRHS(self, freq):
         """
-        Right hand side constructed using Dirichlet boundary conditions
+        Right hand side for a unit magnetic field at the top of the domain.
         """
         return 1j * omega(freq) * self._rhs
 
@@ -190,6 +192,8 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
 
     This corresponds to the TM mode 2D simulation where the magnetic field is
     located at faces (nodes) and the electric field is on edges (cell_centers).
+    The electric field is one at the top of the domain (the plane wave source),
+    and the bottom has a Robin (downgoing plane wave) condition.
     """
 
     _solutionType = "hSolution"
@@ -204,13 +208,20 @@ class Simulation1DMagneticField(BaseFDEMSimulation):
 
         super().__init__(mesh, **kwargs)
 
-        # corresponds to a dirichlet boundaries at the top (= 1 ) and bottom(=0)
-        # for the y component of electric field
+        # a unit electric field at the top (the bottom is the robin term in getA)
         self._rhs = -mesh.boundary_node_vector_integral * [0 + 0j, 1 + 0j]
 
     def getA(self, freq):
-        """
-        system matrix
+        r"""
+        System matrix
+
+        .. math::
+
+            \mathbf{A} =
+                \mathbf{G}^\top \mathbf{M}^e_{\rho} \mathbf{G}
+                + i\omega \mathbf{M}^n_\mu + \mathbf{R}
+
+        where :math:`\mathbf{R}` is the Robin term at the bottom node.
         """
         G = self.mesh.nodal_gradient
         MeRho = self.MeRho
@@ -366,6 +377,11 @@ class Simulation1DPrimarySecondary(Simulation1DElectricField):
 ###################################
 # 2D problems
 ###################################
+def _clear_factorization(sim):
+    """Drop factorizations stored by ``fields`` after the system matrix changed."""
+    sim.__dict__.pop("Ainv", None)
+
+
 def _robin_ops_2d(mesh, sides=True):
     """Operators for a Robin term on the bottom (and side) boundary edges of a 2D mesh.
 
@@ -379,11 +395,12 @@ def _robin_ops_2d(mesh, sides=True):
     """
     edges = np.r_[mesh.edges_x, mesh.edges_y]
     is_x = np.arange(len(edges)) < mesh.n_edges_x
-    selected = [np.where(np.isclose(edges[:, 1], mesh.nodes_y[0]) & is_x)[0]]
+    # exact comparisons, as the boundary edges sit exactly on the outer nodes
+    selected = [np.where((edges[:, 1] == mesh.nodes_y[0]) & is_x)[0]]
     inward = [np.r_[0.0, 1.0]]
     if sides:
         for x, direction in ((mesh.nodes_x[0], 1.0), (mesh.nodes_x[-1], -1.0)):
-            selected.append(np.where(np.isclose(edges[:, 0], x) & ~is_x)[0])
+            selected.append(np.where((edges[:, 0] == x) & ~is_x)[0])
             inward.append(np.r_[direction, 0.0])
     eps = 1e-3 * min(mesh.h[0].min(), mesh.h[1].min())
     inside = np.vstack(
@@ -424,8 +441,9 @@ class Simulation2DElectricField(BaseFDEMSimulation):
         A 2D mesh.
     h_bc : dict, optional
         Tangential magnetic field on every boundary edge, indexed by frequency,
-        to use instead of the default boundary conditions.
-    side_boundary : {"robin", "neumann"}
+        to use instead of the default boundary conditions. This also turns off
+        the robin terms on the bottom and sides (``side_boundary`` is ignored).
+    side_boundary : {"robin", "neumann"}, default: "robin"
         Condition on the sides of the mesh (see :attr:`side_boundary`).
     """
 
@@ -561,6 +579,7 @@ class Simulation2DElectricField(BaseFDEMSimulation):
             "side_boundary", value, ["robin", "neumann"]
         )
         self._robin_ops_cache = None
+        _clear_factorization(self)
 
     def getA(self, freq):
         r"""
@@ -570,8 +589,10 @@ class Simulation2DElectricField(BaseFDEMSimulation):
 
             \mathbf{A} =
                 \mathbf{C}^\top \mathbf{M}^{cc}_{\mu} \mathbf{C}
-                + 1\omega \mathbf{M}^e_\sigma
+                + i\omega \mathbf{M}^e_\sigma + \mathbf{R}
 
+        where :math:`\mathbf{R}` is the Robin term on the bottom (and side)
+        boundary edges.
         """
         C = self.mesh.edge_curl
         Mcc_mui = self.MccMui
@@ -607,7 +628,8 @@ class Simulation2DElectricField(BaseFDEMSimulation):
 
     def getRHS(self, freq):
         """
-        Right hand side constructed using Dirichlet boundary conditions
+        Right hand side from the boundary data: a unit magnetic field along the
+        top, and the 1D columns along the sides.
         """
         M_bc = self._M_bc
         if self._h_bc is None:
@@ -717,7 +739,7 @@ class Simulation2DElectricField(BaseFDEMSimulation):
 
 
 def _log_integral(x, a, b):
-    """Integral of ``ln|x - t|`` over ``t`` from ``a`` to ``b``, for each pair of ``x`` and interval."""
+    """Integral of ``ln|x - t|`` over ``t`` in ``[a, b]``, for each ``x`` and interval."""
 
     def antiderivative(u):
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -784,10 +806,12 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
         A 2D mesh.
     e_bc : dict, optional
         Tangential electric field on every boundary edge, indexed by frequency,
-        to use instead of the default boundary conditions.
-    top_boundary : {"robin", "uniform"}
+        to use instead of the default boundary conditions. This also turns off
+        the robin terms on the top, bottom and sides (``top_boundary`` and
+        ``side_boundary`` are ignored).
+    top_boundary : {"robin", "uniform"}, default: "robin"
         Condition on the top of the mesh (see :attr:`top_boundary`).
-    side_boundary : {"robin", "neumann"}
+    side_boundary : {"robin", "neumann"}, default: "robin"
         Condition on the sides of the mesh (see :attr:`side_boundary`).
     """
 
@@ -926,6 +950,7 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
             "side_boundary", value, ["robin", "neumann"]
         )
         self._robin_ops_cache = None
+        _clear_factorization(self)
 
     @property
     def top_boundary(self):
@@ -954,6 +979,7 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
             "top_boundary", value, ["robin", "uniform"]
         )
         self._top_robin_cache = None
+        _clear_factorization(self)
 
     @property
     def _uses_top_robin(self):
@@ -974,7 +1000,8 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
         Returns
         -------
         cache : dict
-        (B, b_0, u_left, u_right)
+            The top edges and their operators, for all frequencies.
+        ops : tuple of (B, b_0, u_left, u_right)
             ``B`` is the symmetrized ``M_top D^-1`` on the top edges, and the
             right hand side from the top is ``b_0 + u_left e_left + u_right
             e_right``.
@@ -1042,7 +1069,11 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
 
             \mathbf{A} =
                 \mathbf{C}^\top \mathbf{M}^{cc}_{\rho} \mathbf{C}
-                + 1\omega \mathbf{M}^e_\mu
+                + i\omega \mathbf{M}^e_\mu + \mathbf{R} + \mathbf{T}
+
+        where :math:`\mathbf{R}` is the Robin term on the bottom (and side)
+        boundary edges, and :math:`\mathbf{T}` the robin top (a dense block on
+        the top edges, see :attr:`top_boundary`).
         """
         C = self.mesh.edge_curl
         Mcc_rho = self.MccRho
@@ -1083,7 +1114,8 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
 
     def getRHS(self, freq):
         """
-        Right hand side constructed using Dirichlet boundary conditions
+        Right hand side from the boundary data: the 1D columns along the sides,
+        and the incident field along the top.
         """
         M_bc = self._M_bc
         if self._e_bc is not None:

@@ -103,3 +103,58 @@ def test_2d_matches_1d_on_shallow_mesh(orientation):
     mesh_1d_col = discretize.TensorMesh([mesh.h[1]], origin=[mesh.nodes_y[0]])
     d_1d = dpred_1d(mesh_1d_col, orientation)
     np.testing.assert_allclose(d_2d, d_1d, rtol=1e-5)
+
+
+@pytest.mark.parametrize(
+    "sim_class, prop",
+    [
+        (nsem.simulation.Simulation1DElectricField, "sigma"),
+        (nsem.simulation.Simulation1DElectricField, "mu"),
+        (nsem.simulation.Simulation1DMagneticField, "rho"),
+        (nsem.simulation.Simulation1DMagneticField, "mu"),
+    ],
+)
+def test_1d_derivatives(sim_class, prop):
+    """The bottom robin term depends on the bottom cell's properties."""
+    from scipy.constants import mu_0
+
+    from simpeg import tests
+
+    mesh = mesh_1d(bottom_pads=12)
+    orientation = (
+        "yx" if sim_class is nsem.simulation.Simulation1DElectricField else "xy"
+    )
+    receivers = [
+        nsem.receivers.Impedance([[0.0]], orientation=orientation, component=c)
+        for c in ("real", "imag")
+    ]
+    survey = nsem.survey.Survey(
+        [nsem.sources.Planewave(receivers, f) for f in FREQUENCIES]
+    )
+    sigma = layered(mesh.cell_centers)
+    kwargs = {f"{prop}Map": maps.ExpMap(mesh)}
+    if prop == "sigma":
+        m0 = np.log(sigma)
+    elif prop == "rho":
+        m0 = -np.log(sigma)
+    else:
+        kwargs["sigma"] = sigma
+        m0 = np.full(mesh.n_cells, np.log(mu_0))
+    rng = np.random.default_rng(42)
+    m0 = m0 + 0.05 * rng.normal(size=mesh.n_cells)
+    sim = sim_class(mesh, survey=survey, solver=get_default_solver(), **kwargs)
+
+    def fun(m):
+        return sim.dpred(m), lambda v: sim.Jvec(m, v)
+
+    assert tests.check_derivative(fun, m0, num=3, plotIt=False, random_seed=42)
+    f = sim.fields(m0)
+    v = rng.normal(size=m0.size)
+    w = rng.normal(size=survey.nD)
+    # the magnetic field formulation is poorly conditioned with a resistive air
+    # layer (its curl-curl term carries the air resistivity), so its adjoint is
+    # only good to about 1e-8
+    rtol = 1e-8 if sim_class is nsem.simulation.Simulation1DElectricField else 1e-6
+    np.testing.assert_allclose(
+        w @ sim.Jvec(m0, v, f=f), v @ sim.Jtvec(m0, w, f=f), rtol=rtol
+    )

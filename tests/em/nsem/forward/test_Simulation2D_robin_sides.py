@@ -161,3 +161,63 @@ def test_system_matrix_derivative(mesh_type, prop):
         v @ sim.getADeriv(0.1, u, w, adjoint=True),
         rtol=1e-10,
     )
+
+
+@pytest.mark.parametrize("orientation", ["xy", "yx"])
+def test_robin_edges_with_large_origin(orientation):
+    """The robin edges are found exactly, also at UTM sized coordinates."""
+    mesh = discretize.TensorMesh(
+        [np.full(20, 4.0), np.full(10, 4.0)], origin=[5e5, -6e5]
+    )
+    sim = SIMULATIONS[orientation](mesh, survey=make_survey(orientation))
+    P, _ = sim._robin_ops
+    # 20 bottom edges and 10 on each side
+    assert P.shape[0] == 40
+
+
+@pytest.mark.parametrize("orientation", ["xy", "yx"])
+def test_change_side_boundary(orientation):
+    """Changing the option updates the system matrix and drops old factorizations."""
+    mesh = padded_mesh(side=10e3)
+    sim = SIMULATIONS[orientation](
+        mesh,
+        survey=make_survey(orientation),
+        sigma=contact(mesh.cell_centers),
+        solver=get_default_solver(),
+    )
+    A_robin = sim.getA(0.1)
+    sim.fields()
+    assert "Ainv" in sim.__dict__
+    sim.side_boundary = "neumann"
+    assert "Ainv" not in sim.__dict__
+    A_neumann = sim.getA(0.1)
+    assert abs(A_robin - A_neumann).max() > 0
+    np.testing.assert_allclose(
+        sim.dpred(),
+        SIMULATIONS[orientation](
+            mesh,
+            survey=make_survey(orientation),
+            sigma=contact(mesh.cell_centers),
+            side_boundary="neumann",
+            solver=get_default_solver(),
+        ).dpred(),
+    )
+
+
+@pytest.mark.parametrize("orientation", ["xy", "yx"])
+def test_custom_boundary_data_has_no_robin_terms(orientation):
+    mesh = padded_mesh(side=10e3)
+    sigma = contact(mesh.cell_centers)
+    n_be = mesh.boundary_edges.shape[0]
+    bc = {f: np.ones(n_be, dtype=complex) for f in FREQUENCIES}
+    key = "h_bc" if orientation == "xy" else "e_bc"
+    sim = SIMULATIONS[orientation](
+        mesh, survey=make_survey(orientation), sigma=sigma, **{key: bc}
+    )
+    C = mesh.edge_curl
+    w = 2 * np.pi * 0.1
+    if orientation == "xy":
+        expected = C.T @ sim.MccMui @ C + 1j * w * sim.MeSigma
+    else:
+        expected = C.T @ sim.MccRho @ C + 1j * w * sim.MeMu
+    assert abs(sim.getA(0.1) - expected).max() <= 1e-12 * abs(expected).max()

@@ -5,6 +5,7 @@ Tests for the robin (upward continuation) top boundary of Simulation2DMagneticFi
 import numpy as np
 import pytest
 import discretize
+from scipy.constants import mu_0
 
 from simpeg import maps, tests
 from simpeg.electromagnetics import natural_source as nsem
@@ -107,8 +108,9 @@ def test_thin_air():
     assert err_uniform > 1e-2
 
 
+@pytest.mark.parametrize("prop", ["rho", "sigma", "mu"])
 @pytest.mark.parametrize("mesh_type", ["tensor", "tree"])
-def test_derivatives(mesh_type):
+def test_derivatives(mesh_type, prop):
     if mesh_type == "tensor":
         hx = [(100.0, 6, -1.4), (100.0, 20), (100.0, 6, 1.4)]
         hz = [(100.0, 6, -1.4), (100.0, 16), (100.0, 4, 1.4)]
@@ -131,15 +133,24 @@ def test_derivatives(mesh_type):
         for c in ("real", "imag")
     ]
     survey = nsem.Survey([nsem.sources.Planewave(receivers, f) for f in (0.1, 10.0)])
+    sigma = contact(mesh.cell_centers)
+    kwargs = {f"{prop}Map": maps.ExpMap(mesh)}
+    if prop == "rho":
+        m0 = -np.log(sigma)
+    elif prop == "sigma":
+        m0 = np.log(sigma)
+    else:
+        kwargs["sigma"] = sigma
+        m0 = np.full(mesh.n_cells, np.log(mu_0))
     sim = nsem.Simulation2DMagneticField(
         mesh,
         survey=survey,
-        rhoMap=maps.ExpMap(mesh),
         top_boundary="robin",
         solver=get_default_solver(),
+        **kwargs,
     )
     rng = np.random.default_rng(3)
-    m0 = -np.log(contact(mesh.cell_centers)) + 0.05 * rng.normal(size=mesh.n_cells)
+    m0 = m0 + 0.05 * rng.normal(size=mesh.n_cells)
 
     # the right hand side carries the side columns and the top
     src = survey.source_list[0]
