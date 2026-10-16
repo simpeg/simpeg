@@ -67,9 +67,20 @@ def test_1d_insensitive_to_bottom_depth(orientation):
     np.testing.assert_allclose(shallow, deep, rtol=1e-3)
 
 
-@pytest.mark.parametrize("orientation", ["xy", "yx"])
-def test_2d_matches_1d_on_shallow_mesh(orientation):
-    """For a layered earth, the 2D simulations reproduce their 1D boundary columns."""
+@pytest.mark.parametrize(
+    "orientation, boundaries",
+    [
+        ("xy", {"side_boundary": "robin"}),
+        ("xy", {"side_boundary": "neumann"}),
+        ("yx", {"top_boundary": "robin", "side_boundary": "robin"}),
+        ("yx", {"top_boundary": "robin", "side_boundary": "neumann"}),
+        ("yx", {"top_boundary": "uniform", "side_boundary": "robin"}),
+        ("yx", {"top_boundary": "uniform", "side_boundary": "neumann"}),
+    ],
+)
+def test_2d_matches_1d_on_shallow_mesh(orientation, boundaries):
+    """For a layered earth, the 2D simulations reproduce their 1D boundary columns,
+    whatever the top and side boundary conditions."""
     h = [(50.0, 12, -1.3), (50.0, 80), (50.0, 12, 1.3)]
     mesh = discretize.TensorMesh([h, h], "CC")
     mesh.origin = mesh.origin + np.r_[0, -mesh.origin[1] - mesh.h[1][:52].sum()]
@@ -97,6 +108,7 @@ def test_2d_matches_1d_on_shallow_mesh(orientation):
         survey=survey,
         sigmaMap=maps.IdentityMap(mesh),
         solver=get_default_solver(),
+        **boundaries,
     )
     d_2d = sim.dpred(layered(mesh.cell_centers[:, 1]))
 
