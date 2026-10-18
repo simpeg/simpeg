@@ -199,7 +199,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         .. math::
             \mathbf{J} = \dfrac{\partial \mathbf{d}}{\partial \mathbf{m}}
 
-        this method computes and returns the diagnal elements
+        this method computes and returns the diagonal elements
         of :math:`\mathbf{J^T J}`.
 
         Parameters
@@ -425,7 +425,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         """List of model-dependent attributes to clean upon model update.
 
         Some of the simulation's attributes are model-dependent. This property specifies
-        the model-dependent attributes that much be cleared when the model is updated.
+        the model-dependent attributes that must be cleared when the model is updated.
 
         Returns
         -------
@@ -499,7 +499,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
     potential :math:`\phi` as follows:
 
     .. math::
-        \phi = -\nabla \phi
+        \vec{e} = -\nabla \phi
 
     For a source representing current *I* injected at point *r*, the static form of Ampere's
     law becomes:
@@ -548,7 +548,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
     discrete electric potential on mesh nodes, we obtain:
 
     .. math::
-        \big [ \mathbf{M_c D M_{r\rho}^{-1} (D^T - B ) M_c} \big ] \boldsymbol{\phi}
+        \big [ \mathbf{M_c D M_{f\rho}^{-1} (D^T - B ) M_c} \big ] \boldsymbol{\phi}
         = \mathbf{q}
 
     Note that :math:`\mathbf{D^T - B}` is effectively a gradient operator that has been
@@ -633,7 +633,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
         return A
 
     def getADeriv(self, u, v, adjoint=False):
-        r"""Get cnductivity derivative operation for the system matrix times a vector.
+        r"""Get resistivity derivative operation for the system matrix times a vector.
 
         The system matrix is given by:
 
@@ -696,7 +696,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
     def getRHS(self):
         """Compute and return right-hand sides for all sources.
 
-        For This method computes and returns the right-hand sides used to solve the
+        This method computes and returns the right-hand sides used to solve the
         discrete finite volume solution for all sources.
 
         Returns
@@ -830,7 +830,7 @@ class Simulation3DNodal(BaseDCSimulation):
     potential :math:`\phi` as follows:
 
     .. math::
-        \phi = -\nabla \phi
+        \vec{e} = -\nabla \phi
 
     For a source representing current *I* injected at point *r*, the static form of Ampere's
     law becomes:
@@ -976,7 +976,7 @@ class Simulation3DNodal(BaseDCSimulation):
         return A
 
     def getADeriv(self, u, v, adjoint=False):
-        r"""Get cnductivity derivative operation for the system matrix times a vector.
+        r"""Get conductivity derivative operation for the system matrix times a vector.
 
         The system matrix is given by:
 
@@ -1112,7 +1112,7 @@ class Simulation3DNodal(BaseDCSimulation):
     def getRHS(self):
         """Compute and return right-hand sides for all sources.
 
-        For This method computes and returns the right-hand sides used to solve the
+        This method computes and returns the right-hand sides used to solve the
         discrete finite volume solution for all sources.
 
         Returns
@@ -1197,7 +1197,7 @@ class Simulation3DHierarchicalNodal(
     potential :math:`\phi` as follows:
 
     .. math::
-        \phi = -\nabla \phi
+        \vec{e} = -\nabla \phi
 
     For a source representing current *I* injected at point *r*, the static form of Ampere's
     law becomes:
@@ -1220,8 +1220,8 @@ class Simulation3DHierarchicalNodal(
 
     where the surface integral defines the boundary conditions.
 
-    The hierarchical approach assumes the existence of infinitessimally thin plate-like
-    regions between adjacent mesh faces and infinitessimally thin wire-like regions
+    The hierarchical approach assumes the existence of infinitesimally thin plate-like
+    regions between adjacent mesh faces and infinitesimally thin wire-like regions
     between adjacent mesh edges. We re-express the inner-product with Ohm's law as follows:
 
     .. math::

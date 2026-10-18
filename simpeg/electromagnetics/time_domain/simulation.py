@@ -2882,8 +2882,8 @@ class Simulation3DHierarchicalElectricField(
 
     Assuming natural boundary conditions, the surface integral is zero.
 
-    The hierarchical approach assumes the existence of infinitessimally thin plate-like
-    regions between adjacent mesh faces and infinitessimally thin wire-like regions
+    The hierarchical approach assumes the existence of infinitesimally thin plate-like
+    regions between adjacent mesh faces and infinitesimally thin wire-like regions
     between adjacent mesh edges. We re-express the inner-product with Ohm's law as follows:
 
     .. math::
@@ -2990,7 +2990,7 @@ class Simulation3DHierarchicalElectricField(
         """List of model-dependent attributes to clean upon model update.
 
         Some of the TDEM simulation's attributes are model-dependent. This property specifies
-        the model-dependent attributes that much be cleared when the model is updated.
+        the model-dependent attributes that must be cleared when the model is updated.
 
         Returns
         -------
@@ -3066,8 +3066,8 @@ class Simulation3DHierarchicalMagneticFluxDensity(
 
     Assuming natural boundary conditions, the surface integral is zero.
 
-    The hierarchical approach assumes the existence of infinitessimally thin plate-like
-    regions between adjacent mesh faces and infinitessimally thin wire-like regions
+    The hierarchical approach assumes the existence of infinitesimally thin plate-like
+    regions between adjacent mesh faces and infinitesimally thin wire-like regions
     between adjacent mesh edges. We re-express the inner-product with Ohm's law as follows:
 
     .. math::

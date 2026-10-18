@@ -958,7 +958,6 @@ class TestSimSurfaceProperties(unittest.TestCase):
         sim.model = self.start_mod
 
         n_f = self.mesh.n_faces
-        # n_c = self.mesh.n_cells
 
         u = np.random.rand(n_f)
         v = np.random.randn(n_f)
@@ -1555,8 +1554,8 @@ def test_bad_mesh():
 
 
 def test_unstructured_mesh():
-    """Test unstructured mesh in heierarchical simulations."""
-    np.random.default_rng(49)
+    """Test unstructured mesh in hierarchical simulations."""
+    rng = np.random.default_rng(42)
     mesh = discretize.SimplexMesh(np.random.normal(size=(4, 3)), np.c_[0, 1, 2, 3])
     sim = BaseHierarchicalElectricalSimulation(
         mesh=mesh,
@@ -1565,6 +1564,6 @@ def test_unstructured_mesh():
         face_conductance=np.ones(mesh.n_faces),
         edge_area_conductance=np.ones(mesh.n_edges),
     )
-    with pytest.raises(TypeError):
+    with pytest.raises(NotImplementedError):
         # should error on anything besides a discretize.base.BaseRegularMesh
         sim.MeSigmaI

@@ -15,7 +15,7 @@ from ..utils import validate_type, get_default_solver, get_logger, PerformanceWa
 
 
 def _inner_mat_mul_op(M, u, v=None, adjoint=False):
-    """Get inner product matrix multiplcation."""
+    """Get inner product matrix multiplication."""
     u = np.squeeze(u)
     if sp.issparse(M):
         if v is not None:
@@ -447,7 +447,7 @@ def with_surface_property_mass_matrices(property_name):
 
         @property
         def MeI_prop(self):
-            """Get dge property inner product inverse matrix."""
+            """Get edge property inner product inverse matrix."""
             stash_name = f"__MeI_{arg}"
             if getattr(self, stash_name, None) is None:
                 prop = getattr(self, property_name.lower())
@@ -912,12 +912,13 @@ class BaseElectricalEdgePropertyPDESimulation(BaseElectricalPDESimulation):
     def __init__(
         self,
         mesh,
+        survey=None,
         *,
         edge_area_conductance=None,
         edge_area_conductance_map=None,
         **kwargs,
     ):
-        super().__init__(mesh=mesh, **kwargs)
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.edge_area_conductance = edge_area_conductance
         self.edge_area_conductance_map = edge_area_conductance_map
 
@@ -953,12 +954,13 @@ class BaseElectricalFacePropertyPDESimulation(BaseElectricalPDESimulation):
     def __init__(  # noqa D107
         self,
         mesh,
+        survey=None,
         *,
         face_conductance=None,
         face_conductance_map=None,
         **kwargs,
     ):
-        super().__init__(mesh=mesh, **kwargs)
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.face_conductance = face_conductance
         self.face_conductance_map = face_conductance_map
 
@@ -988,36 +990,39 @@ class BaseHierarchicalElectricalSimulation(
     operations with the heirarchical operators.
     """
 
-    _clean_on_h_prop_update = ["_MeSigmaHeirarchical", "_MeSigmaHeirarchicalI"]
+    _clean_on_h_prop_update = ["_MeSigmaHierarchical", "_MeSigmaHierarchicalI"]
 
     @property
     def MeSigma(self):
-        """Get conductivity inner-produce matrix."""
-        if getattr(self, "_MeSigmaHeirarchical", None) is None:
+        """Get conductivity inner-product matrix."""
+        if getattr(self, "_MeSigmaHierarchical", None) is None:
             M_prop = super().MeSigma
             if self.face_conductance is not None:
                 M_prop += self._Me_face_conductance
             if self.edge_area_conductance is not None:
                 M_prop += self._Me_edge_area_conductance
-            self._MeSigmaHeirarchical = M_prop
-        return self._MeSigmaHeirarchical
+            self._MeSigmaHierarchical = M_prop
+        return self._MeSigmaHierarchical
 
     @property
     def MeSigmaI(self):
-        """Get inverse of conductivity inner-produce matrix."""
-        if getattr(self, "_MeSigmaHeirarchicalI", None) is None:
+        """Get inverse of conductivity inner-product matrix."""
+        if getattr(self, "_MeSigmaHierarchicalI", None) is None:
             if isinstance(self.mesh, discretize.base.BaseRegularMesh):
+                if TensorType(self.mesh, self.sigma) == 3:
+                    # Same failure as inverting the other property matrices.
+                    raise Exception("Solver needed to invert A.")
                 M_prop = sdinv(self.MeSigma)
             else:
-                raise TypeError(
+                raise NotImplementedError(
                     f"Inverse of physical property matrix 'MeSigma' "
                     f"not supported for {type(self.mesh)} meshes."
                 )
-            self._MeSigmaHeirarchicalI = M_prop
-        return self._MeSigmaHeirarchicalI
+            self._MeSigmaHierarchicalI = M_prop
+        return self._MeSigmaHierarchicalI
 
     def MeSigmaDeriv(self, u, v=None, adjoint=False):
-        """Compute derivative operation for conductivity inner-produce matrix."""
+        """Compute derivative operation for conductivity inner-product matrix."""
         out = super().MeSigmaDeriv(u, v, adjoint=adjoint)
         if self.face_conductance_map is not None:
             out += self._Me_face_conductance_deriv(u, v, adjoint=adjoint)
@@ -1026,7 +1031,7 @@ class BaseHierarchicalElectricalSimulation(
         return out
 
     def MeSigmaIDeriv(self, u, v=None, adjoint=False):
-        """Compute derivative operation for inversion of conductivity inner-produce matrix."""
+        """Compute derivative operation for inversion of conductivity inner-product matrix."""
         MI_prop = self.MeSigmaI
         u = MI_prop @ (MI_prop @ -u)
         return self.MeSigmaDeriv(u, v, adjoint=adjoint)

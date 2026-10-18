@@ -660,7 +660,7 @@ class Simulation3DElectricField(BaseFDEMSimulation):
         return A
 
     def getADeriv_sigma(self, freq, u, v, adjoint=False):
-        r"""Get cnductivity derivative operation for the system matrix times a vector.
+        r"""Get conductivity derivative operation for the system matrix times a vector.
 
         The system matrix at each frequency is given by:
 
@@ -2330,7 +2330,7 @@ class Simulation3DHierarchicalElectricField(
 
     .. math::
         \begin{aligned}
-        &\nabla \times \vec{E} + i\omega \vec{B} = - i \omega \vec{S}_m \\
+        &\nabla \times \vec{E} + i\omega \vec{B} = \vec{S}_m \\
         &\nabla \times \vec{H} - \vec{J} = \vec{S}_e
         \end{aligned}
 
@@ -2361,8 +2361,8 @@ class Simulation3DHierarchicalElectricField(
 
     Assuming natural boundary conditions, the surface integral is zero.
 
-    The hierarchical approach assumes the existence of infinitessimally thin plate-like
-    regions between adjacent mesh faces and infinitessimally thin wire-like regions
+    The hierarchical approach assumes the existence of infinitesimally thin plate-like
+    regions between adjacent mesh faces and infinitesimally thin wire-like regions
     between adjacent mesh edges. We re-express the inner-product with Ohm's law as follows:
 
     .. math::
@@ -2420,7 +2420,7 @@ class Simulation3DHierarchicalElectricField(
     where
 
     * :math:`\mathbf{A}=\mathbf{C^T M_{f\frac{1}{\mu}} C}+i\omega \mathbf{M_{e\Sigma}}`
-    * :math:`\mathbf{q}= \mathbf{s_e}-i \omega\mathbf{C^T M_{f\frac{1}{\mu}} s_m }`
+    * :math:`\mathbf{q} = -i\omega \mathbf{s_e} + \mathbf{C^T M_{f\frac{1}{\mu}} s_m }`
 
     """
 
@@ -2454,7 +2454,7 @@ class Simulation3DHierarchicalMagneticFluxDensity(
 
     .. math::
         \begin{aligned}
-        &\nabla \times \vec{E} + i\omega \vec{B} = - i \omega \vec{S}_m \\
+        &\nabla \times \vec{E} + i\omega \vec{B} = \vec{S}_m \\
         &\nabla \times \vec{H} - \vec{J} = \vec{S}_e
         \end{aligned}
 
@@ -2486,8 +2486,8 @@ class Simulation3DHierarchicalMagneticFluxDensity(
 
     Assuming natural boundary conditions, the surface integral is zero.
 
-    The hierarchical approach assumes the existence of infinitessimally thin plate-like
-    regions between adjacent mesh faces and infinitessimally thin wire-like regions
+    The hierarchical approach assumes the existence of infinitesimally thin plate-like
+    regions between adjacent mesh faces and infinitesimally thin wire-like regions
     between adjacent mesh edges. We re-express the inner-product with Ohm's law as follows:
 
     .. math::
