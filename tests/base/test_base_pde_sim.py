@@ -1556,7 +1556,7 @@ def test_bad_mesh():
 def test_unstructured_mesh():
     """Test unstructured mesh in hierarchical simulations."""
     rng = np.random.default_rng(42)
-    mesh = discretize.SimplexMesh(np.random.normal(size=(4, 3)), np.c_[0, 1, 2, 3])
+    mesh = discretize.SimplexMesh(rng.standard_normal(size=(4, 3)), np.c_[0, 1, 2, 3])
     sim = BaseHierarchicalElectricalSimulation(
         mesh=mesh,
         survey=None,
