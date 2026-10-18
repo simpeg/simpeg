@@ -40,7 +40,7 @@ addrandoms = True
 @pytest.mark.parametrize("sim_type", ["e", "b", "e_hier", "b_hier", "h", "j"])
 def test_adjoint(sim_type, src_type, receiver_type, receiver_dir, receiver_comp):
     """Perform adjoint test for FDEM problems."""
-    np.random.default_rng(84)
+    rng = np.random.default_rng(84)
     rx_type = (receiver_type, receiver_dir, receiver_comp)
     if "hier" in sim_type:
         prb = get_FDEM_hierarchical_problem(sim_type[0], rx_type, [src_type], freq)
@@ -53,16 +53,16 @@ def test_adjoint(sim_type, src_type, receiver_type, receiver_dir, receiver_comp)
     mu = np.ones(prb.mesh.nC) * MU
 
     if addrandoms is True:
-        m = m + np.random.randn(prb.sigmaMap.nP) * np.log(CONDUCTIVITY) * 1e-1
-        mu = mu + np.random.randn(prb.mesh.nC) * MU * 1e-1
+        m = m + rng.standard_normal(prb.sigmaMap.nP) * np.log(CONDUCTIVITY) * 1e-1
+        mu = mu + rng.standard_normal(prb.mesh.nC) * MU * 1e-1
 
     survey = prb.survey
     # prb.PropMap.PropModel.mu = mu
     # prb.PropMap.PropModel.mui = 1./mu
     u = prb.fields(m)
 
-    v = np.random.rand(survey.nD)
-    w = np.random.rand(prb.sigmaMap.nP)  # works for sigma_only and sigma, tau, kappa
+    v = rng.uniform(survey.nD)
+    w = rng.uniform(prb.sigmaMap.nP)  # works for sigma_only and sigma, tau, kappa
 
     vJw = v.dot(prb.Jvec(m, w, u))
     wJtv = w.dot(prb.Jtvec(m, v, u))

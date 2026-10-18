@@ -256,7 +256,7 @@ def crossCheckTest(
     verbose=False,
     sigma_only=True,
 ):
-    np.random.default_rng(45)
+    rng = np.random.default_rng(45)
 
     def l2norm(r):
         return np.sqrt(r.dot(r))
@@ -281,10 +281,10 @@ def crossCheckTest(
     mu = np.ones(mesh.nC) * MU
 
     if addrandoms is True:
-        logsig += np.random.randn(mesh.nC) * np.log(CONDUCTIVITY) * 1e-1
-        logtau += np.random.randn(mesh.nF) * np.log(CONDUCTIVITY) * 1e-1
-        logkappa += np.random.randn(mesh.nE) * np.log(CONDUCTIVITY) * 1e-1
-        mu += np.random.randn(mesh.nC) * MU * 1e-1
+        logsig += rng.standard_normal(mesh.nC) * np.log(CONDUCTIVITY) * 1e-1
+        logtau += rng.standard_normal(mesh.nF) * np.log(CONDUCTIVITY) * 1e-1
+        logkappa += rng.standard_normal(mesh.nE) * np.log(CONDUCTIVITY) * 1e-1
+        mu += rng.standard_normal(mesh.nC) * MU * 1e-1
 
     if sigma_only:
         if useMu:
