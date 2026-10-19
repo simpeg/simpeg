@@ -15,6 +15,17 @@ Updates
 New features
 ------------
 
+- TileMap –> use the discretize volume averaging by `@lheagy <https://github.com/lheagy>`__ in
+  https://github.com/simpeg/simpeg/pull/1770
+
+Extended support to Python 3.14
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We extended support to Python 3.14 and Numpy 2.5. Starting from this release, we are running scheduled tests of SimPEG against the latest supported Python version and its dependencies.
+
+Improvements to Natural Sources EM
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 - NSEM receivers for 2D simulation by `@dccowan <https://github.com/dccowan>`__ in
   https://github.com/simpeg/simpeg/pull/1684
 - Improved right-hand side for NSEM primary secondary by `@dccowan <https://github.com/dccowan>`__ in
@@ -23,41 +34,30 @@ New features
   https://github.com/simpeg/simpeg/pull/1766
 - Stable padding for 1D MT solutions by `@dccowan <https://github.com/dccowan>`__ in
   https://github.com/simpeg/simpeg/pull/1769
-- Bump Python version to 3.14 in ``environment.yml`` by `@santisoler <https://github.com/santisoler>`__ in
-  https://github.com/simpeg/simpeg/pull/1813
+- Add rotation invariant transfer functions by `@dccowan <https://github.com/dccowan>`__ in
+  https://github.com/simpeg/simpeg/pull/1779
+
+Improvements to simulations that use ``multiprocessing``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 - Enhance robustness and error handling in multiprocessing simulations
   by `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1776
 - Make multiprocessing potential field kernel build using shared memory
   by `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1816
-- Add rotation invariant transfer functions by `@dccowan <https://github.com/dccowan>`__ in
-  https://github.com/simpeg/simpeg/pull/1779
 
 
 Documentation
 -------------
 
-- Replace LaTeX ``align`` for ``aligned`` in math directives by
-  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1758
-- Fix math definition of RHS in FDEM simulations by `@RylanDS7 <https://github.com/RylanDS7>`__ in
-  https://github.com/simpeg/simpeg/pull/1774
-- Remove non-existing function from API reference by `@santisoler <https://github.com/santisoler>`__ in
-  https://github.com/simpeg/simpeg/pull/1784
-- Move Contributing guide to its own section by `@santisoler <https://github.com/santisoler>`__ in
-  https://github.com/simpeg/simpeg/pull/1781
-- Minor fixes to Contributing guide by `@santisoler <https://github.com/santisoler>`__ in
-  https://github.com/simpeg/simpeg/pull/1782
-- Fix some ``numpydocstyle`` issues by `@santisoler <https://github.com/santisoler>`__ in
-  https://github.com/simpeg/simpeg/pull/1785
-- Update URL to ``pymatsolver`` for ``intersphinx`` by `@santisoler <https://github.com/santisoler>`__ in
-  https://github.com/simpeg/simpeg/pull/1783
-- Make ``sphinx-gallery`` configuration pickable by `@santisoler <https://github.com/santisoler>`__ in
-  https://github.com/simpeg/simpeg/pull/1786
-- Add page on deprecating code to Contributing Guide by `@santisoler <https://github.com/santisoler>`__ in
-  https://github.com/simpeg/simpeg/pull/1808
+We moved the :ref:`Contributing Guide <contributing>` to its own separated section within the :ref:`User Guide <user_guide>`, and we included a new page explaining the process of :ref:`deprecating and removing code <deprecations>`.
+
+The documentation also received some minor fixes in style and some mathematical expressions.
 
 
 Bugfixes
 --------
+
+This release introduces the following bug fixes:
 
 - Fix line feeds in natural_source/simulation.py to be LF instead by
   `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1772
@@ -68,42 +68,18 @@ Bugfixes
 - Fix bug in ``getJ`` method of FDEM simulations by `@lheagy <https://github.com/lheagy>`__ in
   https://github.com/simpeg/simpeg/pull/1822
 
+
 Breaking changes
 ----------------
 
-- Drop support for Python 3.11 by `@santisoler <https://github.com/santisoler>`__ in
-  https://github.com/simpeg/simpeg/pull/1802
-- Remove the ``warn`` argument in ``get_default_solver`` by `@santisoler <https://github.com/santisoler>`__
-  in https://github.com/simpeg/simpeg/pull/1797
-- Removed deprecated directives submodules by `@santisoler <https://github.com/santisoler>`__ in
-  https://github.com/simpeg/simpeg/pull/1798
-- Remove deprecated properties of optimizers by `@santisoler <https://github.com/santisoler>`__ in
-  https://github.com/simpeg/simpeg/pull/1799
-- Remove deprecated properties from directives by `@santisoler <https://github.com/santisoler>`__ in
-  https://github.com/simpeg/simpeg/pull/1800
+This release drops support for Python 3.11 (see `#1802 <https://github.com/simpeg/simpeg/pull/1802>`__) since it reaches its end-of-life by the end of this month.
 
+We removed some deprecated bits of code that were due for this minor release:
 
-Maintenance
------------
-
-- Update link to PyPI in release checklist by `@santisoler <https://github.com/santisoler>`__ in
-  https://github.com/simpeg/simpeg/pull/1755
-- Add patches to support Numpy 2.4 by `@santisoler <https://github.com/santisoler>`__ in
-  https://github.com/simpeg/simpeg/pull/1759
-- Improve type hints in ``distance_weighting`` by `@santisoler <https://github.com/santisoler>`__ in
-  https://github.com/simpeg/simpeg/pull/1756
-- Remove unused functions in NSEM source utils by `@santisoler <https://github.com/santisoler>`__ in
-  https://github.com/simpeg/simpeg/pull/1763
-- TileMap –> use the discretize volume averaging by `@lheagy <https://github.com/lheagy>`__ in
-  https://github.com/simpeg/simpeg/pull/1770
-- Use dependabot to check for updates in GitHub Actions by `@santisoler <https://github.com/santisoler>`__
-  in https://github.com/simpeg/simpeg/pull/1789
-- Remove Action that runs ``reviewdog`` in PRs by `@santisoler <https://github.com/santisoler>`__ in
-  https://github.com/simpeg/simpeg/pull/1795
-- Add Actions workflow to test against latest dependencies by
-  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1807
-- Run Ruff to check some ``pydocstyle`` errors by `@santisoler <https://github.com/santisoler>`__ in
-  https://github.com/simpeg/simpeg/pull/1788
+- Remove the ``warn`` argument in ``get_default_solver`` in https://github.com/simpeg/simpeg/pull/1797
+- Removed deprecated directives submodules in https://github.com/simpeg/simpeg/pull/1798
+- Remove deprecated properties of optimizers in https://github.com/simpeg/simpeg/pull/1799
+- Remove deprecated properties from directives in https://github.com/simpeg/simpeg/pull/1800
 
 
 Contributors
