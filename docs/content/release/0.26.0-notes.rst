@@ -1,0 +1,221 @@
+.. _0.26.0_notes:
+
+===========================
+SimPEG 0.26.0 Release Notes
+===========================
+
+October DAYth, 2026
+
+.. contents:: Highlights
+    :depth: 3
+
+Updates
+=======
+
+New features
+------------
+
+- NSEM receivers for 2D simulation by `@dccowan <https://github.com/dccowan>`__ in
+  https://github.com/simpeg/simpeg/pull/1684
+- Improved right-hand side for NSEM primary secondary by `@dccowan <https://github.com/dccowan>`__ in
+  https://github.com/simpeg/simpeg/pull/1661
+- Nsem recursive add zyx by `@dccowan <https://github.com/dccowan>`__ in
+  https://github.com/simpeg/simpeg/pull/1766
+- Stable padding for 1D MT solutions by `@dccowan <https://github.com/dccowan>`__ in
+  https://github.com/simpeg/simpeg/pull/1769
+- Bump Python version to 3.14 in ``environment.yml`` by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1813
+- Enhance robustness and error handling in multiprocessing simulations
+  by `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1776
+- Make multiprocessing potential field kernel build using shared memory
+  by `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1816
+- Add rotation invariant transfer functions by `@dccowan <https://github.com/dccowan>`__ in
+  https://github.com/simpeg/simpeg/pull/1779
+
+
+Documentation
+-------------
+
+- Replace LaTeX ``align`` for ``aligned`` in math directives by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1758
+- Fix math definition of RHS in FDEM simulations by `@RylanDS7 <https://github.com/RylanDS7>`__ in
+  https://github.com/simpeg/simpeg/pull/1774
+- Remove non-existing function from API reference by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1784
+- Move Contributing guide to its own section by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1781
+- Minor fixes to Contributing guide by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1782
+- Fix some ``numpydocstyle`` issues by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1785
+- Update URL to ``pymatsolver`` for ``intersphinx`` by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1783
+- Make ``sphinx-gallery`` configuration pickable by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1786
+- Add page on deprecating code to Contributing Guide by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1808
+
+
+Bugfixes
+--------
+
+- Fix line feeds in natural_source/simulation.py to be LF instead by
+  `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1772
+- Make ``simpeg.utils.download`` respect the ``verbose`` argument by
+  `@manduinca <https://github.com/manduinca>`__ in https://github.com/simpeg/simpeg/pull/1777
+- Fix Maxwell equation in FDEM module description by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1778
+- Fix bug in ``getJ`` method of FDEM simulations by `@lheagy <https://github.com/lheagy>`__ in
+  https://github.com/simpeg/simpeg/pull/1822
+
+Breaking changes
+----------------
+
+- Drop support for Python 3.11 by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1802
+- Remove the ``warn`` argument in ``get_default_solver`` by `@santisoler <https://github.com/santisoler>`__
+  in https://github.com/simpeg/simpeg/pull/1797
+- Removed deprecated directives submodules by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1798
+- Remove deprecated properties of optimizers by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1799
+- Remove deprecated properties from directives by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1800
+
+
+Maintenance
+-----------
+
+- Update link to PyPI in release checklist by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1755
+- Add patches to support Numpy 2.4 by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1759
+- Improve type hints in ``distance_weighting`` by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1756
+- Remove unused functions in NSEM source utils by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1763
+- TileMap –> use the discretize volume averaging by `@lheagy <https://github.com/lheagy>`__ in
+  https://github.com/simpeg/simpeg/pull/1770
+- Use dependabot to check for updates in GitHub Actions by `@santisoler <https://github.com/santisoler>`__
+  in https://github.com/simpeg/simpeg/pull/1789
+- Remove Action that runs ``reviewdog`` in PRs by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1795
+- Add Actions workflow to test against latest dependencies by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1807
+- Run Ruff to check some ``pydocstyle`` errors by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1788
+
+
+Contributors
+============
+
+* `@dccowan <https://github.com/dccowan>`__
+* `@jcapriot <https://github.com/jcapriot>`__
+* `@lheagy <https://github.com/lheagy>`__
+* `@manduinca <https://github.com/manduinca>`__
+* `@RylanDS7 <https://github.com/RylanDS7>`__
+* `@santisoler <https://github.com/santisoler>`__
+
+We would like to highlight the work made by new contributors:
+
+- `@RylanDS7 <https://github.com/RylanDS7>`__ made their first contribution in
+  https://github.com/simpeg/simpeg/pull/1774
+- `@manduinca <https://github.com/manduinca>`__ made their first contribution in
+  https://github.com/simpeg/simpeg/pull/1777
+
+
+Pull Requests
+=============
+
+- Update link to PyPI in release checklist by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1755
+- NSEM receivers for 2D simulation by `@dccowan <https://github.com/dccowan>`__ in
+  https://github.com/simpeg/simpeg/pull/1684
+- Add patches to support Numpy 2.4 by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1759
+- Replace LaTeX ``align`` for ``aligned`` in math directives by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1758
+- Improve type hints in ``distance_weighting`` by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1756
+- Cherry-pick changelog for v0.25.2 by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1762
+- Improved right-hand side for NSEM primary secondary by `@dccowan <https://github.com/dccowan>`__ in
+  https://github.com/simpeg/simpeg/pull/1661
+- Remove unused functions in NSEM source utils by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1763
+- TileMap –> use the discretize volume averaging by `@lheagy <https://github.com/lheagy>`__ in
+  https://github.com/simpeg/simpeg/pull/1770
+- Add allow-unsafe-pr-checkout: true by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1773
+- Fix line feeds in natural_source/simulation.py to be LF instead by
+  `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1772
+- Fix math definition of RHS in FDEM simulations by `@RylanDS7 <https://github.com/RylanDS7>`__ in
+  https://github.com/simpeg/simpeg/pull/1774
+- Nsem recursive add zyx by `@dccowan <https://github.com/dccowan>`__ in
+  https://github.com/simpeg/simpeg/pull/1766
+- Stable padding for 1D MT solutions by `@dccowan <https://github.com/dccowan>`__ in
+  https://github.com/simpeg/simpeg/pull/1769
+- Make ``simpeg.utils.download`` respect the ``verbose`` argument by
+  `@manduinca <https://github.com/manduinca>`__ in https://github.com/simpeg/simpeg/pull/1777
+- Remove non-existing function from API reference by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1784
+- Move Contributing guide to its own section by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1781
+- Minor fixes to Contributing guide by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1782
+- Fix some ``numpydocstyle`` issues by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1785
+- Update URL to ``pymatsolver`` for ``intersphinx`` by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1783
+- Make ``sphinx-gallery`` configuration pickable by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1786
+- Use dependabot to check for updates in GitHub Actions by `@santisoler <https://github.com/santisoler>`__
+  in https://github.com/simpeg/simpeg/pull/1789
+- Remove Action that runs ``reviewdog`` in PRs by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1795
+- Bump actions/checkout from 4 to 7 by `@dependabot <https://github.com/dependabot>`__ [bot] in
+  https://github.com/simpeg/simpeg/pull/1791
+- Bump actions/setup-python from 5 to 7 by `@dependabot <https://github.com/dependabot>`__ [bot] in
+  https://github.com/simpeg/simpeg/pull/1790
+- Drop support for Python 3.11 by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1802
+- Add Actions workflow to test against latest dependencies by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1807
+- Run Ruff to check some ``pydocstyle`` errors by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1788
+- Bump black from 24.3.0 to 26.3.1 by `@dependabot <https://github.com/dependabot>`__ [bot] in
+  https://github.com/simpeg/simpeg/pull/1809
+- Extend Black target-version up to py314 by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1810
+- Remove the ``warn`` argument in ``get_default_solver`` by `@santisoler <https://github.com/santisoler>`__
+  in https://github.com/simpeg/simpeg/pull/1797
+- Bump conda-incubator/setup-miniconda from 4.0.1 to 4.1.0 by
+  `@dependabot <https://github.com/dependabot>`__ [bot] in https://github.com/simpeg/simpeg/pull/1811
+- Removed deprecated directives submodules by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1798
+- Remove deprecated properties of optimizers by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1799
+- Replace the deprecated ``typing.Type`` for ``type`` by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1801
+- Remove deprecated properties from directives by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1800
+- Fix Maxwell equation in FDEM module description by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1778
+- Bump Python version to 3.14 in ``environment.yml`` by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1813
+- Add page on deprecating code to Contributing Guide by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1808
+- Enhance robustness and error handling in multiprocessing simulations
+  by `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1776
+- Make multiprocessing potential field kernel build using shared memory
+  by `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1816
+- Replace deprecated refine_tree_xyz across tests by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1466
+- Replace ``refine_tree_xyz`` in latest magnetic tests by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1819
+- Add rotation invariant transfer functions by `@dccowan <https://github.com/dccowan>`__ in
+  https://github.com/simpeg/simpeg/pull/1779
+- Replace ``refine_tree_xyz`` in examples by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1820
+- Fix bug in ``getJ`` method of FDEM simulations by `@lheagy <https://github.com/lheagy>`__ in
+  https://github.com/simpeg/simpeg/pull/1822
