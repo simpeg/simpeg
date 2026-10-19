@@ -1272,7 +1272,14 @@ class Simulation3DHierarchicalNodal(
 
     """
 
-    pass
+    def getA(self, resistivity=None):  # noqa D102
+        # Docstring inherited from parent class.
+        if resistivity is not None:
+            raise NotImplementedError(
+                "The 'resistivity' argument is not supported by the hierarchical "
+                "simulation, because it would ignore the face and edge conductances."
+            )
+        return super().getA()
 
 
 Simulation3DCellCentred = Simulation3DCellCentered  # UK and US!
