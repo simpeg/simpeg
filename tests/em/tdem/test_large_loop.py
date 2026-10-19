@@ -234,5 +234,15 @@ def test_large_loop_trapezoid(simulation_type):
     # formulations, a bug fixed in #1812
     np.testing.assert_equal(np.sign(dpred_numeric), np.sign(dpred1d), strict=True)
 
-    atol = 1e-7 * np.max(np.abs(dpred1d))
-    np.testing.assert_allclose(dpred_numeric, dpred1d, rtol=REL_TOL, atol=atol)
+    # Compare the numeric b and dbdt with their respective analytic solutions
+    b_numeric = dpred_numeric[: dpred_numeric.size // 2]
+    b_1d = dpred1d[: dpred1d.size // 2]
+    atol = 1e-7 * np.max(np.abs(b_1d))
+    np.testing.assert_allclose(b_numeric, b_1d, rtol=REL_TOL, atol=atol, strict=True)
+
+    dbdt_numeric = dpred_numeric[dpred_numeric.size // 2 :]
+    dbdt_1d = dpred1d[dpred1d.size // 2 :]
+    atol = 1e-7 * np.max(np.abs(dbdt_1d))
+    np.testing.assert_allclose(
+        dbdt_numeric, dbdt_1d, rtol=REL_TOL, atol=atol, strict=True
+    )
