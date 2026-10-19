@@ -235,4 +235,4 @@ def test_large_loop_trapezoid(simulation_type):
     np.testing.assert_equal(np.sign(dpred_numeric), np.sign(dpred1d), strict=True)
 
     atol = 1e-7 * np.max(np.abs(dpred1d))
-    np.testing.assert_allclose(dpred_numeric, dpred1d, rtol=0.2, atol=atol)
+    np.testing.assert_allclose(dpred_numeric, dpred1d, rtol=REL_TOL, atol=atol)
