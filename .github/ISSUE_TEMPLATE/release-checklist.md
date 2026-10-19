@@ -124,7 +124,7 @@ If this releases drops support of an old Python version:
 - [ ] Open the `docs/content/user-guide/getting-started/version-compatibility.rst` file and go to the `Supported Python versions` section.
 - [ ] Make sure that the current latest version is listed there along with the corresponding Python version that this release will drop support for.
 
-> [!HINT]
+> [!TIP]
 > For example, if the latest release to the date is `v0.25.2`, we are about to release `v0.26.0`, and we are dropping support for Python 3.11, then we need to identify `v0.25.0` as the last version to support Python 3.11:
 >
 > ```rst
