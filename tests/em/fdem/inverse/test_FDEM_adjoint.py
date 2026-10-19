@@ -61,8 +61,8 @@ def test_adjoint(sim_type, src_type, receiver_type, receiver_dir, receiver_comp)
     # prb.PropMap.PropModel.mui = 1./mu
     u = prb.fields(m)
 
-    v = rng.uniform(survey.nD)
-    w = rng.uniform(prb.sigmaMap.nP)  # works for sigma_only and sigma, tau, kappa
+    v = rng.uniform(size=survey.nD)
+    w = rng.uniform(size=prb.sigmaMap.nP)  # works for sigma_only and sigma, tau, kappa
 
     vJw = v.dot(prb.Jvec(m, w, u))
     wJtv = w.dot(prb.Jtvec(m, v, u))
