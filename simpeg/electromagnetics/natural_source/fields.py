@@ -54,24 +54,24 @@ class _EField(_1DField):
     def _eDeriv_m(self, src, v, adjoint=False):
         return Zero()
 
-    def _h(self, eSolution, source_list):
-        omegas = np.array([omega(src.frequency) for src in source_list])
-        e = self._e(eSolution, source_list)
+    def _mui(self):
         mui = self.simulation.mui
         if np.ndim(mui) > 0:
             # one value per cell, broadcast along the columns of the fields
             mui = mui[:, None]
-        v = mui * (self._C * e)
+        return mui
+
+    def _h(self, eSolution, source_list):
+        omegas = np.array([omega(src.frequency) for src in source_list])
+        e = self._e(eSolution, source_list)
+        v = self._mui() * (self._C * e)
         return v / (1j * omegas)
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
         if du_dm_v.ndim == 1:
             du_dm_v = du_dm_v[:, None]
         om = omega(src.frequency)
-        mui = self.simulation.mui
-        if np.ndim(mui) > 0:
-            # one value per cell, broadcast along the columns of the fields
-            mui = mui[:, None]
+        mui = self._mui()
         if adjoint:
             y = self._eDeriv_u(src, self._C.T * (mui * du_dm_v), adjoint=adjoint)
             return np.squeeze(y) / (1j * om)
