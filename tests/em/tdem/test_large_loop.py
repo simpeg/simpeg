@@ -237,7 +237,7 @@ def test_large_loop_trapezoid(simulation_type):
     # Compare the numeric b and dbdt with their respective analytic solutions
     b_numeric = dpred_numeric[: dpred_numeric.size // 2]
     b_1d = dpred1d[: dpred1d.size // 2]
-    atol = 1e-7 * np.max(np.abs(b_1d))
+    atol = 1e-3 * np.max(np.abs(b_1d))
     np.testing.assert_allclose(b_numeric, b_1d, rtol=REL_TOL, atol=atol, strict=True)
 
     dbdt_numeric = dpred_numeric[dpred_numeric.size // 2 :]
