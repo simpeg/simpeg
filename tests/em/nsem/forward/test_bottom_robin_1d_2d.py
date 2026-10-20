@@ -5,8 +5,9 @@ Tests for the Robin (absorbing) bottom boundary of the 1D and 2D NSEM simulation
 import numpy as np
 import pytest
 import discretize
+from scipy.constants import mu_0
 
-from simpeg import maps
+from simpeg import maps, tests
 from simpeg.electromagnetics import natural_source as nsem
 from simpeg.utils import get_default_solver
 
@@ -30,10 +31,10 @@ def mesh_1d(bottom_pads):
 
 def dpred_1d(mesh, orientation):
     sim_class = {
-        "xy": nsem.simulation.Simulation1DElectricField,
-        "yx": nsem.simulation.Simulation1DMagneticField,
+        "xy": nsem.Simulation1DElectricField,
+        "yx": nsem.Simulation1DMagneticField,
     }[orientation]
-    survey = nsem.survey.Survey(
+    survey = nsem.Survey(
         [
             nsem.sources.Planewave(
                 [
@@ -85,10 +86,10 @@ def test_2d_matches_1d_on_shallow_mesh(orientation, boundaries):
     mesh = discretize.TensorMesh([h, h], "CC")
     mesh.origin = mesh.origin + np.r_[0, -mesh.origin[1] - mesh.h[1][:52].sum()]
     sim_class = {
-        "xy": nsem.simulation.Simulation2DElectricField,
-        "yx": nsem.simulation.Simulation2DMagneticField,
+        "xy": nsem.Simulation2DElectricField,
+        "yx": nsem.Simulation2DMagneticField,
     }[orientation]
-    survey = nsem.survey.Survey(
+    survey = nsem.Survey(
         [
             nsem.sources.Planewave(
                 [
@@ -120,29 +121,21 @@ def test_2d_matches_1d_on_shallow_mesh(orientation, boundaries):
 @pytest.mark.parametrize(
     "sim_class, prop",
     [
-        (nsem.simulation.Simulation1DElectricField, "sigma"),
-        (nsem.simulation.Simulation1DElectricField, "mu"),
-        (nsem.simulation.Simulation1DMagneticField, "rho"),
-        (nsem.simulation.Simulation1DMagneticField, "mu"),
+        (nsem.Simulation1DElectricField, "sigma"),
+        (nsem.Simulation1DElectricField, "mu"),
+        (nsem.Simulation1DMagneticField, "rho"),
+        (nsem.Simulation1DMagneticField, "mu"),
     ],
 )
 def test_1d_derivatives(sim_class, prop):
     """The bottom robin term depends on the bottom cell's properties."""
-    from scipy.constants import mu_0
-
-    from simpeg import tests
-
     mesh = mesh_1d(bottom_pads=12)
-    orientation = (
-        "yx" if sim_class is nsem.simulation.Simulation1DElectricField else "xy"
-    )
+    orientation = "yx" if sim_class is nsem.Simulation1DElectricField else "xy"
     receivers = [
         nsem.receivers.Impedance([[0.0]], orientation=orientation, component=c)
         for c in ("real", "imag")
     ]
-    survey = nsem.survey.Survey(
-        [nsem.sources.Planewave(receivers, f) for f in FREQUENCIES]
-    )
+    survey = nsem.Survey([nsem.sources.Planewave(receivers, f) for f in FREQUENCIES])
     sigma = layered(mesh.cell_centers)
     kwargs = {f"{prop}Map": maps.ExpMap(mesh)}
     if prop == "sigma":
@@ -166,7 +159,7 @@ def test_1d_derivatives(sim_class, prop):
     # the magnetic field formulation is poorly conditioned with a resistive air
     # layer (its curl-curl term carries the air resistivity), so its adjoint is
     # only good to about 1e-8
-    rtol = 1e-8 if sim_class is nsem.simulation.Simulation1DElectricField else 1e-6
+    rtol = 1e-8 if sim_class is nsem.Simulation1DElectricField else 1e-6
     np.testing.assert_allclose(
         w @ sim.Jvec(m0, v, f=f), v @ sim.Jtvec(m0, w, f=f), rtol=rtol
     )
