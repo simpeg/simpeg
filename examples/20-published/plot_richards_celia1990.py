@@ -52,7 +52,7 @@ def run(plotIt=True):
     M = discretize.TensorMesh([np.ones(40)])
     M.set_cell_gradient_BC("dirichlet")
     params = richards.empirical.HaverkampParams().celia1990
-    k_fun, theta_fun = richards.empirical.haverkamp(M, **params)
+    k_fun, theta_fun = richards.empirical.haverkamp(**params)
     k_fun.KsMap = maps.IdentityMap(nP=M.nC)
 
     bc = np.array([-61.5, -20.7])

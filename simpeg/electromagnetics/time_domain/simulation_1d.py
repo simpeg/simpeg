@@ -34,7 +34,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
     for a single sounding.
     """
 
-    def __init__(self, survey=None, time_filter="key_81_2009", **kwargs):
+    def __init__(self, survey=None, *, time_filter="key_81_2009", **kwargs):
         super().__init__(survey=survey, **kwargs)
         self._coefficients_set = False
         self.time_filter = time_filter
