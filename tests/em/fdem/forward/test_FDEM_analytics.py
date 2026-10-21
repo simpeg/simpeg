@@ -134,7 +134,7 @@ class TestDipoles(unittest.TestCase):
         # set up source
         # test electric dipole
         src_loc = np.r_[0.0, 0.0, 0.0]
-        s_ind = utils.closest_points_index(mesh, src_loc, "Fz") + mesh.nFx
+        s_ind = mesh.closest_points_index(src_loc, "Fz") + mesh.nFx
 
         de = np.zeros(mesh.nF, dtype=complex)
         de[s_ind] = 1.0 / csz
