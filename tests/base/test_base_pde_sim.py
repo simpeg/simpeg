@@ -1554,3 +1554,16 @@ def test_unstructured_mesh():
     with pytest.raises(NotImplementedError):
         # should error on anything besides a discretize.base.BaseRegularMesh
         sim.MeSigmaI
+
+
+@pytest.mark.parametrize("name", ["face_conductance", "edge_area_conductance"])
+def test_deprecated_conductance_map_arguments(name):
+    """Test the pre-parametrize ``*_map`` names still work, with a warning."""
+    mesh = discretize.TensorMesh([3, 3, 3])
+    with pytest.warns(FutureWarning, match=f"{name}_map"):
+        sim = BaseHierarchicalElectricalSimulation(
+            mesh, sigma=1.0, **{f"{name}_map": maps.ExpMap()}
+        )
+    assert sim.is_parametrized(name)
+    with pytest.warns(FutureWarning, match=f"{name}_map"):
+        assert getattr(sim, f"{name}_map") is sim.parametrizations[name]
