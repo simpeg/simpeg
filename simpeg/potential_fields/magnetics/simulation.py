@@ -1145,7 +1145,7 @@ class Simulation3DIntegral(BasePFSimulation):
         Compute the diagonal of ``G.T @ G`` without building the ``G`` matrix.
 
         Parameters
-        -----------
+        ----------
         weights : (nD,) array
             Array with data weights. It should be the diagonal of the ``W``
             matrix, squared.
@@ -1565,7 +1565,7 @@ class SimulationEquivalentSourceLayer(
         Compute the diagonal of ``G.T @ G`` without building the ``G`` matrix.
 
         Parameters
-        -----------
+        ----------
         weights : (nD,) array
             Array with data weights. It should be the diagonal of the ``W``
             matrix, squared.
@@ -1653,6 +1653,7 @@ class SimulationEquivalentSourceLayer(
         return diagonal
 
 
+@_add_deprecated_physical_property_functions("rem")
 class Simulation3DDifferential(BaseMagneticPDESimulation):
     r"""A secondary field simulation for magnetic data.
 
@@ -1667,13 +1668,11 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
     muMap : simpeg.maps.IdentityMap, optional
         The mapping used to go from the simulation model to ``mu``. Set this
         to invert for ``mu``.
-    rem : float, array_like
-        Magnetic Polarization :math:`\mu_0 \mathbf{M}` (nT). Set this for forward
-        modeling or to fix remanent magnetization while inverting for permeability.
-        This is used if ``remMap`` is None.
-    remMap : simpeg.maps.IdentityMap, optional
-        The mapping used to go from the simulation model to :math:`\mu_0 \mathbf{M}`.
-        Set this to invert for :math:`\mu_0 \mathbf{M}`.
+    rem : float, array_like, simpeg.maps.IdentityMap
+        Magnetic Polarization :math:`\mu_0 \mathbf{M}` (nT). Set this to an array
+        for forward modeling or to fix remanent magnetization while inverting for
+        permeability. Pass a mapping from the simulation model to
+        :math:`\mu_0 \mathbf{M}` to invert for :math:`\mu_0 \mathbf{M}`.
     storeJ: bool
         Whether to store the sensitivity matrix. If set to True
     solver_dtype: dtype, optional
@@ -1701,8 +1700,8 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
     _Ainv = None
 
-    rem, remMap, remDeriv = props.Invertible(
-        "Magnetic Polarization (nT)", optional=True
+    rem = props.PhysicalProperty(
+        "Magnetic Polarization (nT)", shape=("*",), default=None
     )
 
     _supported_components = ("tmi", "bx", "by", "bz")
@@ -1714,7 +1713,6 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         mu=None,
         muMap=None,
         rem=None,
-        remMap=None,
         storeJ=False,
         solver_dtype=np.float64,
         **kwargs,
@@ -1724,8 +1722,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         super().__init__(mesh=mesh, survey=survey, mu=mu, muMap=muMap, **kwargs)
 
-        self.rem = rem
-        self.remMap = remMap
+        self._init_property(rem=rem)
 
         self.storeJ = storeJ
         self.solver_dtype = solver_dtype
@@ -2003,8 +2000,10 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         Jtv = 0
 
-        if self.remMap is not None:
-            Mf_rem_deriv = self._Mf_vec_deriv * sp.diags(1 / mu_vec) * self.remDeriv
+        if self.is_parametrized("rem"):
+            Mf_rem_deriv = (
+                self._Mf_vec_deriv * sp.diags(1 / mu_vec) * self._prop_deriv("rem")
+            )
             Jtv += (self.MfMuiI * Mf_rem_deriv).T * (divt_solve_q)
 
         if self.muMap is not None:
@@ -2047,8 +2046,10 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         mu_vec = np.tile(self.mu * np.ones(self.mesh.n_cells), self.mesh.dim)
 
-        if self.remMap is not None:
-            Mf_rem_deriv = self._Mf_vec_deriv * sp.diags(1 / mu_vec) * self.remDeriv
+        if self.is_parametrized("rem"):
+            Mf_rem_deriv = (
+                self._Mf_vec_deriv * sp.diags(1 / mu_vec) * self._prop_deriv("rem")
+            )
             db_dm += self.MfMuiI * Mf_rem_deriv * v
 
         if self.muMap is not None:

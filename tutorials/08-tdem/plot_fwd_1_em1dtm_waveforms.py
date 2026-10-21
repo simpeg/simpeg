@@ -29,7 +29,6 @@ mpl.rcParams.update({"font.size": 16})
 from simpeg import maps
 import simpeg.electromagnetics.time_domain as tdem
 
-
 #####################################################################
 # Define Waveforms
 # ----------------

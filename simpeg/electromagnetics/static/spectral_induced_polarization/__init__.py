@@ -71,6 +71,5 @@ from . import sources as Src
 from . import receivers as Rx
 from .run import run_inversion, spectral_ip_mappings
 
-
 Simulation2DCellCentred = Simulation2DCellCentered
 Simulation3DCellCentred = Simulation2DCellCentered

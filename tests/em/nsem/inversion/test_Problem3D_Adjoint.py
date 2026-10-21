@@ -3,7 +3,6 @@ import unittest
 from simpeg.electromagnetics import natural_source as nsem
 from scipy.constants import mu_0
 
-
 TOLr = 5e-2
 TOL = 1e-4
 FLR = 1e-20  # "zero", so if residual below this --> pass regardless of order

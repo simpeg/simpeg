@@ -74,7 +74,7 @@ def setupProblem(
         )
 
     elif prbtype in ["MagneticField", "CurrentDensity"]:
-        ind = utils.closest_points_index(mesh, src_loc, "Fz") + mesh.vnF[0]
+        ind = mesh.closest_points_index(src_loc, "Fz") + mesh.vnF[0]
         vec = np.zeros(mesh.nF)
         vec[ind] = 1.0
 

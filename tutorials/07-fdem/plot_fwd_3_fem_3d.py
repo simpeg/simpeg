@@ -40,7 +40,6 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-
 save_file = False
 
 # sphinx_gallery_thumbnail_number = 2

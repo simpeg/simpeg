@@ -184,7 +184,7 @@ starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e0)
 update_Jacobi = directives.UpdatePreconditioner()
 
 # Save output at each iteration
-saveDict = directives.SaveOutputEveryIteration(save_txt=False)
+saveDict = directives.SaveOutputEveryIteration(on_disk=False)
 
 # Define the directives as a list
 directives_list = [

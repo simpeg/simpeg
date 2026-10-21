@@ -253,7 +253,7 @@ class BaseEM1DSimulation(BaseSimulation):
         Computes the complex conductivity matrix using Pelton's Cole-Cole model:
 
         Parameters
-        -----------
+        ----------
         frequencies : (n_frequencies,) array
             Array with frequencies.
 
@@ -327,7 +327,7 @@ class BaseEM1DSimulation(BaseSimulation):
         distribution of time-relaxation constants:
 
         Parameters
-        -----------
+        ----------
         frequencies : (n_frequencies,) array
             Array with frequencies.
 

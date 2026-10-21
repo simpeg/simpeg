@@ -63,15 +63,11 @@ def requires(var):
 
                 survey.pair(myProblem)
 
-            """.format(
-                f.__name__
-            )
+            """.format(f.__name__)
         else:
             extra = """
                 To use *{0!s}* method, SimPEG requires that the {1!s} be specified.
-            """.format(
-                f.__name__, var
-            )
+            """.format(f.__name__, var)
 
         @wraps(f)
         def requiresVarWrapper(self, *args, **kwargs):

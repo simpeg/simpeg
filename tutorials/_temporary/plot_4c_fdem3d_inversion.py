@@ -346,7 +346,7 @@ starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=10)
 beta_schedule = directives.BetaSchedule(coolingFactor=10, coolingRate=3)
 
 # Options for outputting recovered models and predicted data for each beta.
-save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
+save_iteration = directives.SaveOutputEveryIteration(on_disk=False)
 
 # Setting a stopping criteria for the inversion.
 target_misfit = directives.TargetMisfit(chifact=1)

@@ -27,7 +27,6 @@ from simpeg.utils import (
 )
 import discretize
 
-
 TOL = 1e-8
 np.random.seed(25)
 
