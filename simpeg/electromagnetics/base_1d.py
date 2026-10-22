@@ -70,12 +70,12 @@ class BaseEM1DSimulation(BaseSimulation):
     tau = props.PhysicalProperty(
         "Time constant for Cole-Cole model (s)",
         invertible=False,
-        default=0.5,
+        default=1.0,
     )
     c = props.PhysicalProperty(
         "Frequency Dependency for Cole-Cole model, 0 < c < 1",
         invertible=False,
-        default=1.0,
+        default=0.5,
     )
 
     # Properties for magnetic susceptibility
