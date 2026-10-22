@@ -18,10 +18,10 @@ New features
 - TileMap –> use the discretize volume averaging by `@lheagy <https://github.com/lheagy>`__ in
   https://github.com/simpeg/simpeg/pull/1770
 
-Extended support to Python 3.14
+Extended support to Python 3.15
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We extended support to Python 3.14 and Numpy 2.5. Starting from this release, we are running scheduled tests of SimPEG against the latest supported Python version and its dependencies.
+We extended support to Python 3.15 and Numpy 2.5. Starting from this release, we are running scheduled tests of SimPEG against the latest supported Python version and its dependencies.
 
 Improvements to Natural Sources EM
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
