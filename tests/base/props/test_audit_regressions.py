@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from simpeg import maps
+from simpeg.simulation import LinearSimulation
 from simpeg.electromagnetics.static import resistivity as dc
 
 
@@ -43,3 +44,38 @@ def test_flattened_anisotropic_values(name, n_components):
     np.testing.assert_allclose(
         getattr(sim, other), inverse_property_tensor(mesh, value)
     )
+
+
+def test_deprecated_map_set_to_none_removes_parametrization():
+    G = np.random.default_rng(0).normal(size=(3, 10))
+    sim = LinearSimulation(G=G, linear_model=maps.ExpMap())
+    assert sim.needs_model
+    with pytest.warns(FutureWarning):
+        sim.model_map = None
+    assert not sim.needs_model
+
+
+def test_deprecated_recip_map_set_to_none_removes_parametrization():
+    mesh = discretize.TensorMesh([3, 3, 3])
+    sim = dc.Simulation3DCellCentered(mesh, survey=dc.Survey([]), rho=maps.ExpMap(mesh))
+    with pytest.warns(FutureWarning):
+        sim.sigmaMap = None
+    assert not sim.needs_model
+
+
+def test_get_without_objtype_uses_reciprocal():
+    mesh = discretize.TensorMesh([3, 3, 3])
+    sim = dc.Simulation3DCellCentered(
+        mesh, survey=dc.Survey([]), rho=np.full(mesh.n_cells, 4.0)
+    )
+    value = type(sim).sigma.__get__(sim)
+    np.testing.assert_allclose(value, 0.25)
+
+
+def test_shadowing_one_of_a_reciprocal_pair_errors_clearly():
+    class Child(dc.Simulation3DCellCentered):
+        rho = 1.0
+
+    mesh = discretize.TensorMesh([3, 3, 3])
+    with pytest.raises(TypeError, match="reciprocal"):
+        Child(mesh, survey=dc.Survey([]), sigma=np.ones(mesh.n_cells))

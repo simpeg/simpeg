@@ -279,6 +279,8 @@ class PhysicalProperty:
         if obj is None:
             # happens on a class (not instance)
             return self
+        if objtype is None:
+            objtype = type(obj)
 
         # Try to evaluate myself
         if self.fget is not None:
@@ -452,7 +454,16 @@ class PhysicalProperty:
         if (recip_name := self._reciprocal) is not None:
             if not inspect.isclass(objtype):
                 objtype = type(objtype)
-            return getattr(objtype, recip_name)
+            recip = getattr(objtype, recip_name)
+            if not isinstance(recip, PhysicalProperty):
+                raise TypeError(
+                    f"`{objtype.__name__}.{recip_name}` was overridden with a "
+                    f"{type(recip).__name__}, but it is the reciprocal of the "
+                    f"physical property `{self.name}`. Reciprocal properties "
+                    f"cannot be individually replaced with a plain attribute; "
+                    f"override both `{self.name}` and `{recip_name}`."
+                )
+            return recip
         return None
 
     @property
@@ -733,6 +744,14 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         inp1, inp2 = kwargs.values()
         prop1 = getattr(type(self), prop1)
         prop2 = getattr(type(self), prop2)
+        for prop in (prop1, prop2):
+            if not isinstance(prop, PhysicalProperty):
+                raise TypeError(
+                    f"`{type(self).__name__}` replaced one of a pair of reciprocal "
+                    f"physical properties with a {type(prop).__name__}. Reciprocal "
+                    f"properties cannot be individually replaced with a plain "
+                    f"attribute; override both."
+                )
         if inp1 is not None and inp2 is not None:
             raise TypeError(
                 f"Can only specify one of `{prop1.name}` or `{prop2.name}` for `{type(self).__name__}`"
@@ -1140,6 +1159,14 @@ def _add_deprecated_physical_property_functions(
             FutureWarning,
             stacklevel=2,
         )
+        if value is None:
+            # Setting a mapping to None used to remove it.
+            prop = getattr(type(self), new_name)
+            recip = prop.get_reciprocal(self)
+            for p in (prop, recip):
+                if p is not None and p.name in self.parametrizations:
+                    p.__delete__(self)
+            return
         self.parametrize(**{new_name: value})
 
     prop_map.__doc__ = f"""
@@ -1196,9 +1223,9 @@ def _add_deprecated_physical_property_functions(
 
         cls.__init__ = __new_init__
         setattr(cls, old_map, prop_map)
-        prop_map.__set_name__(old_map, cls)
+        prop_map.__set_name__(cls, old_map)
         setattr(cls, old_deriv, prop_deriv)
-        prop_deriv.__set_name__(old_deriv, cls)
+        prop_deriv.__set_name__(cls, old_deriv)
 
         return cls
 
