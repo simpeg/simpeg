@@ -41,8 +41,8 @@ class ParametricCircleMap(IdentityMap):
     .. math::
 
         \mathbf{u}(\mathbf{m}) = \sigma_0 + (\sigma_1 - \sigma_0)
-        \bigg [ \frac{1}{2} + \pi^{-1} \arctan \bigg ( a \big [ \sqrt{(\mathbf{x_c}-x_0)^2 +
-        (\mathbf{y_c}-y_0)^2} - R \big ] \bigg ) \bigg ]
+        \bigg [ \frac{1}{2} + \pi^{-1} \arctan \bigg ( a \big [ R - \sqrt{(\mathbf{x_c}-x_0)^2 +
+        (\mathbf{y_c}-y_0)^2} \big ] \bigg ) \bigg ]
 
     where :math:`\mathbf{x_c}` and :math:`\mathbf{y_c}` are vectors storing
     the x and y positions of all cell centers for the 2D mesh and :math:`a`
@@ -143,7 +143,7 @@ class ParametricCircleMap(IdentityMap):
         X = self.mesh.cell_centers[:, 0]
         Y = self.mesh.cell_centers[:, 1]
         return sig1 + (sig2 - sig1) * (
-            np.arctan(a * (np.sqrt((X - x) ** 2 + (Y - y) ** 2) - r)) / np.pi + 0.5
+            np.arctan(a * (r - np.sqrt((X - x) ** 2 + (Y - y) ** 2))) / np.pi + 0.5
         )
 
     def deriv(self, m, v=None):
@@ -156,8 +156,8 @@ class ParametricCircleMap(IdentityMap):
 
         .. math::
             \mathbf{u}(\mathbf{m}) = \sigma_0 + (\sigma_1 - \sigma_0)
-            \bigg [ \frac{1}{2} + \pi^{-1} \arctan \bigg ( a \big [ \sqrt{(\mathbf{x_c}-x_0)^2 +
-            (\mathbf{y_c}-y_0)^2} - R \big ] \bigg ) \bigg ]
+            \bigg [ \frac{1}{2} + \pi^{-1} \arctan \bigg ( a \big [ R - \sqrt{(\mathbf{x_c}-x_0)^2 +
+            (\mathbf{y_c}-y_0)^2} \big ] \bigg ) \bigg ]
 
         The derivative of the mapping with respect to the model parameters is a
         ``numpy.ndarray`` of shape (*mesh.nC*, 5) given by:
@@ -194,30 +194,28 @@ class ParametricCircleMap(IdentityMap):
         if self.logSigma:
             g1 = (
                 -(
-                    np.arctan(a * (-r + np.sqrt((X - x) ** 2 + (Y - y) ** 2))) / np.pi
+                    np.arctan(a * (r - np.sqrt((X - x) ** 2 + (Y - y) ** 2))) / np.pi
                     + 0.5
                 )
                 * sig1
                 + sig1
             )
             g2 = (
-                np.arctan(a * (-r + np.sqrt((X - x) ** 2 + (Y - y) ** 2))) / np.pi + 0.5
+                np.arctan(a * (r - np.sqrt((X - x) ** 2 + (Y - y) ** 2))) / np.pi + 0.5
             ) * sig2
         else:
             g1 = (
                 -(
-                    np.arctan(a * (-r + np.sqrt((X - x) ** 2 + (Y - y) ** 2))) / np.pi
+                    np.arctan(a * (r - np.sqrt((X - x) ** 2 + (Y - y) ** 2))) / np.pi
                     + 0.5
                 )
                 + 1.0
             )
-            g2 = (
-                np.arctan(a * (-r + np.sqrt((X - x) ** 2 + (Y - y) ** 2))) / np.pi + 0.5
-            )
+            g2 = np.arctan(a * (r - np.sqrt((X - x) ** 2 + (Y - y) ** 2))) / np.pi + 0.5
 
         g3 = (
             a
-            * (-X + x)
+            * (X - x)
             * (-sig1 + sig2)
             / (
                 np.pi
@@ -228,7 +226,7 @@ class ParametricCircleMap(IdentityMap):
 
         g4 = (
             a
-            * (-Y + y)
+            * (Y - y)
             * (-sig1 + sig2)
             / (
                 np.pi
@@ -238,7 +236,7 @@ class ParametricCircleMap(IdentityMap):
         )
 
         g5 = (
-            -a
+            a
             * (-sig1 + sig2)
             / (np.pi * (a**2 * (-r + np.sqrt((X - x) ** 2 + (Y - y) ** 2)) ** 2 + 1))
         )
