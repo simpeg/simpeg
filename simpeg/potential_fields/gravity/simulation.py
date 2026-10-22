@@ -181,8 +181,6 @@ class Simulation3DIntegral(BasePFSimulation):
         super().__init__(mesh, engine=engine, numba_parallel=numba_parallel, **kwargs)
         self._init_property(rho=rho)
 
-        self._G = None
-        self._gtg_diagonal = None
         self.modelMap = self.rhoMap
 
         # Warn if n_processes has been passed
