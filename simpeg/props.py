@@ -783,6 +783,10 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         >>> sim.parametrize(sigma=maps.ExpMap())
 
         """
+        # Validate everything before changing any state, so a failure leaves
+        # the existing values and parametrizations untouched.
+        replaced = set()
+        checked = []
         for attr, parametrization in kwargs.items():
             if not isinstance(parametrization, maps.IdentityMap):
                 raise TypeError(
@@ -799,13 +803,12 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                 raise TypeError(
                     f"{type(self).__name__}.{attr} is not an invertible PhysicalProperty and cannot be parametrized"
                 )
-
-            # cleanup myself and my reciprocal first, so the consistency
-            # checks below don't compare against an entry about to be replaced
-            prop.__delete__(self)
+            replaced.add(attr)
             if recip := prop.get_reciprocal(self):
-                recip.__delete__(self)
+                replaced.add(recip.name)
+            checked.append((attr, prop, parametrization))
 
+        for attr, prop, parametrization in checked:
             # validate the mapping's output length against `attr`'s expected shape(s)
             valid_sizes = _expected_output_sizes(prop, self)
             output_size = parametrization.shape[0]
@@ -821,11 +824,18 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                 )
 
             # validate the mapping's input length (nP) is consistent with any
-            # other already-parametrized property -- `model` is a single shared
-            # vector applied to every parametrization on this instance
+            # other parametrized property that is not being replaced -- `model`
+            # is a single shared vector applied to every parametrization on
+            # this instance
             input_size = parametrization.shape[1]
             if isinstance(input_size, (int, np.integer)):
-                for other_attr, other_map in self.parametrizations.items():
+                others = {
+                    name: other_map
+                    for name, other_map in self.parametrizations.items()
+                    if name not in replaced
+                }
+                others.update({a: m for a, _, m in checked if a != attr})
+                for other_attr, other_map in others.items():
                     other_input = other_map.shape[1]
                     if (
                         isinstance(other_input, (int, np.integer))
@@ -841,6 +851,11 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                             f"same model length."
                         )
 
+        for attr, prop, parametrization in checked:
+            # cleanup myself and my reciprocal first
+            prop.__delete__(self)
+            if recip := prop.get_reciprocal(self):
+                recip.__delete__(self)
             self.parametrizations._fields[attr] = parametrization
 
     def is_parametrized(self, attr):

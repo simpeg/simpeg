@@ -155,7 +155,7 @@ def test_internal_property_dictionary(modeler):
 
 
 @pytest.mark.parametrize("modeler", RECIPROCAL_CLASSES)
-@pytest.mark.parametrize("assign, retrieve", [("sigma", "rho"), ("sigma", "rho")])
+@pytest.mark.parametrize("assign, retrieve", [("sigma", "rho"), ("rho", "sigma")])
 def test_get_recip_prop(modeler, assign, retrieve):
     prop1 = getattr(modeler, assign)
     assert prop1._reciprocal == retrieve
