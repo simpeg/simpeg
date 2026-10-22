@@ -17,12 +17,14 @@ def test_scalar_matches_array(dim, prop):
         mesh = discretize.TensorMesh([np.full(30, 100.0)], "N")
         sim_class = nsem.Simulation1DMagneticField
         rx = nsem.receivers.Impedance([[0.0]], orientation="xy", component="app_res")
-    else:
+    elif dim == 2:
         mesh = discretize.TensorMesh([np.full(10, 100.0), np.full(30, 100.0)], "CN")
         sim_class = nsem.Simulation2DMagneticField
         rx = nsem.receivers.Impedance(
             np.array([[0.0, 0.0]]), orientation="yx", component="app_res"
         )
+    else:  # pragma: nocover
+        raise ValueError()
     value = 100.0 if prop == "rho" else 0.01
     sources = [nsem.sources.Planewave([rx], f) for f in (1.0, 10.0)]
     d = [
