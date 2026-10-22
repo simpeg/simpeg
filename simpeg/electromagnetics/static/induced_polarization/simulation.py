@@ -69,8 +69,7 @@ class BaseIPSimulation(BaseElectricalPDESimulation):
         _f=None,  # A pre-computed DC field
         **kwargs,
     ):
-        super().__init__(mesh=mesh, survey=survey, **kwargs)
-        self._init_recip_properties(sigma=sigma, rho=rho)
+        super().__init__(mesh=mesh, survey=survey, sigma=sigma, rho=rho, **kwargs)
         self._init_property(eta=eta)
         if Ainv is not None:
             self.Ainv = Ainv
