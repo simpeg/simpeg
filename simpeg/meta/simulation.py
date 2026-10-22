@@ -176,6 +176,10 @@ class MetaSimulation(BaseSimulation):
             value is None or previous is None or not np.array_equal(value, previous)
         )
         self._model = value
+        if updated:
+            for prop in self._delete_on_model_update:
+                if hasattr(self, prop):
+                    delattr(self, prop)
         return updated
 
     @property

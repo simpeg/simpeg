@@ -610,3 +610,24 @@ def test_repeat_correctness():
         raise err
     finally:
         parallel_sim.join()
+
+
+def test_getjtjdiag_updates_with_model():
+    from test_meta_sim import _grav_sim
+
+    mesh = TensorMesh([4, 4, 3], origin="CCN")
+    n = mesh.n_cells
+    meta = MultiprocessingMetaSimulation(
+        [_grav_sim(mesh, 0), _grav_sim(mesh, 1)],
+        [maps.IdentityMap(nP=n)] * 2,
+        n_processes=2,
+    )
+    first = meta.getJtJdiag(np.zeros(n)).copy()
+    second = meta.getJtJdiag(np.ones(n))
+
+    fresh = MetaSimulation(
+        [_grav_sim(mesh, 0), _grav_sim(mesh, 1)], [maps.IdentityMap(nP=n)] * 2
+    ).getJtJdiag(np.ones(n))
+
+    assert not np.allclose(first, second)
+    np.testing.assert_allclose(second, fresh)
