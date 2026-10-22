@@ -63,8 +63,13 @@ def _mesh_shape_resolver(location, anisotropy):
         shapes = [(), (1,), (size,)]
         if anisotropy is not AnisotropyLevel.ISOTROPIC and mesh.dim > 1:
             shapes.append((size, mesh.dim))
+            # also accept the flattened (Fortran ordered) layouts that discretize
+            # uses, and that a mapping's flat output produces.
+            shapes.append((size * mesh.dim,))
             if anisotropy is AnisotropyLevel.FULL:
-                shapes.append((size, 3 if mesh.dim == 2 else 6))
+                n_full = 3 if mesh.dim == 2 else 6
+                shapes.append((size, n_full))
+                shapes.append((size * n_full,))
         return shapes
 
     return fshape
