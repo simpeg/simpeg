@@ -241,3 +241,16 @@ def test_positional_property_arguments_are_rejected():
     # this used to be `rhoMap`, and would now silently be the `engine`
     with pytest.raises(TypeError, match="positional"):
         gravity.Simulation3DIntegral(mesh, None, maps.IdentityMap())
+
+
+def test_deprecated_map_setter_warning_points_at_user_code():
+    import warnings
+
+    mesh = discretize.TensorMesh([3, 3, 3])
+    sim = dc.Simulation3DNodal(mesh, survey=dc.Survey([]), sigma=np.ones(27))
+    with warnings.catch_warnings(record=True) as record:
+        warnings.simplefilter("always")
+        sim.sigmaMap = maps.ExpMap(mesh)
+    record = [w for w in record if w.category is FutureWarning]
+    assert len(record) == 1
+    assert record[0].filename == __file__

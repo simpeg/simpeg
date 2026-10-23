@@ -1260,12 +1260,11 @@ def _add_deprecated_physical_property_functions(
     @prop_map.setter
     def prop_map(self, value):
         cls_name = type(self).__name__
-        warnings.warn(
+        _warn_user(
             f"Setting `{cls_name}.{old_map}` directly is deprecated. Instead pass "
             f"`{new_name}=mapping` to the constructor, or call "
             f"`{cls_name}.parametrize({new_name}=mapping)`. It will be removed in simpeg {_REMOVAL_VERSION}.",
             FutureWarning,
-            stacklevel=2,
         )
         if value is None:
             # Setting a mapping to None used to remove it.
