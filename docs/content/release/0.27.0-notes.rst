@@ -1,7 +1,7 @@
-.. _0.26.0_notes:
+.. _0.27.0_notes:
 
 ============================
-SimPEG v0.26.0 Release Notes
+SimPEG v0.27.0 Release Notes
 ============================
 
 This is a draft of the notes for the changes in the parametrized physical
@@ -37,14 +37,14 @@ Deprecations
 
 The ``xMap`` and ``xDeriv`` attributes, and the ``xMap`` constructor arguments (as well
 as ``model_map`` and ``model_deriv`` of ``LinearSimulation``) still work, but now emit
-a ``FutureWarning``. They will be removed in SimPEG v0.28.0. The replacements are
+a ``FutureWarning``. They will be removed in SimPEG v0.29.0. The replacements are
 
 - ``sim.xMap`` -> ``sim.parametrizations.x``
 - ``sim.xDeriv`` -> ``sim._prop_deriv("x")``
 - ``Simulation(xMap=mapping)`` -> ``Simulation(x=mapping)``
 
 Setting a required physical property to ``None`` is also deprecated, and will become
-an error in v0.28.0.
+an error in v0.29.0.
 
 Breaking changes
 ----------------

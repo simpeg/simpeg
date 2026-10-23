@@ -96,7 +96,7 @@ def test_warnings_point_at_user_code():
     assert len(record) == 2
     for w in record:
         assert w.filename == __file__, (str(w.message), w.filename)
-    assert "0.28.0" in str(record[0].message)
+    assert "0.29.0" in str(record[0].message)
 
 
 def test_reparametrize_clears_hierarchical_caches():

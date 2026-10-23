@@ -22,7 +22,7 @@ def _warn_user(message, category):
     warnings.warn(message, category, skip_file_prefixes=_SIMPEG_DIR)  # noqa: B028
 
 
-_REMOVAL_VERSION = "0.28.0"
+_REMOVAL_VERSION = "0.29.0"
 
 
 class _Void:
@@ -1280,7 +1280,7 @@ def _add_deprecated_physical_property_functions(
     prop_map.__doc__ = f"""
     Mapping from the model to {old_name}
 
-    .. deprecated:: 0.26.0
+    .. deprecated:: 0.27.0
         The method of interacting with the physical property is deprecated. Instead
         pass `{new_name}=mapping` directly to the constructor (the simplest
         replacement for most use cases), or call the `parametrize()` method and
@@ -1304,7 +1304,7 @@ def _add_deprecated_physical_property_functions(
     prop_deriv.__doc__ = f"""
     Derivative of {old_name} w.r.t. the model
 
-    .. deprecated:: 0.26.0
+    .. deprecated:: 0.27.0
         The method of interacting with the physical property derivative is deprecated. If access is still necessary
         it can be retrieved with `_prop_deriv('{old_name}')`.
 
