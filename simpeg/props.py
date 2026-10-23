@@ -821,8 +821,13 @@ class PhysicalPropertyMetaclass(type):
                     isinstance(vars(parent).get(recip_name), PhysicalProperty)
                     for parent in newcls.__mro__[1:]
                 ):
+                    replacer = next(
+                        parent.__name__
+                        for parent in newcls.__mro__
+                        if recip_name in vars(parent)
+                    )
                     raise TypeError(
-                        f"`{name}` replaces `{recip_name}`, the reciprocal of the "
+                        f"`{replacer}` replaces `{recip_name}`, the reciprocal of the "
                         f"physical property `{key}`, with something that is not a "
                         f"PhysicalProperty. Override both properties of a reciprocal pair."
                     )

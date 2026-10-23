@@ -991,9 +991,18 @@ def test_model_setter_returns_if_updated():
 
 
 def test_no_parametrizations_error_lists_sorted_choices():
-    pm = MultipleInvertible()
-    with pytest.raises(AttributeError, match="'gamma', 'rho', 'sigma'"):
-        pm.model = np.ones(3)
+    class ManyInvertible(props.HasModel):
+        zeta = props.PhysicalProperty("zeta", default=1.0)
+        alpha = props.PhysicalProperty("alpha", default=1.0)
+        mu = props.PhysicalProperty("mu", default=1.0)
+        beta = props.PhysicalProperty("beta", default=1.0)
+        kappa = props.PhysicalProperty("kappa", default=1.0)
+        delta = props.PhysicalProperty("delta", default=1.0)
+
+    with pytest.raises(AttributeError) as error:
+        ManyInvertible().model = np.ones(3)
+    choices = "', '".join(sorted(ManyInvertible.physical_properties))
+    assert f"['{choices}']" in str(error.value)
 
 
 def test_both_value_and_deprecated_map_errors():

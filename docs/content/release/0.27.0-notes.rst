@@ -62,8 +62,6 @@ Breaking changes
 - Scalar property values are stored as python scalars (not 0-d arrays).
 - Giving both ``x`` and its deprecated ``xMap`` argument to a constructor raises a
   ``TypeError`` (the mapping used to win silently).
-- Setting a deprecated ``xMap`` to ``None`` removes only the parametrization of ``x``
-  (as before), and leaves any parametrization of its reciprocal alone.
 - ``viscous_remanent_magnetization.Simulation3DLinear`` requires ``xi`` to be a mapping.
 - The ``model`` given to a constructor is set once the constructor has finished (this is
   what allows ``Simulation(sigma=mapping, model=m)``), so a subclass reading
