@@ -460,17 +460,11 @@ class PhysicalProperty:
             recip.__delete__(obj)
         obj._property_changed(self.name)
 
-    def _delete_with_reciprocal(self, obj: "HasModel", only_parametrized=False):
-        """Delete my value and parametrization, and my reciprocal's.
-
-        If ``only_parametrized`` is true, only those of the pair that are
-        parametrized are deleted (so a fixed value is left alone).
-        """
-        for prop in (self, self.get_reciprocal(obj)):
-            if prop is not None and (
-                not only_parametrized or prop.name in obj.parametrizations
-            ):
-                prop.__delete__(obj)
+    def _delete_with_reciprocal(self, obj: "HasModel"):
+        """Delete my value and parametrization, and my reciprocal's."""
+        self.__delete__(obj)
+        if recip := self.get_reciprocal(obj):
+            recip.__delete__(obj)
 
     def __delete__(self, obj: "HasModel"):
         if self.fdel is not None:
@@ -1343,9 +1337,8 @@ def _add_deprecated_physical_property_functions(
         )
         if value is None:
             # Setting a mapping to None used to remove it.
-            getattr(type(self), new_name)._delete_with_reciprocal(
-                self, only_parametrized=True
-            )
+            if new_name in self.parametrizations:
+                getattr(type(self), new_name).__delete__(self)
             self._clear_model_caches()
             return
         self.parametrize(**{new_name: value})

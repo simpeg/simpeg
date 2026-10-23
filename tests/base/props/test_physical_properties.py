@@ -814,10 +814,14 @@ def test_deprecated_map_set_to_none_removes_parametrization():
     assert not pm.needs_model
 
 
-def test_deprecated_map_set_to_none_removes_reciprocal_parametrization():
+def test_deprecated_map_set_to_none_only_removes_its_own_parametrization():
     pm = ReciprocalExample(rho=maps.ExpMap())
     with pytest.warns(FutureWarning, match="sigmaMap"):
         pm.sigmaMap = None
+    assert pm.is_parametrized("rho")
+
+    with pytest.warns(FutureWarning, match="rhoMap"):
+        pm.rhoMap = None
     assert not pm.needs_model
 
 
