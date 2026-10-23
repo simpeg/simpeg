@@ -565,16 +565,7 @@ class PhysicalProperty:
         if (recip_name := self._reciprocal) is not None:
             if not inspect.isclass(objtype):
                 objtype = type(objtype)
-            recip = getattr(objtype, recip_name)
-            if not isinstance(recip, PhysicalProperty):
-                raise TypeError(
-                    f"`{objtype.__name__}.{recip_name}` was overridden with a "
-                    f"{type(recip).__name__}, but it is the reciprocal of the "
-                    f"physical property `{self.name}`. Reciprocal properties "
-                    f"cannot be individually replaced with a plain attribute; "
-                    f"override both `{self.name}` and `{recip_name}`."
-                )
-            return recip
+            return getattr(objtype, recip_name)
         return None
 
     @property
@@ -762,6 +753,17 @@ class PhysicalPropertyMetaclass(type):
                 elif key in physical_properties:
                     del physical_properties[key]
 
+        for key, value in physical_properties.items():
+            if value._reciprocal is not None and (
+                value._reciprocal not in physical_properties
+            ):
+                raise SyntaxError(
+                    f"The physical property `{name}.{key}` is the reciprocal of "
+                    f"`{value._reciprocal}`, which is not a physical property of `{name}`. "
+                    f"Reciprocal properties cannot be individually replaced with a "
+                    f"plain attribute, override both `{key}` and `{value._reciprocal}`."
+                )
+
         newcls.physical_properties = MappingProxyType(physical_properties)
         newcls.invertible_properties = MappingProxyType(
             {
@@ -899,14 +901,6 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         inp1, inp2 = kwargs.values()
         prop1 = getattr(type(self), prop1)
         prop2 = getattr(type(self), prop2)
-        for prop in (prop1, prop2):
-            if not isinstance(prop, PhysicalProperty):
-                raise TypeError(
-                    f"`{type(self).__name__}` replaced one of a pair of reciprocal "
-                    f"physical properties with a {type(prop).__name__}. Reciprocal "
-                    f"properties cannot be individually replaced with a plain "
-                    f"attribute; override both."
-                )
         if inp1 is not None and inp2 is not None:
             raise TypeError(
                 f"Can only specify one of `{prop1.name}` or `{prop2.name}` for `{type(self).__name__}`"

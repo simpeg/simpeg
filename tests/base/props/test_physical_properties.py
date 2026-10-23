@@ -862,11 +862,10 @@ def test_get_without_objtype_uses_reciprocal():
 
 
 def test_shadowing_one_of_a_reciprocal_pair_errors_clearly():
-    class Child(ReciprocalExample):
-        rho = 1.0
+    with pytest.raises(SyntaxError, match="reciprocal"):
 
-    with pytest.raises(TypeError, match="reciprocal"):
-        Child(sigma=np.ones(3))
+        class Child(ReciprocalExample):
+            rho = 1.0
 
 
 def test_scalars_are_stored_as_python_scalars():
