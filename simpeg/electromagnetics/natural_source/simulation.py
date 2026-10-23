@@ -20,6 +20,7 @@ from .fields import (
 
 
 def _centers_to_widths(centers):
+    """Cell widths from cell centers measured from the start of the first cell."""
     centers = np.asarray(centers)
     d = np.empty_like(centers)
     n = centers.shape[-1]
@@ -39,7 +40,7 @@ class Simulation1DElectricField(BaseFDEMSimulation):
     1D finite volume simulation for the natural source electromagnetic problem.
 
     This corresponds to the TE mode 2D simulation where the electric field is
-    located at cell centers and the magnetic flux is on edges.
+    located on nodes and the magnetic field at cell centers.
 
     We are solving the discrete version of
 
@@ -54,12 +55,12 @@ class Simulation1DElectricField(BaseFDEMSimulation):
 
     When we discretize, we obtain:
 
-    where the Magnetic field is defined on edges, and the electric field is
+    where the electric field is defined on nodes, and the magnetic field is
     defined on cell centers.
     """
 
     _solutionType = "eSolution"
-    _formulation = "EB"  # electric-field component is on cell-centers
+    _formulation = "EB"  # electric-field component is on nodes
     fieldsPair = Fields1DElectricField
 
     def __init__(self, mesh, **kwargs):
@@ -342,8 +343,8 @@ class Simulation2DElectricField(BaseFDEMSimulation):
                     is_b[-1, :] = True
                     P_r = maps.Projection(mesh.n_cells, is_b.reshape(-1, order="F"))
                 else:
-                    h_l = _centers_to_widths(b_e[left][:, 1])
-                    h_r = _centers_to_widths(b_e[right][:, 1])
+                    h_l = _centers_to_widths(b_e[left][:, 1] - mesh.nodes_y[0])
+                    h_r = _centers_to_widths(b_e[right][:, 1] - mesh.nodes_y[0])
                     b_l, b_r, _, __ = mesh.cell_boundary_indices
                     P_l = maps.Projection(mesh.n_cells, b_l)
                     P_r = maps.Projection(mesh.n_cells, b_r)
@@ -580,8 +581,8 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
                     is_b[-1, :] = True
                     P_r = maps.Projection(mesh.n_cells, is_b.reshape(-1, order="F"))
                 else:
-                    h_l = _centers_to_widths(b_e[left][:, 1])
-                    h_r = _centers_to_widths(b_e[right][:, 1])
+                    h_l = _centers_to_widths(b_e[left][:, 1] - mesh.nodes_y[0])
+                    h_r = _centers_to_widths(b_e[right][:, 1] - mesh.nodes_y[0])
                     b_l, b_r, _, __ = mesh.cell_boundary_indices
                     P_l = maps.Projection(mesh.n_cells, b_l)
                     P_r = maps.Projection(mesh.n_cells, b_r)
