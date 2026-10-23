@@ -10,7 +10,6 @@ import numpy as np
 from discretize.utils import inverse_property_tensor
 from simpeg.utils import deprecate_property
 from . import maps
-import functools
 from .utils import Zero, validate_type, validate_ndarray_with_shape
 from .typing import MapLike
 
@@ -683,13 +682,33 @@ class BaseSimPEG:
 
 class PhysicalPropertyMetaclass(type):
     def __call__(cls, *args, **kwargs):
+        # The model can only be validated once the parametrizations exist, so it is set
+        # after every `__init__` has run (this makes `Sim(sigma=mapping, model=m)` work).
+        model = kwargs.pop("model", None)
+
+        # Translate the deprecated `xMap=mapping` arguments to `x=mapping`.
+        for old_map, new_name in cls._all_deprecated_map_kwargs().items():
+            mapping = kwargs.pop(old_map, None)
+            if mapping is not None:
+                _warn_user(
+                    f"Passing mapping argument {old_map} to {cls.__name__} is deprecated. Instead "
+                    f"you can now use the {new_name} argument. It will be removed in simpeg {_REMOVAL_VERSION}.",
+                    FutureWarning,
+                )
+                kwargs[new_name] = mapping
+
         obj = super().__call__(*args, **kwargs)
-        obj.__dict__["_construction_done"] = True
-        # Set the model last, so `Sim(sigma=mapping, model=m)` works.
-        model = obj.__dict__.pop("_init_model", None)
+        obj._construction_done = True
         if model is not None:
             obj.model = model
         return obj
+
+    def _all_deprecated_map_kwargs(cls):
+        """The deprecated ``xMap`` arguments from this class and all of its parents."""
+        aliases = {}
+        for parent in reversed(cls.__mro__):
+            aliases.update(vars(parent).get("_deprecated_map_kwargs", {}))
+        return aliases
 
     @property
     def __signature__(cls):
@@ -830,13 +849,14 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
     invertible_properties: dict[str, "PhysicalProperty"] = MappingProxyType({})
     """The subset of `physical_properties` that are invertible."""
 
-    def __init__(self, model=None, **kwargs):
-        if model is None:
-            self.model = None
-        else:
-            # The model can only be validated once the parametrizations exist, which
-            # is after every `__init__` has run (see `PhysicalPropertyMetaclass.__call__`).
-            self._init_model = model
+    #: Set once the constructor has finished (see `PhysicalPropertyMetaclass.__call__`).
+    _construction_done = False
+
+    #: The deprecated ``xMap`` constructor arguments, and the property they now map to.
+    _deprecated_map_kwargs: dict[str, str] = MappingProxyType({})
+
+    def __init__(self, **kwargs):
+        self.model = None
         # A helper for initializing leftover property keyword arguments.
         if kwargs:
             props = self.physical_properties
@@ -1000,7 +1020,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
 
     def _clear_model_caches(self):
         """Delete everything cached from the previous parametrizations/model."""
-        if not getattr(self, "_construction_done", False):
+        if not self._construction_done:
             # still being constructed, there is nothing cached yet.
             return
         _delete_attrs(self, self._delete_on_model_update)
@@ -1323,21 +1343,9 @@ def _add_deprecated_physical_property_functions(
     """
 
     def decorator(cls):
-        __init__ = cls.__init__
-
-        @functools.wraps(__init__)
-        def __new_init__(self, *args, **kwargs):
-            mapping = kwargs.pop(old_map, None)
-            if mapping is not None:
-                _warn_user(
-                    f"Passing mapping argument {old_map} to {type(self).__name__} is deprecated. Instead "
-                    f"you can now use the {new_name} argument. It will be removed in simpeg {_REMOVAL_VERSION}.",
-                    FutureWarning,
-                )
-                kwargs[new_name] = mapping
-            __init__(self, *args, **kwargs)
-
-        cls.__init__ = __new_init__
+        cls._deprecated_map_kwargs = MappingProxyType(
+            {**vars(cls).get("_deprecated_map_kwargs", {}), old_map: new_name}
+        )
         setattr(cls, old_map, prop_map)
         prop_map.__set_name__(cls, old_map)
         setattr(cls, old_deriv, prop_deriv)
