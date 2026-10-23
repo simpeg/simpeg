@@ -402,23 +402,12 @@ def test_repeat_errors(cluster):
         time.sleep(0.1)  # sleep for a half second to let the communicator catch up
 
 
-def test_getjtjdiag_updates_with_model(cluster):
-    from test_meta_sim import _grav_sim
-
+def test_getjtjdiag_updates_with_model(cluster, linear_sims_factory):
     with Client(cluster) as client:
-        mesh = TensorMesh([4, 4, 3], origin="CCN")
-        n = mesh.n_cells
-        meta = DaskMetaSimulation(
-            [_grav_sim(mesh, 0), _grav_sim(mesh, 1)],
-            [maps.IdentityMap(nP=n), maps.IdentityMap(nP=n)],
-            client,
-        )
-        first = meta.getJtJdiag(np.zeros(n)).copy()
-        second = meta.getJtJdiag(np.ones(n))
+        meta = DaskMetaSimulation(*linear_sims_factory(), client)
+        first = meta.getJtJdiag(np.zeros(6)).copy()
+        second = meta.getJtJdiag(np.ones(6))
 
-        fresh = MetaSimulation(
-            [_grav_sim(mesh, 0), _grav_sim(mesh, 1)], [maps.IdentityMap(nP=n)] * 2
-        ).getJtJdiag(np.ones(n))
-
+        fresh = MetaSimulation(*linear_sims_factory())
         assert not np.allclose(first, second)
-        np.testing.assert_allclose(second, fresh)
+        np.testing.assert_allclose(second, fresh.getJtJdiag(np.ones(6)))

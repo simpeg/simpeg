@@ -420,32 +420,15 @@ def test_cache_clear_on_model_clear():
         assert not hasattr(sim, "_Me_Sigma")
 
 
-def _grav_sim(mesh, seed):
-    rng = np.random.default_rng(seed)
-    locs = np.c_[rng.uniform(-0.4, 0.4, (5, 2)), np.full(5, 0.2)]
-    rx = gravity.receivers.Point(locs, components=["gz"])
-    survey = gravity.survey.Survey(gravity.sources.SourceField([rx]))
-    return gravity.simulation.Simulation3DIntegral(
-        mesh,
-        survey=survey,
-        store_sensitivities="ram",
-        engine="geoana",
-        rho=maps.ExpMap(nP=mesh.n_cells),
-    )
+def test_getjtjdiag_updates_with_model(linear_sims_factory):
+    meta = MetaSimulation(*linear_sims_factory())
+    first = meta.getJtJdiag(np.zeros(6)).copy()
+    second = meta.getJtJdiag(np.ones(6))
 
-
-def test_getjtjdiag_updates_with_model():
-    mesh = TensorMesh([4, 4, 3], origin="CCN")
-    n = mesh.n_cells
-    meta = MetaSimulation(
-        [_grav_sim(mesh, 0), _grav_sim(mesh, 1)], [maps.IdentityMap(nP=n)] * 2
-    )
-    first = meta.getJtJdiag(np.zeros(n)).copy()
-    second = meta.getJtJdiag(np.ones(n))
-
-    fresh = MetaSimulation(
-        [_grav_sim(mesh, 0), _grav_sim(mesh, 1)], [maps.IdentityMap(nP=n)] * 2
-    ).getJtJdiag(np.ones(n))
-
+    fresh = MetaSimulation(*linear_sims_factory())
     assert not np.allclose(first, second)
-    np.testing.assert_allclose(second, fresh)
+    np.testing.assert_allclose(second, fresh.getJtJdiag(np.ones(6)))
+
+
+def test_meta_simulation_always_needs_model(linear_sims_factory):
+    assert MetaSimulation(*linear_sims_factory()).needs_model
