@@ -682,7 +682,7 @@ class Simulation3DCellCentered(BaseDCSimulation):
             Derivative of system matrix times a vector. (n_cells,) for the standard operation.
             (n_param,) for the adjoint operation.
         """
-        if self.rhoMap is not None:
+        if self.is_parametrized("rho"):
             D = self.Div
             G = self.Grad
             MfRhoIDeriv = self.MfRhoIDeriv
@@ -1029,9 +1029,9 @@ class Simulation3DNodal(BaseDCSimulation):
             out = Grad.T @ self.MeSigmaDeriv(Grad @ u, v, adjoint)
         else:
             out = self.MeSigmaDeriv(Grad @ u, Grad @ v, adjoint)
-        if self.bc_type != "Neumann" and self.sigmaMap is not None:
+        if self.bc_type != "Neumann" and self.is_parametrized("sigma"):
             if getattr(self, "_MBC_sigma", None) is None:
-                self._MBC_sigma = self._AvgBC @ self.sigmaDeriv
+                self._MBC_sigma = self._AvgBC @ self._prop_deriv("sigma")
             out += _inner_mat_mul_op(self._MBC_sigma, u, v, adjoint)
         return out
 
@@ -1165,12 +1165,12 @@ class Simulation3DHierarchicalNodal(
     hierarchical framework wherein:
 
     * Thick structures are parameterized as conductivities at cell centers. This property
-      and the corresponding mapping are set with `sigma` and `sigmaMap`.
+      and the corresponding mapping are set with `sigma` (pass a mapping to parametrize it).
     * Sheet-like structures can be parameterized as conductances on mesh faces. This property
-      and the corresponding mapping are set with `face_conductance` and `face_conductance_map`.
+      can be a fixed array or a mapping, and is set with `face_conductance`.
     * Wire-like structures can be parameterized as area-integrated conductivities on
-      mesh edges. This property and the corresponding mapping as set with
-      `edge_area_conductance` and `edge_area_conductance_map`.
+      mesh edges. This property can be a fixed array or a mapping, and is set with
+      `edge_area_conductance`.
 
     See the *Notes* section for a comprehensive description of the formulation.
 

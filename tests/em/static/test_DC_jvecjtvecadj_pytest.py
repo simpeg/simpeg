@@ -321,8 +321,8 @@ def test_hierarchical():
         mesh=mesh,
         survey=survey,
         sigmaMap=maps.ExpMap(nP=mesh.n_cells) * wire_map.log_sigma,
-        face_conductance_map=maps.ExpMap(nP=mesh.n_faces) * wire_map.log_tau,
-        edge_area_conductance_map=maps.ExpMap(nP=mesh.n_edges) * wire_map.log_kappa,
+        face_conductance=maps.ExpMap(nP=mesh.n_faces) * wire_map.log_tau,
+        edge_area_conductance=maps.ExpMap(nP=mesh.n_edges) * wire_map.log_kappa,
         storeJ=False,
     )
 

@@ -400,3 +400,14 @@ def test_repeat_errors(cluster):
         with pytest.raises(TypeError):
             DaskRepeatedSimulation(lambda x: x * 2, mappings, client)
         time.sleep(0.1)  # sleep for a half second to let the communicator catch up
+
+
+def test_getjtjdiag_updates_with_model(cluster, linear_sims_factory):
+    with Client(cluster) as client:
+        meta = DaskMetaSimulation(*linear_sims_factory(), client)
+        first = meta.getJtJdiag(np.zeros(6)).copy()
+        second = meta.getJtJdiag(np.ones(6))
+
+        fresh = MetaSimulation(*linear_sims_factory())
+        assert not np.allclose(first, second)
+        np.testing.assert_allclose(second, fresh.getJtJdiag(np.ones(6)))

@@ -25,6 +25,7 @@ from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
 from .survey import Survey
 
 from ._numba import choclo, NUMBA_FUNCTIONS_3D, NUMBA_FUNCTIONS_2D
+from ...props import _add_deprecated_physical_property_functions
 
 if choclo is not None:
     CHOCLO_SUPPORTED_COMPONENTS = {
@@ -114,6 +115,7 @@ if choclo is not None:
     }
 
 
+@_add_deprecated_physical_property_functions("chi")
 class Simulation3DIntegral(BasePFSimulation):
     """
     Magnetic simulation in integral form.
@@ -126,10 +128,10 @@ class Simulation3DIntegral(BasePFSimulation):
         Magnetic survey with information of the receivers.
     active_cells : (n_cells) numpy.ndarray, optional
         Array that indicates which cells in ``mesh`` are active cells.
-    chi : numpy.ndarray, optional
-        Susceptibility array for the active cells in the mesh.
-    chiMap : Mapping, optional
-        Model mapping.
+    chi : numpy.ndarray or simpeg.maps.IdentityMap, optional
+        Susceptibility array for the active cells in the mesh. Pass a mapping
+        to compute the susceptibility from the model instead (this
+        parametrizes ``chi``).
     model_type : str, optional
         Whether the model are susceptibilities of the cells (``"scalar"``),
         or effective susceptibilities (``"vector"``).
@@ -157,13 +159,13 @@ class Simulation3DIntegral(BasePFSimulation):
         ignored.
     """
 
-    chi, chiMap, chiDeriv = props.Invertible("Magnetic Susceptibility (SI)")
+    chi = props.PhysicalProperty("Magnetic Susceptibility (SI)")
 
     def __init__(
         self,
         mesh,
         chi=None,
-        chiMap=None,
+        *,
         model_type="scalar",
         is_amplitude_data=False,
         engine="geoana",
@@ -172,13 +174,10 @@ class Simulation3DIntegral(BasePFSimulation):
     ):
         self.model_type = model_type
         super().__init__(mesh, engine=engine, numba_parallel=numba_parallel, **kwargs)
-        self.chi = chi
-        self.chiMap = chiMap
+        self._init_property(chi=chi)
 
         self._M = None
         self.is_amplitude_data = is_amplitude_data
-        self.modelMap = self.chiMap
-
         # Warn if n_processes has been passed
         if self.engine == "choclo" and "n_processes" in kwargs:
             warnings.warn(
@@ -337,9 +336,9 @@ class Simulation3DIntegral(BasePFSimulation):
         # model is None, the chiDeriv is going to be Zero).
         self.model = m
         chiDeriv = (
-            self.chiDeriv
+            self._prop_deriv("chi")
             if not isinstance(self.G, LinearOperator)
-            else aslinearoperator(self.chiDeriv)
+            else aslinearoperator(self._prop_deriv("chi"))
         )
         return self.G @ chiDeriv
 
@@ -401,7 +400,9 @@ class Simulation3DIntegral(BasePFSimulation):
 
         # Multiply the gtg_diagonal by the derivative of the mapping
         diagonal = mkvc(
-            (sdiag(np.sqrt(self._gtg_diagonal)) @ self.chiDeriv).power(2).sum(axis=0)
+            (sdiag(np.sqrt(self._gtg_diagonal)) @ self._prop_deriv("chi"))
+            .power(2)
+            .sum(axis=0)
         )
         return diagonal
 
@@ -485,7 +486,7 @@ class Simulation3DIntegral(BasePFSimulation):
         # Need to assign the model, so the chiDeriv can be computed (if the
         # model is None, the chiDeriv is going to be Zero).
         self.model = m
-        dmu_dm_v = self.chiDeriv @ v
+        dmu_dm_v = self._prop_deriv("chi") @ v
         Jvec = self.G @ dmu_dm_v.astype(self.sensitivity_dtype, copy=False)
 
         if self.is_amplitude_data:
@@ -531,7 +532,7 @@ class Simulation3DIntegral(BasePFSimulation):
             # dask doesn't support and "order" argument to reshape...
             v = v.T.reshape(-1)  # .reshape(-1, order="F")
         Jtvec = self.G.T @ v.astype(self.sensitivity_dtype, copy=False)
-        return np.asarray(self.chiDeriv.T @ Jtvec)
+        return np.asarray(self._prop_deriv("chi").T @ Jtvec)
 
     @property
     def ampDeriv(self):
@@ -1653,6 +1654,7 @@ class SimulationEquivalentSourceLayer(
         return diagonal
 
 
+@_add_deprecated_physical_property_functions("rem")
 class Simulation3DDifferential(BaseMagneticPDESimulation):
     r"""A secondary field simulation for magnetic data.
 
@@ -1663,17 +1665,12 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
     mu : float, array_like
         Magnetic Permeability Model (H/ m). Set this for forward
         modeling or to fix while inverting for remanence. This is used if
-        ``muMap`` is None.
-    muMap : simpeg.maps.IdentityMap, optional
-        The mapping used to go from the simulation model to ``mu``. Set this
-        to invert for ``mu``.
-    rem : float, array_like
-        Magnetic Polarization :math:`\mu_0 \mathbf{M}` (nT). Set this for forward
-        modeling or to fix remanent magnetization while inverting for permeability.
-        This is used if ``remMap`` is None.
-    remMap : simpeg.maps.IdentityMap, optional
-        The mapping used to go from the simulation model to :math:`\mu_0 \mathbf{M}`.
-        Set this to invert for :math:`\mu_0 \mathbf{M}`.
+        a mapping is not given.
+    rem : float, array_like, simpeg.maps.IdentityMap
+        Magnetic Polarization :math:`\mu_0 \mathbf{M}` (nT). Set this to an array
+        for forward modeling or to fix remanent magnetization while inverting for
+        permeability. Pass a mapping from the simulation model to
+        :math:`\mu_0 \mathbf{M}` to invert for :math:`\mu_0 \mathbf{M}`.
     storeJ: bool
         Whether to store the sensitivity matrix. If set to True
     solver_dtype: dtype, optional
@@ -1701,8 +1698,8 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
     _Ainv = None
 
-    rem, remMap, remDeriv = props.Invertible(
-        "Magnetic Polarization (nT)", optional=True
+    rem = props.PhysicalProperty(
+        "Magnetic Polarization (nT)", shape=("*",), default=None
     )
 
     _supported_components = ("tmi", "bx", "by", "bz")
@@ -1712,20 +1709,18 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         mesh,
         survey=None,
         mu=None,
-        muMap=None,
+        *,
         rem=None,
-        remMap=None,
         storeJ=False,
         solver_dtype=np.float64,
         **kwargs,
     ):
-        if mu is None:
+        if mu is None and kwargs.get("mui") is None:
             mu = mu_0
 
-        super().__init__(mesh=mesh, survey=survey, mu=mu, muMap=muMap, **kwargs)
+        super().__init__(mesh=mesh, survey=survey, mu=mu, **kwargs)
 
-        self.rem = rem
-        self.remMap = remMap
+        self._init_property(rem=rem)
 
         self.storeJ = storeJ
         self.solver_dtype = solver_dtype
@@ -2003,11 +1998,13 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         Jtv = 0
 
-        if self.remMap is not None:
-            Mf_rem_deriv = self._Mf_vec_deriv * sp.diags(1 / mu_vec) * self.remDeriv
+        if self.is_parametrized("rem"):
+            Mf_rem_deriv = (
+                self._Mf_vec_deriv * sp.diags(1 / mu_vec) * self._prop_deriv("rem")
+            )
             Jtv += (self.MfMuiI * Mf_rem_deriv).T * (divt_solve_q)
 
-        if self.muMap is not None:
+        if self.is_parametrized("mu"):
             Jtv += self.MfMuiIDeriv(self._DivT * u, -divt_solve_q, adjoint=True)
             Jtv += self.MfMuiIDeriv(
                 self._b0, self._MfMu0i.T * (divt_solve_q), adjoint=True
@@ -2018,7 +2015,11 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
                     self.rem / mu_vec
                 ).diagonal()
                 mu_vec_i_deriv = sp.vstack(
-                    (self.muiDeriv, self.muiDeriv, self.muiDeriv)
+                    (
+                        self._prop_deriv("mui"),
+                        self._prop_deriv("mui"),
+                        self._prop_deriv("mui"),
+                    )
                 )
 
                 Mf_r_mui_deriv = (
@@ -2047,11 +2048,13 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
 
         mu_vec = np.tile(self.mu * np.ones(self.mesh.n_cells), self.mesh.dim)
 
-        if self.remMap is not None:
-            Mf_rem_deriv = self._Mf_vec_deriv * sp.diags(1 / mu_vec) * self.remDeriv
+        if self.is_parametrized("rem"):
+            Mf_rem_deriv = (
+                self._Mf_vec_deriv * sp.diags(1 / mu_vec) * self._prop_deriv("rem")
+            )
             db_dm += self.MfMuiI * Mf_rem_deriv * v
 
-        if self.muMap is not None:
+        if self.is_parametrized("mu"):
             dCmu_dm += self.MfMuiIDeriv(self._DivT @ u, v, adjoint=False)
             db_dm += self._MfMu0i * self.MfMuiIDeriv(self._b0, v, adjoint=False)
 
@@ -2060,7 +2063,11 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
                     self.rem / mu_vec
                 ).diagonal()
                 mu_vec_i_deriv = sp.vstack(
-                    (self.muiDeriv, self.muiDeriv, self.muiDeriv)
+                    (
+                        self._prop_deriv("mui"),
+                        self._prop_deriv("mui"),
+                        self._prop_deriv("mui"),
+                    )
                 )
                 Mf_r_mui_deriv = (
                     self._Mf_vec_deriv * sp.diags(self.rem) * mu_vec_i_deriv
@@ -2192,7 +2199,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         toDelete = super()._delete_on_model_update
         if self._stored_fields is not None:
             toDelete = toDelete + ["_stored_fields"]
-        if self.muMap is not None:
+        if self.is_parametrized("mu"):
             if self._Ainv is not None:
                 toDelete = toDelete + ["_Ainv"]
             if self._Jmatrix is not None:

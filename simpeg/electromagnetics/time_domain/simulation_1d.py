@@ -287,7 +287,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
             sig = self.compute_complex_sigma(frequencies)
             mu = self.compute_complex_mu(frequencies)
 
-            if self.hMap is not None:
+            if self.is_parametrized("h"):
                 # Grab a copy
                 C0s_dh = C0s.copy()
                 C1s_dh = C1s.copy()
@@ -327,14 +327,14 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 self._J["dh"] = self._project_to_data(v_dh)
 
             if (
-                self.sigmaMap is not None
-                or self.muMap is not None
-                or self.thicknessesMap is not None
+                self.is_parametrized("sigma")
+                or self.is_parametrized("mu")
+                or self.is_parametrized("thicknesses")
             ):
                 rTE_ds, rTE_dh, rTE_dmu = rTE_gradient(
                     frequencies, unique_lambs, sig, mu, self.thicknesses
                 )
-                if self.sigmaMap is not None:
+                if self.is_parametrized("sigma"):
                     rTE_ds = rTE_ds[..., inv_lambs]
                     v_ds = (
                         (
@@ -344,7 +344,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                         @ W.T
                     ).T
                     self._J["ds"] = self._project_to_data(v_ds)
-                if self.muMap is not None:
+                if self.is_parametrized("mu"):
                     rTE_dmu = rTE_dmu[..., inv_lambs]
                     v_dmu = (
                         (
@@ -354,7 +354,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                         @ W.T
                     ).T
                     self._J["dmu"] = self._project_to_data(v_dmu)
-                if self.thicknessesMap is not None:
+                if self.is_parametrized("thicknesses"):
                     rTE_dh = rTE_dh[..., inv_lambs]
                     v_dthick = (
                         (
@@ -394,10 +394,10 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
         # Map parameters with their corresponding derivatives
         param_and_derivs = {
-            "dh": self.hDeriv,
-            "ds": self.sigmaDeriv,
-            "dmu": self.muDeriv,
-            "dthick": self.thicknessesDeriv,
+            "dh": self._prop_deriv("h"),
+            "ds": self._prop_deriv("sigma"),
+            "dmu": self._prop_deriv("mu"),
+            "dthick": self._prop_deriv("thicknesses"),
         }
 
         # Compute J matrix

@@ -418,3 +418,17 @@ def test_cache_clear_on_model_clear():
     for sim in multi_sim.simulations:
         assert sim.model is None
         assert not hasattr(sim, "_Me_Sigma")
+
+
+def test_getjtjdiag_updates_with_model(linear_sims_factory):
+    meta = MetaSimulation(*linear_sims_factory())
+    first = meta.getJtJdiag(np.zeros(6)).copy()
+    second = meta.getJtJdiag(np.ones(6))
+
+    fresh = MetaSimulation(*linear_sims_factory())
+    assert not np.allclose(first, second)
+    np.testing.assert_allclose(second, fresh.getJtJdiag(np.ones(6)))
+
+
+def test_meta_simulation_always_needs_model(linear_sims_factory):
+    assert MetaSimulation(*linear_sims_factory()).needs_model

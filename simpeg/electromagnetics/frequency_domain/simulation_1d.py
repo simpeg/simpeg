@@ -164,7 +164,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
             sig = self.compute_complex_sigma(frequencies)
             mu = self.compute_complex_mu(frequencies)
 
-            if self.hMap is not None:
+            if self.is_parametrized("h"):
                 # Grab a copy
                 C0s_dh = C0s.copy()
                 C1s_dh = C1s.copy()
@@ -221,14 +221,14 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 self._J["dh"] = self._project_to_data(v_dh)
 
             if (
-                self.sigmaMap is not None
-                or self.muMap is not None
-                or self.thicknessesMap is not None
+                self.is_parametrized("sigma")
+                or self.is_parametrized("mu")
+                or self.is_parametrized("thicknesses")
             ):
                 rTE_ds, rTE_dh, rTE_dmu = rTE_gradient(
                     frequencies, unique_lambs, sig, mu, self.thicknesses
                 )
-                if self.sigmaMap is not None:
+                if self.is_parametrized("sigma"):
                     rTE_ds = rTE_ds[:, i_freq]
                     rTE_ds = np.take_along_axis(rTE_ds, inv_lambs[None, ...], axis=-1)
                     v_ds = (
@@ -239,7 +239,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                         @ W.T
                     ).T
                     self._J["ds"] = self._project_to_data(v_ds)
-                if self.muMap is not None:
+                if self.is_parametrized("mu"):
                     rTE_dmu = rTE_dmu[:, i_freq]
                     rTE_dmu = np.take_along_axis(rTE_dmu, inv_lambs[None, ...], axis=-1)
                     v_dmu = (
@@ -250,7 +250,7 @@ class Simulation1DLayered(BaseEM1DSimulation):
                         @ W.T
                     ).T
                     self._J["dmu"] = self._project_to_data(v_dmu)
-                if self.thicknessesMap is not None:
+                if self.is_parametrized("thicknesses"):
                     rTE_dh = rTE_dh[:, i_freq]
                     rTE_dh = np.take_along_axis(rTE_dh, inv_lambs[None, ...], axis=-1)
                     v_dthick = (
@@ -290,10 +290,10 @@ class Simulation1DLayered(BaseEM1DSimulation):
         Js = self._getJ(m, f=f)
         # Map parameters with their corresponding derivatives
         param_and_derivs = {
-            "dh": self.hDeriv,
-            "ds": self.sigmaDeriv,
-            "dmu": self.muDeriv,
-            "dthick": self.thicknessesDeriv,
+            "dh": self._prop_deriv("h"),
+            "ds": self._prop_deriv("sigma"),
+            "dmu": self._prop_deriv("mu"),
+            "dthick": self._prop_deriv("thicknesses"),
         }
 
         # Compute J matrix
