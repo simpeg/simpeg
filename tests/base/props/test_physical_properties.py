@@ -147,7 +147,12 @@ DEFAULT_CLASSES = {
 }
 
 
-@pytest.mark.parametrize("modeler", ALL_PROP_CLASSES)
+def _ordered(classes):
+    """Sort a set of classes, so that test collection does not depend on hashing."""
+    return sorted(classes, key=lambda cls: cls.__name__)
+
+
+@pytest.mark.parametrize("modeler", _ordered(ALL_PROP_CLASSES))
 def test_internal_property_dictionary(modeler):
     params = inspect.signature(modeler).parameters
     params = set(name for name in params if name != "kwargs")
@@ -155,7 +160,7 @@ def test_internal_property_dictionary(modeler):
     assert params == set(modeler.physical_properties.keys())
 
 
-@pytest.mark.parametrize("modeler", RECIPROCAL_CLASSES)
+@pytest.mark.parametrize("modeler", _ordered(RECIPROCAL_CLASSES))
 @pytest.mark.parametrize("assign, retrieve", [("sigma", "rho"), ("rho", "sigma")])
 def test_get_recip_prop(modeler, assign, retrieve):
     prop1 = getattr(modeler, assign)
@@ -167,7 +172,7 @@ def test_get_recip_prop(modeler, assign, retrieve):
     assert prop1.get_reciprocal(modeler) is prop2
 
 
-@pytest.mark.parametrize("modeler", INVERTIBLE_SIGMA_CLASSES)
+@pytest.mark.parametrize("modeler", _ordered(INVERTIBLE_SIGMA_CLASSES))
 @pytest.mark.parametrize("dep", [False, "init", "set attrMap"])
 def test_invertible_map_assignment(modeler, dep):
     exp_map = maps.ExpMap()
@@ -197,7 +202,7 @@ def test_invertible_map_assignment(modeler, dep):
         assert pm.sigmaMap is exp_map
 
 
-@pytest.mark.parametrize("modeler", INVERTIBLE_SIGMA_CLASSES)
+@pytest.mark.parametrize("modeler", _ordered(INVERTIBLE_SIGMA_CLASSES))
 @pytest.mark.parametrize("value", [None, np.array([1, 2, 3])])
 def test_invertible_map_deletion(modeler, value):
     pm = modeler(sigma=maps.ExpMap())
@@ -217,7 +222,7 @@ def test_reciprocal_deletion():
     assert pm._prop_deriv("sigma") == 0
 
 
-@pytest.mark.parametrize("modeler", INVERTIBLE_SIGMA_CLASSES)
+@pytest.mark.parametrize("modeler", _ordered(INVERTIBLE_SIGMA_CLASSES))
 def test_invertible_needs_model(modeler):
     assert modeler.sigma.invertible
     pm = modeler(sigma=maps.ExpMap())
@@ -228,7 +233,7 @@ def test_invertible_needs_model(modeler):
         pm.sigma
 
 
-@pytest.mark.parametrize("modeler", INVERTIBLE_SIGMA_CLASSES)
+@pytest.mark.parametrize("modeler", _ordered(INVERTIBLE_SIGMA_CLASSES))
 def test_retrieve_mapped_property(modeler):
     assert modeler.sigma.invertible
     pm = modeler(sigma=maps.ExpMap())
@@ -237,7 +242,7 @@ def test_retrieve_mapped_property(modeler):
     npt.assert_equal(pm.sigma, desired)
 
 
-@pytest.mark.parametrize("modeler", INVERTIBLE_SIGMA_CLASSES)
+@pytest.mark.parametrize("modeler", _ordered(INVERTIBLE_SIGMA_CLASSES))
 def test_derivative_mapped_property(modeler):
     assert modeler.sigma.invertible
     pm = modeler(sigma=maps.ExpMap())
@@ -255,14 +260,14 @@ def test_derivative_mapped_property(modeler):
     npt.assert_equal(deriv, desired)
 
 
-@pytest.mark.parametrize("modeler", RHO_CLASSES - INVERTIBLE_RHO_CLASSES)
+@pytest.mark.parametrize("modeler", _ordered(RHO_CLASSES - INVERTIBLE_RHO_CLASSES))
 def test_not_assign_map_invertible(modeler):
     assert not modeler.rho.invertible
     with pytest.raises(TypeError):
         modeler(rho=maps.ExpMap())
 
 
-@pytest.mark.parametrize("modeler", RECIPROCAL_CLASSES)
+@pytest.mark.parametrize("modeler", _ordered(RECIPROCAL_CLASSES))
 @pytest.mark.parametrize("assign, retrieve", [("sigma", "rho"), ("rho", "sigma")])
 def test_reciprocal_assigned(modeler, assign, retrieve):
     pm = modeler()
@@ -292,7 +297,9 @@ def test_reciprocal_two_mapped_retrieve(assign, retrieve):
     npt.assert_equal(rMap @ pm.model, desired)
 
 
-@pytest.mark.parametrize("modeler", RECIPROCAL_CLASSES & INVERTIBLE_SIGMA_CLASSES)
+@pytest.mark.parametrize(
+    "modeler", _ordered(RECIPROCAL_CLASSES & INVERTIBLE_SIGMA_CLASSES)
+)
 def test_reciprocal_sigma_mapped_retrieve(modeler):
     pm = modeler()
     pm.parametrize(sigma=maps.ExpMap())
@@ -316,7 +323,9 @@ def test_reciprocal_sigma_mapped_retrieve(modeler):
     npt.assert_equal(rho_map @ pm.model, desired)
 
 
-@pytest.mark.parametrize("modeler", RECIPROCAL_CLASSES & INVERTIBLE_SIGMA_CLASSES)
+@pytest.mark.parametrize(
+    "modeler", _ordered(RECIPROCAL_CLASSES & INVERTIBLE_SIGMA_CLASSES)
+)
 def test_reciprocal_sigma_derivative(modeler):
     pm = modeler(sigma=maps.ExpMap())
     pm.model = np.array([1, 2, 3])
@@ -338,7 +347,7 @@ def test_multi_parameter_inversion():
     np.testing.assert_equal(PM.gamma, params["gamma"].default)
 
 
-@pytest.mark.parametrize("modeler", RECIPROCAL_CLASSES - DEFAULT_CLASSES)
+@pytest.mark.parametrize("modeler", _ordered(RECIPROCAL_CLASSES - DEFAULT_CLASSES))
 def test_reciprocal_not_assigned(modeler):
     pm = modeler()
     with pytest.raises(AttributeError):
@@ -347,7 +356,9 @@ def test_reciprocal_not_assigned(modeler):
         pm.rho
 
 
-@pytest.mark.parametrize("modeler", RECIPROCAL_CLASSES & INVERTIBLE_SIGMA_CLASSES)
+@pytest.mark.parametrize(
+    "modeler", _ordered(RECIPROCAL_CLASSES & INVERTIBLE_SIGMA_CLASSES)
+)
 def test_reciprocal_map_no_model(modeler):
     pm = modeler(sigma=maps.ExpMap())
     with pytest.raises(AttributeError):
@@ -360,7 +371,7 @@ def test_no_value():
         pm.rho
 
 
-@pytest.mark.parametrize("modeler", RECIPROCAL_CLASSES & DEFAULT_CLASSES)
+@pytest.mark.parametrize("modeler", _ordered(RECIPROCAL_CLASSES & DEFAULT_CLASSES))
 @pytest.mark.parametrize("assign, retrieve", [("sigma", "rho"), ("rho", "sigma")])
 def test_reciprocal_default(modeler, assign, retrieve):
     pm = modeler()
@@ -372,7 +383,7 @@ def test_reciprocal_default(modeler, assign, retrieve):
         assert v1 == 1.0 / v2
 
 
-@pytest.mark.parametrize("modeler", ALL_PROP_CLASSES)
+@pytest.mark.parametrize("modeler", _ordered(ALL_PROP_CLASSES))
 def test_no_map_yet(modeler):
     pm = modeler()
     # all HasModel classes should error if assigning a model
@@ -453,17 +464,24 @@ def test_location_isotropic_rejects_anisotropic_shape(small_2d_mesh):
         modeler.sigma = np.ones((n_cells, 3))
 
 
-def test_location_full_anisotropy_accepts_all_shapes(small_2d_mesh):
-    modeler = CellCenteredFullAnisotropic(mesh=small_2d_mesh)
-    n_cells = small_2d_mesh.n_cells
+@pytest.mark.parametrize("h", [[3, 3], [3, 3, 3]])
+def test_location_full_anisotropy_accepts_all_shapes(h):
+    from discretize import TensorMesh
+
+    mesh = TensorMesh(h)
+    modeler = CellCenteredFullAnisotropic(mesh=mesh)
+    n_cells = mesh.n_cells
+    n_full = 3 if mesh.dim == 2 else 6
 
     modeler.rho = 1.0
     modeler.rho = np.full(n_cells, 1.0)
-    modeler.rho = np.ones((n_cells, small_2d_mesh.dim))  # diagonal
-    modeler.rho = np.ones((n_cells, 3))  # full-tensor (2D: 3 params)
+    modeler.rho = np.ones((n_cells, mesh.dim))  # diagonal
+    modeler.rho = np.ones((n_cells, n_full))  # full-tensor
     # and the flattened layouts of those (this is what a mapping's output looks like)
-    modeler.rho = np.ones(n_cells * small_2d_mesh.dim)
-    modeler.rho = np.ones(n_cells * 3)
+    modeler.rho = np.ones(n_cells * mesh.dim)
+    modeler.rho = np.ones(n_cells * n_full)
+    with pytest.raises(ValueError):
+        modeler.rho = np.ones(n_cells * (n_full + 1))
 
 
 def test_location_full_anisotropy_reciprocal_inverts_via_discretize(small_2d_mesh):
@@ -946,8 +964,11 @@ def test_removed_apis_raise_not_implemented(removed):
 
 @pytest.mark.parametrize("old", ["mapping", "optional"])
 def test_physical_property_removed_arguments(old):
-    with pytest.raises(TypeError, match=old):
+    with pytest.raises(TypeError, match=f"no longer takes a `{old}` argument"):
         props.PhysicalProperty("details", **{old: True})
+
+
+# --- constructors ----------------------------------------------------------
 
 
 def test_parametrizing_both_of_a_reciprocal_pair_errors():

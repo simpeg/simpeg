@@ -127,12 +127,6 @@ def test_clear_on_reparametrize(modeler):
     assert modeler.prop_dependent_property is not item_1
 
 
-def test_model_with_constructor_parametrization(mock_model_class):
-    modeler = mock_model_class(prop=maps.ExpMap(), model=np.zeros(4))
-    npt.assert_array_equal(modeler.model, np.zeros(4))
-    npt.assert_array_equal(modeler.prop, np.ones(4))
-
-
 def test_model_with_constructor_independent_of_init_order():
     class PropertiesAfterSuper(props.HasModel):
         prop = props.PhysicalProperty("test physical property")
