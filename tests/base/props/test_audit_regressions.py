@@ -97,3 +97,26 @@ def test_warnings_point_at_user_code():
     for w in record:
         assert w.filename == __file__, (str(w.message), w.filename)
     assert "0.28.0" in str(record[0].message)
+
+
+def test_reparametrize_clears_hierarchical_caches():
+    from simpeg.electromagnetics import frequency_domain as fdem
+
+    mesh = discretize.TensorMesh([[(10.0, 4)]] * 3, "CCC")
+    n = mesh.n_cells
+
+    def make():
+        return fdem.Simulation3DHierarchicalElectricField(
+            mesh, face_conductance=0.1 * np.ones(mesh.n_faces), sigma=maps.ExpMap()
+        )
+
+    m = np.log(0.01) * np.ones(n)
+    sim = make()
+    sim.model = m
+    sim.MeSigma
+    sim.parametrize(sigma=maps.ExpMap() * maps.LinearMap(np.eye(n), np.ones(n)))
+    fresh = make()
+    fresh.model = m + 1.0
+    np.testing.assert_allclose(
+        sim.MeSigma.diagonal().sum(), fresh.MeSigma.diagonal().sum()
+    )

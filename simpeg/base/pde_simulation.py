@@ -1130,6 +1130,12 @@ class BaseHierarchicalElectricalSimulation(
             toDelete = toDelete + self._clean_on_h_prop_update
         return toDelete
 
+    def _clear_model_caches(self):
+        super()._clear_model_caches()
+        for mat in self._clean_on_h_prop_update:
+            if hasattr(self, mat):
+                delattr(self, mat)
+
     def __setattr__(self, name, value):
         """Set items to delete on updating hierarchical electric properties."""
         super().__setattr__(name, value)

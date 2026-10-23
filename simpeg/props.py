@@ -890,6 +890,14 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                 recip.__delete__(self)
             self.parametrizations._fields[attr] = parametrization
 
+        self._clear_model_caches()
+
+    def _clear_model_caches(self):
+        """Delete everything cached from the previous parametrizations/model."""
+        for name in self._delete_on_model_update:
+            if hasattr(self, name):
+                delattr(self, name)
+
     def is_parametrized(self, attr):
         """Determine if a physical property (or its reciprocal) has been parametrized.
 
@@ -1163,6 +1171,7 @@ def _add_deprecated_physical_property_functions(
             for p in (prop, recip):
                 if p is not None and p.name in self.parametrizations:
                     p.__delete__(self)
+            self._clear_model_caches()
             return
         self.parametrize(**{new_name: value})
 
