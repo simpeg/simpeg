@@ -171,7 +171,20 @@ class PhysicalProperty:
         fdel=None,
         fshape=None,
         doc=None,
+        **removed,
     ):
+        for old in ("mapping", "optional"):
+            if old in removed:
+                raise TypeError(
+                    f"`PhysicalProperty` no longer takes a `{old}` argument. "
+                    f"Mappings are attached to a property with `HasModel.parametrize` "
+                    f"(or by passing a mapping for the property to the constructor), "
+                    f"and a property is optional when it is given a `default`."
+                )
+        if removed:
+            raise TypeError(
+                f"PhysicalProperty got unexpected keyword arguments: {sorted(removed)}"
+            )
         self.short_details = short_details
         self.default = default
 
@@ -437,6 +450,9 @@ class PhysicalProperty:
                         f"`{cls_name}.parametrize({self.name}=mapping)`."
                     ) from None
                 raise
+            if isinstance(value, np.ndarray) and value.ndim == 0:
+                # store scalars as python scalars
+                value = value.item()
         setattr(obj, self.private_name, value)
 
     def _invert(self, obj, value):
@@ -592,6 +608,21 @@ class BaseSimPEG:
 
 
 class PhysicalPropertyMetaclass(type):
+    def __call__(cls, *args, **kwargs):
+        obj = super().__call__(*args, **kwargs)
+        obj.__dict__["_construction_done"] = True
+        # Set the model last, so `Sim(sigma=mapping, model=m)` works.
+        model = obj.__dict__.pop("_init_model", None)
+        if model is not None:
+            obj.model = model
+        return obj
+
+    @property
+    def __signature__(cls):
+        # `__call__` above would otherwise hide the signature of `__init__` from `inspect`
+        sig = inspect.signature(cls.__init__)
+        return sig.replace(parameters=list(sig.parameters.values())[1:])
+
     def __new__(mcs, name, bases, classdict):
         nested_dict = {
             key: value
@@ -723,7 +754,12 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
     """The subset of `physical_properties` that are invertible."""
 
     def __init__(self, model=None, **kwargs):
-        self.model = model
+        if model is None:
+            self.model = None
+        else:
+            # The model can only be validated once the parametrizations exist, which
+            # is after every `__init__` has run (see `PhysicalPropertyMetaclass.__call__`).
+            self._init_model = model
         # A helper for initializing leftover property keyword arguments.
         if kwargs:
             props = self.physical_properties
@@ -894,6 +930,9 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
 
     def _clear_model_caches(self):
         """Delete everything cached from the previous parametrizations/model."""
+        if not getattr(self, "_construction_done", False):
+            # still being constructed, there is nothing cached yet.
+            return
         for name in self._delete_on_model_update:
             if hasattr(self, name):
                 delattr(self, name)
@@ -1029,6 +1068,10 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
 
     @model.setter
     def model(self, value):
+        self._set_model(value)
+
+    def _set_model(self, value):
+        """Set the model, returning `True` if it changed (and cached values were cleared)."""
         if value is not None:
             # check if I need a model
             parameters = self.parametrizations
@@ -1091,38 +1134,40 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                     f":\n    " + "\n    ".join(errors)
                 )
 
-            previous = getattr(self, "_model", None)
+            previous = {}
             try:
                 for modeler_name in self._nested_modelers:
                     modeler = getattr(self, modeler_name)
                     if modeler.needs_model:
+                        previous[modeler_name] = modeler.model
                         modeler.model = value
             except Exception as err:
-                # reset the nested_modelers and then throw the error
-                for modeler_name in self._nested_modelers:
-                    modeler = getattr(self, modeler_name)
-                    if modeler.needs_model:
-                        modeler.model = previous
+                # put back the models of the nested modelers, and then throw the error
+                for modeler_name, previous_model in previous.items():
+                    getattr(self, modeler_name).model = previous_model
                 raise err
 
         # trigger model update function.
         previous_value = getattr(self, "_model", None)
+        updated = False
         if previous_value is not value:
             if not (
                 isinstance(previous_value, np.ndarray)
                 and isinstance(value, np.ndarray)
                 and np.allclose(previous_value, value)
             ):
+                updated = True
                 # cached properties to delete
                 for prop in self._delete_on_model_update:
                     if hasattr(self, prop):
                         delattr(self, prop)
 
         self._model = value
+        return updated
 
     @model.deleter
     def model(self):
-        self._model = (None,)
+        self._model = None
         # cached properties to delete
         for prop in self._delete_on_model_update:
             if hasattr(self, prop):
@@ -1237,13 +1282,18 @@ def _add_deprecated_physical_property_functions(
     return decorator
 
 
+def _removed(name, message):
+    raise NotImplementedError(f"'{name}' was removed. {message}")
+
+
 class Mapping:
     # This should only really have been called by developers/ internally to simpeg,
     # Make this throw an error alerting developers to the new behavior.
     def __init__(self, *args, **kwargs):
-        raise SyntaxError(
-            "'Mapping' is no longer necessary. You should interact with mappings using the `HasModel.parametrize' and "
-            "'HasModel.parametrizations' methods."
+        _removed(
+            "Mapping",
+            "'Mapping' is no longer necessary. You should interact with mappings using the "
+            "`HasModel.parametrize` and `HasModel.parametrizations` methods.",
         )
 
 
@@ -1251,20 +1301,25 @@ class Derivative:
     # This should only really have been called by developers/ internally to simpeg,
     # Make this throw an error alerting developers to the new behavior.
     def __init__(self, *args, **kwargs):
-        raise SyntaxError(
-            "'Derivative' is no longer necessary. You should interact with mappings using the `HasModel.parametrize' and "
-            "'HasModel.parametrizations' methods."
+        _removed(
+            "Derivative",
+            "'Derivative' is no longer necessary. You should interact with mappings using the "
+            "`HasModel.parametrize` and `HasModel.parametrizations` methods.",
         )
 
 
 def Invertible(property_name, optional=False):
-    raise SyntaxError(
-        "You no longer need to specifically create an 'Invertible' property, instead just create a 'PhysicalProperty'"
+    _removed(
+        "Invertible",
+        "You no longer need to specifically create an 'Invertible' property, instead just "
+        "create a 'PhysicalProperty'.",
     )
 
 
 def Reciprocal(prop1, prop2):
-    raise SyntaxError(
-        "To assign reciprocal relationships for physical properties, you must pass the first physical property"
-        "to the second physical properties `reciprocal` argument on initialization."
+    _removed(
+        "Reciprocal",
+        "To assign reciprocal relationships for physical properties, you must pass the "
+        "first physical property to the second physical property's `reciprocal` argument "
+        "on initialization.",
     )

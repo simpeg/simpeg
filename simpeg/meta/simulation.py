@@ -162,6 +162,11 @@ class MetaSimulation(BaseSimulation):
         self._mappings = value
 
     @property
+    def needs_model(self):
+        # a meta simulation always needs a model, even if it has no parametrizations
+        return True
+
+    @property
     def _expected_model_length(self):
         return self.mappings[0].shape[1]
 
