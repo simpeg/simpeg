@@ -1567,3 +1567,37 @@ def test_deprecated_conductance_map_arguments(name):
     assert sim.is_parametrized(name)
     with pytest.warns(FutureWarning, match=f"{name}_map"):
         assert getattr(sim, f"{name}_map") is sim.parametrizations[name]
+
+
+def test_reparametrize_clears_hierarchical_matrices():
+    mesh = discretize.TensorMesh([[(10.0, 4)]] * 3, "CCC")
+    n_cells = mesh.n_cells
+
+    def make_sim():
+        return BaseHierarchicalElectricalSimulation(
+            mesh,
+            face_conductance=0.1 * np.ones(mesh.n_faces),
+            sigma=maps.ExpMap(),
+        )
+
+    model = np.log(0.01) * np.ones(n_cells)
+    sim = make_sim()
+    sim.model = model
+    sim.MeSigma  # cache it
+
+    sim.parametrize(
+        sigma=maps.ExpMap() * maps.LinearMap(np.eye(n_cells), np.ones(n_cells))
+    )
+
+    expected = make_sim()
+    expected.model = model + 1.0
+    np.testing.assert_allclose(
+        sim.MeSigma.diagonal().sum(), expected.MeSigma.diagonal().sum()
+    )
+
+
+def test_property_arguments_after_the_first_are_keyword_only():
+    mesh = discretize.TensorMesh([3, 3, 3])
+    # the third argument used to be `sigmaMap`, it should not silently become `rho`
+    with pytest.raises(TypeError, match="positional"):
+        BaseElectricalPDESimulation(mesh, None, maps.IdentityMap())

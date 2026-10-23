@@ -460,6 +460,9 @@ def test_location_full_anisotropy_accepts_all_shapes(small_2d_mesh):
     modeler.rho = np.full(n_cells, 1.0)
     modeler.rho = np.ones((n_cells, small_2d_mesh.dim))  # diagonal
     modeler.rho = np.ones((n_cells, 3))  # full-tensor (2D: 3 params)
+    # and the flattened layouts of those (this is what a mapping's output looks like)
+    modeler.rho = np.ones(n_cells * small_2d_mesh.dim)
+    modeler.rho = np.ones(n_cells * 3)
 
 
 def test_location_full_anisotropy_reciprocal_inverts_via_discretize(small_2d_mesh):
@@ -471,6 +474,24 @@ def test_location_full_anisotropy_reciprocal_inverts_via_discretize(small_2d_mes
     modeler.rho = rho
 
     npt.assert_allclose(modeler.sigma, inverse_property_tensor(small_2d_mesh, rho))
+
+
+@pytest.mark.parametrize("h", [[3, 3], [3, 3, 3]])
+@pytest.mark.parametrize("assign, retrieve", [("sigma", "rho"), ("rho", "sigma")])
+def test_flattened_full_tensor_reciprocal(h, assign, retrieve):
+    from discretize import TensorMesh
+    from discretize.utils import inverse_property_tensor
+
+    mesh = TensorMesh(h)
+    n_full = 3 if mesh.dim == 2 else 6
+    value = np.random.default_rng(0).uniform(1.0, 2.0, mesh.n_cells * n_full)
+
+    modeler = CellCenteredFullAnisotropic(mesh=mesh, **{assign: value})
+
+    npt.assert_allclose(getattr(modeler, assign), value)
+    npt.assert_allclose(
+        getattr(modeler, retrieve), inverse_property_tensor(mesh, value)
+    )
 
 
 class _ReshapeMap(maps.IdentityMap):
@@ -750,6 +771,158 @@ def test_shapes_decorator_survives_setter_shallow_copy():
     modeler.sigma = np.ones(3)
     with pytest.raises(ValueError):
         modeler.sigma = np.ones(4)
+
+
+# --- parametrize() ---------------------------------------------------------
+
+
+def test_failed_parametrize_keeps_value(small_2d_mesh):
+    n_cells = small_2d_mesh.n_cells
+    modeler = CellCenteredFullAnisotropic(mesh=small_2d_mesh, sigma=np.ones(n_cells))
+
+    with pytest.raises(ValueError):
+        modeler.parametrize(sigma=maps.IdentityMap(nP=n_cells + 3))
+
+    npt.assert_allclose(modeler.sigma, 1.0)
+    assert not modeler.is_parametrized("sigma")
+
+
+def test_failed_parametrize_keeps_reciprocal_mapping(small_2d_mesh):
+    n_cells = small_2d_mesh.n_cells
+    modeler = CellCenteredFullAnisotropic(
+        mesh=small_2d_mesh, sigma=maps.ExpMap(nP=n_cells)
+    )
+    old_map = modeler.parametrizations.sigma
+
+    # replacing it (through the reciprocal) with a bad one, must not remove the old
+    with pytest.raises(ValueError):
+        modeler.parametrize(rho=maps.IdentityMap(nP=n_cells + 3))
+
+    assert modeler.parametrizations.sigma is old_map
+    assert "rho" not in modeler.parametrizations
+
+
+# --- deprecated xMap interface ---------------------------------------------
+
+
+def test_deprecated_map_set_to_none_removes_parametrization():
+    pm = SingleExample(sigma=maps.ExpMap())
+    assert pm.needs_model
+    with pytest.warns(FutureWarning, match="sigmaMap"):
+        pm.sigmaMap = None
+    assert not pm.needs_model
+
+
+def test_deprecated_map_set_to_none_removes_reciprocal_parametrization():
+    pm = ReciprocalExample(rho=maps.ExpMap())
+    with pytest.warns(FutureWarning, match="sigmaMap"):
+        pm.sigmaMap = None
+    assert not pm.needs_model
+
+
+def test_deprecated_map_set_to_none_keeps_fixed_value():
+    pm = ReciprocalExample(sigma=np.ones(3))
+    with pytest.warns(FutureWarning, match="rhoMap"):
+        pm.rhoMap = None
+    npt.assert_equal(pm.sigma, 1.0)
+
+
+def test_deprecation_warnings_point_at_caller():
+    with pytest.warns(FutureWarning) as record:
+        pm = ReciprocalExample(sigmaMap=maps.ExpMap())
+        pm.rhoMap = maps.ExpMap()
+        pm.model = np.ones(3)
+        pm.sigmaMap
+        pm.sigmaDeriv
+    assert len(record) == 4
+    assert all(w.filename == __file__ for w in record)
+    assert "0.29.0" in str(record[0].message)
+
+
+def test_assigning_over_parametrization_warns_at_caller():
+    pm = SingleExample(sigma=maps.ExpMap())
+    with pytest.warns(UserWarning, match="removes the existing parametrization") as w:
+        pm.sigma = np.ones(3)
+    assert w[0].filename == __file__
+    assert not pm.is_parametrized("sigma")
+
+
+def test_assigning_mapping_directly_errors():
+    pm = SingleExample(sigma=np.ones(3))
+    with pytest.raises(TypeError, match="Cannot assign a mapping directly"):
+        pm.sigma = maps.ExpMap()
+
+
+# --- descriptor details ----------------------------------------------------
+
+
+def test_get_without_objtype_uses_reciprocal():
+    pm = ReciprocalExample(rho=np.full(3, 4.0))
+    npt.assert_allclose(ReciprocalExample.sigma.__get__(pm), 0.25)
+
+
+def test_shadowing_one_of_a_reciprocal_pair_errors_clearly():
+    class Child(ReciprocalExample):
+        rho = 1.0
+
+    with pytest.raises(TypeError, match="reciprocal"):
+        Child(sigma=np.ones(3))
+
+
+def test_scalars_are_stored_as_python_scalars():
+    pm = SingleExample(sigma=2.0)
+    assert not isinstance(pm.sigma, np.ndarray)
+    assert np.isscalar(pm.sigma)
+
+
+def test_invertible_properties():
+    assert set(ReciprocalSingleInvertible.invertible_properties) == {"sigma"}
+    assert set(MultipleInvertible.invertible_properties) == {"sigma", "rho", "gamma"}
+
+
+def test_parametrization_list():
+    import pickle
+
+    pm = SingleExample(sigma=maps.ExpMap())
+    plist = pm.parametrizations
+
+    assert "sigma" in plist
+    assert list(plist) == ["sigma"]
+    assert len(plist) == 1
+    assert plist.get("other") is None
+    assert "sigma" in str(plist)
+    with pytest.raises(AttributeError, match="read-only"):
+        plist.sigma = maps.IdentityMap()
+    with pytest.raises(AttributeError, match="no attribute"):
+        plist.other
+
+    clone = pickle.loads(pickle.dumps(pm))
+    assert list(clone.parametrizations) == ["sigma"]
+    clone.model = np.zeros(3)
+    npt.assert_allclose(clone.sigma, 1.0)
+
+
+# --- removed interface -----------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "removed",
+    [
+        lambda: props.Mapping("a"),
+        lambda: props.Derivative("a", "b"),
+        lambda: props.Invertible("a"),
+        lambda: props.Reciprocal("a", "b"),
+    ],
+)
+def test_removed_apis_raise_not_implemented(removed):
+    with pytest.raises(NotImplementedError):
+        removed()
+
+
+@pytest.mark.parametrize("old", ["mapping", "optional"])
+def test_physical_property_removed_arguments(old):
+    with pytest.raises(TypeError, match=old):
+        props.PhysicalProperty("details", **{old: True})
 
 
 if __name__ == "__main__":
