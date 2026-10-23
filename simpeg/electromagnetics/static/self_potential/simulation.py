@@ -52,6 +52,11 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
         # These below checks can be commented out, correspondingly do
         # not set sigma and rho to None on the super call, to enable
         # derivatives with respect to resistivity/conductivity.
+        if sigma is None:
+            if rho is None:
+                raise ValueError("Must set either conductivity or resistivity.")
+        elif rho is not None:
+            raise ValueError("Cannot set both conductivity and resistivity.")
         super().__init__(
             mesh=mesh,
             survey=survey,

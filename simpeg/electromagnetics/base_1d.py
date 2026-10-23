@@ -97,7 +97,7 @@ class BaseEM1DSimulation(BaseSimulation):
     )
 
     # Additional properties
-    h = props.PhysicalProperty("Receiver Height (m), h > 0")
+    h = props.PhysicalProperty("Receiver Height (m), h > 0", default=None)
 
     thicknesses = props.PhysicalProperty("layer thicknesses (m)")
 

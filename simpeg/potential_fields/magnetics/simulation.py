@@ -1715,7 +1715,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         solver_dtype=np.float64,
         **kwargs,
     ):
-        if mu is None:
+        if mu is None and kwargs.get("mui") is None:
             mu = mu_0
 
         super().__init__(mesh=mesh, survey=survey, mu=mu, **kwargs)

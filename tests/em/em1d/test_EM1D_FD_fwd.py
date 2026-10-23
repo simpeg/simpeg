@@ -645,3 +645,33 @@ def test_real_vs_complex(prop):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@pytest.mark.parametrize("module", ["fdem", "tdem"])
+def test_default_construction_does_not_warn(module):
+    import warnings
+    import simpeg.electromagnetics.time_domain as tdem
+
+    thicknesses = np.r_[10.0, 10.0]
+    if module == "fdem":
+        rx = fdem.receivers.PointMagneticFieldSecondary(
+            np.array([[0.0, 0.0, 30.0]]), orientation="z", component="real"
+        )
+        src = fdem.sources.MagDipole(
+            [rx], frequency=1000.0, location=np.array([0.0, 0.0, 30.0])
+        )
+        survey = fdem.Survey([src])
+        simulation_class = fdem.Simulation1DLayered
+    else:
+        rx = tdem.receivers.PointMagneticFluxTimeDerivative(
+            np.array([[0.0, 0.0, 30.0]]), np.r_[1e-4, 1e-3], "z"
+        )
+        src = tdem.sources.MagDipole([rx], location=np.array([0.0, 0.0, 30.0]))
+        survey = tdem.Survey([src])
+        simulation_class = tdem.Simulation1DLayered
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        simulation_class(
+            survey=survey, thicknesses=thicknesses, sigma=maps.ExpMap(nP=3)
+        )

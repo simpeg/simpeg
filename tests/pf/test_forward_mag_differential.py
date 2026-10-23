@@ -405,3 +405,21 @@ class TestGetJ:
         result = simulation.getJ(model).T @ vector
         expected = simulation.Jtvec(model, vector)
         np.testing.assert_allclose(result, expected)
+
+
+def test_inverse_permeability_argument():
+    mesh = discretize.TensorMesh([[(25.0, 4)]] * 3, "CCC")
+    receivers = PF.magnetics.receivers.Point(np.c_[[0.0], [0.0], [10.0]], ["tmi"])
+    source = PF.magnetics.sources.UniformBackgroundField(
+        [receivers], 50000.0, 60.0, 30.0
+    )
+    survey = PF.magnetics.survey.Survey(source)
+    mui = np.full(mesh.n_cells, 1 / (1.01 * 4e-7 * np.pi))
+
+    sim = PF.magnetics.Simulation3DDifferential(mesh, survey=survey, mui=mui)
+    np.testing.assert_allclose(sim.mu, 1 / mui)
+
+    sim = PF.magnetics.Simulation3DDifferential(
+        mesh, survey=survey, mui=maps.IdentityMap()
+    )
+    assert sim.is_parametrized("mu")

@@ -114,12 +114,16 @@ def test_adjoint(sim, mesh, q_map):
     )
 
 
-def test_errors(mesh, sim):
-    survey = sim.survey
-    with pytest.warns(FutureWarning):
-        sp.Simulation3DCellCentered(mesh=mesh, survey=survey, sigma=None, rho=None)
-    with pytest.raises(TypeError):
-        sp.Simulation3DCellCentered(mesh=mesh, survey=survey, sigma=1.0, rho=1.0)
+@pytest.mark.parametrize(
+    "kwargs, message",
+    [
+        ({"sigma": None, "rho": None}, "Must set either"),
+        ({"sigma": 1.0, "rho": 1.0}, "Cannot set both"),
+    ],
+)
+def test_errors(mesh, sim, kwargs, message):
+    with pytest.raises(ValueError, match=message):
+        sp.Simulation3DCellCentered(mesh=mesh, survey=sim.survey, **kwargs)
 
 
 def test_clears(sim):
