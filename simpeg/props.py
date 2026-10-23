@@ -1217,7 +1217,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
 
     @model.setter
     def model(self, value):
-        self._set_model(value)
+        return self._set_model(value)
 
     def _validate_model(self, value):
         """Check ``value`` can be this object's model, returning it as a numpy array."""
@@ -1227,7 +1227,10 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                 "Cannot add model as there are no parametrized properties"
                 ", choose from: ['{}']".format(
                     "', '".join(
-                        set(self.invertible_properties.keys()) | self._nested_modelers
+                        sorted(
+                            set(self.invertible_properties.keys())
+                            | self._nested_modelers
+                        )
                     )
                 )
             )

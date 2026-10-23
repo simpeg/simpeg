@@ -963,6 +963,18 @@ def test_neither_of_a_reciprocal_pair_warns_once():
     assert len(record) == 1
 
 
+def test_model_setter_returns_if_updated():
+    pm = SingleExample(sigma=maps.ExpMap())
+    assert props.HasModel.model.fset(pm, np.ones(3)) is True
+    assert props.HasModel.model.fset(pm, np.ones(3)) is False
+
+
+def test_no_parametrizations_error_lists_sorted_choices():
+    pm = MultipleInvertible()
+    with pytest.raises(AttributeError, match="'gamma', 'rho', 'sigma'"):
+        pm.model = np.ones(3)
+
+
 def test_both_value_and_deprecated_map_errors():
     with pytest.raises(TypeError, match="Cannot pass both `sigma`"):
         SingleExample(sigma=np.ones(3), sigmaMap=maps.ExpMap())
