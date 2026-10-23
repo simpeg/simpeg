@@ -74,12 +74,13 @@ class PlanewaveXYPrimary(Planewave):
                     mesh3d.h[-1],
                 ]
                 mesh1d = discretize.TensorMesh(hs, x0=x0)
-                if len(self._sigma_primary) == mesh3d.nC:
+                n_sigma = np.size(self._sigma_primary)
+                if n_sigma == mesh3d.nC:
                     # volume average down to 1D mesh
                     self._sigma1d = np.exp(
                         volume_average(mesh3d, mesh1d, np.log(self._sigma_primary))
                     )
-                elif len(self._sigma_primary) == mesh1d.nC:
+                elif n_sigma == mesh1d.nC:
                     self._sigma1d = self._sigma_primary
                 else:
                     self._sigma1d = np.ones(mesh1d.nC) * self._sigma_primary
