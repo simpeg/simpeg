@@ -3,7 +3,7 @@ from functools import cached_property
 import numpy as np
 import scipy.sparse as sp
 
-from .... import props
+from .... import maps, props
 from ....base import BaseElectricalPDESimulation
 from ....utils import mkvc
 from ..resistivity import Simulation2DCellCentered as DC_2D_CC
@@ -26,12 +26,15 @@ class BaseIPSimulation(BaseElectricalPDESimulation):
 
     eta = props.PhysicalProperty("Electrical Chargeability (V/V)")
 
-    def _prop_deriv(self, attr):
-        if attr == "sigma":
-            return -sp.diags(self.sigma) @ self._prop_deriv("eta")
-        elif attr == "rho":
-            return sp.diags(self.rho) @ self._prop_deriv("eta")
-        return super()._prop_deriv(attr)
+    def _parametrization_of(self, attr):
+        # The (fixed) DC conductivity/resistivity change with the chargeability.
+        if attr in ("sigma", "rho"):
+            eta_map = super()._parametrization_of("eta")
+            if eta_map is None:
+                return None
+            sign = -1.0 if attr == "sigma" else 1.0
+            return maps.LinearMap(sp.diags(sign * getattr(self, attr))) @ eta_map
+        return super()._parametrization_of(attr)
 
     def is_parametrized(self, attr):
         if attr == "sigma" or attr == "rho":
