@@ -66,6 +66,7 @@ class Simulation1DRecursive(BaseSimulation):
         self,
         survey=None,
         sigma=None,
+        *,
         rho=None,
         thicknesses=None,
         fix_Jmatrix=False,
@@ -311,9 +312,9 @@ class Simulation1DRecursive(BaseSimulation):
             self.survey.frequencies, self.thicknesses, self.sigma
         )
         Js = []
-        if self.sigmaMap is not None:
+        if self.is_parametrized("sigma"):
             Js.append(Z_dsigma)
-        if self.thicknessesMap is not None:
+        if self.is_parametrized("thicknesses"):
             Js.append(Z_dthick)
         Js = np.hstack(Js)
 
@@ -360,11 +361,11 @@ class Simulation1DRecursive(BaseSimulation):
                 start = end
         self._Jmatrix = {}
         start = 0
-        if self.sigmaMap is not None:
+        if self.is_parametrized("sigma"):
             end = start + Z_dsigma.shape[1]
             self._Jmatrix["sigma"] = J[:, start:end]
             start = end
-        if self.thicknessesMap is not None:
+        if self.is_parametrized("thicknesses"):
             end = start + Z_dthick.shape[1]
             self._Jmatrix["thick"] = J[:, start:end]
         return self._Jmatrix
@@ -378,11 +379,11 @@ class Simulation1DRecursive(BaseSimulation):
                 W = W.diagonal() ** 2
 
             gtgdiag = 0
-            if self.sigmaMap is not None:
-                J = Js["sigma"] @ self.sigmaDeriv
+            if self.is_parametrized("sigma"):
+                J = Js["sigma"] @ self._prop_deriv("sigma")
                 gtgdiag += np.einsum("i,ij,ij->j", W, J, J)
-            if self.thicknessesMap is not None:
-                J = Js["thick"] @ self.thicknessesDeriv
+            if self.is_parametrized("thicknesses"):
+                J = Js["thick"] @ self._prop_deriv("thicknesses")
                 gtgdiag += np.einsum("i,ij,ij->j", W, J, J)
             self._gtgdiag = gtgdiag
         return self._gtgdiag
@@ -390,19 +391,19 @@ class Simulation1DRecursive(BaseSimulation):
     def Jvec(self, m, v, f=None):
         J = self.getJ(m, f=None)
         Jvec = 0
-        if self.sigmaMap is not None:
-            Jvec += J["sigma"] @ (self.sigmaDeriv * v)
-        if self.thicknessesMap is not None:
-            Jvec += J["thick"] @ (self.thicknessesDeriv * v)
+        if self.is_parametrized("sigma"):
+            Jvec += J["sigma"] @ (self._prop_deriv("sigma") * v)
+        if self.is_parametrized("thicknesses"):
+            Jvec += J["thick"] @ (self._prop_deriv("thicknesses") * v)
         return Jvec
 
     def Jtvec(self, m, v, f=None):
         J = self.getJ(m, f=None)
         JTvec = 0
-        if self.sigmaMap is not None:
-            JTvec += self.sigmaDeriv.T @ (J["sigma"].T @ v)
-        if self.thicknessesMap is not None:
-            JTvec += self.thicknessesDeriv.T @ (J["thick"].T @ v)
+        if self.is_parametrized("sigma"):
+            JTvec += self._prop_deriv("sigma").T @ (J["sigma"].T @ v)
+        if self.is_parametrized("thicknesses"):
+            JTvec += self._prop_deriv("thicknesses").T @ (J["thick"].T @ v)
         return JTvec
 
     @property

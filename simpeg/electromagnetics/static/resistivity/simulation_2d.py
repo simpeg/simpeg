@@ -719,7 +719,7 @@ class Simulation2DNodal(BaseDCSimulation2D):
             if getattr(self, "_MBC_sigma", None) is None:
                 self._MBC_sigma = {}
             if ky not in self._MBC_sigma:
-                self._MBC_sigma[ky] = self._AvgBC[ky] @ self.sigmaDeriv
+                self._MBC_sigma[ky] = self._AvgBC[ky] @ self._prop_deriv("sigma")
             out += _inner_mat_mul_op(self._MBC_sigma[ky], u, v, adjoint)
         return out
 

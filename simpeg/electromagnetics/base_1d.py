@@ -70,12 +70,12 @@ class BaseEM1DSimulation(BaseSimulation):
     tau = props.PhysicalProperty(
         "Time constant for Cole-Cole model (s)",
         invertible=False,
-        default=0.5,
+        default=1.0,
     )
     c = props.PhysicalProperty(
         "Frequency Dependency for Cole-Cole model, 0 < c < 1",
         invertible=False,
-        default=1.0,
+        default=0.5,
     )
 
     # Properties for magnetic susceptibility
@@ -104,6 +104,7 @@ class BaseEM1DSimulation(BaseSimulation):
     def __init__(
         self,
         sigma=None,
+        *,
         rho=None,
         thicknesses=None,
         mu=mu_0,
@@ -388,27 +389,27 @@ class BaseEM1DSimulation(BaseSimulation):
     def Jvec(self, m, v, f=None):
         Js = self._getJ(m, f=f)
         out = 0.0
-        if self.hMap is not None:
-            out = out + Js["dh"] @ (self.hDeriv @ v)
-        if self.sigmaMap is not None:
-            out = out + Js["ds"] @ (self.sigmaDeriv @ v)
-        if self.muMap is not None:
-            out = out + Js["dmu"] @ (self.muDeriv @ v)
-        if self.thicknessesMap is not None:
-            out = out + Js["dthick"] @ (self.thicknessesDeriv @ v)
+        if self.is_parametrized("h"):
+            out = out + Js["dh"] @ (self._prop_deriv("h") @ v)
+        if self.is_parametrized("sigma"):
+            out = out + Js["ds"] @ (self._prop_deriv("sigma") @ v)
+        if self.is_parametrized("mu"):
+            out = out + Js["dmu"] @ (self._prop_deriv("mu") @ v)
+        if self.is_parametrized("thicknesses"):
+            out = out + Js["dthick"] @ (self._prop_deriv("thicknesses") @ v)
         return out
 
     def Jtvec(self, m, v, f=None):
         Js = self._getJ(m, f=f)
         out = 0.0
-        if self.hMap is not None:
-            out = out + self.hDeriv.T @ (Js["dh"].T @ v)
-        if self.sigmaMap is not None:
-            out = out + self.sigmaDeriv.T @ (Js["ds"].T @ v)
-        if self.muMap is not None:
-            out = out + self.muDeriv.T @ (Js["dmu"].T @ v)
-        if self.thicknessesMap is not None:
-            out = out + self.thicknessesDeriv.T @ (Js["dthick"].T @ v)
+        if self.is_parametrized("h"):
+            out = out + self._prop_deriv("h").T @ (Js["dh"].T @ v)
+        if self.is_parametrized("sigma"):
+            out = out + self._prop_deriv("sigma").T @ (Js["ds"].T @ v)
+        if self.is_parametrized("mu"):
+            out = out + self._prop_deriv("mu").T @ (Js["dmu"].T @ v)
+        if self.is_parametrized("thicknesses"):
+            out = out + self._prop_deriv("thicknesses").T @ (Js["dthick"].T @ v)
         return out
 
     def _compute_hankel_coefficients(self):
@@ -430,7 +431,7 @@ class BaseEM1DSimulation(BaseSimulation):
             if is_circular_loop:
                 if np.any(src.orientation[:-1] != 0.0):
                     raise ValueError("Can only simulate horizontal circular loops")
-            if self.hMap is not None:
+            if self.is_parametrized("h"):
                 h = 0  # source height above topo
             else:
                 h = src.location[2] - self.topo[-1]
@@ -659,17 +660,17 @@ class BaseEM1DSimulation(BaseSimulation):
             else:
                 W = W.diagonal() ** 2
             out = 0.0
-            if self.hMap is not None:
-                J = Js["dh"] @ self.hDeriv
+            if self.is_parametrized("h"):
+                J = Js["dh"] @ self._prop_deriv("h")
                 out = out + np.einsum("i,ij,ij->j", W, J, J)
-            if self.sigmaMap is not None:
-                J = Js["ds"] @ self.sigmaDeriv
+            if self.is_parametrized("sigma"):
+                J = Js["ds"] @ self._prop_deriv("sigma")
                 out = out + np.einsum("i,ij,ij->j", W, J, J)
-            if self.muMap is not None:
-                J = Js["dmu"] @ self.muDeriv
+            if self.is_parametrized("mu"):
+                J = Js["dmu"] @ self._prop_deriv("mu")
                 out = out + np.einsum("i,ij,ij->j", W, J, J)
-            if self.thicknessesMap is not None:
-                J = Js["dthick"] @ self.thicknessesDeriv
+            if self.is_parametrized("thicknesses"):
+                J = Js["dthick"] @ self._prop_deriv("thicknesses")
                 out = out + np.einsum("i,ij,ij->j", W, J, J)
             self._gtgdiag = out
         return self._gtgdiag

@@ -2,7 +2,7 @@ import numpy as np
 import sys
 import gc
 
-from .... import props
+from .... import maps, props
 from .data import Data
 from ....props import _add_deprecated_physical_property_functions
 from ....utils import sdiag, validate_type, validate_active_indices
@@ -40,6 +40,7 @@ class BaseSIPSimulation(BaseIPSimulation):
         mesh,
         survey=None,
         tau=None,
+        *,
         taui=None,
         c=None,
         storeJ=False,
@@ -124,7 +125,7 @@ class BaseSIPSimulation(BaseIPSimulation):
     def n(self):
         return self.mesh.n_nodes
 
-    def _prop_deriv(self, attr):
+    def _parametrization_of(self, attr):
         if attr in ["sigma", "rho"]:
             if attr == "sigma":
                 d = -sp.diags(self.sigma)
@@ -132,31 +133,31 @@ class BaseSIPSimulation(BaseIPSimulation):
                 d = sp.diags(self.rho)
             if self.storeJ:
                 d = d @ self._P
-            return d
-        return super()._prop_deriv(attr)
+            return maps.LinearMap(d)
+        return super()._parametrization_of(attr)
 
     @property
     def etaDeriv_store(self):
         if getattr(self, "_etaDeriv_store", None) is None:
-            self._etaDeriv_store = self.etaDeriv
+            self._etaDeriv_store = self._prop_deriv("eta")
         return self._etaDeriv_store
 
     @property
     def tauiDeriv_store(self):
         if getattr(self, "_tauiDeriv_store", None) is None:
-            self._tauiDeriv_store = self.tauiDeriv
+            self._tauiDeriv_store = self._prop_deriv("taui")
         return self._tauiDeriv_store
 
     @property
     def tauDeriv_store(self):
         if getattr(self, "_tauDeriv_store", None) is None:
-            self._tauDeriv_store = self.tauDeriv
+            self._tauDeriv_store = self._prop_deriv("tau")
         return self._tauDeriv_store
 
     @property
     def cDeriv_store(self):
         if getattr(self, "_cDeriv_store", None) is None:
-            self._cDeriv_store = self.cDeriv
+            self._cDeriv_store = self._prop_deriv("c")
         return self._cDeriv_store
 
     def get_t_over_tau(self, t):

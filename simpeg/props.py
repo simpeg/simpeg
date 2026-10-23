@@ -1,5 +1,7 @@
 import enum
 import inspect
+import math
+import os
 import warnings
 from types import MappingProxyType
 
@@ -8,9 +10,26 @@ import numpy as np
 from discretize.utils import inverse_property_tensor
 from simpeg.utils import deprecate_property
 from . import maps
-import functools
 from .utils import Zero, validate_type, validate_ndarray_with_shape
 from .typing import MapLike
+
+# Warnings about how the user called into simpeg should be reported at the user's
+# code, no matter how many simpeg frames (constructors, setters, ...) are in between.
+_SIMPEG_DIR = (os.path.dirname(os.path.abspath(__file__)),)
+
+
+def _delete_attrs(obj, names):
+    """Delete each attribute in ``names`` that is set on ``obj``."""
+    for name in names:
+        if hasattr(obj, name):
+            delattr(obj, name)
+
+
+def _warn_user(message, category):
+    warnings.warn(message, category, skip_file_prefixes=_SIMPEG_DIR)  # noqa: B028
+
+
+_REMOVAL_VERSION = "0.29.0"
 
 
 class _Void:
@@ -38,11 +57,32 @@ class AnisotropyLevel(enum.IntEnum):
     FULL = 3
 
 
+_LOCATION_DESCRIPTION = {
+    Location.CELL_CENTERS: "cell-centered",
+    Location.FACES: "face-defined",
+    Location.EDGES: "edge-defined",
+}
+
+_ANISOTROPY_DESCRIPTION = {
+    AnisotropyLevel.ISOTROPIC: "isotropic",
+    AnisotropyLevel.DIAGONAL: "isotropic or diagonally-anisotropic",
+    AnisotropyLevel.FULL: "isotropic, diagonally-anisotropic, or fully-anisotropic",
+}
+
 _LOCATION_SIZE_ATTR = {
     Location.CELL_CENTERS: "n_cells",
     Location.FACES: "n_faces",
     Location.EDGES: "n_edges",
 }
+
+
+def _is_int(value):
+    return isinstance(value, (int, np.integer))
+
+
+def _n_full_tensor(dim):
+    """Number of components of a symmetric full tensor in ``dim`` dimensions (as discretize uses)."""
+    return 3 if dim == 2 else 6
 
 
 def _mesh_shape_resolver(location, anisotropy):
@@ -63,8 +103,13 @@ def _mesh_shape_resolver(location, anisotropy):
         shapes = [(), (1,), (size,)]
         if anisotropy is not AnisotropyLevel.ISOTROPIC and mesh.dim > 1:
             shapes.append((size, mesh.dim))
+            # also accept the flattened (Fortran ordered) layouts that discretize
+            # uses, and that a mapping's flat output produces.
+            shapes.append((size * mesh.dim,))
             if anisotropy is AnisotropyLevel.FULL:
-                shapes.append((size, 3 if mesh.dim == 2 else 6))
+                n_full = _n_full_tensor(mesh.dim)
+                shapes.append((size, n_full))
+                shapes.append((size * n_full,))
         return shapes
 
     return fshape
@@ -76,67 +121,73 @@ def _mesh_tensor_invert(obj, value):
     return inverse_property_tensor(obj.mesh, value)
 
 
-def _reciprocal_output_is_full_tensor(prop, obj, recip_map):
-    """Best-effort check: does `recip_map`'s flattened output size match a
-    full-tensor-per-location array for `prop`'s declared `location`, given
-    `obj.mesh`?
-
-    Used to guard against `maps.ReciprocalMap`, whose elementwise transform/
-    derivative is only correct for scalar, isotropic, or diagonal-anisotropic
-    values -- not a genuine full tensor (with off-diagonal terms).
-
-    If `recip_map`'s own declared output shape is ambiguous (`"*"`, i.e. no
-    `mesh`/`nP` given), falls back to comparing the model's length instead: a
-    map with no declared shape has no way to change the length of what it's
-    given, since it isn't wired to know it should reshape to a specific size --
-    it is, in effect, elementwise/size-preserving. So a model already shaped
-    for a full tensor is a reasonable proxy for the mapping's output shape too.
-    Returns `False` (assume safe) only when neither can be determined.
-    """
-    if prop.location is not Location.CELL_CENTERS:
-        return False
-    mesh = getattr(obj, "mesh", None)
-    if mesh is None or mesh.dim <= 1:
-        return False
-    size = getattr(mesh, _LOCATION_SIZE_ATTR[prop.location])
-    if not size:
-        return False
-    n_full = 3 if mesh.dim == 2 else 6
-
-    output_size = recip_map.shape[0]
-    if isinstance(output_size, (int, np.integer)):
-        return output_size == size * n_full
-
-    model = getattr(obj, "model", None)
-    if model is None:
-        return False
-    return len(model) == size * n_full
-
-
 def _shape_size(shape):
     """Total element count implied by a single shape tuple, or `None` if any
     dimension is `"*"` (unresolvable)."""
-    total = 1
-    for dim in shape:
-        if dim == "*":
-            return None
-        total *= dim
-    return total
-
-
-def _expected_output_sizes(prop, obj):
-    """The set of valid flattened output lengths for `prop` on `obj`, given its
-    declared `fshape`/`shape`. Returns an empty set if `prop` declares no
-    shape constraint at all, or if every declared shape contains a wildcard.
-    """
-    shape = prop.fshape(obj) if prop.fshape is not None else prop.shape
-    if shape is None:
-        return set()
-    shapes = [shape] if isinstance(shape, tuple) else shape
-    return {size for size in (_shape_size(s) for s in shapes) if size is not None}
+    if "*" in shape:
+        return None
+    return math.prod(shape)
 
 
 class PhysicalProperty:
+    """A physical property of a :class:`HasModel` class.
+
+    A physical property is a descriptor. On an instance of the owning class it holds a
+    value (an array or scalar, validated against the property's shape and dtype), or
+    it can be parametrized by a mapping (see :meth:`HasModel.parametrize`), in which
+    case its value is calculated from the instance's ``model``.
+
+    Parameters
+    ----------
+    short_details : str, optional
+        One line description of the property (with units), used to build its docstring.
+    shape : tuple or list of tuple, optional
+        The valid shape(s) of the property's value. A dimension of ``"*"`` matches any
+        size. Cannot be combined with ``location``.
+    default : optional
+        The value of the property when it was never set. A property with a default is
+        optional, otherwise it is required.
+    dtype : type or tuple of type, optional
+        The valid data type(s) of the value.
+    reciprocal : str, optional
+        The name of the property on the same class that is the reciprocal of this one
+        (for example ``"rho"`` for ``"sigma"``). Either one of the pair can be set,
+        and the other is calculated from it.
+    invertible : bool, optional
+        Whether the property can be parametrized by a mapping.
+    location : Location, optional
+        Where the property lives on the object's ``mesh``. When given, ``shape`` is
+        resolved from the mesh.
+    anisotropy : AnisotropyLevel, optional
+        How anisotropic the value is allowed to be. Requires ``location``.
+    invert : callable, optional
+        Function, ``invert(obj, value)``, used to compute this property's value from the
+        value of its reciprocal. Defaults to ``1 / value`` (or the tensor inverse for
+        anisotropic properties at cell centers).
+    fget, fset, fdel : callable, optional
+        Custom getter, setter and deleter. Usually these are given by using the
+        :meth:`getter`, :meth:`setter` and :meth:`deleter` decorators.
+    fshape : callable, optional
+        Function, ``fshape(obj)``, that returns the valid shape(s) for an instance.
+        Usually this is given by using the :meth:`shapes` decorator.
+    doc : str, optional
+        The docstring of the property. Built from the other arguments if it is not given.
+
+    See Also
+    --------
+    HasModel : The base class of classes that have physical properties.
+
+    Examples
+    --------
+    >>> from simpeg import props, maps
+    >>> class Example(props.HasModel):
+    ...     sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
+    >>> fixed = Example(sigma=1e-2)
+    >>> mapped = Example(sigma=maps.ExpMap(nP=3))
+    >>> mapped.model = [-1.0, -2.0, -3.0]
+    >>> mapped.sigma
+    array([0.36787944, 0.13533528, 0.04978707])
+    """
 
     def __init__(
         self,
@@ -154,7 +205,20 @@ class PhysicalProperty:
         fdel=None,
         fshape=None,
         doc=None,
+        **removed,
     ):
+        for old in ("mapping", "optional"):
+            if old in removed:
+                raise TypeError(
+                    f"`PhysicalProperty` no longer takes a `{old}` argument. "
+                    f"Mappings are attached to a property with `HasModel.parametrize` "
+                    f"(or by passing a mapping for the property to the constructor), "
+                    f"and a property is optional when it is given a `default`."
+                )
+        if removed:
+            raise TypeError(
+                f"PhysicalProperty got unexpected keyword arguments: {sorted(removed)}"
+            )
         self.short_details = short_details
         self.default = default
 
@@ -217,21 +281,58 @@ class PhysicalProperty:
         ):
             self.invert = _mesh_tensor_invert
 
+    def expected_output_sizes(self, obj):
+        """The set of valid flattened output lengths for this property on `obj`, given its
+        declared `fshape`/`shape`. Returns an empty set if this property declares no
+        shape constraint at all, or if every declared shape contains a wildcard.
+        """
+        shape = self.fshape(obj) if self.fshape is not None else self.shape
+        if shape is None:
+            return set()
+        shapes = [shape] if isinstance(shape, tuple) else shape
+        return {size for size in (_shape_size(s) for s in shapes) if size is not None}
+
+    def _reciprocal_output_is_full_tensor(self, obj, recip_map):
+        """Best-effort check: does `recip_map`'s flattened output size match a
+        full-tensor-per-location array for this property's declared `location`, given
+        `obj.mesh`?
+
+        Used to guard against `maps.ReciprocalMap`, whose elementwise transform/
+        derivative is only correct for scalar, isotropic, or diagonal-anisotropic
+        values -- not a genuine full tensor (with off-diagonal terms).
+
+        If `recip_map`'s own declared output shape is ambiguous (`"*"`, i.e. no
+        `mesh`/`nP` given), falls back to comparing the model's length instead: a
+        map with no declared shape has no way to change the length of what it's
+        given, since it isn't wired to know it should reshape to a specific size --
+        it is, in effect, elementwise/size-preserving. So a model already shaped
+        for a full tensor is a reasonable proxy for the mapping's output shape too.
+        Returns `False` (assume safe) only when neither can be determined.
+        """
+        if self.location is not Location.CELL_CENTERS:
+            return False
+        mesh = getattr(obj, "mesh", None)
+        if mesh is None or mesh.dim <= 1:
+            return False
+        size = getattr(mesh, _LOCATION_SIZE_ATTR[self.location])
+        if not size:
+            return False
+        n_full = _n_full_tensor(mesh.dim)
+
+        output_size = recip_map.shape[0]
+        if _is_int(output_size):
+            return output_size == size * n_full
+
+        model = getattr(obj, "model", None)
+        if model is None:
+            return False
+        return len(model) == size * n_full
+
     def build_doc(self):
         # buildup my doc string
         if self.location is not None:
-            loc_str = {
-                Location.CELL_CENTERS: "cell-centered",
-                Location.FACES: "face-defined",
-                Location.EDGES: "edge-defined",
-            }[self.location]
-            aniso_str = {
-                AnisotropyLevel.ISOTROPIC: "isotropic",
-                AnisotropyLevel.DIAGONAL: "isotropic or diagonally-anisotropic",
-                AnisotropyLevel.FULL: (
-                    "isotropic, diagonally-anisotropic, or fully-anisotropic"
-                ),
-            }[self.anisotropy]
+            loc_str = _LOCATION_DESCRIPTION[self.location]
+            aniso_str = _ANISOTROPY_DESCRIPTION[self.anisotropy]
             shape_str = f"scalar, or {loc_str} ({aniso_str}) "
         elif self.shape is None:
             shape_str = ""
@@ -274,6 +375,8 @@ class PhysicalProperty:
         if obj is None:
             # happens on a class (not instance)
             return self
+        if objtype is None:
+            objtype = type(obj)
 
         # Try to evaluate myself
         if self.fget is not None:
@@ -337,17 +440,29 @@ class PhysicalProperty:
 
         if removed is not None:
             cls_name = type(obj).__name__
-            warnings.warn(
+            _warn_user(
                 f"Assigning a value directly to `{cls_name}.{self.name}` removes the "
                 f"existing parametrization of `{cls_name}.{removed}`; it will no "
                 f"longer be invertible through that mapping.",
                 UserWarning,
-                stacklevel=3,
             )
 
         obj._remove_parametrization(self.name)
         if recip is not None:
             recip.__delete__(obj)
+        obj._property_changed(self.name)
+
+    def _delete_with_reciprocal(self, obj: "HasModel", only_parametrized=False):
+        """Delete my value and parametrization, and my reciprocal's.
+
+        If ``only_parametrized`` is true, only those of the pair that are
+        parametrized are deleted (so a fixed value is left alone).
+        """
+        for prop in (self, self.get_reciprocal(obj)):
+            if prop is not None and (
+                not only_parametrized or prop.name in obj.parametrizations
+            ):
+                prop.__delete__(obj)
 
     def __delete__(self, obj: "HasModel"):
         if self.fdel is not None:
@@ -356,6 +471,7 @@ class PhysicalProperty:
             if hasattr(obj, self.private_name):
                 delattr(obj, self.private_name)
         obj._remove_parametrization(self.name)
+        obj._property_changed(self.name)
 
     def _fget(self, obj, from_reciprocal=""):
         """Return my value (or calculate it from a model if I was parametrized) from an object.
@@ -379,7 +495,7 @@ class PhysicalProperty:
         if (value := getattr(obj, self.private_name, None)) is not None:
             return value
         # If I was parametrized, compute myself
-        elif paramer := getattr(obj.parametrizations, self.name, None):
+        elif paramer := obj.parametrizations.get(self.name):
             if (model := obj.model) is None:
                 inst_name = type(obj).__name__
                 if not from_reciprocal:
@@ -396,11 +512,10 @@ class PhysicalProperty:
     def _fset(self, obj, value):
         if value is None:
             if not self.optional:
-                warnings.warn(
+                _warn_user(
                     f"Setting a required physical property {type(obj).__name__}.{self.name} to None is deprecated behavior. "
-                    f"This will change to an error in simpeg X.X",
+                    f"This will change to an error in simpeg {_REMOVAL_VERSION}",
                     FutureWarning,
-                    stacklevel=4,
                 )
         else:
             shape = self.fshape(obj) if self.fshape is not None else self.shape
@@ -420,6 +535,9 @@ class PhysicalProperty:
                         f"`{cls_name}.parametrize({self.name}=mapping)`."
                     ) from None
                 raise
+            if isinstance(value, np.ndarray) and value.ndim == 0:
+                # store scalars as python scalars
+                value = value.item()
         setattr(obj, self.private_name, value)
 
     def _invert(self, obj, value):
@@ -447,7 +565,16 @@ class PhysicalProperty:
         if (recip_name := self._reciprocal) is not None:
             if not inspect.isclass(objtype):
                 objtype = type(objtype)
-            return getattr(objtype, recip_name)
+            recip = getattr(objtype, recip_name)
+            if not isinstance(recip, PhysicalProperty):
+                raise TypeError(
+                    f"`{objtype.__name__}.{recip_name}` was overridden with a "
+                    f"{type(recip).__name__}, but it is the reciprocal of the "
+                    f"physical property `{self.name}`. Reciprocal properties "
+                    f"cannot be individually replaced with a plain attribute; "
+                    f"override both `{self.name}` and `{recip_name}`."
+                )
+            return recip
         return None
 
     @property
@@ -566,6 +693,41 @@ class BaseSimPEG:
 
 
 class PhysicalPropertyMetaclass(type):
+    def __call__(cls, *args, **kwargs):
+        # The model can only be validated once the parametrizations exist, so it is set
+        # after every `__init__` has run (this makes `Sim(sigma=mapping, model=m)` work).
+        model = kwargs.pop("model", None)
+
+        # Translate the deprecated `xMap=mapping` arguments to `x=mapping`.
+        for old_map, new_name in cls._all_deprecated_map_kwargs().items():
+            mapping = kwargs.pop(old_map, None)
+            if mapping is not None:
+                _warn_user(
+                    f"Passing mapping argument {old_map} to {cls.__name__} is deprecated. Instead "
+                    f"you can now use the {new_name} argument. It will be removed in simpeg {_REMOVAL_VERSION}.",
+                    FutureWarning,
+                )
+                kwargs[new_name] = mapping
+
+        obj = super().__call__(*args, **kwargs)
+        obj._construction_done = True
+        if model is not None:
+            obj.model = model
+        return obj
+
+    def _all_deprecated_map_kwargs(cls):
+        """The deprecated ``xMap`` arguments from this class and all of its parents."""
+        aliases = {}
+        for parent in reversed(cls.__mro__):
+            aliases.update(vars(parent).get("_deprecated_map_kwargs", {}))
+        return aliases
+
+    @property
+    def __signature__(cls):
+        # `__call__` above would otherwise hide the signature of `__init__` from `inspect`
+        sig = inspect.signature(cls.__init__)
+        return sig.replace(parameters=list(sig.parameters.values())[1:])
+
     def __new__(mcs, name, bases, classdict):
         nested_dict = {
             key: value
@@ -644,6 +806,9 @@ class ParametrizationList:
                 ) from None
         raise AttributeError
 
+    def get(self, key, default=None):
+        return self._fields.get(key, default)
+
     def __contains__(self, key):
         return key in self._fields
 
@@ -696,8 +861,14 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
     invertible_properties: dict[str, "PhysicalProperty"] = MappingProxyType({})
     """The subset of `physical_properties` that are invertible."""
 
-    def __init__(self, model=None, **kwargs):
-        self.model = model
+    #: Set once the constructor has finished (see `PhysicalPropertyMetaclass.__call__`).
+    _construction_done = False
+
+    #: The deprecated ``xMap`` constructor arguments, and the property they now map to.
+    _deprecated_map_kwargs: dict[str, str] = MappingProxyType({})
+
+    def __init__(self, **kwargs):
+        self.model = None
         # A helper for initializing leftover property keyword arguments.
         if kwargs:
             props = self.physical_properties
@@ -728,19 +899,25 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         inp1, inp2 = kwargs.values()
         prop1 = getattr(type(self), prop1)
         prop2 = getattr(type(self), prop2)
+        for prop in (prop1, prop2):
+            if not isinstance(prop, PhysicalProperty):
+                raise TypeError(
+                    f"`{type(self).__name__}` replaced one of a pair of reciprocal "
+                    f"physical properties with a {type(prop).__name__}. Reciprocal "
+                    f"properties cannot be individually replaced with a plain "
+                    f"attribute; override both."
+                )
         if inp1 is not None and inp2 is not None:
             raise TypeError(
                 f"Can only specify one of `{prop1.name}` or `{prop2.name}` for `{type(self).__name__}`"
             )
         required = not prop1.optional and not prop2.optional
         if required and inp1 is None and inp2 is None:
-            warnings.warn(
+            _warn_user(
                 f"Setting both `{prop1.name}` and `{prop2.name}` to None for `{type(self).__name__}`'s required "
                 f"physical properties is deprecated behavior. This message will be changed to an error in simpeg "
-                f"version X.X",
+                f"version {_REMOVAL_VERSION}",
                 FutureWarning,
-                stacklevel=3,
-                # f"`{type(self).__name__}` requires one of `{prop1.name}` or `{prop2.name}`"
             )
         if inp2 is not None:
             inp = {prop2.name: inp2}
@@ -783,6 +960,10 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         >>> sim.parametrize(sigma=maps.ExpMap())
 
         """
+        # Validate everything before changing any state, so a failure leaves
+        # the existing values and parametrizations untouched.
+        replaced = set()
+        checked = []
         for attr, parametrization in kwargs.items():
             if not isinstance(parametrization, maps.IdentityMap):
                 raise TypeError(
@@ -799,49 +980,68 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                 raise TypeError(
                     f"{type(self).__name__}.{attr} is not an invertible PhysicalProperty and cannot be parametrized"
                 )
-
-            # cleanup myself and my reciprocal first, so the consistency
-            # checks below don't compare against an entry about to be replaced
-            prop.__delete__(self)
+            replaced.add(attr)
             if recip := prop.get_reciprocal(self):
-                recip.__delete__(self)
+                replaced.add(recip.name)
+            checked.append((attr, prop, parametrization))
 
-            # validate the mapping's output length against `attr`'s expected shape(s)
-            valid_sizes = _expected_output_sizes(prop, self)
-            output_size = parametrization.shape[0]
-            if (
-                valid_sizes
-                and isinstance(output_size, (int, np.integer))
-                and output_size not in valid_sizes
-            ):
-                raise ValueError(
-                    f"The mapping assigned to `{type(self).__name__}.{attr}` has "
-                    f"an output length of {output_size}, but `{attr}` expects a "
-                    f"length of one of {sorted(valid_sizes)}."
-                )
+        for attr, prop, parametrization in checked:
+            others = {
+                name: other_map
+                for name, other_map in self.parametrizations.items()
+                if name not in replaced
+            }
+            others.update({a: m for a, _, m in checked if a != attr})
+            self._check_parametrization_sizes(attr, prop, parametrization, others)
 
-            # validate the mapping's input length (nP) is consistent with any
-            # other already-parametrized property -- `model` is a single shared
-            # vector applied to every parametrization on this instance
-            input_size = parametrization.shape[1]
-            if isinstance(input_size, (int, np.integer)):
-                for other_attr, other_map in self.parametrizations.items():
-                    other_input = other_map.shape[1]
-                    if (
-                        isinstance(other_input, (int, np.integer))
-                        and other_input != input_size
-                    ):
-                        raise ValueError(
-                            f"Cannot parametrize `{type(self).__name__}.{attr}` "
-                            f"with a mapping expecting a model of length "
-                            f"{input_size}: `{other_attr}` is already "
-                            f"parametrized with a mapping expecting a model of "
-                            f"length {other_input}. All parametrizations on a "
-                            f"`{type(self).__name__}` instance must accept the "
-                            f"same model length."
-                        )
-
+        for attr, prop, parametrization in checked:
+            # cleanup myself and my reciprocal first
+            prop._delete_with_reciprocal(self)
             self.parametrizations._fields[attr] = parametrization
+
+        self._clear_model_caches()
+
+    def _clear_model_caches(self):
+        """Delete everything cached from the previous parametrizations/model."""
+        if not self._construction_done:
+            # still being constructed, there is nothing cached yet.
+            return
+        _delete_attrs(self, self._delete_on_model_update)
+
+    def _property_changed(self, name):
+        """Called after the physical property ``name`` was set or deleted."""
+
+    def _check_parametrization_sizes(self, attr, prop, parametrization, others):
+        """Check the shape of a new ``parametrization`` of ``attr``.
+
+        Its output length must be valid for the property, and its input length must match
+        the (``others``) parametrizations that are staying, as they all share one model.
+        """
+        cls_name = type(self).__name__
+        valid_sizes = prop.expected_output_sizes(self)
+        output_size = parametrization.shape[0]
+        if valid_sizes and _is_int(output_size) and output_size not in valid_sizes:
+            raise ValueError(
+                f"The mapping assigned to `{cls_name}.{attr}` has "
+                f"an output length of {output_size}, but `{attr}` expects a "
+                f"length of one of {sorted(valid_sizes)}."
+            )
+
+        input_size = parametrization.shape[1]
+        if not _is_int(input_size):
+            return
+        for other_attr, other_map in others.items():
+            other_input = other_map.shape[1]
+            if _is_int(other_input) and other_input != input_size:
+                raise ValueError(
+                    f"Cannot parametrize `{cls_name}.{attr}` "
+                    f"with a mapping expecting a model of length "
+                    f"{input_size}: `{other_attr}` is already "
+                    f"parametrized with a mapping expecting a model of "
+                    f"length {other_input}. All parametrizations on a "
+                    f"`{cls_name}` instance must accept the "
+                    f"same model length."
+                )
 
     def is_parametrized(self, attr):
         """Determine if a physical property (or its reciprocal) has been parametrized.
@@ -867,33 +1067,41 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         # just silently succeed here as it is an internal method.
         self.parametrizations._fields.pop(attr, None)
 
+    def _parametrization_of(self, attr):
+        """The mapping from the model to the value of ``attr``, or `None`.
+
+        If only the reciprocal of ``attr`` is parametrized, the result is the
+        reciprocal composed with that parametrization.
+        """
+        cls = type(self)
+        parameters = self.parametrizations
+        if attr in parameters:
+            return parameters[attr]
+        prop = getattr(cls, attr)
+        recip = prop.get_reciprocal(cls)
+        if recip and recip.name in parameters:
+            recip_map = parameters[recip.name]
+            if prop.anisotropy is AnisotropyLevel.FULL and (
+                prop._reciprocal_output_is_full_tensor(self, recip_map)
+            ):
+                raise NotImplementedError(
+                    f"Cannot compute the mapping of `{cls.__name__}.{attr}` "
+                    f"through its parametrized reciprocal `{recip.name}`, which is "
+                    f"currently set as a full-tensor anisotropic property: "
+                    f"`maps.ReciprocalMap`'s derivative is only correct for "
+                    f"scalar, isotropic, or diagonal-anisotropic values. "
+                    f"Parametrize `{attr}` directly instead of `{recip.name}` "
+                    f"to get a correct derivative."
+                )
+            return maps.ReciprocalMap() @ recip_map
+        return None
+
     def _prop_deriv(self, attr):
         # TODO Add support for adjoints here and on mapping derivatives
         # TODO Add support for passing v to the parametrization
-        parameters = self.parametrizations
-        if attr not in parameters:
-            my_class = type(self)
-            prop = getattr(my_class, attr)
-            recip = prop.get_reciprocal(my_class)
-            if recip and recip.name in parameters:
-                recip_map = parameters[recip.name]
-                if prop.anisotropy is AnisotropyLevel.FULL and (
-                    _reciprocal_output_is_full_tensor(prop, self, recip_map)
-                ):
-                    raise NotImplementedError(
-                        f"Cannot compute the derivative of `{my_class.__name__}.{attr}` "
-                        f"through its parametrized reciprocal `{recip.name}`, which is "
-                        f"currently set as a full-tensor anisotropic property: "
-                        f"`maps.ReciprocalMap`'s derivative is only correct for "
-                        f"scalar, isotropic, or diagonal-anisotropic values. "
-                        f"Parametrize `{attr}` directly instead of `{recip.name}` "
-                        f"to get a correct derivative."
-                    )
-                paramer = maps.ReciprocalMap() @ recip_map
-            else:
-                return Zero()
-        else:
-            paramer = parameters[attr]
+        paramer = self._parametrization_of(attr)
+        if paramer is None:
+            return Zero()
         if self.model is not None:
             return paramer.deriv(self.model)
         else:
@@ -966,104 +1174,105 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
 
     @model.setter
     def model(self, value):
-        if value is not None:
-            # check if I need a model
-            parameters = self.parametrizations
-            if not self.needs_model:
-                raise AttributeError(
-                    "Cannot add model as there are no parametrized properties"
-                    ", choose from: ['{}']".format(
-                        "', '".join(
-                            set(self.invertible_properties.keys())
-                            | self._nested_modelers
-                        )
+        self._set_model(value)
+
+    def _validate_model(self, value):
+        """Check ``value`` can be this object's model, returning it as a numpy array."""
+        parameters = self.parametrizations
+        if not self.needs_model:
+            raise AttributeError(
+                "Cannot add model as there are no parametrized properties"
+                ", choose from: ['{}']".format(
+                    "', '".join(
+                        set(self.invertible_properties.keys()) | self._nested_modelers
                     )
                 )
-
-            # coerce to a numpy array
-            value = validate_ndarray_with_shape(
-                "model", value, shape=("*",), dtype=float
             )
 
-            # Check the model is a good shape
-            errors = []
-            for name, mapping in parameters.items():
-                correct_shape = mapping.shape[1] == "*" or mapping.shape[1] == len(
-                    value
-                )
-                if not correct_shape:
-                    errors.append(
-                        f"The parametrization, {mapping}, for '{type(self).__name__}.{name}' expected a model "
-                        f"of length {mapping.shape[1]}"
-                    )
-            if len(errors) > 0:
-                raise ValueError(
-                    f"'{type(self).__name__}.model' had a length of {len(value)} but expected a different "
-                    f"length for mappings : \n    " + "\n    ".join(errors)
-                )
+        # coerce to a numpy array
+        value = validate_ndarray_with_shape("model", value, shape=("*",), dtype=float)
+        cls_name = type(self).__name__
 
-            # For mappings whose output shape couldn't be resolved statically
-            # (and so weren't checked against the property's expected shape at
-            # `parametrize()` time, see `_expected_output_sizes`), assume the
-            # output length matches the model's length: a map with no declared
-            # shape has no way to signal a size change, so it's effectively
-            # elementwise/size-preserving -- no need to evaluate the mapping
-            # just to check this.
-            errors = []
-            for name, mapping in parameters.items():
-                if mapping.shape[0] != "*":
-                    continue
-                prop = getattr(type(self), name)
-                valid_sizes = _expected_output_sizes(prop, self)
-                if valid_sizes and len(value) not in valid_sizes:
-                    errors.append(
-                        f"The parametrization, {mapping}, for '{type(self).__name__}.{name}' "
-                        f"has an unresolved output shape; the model's length ({len(value)}) "
-                        f"is not one of `{name}`'s expected sizes: {sorted(valid_sizes)}"
-                    )
-            if len(errors) > 0:
-                raise ValueError(
-                    f"'{type(self).__name__}.model' had a length of {len(value)} but is not "
-                    f"valid for the following parametrizations with unresolved output shapes"
-                    f":\n    " + "\n    ".join(errors)
-                )
+        # Check the model is a good shape
+        errors = [
+            f"The parametrization, {mapping}, for '{cls_name}.{name}' expected a model "
+            f"of length {mapping.shape[1]}"
+            for name, mapping in parameters.items()
+            if mapping.shape[1] not in ("*", len(value))
+        ]
+        if errors:
+            raise ValueError(
+                f"'{cls_name}.model' had a length of {len(value)} but expected a different "
+                f"length for mappings : \n    " + "\n    ".join(errors)
+            )
 
-            previous = getattr(self, "_model", None)
-            try:
-                for modeler_name in self._nested_modelers:
-                    modeler = getattr(self, modeler_name)
-                    if modeler.needs_model:
-                        modeler.model = value
-            except Exception as err:
-                # reset the nested_modelers and then throw the error
-                for modeler_name in self._nested_modelers:
-                    modeler = getattr(self, modeler_name)
-                    if modeler.needs_model:
-                        modeler.model = previous
-                raise err
+        # For mappings whose output shape couldn't be resolved statically
+        # (and so weren't checked against the property's expected shape at
+        # `parametrize()` time, see `PhysicalProperty.expected_output_sizes`), assume the
+        # output length matches the model's length: a map with no declared
+        # shape has no way to signal a size change, so it's effectively
+        # elementwise/size-preserving -- no need to evaluate the mapping
+        # just to check this.
+        errors = []
+        for name, mapping in parameters.items():
+            if mapping.shape[0] != "*":
+                continue
+            valid_sizes = getattr(type(self), name).expected_output_sizes(self)
+            if valid_sizes and len(value) not in valid_sizes:
+                errors.append(
+                    f"The parametrization, {mapping}, for '{cls_name}.{name}' "
+                    f"has an unresolved output shape; the model's length ({len(value)}) "
+                    f"is not one of `{name}`'s expected sizes: {sorted(valid_sizes)}"
+                )
+        if errors:
+            raise ValueError(
+                f"'{cls_name}.model' had a length of {len(value)} but is not "
+                f"valid for the following parametrizations with unresolved output shapes"
+                f":\n    " + "\n    ".join(errors)
+            )
+        return value
+
+    def _set_nested_models(self, value):
+        """Pass the model on to the nested modelers, restoring them all if one fails."""
+        previous = {}
+        try:
+            for modeler_name in self._nested_modelers:
+                modeler = getattr(self, modeler_name)
+                if modeler.needs_model:
+                    previous[modeler_name] = modeler.model
+                    modeler.model = value
+        except Exception:
+            for modeler_name, previous_model in previous.items():
+                getattr(self, modeler_name).model = previous_model
+            raise
+
+    def _set_model(self, value):
+        """Set the model, returning `True` if it changed (and cached values were cleared)."""
+        if value is not None:
+            value = self._validate_model(value)
+            self._set_nested_models(value)
 
         # trigger model update function.
         previous_value = getattr(self, "_model", None)
+        updated = False
         if previous_value is not value:
             if not (
                 isinstance(previous_value, np.ndarray)
                 and isinstance(value, np.ndarray)
                 and np.allclose(previous_value, value)
             ):
+                updated = True
                 # cached properties to delete
-                for prop in self._delete_on_model_update:
-                    if hasattr(self, prop):
-                        delattr(self, prop)
+                _delete_attrs(self, self._delete_on_model_update)
 
         self._model = value
+        return updated
 
     @model.deleter
     def model(self):
-        self._model = (None,)
+        self._model = None
         # cached properties to delete
-        for prop in self._delete_on_model_update:
-            if hasattr(self, prop):
-                delattr(self, prop)
+        _delete_attrs(self, self._delete_on_model_update)
 
 
 def _add_deprecated_physical_property_functions(
@@ -1085,47 +1294,34 @@ def _add_deprecated_physical_property_functions(
         cls_name = cls.__name__
         warnings.warn(
             f"Getting `{cls_name}.{old_map}` directly is deprecated. If this is still necessary "
-            f"use `{cls_name}.parametrizations.{new_name}` instead",
+            f"use `{cls_name}.parametrizations.{new_name}` instead. It will be removed in simpeg {_REMOVAL_VERSION}.",
             FutureWarning,
             stacklevel=2,
         )
-        if (my_map := getattr(self.parametrizations, new_name, None)) is not None:
-            return my_map
-        if recip_name := getattr(cls, new_name)._reciprocal:
-            if (
-                recip_map := getattr(self.parametrizations, recip_name, None)
-            ) is not None:
-                prop = getattr(cls, new_name)
-                if prop.anisotropy is AnisotropyLevel.FULL and (
-                    _reciprocal_output_is_full_tensor(prop, self, recip_map)
-                ):
-                    raise NotImplementedError(
-                        f"Cannot compute `{cls_name}.{old_map}` from the "
-                        f"parametrized reciprocal `{recip_name}`, which is "
-                        f"currently set as a full-tensor anisotropic property: "
-                        f"`maps.ReciprocalMap` is only correct for scalar, "
-                        f"isotropic, or diagonal-anisotropic values. Parametrize "
-                        f"`{new_name}` directly instead."
-                    )
-                return maps.ReciprocalMap() @ recip_map
-        return None
+        return self._parametrization_of(new_name)
 
     @prop_map.setter
     def prop_map(self, value):
         cls_name = type(self).__name__
-        warnings.warn(
+        _warn_user(
             f"Setting `{cls_name}.{old_map}` directly is deprecated. Instead pass "
             f"`{new_name}=mapping` to the constructor, or call "
-            f"`{cls_name}.parametrize({new_name}=mapping)`.",
+            f"`{cls_name}.parametrize({new_name}=mapping)`. It will be removed in simpeg {_REMOVAL_VERSION}.",
             FutureWarning,
-            stacklevel=2,
         )
+        if value is None:
+            # Setting a mapping to None used to remove it.
+            getattr(type(self), new_name)._delete_with_reciprocal(
+                self, only_parametrized=True
+            )
+            self._clear_model_caches()
+            return
         self.parametrize(**{new_name: value})
 
     prop_map.__doc__ = f"""
     Mapping from the model to {old_name}
 
-    .. deprecated:: X.Y
+    .. deprecated:: 0.27.0
         The method of interacting with the physical property is deprecated. Instead
         pass `{new_name}=mapping` directly to the constructor (the simplest
         replacement for most use cases), or call the `parametrize()` method and
@@ -1140,7 +1336,7 @@ def _add_deprecated_physical_property_functions(
     def prop_deriv(self):
         cls_name = type(self).__name__
         warnings.warn(
-            f"Getting `{cls_name}.{old_deriv}` is deprecated, use `{cls_name}._prop_deriv('{new_name}')` instead.",
+            f"Getting `{cls_name}.{old_deriv}` is deprecated, use `{cls_name}._prop_deriv('{new_name}')` instead. It will be removed in simpeg {_REMOVAL_VERSION}.",
             FutureWarning,
             stacklevel=2,
         )
@@ -1149,7 +1345,7 @@ def _add_deprecated_physical_property_functions(
     prop_deriv.__doc__ = f"""
     Derivative of {old_name} w.r.t. the model
 
-    .. deprecated:: X.Y
+    .. deprecated:: 0.27.0
         The method of interacting with the physical property derivative is deprecated. If access is still necessary
         it can be retrieved with `_prop_deriv('{old_name}')`.
 
@@ -1159,39 +1355,31 @@ def _add_deprecated_physical_property_functions(
     """
 
     def decorator(cls):
-        __init__ = cls.__init__
-
-        @functools.wraps(__init__)
-        def __new_init__(self, *args, **kwargs):
-            mapping = kwargs.pop(old_map, None)
-            if mapping is not None:
-                warnings.warn(
-                    f"Passing mapping argument {old_map} to {type(self).__name__} is deprecated. Instead "
-                    f"you can now use the {new_name} argument.",
-                    FutureWarning,
-                    stacklevel=2,
-                )
-                kwargs[new_name] = mapping
-            __init__(self, *args, **kwargs)
-
-        cls.__init__ = __new_init__
+        cls._deprecated_map_kwargs = MappingProxyType(
+            {**vars(cls).get("_deprecated_map_kwargs", {}), old_map: new_name}
+        )
         setattr(cls, old_map, prop_map)
-        prop_map.__set_name__(old_map, cls)
+        prop_map.__set_name__(cls, old_map)
         setattr(cls, old_deriv, prop_deriv)
-        prop_deriv.__set_name__(old_deriv, cls)
+        prop_deriv.__set_name__(cls, old_deriv)
 
         return cls
 
     return decorator
 
 
+def _removed(name, message):
+    raise NotImplementedError(f"'{name}' was removed. {message}")
+
+
 class Mapping:
     # This should only really have been called by developers/ internally to simpeg,
     # Make this throw an error alerting developers to the new behavior.
     def __init__(self, *args, **kwargs):
-        raise SyntaxError(
-            "'Mapping' is no longer necessary. You should interact with mappings using the `HasModel.parametrize' and "
-            "'HasModel.parametrizations' methods."
+        _removed(
+            "Mapping",
+            "'Mapping' is no longer necessary. You should interact with mappings using the "
+            "`HasModel.parametrize` and `HasModel.parametrizations` methods.",
         )
 
 
@@ -1199,20 +1387,25 @@ class Derivative:
     # This should only really have been called by developers/ internally to simpeg,
     # Make this throw an error alerting developers to the new behavior.
     def __init__(self, *args, **kwargs):
-        raise SyntaxError(
-            "'Derivative' is no longer necessary. You should interact with mappings using the `HasModel.parametrize' and "
-            "'HasModel.parametrizations' methods."
+        _removed(
+            "Derivative",
+            "'Derivative' is no longer necessary. You should interact with mappings using the "
+            "`HasModel.parametrize` and `HasModel.parametrizations` methods.",
         )
 
 
 def Invertible(property_name, optional=False):
-    raise SyntaxError(
-        "You no longer need to specifically create an 'Invertible' property, instead just create a 'PhysicalProperty'"
+    _removed(
+        "Invertible",
+        "You no longer need to specifically create an 'Invertible' property, instead just "
+        "create a 'PhysicalProperty'.",
     )
 
 
 def Reciprocal(prop1, prop2):
-    raise SyntaxError(
-        "To assign reciprocal relationships for physical properties, you must pass the first physical property"
-        "to the second physical properties `reciprocal` argument on initialization."
+    _removed(
+        "Reciprocal",
+        "To assign reciprocal relationships for physical properties, you must pass the "
+        "first physical property to the second physical property's `reciprocal` argument "
+        "on initialization.",
     )

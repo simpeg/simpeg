@@ -58,7 +58,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
     def __init__(self, mesh, survey=None, dt_threshold=1e-8, **kwargs):  # noqa D107
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.dt_threshold = dt_threshold
-        if self.muMap is not None:
+        if self.is_parametrized("mu"):
             raise NotImplementedError(
                 "Time domain EM simulations do not support magnetic permeability "
                 "inversion, yet."
@@ -627,9 +627,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             List of the model-dependent attributes to clean upon model update.
         """
         items = super()._delete_on_model_update
-        if self.sigmaMap is not None:
+        if self.is_parametrized("sigma"):
             items = items + ["_Adcinv"]  #: clear DC matrix factors on any model updates
-            # if there is a sigmaMap
+            # if sigma is parametrized
         return items
 
 
@@ -2836,7 +2836,7 @@ class Simulation3DHierarchicalElectricField(
     This simulation adopts the hierarchical framework wherein:
 
     * Thick structures are parameterized as conductivities at cell centers. This property
-      and the corresponding mapping are set with `sigma` and `sigmaMap`.
+      and the corresponding mapping are set with `sigma` (pass a mapping to parametrize it).
     * Sheet-like structures can be parameterized as conductances on mesh faces. This property
       can be a fixed array or a mapping, and is set with `face_conductance`.
     * Wire-like structures can be parameterized as area-integrated conductivities on
@@ -2998,10 +2998,9 @@ class Simulation3DHierarchicalElectricField(
             List of the model-dependent attributes to clean upon model update.
         """
         items = super()._delete_on_model_update
-        if (
-            self.is_parametrized("sigma")
-            | self.is_parametrized("face_conductance")
-            | self.is_parametrized("edge_area_conductance")
+        if any(
+            self.is_parametrized(name)
+            for name in ("sigma", "face_conductance", "edge_area_conductance")
         ):
             items = items + ["_Adcinv"]  # clear DC matrix factors on any model updates
 
@@ -3020,7 +3019,7 @@ class Simulation3DHierarchicalMagneticFluxDensity(
     This simulation adopts the hierarchical framework wherein:
 
     * Thick structures are parameterized as conductivities at cell centers. This property
-      and the corresponding mapping are set with `sigma` and `sigmaMap`.
+      and the corresponding mapping are set with `sigma` (pass a mapping to parametrize it).
     * Sheet-like structures can be parameterized as conductances on mesh faces. This property
       can be a fixed array or a mapping, and is set with `face_conductance`.
     * Wire-like structures can be parameterized as area-integrated conductivities on

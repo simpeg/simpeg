@@ -259,7 +259,7 @@ def with_property_mass_matrices(property_name):
             stash_name = f"_Mf_{arg}_deriv"
             if getattr(self, stash_name, None) is None:
                 prop_deriv = self._prop_deriv(property_name)
-                prop = getattr(self, arg.lower())
+                prop = getattr(self, property_name)
                 t_type = TensorType(self.mesh, prop)
 
                 M_deriv_func = self.mesh.get_face_inner_product_deriv(model=prop)
@@ -287,7 +287,7 @@ def with_property_mass_matrices(property_name):
             stash_name = f"_Me_{arg}_deriv"
             if getattr(self, stash_name, None) is None:
                 prop_deriv = self._prop_deriv(property_name)
-                prop = getattr(self, arg.lower())
+                prop = getattr(self, property_name)
                 t_type = TensorType(self.mesh, prop)
 
                 M_deriv_func = self.mesh.get_edge_inner_product_deriv(model=prop)
@@ -379,7 +379,7 @@ def with_property_mass_matrices(property_name):
             ]
             return items
 
-        setattr(cls, f"_clear_on_{arg.lower()}_update", _clear_on_prop_update)
+        setattr(cls, f"_clear_on_{property_name.lower()}_update", _clear_on_prop_update)
         return cls
 
     return decorator
@@ -536,7 +536,7 @@ def with_surface_property_mass_matrices(property_name):
             ]
             return items
 
-        setattr(cls, f"_clear_on_{arg.lower()}_update", _clear_on_prop_update)
+        setattr(cls, f"_clear_on_{property_name.lower()}_update", _clear_on_prop_update)
         return cls
 
     return decorator
@@ -653,6 +653,23 @@ class BasePDESimulation(BaseSimulation):
         `pymatsolver <https://pymatsolver.readthedocs.io/en/latest/>`__ to learn more
         about solvers and their parameters.
     """
+
+    @property
+    def _delete_on_model_update(self):
+        # the matrices built from every property that depends on the model
+        to_delete = super()._delete_on_model_update
+        for name in self.physical_properties:
+            if self.is_parametrized(name):
+                to_delete = to_delete + list(
+                    getattr(self, f"_clear_on_{name.lower()}_update", ())
+                )
+        return to_delete
+
+    def _property_changed(self, name):
+        # drop the matrices that were built from the old value of the property
+        for mat in getattr(self, f"_clear_on_{name.lower()}_update", ()):
+            if hasattr(self, mat):
+                delattr(self, mat)
 
     def __init__(self, mesh, solver=None, solver_opts=None, **kwargs):
         self.mesh = mesh
@@ -842,54 +859,9 @@ class BaseElectricalPDESimulation(BasePDESimulation):
         anisotropy=props.AnisotropyLevel.FULL,
     )
 
-    def __init__(self, mesh, sigma=None, rho=None, **kwargs):
+    def __init__(self, mesh, sigma=None, *, rho=None, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
         self._init_recip_properties(sigma=sigma, rho=rho)
-
-    @sigma.setter
-    def sigma(self, value):
-        type(self).sigma._fset(self, value)
-
-        for mat in self._clear_on_sigma_update:
-            if hasattr(self, mat):
-                delattr(self, mat)
-
-    @sigma.deleter
-    def sigma(self):
-        prop = type(self).sigma
-        if hasattr(self, prop.private_name):
-            delattr(self, prop.private_name)
-
-        for mat in self._clear_on_sigma_update:
-            if hasattr(self, mat):
-                delattr(self, mat)
-
-    @rho.setter
-    def rho(self, value):
-        type(self).rho._fset(self, value)
-
-        for mat in self._clear_on_rho_update:
-            if hasattr(self, mat):
-                delattr(self, mat)
-
-    @rho.deleter
-    def rho(self):
-        prop = type(self).rho
-        if hasattr(self, prop.private_name):
-            delattr(self, prop.private_name)
-
-        for mat in self._clear_on_rho_update:
-            if hasattr(self, mat):
-                delattr(self, mat)
-
-    @property
-    def _delete_on_model_update(self):
-        toDelete = super()._delete_on_model_update
-        if self.is_parametrized("sigma") or self.is_parametrized("rho"):
-            toDelete = (
-                toDelete + self._clear_on_sigma_update + self._clear_on_rho_update
-            )
-        return toDelete
 
 
 @_add_deprecated_physical_property_functions("mu")
@@ -913,52 +885,9 @@ class BaseMagneticPDESimulation(BasePDESimulation):
         anisotropy=props.AnisotropyLevel.FULL,
     )
 
-    def __init__(self, mesh, mu=None, mui=None, **kwargs):
+    def __init__(self, mesh, mu=None, *, mui=None, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
         self._init_recip_properties(mu=mu, mui=mui)
-
-    @mu.setter
-    def mu(self, value):
-        type(self).mu._fset(self, value)
-
-        for mat in self._clear_on_mu_update:
-            if hasattr(self, mat):
-                delattr(self, mat)
-
-    @mu.deleter
-    def mu(self):
-        prop = type(self).mu
-        if hasattr(self, prop.private_name):
-            delattr(self, prop.private_name)
-
-        for mat in self._clear_on_mu_update:
-            if hasattr(self, mat):
-                delattr(self, mat)
-
-    @mui.setter
-    def mui(self, value):
-        type(self).mui._fset(self, value)
-
-        for mat in self._clear_on_mui_update:
-            if hasattr(self, mat):
-                delattr(self, mat)
-
-    @mui.deleter
-    def mui(self):
-        prop = type(self).mui
-        if hasattr(self, prop.private_name):
-            delattr(self, prop.private_name)
-        for mat in self._clear_on_mui_update:
-            if hasattr(self, mat):
-                delattr(self, mat)
-
-    @property
-    def _delete_on_model_update(self):
-        """Set items to delete on updating magnetic permeabilities."""
-        toDelete = super()._delete_on_model_update
-        if self.is_parametrized("mu") or self.is_parametrized("mui"):
-            toDelete = toDelete + self._clear_on_mu_update + self._clear_on_mui_update
-        return toDelete
 
 
 @_add_deprecated_physical_property_functions(
@@ -983,32 +912,6 @@ class BaseElectricalEdgePropertyPDESimulation(BaseElectricalPDESimulation):
     def __init__(self, mesh, survey=None, *, edge_area_conductance=None, **kwargs):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self._init_property(edge_area_conductance=edge_area_conductance)
-
-    @edge_area_conductance.setter
-    def edge_area_conductance(self, value):
-        type(self).edge_area_conductance._fset(self, value)
-
-        for mat in self._clear_on_edge_area_conductance_update:
-            if hasattr(self, mat):
-                delattr(self, mat)
-
-    @edge_area_conductance.deleter
-    def edge_area_conductance(self):
-        prop = type(self).edge_area_conductance
-        if hasattr(self, prop.private_name):
-            delattr(self, prop.private_name)
-
-        for mat in self._clear_on_edge_area_conductance_update:
-            if hasattr(self, mat):
-                delattr(self, mat)
-
-    @property
-    def _delete_on_model_update(self):
-        """Set items to delete on updating edge electric properties."""
-        toDelete = super()._delete_on_model_update
-        if self.is_parametrized("edge_area_conductance"):
-            toDelete = toDelete + self._clear_on_edge_area_conductance_update
-        return toDelete
 
 
 @_add_deprecated_physical_property_functions(
@@ -1035,32 +938,6 @@ class BaseElectricalFacePropertyPDESimulation(BaseElectricalPDESimulation):
     ):  # noqa D107
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self._init_property(face_conductance=face_conductance)
-
-    @face_conductance.setter
-    def face_conductance(self, value):
-        type(self).face_conductance._fset(self, value)
-
-        for mat in self._clear_on_face_conductance_update:
-            if hasattr(self, mat):
-                delattr(self, mat)
-
-    @face_conductance.deleter
-    def face_conductance(self):
-        prop = type(self).face_conductance
-        if hasattr(self, prop.private_name):
-            delattr(self, prop.private_name)
-
-        for mat in self._clear_on_face_conductance_update:
-            if hasattr(self, mat):
-                delattr(self, mat)
-
-    @property
-    def _delete_on_model_update(self):
-        """Set items to delete on updating face electric properties."""
-        toDelete = super()._delete_on_model_update
-        if self.is_parametrized("face_conductance"):
-            toDelete = toDelete + self._clear_on_face_conductance_update
-        return toDelete
 
 
 class BaseHierarchicalElectricalSimulation(
@@ -1130,9 +1007,8 @@ class BaseHierarchicalElectricalSimulation(
             toDelete = toDelete + self._clean_on_h_prop_update
         return toDelete
 
-    def __setattr__(self, name, value):
-        """Set items to delete on updating hierarchical electric properties."""
-        super().__setattr__(name, value)
+    def _property_changed(self, name):
+        super()._property_changed(name)
         if name in ["sigma", "rho", "face_conductance", "edge_area_conductance"]:
             for mat in self._clean_on_h_prop_update:
                 if hasattr(self, mat):

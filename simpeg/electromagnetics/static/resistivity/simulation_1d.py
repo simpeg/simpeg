@@ -124,6 +124,7 @@ class Simulation1DLayers(BaseSimulation):
         self,
         survey=None,
         sigma=None,
+        *,
         rho=None,
         thicknesses=None,
         hankel_filter="key_201_2012",
@@ -320,10 +321,10 @@ class Simulation1DLayers(BaseSimulation):
             J_rho, J_h = _dphi_tilde(self.rho, self.thicknesses, self._lambdas)
 
             Jmatrix = 0
-            if self.rhoMap is not None:
-                Jmatrix += (self._As @ J_rho) @ self.rhoDeriv
-            if self.thicknessesMap is not None:
-                Jmatrix += (self._As @ J_h) @ self.thicknessesDeriv
+            if self.is_parametrized("rho"):
+                Jmatrix += (self._As @ J_rho) @ self._prop_deriv("rho")
+            if self.is_parametrized("thicknesses"):
+                Jmatrix += (self._As @ J_h) @ self._prop_deriv("thicknesses")
             self._Jmatrix = Jmatrix
         return self._Jmatrix
 

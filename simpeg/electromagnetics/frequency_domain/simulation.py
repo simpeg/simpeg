@@ -2330,7 +2330,7 @@ class Simulation3DHierarchicalElectricField(
     This simulation adopts the hierarchical framework wherein:
 
     * Thick structures are parameterized as conductivities at cell centers. This property
-      and the corresponding mapping are set with `sigma` and `sigmaMap`.
+      and the corresponding mapping are set with `sigma` (pass a mapping to parametrize it).
     * Sheet-like structures can be parameterized as conductances on mesh faces. This property
       can be a fixed array or a mapping, and is set with `face_conductance`.
     * Wire-like structures can be parameterized as area-integrated conductivities on
@@ -2454,7 +2454,7 @@ class Simulation3DHierarchicalMagneticFluxDensity(
     This simulation adopts the hierarchical framework wherein:
 
     * Thick structures are parameterized as conductivities at cell centers. This property
-      and the corresponding mapping are set with `sigma` and `sigmaMap`.
+      and the corresponding mapping are set with `sigma` (pass a mapping to parametrize it).
     * Sheet-like structures can be parameterized as conductances on mesh faces. This property
       can be a fixed array or a mapping, and is set with `face_conductance`.
     * Wire-like structures can be parameterized as area-integrated conductivities on

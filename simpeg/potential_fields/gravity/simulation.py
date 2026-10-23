@@ -141,10 +141,9 @@ class Simulation3DIntegral(BasePFSimulation):
         Gravity survey with information of the receivers.
     active_cells : (n_cells) numpy.ndarray, optional
         Array that indicates which cells in ``mesh`` are active cells.
-    rho : numpy.ndarray, optional
-        Density array for the active cells in the mesh.
-    rhoMap : Mapping, optional
-        Model mapping.
+    rho : numpy.ndarray or simpeg.maps.IdentityMap, optional
+        Density array for the active cells in the mesh. Pass a mapping to
+        compute the density from the model instead (this parametrizes ``rho``).
     sensitivity_dtype : numpy.dtype, optional
         Data type that will be used to build the sensitivity matrix.
     store_sensitivities : {"ram", "disk", "forward_only"}
@@ -174,14 +173,13 @@ class Simulation3DIntegral(BasePFSimulation):
         self,
         mesh,
         rho=None,
+        *,
         engine="geoana",
         numba_parallel=True,
         **kwargs,
     ):
         super().__init__(mesh, engine=engine, numba_parallel=numba_parallel, **kwargs)
         self._init_property(rho=rho)
-
-        self.modelMap = self.rhoMap
 
         # Warn if n_processes has been passed
         if self.engine == "choclo" and "n_processes" in kwargs:
@@ -278,7 +276,9 @@ class Simulation3DIntegral(BasePFSimulation):
 
         # Multiply the gtg_diagonal by the derivative of the mapping
         diagonal = mkvc(
-            (sdiag(np.sqrt(self._gtg_diagonal)) @ self.rhoDeriv).power(2).sum(axis=0)
+            (sdiag(np.sqrt(self._gtg_diagonal)) @ self._prop_deriv("rho"))
+            .power(2)
+            .sum(axis=0)
         )
         return diagonal
 
@@ -348,9 +348,9 @@ class Simulation3DIntegral(BasePFSimulation):
         # model is None, the rhoDeriv is going to be Zero).
         self.model = m
         rhoDeriv = (
-            self.rhoDeriv
+            self._prop_deriv("rho")
             if not isinstance(self.G, LinearOperator)
-            else aslinearoperator(self.rhoDeriv)
+            else aslinearoperator(self._prop_deriv("rho"))
         )
         return self.G @ rhoDeriv
 
@@ -383,7 +383,7 @@ class Simulation3DIntegral(BasePFSimulation):
         # Need to assign the model, so the rhoDeriv can be computed (if the
         # model is None, the rhoDeriv is going to be Zero).
         self.model = m
-        dmu_dm_v = self.rhoDeriv @ v
+        dmu_dm_v = self._prop_deriv("rho") @ v
         return self.G @ dmu_dm_v.astype(self.sensitivity_dtype, copy=False)
 
     def Jtvec(self, m, v, f=None):
@@ -416,7 +416,7 @@ class Simulation3DIntegral(BasePFSimulation):
         # model is None, the rhoDeriv is going to be Zero).
         self.model = m
         Jtvec = self.G.T @ v.astype(self.sensitivity_dtype, copy=False)
-        return np.asarray(self.rhoDeriv.T @ Jtvec)
+        return np.asarray(self._prop_deriv("rho").T @ Jtvec)
 
     @property
     def G(self) -> NDArray | np.memmap | LinearOperator:

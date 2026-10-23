@@ -81,3 +81,17 @@ def test_bad_model_passthrough(prop1):
 
     with pytest.raises(ValueError):
         pm.model = [1, 2, 3]
+
+
+def test_bad_model_passthrough_restores_inner_models():
+    inner1 = InnerProp(phys_prop=maps.ExpMap(nP=3))
+    inner2 = InnerProp(phys_prop=maps.ExpMap(nP=5))
+    inner1.model = [4, 5, 6]
+    inner2.model = [1, 2, 3, 4, 5]
+    pm = NestedSim(nest_model=inner1, nest_two=inner2)
+
+    with pytest.raises(ValueError):
+        pm.model = [1, 2, 3]
+
+    npt.assert_equal(inner1.model, [4, 5, 6])
+    npt.assert_equal(inner2.model, [1, 2, 3, 4, 5])

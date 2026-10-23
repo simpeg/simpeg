@@ -1,0 +1,89 @@
+.. _0.27.0_notes:
+
+============================
+SimPEG v0.27.0 Release Notes
+============================
+
+This is a draft of the notes for the changes in the parametrized physical
+properties PR (https://github.com/simpeg/simpeg/pull/1601). The rest of the
+release notes will be added when the release is made.
+
+Parametrized physical properties
+================================
+
+Physical properties are now parametrized by passing a mapping directly as the
+property's argument, instead of using a separate ``xMap`` argument:
+
+.. code-block:: python
+
+    # before
+    sim = dc.Simulation3DNodal(mesh, survey=survey, sigmaMap=maps.ExpMap(mesh))
+
+    # now
+    sim = dc.Simulation3DNodal(mesh, survey=survey, sigma=maps.ExpMap(mesh))
+
+You can also parametrize (or re-parametrize) a property on an existing simulation with
+``sim.parametrize(sigma=mapping)``. The mappings are available through
+``sim.parametrizations`` (for example ``sim.parametrizations.sigma``), and
+``sim.is_parametrized("sigma")`` tells you if a property (or its reciprocal) is
+parametrized. The class attributes ``physical_properties`` and
+``invertible_properties`` list the physical properties of a class.
+
+Assigning a mapping directly (``sim.sigma = mapping``) is an error, and assigning an
+array to a parametrized property removes its parametrization (with a warning).
+
+Deprecations
+------------
+
+The ``xMap`` and ``xDeriv`` attributes, and the ``xMap`` constructor arguments (as well
+as ``model_map`` and ``model_deriv`` of ``LinearSimulation``) still work, but now emit
+a ``FutureWarning``. They will be removed in SimPEG v0.29.0. The replacements are
+
+- ``sim.xMap`` -> ``sim.parametrizations.x``
+- ``sim.xDeriv`` -> ``sim._prop_deriv("x")``
+- ``Simulation(xMap=mapping)`` -> ``Simulation(x=mapping)``
+
+Setting a required physical property to ``None`` is also deprecated, and will become
+an error in v0.29.0.
+
+Breaking changes
+----------------
+
+- Because the ``xMap`` arguments are gone from the constructors, positional arguments
+  that came after them would have silently shifted. These arguments are now keyword
+  only (for example ``engine`` in ``gravity.Simulation3DIntegral``), so a call using
+  the old positions raises a ``TypeError``.
+- ``props.Mapping``, ``props.Derivative``, ``props.Invertible`` and ``props.Reciprocal``
+  now raise a ``NotImplementedError``, and ``PhysicalProperty`` no longer accepts the
+  ``mapping`` and ``optional`` arguments (a property is optional when it has a
+  ``default``).
+- Setting a model on an object with nothing parametrized raises an ``AttributeError``
+  (it used to be a ``ValueError``).
+- Scalar property values are stored as python scalars (not 0-d arrays).
+- The ``HasModel.model`` setter no longer returns whether the model changed. Subclasses
+  that need this can call ``HasModel._set_model``.
+- ``viscous_remanent_magnetization.Simulation3DLinear`` requires ``xi`` to be a mapping.
+
+For developers
+--------------
+
+Classes with physical properties no longer define ``xMap`` and ``xDeriv`` properties
+using ``props.Invertible``. Declare a ``PhysicalProperty`` and pass the property in the
+constructor:
+
+.. code-block:: python
+
+    # before
+    class MyModeler(props.HasModel):
+        sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
+
+    # now
+    class MyModeler(props.HasModel):
+        sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
+
+        def __init__(self, sigma=None, **kwargs):
+            super().__init__(**kwargs)
+            self._init_property(sigma=sigma)
+
+Reciprocal properties (``sigma`` and ``rho``) are declared by giving each the
+other's name as its ``reciprocal``, and are initialized with ``_init_recip_properties``.

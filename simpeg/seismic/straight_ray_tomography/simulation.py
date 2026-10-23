@@ -81,7 +81,7 @@ class Simulation2DIntegral(LinearSimulation):
     slowness = props.PhysicalProperty("Slowness model (s/m)", reciprocal="velocity")
     velocity = props.PhysicalProperty("Velocity (m/s)", reciprocal="slowness")
 
-    def __init__(self, mesh, survey=None, slowness=None, velocity=None, **kwargs):
+    def __init__(self, mesh, survey=None, slowness=None, *, velocity=None, **kwargs):
         self.mesh = mesh
         super().__init__(survey=survey, **kwargs)
         self._init_recip_properties(slowness=slowness, velocity=velocity)
@@ -125,10 +125,10 @@ class Simulation2DIntegral(LinearSimulation):
         self.model = m
         # mt = self.model.transformDeriv
         # return self.A * ( mt * v )
-        return self.A * self.slownessDeriv * v
+        return self.A * self._prop_deriv("slowness") * v
 
     def Jtvec(self, m, v, f=None):
         self.model = m
         # mt = self.model.transformDeriv
         # return mt.T * ( self.A.T * v )
-        return self.slownessDeriv.T * self.A.T * v
+        return self._prop_deriv("slowness").T * self.A.T * v

@@ -60,7 +60,7 @@ class MetaSimulation(BaseSimulation):
     >>> for time in obs_times:
     ...     sims.append(ExponentialSinusoidSimulation(
     ...         mesh=mesh_space,
-    ...         model_map=maps.IdentityMap(),
+    ...         linear_model=maps.IdentityMap(),
     ...     ))
     ...     ccs = mesh_space.cell_centers
     ...     p_ave = full_mesh.get_interpolation_matrix(
@@ -162,6 +162,11 @@ class MetaSimulation(BaseSimulation):
         self._mappings = value
 
     @property
+    def needs_model(self):
+        # a meta simulation always needs a model, even if it has no parametrizations
+        return True
+
+    @property
     def _expected_model_length(self):
         return self.mappings[0].shape[1]
 
@@ -176,6 +181,10 @@ class MetaSimulation(BaseSimulation):
             value is None or previous is None or not np.array_equal(value, previous)
         )
         self._model = value
+        if updated:
+            for prop in self._delete_on_model_update:
+                if hasattr(self, prop):
+                    delattr(self, prop)
         return updated
 
     @property

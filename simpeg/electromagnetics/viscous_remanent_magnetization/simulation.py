@@ -831,7 +831,6 @@ class Simulation3DLinear(BaseVRMSimulation):
     _A = None
     _T = None
     _TisSet = False
-    _xiMap = None
 
     xi = props.PhysicalProperty(
         "Amalgamated Viscous Remanent Magnetization Parameter xi = dchi/ln(tau2/tau1)"
@@ -842,6 +841,11 @@ class Simulation3DLinear(BaseVRMSimulation):
         if xi is None:
             nAct = list(self.active_cells).count(True)
             xi = maps.IdentityMap(nP=nAct)
+        if not isinstance(xi, maps.IdentityMap):
+            raise TypeError(
+                f"`xi` must be a mapping from the model to xi, not a {type(xi).__name__}. "
+                f"This simulation is a linear operator acting on the model."
+            )
         self._init_property(xi=xi)
 
     @property
@@ -925,7 +929,7 @@ class Simulation3DLinear(BaseVRMSimulation):
         self.model = m  # Initiates/updates model and initiates mapping
 
         # Project to active mesh cells
-        m = self.xiMap * m
+        m = self.parametrizations.xi * m
 
         # Must return as a numpy array
         return mkvc(sp.coo_matrix.dot(self.T, np.dot(self.A, m)))
@@ -937,7 +941,7 @@ class Simulation3DLinear(BaseVRMSimulation):
             AssertionError("A survey must be set to generate A matrix")
 
         # Jacobian of xi wrt model
-        dxidm = self.xiMap.deriv(m)
+        dxidm = self.parametrizations.xi.deriv(m)
 
         # dxidm*v
         v = dxidm * v
@@ -968,7 +972,7 @@ class Simulation3DLinear(BaseVRMSimulation):
         v = (np.dot(v.T, self.A)).T
 
         # Jacobian of xi wrt model
-        dxidm = self.xiMap.deriv(m)
+        dxidm = self.parametrizations.xi.deriv(m)
 
         # Must return an array
         return mkvc(dxidm.T * v)
@@ -980,7 +984,6 @@ class Simulation3DLogUniform(BaseVRMSimulation):
     _A = None
     _T = None
     _TisSet = False
-    # _xiMap = None
 
     chi0 = props.PhysicalProperty("DC susceptibility", invertible=False)
     dchi = props.PhysicalProperty(

@@ -1031,7 +1031,7 @@ class Simulation3DNodal(BaseDCSimulation):
             out = self.MeSigmaDeriv(Grad @ u, Grad @ v, adjoint)
         if self.bc_type != "Neumann" and self.is_parametrized("sigma"):
             if getattr(self, "_MBC_sigma", None) is None:
-                self._MBC_sigma = self._AvgBC @ self.sigmaDeriv
+                self._MBC_sigma = self._AvgBC @ self._prop_deriv("sigma")
             out += _inner_mat_mul_op(self._MBC_sigma, u, v, adjoint)
         return out
 
@@ -1165,7 +1165,7 @@ class Simulation3DHierarchicalNodal(
     hierarchical framework wherein:
 
     * Thick structures are parameterized as conductivities at cell centers. This property
-      and the corresponding mapping are set with `sigma` and `sigmaMap`.
+      and the corresponding mapping are set with `sigma` (pass a mapping to parametrize it).
     * Sheet-like structures can be parameterized as conductances on mesh faces. This property
       can be a fixed array or a mapping, and is set with `face_conductance`.
     * Wire-like structures can be parameterized as area-integrated conductivities on
