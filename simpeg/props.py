@@ -778,14 +778,27 @@ class PhysicalPropertyMetaclass(type):
                     del physical_properties[key]
 
         for key, value in physical_properties.items():
-            if value._reciprocal is not None and (
-                value._reciprocal not in physical_properties
-            ):
-                raise SyntaxError(
-                    f"The physical property `{name}.{key}` is the reciprocal of "
-                    f"`{value._reciprocal}`, which is not a physical property of `{name}`. "
-                    f"Reciprocal properties cannot be individually replaced with a "
-                    f"plain attribute, override both `{key}` and `{value._reciprocal}`."
+            if (recip_name := value._reciprocal) is None:
+                continue
+            recip = physical_properties.get(recip_name)
+            if recip is None:
+                # A mixin may define just one half of a pair (the other half comes
+                # with the rest of the MRO), but a class cannot replace one that a
+                # parent defined with something that is not a physical property.
+                if any(
+                    isinstance(vars(parent).get(recip_name), PhysicalProperty)
+                    for parent in newcls.__mro__[1:]
+                ):
+                    raise TypeError(
+                        f"`{name}` replaces `{recip_name}`, the reciprocal of the "
+                        f"physical property `{key}`, with something that is not a "
+                        f"PhysicalProperty. Override both properties of a reciprocal pair."
+                    )
+            elif recip._reciprocal != key:
+                raise TypeError(
+                    f"`{name}.{recip_name}` is not the reciprocal of `{name}.{key}`. "
+                    f"Its `reciprocal` is {recip._reciprocal!r}. Override both properties "
+                    f"of a reciprocal pair with matching reciprocals."
                 )
 
         newcls.physical_properties = MappingProxyType(physical_properties)
@@ -944,12 +957,13 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                 f"version {_REMOVAL_VERSION}",
                 FutureWarning,
             )
+        if inp1 is None and inp2 is None:
+            # nothing to set (and the warning above already covers a missing value).
+            return
         if inp2 is not None:
-            inp = {prop2.name: inp2}
+            self._init_property(**{prop2.name: inp2})
         else:
-            inp = {prop1.name: inp1}
-
-        self._init_property(**inp)
+            self._init_property(**{prop1.name: inp1})
 
     @property
     def parametrizations(self):
@@ -1004,6 +1018,10 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
             if not prop.invertible:
                 raise TypeError(
                     f"{type(self).__name__}.{attr} is not an invertible PhysicalProperty and cannot be parametrized"
+                )
+            if attr in replaced:
+                raise TypeError(
+                    f"Cannot parametrize both `{attr}` and its reciprocal in a single call."
                 )
             replaced.add(attr)
             if recip := prop.get_reciprocal(self):

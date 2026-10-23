@@ -866,11 +866,32 @@ def test_get_without_objtype_uses_reciprocal():
     npt.assert_allclose(ReciprocalExample.sigma.__get__(pm), 0.25)
 
 
-def test_shadowing_one_of_a_reciprocal_pair_errors_clearly():
-    with pytest.raises(SyntaxError, match="reciprocal"):
+def test_replacing_one_of_a_reciprocal_pair_with_an_attribute_errors():
+    with pytest.raises(TypeError, match="Override both"):
 
         class Child(ReciprocalExample):
             rho = 1.0
+
+
+def test_replacing_one_of_a_reciprocal_pair_without_reciprocal_errors():
+    with pytest.raises(TypeError, match="not the reciprocal"):
+
+        class Child(ReciprocalExample):
+            rho = props.PhysicalProperty("Electrical resistivity (Ohm m)")
+
+
+def test_mixin_with_one_half_of_a_reciprocal_pair_is_allowed():
+    class SigmaMixin(props.HasModel):
+        sigma = props.PhysicalProperty("Conductivity", reciprocal="rho")
+
+    class RhoMixin(props.HasModel):
+        rho = props.PhysicalProperty("Resistivity", reciprocal="sigma")
+
+    class Both(SigmaMixin, RhoMixin):
+        pass
+
+    modeler = Both(rho=np.full(3, 2.0))
+    npt.assert_allclose(modeler.sigma, 0.5)
 
 
 def test_scalars_are_stored_as_python_scalars():
@@ -927,6 +948,19 @@ def test_removed_apis_raise_not_implemented(removed):
 def test_physical_property_removed_arguments(old):
     with pytest.raises(TypeError, match=old):
         props.PhysicalProperty("details", **{old: True})
+
+
+def test_parametrizing_both_of_a_reciprocal_pair_errors():
+    pm = ReciprocalExample()
+    with pytest.raises(TypeError, match="both `rho` and its reciprocal"):
+        pm.parametrize(sigma=maps.ExpMap(), rho=maps.ExpMap())
+    assert not pm.parametrizations
+
+
+def test_neither_of_a_reciprocal_pair_warns_once():
+    with pytest.warns(FutureWarning) as record:
+        ReciprocalExample()
+    assert len(record) == 1
 
 
 def test_both_value_and_deprecated_map_errors():
