@@ -961,9 +961,31 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
             kwargs = other_kwargs
         super().__init__(**kwargs)
 
+    def _has_pending_parametrization(self, *names, given=None):
+        """Whether one of ``names`` is waiting to be parametrized by a deprecated argument.
+
+        These come from a subclass that forwards a deprecated ``xMap`` argument, and they
+        are applied once the constructor has finished (see `HasModel.__init__`). If a
+        ``given`` value was also passed for one of them, that is an error.
+        """
+        pending = self.__dict__.get("_init_parametrizations")
+        if not pending or not any(name in pending for name in names):
+            return False
+        if given is not None:
+            raise TypeError(
+                f"Cannot pass both `{names[0]}` and its deprecated mapping argument "
+                f"to {type(self).__name__}."
+            )
+        return True
+
     def _init_property(self, **kwargs):
         """Initialize physical properties, or a pair of reciprocal properties."""
         for attr, value in kwargs.items():
+            if "_init_parametrizations" in self.__dict__:
+                recip = getattr(type(self), attr).get_reciprocal(self)
+                names = (attr,) if recip is None else (attr, recip.name)
+                if self._has_pending_parametrization(*names, given=value):
+                    continue
             if isinstance(value, maps.IdentityMap):
                 self.parametrize(**{attr: value})
             else:
@@ -981,6 +1003,10 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
             raise TypeError(
                 f"Can only specify one of `{prop1.name}` or `{prop2.name}` for `{type(self).__name__}`"
             )
+        if self._has_pending_parametrization(
+            prop1.name, prop2.name, given=inp1 if inp1 is not None else inp2
+        ):
+            return
         required = not prop1.optional and not prop2.optional
         if required and inp1 is None and inp2 is None:
             _warn_user(

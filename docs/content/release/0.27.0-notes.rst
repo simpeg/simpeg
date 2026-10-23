@@ -99,3 +99,9 @@ constructor:
 
 Reciprocal properties (``sigma`` and ``rho``) are declared by giving each the
 other's name as its ``reciprocal``, and are initialized with ``_init_recip_properties``.
+
+The deprecated ``xMap`` constructor arguments are translated to ``x`` before any
+``__init__`` runs. A subclass that names one of them in its own signature (for example
+``def __init__(self, mesh, sigmaMap=None, **kwargs)``) will receive ``None`` for it, and the
+mapping is passed to its ``__init__`` as ``sigma`` instead. A subclass that forwards a
+``sigmaMap`` argument to ``super().__init__`` still works.

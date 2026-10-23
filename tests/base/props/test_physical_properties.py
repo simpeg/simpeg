@@ -1029,6 +1029,42 @@ def test_subclass_adding_deprecated_map_to_super_call():
     npt.assert_equal(pm.sigma, 1.0)
 
 
+class AddsMapToSuperCall(ReciprocalExample):
+    def __init__(self, **kwargs):
+        super().__init__(sigmaMap=maps.ExpMap(), **kwargs)
+
+
+def test_subclass_adding_deprecated_map_only_warns_about_the_map():
+    with pytest.warns(FutureWarning) as record:
+        pm = AddsMapToSuperCall()
+    assert len(record) == 1
+    assert "sigmaMap" in str(record[0].message)
+    assert pm.is_parametrized("sigma")
+
+
+@pytest.mark.parametrize("name", ["sigma", "rho"])
+def test_subclass_adding_deprecated_map_and_value_errors(name):
+    with pytest.warns(FutureWarning, match="sigmaMap"):
+        with pytest.raises(TypeError, match="Cannot pass both `sigma`"):
+            AddsMapToSuperCall(**{name: np.ones(3)})
+
+
+def test_subclass_naming_a_deprecated_argument_receives_none():
+    saw = []
+
+    class NamesTheMap(ReciprocalExample):
+        def __init__(self, sigmaMap=None, **kwargs):
+            saw.append(sigmaMap)
+            super().__init__(sigmaMap=sigmaMap, **kwargs)
+
+    with pytest.warns(FutureWarning, match="sigmaMap"):
+        pm = NamesTheMap(sigmaMap=maps.ExpMap())
+
+    # the deprecated arguments are translated before any `__init__` runs
+    assert saw == [None]
+    assert pm.is_parametrized("sigma")
+
+
 @pytest.mark.skipif(
     sys.version_info < (3, 13), reason="property.__set_name__ needs python 3.13"
 )
