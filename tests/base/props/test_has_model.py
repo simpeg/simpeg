@@ -161,3 +161,21 @@ def test_set_model_reports_updates(modeler):
     assert modeler._set_model(x) is True
     assert modeler._set_model(x.copy()) is False
     assert modeler._set_model(x + 1) is True
+
+
+def test_model_is_set_after_init_runs():
+    seen = []
+
+    class ReadsModel(props.HasModel):
+        prop = props.PhysicalProperty("test physical property")
+
+        def __init__(self, prop=None, **kwargs):
+            super().__init__(**kwargs)
+            self._init_property(prop=prop)
+            seen.append(self.model)
+
+    modeler = ReadsModel(prop=maps.ExpMap(), model=np.zeros(4))
+
+    # the model is only set once the constructor has finished
+    assert seen == [None]
+    npt.assert_array_equal(modeler.model, np.zeros(4))

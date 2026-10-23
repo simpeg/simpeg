@@ -1,4 +1,5 @@
 import re
+import sys
 import unittest
 import numpy as np
 import numpy.testing as npt
@@ -922,6 +923,47 @@ def test_removed_apis_raise_not_implemented(removed):
 def test_physical_property_removed_arguments(old):
     with pytest.raises(TypeError, match=old):
         props.PhysicalProperty("details", **{old: True})
+
+
+def test_both_value_and_deprecated_map_errors():
+    with pytest.raises(TypeError, match="Cannot pass both `sigma`"):
+        SingleExample(sigma=np.ones(3), sigmaMap=maps.ExpMap())
+
+
+class ForwardsEverything(ReciprocalExample):
+    """A subclass written against the old signature, that forwards everything."""
+
+    def __init__(self, sigma=None, sigmaMap=None, model=None, **kwargs):
+        super().__init__(sigma=sigma, sigmaMap=sigmaMap, model=model, **kwargs)
+
+
+def test_subclass_forwarding_unused_deprecated_arguments():
+    pm = ForwardsEverything(sigma=np.ones(3))
+    npt.assert_equal(pm.sigma, 1.0)
+
+
+def test_subclass_forwarding_deprecated_map_and_model():
+    with pytest.warns(FutureWarning, match="sigmaMap"):
+        pm = ForwardsEverything(sigmaMap=maps.ExpMap(), model=np.zeros(3))
+    npt.assert_equal(pm.sigma, 1.0)
+
+
+def test_subclass_adding_deprecated_map_to_super_call():
+    class AddsMap(ReciprocalExample):
+        def __init__(self, **kwargs):
+            super().__init__(sigmaMap=maps.ExpMap(), **kwargs)
+
+    with pytest.warns(FutureWarning, match="sigmaMap"):
+        pm = AddsMap(model=np.zeros(3))
+    npt.assert_equal(pm.sigma, 1.0)
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 13), reason="property.__set_name__ needs python 3.13"
+)
+def test_deprecated_properties_know_their_names():
+    assert ReciprocalExample.sigmaMap.__name__ == "sigmaMap"
+    assert ReciprocalExample.sigmaDeriv.__name__ == "sigmaDeriv"
 
 
 if __name__ == "__main__":

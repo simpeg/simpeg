@@ -25,8 +25,16 @@ def _delete_attrs(obj, names):
             delattr(obj, name)
 
 
-def _warn_user(message, category):
-    warnings.warn(message, category, skip_file_prefixes=_SIMPEG_DIR)  # noqa: B028
+# Used for the deprecated interface that is called directly by (user or simpeg) code, so
+# a warning about simpeg using its own deprecated interface is attributed to simpeg.
+# (Without the extension: a prefix that is exactly the file name does not skip that file.)
+_PROPS_FILE = (os.path.splitext(os.path.abspath(__file__))[0],)
+
+
+def _warn_user(message, category, skip_file_prefixes=_SIMPEG_DIR):
+    warnings.warn(  # noqa: B028
+        message, category, skip_file_prefixes=skip_file_prefixes
+    )
 
 
 _REMOVAL_VERSION = "0.29.0"
@@ -685,11 +693,37 @@ class BaseSimPEG:
 
 class PhysicalPropertyMetaclass(type):
     def __call__(cls, *args, **kwargs):
-        # The model can only be validated once the parametrizations exist, so it is set
-        # after every `__init__` has run (this makes `Sim(sigma=mapping, model=m)` work).
-        model = kwargs.pop("model", None)
+        # Translate the deprecated `xMap=mapping` arguments to `x=mapping`, so
+        # `__init__` methods only ever see the new arguments.
+        for new_name, mapping in cls._pop_deprecated_map_kwargs(
+            kwargs, skip_file_prefixes=_PROPS_FILE
+        ).items():
+            if kwargs.get(new_name) is not None:
+                raise TypeError(
+                    f"Cannot pass both `{new_name}` and its deprecated mapping argument "
+                    f"to {cls.__name__}."
+                )
+            kwargs[new_name] = mapping
 
-        # Translate the deprecated `xMap=mapping` arguments to `x=mapping`.
+        obj = super().__call__(*args, **kwargs)
+        obj._construction_done = True
+
+        # The parametrizations and the model can only be set once every `__init__` has
+        # run (this makes `Sim(sigma=mapping, model=m)` work).
+        # See `HasModel.__init__`.
+        if pending := obj.__dict__.pop("_init_parametrizations", None):
+            obj.parametrize(**pending)
+        if (model := obj.__dict__.pop("_init_model", None)) is not None:
+            obj.model = model
+        return obj
+
+    def _pop_deprecated_map_kwargs(cls, kwargs, skip_file_prefixes=_SIMPEG_DIR):
+        """Remove the deprecated ``xMap`` arguments from ``kwargs``.
+
+        Returns the mappings that were given (not `None`) keyed by the property
+        they now parametrize, and warns about them.
+        """
+        translated = {}
         for old_map, new_name in cls._all_deprecated_map_kwargs().items():
             mapping = kwargs.pop(old_map, None)
             if mapping is not None:
@@ -697,14 +731,10 @@ class PhysicalPropertyMetaclass(type):
                     f"Passing mapping argument {old_map} to {cls.__name__} is deprecated. Instead "
                     f"you can now use the {new_name} argument. It will be removed in simpeg {_REMOVAL_VERSION}.",
                     FutureWarning,
+                    skip_file_prefixes,
                 )
-                kwargs[new_name] = mapping
-
-        obj = super().__call__(*args, **kwargs)
-        obj._construction_done = True
-        if model is not None:
-            obj.model = model
-        return obj
+                translated[new_name] = mapping
+        return translated
 
     def _all_deprecated_map_kwargs(cls):
         """The deprecated ``xMap`` arguments from this class and all of its parents."""
@@ -869,8 +899,15 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
     #: The deprecated ``xMap`` constructor arguments, and the property they now map to.
     _deprecated_map_kwargs: dict[str, str] = MappingProxyType({})
 
-    def __init__(self, **kwargs):
+    def __init__(self, model=None, **kwargs):
         self.model = None
+        if model is not None:
+            # Subclasses may set their physical properties after calling this, so the
+            # model is set last (see `PhysicalPropertyMetaclass.__call__`).
+            self._init_model = model
+        # Deprecated mapping arguments forwarded by a subclass are applied last too.
+        if translated := type(self)._pop_deprecated_map_kwargs(kwargs):
+            self._init_parametrizations = translated
         # A helper for initializing leftover property keyword arguments.
         if kwargs:
             props = self.physical_properties
@@ -1302,6 +1339,7 @@ def _add_deprecated_physical_property_functions(
             f"`{new_name}=mapping` to the constructor, or call "
             f"`{cls_name}.parametrize({new_name}=mapping)`. It will be removed in simpeg {_REMOVAL_VERSION}.",
             FutureWarning,
+            skip_file_prefixes=_PROPS_FILE,
         )
         if value is None:
             # Setting a mapping to None used to remove it.
