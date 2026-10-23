@@ -1,5 +1,6 @@
 import enum
 import inspect
+import math
 import os
 import warnings
 from types import MappingProxyType
@@ -16,6 +17,13 @@ from .typing import MapLike
 # Warnings about how the user called into simpeg should be reported at the user's
 # code, no matter how many simpeg frames (constructors, setters, ...) are in between.
 _SIMPEG_DIR = (os.path.dirname(os.path.abspath(__file__)),)
+
+
+def _delete_attrs(obj, names):
+    """Delete each attribute in ``names`` that is set on ``obj``."""
+    for name in names:
+        if hasattr(obj, name):
+            delattr(obj, name)
 
 
 def _warn_user(message, category):
@@ -57,6 +65,15 @@ _LOCATION_SIZE_ATTR = {
 }
 
 
+def _is_int(value):
+    return isinstance(value, (int, np.integer))
+
+
+def _n_full_tensor(dim):
+    """Number of components of a symmetric full tensor in ``dim`` dimensions (as discretize uses)."""
+    return 3 if dim == 2 else 6
+
+
 def _mesh_shape_resolver(location, anisotropy):
     """Build an `fshape` function for a property living at `location` on `obj.mesh`.
 
@@ -79,7 +96,7 @@ def _mesh_shape_resolver(location, anisotropy):
             # uses, and that a mapping's flat output produces.
             shapes.append((size * mesh.dim,))
             if anisotropy is AnisotropyLevel.FULL:
-                n_full = 3 if mesh.dim == 2 else 6
+                n_full = _n_full_tensor(mesh.dim)
                 shapes.append((size, n_full))
                 shapes.append((size * n_full,))
         return shapes
@@ -118,10 +135,10 @@ def _reciprocal_output_is_full_tensor(prop, obj, recip_map):
     size = getattr(mesh, _LOCATION_SIZE_ATTR[prop.location])
     if not size:
         return False
-    n_full = 3 if mesh.dim == 2 else 6
+    n_full = _n_full_tensor(mesh.dim)
 
     output_size = recip_map.shape[0]
-    if isinstance(output_size, (int, np.integer)):
+    if _is_int(output_size):
         return output_size == size * n_full
 
     model = getattr(obj, "model", None)
@@ -133,12 +150,9 @@ def _reciprocal_output_is_full_tensor(prop, obj, recip_map):
 def _shape_size(shape):
     """Total element count implied by a single shape tuple, or `None` if any
     dimension is `"*"` (unresolvable)."""
-    total = 1
-    for dim in shape:
-        if dim == "*":
-            return None
-        total *= dim
-    return total
+    if "*" in shape:
+        return None
+    return math.prod(shape)
 
 
 def _expected_output_sizes(prop, obj):
@@ -437,6 +451,7 @@ class PhysicalProperty:
         obj._remove_parametrization(self.name)
         if recip is not None:
             recip.__delete__(obj)
+        obj._property_changed(self.name)
 
     def __delete__(self, obj: "HasModel"):
         if self.fdel is not None:
@@ -445,6 +460,7 @@ class PhysicalProperty:
             if hasattr(obj, self.private_name):
                 delattr(obj, self.private_name)
         obj._remove_parametrization(self.name)
+        obj._property_changed(self.name)
 
     def _fget(self, obj, from_reciprocal=""):
         """Return my value (or calculate it from a model if I was parametrized) from an object.
@@ -468,7 +484,7 @@ class PhysicalProperty:
         if (value := getattr(obj, self.private_name, None)) is not None:
             return value
         # If I was parametrized, compute myself
-        elif paramer := getattr(obj.parametrizations, self.name, None):
+        elif paramer := obj.parametrizations.get(self.name):
             if (model := obj.model) is None:
                 inst_name = type(obj).__name__
                 if not from_reciprocal:
@@ -759,6 +775,9 @@ class ParametrizationList:
                 ) from None
         raise AttributeError
 
+    def get(self, key, default=None):
+        return self._fields.get(key, default)
+
     def __contains__(self, key):
         return key in self._fields
 
@@ -938,11 +957,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
             # validate the mapping's output length against `attr`'s expected shape(s)
             valid_sizes = _expected_output_sizes(prop, self)
             output_size = parametrization.shape[0]
-            if (
-                valid_sizes
-                and isinstance(output_size, (int, np.integer))
-                and output_size not in valid_sizes
-            ):
+            if valid_sizes and _is_int(output_size) and output_size not in valid_sizes:
                 raise ValueError(
                     f"The mapping assigned to `{type(self).__name__}.{attr}` has "
                     f"an output length of {output_size}, but `{attr}` expects a "
@@ -954,7 +969,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
             # is a single shared vector applied to every parametrization on
             # this instance
             input_size = parametrization.shape[1]
-            if isinstance(input_size, (int, np.integer)):
+            if _is_int(input_size):
                 others = {
                     name: other_map
                     for name, other_map in self.parametrizations.items()
@@ -963,10 +978,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
                 others.update({a: m for a, _, m in checked if a != attr})
                 for other_attr, other_map in others.items():
                     other_input = other_map.shape[1]
-                    if (
-                        isinstance(other_input, (int, np.integer))
-                        and other_input != input_size
-                    ):
+                    if _is_int(other_input) and other_input != input_size:
                         raise ValueError(
                             f"Cannot parametrize `{type(self).__name__}.{attr}` "
                             f"with a mapping expecting a model of length "
@@ -991,9 +1003,10 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         if not getattr(self, "_construction_done", False):
             # still being constructed, there is nothing cached yet.
             return
-        for name in self._delete_on_model_update:
-            if hasattr(self, name):
-                delattr(self, name)
+        _delete_attrs(self, self._delete_on_model_update)
+
+    def _property_changed(self, name):
+        """Called after the physical property ``name`` was set or deleted."""
 
     def is_parametrized(self, attr):
         """Determine if a physical property (or its reciprocal) has been parametrized.
@@ -1216,9 +1229,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
             ):
                 updated = True
                 # cached properties to delete
-                for prop in self._delete_on_model_update:
-                    if hasattr(self, prop):
-                        delattr(self, prop)
+                _delete_attrs(self, self._delete_on_model_update)
 
         self._model = value
         return updated
@@ -1227,9 +1238,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
     def model(self):
         self._model = None
         # cached properties to delete
-        for prop in self._delete_on_model_update:
-            if hasattr(self, prop):
-                delattr(self, prop)
+        _delete_attrs(self, self._delete_on_model_update)
 
 
 def _add_deprecated_physical_property_functions(
