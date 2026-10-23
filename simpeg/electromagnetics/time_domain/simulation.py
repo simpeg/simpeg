@@ -2998,10 +2998,9 @@ class Simulation3DHierarchicalElectricField(
             List of the model-dependent attributes to clean upon model update.
         """
         items = super()._delete_on_model_update
-        if (
-            self.is_parametrized("sigma")
-            | self.is_parametrized("face_conductance")
-            | self.is_parametrized("edge_area_conductance")
+        if any(
+            self.is_parametrized(name)
+            for name in ("sigma", "face_conductance", "edge_area_conductance")
         ):
             items = items + ["_Adcinv"]  # clear DC matrix factors on any model updates
 
