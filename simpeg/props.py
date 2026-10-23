@@ -452,6 +452,18 @@ class PhysicalProperty:
             recip.__delete__(obj)
         obj._property_changed(self.name)
 
+    def _delete_with_reciprocal(self, obj: "HasModel", only_parametrized=False):
+        """Delete my value and parametrization, and my reciprocal's.
+
+        If ``only_parametrized`` is true, only those of the pair that are
+        parametrized are deleted (so a fixed value is left alone).
+        """
+        for prop in (self, self.get_reciprocal(obj)):
+            if prop is not None and (
+                not only_parametrized or prop.name in obj.parametrizations
+            ):
+                prop.__delete__(obj)
+
     def __delete__(self, obj: "HasModel"):
         if self.fdel is not None:
             self.fdel(obj)
@@ -974,46 +986,17 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
             checked.append((attr, prop, parametrization))
 
         for attr, prop, parametrization in checked:
-            # validate the mapping's output length against `attr`'s expected shape(s)
-            valid_sizes = _expected_output_sizes(prop, self)
-            output_size = parametrization.shape[0]
-            if valid_sizes and _is_int(output_size) and output_size not in valid_sizes:
-                raise ValueError(
-                    f"The mapping assigned to `{type(self).__name__}.{attr}` has "
-                    f"an output length of {output_size}, but `{attr}` expects a "
-                    f"length of one of {sorted(valid_sizes)}."
-                )
-
-            # validate the mapping's input length (nP) is consistent with any
-            # other parametrized property that is not being replaced -- `model`
-            # is a single shared vector applied to every parametrization on
-            # this instance
-            input_size = parametrization.shape[1]
-            if _is_int(input_size):
-                others = {
-                    name: other_map
-                    for name, other_map in self.parametrizations.items()
-                    if name not in replaced
-                }
-                others.update({a: m for a, _, m in checked if a != attr})
-                for other_attr, other_map in others.items():
-                    other_input = other_map.shape[1]
-                    if _is_int(other_input) and other_input != input_size:
-                        raise ValueError(
-                            f"Cannot parametrize `{type(self).__name__}.{attr}` "
-                            f"with a mapping expecting a model of length "
-                            f"{input_size}: `{other_attr}` is already "
-                            f"parametrized with a mapping expecting a model of "
-                            f"length {other_input}. All parametrizations on a "
-                            f"`{type(self).__name__}` instance must accept the "
-                            f"same model length."
-                        )
+            others = {
+                name: other_map
+                for name, other_map in self.parametrizations.items()
+                if name not in replaced
+            }
+            others.update({a: m for a, _, m in checked if a != attr})
+            self._check_parametrization_sizes(attr, prop, parametrization, others)
 
         for attr, prop, parametrization in checked:
             # cleanup myself and my reciprocal first
-            prop.__delete__(self)
-            if recip := prop.get_reciprocal(self):
-                recip.__delete__(self)
+            prop._delete_with_reciprocal(self)
             self.parametrizations._fields[attr] = parametrization
 
         self._clear_model_caches()
@@ -1027,6 +1010,38 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
 
     def _property_changed(self, name):
         """Called after the physical property ``name`` was set or deleted."""
+
+    def _check_parametrization_sizes(self, attr, prop, parametrization, others):
+        """Check the shape of a new ``parametrization`` of ``attr``.
+
+        Its output length must be valid for the property, and its input length must match
+        the (``others``) parametrizations that are staying, as they all share one model.
+        """
+        cls_name = type(self).__name__
+        valid_sizes = _expected_output_sizes(prop, self)
+        output_size = parametrization.shape[0]
+        if valid_sizes and _is_int(output_size) and output_size not in valid_sizes:
+            raise ValueError(
+                f"The mapping assigned to `{cls_name}.{attr}` has "
+                f"an output length of {output_size}, but `{attr}` expects a "
+                f"length of one of {sorted(valid_sizes)}."
+            )
+
+        input_size = parametrization.shape[1]
+        if not _is_int(input_size):
+            return
+        for other_attr, other_map in others.items():
+            other_input = other_map.shape[1]
+            if _is_int(other_input) and other_input != input_size:
+                raise ValueError(
+                    f"Cannot parametrize `{cls_name}.{attr}` "
+                    f"with a mapping expecting a model of length "
+                    f"{input_size}: `{other_attr}` is already "
+                    f"parametrized with a mapping expecting a model of "
+                    f"length {other_input}. All parametrizations on a "
+                    f"`{cls_name}` instance must accept the "
+                    f"same model length."
+                )
 
     def is_parametrized(self, attr):
         """Determine if a physical property (or its reciprocal) has been parametrized.
@@ -1161,82 +1176,81 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
     def model(self, value):
         self._set_model(value)
 
+    def _validate_model(self, value):
+        """Check ``value`` can be this object's model, returning it as a numpy array."""
+        parameters = self.parametrizations
+        if not self.needs_model:
+            raise AttributeError(
+                "Cannot add model as there are no parametrized properties"
+                ", choose from: ['{}']".format(
+                    "', '".join(
+                        set(self.invertible_properties.keys()) | self._nested_modelers
+                    )
+                )
+            )
+
+        # coerce to a numpy array
+        value = validate_ndarray_with_shape("model", value, shape=("*",), dtype=float)
+        cls_name = type(self).__name__
+
+        # Check the model is a good shape
+        errors = [
+            f"The parametrization, {mapping}, for '{cls_name}.{name}' expected a model "
+            f"of length {mapping.shape[1]}"
+            for name, mapping in parameters.items()
+            if mapping.shape[1] not in ("*", len(value))
+        ]
+        if errors:
+            raise ValueError(
+                f"'{cls_name}.model' had a length of {len(value)} but expected a different "
+                f"length for mappings : \n    " + "\n    ".join(errors)
+            )
+
+        # For mappings whose output shape couldn't be resolved statically
+        # (and so weren't checked against the property's expected shape at
+        # `parametrize()` time, see `_expected_output_sizes`), assume the
+        # output length matches the model's length: a map with no declared
+        # shape has no way to signal a size change, so it's effectively
+        # elementwise/size-preserving -- no need to evaluate the mapping
+        # just to check this.
+        errors = []
+        for name, mapping in parameters.items():
+            if mapping.shape[0] != "*":
+                continue
+            valid_sizes = _expected_output_sizes(getattr(type(self), name), self)
+            if valid_sizes and len(value) not in valid_sizes:
+                errors.append(
+                    f"The parametrization, {mapping}, for '{cls_name}.{name}' "
+                    f"has an unresolved output shape; the model's length ({len(value)}) "
+                    f"is not one of `{name}`'s expected sizes: {sorted(valid_sizes)}"
+                )
+        if errors:
+            raise ValueError(
+                f"'{cls_name}.model' had a length of {len(value)} but is not "
+                f"valid for the following parametrizations with unresolved output shapes"
+                f":\n    " + "\n    ".join(errors)
+            )
+        return value
+
+    def _set_nested_models(self, value):
+        """Pass the model on to the nested modelers, restoring them all if one fails."""
+        previous = {}
+        try:
+            for modeler_name in self._nested_modelers:
+                modeler = getattr(self, modeler_name)
+                if modeler.needs_model:
+                    previous[modeler_name] = modeler.model
+                    modeler.model = value
+        except Exception:
+            for modeler_name, previous_model in previous.items():
+                getattr(self, modeler_name).model = previous_model
+            raise
+
     def _set_model(self, value):
         """Set the model, returning `True` if it changed (and cached values were cleared)."""
         if value is not None:
-            # check if I need a model
-            parameters = self.parametrizations
-            if not self.needs_model:
-                raise AttributeError(
-                    "Cannot add model as there are no parametrized properties"
-                    ", choose from: ['{}']".format(
-                        "', '".join(
-                            set(self.invertible_properties.keys())
-                            | self._nested_modelers
-                        )
-                    )
-                )
-
-            # coerce to a numpy array
-            value = validate_ndarray_with_shape(
-                "model", value, shape=("*",), dtype=float
-            )
-
-            # Check the model is a good shape
-            errors = []
-            for name, mapping in parameters.items():
-                correct_shape = mapping.shape[1] == "*" or mapping.shape[1] == len(
-                    value
-                )
-                if not correct_shape:
-                    errors.append(
-                        f"The parametrization, {mapping}, for '{type(self).__name__}.{name}' expected a model "
-                        f"of length {mapping.shape[1]}"
-                    )
-            if len(errors) > 0:
-                raise ValueError(
-                    f"'{type(self).__name__}.model' had a length of {len(value)} but expected a different "
-                    f"length for mappings : \n    " + "\n    ".join(errors)
-                )
-
-            # For mappings whose output shape couldn't be resolved statically
-            # (and so weren't checked against the property's expected shape at
-            # `parametrize()` time, see `_expected_output_sizes`), assume the
-            # output length matches the model's length: a map with no declared
-            # shape has no way to signal a size change, so it's effectively
-            # elementwise/size-preserving -- no need to evaluate the mapping
-            # just to check this.
-            errors = []
-            for name, mapping in parameters.items():
-                if mapping.shape[0] != "*":
-                    continue
-                prop = getattr(type(self), name)
-                valid_sizes = _expected_output_sizes(prop, self)
-                if valid_sizes and len(value) not in valid_sizes:
-                    errors.append(
-                        f"The parametrization, {mapping}, for '{type(self).__name__}.{name}' "
-                        f"has an unresolved output shape; the model's length ({len(value)}) "
-                        f"is not one of `{name}`'s expected sizes: {sorted(valid_sizes)}"
-                    )
-            if len(errors) > 0:
-                raise ValueError(
-                    f"'{type(self).__name__}.model' had a length of {len(value)} but is not "
-                    f"valid for the following parametrizations with unresolved output shapes"
-                    f":\n    " + "\n    ".join(errors)
-                )
-
-            previous = {}
-            try:
-                for modeler_name in self._nested_modelers:
-                    modeler = getattr(self, modeler_name)
-                    if modeler.needs_model:
-                        previous[modeler_name] = modeler.model
-                        modeler.model = value
-            except Exception as err:
-                # put back the models of the nested modelers, and then throw the error
-                for modeler_name, previous_model in previous.items():
-                    getattr(self, modeler_name).model = previous_model
-                raise err
+            value = self._validate_model(value)
+            self._set_nested_models(value)
 
         # trigger model update function.
         previous_value = getattr(self, "_model", None)
@@ -1297,11 +1311,9 @@ def _add_deprecated_physical_property_functions(
         )
         if value is None:
             # Setting a mapping to None used to remove it.
-            prop = getattr(type(self), new_name)
-            recip = prop.get_reciprocal(self)
-            for p in (prop, recip):
-                if p is not None and p.name in self.parametrizations:
-                    p.__delete__(self)
+            getattr(type(self), new_name)._delete_with_reciprocal(
+                self, only_parametrized=True
+            )
             self._clear_model_caches()
             return
         self.parametrize(**{new_name: value})
