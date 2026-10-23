@@ -53,11 +53,17 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         The time-domain EM survey.
     dt_threshold : float
         Threshold used when determining the unique time-step lengths.
+    store_factors : bool, optional
+        Whether to store the factorization of the system matrix for each unique
+        time-step length, so they can be reused by `Jvec` and `Jtvec`.
     """
 
-    def __init__(self, mesh, survey=None, dt_threshold=1e-8, **kwargs):  # noqa D107
+    def __init__(
+        self, mesh, survey=None, dt_threshold=1e-8, store_factors=False, **kwargs
+    ):  # noqa D107
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.dt_threshold = dt_threshold
+        self.store_factors = store_factors
         if self.muMap is not None:
             raise NotImplementedError(
                 "Time domain EM simulations do not support magnetic permeability "
@@ -101,7 +107,61 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
     @dt_threshold.setter
     def dt_threshold(self, value):
-        self._dt_threshold = validate_float("dt_threshold", value, min_val=0.0)
+        value = validate_float("dt_threshold", value, min_val=0.0)
+        self._dt_threshold = value
+        self._dt_precision = None if value == 0.0 else int(np.ceil(-np.log10(value)))
+
+    @property
+    def store_factors(self):
+        """Whether the factorization for each unique time step is stored.
+
+        If True, the factorizations of the system matrix (and its transpose) are kept
+        between calls to `fields`, `Jvec`, and `Jtvec`. This can significantly speed
+        up the sensitivity operations in an inversion, at the cost of increased
+        memory usage. The stored factors are released the next time `fields` is
+        called, or when this property is set to False.
+
+        Returns
+        -------
+        bool
+        """
+        return self._store_factors
+
+    @store_factors.setter
+    def store_factors(self, value):
+        value = validate_type("store_factors", value, bool)
+        if not value:
+            self._stored_factors = {}
+        self._store_factors = value
+
+    def _get_stored_factor(self, tInd):
+        """Get the factorization of the system matrix at a time step.
+
+        The factorization is created if it does not exist yet. The factorizations are
+        keyed by the time step length, and the transposed solves needed by `Jtvec` use
+        the `T` of the same factorization. If `store_factors` is False, only the most
+        recent factorization is kept (`fields`, `Jvec` and `Jtvec` release it when
+        they finish).
+        """
+        dt = self.time_steps[tInd]
+        precision = self._dt_precision
+        key = dt if precision is None else float(np.around(dt, precision))
+
+        if not hasattr(self, "_stored_factors"):
+            self._stored_factors = {}
+
+        Ainv = self._stored_factors.get(key, None)
+        if Ainv is None:
+            if not self.store_factors:
+                self._stored_factors = {}
+            A = self.getAdiag(tInd)
+            if self.verbose:
+                print("Factoring...   (dt = {:e})".format(dt))
+            Ainv = self.solver(A, **self.solver_opts)
+            if self.verbose:
+                print("Done")
+            self._stored_factors[key] = Ainv
+        return Ainv
 
     def fields(self, m):
         """Compute and return the fields for the model provided.
@@ -127,23 +187,10 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             print("{}\nCalculating fields(m)\n{}".format("*" * 50, "*" * 50))
 
         # timestep to solve forward
-        Ainv = None
-        for tInd, dt in enumerate(self.time_steps):
-            # keep factors if dt is the same as previous step b/c A will be the
-            # same
-            if Ainv is not None and (
-                tInd > 0 and abs(dt - self.time_steps[tInd - 1]) > self.dt_threshold
-            ):
-                Ainv.clean()
-                Ainv = None
-
-            if Ainv is None:
-                A = self.getAdiag(tInd)
-                if self.verbose:
-                    print("Factoring...   (dt = {:e})".format(dt))
-                Ainv = self.solver(A, **self.solver_opts)
-                if self.verbose:
-                    print("Done")
+        for tInd in range(self.nT):
+            # factors are reused if dt is the same as a previous step b/c A will be
+            # the same
+            Ainv = self._get_stored_factor(tInd)
 
             rhs = self.getRHS(tInd + 1)  # this is on the nodes of the time mesh
             Asubdiag = self.getAsubdiag(tInd)
@@ -165,7 +212,8 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             print("{}\nDone calculating fields(m)\n{}".format("*" * 50, "*" * 50))
 
         # clean factors and return
-        Ainv.clean()
+        if not self.store_factors:
+            self._stored_factors = {}
         return f
 
     def Jvec(self, m, v, f=None):
@@ -226,18 +274,10 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         # store the field derivs we need to project to calc full deriv
         df_dm_v = self.Fields_Derivs(self)
 
-        Adiaginv = None
-
-        for tInd, dt in zip(range(self.nT), self.time_steps):
-            # keep factors if dt is the same as previous step b/c A will be the
-            # same
-            if Adiaginv is not None and (tInd > 0 and dt != self.time_steps[tInd - 1]):
-                Adiaginv.clean()
-                Adiaginv = None
-
-            if Adiaginv is None:
-                A = self.getAdiag(tInd)
-                Adiaginv = self.solver(A, **self.solver_opts)
+        for tInd in range(self.nT):
+            # factors are reused if dt is the same as a previous step b/c A will be
+            # the same
+            Adiaginv = self._get_stored_factor(tInd)
 
             Asubdiag = self.getAsubdiag(tInd)
 
@@ -280,7 +320,8 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                         mkvc(df_dm_v[src, "%sDeriv" % rx.projField, :]),
                     )
                 )
-        Adiaginv.clean()
+        if not self.store_factors:
+            self._stored_factors = {}
         # del df_dm_v, dun_dm_v, Asubdiag
         # return mkvc(Jv)
         return np.hstack(Jv)
@@ -375,24 +416,11 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
 
         del PT_v  # no longer need this
 
-        AdiagTinv = None
-
         # Do the back-solve through time
         # if the previous timestep is the same: no need to refactor the matrix
-        # for tInd, dt in zip(range(self.nT), self.time_steps):
-
         for tInd in reversed(range(self.nT)):
             # tInd = tIndP - 1
-            if AdiagTinv is not None and (
-                tInd <= self.nT and self.time_steps[tInd] != self.time_steps[tInd + 1]
-            ):
-                AdiagTinv.clean()
-                AdiagTinv = None
-
-            # refactor if we need to
-            if AdiagTinv is None:  # and tInd > -1:
-                Adiag = self.getAdiag(tInd)
-                AdiagTinv = self.solver(Adiag.T.tocsr(), **self.solver_opts)
+            AdiagTinv = self._get_stored_factor(tInd).T
 
             if tInd < self.nT - 1:
                 Asubdiag = self.getAsubdiag(tInd + 1)
@@ -437,8 +465,8 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         # Treat the initial condition
 
         # del df_duT_v, ATinv_df_duT_v, A, Asubdiag
-        if AdiagTinv is not None:
-            AdiagTinv.clean()
+        if not self.store_factors:
+            self._stored_factors = {}
 
         return mkvc(JTv).astype(float)
 
@@ -626,7 +654,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         list of str
             List of the model-dependent attributes to clean upon model update.
         """
-        items = super()._delete_on_model_update
+        items = super()._delete_on_model_update + ["_stored_factors"]
         if self.sigmaMap is not None:
             items = items + ["_Adcinv"]  #: clear DC matrix factors on any model updates
             # if there is a sigmaMap
@@ -1310,24 +1338,11 @@ class Simulation3DElectricField(BaseTDEMSimulation):
         # no longer need this
         del PT_v
 
-        AdiagTinv = None
-
         # Do the back-solve through time
         # if the previous timestep is the same: no need to refactor the matrix
-        # for tInd, dt in zip(range(self.nT), self.time_steps):
-
         for tInd in reversed(range(self.nT)):
             # tInd = tIndP - 1
-            if AdiagTinv is not None and (
-                tInd <= self.nT and self.time_steps[tInd] != self.time_steps[tInd + 1]
-            ):
-                AdiagTinv.clean()
-                AdiagTinv = None
-
-            # refactor if we need to
-            if AdiagTinv is None:  # and tInd > -1:
-                Adiag = self.getAdiag(tInd)
-                AdiagTinv = self.solver(Adiag.T, **self.solver_opts)
+            AdiagTinv = self._get_stored_factor(tInd).T
 
             if tInd < self.nT - 1:
                 Asubdiag = self.getAsubdiag(tInd + 1)
@@ -1403,8 +1418,8 @@ class Simulation3DElectricField(BaseTDEMSimulation):
                 JTv = JTv + mkvc(-dAT_dm_v + dRHST_dm_v)
 
         # del df_duT_v, ATinv_df_duT_v, A, Asubdiag
-        if AdiagTinv is not None:
-            AdiagTinv.clean()
+        if not self.store_factors:
+            self._stored_factors = {}
 
         return mkvc(JTv).astype(float)
 

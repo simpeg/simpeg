@@ -275,3 +275,70 @@ class TestDerivatives:
             atol=ADJ_ATOL,
             random_seed=44,
         )
+
+
+def _same_factors(sim, factors):
+    """Check that a simulation holds exactly these factor objects."""
+    stored = sim._stored_factors
+    return stored.keys() == factors.keys() and all(
+        stored[key] is factor for key, factor in factors.items()
+    )
+
+
+@pytest.mark.parametrize(
+    "simulation_class",
+    [
+        "Simulation3DElectricField",
+        "Simulation3DMagneticFluxDensity",
+        "Simulation3DMagneticField",
+        "Simulation3DCurrentDensity",
+    ],
+)
+def test_store_factors(simulation_class, mesh, locations, times):
+    """Test that storing the factorizations does not change the results."""
+    rng = np.random.default_rng(0)
+    survey = get_survey("MagneticFluxTimeDerivative", "z", locations, times)
+    sim_store = get_simulation(simulation_class, mesh, survey)
+    sim_store.store_factors = True
+    sim_plain = get_simulation(simulation_class, mesh, survey)
+
+    n_param = sim_plain.sigmaMap.nP
+    m = np.log(1e-1) * np.ones(n_param) + 1e-2 * rng.normal(size=n_param)
+    v = rng.normal(size=n_param)
+    w = rng.normal(size=survey.nD)
+
+    f_store = sim_store.fields(m)
+    f_plain = sim_plain.fields(m)
+
+    # time steps repeat, so there are fewer factors than steps
+    factors = dict(sim_store._stored_factors)
+    assert 0 < len(factors) <= 3
+
+    np.testing.assert_allclose(
+        sim_store.dpred(m, f=f_store), sim_plain.dpred(m, f=f_plain)
+    )
+    np.testing.assert_allclose(
+        sim_store.Jvec(m, v, f=f_store), sim_plain.Jvec(m, v, f=f_plain)
+    )
+    np.testing.assert_allclose(
+        sim_store.Jtvec(m, w, f=f_store), sim_plain.Jtvec(m, w, f=f_plain)
+    )
+    # Jvec and the transposed solves in Jtvec reuse the very same factors
+    assert _same_factors(sim_store, factors)
+
+    # the same model keeps the factors, even when fields is called again
+    sim_store.model = m.copy()
+    assert _same_factors(sim_store, factors)
+    sim_store.fields(m)
+    assert _same_factors(sim_store, factors)
+
+    # a new model drops them, and new ones get built
+    sim_store.model = m + 0.1
+    assert not hasattr(sim_store, "_stored_factors")
+    sim_store.fields(m + 0.1)
+    assert factors.keys() == sim_store._stored_factors.keys()
+    assert all(sim_store._stored_factors[k] is not factors[k] for k in factors)
+
+    # turning it off frees everything
+    sim_store.store_factors = False
+    assert len(sim_store._stored_factors) == 0
