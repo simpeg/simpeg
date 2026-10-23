@@ -65,6 +65,7 @@ class BaseIPSimulation(BaseElectricalPDESimulation):
         sigma=None,
         rho=None,
         eta=None,
+        *,
         Ainv=None,  # A DC's Ainv
         _f=None,  # A pre-computed DC field
         **kwargs,

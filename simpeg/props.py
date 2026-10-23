@@ -914,33 +914,41 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         # just silently succeed here as it is an internal method.
         self.parametrizations._fields.pop(attr, None)
 
+    def _parametrization_of(self, attr):
+        """The mapping from the model to the value of ``attr``, or `None`.
+
+        If only the reciprocal of ``attr`` is parametrized, the result is the
+        reciprocal composed with that parametrization.
+        """
+        cls = type(self)
+        parameters = self.parametrizations
+        if attr in parameters:
+            return parameters[attr]
+        prop = getattr(cls, attr)
+        recip = prop.get_reciprocal(cls)
+        if recip and recip.name in parameters:
+            recip_map = parameters[recip.name]
+            if prop.anisotropy is AnisotropyLevel.FULL and (
+                _reciprocal_output_is_full_tensor(prop, self, recip_map)
+            ):
+                raise NotImplementedError(
+                    f"Cannot compute the mapping of `{cls.__name__}.{attr}` "
+                    f"through its parametrized reciprocal `{recip.name}`, which is "
+                    f"currently set as a full-tensor anisotropic property: "
+                    f"`maps.ReciprocalMap`'s derivative is only correct for "
+                    f"scalar, isotropic, or diagonal-anisotropic values. "
+                    f"Parametrize `{attr}` directly instead of `{recip.name}` "
+                    f"to get a correct derivative."
+                )
+            return maps.ReciprocalMap() @ recip_map
+        return None
+
     def _prop_deriv(self, attr):
         # TODO Add support for adjoints here and on mapping derivatives
         # TODO Add support for passing v to the parametrization
-        parameters = self.parametrizations
-        if attr not in parameters:
-            my_class = type(self)
-            prop = getattr(my_class, attr)
-            recip = prop.get_reciprocal(my_class)
-            if recip and recip.name in parameters:
-                recip_map = parameters[recip.name]
-                if prop.anisotropy is AnisotropyLevel.FULL and (
-                    _reciprocal_output_is_full_tensor(prop, self, recip_map)
-                ):
-                    raise NotImplementedError(
-                        f"Cannot compute the derivative of `{my_class.__name__}.{attr}` "
-                        f"through its parametrized reciprocal `{recip.name}`, which is "
-                        f"currently set as a full-tensor anisotropic property: "
-                        f"`maps.ReciprocalMap`'s derivative is only correct for "
-                        f"scalar, isotropic, or diagonal-anisotropic values. "
-                        f"Parametrize `{attr}` directly instead of `{recip.name}` "
-                        f"to get a correct derivative."
-                    )
-                paramer = maps.ReciprocalMap() @ recip_map
-            else:
-                return Zero()
-        else:
-            paramer = parameters[attr]
+        paramer = self._parametrization_of(attr)
+        if paramer is None:
+            return Zero()
         if self.model is not None:
             return paramer.deriv(self.model)
         else:
@@ -1136,26 +1144,7 @@ def _add_deprecated_physical_property_functions(
             FutureWarning,
             stacklevel=2,
         )
-        if (my_map := getattr(self.parametrizations, new_name, None)) is not None:
-            return my_map
-        if recip_name := getattr(cls, new_name)._reciprocal:
-            if (
-                recip_map := getattr(self.parametrizations, recip_name, None)
-            ) is not None:
-                prop = getattr(cls, new_name)
-                if prop.anisotropy is AnisotropyLevel.FULL and (
-                    _reciprocal_output_is_full_tensor(prop, self, recip_map)
-                ):
-                    raise NotImplementedError(
-                        f"Cannot compute `{cls_name}.{old_map}` from the "
-                        f"parametrized reciprocal `{recip_name}`, which is "
-                        f"currently set as a full-tensor anisotropic property: "
-                        f"`maps.ReciprocalMap` is only correct for scalar, "
-                        f"isotropic, or diagonal-anisotropic values. Parametrize "
-                        f"`{new_name}` directly instead."
-                    )
-                return maps.ReciprocalMap() @ recip_map
-        return None
+        return self._parametrization_of(new_name)
 
     @prop_map.setter
     def prop_map(self, value):

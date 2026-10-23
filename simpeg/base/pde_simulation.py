@@ -842,7 +842,7 @@ class BaseElectricalPDESimulation(BasePDESimulation):
         anisotropy=props.AnisotropyLevel.FULL,
     )
 
-    def __init__(self, mesh, sigma=None, rho=None, **kwargs):
+    def __init__(self, mesh, sigma=None, *, rho=None, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
         self._init_recip_properties(sigma=sigma, rho=rho)
 
@@ -913,7 +913,7 @@ class BaseMagneticPDESimulation(BasePDESimulation):
         anisotropy=props.AnisotropyLevel.FULL,
     )
 
-    def __init__(self, mesh, mu=None, mui=None, **kwargs):
+    def __init__(self, mesh, mu=None, *, mui=None, **kwargs):
         super().__init__(mesh=mesh, **kwargs)
         self._init_recip_properties(mu=mu, mui=mui)
 

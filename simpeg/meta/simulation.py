@@ -60,7 +60,7 @@ class MetaSimulation(BaseSimulation):
     >>> for time in obs_times:
     ...     sims.append(ExponentialSinusoidSimulation(
     ...         mesh=mesh_space,
-    ...         model_map=maps.IdentityMap(),
+    ...         linear_model=maps.IdentityMap(),
     ...     ))
     ...     ccs = mesh_space.cell_centers
     ...     p_ave = full_mesh.get_interpolation_matrix(
