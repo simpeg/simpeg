@@ -154,6 +154,64 @@ def _expected_output_sizes(prop, obj):
 
 
 class PhysicalProperty:
+    """A physical property of a :class:`HasModel` class.
+
+    A physical property is a descriptor. On an instance of the owning class it holds a
+    value (an array or scalar, validated against the property's shape and dtype), or
+    it can be parametrized by a mapping (see :meth:`HasModel.parametrize`), in which
+    case its value is calculated from the instance's ``model``.
+
+    Parameters
+    ----------
+    short_details : str, optional
+        One line description of the property (with units), used to build its docstring.
+    shape : tuple or list of tuple, optional
+        The valid shape(s) of the property's value. A dimension of ``"*"`` matches any
+        size. Cannot be combined with ``location``.
+    default : optional
+        The value of the property when it was never set. A property with a default is
+        optional, otherwise it is required.
+    dtype : type or tuple of type, optional
+        The valid data type(s) of the value.
+    reciprocal : str, optional
+        The name of the property on the same class that is the reciprocal of this one
+        (for example ``"rho"`` for ``"sigma"``). Either one of the pair can be set,
+        and the other is calculated from it.
+    invertible : bool, optional
+        Whether the property can be parametrized by a mapping.
+    location : Location, optional
+        Where the property lives on the object's ``mesh``. When given, ``shape`` is
+        resolved from the mesh.
+    anisotropy : AnisotropyLevel, optional
+        How anisotropic the value is allowed to be. Requires ``location``.
+    invert : callable, optional
+        Function, ``invert(obj, value)``, used to compute this property's value from the
+        value of its reciprocal. Defaults to ``1 / value`` (or the tensor inverse for
+        anisotropic properties at cell centers).
+    fget, fset, fdel : callable, optional
+        Custom getter, setter and deleter. Usually these are given by using the
+        :meth:`getter`, :meth:`setter` and :meth:`deleter` decorators.
+    fshape : callable, optional
+        Function, ``fshape(obj)``, that returns the valid shape(s) for an instance.
+        Usually this is given by using the :meth:`shapes` decorator.
+    doc : str, optional
+        The docstring of the property. Built from the other arguments if it is not given.
+
+    See Also
+    --------
+    HasModel : The base class of classes that have physical properties.
+
+    Examples
+    --------
+    >>> from simpeg import props, maps
+    >>> class Example(props.HasModel):
+    ...     sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
+    >>> fixed = Example(sigma=1e-2)
+    >>> mapped = Example(sigma=maps.ExpMap(nP=3))
+    >>> mapped.model = [-1.0, -2.0, -3.0]
+    >>> mapped.sigma
+    array([0.36787944, 0.13533528, 0.04978707])
+    """
 
     def __init__(
         self,
