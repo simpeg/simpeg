@@ -79,3 +79,21 @@ def test_shadowing_one_of_a_reciprocal_pair_errors_clearly():
     mesh = discretize.TensorMesh([3, 3, 3])
     with pytest.raises(TypeError, match="reciprocal"):
         Child(mesh, survey=dc.Survey([]), sigma=np.ones(mesh.n_cells))
+
+
+def test_warnings_point_at_user_code():
+    import warnings
+
+    mesh = discretize.TensorMesh([3, 3, 3])
+    with warnings.catch_warnings(record=True) as record:
+        warnings.simplefilter("always")
+        sim = dc.Simulation3DNodal(
+            mesh, survey=dc.Survey([]), sigmaMap=maps.IdentityMap(nP=mesh.n_cells)
+        )
+        sim.sigma = np.ones(mesh.n_cells)
+    record = [w for w in record if w.category in (FutureWarning, UserWarning)]
+    record = [w for w in record if "pymatsolver" not in str(w.message)]
+    assert len(record) == 2
+    for w in record:
+        assert w.filename == __file__, (str(w.message), w.filename)
+    assert "0.28.0" in str(record[0].message)

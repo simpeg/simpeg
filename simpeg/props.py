@@ -1,5 +1,6 @@
 import enum
 import inspect
+import os
 import warnings
 from types import MappingProxyType
 
@@ -11,6 +12,17 @@ from . import maps
 import functools
 from .utils import Zero, validate_type, validate_ndarray_with_shape
 from .typing import MapLike
+
+# Warnings about how the user called into simpeg should be reported at the user's
+# code, no matter how many simpeg frames (constructors, setters, ...) are in between.
+_SIMPEG_DIR = (os.path.dirname(os.path.abspath(__file__)),)
+
+
+def _warn_user(message, category):
+    warnings.warn(message, category, skip_file_prefixes=_SIMPEG_DIR)  # noqa: B028
+
+
+_REMOVAL_VERSION = "0.28.0"
 
 
 class _Void:
@@ -344,12 +356,11 @@ class PhysicalProperty:
 
         if removed is not None:
             cls_name = type(obj).__name__
-            warnings.warn(
+            _warn_user(
                 f"Assigning a value directly to `{cls_name}.{self.name}` removes the "
                 f"existing parametrization of `{cls_name}.{removed}`; it will no "
                 f"longer be invertible through that mapping.",
                 UserWarning,
-                stacklevel=3,
             )
 
         obj._remove_parametrization(self.name)
@@ -403,11 +414,10 @@ class PhysicalProperty:
     def _fset(self, obj, value):
         if value is None:
             if not self.optional:
-                warnings.warn(
+                _warn_user(
                     f"Setting a required physical property {type(obj).__name__}.{self.name} to None is deprecated behavior. "
-                    f"This will change to an error in simpeg X.X",
+                    f"This will change to an error in simpeg {_REMOVAL_VERSION}",
                     FutureWarning,
-                    stacklevel=4,
                 )
         else:
             shape = self.fshape(obj) if self.fshape is not None else self.shape
@@ -758,13 +768,11 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
             )
         required = not prop1.optional and not prop2.optional
         if required and inp1 is None and inp2 is None:
-            warnings.warn(
+            _warn_user(
                 f"Setting both `{prop1.name}` and `{prop2.name}` to None for `{type(self).__name__}`'s required "
                 f"physical properties is deprecated behavior. This message will be changed to an error in simpeg "
-                f"version X.X",
+                f"version {_REMOVAL_VERSION}",
                 FutureWarning,
-                stacklevel=3,
-                # f"`{type(self).__name__}` requires one of `{prop1.name}` or `{prop2.name}`"
             )
         if inp2 is not None:
             inp = {prop2.name: inp2}
@@ -1124,7 +1132,7 @@ def _add_deprecated_physical_property_functions(
         cls_name = cls.__name__
         warnings.warn(
             f"Getting `{cls_name}.{old_map}` directly is deprecated. If this is still necessary "
-            f"use `{cls_name}.parametrizations.{new_name}` instead",
+            f"use `{cls_name}.parametrizations.{new_name}` instead. It will be removed in simpeg {_REMOVAL_VERSION}.",
             FutureWarning,
             stacklevel=2,
         )
@@ -1155,7 +1163,7 @@ def _add_deprecated_physical_property_functions(
         warnings.warn(
             f"Setting `{cls_name}.{old_map}` directly is deprecated. Instead pass "
             f"`{new_name}=mapping` to the constructor, or call "
-            f"`{cls_name}.parametrize({new_name}=mapping)`.",
+            f"`{cls_name}.parametrize({new_name}=mapping)`. It will be removed in simpeg {_REMOVAL_VERSION}.",
             FutureWarning,
             stacklevel=2,
         )
@@ -1172,7 +1180,7 @@ def _add_deprecated_physical_property_functions(
     prop_map.__doc__ = f"""
     Mapping from the model to {old_name}
 
-    .. deprecated:: X.Y
+    .. deprecated:: 0.26.0
         The method of interacting with the physical property is deprecated. Instead
         pass `{new_name}=mapping` directly to the constructor (the simplest
         replacement for most use cases), or call the `parametrize()` method and
@@ -1187,7 +1195,7 @@ def _add_deprecated_physical_property_functions(
     def prop_deriv(self):
         cls_name = type(self).__name__
         warnings.warn(
-            f"Getting `{cls_name}.{old_deriv}` is deprecated, use `{cls_name}._prop_deriv('{new_name}')` instead.",
+            f"Getting `{cls_name}.{old_deriv}` is deprecated, use `{cls_name}._prop_deriv('{new_name}')` instead. It will be removed in simpeg {_REMOVAL_VERSION}.",
             FutureWarning,
             stacklevel=2,
         )
@@ -1196,7 +1204,7 @@ def _add_deprecated_physical_property_functions(
     prop_deriv.__doc__ = f"""
     Derivative of {old_name} w.r.t. the model
 
-    .. deprecated:: X.Y
+    .. deprecated:: 0.26.0
         The method of interacting with the physical property derivative is deprecated. If access is still necessary
         it can be retrieved with `_prop_deriv('{old_name}')`.
 
@@ -1212,11 +1220,10 @@ def _add_deprecated_physical_property_functions(
         def __new_init__(self, *args, **kwargs):
             mapping = kwargs.pop(old_map, None)
             if mapping is not None:
-                warnings.warn(
+                _warn_user(
                     f"Passing mapping argument {old_map} to {type(self).__name__} is deprecated. Instead "
-                    f"you can now use the {new_name} argument.",
+                    f"you can now use the {new_name} argument. It will be removed in simpeg {_REMOVAL_VERSION}.",
                     FutureWarning,
-                    stacklevel=2,
                 )
                 kwargs[new_name] = mapping
             __init__(self, *args, **kwargs)
