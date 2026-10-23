@@ -57,6 +57,18 @@ class AnisotropyLevel(enum.IntEnum):
     FULL = 3
 
 
+_LOCATION_DESCRIPTION = {
+    Location.CELL_CENTERS: "cell-centered",
+    Location.FACES: "face-defined",
+    Location.EDGES: "edge-defined",
+}
+
+_ANISOTROPY_DESCRIPTION = {
+    AnisotropyLevel.ISOTROPIC: "isotropic",
+    AnisotropyLevel.DIAGONAL: "isotropic or diagonally-anisotropic",
+    AnisotropyLevel.FULL: "isotropic, diagonally-anisotropic, or fully-anisotropic",
+}
+
 _LOCATION_SIZE_ATTR = {
     Location.CELL_CENTERS: "n_cells",
     Location.FACES: "n_faces",
@@ -109,61 +121,12 @@ def _mesh_tensor_invert(obj, value):
     return inverse_property_tensor(obj.mesh, value)
 
 
-def _reciprocal_output_is_full_tensor(prop, obj, recip_map):
-    """Best-effort check: does `recip_map`'s flattened output size match a
-    full-tensor-per-location array for `prop`'s declared `location`, given
-    `obj.mesh`?
-
-    Used to guard against `maps.ReciprocalMap`, whose elementwise transform/
-    derivative is only correct for scalar, isotropic, or diagonal-anisotropic
-    values -- not a genuine full tensor (with off-diagonal terms).
-
-    If `recip_map`'s own declared output shape is ambiguous (`"*"`, i.e. no
-    `mesh`/`nP` given), falls back to comparing the model's length instead: a
-    map with no declared shape has no way to change the length of what it's
-    given, since it isn't wired to know it should reshape to a specific size --
-    it is, in effect, elementwise/size-preserving. So a model already shaped
-    for a full tensor is a reasonable proxy for the mapping's output shape too.
-    Returns `False` (assume safe) only when neither can be determined.
-    """
-    if prop.location is not Location.CELL_CENTERS:
-        return False
-    mesh = getattr(obj, "mesh", None)
-    if mesh is None or mesh.dim <= 1:
-        return False
-    size = getattr(mesh, _LOCATION_SIZE_ATTR[prop.location])
-    if not size:
-        return False
-    n_full = _n_full_tensor(mesh.dim)
-
-    output_size = recip_map.shape[0]
-    if _is_int(output_size):
-        return output_size == size * n_full
-
-    model = getattr(obj, "model", None)
-    if model is None:
-        return False
-    return len(model) == size * n_full
-
-
 def _shape_size(shape):
     """Total element count implied by a single shape tuple, or `None` if any
     dimension is `"*"` (unresolvable)."""
     if "*" in shape:
         return None
     return math.prod(shape)
-
-
-def _expected_output_sizes(prop, obj):
-    """The set of valid flattened output lengths for `prop` on `obj`, given its
-    declared `fshape`/`shape`. Returns an empty set if `prop` declares no
-    shape constraint at all, or if every declared shape contains a wildcard.
-    """
-    shape = prop.fshape(obj) if prop.fshape is not None else prop.shape
-    if shape is None:
-        return set()
-    shapes = [shape] if isinstance(shape, tuple) else shape
-    return {size for size in (_shape_size(s) for s in shapes) if size is not None}
 
 
 class PhysicalProperty:
@@ -318,21 +281,58 @@ class PhysicalProperty:
         ):
             self.invert = _mesh_tensor_invert
 
+    def expected_output_sizes(self, obj):
+        """The set of valid flattened output lengths for this property on `obj`, given its
+        declared `fshape`/`shape`. Returns an empty set if this property declares no
+        shape constraint at all, or if every declared shape contains a wildcard.
+        """
+        shape = self.fshape(obj) if self.fshape is not None else self.shape
+        if shape is None:
+            return set()
+        shapes = [shape] if isinstance(shape, tuple) else shape
+        return {size for size in (_shape_size(s) for s in shapes) if size is not None}
+
+    def _reciprocal_output_is_full_tensor(self, obj, recip_map):
+        """Best-effort check: does `recip_map`'s flattened output size match a
+        full-tensor-per-location array for this property's declared `location`, given
+        `obj.mesh`?
+
+        Used to guard against `maps.ReciprocalMap`, whose elementwise transform/
+        derivative is only correct for scalar, isotropic, or diagonal-anisotropic
+        values -- not a genuine full tensor (with off-diagonal terms).
+
+        If `recip_map`'s own declared output shape is ambiguous (`"*"`, i.e. no
+        `mesh`/`nP` given), falls back to comparing the model's length instead: a
+        map with no declared shape has no way to change the length of what it's
+        given, since it isn't wired to know it should reshape to a specific size --
+        it is, in effect, elementwise/size-preserving. So a model already shaped
+        for a full tensor is a reasonable proxy for the mapping's output shape too.
+        Returns `False` (assume safe) only when neither can be determined.
+        """
+        if self.location is not Location.CELL_CENTERS:
+            return False
+        mesh = getattr(obj, "mesh", None)
+        if mesh is None or mesh.dim <= 1:
+            return False
+        size = getattr(mesh, _LOCATION_SIZE_ATTR[self.location])
+        if not size:
+            return False
+        n_full = _n_full_tensor(mesh.dim)
+
+        output_size = recip_map.shape[0]
+        if _is_int(output_size):
+            return output_size == size * n_full
+
+        model = getattr(obj, "model", None)
+        if model is None:
+            return False
+        return len(model) == size * n_full
+
     def build_doc(self):
         # buildup my doc string
         if self.location is not None:
-            loc_str = {
-                Location.CELL_CENTERS: "cell-centered",
-                Location.FACES: "face-defined",
-                Location.EDGES: "edge-defined",
-            }[self.location]
-            aniso_str = {
-                AnisotropyLevel.ISOTROPIC: "isotropic",
-                AnisotropyLevel.DIAGONAL: "isotropic or diagonally-anisotropic",
-                AnisotropyLevel.FULL: (
-                    "isotropic, diagonally-anisotropic, or fully-anisotropic"
-                ),
-            }[self.anisotropy]
+            loc_str = _LOCATION_DESCRIPTION[self.location]
+            aniso_str = _ANISOTROPY_DESCRIPTION[self.anisotropy]
             shape_str = f"scalar, or {loc_str} ({aniso_str}) "
         elif self.shape is None:
             shape_str = ""
@@ -1018,7 +1018,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         the (``others``) parametrizations that are staying, as they all share one model.
         """
         cls_name = type(self).__name__
-        valid_sizes = _expected_output_sizes(prop, self)
+        valid_sizes = prop.expected_output_sizes(self)
         output_size = parametrization.shape[0]
         if valid_sizes and _is_int(output_size) and output_size not in valid_sizes:
             raise ValueError(
@@ -1082,7 +1082,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         if recip and recip.name in parameters:
             recip_map = parameters[recip.name]
             if prop.anisotropy is AnisotropyLevel.FULL and (
-                _reciprocal_output_is_full_tensor(prop, self, recip_map)
+                prop._reciprocal_output_is_full_tensor(self, recip_map)
             ):
                 raise NotImplementedError(
                     f"Cannot compute the mapping of `{cls.__name__}.{attr}` "
@@ -1208,7 +1208,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
 
         # For mappings whose output shape couldn't be resolved statically
         # (and so weren't checked against the property's expected shape at
-        # `parametrize()` time, see `_expected_output_sizes`), assume the
+        # `parametrize()` time, see `PhysicalProperty.expected_output_sizes`), assume the
         # output length matches the model's length: a map with no declared
         # shape has no way to signal a size change, so it's effectively
         # elementwise/size-preserving -- no need to evaluate the mapping
@@ -1217,7 +1217,7 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         for name, mapping in parameters.items():
             if mapping.shape[0] != "*":
                 continue
-            valid_sizes = _expected_output_sizes(getattr(type(self), name), self)
+            valid_sizes = getattr(type(self), name).expected_output_sizes(self)
             if valid_sizes and len(value) not in valid_sizes:
                 errors.append(
                     f"The parametrization, {mapping}, for '{cls_name}.{name}' "
