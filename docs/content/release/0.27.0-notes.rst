@@ -60,9 +60,21 @@ Breaking changes
 - Setting a model on an object with nothing parametrized raises an ``AttributeError``
   (it used to be a ``ValueError``).
 - Scalar property values are stored as python scalars (not 0-d arrays).
-- The ``HasModel.model`` setter no longer returns whether the model changed. Subclasses
-  that need this can call ``HasModel._set_model``.
+- Giving both ``x`` and its deprecated ``xMap`` argument to a constructor raises a
+  ``TypeError`` (the mapping used to win silently).
+- Setting a deprecated ``xMap`` to ``None`` removes only the parametrization of ``x``
+  (as before), and leaves any parametrization of its reciprocal alone.
 - ``viscous_remanent_magnetization.Simulation3DLinear`` requires ``xi`` to be a mapping.
+- The ``model`` given to a constructor is set once the constructor has finished (this is
+  what allows ``Simulation(sigma=mapping, model=m)``), so a subclass reading
+  ``self.model`` inside its own ``__init__`` sees ``None``.
+- ``HasModel._all_map_names`` and ``HasModel._act_map_names`` were removed.
+- The ``modelMap`` attribute of the gravity and magnetics simulations, which was never
+  documented, was removed.
+- The 2.5D DC simulations reject anisotropic values of ``sigma`` and ``rho``.
+- Parametrizing both properties of a reciprocal pair in one call to ``parametrize``
+  is an error, and a class that replaces only one property of an inherited
+  reciprocal pair raises a ``TypeError`` when it is defined.
 
 For developers
 --------------
@@ -81,7 +93,7 @@ constructor:
     class MyModeler(props.HasModel):
         sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
 
-        def __init__(self, sigma=None, **kwargs):
+        def __init__(self, sigma, **kwargs):
             super().__init__(**kwargs)
             self._init_property(sigma=sigma)
 

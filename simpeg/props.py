@@ -628,6 +628,38 @@ class PhysicalProperty:
         return new_prop
 
     def set_feature(self, **features):
+        """Make a copy of this PhysicalProperty with some of its features changed.
+
+        This is how a subclass changes a feature of an inherited physical property
+        (the original is left alone).
+
+        Parameters
+        ----------
+        **features
+            The attributes of the PhysicalProperty to change, for example
+            ``invertible=False`` or ``anisotropy=AnisotropyLevel.ISOTROPIC``. If the
+            ``location`` or ``anisotropy`` is changed, the shapes it accepts (and how it
+            is inverted) are re-derived, unless ``fshape`` or ``invert`` are also given.
+
+        Returns
+        -------
+        PhysicalProperty
+
+        Raises
+        ------
+        AttributeError
+            If a feature is not an attribute of a PhysicalProperty.
+
+        Examples
+        --------
+        >>> from simpeg import props
+        >>> class Parent(props.HasModel):
+        ...     sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
+        >>> class Child(Parent):
+        ...     sigma = Parent.sigma.set_feature(invertible=False)
+        >>> Child.sigma.invertible
+        False
+        """
         new_prop = self.shallow_copy()
         for attr, value in features.items():
             if attr not in dir(new_prop):
@@ -996,7 +1028,13 @@ class HasModel(BaseSimPEG, metaclass=PhysicalPropertyMetaclass):
         Examples
         --------
 
-        >>> sim.parametrize(sigma=maps.ExpMap())
+        >>> from simpeg import maps, props
+        >>> class Example(props.HasModel):
+        ...     sigma = props.PhysicalProperty("Electrical conductivity (S/m)")
+        >>> sim = Example(sigma=1e-2)
+        >>> sim.parametrize(sigma=maps.ExpMap(nP=3))
+        >>> sim.is_parametrized("sigma")
+        True
 
         """
         # Validate everything before changing any state, so a failure leaves
