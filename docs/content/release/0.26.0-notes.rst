@@ -4,7 +4,7 @@
 SimPEG 0.26.0 Release Notes
 ===========================
 
-October DAYth, 2026
+October 26th, 2026
 
 .. contents:: Highlights
     :depth: 3
@@ -15,9 +15,6 @@ Updates
 New features
 ------------
 
-- TileMap –> use the discretize volume averaging by `@lheagy <https://github.com/lheagy>`__ in
-  https://github.com/simpeg/simpeg/pull/1770
-
 Extended support to Python 3.15
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -26,25 +23,69 @@ We extended support to Python 3.15 and Numpy 2.5. Starting from this release, we
 Improvements to Natural Sources EM
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- NSEM receivers for 2D simulation by `@dccowan <https://github.com/dccowan>`__ in
-  https://github.com/simpeg/simpeg/pull/1684
-- Improved right-hand side for NSEM primary secondary by `@dccowan <https://github.com/dccowan>`__ in
-  https://github.com/simpeg/simpeg/pull/1661
-- Nsem recursive add zyx by `@dccowan <https://github.com/dccowan>`__ in
-  https://github.com/simpeg/simpeg/pull/1766
-- Stable padding for 1D MT solutions by `@dccowan <https://github.com/dccowan>`__ in
-  https://github.com/simpeg/simpeg/pull/1769
-- Add rotation invariant transfer functions by `@dccowan <https://github.com/dccowan>`__ in
-  https://github.com/simpeg/simpeg/pull/1779
+This release ships several improvements and additions to the natural source electromagnetic (NSEM) simulations, sources, and receivers.
+
+The frequency domain (FDEM) and time domain (TDEM) 2D and 3D simulations now can take edge and face conductivities as physical properties, allow users to forward model and invert for think plate and line conductors.
+See more details in https://github.com/simpeg/simpeg/pull/1296.
+
+We extended the capabilities of the
+:class:`~simpeg.electromagnetics.natural_source.receivers.Impedance`,
+:class:`~simpeg.electromagnetics.natural_source.receivers.Tipper`,
+and
+:class:`~simpeg.electromagnetics.natural_source.receivers.Admittance`
+for 2D NSEM problems, making it possible to invert for Tipper and admittance data in 2D.
+See more details in https://github.com/simpeg/simpeg/pull/1684.
+
+The 3D NSEM simulations that use the primary-secondary formulation now implement more suitable boundary conditions for the 1D NSEM problem that gets solved to build the primary field and the right-hand side.
+See https://github.com/simpeg/simpeg/pull/1661 for more details.
+
+The number of padding cells that get added during 1D MT simulations are now estimated based on a certain number of skin depths. This makes the 1D MT simulations more robust for any type of mesh.
+See more details in https://github.com/simpeg/simpeg/pull/1769.
+
+Add new NSEM receivers used to predict different rotation invariant transfer functions such as Root Gram Determinant, Cross Product Amplitude, Horizontal Determinant.
+The apparent conductivity
+:class:`~simpeg.electromagnetics.natural_source.receivers.ApparentConductivity`
+receiver can be configured to generate the apparent conductivity datum through different transfer functions.
+
+Add new natural source receiver classes
+:class:`~simpeg.electromagnetics.natural_source.receivers.RootGramDeterminant`,
+:class:`~simpeg.electromagnetics.natural_source.receivers.CrossProductAmplitude`,
+and :class:`~simpeg.electromagnetics.natural_source.receivers.HorizontalDeterminant`,
+that can generate rotation invariant transfer functions as datum.
+They are
+primarily intended to be used for airborne NSEM systems, but can be used for
+general survey configurations. Introduces a breaking change in the formula used
+by :class:`~simpeg.electromagnetics.natural_source.receivers.ApparentConductivity`
+to compute its datum.
+Also, add a new formula argument to the
+:class:`~simpeg.electromagnetics.natural_source.receivers.ApparentConductivity`
+receiver to choose which method should be used to compute the transfer functions.
+See more information in https://github.com/simpeg/simpeg/pull/1779.
+
 
 Improvements to simulations that use ``multiprocessing``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We applied some improvements to increase robustness and memory efficiency in simulations that make use of ``multiprocessing`` for parallelization:
 
 - Enhance robustness and error handling in multiprocessing simulations
   by `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1776
 - Make multiprocessing potential field kernel build using shared memory
   by `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1816
 
+General improvements and optimizations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Finally, we list here some other general improvements and optimizations that were applied to several parts of the codebase:
+
+- Optimize ``deriv`` method in parametric maps by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1754
+- Better map shapes by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1787
+- Store TDEM factorizations by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1832
+- Nsem recursive add zyx by `@dccowan <https://github.com/dccowan>`__ in
+  https://github.com/simpeg/simpeg/pull/1766
 
 Documentation
 -------------
@@ -57,7 +98,7 @@ The documentation also received some minor fixes in style and some mathematical 
 Bugfixes
 --------
 
-This release introduces the following bug fixes:
+This release introduces the following bugfixes:
 
 - Fix line feeds in natural_source/simulation.py to be LF instead by
   `@jcapriot <https://github.com/jcapriot>`__ in https://github.com/simpeg/simpeg/pull/1772
@@ -67,6 +108,13 @@ This release introduces the following bug fixes:
   https://github.com/simpeg/simpeg/pull/1778
 - Fix bug in ``getJ`` method of FDEM simulations by `@lheagy <https://github.com/lheagy>`__ in
   https://github.com/simpeg/simpeg/pull/1822
+- Fix line current inconsistency between EB and HJ formulations by
+  `@lheagy <https://github.com/lheagy>`__ in https://github.com/simpeg/simpeg/pull/1812
+- Fix NSEM TreeMesh side columns, scalar ``sigma_primary``, FDEM
+  multi-source ``b``, and array ``mu`` by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1815
+- TileMap –> use the discretize volume averaging by `@lheagy <https://github.com/lheagy>`__ in
+  https://github.com/simpeg/simpeg/pull/1770
 
 
 Breaking changes
@@ -81,6 +129,11 @@ We removed some deprecated bits of code that were due for this minor release:
 - Remove deprecated properties of optimizers in https://github.com/simpeg/simpeg/pull/1799
 - Remove deprecated properties from directives in https://github.com/simpeg/simpeg/pull/1800
 
+And we introduced some breaking changes while fixing some bugs and adding more features:
+
+- We fixed an inconsistency between the direction of the line currents between EB and HJ formulations in TDEM and FDEM simulations. We updated the HJ implementation of the line current so the current flows in the same direction as in the EB formulation. See https://github.com/simpeg/simpeg/pull/1812 for more details.
+- https://github.com/simpeg/simpeg/pull/1779 introduced a change in how the
+  :class:`~simpeg.electromagnetics.natural_source.receivers.ApparentConductivity` receiver computes the apparent conductivity datum by default.
 
 Contributors
 ============
@@ -195,3 +248,22 @@ Pull Requests
   https://github.com/simpeg/simpeg/pull/1820
 - Fix bug in ``getJ`` method of FDEM simulations by `@lheagy <https://github.com/lheagy>`__ in
   https://github.com/simpeg/simpeg/pull/1822
+- Minor updates to the release checklist by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1828
+- EMsimulation face and edge conductivities by `@dccowan <https://github.com/dccowan>`__ in
+  https://github.com/simpeg/simpeg/pull/1296
+- Fix line current inconsistency between EB and HJ formulations by
+  `@lheagy <https://github.com/lheagy>`__ in https://github.com/simpeg/simpeg/pull/1812
+- Replace deprecated ``discretize.utils.closest_points_index`` by
+  `@santisoler <https://github.com/santisoler>`__ in https://github.com/simpeg/simpeg/pull/1827
+- Optimize ``deriv`` method in parametric maps by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1754
+- Better map shapes by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1787
+- Fix NSEM TreeMesh side columns, scalar ``sigma_primary``, FDEM
+  multi-source ``b``, and array ``mu`` by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1815
+- Store TDEM factorizations by `@jcapriot <https://github.com/jcapriot>`__ in
+  https://github.com/simpeg/simpeg/pull/1832
+- Bump Python to 3.15 in test against latest versions by `@santisoler <https://github.com/santisoler>`__ in
+  https://github.com/simpeg/simpeg/pull/1833
