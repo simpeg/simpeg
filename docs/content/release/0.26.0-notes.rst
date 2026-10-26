@@ -25,9 +25,6 @@ Improvements to Natural Sources EM
 
 This release ships several improvements and additions to the natural source electromagnetic (NSEM) simulations, sources, and receivers.
 
-The frequency domain (FDEM) and time domain (TDEM) 2D and 3D simulations now can take edge and face conductivities as physical properties, allow users to forward model and invert for thin plate and line conductors.
-See more details in https://github.com/simpeg/simpeg/pull/1296.
-
 We extended the capabilities of the
 :class:`~simpeg.electromagnetics.natural_source.receivers.Impedance`,
 :class:`~simpeg.electromagnetics.natural_source.receivers.Tipper`,
@@ -61,6 +58,22 @@ Also, add a new formula argument to the
 :class:`~simpeg.electromagnetics.natural_source.receivers.ApparentConductivity`
 receiver to choose which method should be used to compute the transfer functions.
 See more information in https://github.com/simpeg/simpeg/pull/1779.
+
+
+Thin plate and line conductors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This release ships a nice addition to our electromagnetic simulations:
+the frequency domain (FDEM) and time domain (TDEM) 2D and 3D simulations now
+can take edge and face conductivities as physical properties, allowing users to
+forward model and invert for thin plate and line conductors.
+
+Normally, we assign physical properties (like conductivity, resistivity,
+chargeability parameters, etc.) to mesh cells.
+But these new set of physical properties can be assigned to edges and faces in
+the mesh.
+
+See more details in https://github.com/simpeg/simpeg/pull/1296.
 
 
 Improvements to simulations that use ``multiprocessing``
