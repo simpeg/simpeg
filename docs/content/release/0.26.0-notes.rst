@@ -25,7 +25,7 @@ Improvements to Natural Sources EM
 
 This release ships several improvements and additions to the natural source electromagnetic (NSEM) simulations, sources, and receivers.
 
-The frequency domain (FDEM) and time domain (TDEM) 2D and 3D simulations now can take edge and face conductivities as physical properties, allow users to forward model and invert for think plate and line conductors.
+The frequency domain (FDEM) and time domain (TDEM) 2D and 3D simulations now can take edge and face conductivities as physical properties, allow users to forward model and invert for thin plate and line conductors.
 See more details in https://github.com/simpeg/simpeg/pull/1296.
 
 We extended the capabilities of the
