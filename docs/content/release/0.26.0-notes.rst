@@ -76,9 +76,8 @@ and
 
 In the pre-existing DC and EM simulations we assign physical properties (like
 conductivity, resistivity, chargeability parameters, etc.) to mesh cells. But
-these new set of simluations allows us to assign some of these physical
-properties to edges and faces in the mesh, enabling users to model and invert
-for thin plate or line features.
+these new simluations allow us to assign conductivities to edges and faces in
+the mesh, enabling users to model and invert for thin plate or line features.
 
 See more details in https://github.com/simpeg/simpeg/pull/1296.
 
