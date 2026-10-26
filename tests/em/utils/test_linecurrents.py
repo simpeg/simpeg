@@ -167,5 +167,38 @@ class LineCurrentFacesTest(unittest.TestCase):
         )
 
 
+def test_line_through_faces_direction():
+    """
+    Test that line_through_faces and segmented_line_current_source_term agree
+    on the direction of the current: from ``locations[i]`` to ``locations[i + 1]``.
+    """
+    mesh = discretize.TensorMesh([np.full(8, 10.0)] * 3, origin="CCC")
+
+    # closed path through cell centers with segments along +x, +y, +z, -x, -y, -z
+    a = 25.0
+    locations = np.array(
+        [
+            [-a, -a, -a],
+            [a, -a, -a],
+            [a, a, -a],
+            [a, a, a],
+            [-a, a, a],
+            [-a, -a, a],
+            [-a, -a, -a],
+        ]
+    )
+    faces = line_through_faces(mesh, locations)
+    edges = segmented_line_current_source_term(mesh, locations)
+
+    # compare the direction of the current in the cells along the path
+    faces_cc = mesh.average_face_to_cell_vector @ faces
+    edges_cc = mesh.average_edge_to_cell_vector @ edges
+    on_path = faces_cc != 0
+    assert on_path.sum() > 0
+    np.testing.assert_equal(
+        np.sign(faces_cc[on_path]), np.sign(edges_cc[on_path]), strict=True
+    )
+
+
 if __name__ == "__main__":
     unittest.main()
