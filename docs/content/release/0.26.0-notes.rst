@@ -64,14 +64,21 @@ Thin plate and line conductors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This release ships a nice addition to our electromagnetic simulations:
-the frequency domain (FDEM) and time domain (TDEM) 2D and 3D simulations now
-can take edge and face conductivities as physical properties, allowing users to
-forward model and invert for thin plate and line conductors.
+we introduced a new set of *hierarchical* 2D and 3D simulations for DC,
+frequency domain (FEM) and time domain (TDEM) that can take edge and face
+conductivities as physical properties, allowing users to forward model and
+invert for thin plate and line conductors.
+A few examples of these classes are:
+:class:`resistivity.Simulation3DHierarchicalNodal <simpeg.electromagnetics.static.resistivity.Simulation3DHierarchicalNodal>`,
+:class:`frequency_domain.Simulation3DHierarchicalElectricField <simpeg.electromagnetics.frequency_domain.Simulation3DHierarchicalElectricField>`,
+and
+:class:`time_domain.Simulation3DHierarchicalMagneticFluxDensity <simpeg.electromagnetics.time_domain.Simulation3DHierarchicalMagneticFluxDensity>`.
 
-Normally, we assign physical properties (like conductivity, resistivity,
-chargeability parameters, etc.) to mesh cells.
-But these new set of physical properties can be assigned to edges and faces in
-the mesh.
+In the pre-existing DC and EM simulations we assign physical properties (like
+conductivity, resistivity, chargeability parameters, etc.) to mesh cells. But
+these new set of simluations allows us to assign some of these physical
+properties to edges and faces in the mesh, enabling users to model and invert
+for thin plate or line features.
 
 See more details in https://github.com/simpeg/simpeg/pull/1296.
 
