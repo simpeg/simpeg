@@ -1,12 +1,16 @@
 .. _0.27.0_notes:
 
-============================
-SimPEG v0.27.0 Release Notes
-============================
+===============================
+SimPEG 0.27.0 Preliminary Notes
+===============================
 
-This is a draft of the notes for the changes in the parametrized physical
-properties PR (https://github.com/simpeg/simpeg/pull/1601). The rest of the
-release notes will be added when the release is made.
+.. attention::
+
+    These notes are preliminary. They describe changes that have not been released yet,
+    and they will be folded into the release notes when 0.27.0 is released.
+
+These are the notes for the changes in the parametrized physical properties PR
+(https://github.com/simpeg/simpeg/pull/1601).
 
 Parametrized physical properties
 ================================
