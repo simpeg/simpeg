@@ -51,7 +51,8 @@ as ``model_map`` and ``model_deriv`` of ``LinearSimulation``) still work, but no
 a ``FutureWarning``. They will be removed in SimPEG v0.29.0. The replacements are
 
 - ``sim.xMap`` -> ``sim.parametrizations.x``
-- ``sim.xDeriv`` -> ``sim._prop_deriv("x")``
+- ``sim.xDeriv`` -> ``sim.parametrizations.x.deriv(sim.model)`` (if only the reciprocal
+  of ``x`` is parametrized, compose its mapping with ``maps.ReciprocalMap()`` first)
 - ``Simulation(xMap=mapping)`` -> ``Simulation(x=mapping)``
 
 Setting a required physical property to ``None`` is also deprecated, and will become

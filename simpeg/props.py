@@ -1502,7 +1502,7 @@ def _add_deprecated_physical_property_functions(
     def prop_deriv(self):
         cls_name = type(self).__name__
         warnings.warn(
-            f"Getting `{cls_name}.{old_deriv}` is deprecated, use `{cls_name}._prop_deriv('{new_name}')` instead. It will be removed in simpeg {_REMOVAL_VERSION}.",
+            f"Getting `{cls_name}.{old_deriv}` is deprecated, use `{cls_name}.parametrizations.{new_name}.deriv(model)` instead. It will be removed in simpeg {_REMOVAL_VERSION}.",
             FutureWarning,
             stacklevel=2,
         )
@@ -1512,8 +1512,10 @@ def _add_deprecated_physical_property_functions(
     Derivative of {old_name} w.r.t. the model
 
     .. deprecated:: 0.27.0
-        The method of interacting with the physical property derivative is deprecated. If access is still necessary
-        it can be retrieved with `_prop_deriv('{old_name}')`.
+        The method of interacting with the physical property derivative is deprecated. If it is still
+        necessary, take the derivative of the mapping that parametrizes it, with
+        `parametrizations.{new_name}.deriv(model)`. (If only the reciprocal of the property is
+        parametrized, compose its mapping with `maps.ReciprocalMap()` first.)
 
     Returns
     -------
