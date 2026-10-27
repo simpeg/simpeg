@@ -423,3 +423,30 @@ def test_inverse_permeability_argument():
         mesh, survey=survey, mui=maps.IdentityMap()
     )
     assert sim.is_parametrized("mu")
+
+
+def test_remanence_layouts():
+    mesh = discretize.TensorMesh([[(25.0, 4)]] * 3, "CCC")
+    receivers = PF.magnetics.receivers.Point(np.c_[[0.0], [0.0], [30.0]], ["tmi"])
+    source = PF.magnetics.sources.UniformBackgroundField(
+        [receivers], 50000.0, 60.0, 30.0
+    )
+    survey = PF.magnetics.survey.Survey(source)
+    rem = np.random.default_rng(0).uniform(-10, 10, size=(mesh.n_cells, 3))
+
+    by_component = PF.magnetics.Simulation3DDifferential(mesh, survey=survey, rem=rem)
+    flat = PF.magnetics.Simulation3DDifferential(
+        mesh, survey=survey, rem=rem.reshape(-1, order="F")
+    )
+
+    np.testing.assert_equal(by_component.rem, flat.rem)
+    np.testing.assert_allclose(by_component.dpred(), flat.dpred())
+
+    with pytest.raises(ValueError):
+        PF.magnetics.Simulation3DDifferential(
+            mesh, survey=survey, rem=np.ones(mesh.n_cells)
+        )
+    with pytest.raises(ValueError, match="output length"):
+        PF.magnetics.Simulation3DDifferential(
+            mesh, survey=survey, rem=maps.IdentityMap(nP=mesh.n_cells)
+        )

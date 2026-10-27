@@ -33,6 +33,13 @@ You can also parametrize (or re-parametrize) a property on an existing simulatio
 parametrized. The class attributes ``physical_properties`` and
 ``invertible_properties`` list the physical properties of a class.
 
+Properties with a vector at every location, like the remanent polarization ``rem`` of the
+magnetics differential simulation, are declared with ``components`` (for example
+``PhysicalProperty(..., location=Location.CELL_CENTERS, components="dim")``). Their values
+and the output of their mappings are checked against the mesh, and a value with a shape of
+``(n_cells, 3)`` is stored flat, ordered like discretize does. This means ``rem`` now has
+to have a length of ``3 * n_cells`` (it used to accept any length).
+
 Assigning a mapping directly (``sim.sigma = mapping``) is an error, and assigning an
 array to a parametrized property removes its parametrization (with a warning).
 

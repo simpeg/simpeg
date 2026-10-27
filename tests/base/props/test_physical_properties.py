@@ -1082,5 +1082,125 @@ def test_deprecated_properties_know_their_names():
     assert ReciprocalExample.sigmaDeriv.__name__ == "sigmaDeriv"
 
 
+# --- vector valued properties ----------------------------------------------
+
+
+class CellCenteredVector(_MeshHasModel):
+    field = props.PhysicalProperty(
+        "A vector at every cell",
+        location=props.Location.CELL_CENTERS,
+        components="dim",
+        default=None,
+    )
+
+    def __init__(self, mesh=None, field=None, **kwargs):
+        super().__init__(mesh=mesh, **kwargs)
+        self._init_property(field=field)
+
+
+@pytest.fixture(params=[[3, 3], [3, 3, 3]], ids=["2D", "3D"])
+def vector_mesh(request):
+    import discretize
+
+    return discretize.TensorMesh(request.param)
+
+
+def test_vector_property_flattens_values(vector_mesh):
+    n_cells, dim = vector_mesh.n_cells, vector_mesh.dim
+    values = np.random.default_rng(0).uniform(size=(n_cells, dim))
+    modeler = CellCenteredVector(mesh=vector_mesh)
+
+    modeler.field = values
+    # ordered like discretize does, all of the first component first
+    npt.assert_equal(modeler.field, values.reshape(-1, order="F"))
+    npt.assert_equal(modeler.field[:n_cells], values[:, 0])
+
+    modeler.field = values.reshape(-1, order="F")
+    npt.assert_equal(modeler.field, values.reshape(-1, order="F"))
+
+
+@pytest.mark.parametrize("wrong", ["scalar", "per_cell", "too_long", "transposed"])
+def test_vector_property_rejects_other_shapes(vector_mesh, wrong):
+    n_cells, dim = vector_mesh.n_cells, vector_mesh.dim
+    value = {
+        "scalar": 1.0,
+        "per_cell": np.ones(n_cells),
+        "too_long": np.ones(n_cells * dim + 1),
+        "transposed": np.ones((dim, n_cells)),
+    }[wrong]
+    modeler = CellCenteredVector(mesh=vector_mesh)
+    with pytest.raises(ValueError):
+        modeler.field = value
+
+
+def test_vector_property_validates_mapping_output(vector_mesh):
+    n_cells, dim = vector_mesh.n_cells, vector_mesh.dim
+    modeler = CellCenteredVector(mesh=vector_mesh)
+
+    with pytest.raises(ValueError, match="output length"):
+        modeler.parametrize(field=maps.IdentityMap(nP=n_cells))
+
+    modeler.parametrize(field=maps.ExpMap(nP=n_cells * dim))
+    modeler.model = np.zeros(n_cells * dim)
+    npt.assert_equal(modeler.field, np.ones(n_cells * dim))
+
+    # a model that cannot be the property's size is caught for maps without a shape
+    other = CellCenteredVector(mesh=vector_mesh, field=maps.ExpMap())
+    with pytest.raises(ValueError):
+        other.model = np.zeros(n_cells)
+
+
+def test_vector_property_with_a_fixed_number_of_components(small_2d_mesh):
+    class ThreeComponents(_MeshHasModel):
+        field = props.PhysicalProperty(
+            "Three components",
+            location=props.Location.CELL_CENTERS,
+            components=3,
+            default=None,
+        )
+
+    n_cells = small_2d_mesh.n_cells
+    modeler = ThreeComponents(mesh=small_2d_mesh)
+    modeler.field = np.ones((n_cells, 3))
+    assert modeler.field.shape == (3 * n_cells,)
+    with pytest.raises(ValueError):
+        modeler.field = np.ones((n_cells, 2))
+
+
+def test_vector_property_options_are_checked():
+    cell_centers = props.Location.CELL_CENTERS
+    with pytest.raises(ValueError, match="location"):
+        props.PhysicalProperty("v", components=3)
+    with pytest.raises(ValueError, match="anisotropy"):
+        props.PhysicalProperty(
+            "v",
+            location=cell_centers,
+            components=3,
+            anisotropy=props.AnisotropyLevel.FULL,
+        )
+    with pytest.raises(ValueError, match="shape"):
+        props.PhysicalProperty("v", location=cell_centers, shape=(3,), components=3)
+    for bad in (0, -1, 1.5, "three"):
+        with pytest.raises(ValueError, match="components"):
+            props.PhysicalProperty("v", location=cell_centers, components=bad)
+
+
+def test_vector_property_survives_copies(vector_mesh):
+    prop = CellCenteredVector.field
+    assert prop.components == "dim"
+    assert prop.shallow_copy().components == "dim"
+
+    changed = prop.set_feature(components=2)
+    assert changed.components == 2
+    # the shapes were re-derived for the new number of components
+    n_cells = vector_mesh.n_cells
+    modeler = CellCenteredVector(mesh=vector_mesh)
+    assert (2 * n_cells,) in changed.fshape(modeler)
+    assert (3 * n_cells,) not in changed.fshape(modeler)
+    assert (
+        "vector with a component for each dimension" in CellCenteredVector.field.__doc__
+    )
+
+
 if __name__ == "__main__":
     unittest.main()

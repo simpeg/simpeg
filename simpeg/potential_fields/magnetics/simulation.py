@@ -1666,7 +1666,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         Magnetic Permeability Model (H/ m). Set this for forward
         modeling or to fix while inverting for remanence. This is used if
         a mapping is not given.
-    rem : float, array_like, simpeg.maps.IdentityMap
+    rem : (3 * n_cells) or (n_cells, 3) numpy.ndarray, simpeg.maps.IdentityMap, optional
         Magnetic Polarization :math:`\mu_0 \mathbf{M}` (nT). Set this to an array
         for forward modeling or to fix remanent magnetization while inverting for
         permeability. Pass a mapping from the simulation model to
@@ -1699,7 +1699,10 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
     _Ainv = None
 
     rem = props.PhysicalProperty(
-        "Magnetic Polarization (nT)", shape=("*",), default=None
+        "Magnetic Polarization (nT)",
+        location=props.Location.CELL_CENTERS,
+        components="dim",
+        default=None,
     )
 
     _supported_components = ("tmi", "bx", "by", "bz")

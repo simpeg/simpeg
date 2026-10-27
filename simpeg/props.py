@@ -93,7 +93,12 @@ def _n_full_tensor(dim):
     return 3 if dim == 2 else 6
 
 
-def _mesh_shape_resolver(location, anisotropy):
+def _n_components(components, mesh):
+    """Number of components of a vector valued property on ``mesh``."""
+    return mesh.dim if components == "dim" else components
+
+
+def _mesh_shape_resolver(location, anisotropy, components=None):
     """Build an `fshape` function for a property living at `location` on `obj.mesh`.
 
     This is a convenience default derived from `location`/`anisotropy`; it has
@@ -108,6 +113,10 @@ def _mesh_shape_resolver(location, anisotropy):
                 f"`{type(obj).__name__}.mesh` is required to validate this property."
             )
         size = getattr(mesh, _LOCATION_SIZE_ATTR[location])
+        if components is not None:
+            # a vector at every location, flattened (Fortran ordered) or not.
+            n_components = _n_components(components, mesh)
+            return [(size * n_components,), (size, n_components)]
         shapes = [(), (1,), (size,)]
         if anisotropy is not AnisotropyLevel.ISOTROPIC and mesh.dim > 1:
             shapes.append((size, mesh.dim))
@@ -168,6 +177,13 @@ class PhysicalProperty:
         resolved from the mesh.
     anisotropy : AnisotropyLevel, optional
         How anisotropic the value is allowed to be. Requires ``location``.
+    components : int or "dim", optional
+        Makes the property vector valued, with this many components at every location
+        (``"dim"`` is the dimension of the mesh). The value is a flat vector ordered
+        like discretize does (all of the first component, then all of the second, ...),
+        and an array with a shape of ``(n_locations, components)`` is flattened to that
+        order when it is set. Requires ``location``, and cannot be combined with
+        ``anisotropy``.
     invert : callable, optional
         Function, ``invert(obj, value)``, used to compute this property's value from the
         value of its reciprocal. Defaults to ``1 / value`` (or the tensor inverse for
@@ -207,6 +223,7 @@ class PhysicalProperty:
         invertible=True,
         location=None,
         anisotropy=AnisotropyLevel.ISOTROPIC,
+        components=None,
         invert=None,
         fget=None,
         fset=None,
@@ -245,6 +262,20 @@ class PhysicalProperty:
             )
         if location is None and anisotropy is not AnisotropyLevel.ISOTROPIC:
             raise ValueError("`anisotropy` can only be set when `location` is given.")
+        if components is not None:
+            if location is None:
+                raise ValueError(
+                    "`components` can only be set when `location` is given."
+                )
+            if anisotropy is not AnisotropyLevel.ISOTROPIC:
+                raise ValueError(
+                    "`components` cannot be combined with `anisotropy`, a vector valued "
+                    "property is not a tensor."
+                )
+            if components != "dim" and not (_is_int(components) and components > 0):
+                raise ValueError(
+                    f"`components` must be a positive integer or 'dim', got {components!r}."
+                )
         if (
             location in (Location.FACES, Location.EDGES)
             and anisotropy is not AnisotropyLevel.ISOTROPIC
@@ -256,6 +287,7 @@ class PhysicalProperty:
             )
         self.location = location
         self.anisotropy = anisotropy
+        self.components = components
 
         # `fshape` is the generic override hook: PhysicalProperty itself has no
         # built-in notion of a mesh/location beyond this. `location` is only a
@@ -280,7 +312,9 @@ class PhysicalProperty:
         are among the features being changed (see `set_feature`).
         """
         if self.location is not None and self.fshape is None:
-            self.fshape = _mesh_shape_resolver(self.location, self.anisotropy)
+            self.fshape = _mesh_shape_resolver(
+                self.location, self.anisotropy, self.components
+            )
 
         if (
             self.location is Location.CELL_CENTERS
@@ -340,8 +374,20 @@ class PhysicalProperty:
         # buildup my doc string
         if self.location is not None:
             loc_str = _LOCATION_DESCRIPTION[self.location]
-            aniso_str = _ANISOTROPY_DESCRIPTION[self.anisotropy]
-            shape_str = f"scalar, or {loc_str} ({aniso_str}) "
+            if self.components is not None:
+                if self.components == "dim":
+                    shape_str = (
+                        f"{loc_str} vector with a component for each dimension of the "
+                        f"mesh (flattened, or with a shape of (n, dim)) "
+                    )
+                else:
+                    shape_str = (
+                        f"{loc_str} vector with {self.components} components "
+                        f"(flattened, or with a shape of (n, {self.components})) "
+                    )
+            else:
+                aniso_str = _ANISOTROPY_DESCRIPTION[self.anisotropy]
+                shape_str = f"scalar, or {loc_str} ({aniso_str}) "
         elif self.shape is None:
             shape_str = ""
         else:
@@ -540,6 +586,9 @@ class PhysicalProperty:
             if isinstance(value, np.ndarray) and value.ndim == 0:
                 # store scalars as python scalars
                 value = value.item()
+            elif self.components is not None and value.ndim == 2:
+                # store vectors flat, ordered like discretize does
+                value = value.reshape(-1, order="F")
         setattr(obj, self.private_name, value)
 
     def _invert(self, obj, value):
@@ -590,6 +639,7 @@ class PhysicalProperty:
             invertible=self.invertible,
             location=self.location,
             anisotropy=self.anisotropy,
+            components=self.components,
             invert=self.invert,
             fget=self.fget,
             fset=self.fset,
@@ -638,8 +688,9 @@ class PhysicalProperty:
         **features
             The attributes of the PhysicalProperty to change, for example
             ``invertible=False`` or ``anisotropy=AnisotropyLevel.ISOTROPIC``. If the
-            ``location`` or ``anisotropy`` is changed, the shapes it accepts (and how it
-            is inverted) are re-derived, unless ``fshape`` or ``invert`` are also given.
+            ``location``, ``anisotropy`` or ``components`` is changed, the shapes it accepts (and
+            how it is inverted) are re-derived, unless ``fshape`` or ``invert`` are also
+            given.
 
         Returns
         -------
@@ -674,7 +725,7 @@ class PhysicalProperty:
         # call), the stale derived hooks must be rebuilt for the new values --
         # otherwise they'd silently keep validating/inverting against the old
         # anisotropy level.
-        if "location" in features or "anisotropy" in features:
+        if any(name in features for name in ("location", "anisotropy", "components")):
             if "fshape" not in features:
                 new_prop.fshape = None
             if "invert" not in features:
