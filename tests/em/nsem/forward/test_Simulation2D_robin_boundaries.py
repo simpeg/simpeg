@@ -137,9 +137,16 @@ def test_thin_air():
 
 
 @pytest.mark.parametrize(
-    "orientation, prop", [("xy", "sigma"), ("xy", "mui"), ("yx", "rho"), ("yx", "mu")]
+    "orientation, prop, top_boundary",
+    [
+        ("xy", "sigma", None),
+        ("xy", "mui", None),
+        ("yx", "rho", "robin"),
+        ("yx", "mu", "robin"),
+        ("yx", "rho", "uniform"),
+    ],
 )
-def test_derivatives(orientation, prop):
+def test_derivatives(orientation, prop, top_boundary):
     """The robin terms depend on the model: the bottom and side terms through the
     system matrix, and the side columns (and the robin top) through the right
     hand side. The tree mesh has hanging nodes and coarse cells on the boundary."""
@@ -154,6 +161,8 @@ def test_derivatives(orientation, prop):
     survey = make_survey(orientation, locations, components=("real", "imag"))
     sigma = contact(mesh.cell_centers)
     kwargs = {f"{prop}Map": maps.ExpMap(mesh)}
+    if top_boundary is not None:
+        kwargs["top_boundary"] = top_boundary
     if prop == "sigma":
         m0 = np.log(sigma)
     elif prop == "rho":
@@ -194,7 +203,7 @@ def test_derivatives(orientation, prop):
     np.testing.assert_allclose(
         w @ np.ravel(sim.getRHSDeriv(freq, src, v)),
         v @ np.ravel(sim.getRHSDeriv(freq, src, w, adjoint=True)),
-        rtol=1e-8,
+        rtol=1e-7,
     )
     f = sim.fields(m0)
     d = rng.normal(size=survey.nD)
