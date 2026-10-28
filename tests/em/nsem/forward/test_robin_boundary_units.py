@@ -3,6 +3,7 @@ Unit tests for the helpers behind the robin boundary conditions of the 1D and 2D
 NSEM simulations.
 """
 
+import functools
 import numpy as np
 import pytest
 import discretize
@@ -234,6 +235,29 @@ class TestRobinDeriv:
             v @ sim._robin_deriv(FREQ, prop, u, w, adjoint=True),
             rtol=1e-12,
         )
+
+    @pytest.mark.parametrize("sim_class, prop, value", PROPERTIES)
+    def test_multiple_columns(self, sim_class, prop, value):
+        """Several perturbations as the columns of v, as in getADeriv."""
+        mesh = tensor_mesh(1 if sim_class in SIM_1D else 2)
+        sigma = conductivity(mesh)
+        kwargs = {f"{prop}Map": maps.ExpMap(mesh)}
+        if prop in ("mui", "mu"):
+            kwargs["sigma"] = sigma
+        sim = make_sim(sim_class, mesh, **kwargs)
+        rng = np.random.default_rng(3)
+        sim.model = np.log(value(sigma))
+        n = sim._robin_ops[0].shape[1]
+        u = rng.normal(size=n) + 1j * rng.normal(size=n)
+        robin = functools.partial(sim._robin_deriv, FREQ, prop)
+        system = functools.partial(getattr(sim, f"getADeriv_{prop}"), FREQ)
+        for adjoint, n_rows in ((False, mesh.n_cells), (True, n)):
+            V = rng.normal(size=(n_rows, 3))
+            for deriv in (robin, system):
+                columns = [deriv(u, V[:, i], adjoint=adjoint) for i in range(3)]
+                np.testing.assert_allclose(
+                    deriv(u, V, adjoint=adjoint), np.column_stack(columns)
+                )
 
     @pytest.mark.parametrize("sim_class", SIM_1D + SIM_2D)
     def test_zero_without_map(self, sim_class):

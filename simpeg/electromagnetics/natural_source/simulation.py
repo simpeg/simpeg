@@ -82,10 +82,10 @@ class _RobinBoundary:
         P, K = self._robin_ops
         # d sqrt(i w a b) / da = sqrt(i w a b) / (2 a)
         d_coef = 0.5 * self._robin_coefficient(freq) / self._robin_property(name)
-        dK_dm = K @ sp.diags(d_coef) @ getattr(self, f"{name}Deriv")
-        if adjoint:
-            return _inner_mat_mul_op(dK_dm, P @ u, P @ v, adjoint=True)
-        return P.T @ _inner_mat_mul_op(dK_dm, P @ u, v)
+        # P is folded into the matrix so u and v keep their full length (in 1D P
+        # selects a single node, which _inner_mat_mul_op would squeeze away)
+        M = P.T @ K @ sp.diags(d_coef) @ getattr(self, f"{name}Deriv")
+        return _inner_mat_mul_op(M, u, v, adjoint=adjoint)
 
 
 ###################################
