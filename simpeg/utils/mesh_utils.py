@@ -177,10 +177,11 @@ def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top"):
         # an active one, the smaller of the two gives the horizontal position of
         # that piece of the surface (so a coarse cell under finer air cells is
         # split up as the air cells above it).
-        down, up = 2 * mesh.dim - 2, 2 * mesh.dim - 1
+        # (cell neighbors and boundary cells are ordered as x-, x+, y-, y+[, z-, z+],
+        # so the last two are always down and up)
         widths = mesh.h_gridded[:, 0]
         below, footprints = [], []
-        to_visit = list(mesh.cell_boundary_indices[up])
+        to_visit = list(mesh.cell_boundary_indices[-1])
         visited = np.zeros(mesh.n_cells, dtype=bool)
         while to_visit:
             cell = to_visit.pop()
@@ -191,7 +192,7 @@ def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top"):
                 below.append(cell)
                 footprints.append(cell)
                 continue
-            for neighbor in np.atleast_1d(mesh[cell].neighbors[down]):
+            for neighbor in np.atleast_1d(mesh[cell].neighbors[-2]):
                 if neighbor < 0:
                     continue
                 if active_cells[neighbor]:
