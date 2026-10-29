@@ -161,6 +161,7 @@ def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top"):
     if topo_cell_cutoff not in ("top", "center"):
         raise ValueError("'topo_cell_cutoff' must be 'top' or 'center'.")
     active_cells = validate_active_indices("active_cells", active_cells, mesh.n_cells)
+    h_gridded = mesh.h_gridded  # (it's built again on every access)
 
     if mesh._meshType == "TENSOR":
         # the highest active cell in each column (skipping columns with none)
@@ -178,7 +179,7 @@ def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top"):
         # so the last two are always down and up)
         # (a loop instead of recursion, since a column can have more inactive cells
         # than Python's recursion limit)
-        widths = mesh.h_gridded[:, 0]
+        widths = h_gridded[:, 0]
         top_cells = mesh.cell_boundary_indices[-1]
         pieces = [(cell, cell) for cell in top_cells if active_cells[cell]]
         to_walk = [cell for cell in top_cells if not active_cells[cell]]
@@ -203,7 +204,7 @@ def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top"):
 
     elevations = mesh.cell_centers[below, -1]
     if topo_cell_cutoff == "top":
-        elevations = elevations + 0.5 * mesh.h_gridded[below, -1]
+        elevations = elevations + 0.5 * h_gridded[below, -1]
     out = np.c_[horizontal, elevations]
     return out[np.lexsort(horizontal.T)]
 
@@ -297,7 +298,8 @@ def shift_to_discrete_topography(
         upper = mesh.origin + np.array([h.sum() for h in mesh.h])
         eps = 1e-6 * mesh.h[-1].min()
         columns = np.clip(horizontal_pts, lower[:-1] + eps, upper[:-1] - eps)
-        bottoms = mesh.cell_centers[:, -1] - 0.5 * mesh.h_gridded[:, -1]
+        cell_heights = mesh.h_gridded[:, -1]  # (it's built again on every access)
+        bottoms = mesh.cell_centers[:, -1] - 0.5 * cell_heights
 
         z = np.full(len(columns), upper[-1] - eps)
         surface_cells = np.empty(len(columns), dtype=int)
@@ -318,7 +320,7 @@ def shift_to_discrete_topography(
 
         elevations = mesh.cell_centers[surface_cells, -1]
         if topo_cell_cutoff == "top":
-            elevations = elevations + 0.5 * mesh.h_gridded[surface_cells, -1]
+            elevations = elevations + 0.5 * cell_heights[surface_cells]
         out = np.c_[horizontal_pts, elevations]
 
     out[:, -1] += heights
