@@ -286,3 +286,25 @@ def test_shift_no_active_cells(shift_horizontal):
             np.zeros(mesh.n_cells, dtype=bool),
             shift_horizontal=shift_horizontal,
         )
+
+
+@pytest.mark.parametrize("shift_horizontal", [False, True])
+def test_tensor_mesh_uneven_widths(shift_horizontal):
+    """On a tensor mesh with uneven widths the closest column center isn't always
+    the column a location is in.
+
+    A 10 m column (0 < x < 10) sits next to 1 m columns, with the surface at z = 0
+    for x < 10 and z = -2 beyond. The location at x = 9.6 is in the 10 m column,
+    but closer to the center of the 1 m column at x = 10.5.
+    """
+    mesh = TensorMesh([np.r_[np.ones(10), 10.0, np.ones(10)], np.ones(10)], [-10, -5])
+    x, z = mesh.cell_centers.T
+    active_cells = z < np.where(x < 10, 0.0, -2.0)
+    pts_shifted = shift_to_discrete_topography(
+        mesh, np.array([[9.6, 5.0]]), active_cells, shift_horizontal=shift_horizontal
+    )
+    if shift_horizontal:
+        expected = [[10.5, -2.0]]
+    else:
+        expected = [[9.6, 0.0]]
+    np.testing.assert_allclose(pts_shifted, expected)
