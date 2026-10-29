@@ -176,12 +176,16 @@ def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top"):
         # pockets, or the ground under an overhang).
         # (cell neighbors and boundary cells are ordered as x-, x+, y-, y+[, z-, z+],
         # so the last two are always down and up)
+        # (a loop instead of recursion, since a column can have more inactive cells
+        # than Python's recursion limit)
         widths = mesh.h_gridded[:, 0]
+        top_cells = mesh.cell_boundary_indices[-1]
+        pieces = [(cell, cell) for cell in top_cells if active_cells[cell]]
+        to_walk = [cell for cell in top_cells if not active_cells[cell]]
         # a coarser cell below several finer ones is only walked the first time
         visited = np.zeros(mesh.n_cells, dtype=bool)
-        pieces = []
-
-        def walk_down(cell):
+        while to_walk:
+            cell = to_walk.pop()
             for below in np.atleast_1d(mesh[cell].neighbors[-2]):
                 if below < 0:
                     continue
@@ -193,13 +197,7 @@ def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top"):
                     pieces.append((below, smaller))
                 elif not visited[below]:
                     visited[below] = True
-                    walk_down(below)
-
-        for cell in mesh.cell_boundary_indices[-1]:
-            if active_cells[cell]:
-                pieces.append((cell, cell))
-            else:
-                walk_down(cell)
+                    to_walk.append(below)
         below, footprints = np.array(pieces, dtype=int).reshape(-1, 2).T
         horizontal = mesh.cell_centers[footprints, :-1]
 
@@ -274,6 +272,8 @@ def shift_to_discrete_topography(
     if topo_cell_cutoff not in ("top", "center"):
         raise ValueError("'topo_cell_cutoff' must be 'top' or 'center'.")
     active_cells = validate_active_indices("active_cells", active_cells, mesh.n_cells)
+    if not np.any(active_cells):
+        raise ValueError("There are no active cells to shift the locations to.")
 
     pts = np.asarray(pts, dtype=float)
     if pts.ndim == 2 and pts.shape[1] == mesh.dim:

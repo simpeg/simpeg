@@ -274,3 +274,15 @@ def test_discrete_topography_active_cell_above_air():
     np.testing.assert_allclose(
         topo[(topo[:, 0] > 0) & (topo[:, 0] < 2)], [[0.5, 5.0], [1.0, 0.0]]
     )
+
+
+@pytest.mark.parametrize("shift_horizontal", [False, True])
+def test_shift_no_active_cells(shift_horizontal):
+    mesh = get_mesh("tree", 2)
+    with pytest.raises(ValueError, match="no active cells"):
+        shift_to_discrete_topography(
+            mesh,
+            get_points(2),
+            np.zeros(mesh.n_cells, dtype=bool),
+            shift_horizontal=shift_horizontal,
+        )
