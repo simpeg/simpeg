@@ -10,6 +10,8 @@ from discretize.utils import (  # noqa: F401
     active_from_xyz,
 )
 
+from .code_utils import validate_active_indices
+
 
 def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
     """Takes a triangulated surface and determines which mesh cells it intersects.
@@ -235,8 +237,10 @@ def shift_to_discrete_topography(
         Height(s) relative to the true surface topography. Used to preserve flight
         heights or borehole depths.
     shift_horizontal : bool, optional
-        When True, locations are shifted horizontally to lie vertically over cell
-        centers. When False, the original horizontal locations are preserved.
+        When True, locations are shifted to the closest surface cell center
+        (horizontally), on the discrete topography of that cell. When False, the
+        original horizontal locations are preserved, on the discrete topography
+        of the column they lie in.
 
     Returns
     -------
@@ -262,29 +266,55 @@ def shift_to_discrete_topography(
             )
         )
 
-    discrete_topography = get_discrete_topography(
-        mesh, active_cells, topo_cell_cutoff=topo_cell_cutoff
-    )
+    if topo_cell_cutoff not in ("top", "center"):
+        raise ValueError("'topo_cell_cutoff' must be 'top' or 'center'.")
+    active_cells = validate_active_indices("active_cells", active_cells, mesh.n_cells)
 
+    pts = np.asarray(pts, dtype=float)
     if pts.ndim == 2 and pts.shape[1] == mesh.dim:
-        has_elevation = True
         horizontal_pts = pts[:, :-1]
     else:
-        has_elevation = False
-        horizontal_pts = pts.squeeze()  # in case (n, 1) array
-
-    topo_inds = _closest_grid_indices(discrete_topography[:, :-1], horizontal_pts)
+        horizontal_pts = pts.reshape(-1, mesh.dim - 1)  # in case (n,) or (n, 1) array
 
     if shift_horizontal:
-        if has_elevation:
-            cell_inds = mesh.point2index(pts)
-            out = np.c_[
-                mesh.cell_centers[cell_inds, :-1], discrete_topography[topo_inds, -1]
-            ]
-        else:
-            out = discrete_topography[topo_inds, :]
+        # the closest surface cell center, and the top (or center) of that cell
+        discrete_topography = get_discrete_topography(
+            mesh, active_cells, topo_cell_cutoff=topo_cell_cutoff
+        )
+        topo_inds = _closest_grid_indices(discrete_topography[:, :-1], horizontal_pts)
+        out = discrete_topography[topo_inds]
     else:
-        out = np.c_[horizontal_pts, discrete_topography[topo_inds, -1]]
+        # Walk down each location's column from the top of the mesh, one cell at a
+        # time, to its highest active cell (on a tree mesh the closest surface cell
+        # center can belong to the neighboring column). Locations outside the mesh
+        # use the closest column.
+        lower = mesh.origin
+        upper = mesh.origin + np.array([h.sum() for h in mesh.h])
+        eps = 1e-6 * mesh.h[-1].min()
+        columns = np.clip(horizontal_pts, lower[:-1] + eps, upper[:-1] - eps)
+        bottoms = mesh.cell_centers[:, -1] - 0.5 * mesh.h_gridded[:, -1]
+
+        z = np.full(len(columns), upper[-1] - eps)
+        surface_cells = np.empty(len(columns), dtype=int)
+        remaining = np.arange(len(columns))
+        while remaining.size:
+            points = np.c_[columns[remaining], z[remaining]]
+            cells = np.atleast_1d(mesh.point2index(points))
+            is_active = active_cells[cells]
+            surface_cells[remaining[is_active]] = cells[is_active]
+            remaining, cells = remaining[~is_active], cells[~is_active]
+            z[remaining] = bottoms[cells] - eps
+            if np.any(z[remaining] < lower[-1]):
+                no_active = remaining[z[remaining] < lower[-1]]
+                raise ValueError(
+                    "No active cells below the locations "
+                    f"{horizontal_pts[no_active]}."
+                )
+
+        elevations = mesh.cell_centers[surface_cells, -1]
+        if topo_cell_cutoff == "top":
+            elevations = elevations + 0.5 * mesh.h_gridded[surface_cells, -1]
+        out = np.c_[horizontal_pts, elevations]
 
     out[:, -1] += heights
 

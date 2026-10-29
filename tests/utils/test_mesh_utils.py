@@ -125,3 +125,60 @@ def test_size_errors():
 
     with pytest.raises(ValueError):
         shift_to_discrete_topography(mesh, pts, active_cells, heights=heights)
+
+
+@pytest.mark.parametrize("shift_horizontal", [False, True])
+def test_tree_mesh_own_column(shift_horizontal):
+    """On a tree mesh, the shifted locations are on the discrete surface.
+
+    The surface steps from z = 0 (x < 0, 1 m cells) down to z = -2 (x > 0, 2 m
+    cells), so the surface cell spanning 0 < x < 2 has its center at x = 1, further
+    from x = 0.2 than the 1 m cell centered at x = -0.5. Without the horizontal shift
+    x = 0.2 keeps the surface of its own column, with it x = 0.2 moves to the
+    closest surface cell center (and that cell's top).
+    """
+    mesh = TreeMesh([np.ones(32), np.ones(32)], "CC", diagonal_balance=True)
+    mesh.refine(
+        lambda cell: mesh.max_level - (cell.center[0] > 0 or abs(cell.center[1]) > 2),
+        diagonal_balance=True,
+    )
+    x, z = mesh.cell_centers.T
+    active_cells = z < np.where(x < 0, 0.0, -2.0)
+    pts = np.array([[0.2, 5.0], [-0.2, 5.0]])
+
+    pts_shifted = shift_to_discrete_topography(
+        mesh, pts, active_cells, shift_horizontal=shift_horizontal
+    )
+    if shift_horizontal:
+        expected = [[-0.5, 0.0], [-0.5, 0.0]]
+    else:
+        expected = [[0.2, -2.0], [-0.2, 0.0]]
+    np.testing.assert_allclose(pts_shifted, expected)
+
+
+def test_integer_active_cells():
+    mesh = get_mesh("tensor", 3)
+    active_cells = get_active_cells(mesh)
+    pts = get_points(3)
+    np.testing.assert_allclose(
+        shift_to_discrete_topography(mesh, pts, np.flatnonzero(active_cells)),
+        shift_to_discrete_topography(mesh, pts, active_cells),
+    )
+
+
+def test_invalid_topo_cell_cutoff():
+    mesh = get_mesh("tree", 2)
+    with pytest.raises(ValueError, match="'top' or 'center'"):
+        shift_to_discrete_topography(
+            mesh, get_points(2), get_active_cells(mesh), topo_cell_cutoff="bottom"
+        )
+
+
+def test_no_active_cells_below():
+    mesh = get_mesh("tensor", 2)
+    active_cells = get_active_cells(mesh)
+    active_cells[mesh.cell_centers[:, 0] > 0] = False
+    with pytest.raises(ValueError, match="No active cells below"):
+        shift_to_discrete_topography(
+            mesh, get_points(2), active_cells, shift_horizontal=False
+        )
