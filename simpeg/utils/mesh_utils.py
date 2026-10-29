@@ -173,35 +173,34 @@ def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top"):
     else:
         # Walk downwards through the inactive cells, starting from the top of the
         # mesh, so this only finds the upper surface (not the floors of inactive
-        # pockets, or the ground under an overhang). Where an inactive cell sits on
-        # an active one, the smaller of the two gives the horizontal position of
-        # that piece of the surface (so a coarse cell under finer air cells is
-        # split up as the air cells above it).
+        # pockets, or the ground under an overhang).
         # (cell neighbors and boundary cells are ordered as x-, x+, y-, y+[, z-, z+],
         # so the last two are always down and up)
         widths = mesh.h_gridded[:, 0]
-        below, footprints = [], []
-        to_visit = list(mesh.cell_boundary_indices[-1])
+        # a coarser cell below several finer ones is only walked the first time
         visited = np.zeros(mesh.n_cells, dtype=bool)
-        while to_visit:
-            cell = to_visit.pop()
-            if visited[cell]:
-                continue
-            visited[cell] = True
-            if active_cells[cell]:  # an active cell on the top of the mesh
-                below.append(cell)
-                footprints.append(cell)
-                continue
-            for neighbor in np.atleast_1d(mesh[cell].neighbors[-2]):
-                if neighbor < 0:
+        pieces = []
+
+        def walk_down(cell):
+            for below in np.atleast_1d(mesh[cell].neighbors[-2]):
+                if below < 0:
                     continue
-                if active_cells[neighbor]:
-                    below.append(neighbor)
-                    smaller = neighbor if widths[neighbor] < widths[cell] else cell
-                    footprints.append(smaller)
-                else:
-                    to_visit.append(neighbor)
-        below, footprints = np.array(below, dtype=int), np.array(footprints, dtype=int)
+                if active_cells[below]:
+                    # the smaller of the two cells gives the horizontal position of
+                    # this piece of the surface (so a coarse cell under finer
+                    # inactive cells is split up as the cells above it)
+                    smaller = below if widths[below] < widths[cell] else cell
+                    pieces.append((below, smaller))
+                elif not visited[below]:
+                    visited[below] = True
+                    walk_down(below)
+
+        for cell in mesh.cell_boundary_indices[-1]:
+            if active_cells[cell]:
+                pieces.append((cell, cell))
+            else:
+                walk_down(cell)
+        below, footprints = np.array(pieces, dtype=int).reshape(-1, 2).T
         horizontal = mesh.cell_centers[footprints, :-1]
 
     elevations = mesh.cell_centers[below, -1]

@@ -223,3 +223,54 @@ def test_discrete_topography_integer_active_cells(mesh_type):
         get_discrete_topography(mesh, np.flatnonzero(active_cells)),
         get_discrete_topography(mesh, active_cells),
     )
+
+
+def test_discrete_topography_finer_cells_higher_up():
+    """Finer inactive cells above coarser inactive cells (say, refined for airborne
+    data) don't give repeated surface locations."""
+    # 1 m cells in a box in the air at 2 < z < 4, 2 m cells everywhere else
+    mesh = TreeMesh([np.ones(16), np.ones(16)], "CC", diagonal_balance=True)
+
+    def level(cell):
+        x, z = cell.center
+        return mesh.max_level if (-4 < x < 4 and 2 < z < 4) else mesh.max_level - 1
+
+    mesh.refine(level, diagonal_balance=True)
+    active_cells = mesh.cell_centers[:, 1] < 0
+    topo = get_discrete_topography(mesh, active_cells)
+    np.testing.assert_allclose(topo, np.c_[np.arange(-7.0, 8.0, 2.0), np.zeros(8)])
+
+
+def test_discrete_topography_uneven_widths():
+    """Finer inactive cells above coarser ones on a tree mesh with uneven widths."""
+    h = [np.r_[2.0, 0.5, 1.5, 1.0, 0.7, 1.3, 2.5, 0.5], np.ones(8)]
+    mesh = TreeMesh(h, [-h[0].sum() / 2, -4], diagonal_balance=True)
+
+    def level(cell):
+        x, z = cell.center
+        return mesh.max_level if (-2 < x < 2 and 2 < z < 4) else mesh.max_level - 1
+
+    mesh.refine(level, diagonal_balance=True)
+    active_cells = mesh.cell_centers[:, 1] < 0
+    topo = get_discrete_topography(mesh, active_cells)
+    edges = np.cumsum(np.r_[0, h[0][0::2] + h[0][1::2]]) - h[0].sum() / 2
+    np.testing.assert_allclose(topo, np.c_[0.5 * (edges[:-1] + edges[1:]), np.zeros(4)])
+
+
+def test_discrete_topography_active_cell_above_air():
+    """The ground under a coarse inactive cell is found even when the finer cell
+    above that coarse cell's lower corner is active."""
+    # 1 m cells at 4 < z < 6, 2 m cells everywhere else
+    mesh = TreeMesh([np.ones(16), np.ones(16)], "CC", diagonal_balance=True)
+
+    def level(cell):
+        return mesh.max_level if 4 < cell.center[1] < 6 else mesh.max_level - 1
+
+    mesh.refine(level, diagonal_balance=True)
+    x, z = mesh.cell_centers.T
+    # an active 1 m cell over the 2 m inactive cell at 0 < x < 2, 2 < z < 4
+    active_cells = (z < 0) | (np.isclose(x, 0.5) & np.isclose(z, 4.5))
+    topo = get_discrete_topography(mesh, active_cells)
+    np.testing.assert_allclose(
+        topo[(topo[:, 0] > 0) & (topo[:, 0] < 2)], [[0.5, 5.0], [1.0, 0.0]]
+    )
