@@ -182,3 +182,44 @@ def test_no_active_cells_below():
         shift_to_discrete_topography(
             mesh, get_points(2), active_cells, shift_horizontal=False
         )
+
+
+def test_discrete_topography_split_under_finer_cells():
+    """A coarse surface cell under finer inactive cells is split up as those cells."""
+    # 1 m cells in the air above 0 < x < 2, 2 m cells everywhere else
+    mesh = TreeMesh([np.ones(8), np.ones(8)], "CC", diagonal_balance=True)
+
+    def level(cell):
+        x, z = cell.center
+        return mesh.max_level if (0 < x < 2 and z > 0) else mesh.max_level - 1
+
+    mesh.refine(level, diagonal_balance=True)
+    active_cells = mesh.cell_centers[:, 1] < 0
+    topo = get_discrete_topography(mesh, active_cells)
+    np.testing.assert_allclose(
+        topo[(topo[:, 0] > 0) & (topo[:, 0] < 2)], [[0.5, 0], [1.5, 0]]
+    )
+
+
+@pytest.mark.parametrize("mesh_type", ["tensor", "tree"])
+def test_discrete_topography_upper_surface(mesh_type):
+    """Only the upper surface, not the floor of an inactive pocket below it."""
+    mesh = get_mesh(mesh_type, 2)
+    x, z = mesh.cell_centers.T
+    active_cells = (z < 0) & ~((np.abs(x - 0.5) < 0.6) & (np.abs(z + 2.5) < 0.6))
+    topo = get_discrete_topography(mesh, active_cells)
+    np.testing.assert_allclose(topo, np.c_[np.arange(-N / 2, N / 2) + 0.5, np.zeros(N)])
+    pts_shifted = shift_to_discrete_topography(
+        mesh, np.array([[0.7, 0.0]]), active_cells
+    )
+    np.testing.assert_allclose(pts_shifted, [[0.5, 0.0]])
+
+
+@pytest.mark.parametrize("mesh_type", ["tensor", "tree"])
+def test_discrete_topography_integer_active_cells(mesh_type):
+    mesh = get_mesh(mesh_type, 3)
+    active_cells = get_active_cells(mesh)
+    np.testing.assert_allclose(
+        get_discrete_topography(mesh, np.flatnonzero(active_cells)),
+        get_discrete_topography(mesh, active_cells),
+    )
