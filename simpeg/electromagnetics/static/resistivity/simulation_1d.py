@@ -4,6 +4,7 @@ import libdlf
 import numpy as np
 
 from ...utils.em1d_utils import get_splined_dlf_points
+from ....props import _add_deprecated_physical_property_functions
 from ....simulation import BaseSimulation
 from .... import props
 
@@ -102,28 +103,30 @@ def _dphi_tilde(rho, thicknesses, lambdas):
     return J_rho.T, J_h.T
 
 
+@_add_deprecated_physical_property_functions("sigma")
+@_add_deprecated_physical_property_functions("rho")
+@_add_deprecated_physical_property_functions("thicknesses")
 class Simulation1DLayers(BaseSimulation):
     """
     1D DC Simulation
     """
 
-    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
-    rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
-    props.Reciprocal(sigma, rho)
-
-    thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
-        "thicknesses of the layers"
+    sigma = props.PhysicalProperty(
+        "Electrical conductivity (S/m)", shape=("*",), reciprocal="rho"
     )
+    rho = props.PhysicalProperty(
+        "Electrical resistivity (Ohm m)", shape=("*",), reciprocal="sigma"
+    )
+
+    thicknesses = props.PhysicalProperty("thicknesses of the layers", shape=("*",))
 
     def __init__(
         self,
         survey=None,
         sigma=None,
-        sigmaMap=None,
+        *,
         rho=None,
-        rhoMap=None,
         thicknesses=None,
-        thicknessesMap=None,
         hankel_filter="key_201_2012",
         fix_Jmatrix=False,
         **kwargs,
@@ -142,12 +145,10 @@ class Simulation1DLayers(BaseSimulation):
                 "receiver."
             )
         super().__init__(survey=survey, **kwargs)
-        self.sigma = sigma
-        self.rho = rho
-        self.thicknesses = thicknesses
-        self.sigmaMap = sigmaMap
-        self.rhoMap = rhoMap
-        self.thicknessesMap = thicknessesMap
+
+        self._init_recip_properties(sigma=sigma, rho=rho)
+        self._init_property(thicknesses=thicknesses)
+
         self.fix_Jmatrix = fix_Jmatrix
         self.hankel_filter = hankel_filter  # Store filter
         self._coefficients_set = False
@@ -320,10 +321,10 @@ class Simulation1DLayers(BaseSimulation):
             J_rho, J_h = _dphi_tilde(self.rho, self.thicknesses, self._lambdas)
 
             Jmatrix = 0
-            if self.rhoMap is not None:
-                Jmatrix += (self._As @ J_rho) @ self.rhoDeriv
-            if self.thicknessesMap is not None:
-                Jmatrix += (self._As @ J_h) @ self.thicknessesDeriv
+            if self.is_parametrized("rho"):
+                Jmatrix += (self._As @ J_rho) @ self._prop_deriv("rho")
+            if self.is_parametrized("thicknesses"):
+                Jmatrix += (self._As @ J_h) @ self._prop_deriv("thicknesses")
             self._Jmatrix = Jmatrix
         return self._Jmatrix
 
