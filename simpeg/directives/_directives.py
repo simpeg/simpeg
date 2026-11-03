@@ -493,7 +493,11 @@ class BetaEstimateMaxDerivative(BaseBetaEstimator):
 
         x0 = rng.random(size=m.shape)
         phi_d_deriv = np.abs(self.dmisfit.deriv(m)).max()
-        dm = x0 / x0.max() * m.max()
+        # A zero starting model has no scale to perturb it by, which would
+        # leave the regularization derivative at zero and give an infinite or
+        # NaN beta.
+        m_scale = m.max() if m.max() != 0 else 1.0
+        dm = x0 / x0.max() * m_scale
         phi_m_deriv = np.abs(self.reg.deriv(m + dm)).max()
 
         self.ratio = np.asarray(phi_d_deriv / phi_m_deriv)
