@@ -1,14 +1,14 @@
 import numpy as np
 from scipy.spatial import cKDTree
 
-from discretize import TensorMesh
-
 from discretize.utils import (  # noqa: F401
     unpack_widths,
     closest_points_index,
     extract_core_mesh,
     active_from_xyz,
 )
+
+from .code_utils import validate_active_indices
 
 
 def surface2inds(vrtx, trgl, mesh, boundaries=True, internal=True):
@@ -147,60 +147,66 @@ def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top"):
     Returns
     -------
     (n, dim) numpy.ndarray
-        Discrete topography locations; i.e. xy[z].
+        Discrete topography locations; i.e. xy[z]. These are the upper surface of
+        the active cells, as seen from above. On a tree mesh, where finer inactive
+        cells sit on a coarser surface cell, that cell's top is split up into the
+        horizontal positions of the inactive cells above it.
     """
-    if mesh._meshType == "TENSOR":
-        if mesh.dim == 3:
-            mesh2D = TensorMesh([mesh.h[0], mesh.h[1]], mesh.x0[:2])
-            zc = mesh.cell_centers[:, 2]
-            ACTIND = active_cells.reshape(
-                (mesh.vnC[0] * mesh.vnC[1], mesh.vnC[2]), order="F"
-            )
-            ZC = zc.reshape((mesh.vnC[0] * mesh.vnC[1], mesh.vnC[2]), order="F")
-            topoCC = np.zeros(ZC.shape[0])
-
-            for i in range(ZC.shape[0]):
-                if topo_cell_cutoff == "top":
-                    ind = np.argmax(ZC[i, :][ACTIND[i, :]])
-                    dz = mesh.h[2][ACTIND[i, :]][ind] * 0.5
-                elif topo_cell_cutoff == "center":
-                    dz = 0.0
-                else:
-                    raise ValueError("'topo_cell_cutoff' must be 'top' or 'center'.")
-                topoCC[i] = ZC[i, :][ACTIND[i, :]].max() + dz
-            return np.c_[mesh2D.cell_centers, topoCC]
-
-        elif mesh.dim == 2:
-            mesh1D = TensorMesh([mesh.h[0]], [mesh.x0[0]])
-            yc = mesh.cell_centers[:, 1]
-            ACTIND = active_cells.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
-            YC = yc.reshape((mesh.vnC[0], mesh.vnC[1]), order="F")
-            topoCC = np.zeros(YC.shape[0])
-            for i in range(YC.shape[0]):
-                ind = np.argmax(YC[i, :][ACTIND[i, :]])
-                if topo_cell_cutoff == "top":
-                    dy = mesh.h[1][ACTIND[i, :]][ind] * 0.5
-                elif topo_cell_cutoff == "center":
-                    dy = 0.0
-                else:
-                    raise ValueError("'topo_cell_cutoff' must be 'top' or 'center'.")
-                topoCC[i] = YC[i, :][ACTIND[i, :]].max() + dy
-            return np.c_[mesh1D.cell_centers, topoCC]
-
-    elif mesh._meshType == "TREE":
-        inds = mesh.get_boundary_cells(active_cells, direction="zu")[0]
-
-        if topo_cell_cutoff == "top":
-            dz = mesh.h_gridded[inds, -1] * 0.5
-        elif topo_cell_cutoff == "center":
-            dz = 0.0
-        return np.c_[mesh.cell_centers[inds, :-1], mesh.cell_centers[inds, -1] + dz]
-    else:
+    if mesh._meshType != "TENSOR" and mesh._meshType != "TREE":
         msg = (
             f"Invalid mesh of type '{type(mesh).__name__}'. "
             "`get_discrete_topography` only supports TensorMesh and TreeMesh."
         )
         raise TypeError(msg)
+    if topo_cell_cutoff not in ("top", "center"):
+        raise ValueError("'topo_cell_cutoff' must be 'top' or 'center'.")
+    active_cells = validate_active_indices("active_cells", active_cells, mesh.n_cells)
+    h_gridded = mesh.h_gridded  # (it's built again on every access)
+
+    if mesh._meshType == "TENSOR":
+        # the highest active cell in each column (skipping columns with none)
+        n_columns = np.prod(mesh.shape_cells[:-1])
+        is_active = active_cells.reshape((n_columns, mesh.shape_cells[-1]), order="F")
+        has_active = is_active.any(axis=1)
+        highest = mesh.shape_cells[-1] - 1 - np.argmax(is_active[:, ::-1], axis=1)
+        below = (np.arange(n_columns) + n_columns * highest)[has_active]
+        horizontal = mesh.cell_centers[below, :-1]
+    else:
+        # Walk downwards through the inactive cells, starting from the top of the
+        # mesh, so this only finds the upper surface (not the floors of inactive
+        # pockets, or the ground under an overhang).
+        # (cell neighbors and boundary cells are ordered as x-, x+, y-, y+[, z-, z+],
+        # so the last two are always down and up)
+        # (a loop instead of recursion, since a column can have more inactive cells
+        # than Python's recursion limit)
+        widths = h_gridded[:, 0]
+        top_cells = mesh.cell_boundary_indices[-1]
+        pieces = [(cell, cell) for cell in top_cells if active_cells[cell]]
+        to_walk = [cell for cell in top_cells if not active_cells[cell]]
+        # a coarser cell below several finer ones is only walked the first time
+        visited = np.zeros(mesh.n_cells, dtype=bool)
+        while to_walk:
+            cell = to_walk.pop()
+            for below in np.atleast_1d(mesh[cell].neighbors[-2]):
+                if below < 0:
+                    continue
+                if active_cells[below]:
+                    # the smaller of the two cells gives the horizontal position of
+                    # this piece of the surface (so a coarse cell under finer
+                    # inactive cells is split up as the cells above it)
+                    smaller = below if widths[below] < widths[cell] else cell
+                    pieces.append((below, smaller))
+                elif not visited[below]:
+                    visited[below] = True
+                    to_walk.append(below)
+        below, footprints = np.array(pieces, dtype=int).reshape(-1, 2).T
+        horizontal = mesh.cell_centers[footprints, :-1]
+
+    elevations = mesh.cell_centers[below, -1]
+    if topo_cell_cutoff == "top":
+        elevations = elevations + 0.5 * h_gridded[below, -1]
+    out = np.c_[horizontal, elevations]
+    return out[np.lexsort(horizontal.T)]
 
 
 def shift_to_discrete_topography(
@@ -235,8 +241,10 @@ def shift_to_discrete_topography(
         Height(s) relative to the true surface topography. Used to preserve flight
         heights or borehole depths.
     shift_horizontal : bool, optional
-        When True, locations are shifted horizontally to lie vertically over cell
-        centers. When False, the original horizontal locations are preserved.
+        When True, locations are shifted to the closest surface cell center
+        (horizontally), on the discrete topography of that cell. When False, the
+        original horizontal locations are preserved, on the discrete topography
+        of the column they lie in.
 
     Returns
     -------
@@ -262,29 +270,58 @@ def shift_to_discrete_topography(
             )
         )
 
-    discrete_topography = get_discrete_topography(
-        mesh, active_cells, topo_cell_cutoff=topo_cell_cutoff
-    )
+    if topo_cell_cutoff not in ("top", "center"):
+        raise ValueError("'topo_cell_cutoff' must be 'top' or 'center'.")
+    active_cells = validate_active_indices("active_cells", active_cells, mesh.n_cells)
+    if not np.any(active_cells):
+        raise ValueError("There are no active cells to shift the locations to.")
 
+    pts = np.asarray(pts, dtype=float)
     if pts.ndim == 2 and pts.shape[1] == mesh.dim:
-        has_elevation = True
         horizontal_pts = pts[:, :-1]
     else:
-        has_elevation = False
-        horizontal_pts = pts.squeeze()  # in case (n, 1) array
-
-    topo_inds = _closest_grid_indices(discrete_topography[:, :-1], horizontal_pts)
+        horizontal_pts = pts.reshape(-1, mesh.dim - 1)  # in case (n,) or (n, 1) array
 
     if shift_horizontal:
-        if has_elevation:
-            cell_inds = mesh.point2index(pts)
-            out = np.c_[
-                mesh.cell_centers[cell_inds, :-1], discrete_topography[topo_inds, -1]
-            ]
-        else:
-            out = discrete_topography[topo_inds, :]
+        # the closest surface cell center, and the top (or center) of that cell
+        discrete_topography = get_discrete_topography(
+            mesh, active_cells, topo_cell_cutoff=topo_cell_cutoff
+        )
+        topo_inds = _closest_grid_indices(discrete_topography[:, :-1], horizontal_pts)
+        out = discrete_topography[topo_inds]
     else:
-        out = np.c_[horizontal_pts, discrete_topography[topo_inds, -1]]
+        # Walk down each location's column from the top of the mesh, one cell at a
+        # time, to its highest active cell (on a tree mesh the closest surface cell
+        # center can belong to the neighboring column). Locations outside the mesh
+        # use the closest column.
+        lower = mesh.origin
+        upper = mesh.origin + np.array([h.sum() for h in mesh.h])
+        eps = 1e-6 * mesh.h[-1].min()
+        columns = np.clip(horizontal_pts, lower[:-1] + eps, upper[:-1] - eps)
+        cell_heights = mesh.h_gridded[:, -1]  # (it's built again on every access)
+        bottoms = mesh.cell_centers[:, -1] - 0.5 * cell_heights
+
+        z = np.full(len(columns), upper[-1] - eps)
+        surface_cells = np.empty(len(columns), dtype=int)
+        remaining = np.arange(len(columns))
+        while remaining.size:
+            points = np.c_[columns[remaining], z[remaining]]
+            cells = np.atleast_1d(mesh.point2index(points))
+            is_active = active_cells[cells]
+            surface_cells[remaining[is_active]] = cells[is_active]
+            remaining, cells = remaining[~is_active], cells[~is_active]
+            z[remaining] = bottoms[cells] - eps
+            if np.any(z[remaining] < lower[-1]):
+                no_active = remaining[z[remaining] < lower[-1]]
+                raise ValueError(
+                    "No active cells below the locations "
+                    f"{horizontal_pts[no_active]}."
+                )
+
+        elevations = mesh.cell_centers[surface_cells, -1]
+        if topo_cell_cutoff == "top":
+            elevations = elevations + 0.5 * cell_heights[surface_cells]
+        out = np.c_[horizontal_pts, elevations]
 
     out[:, -1] += heights
 
