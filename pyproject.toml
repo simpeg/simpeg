@@ -56,7 +56,7 @@ all = [
     "simpeg[dask,choclo,plotting,reporting,sklearn,pandas]",
 ] # all optional *runtime* dependencies (not related to development)
 style = [
-    "black==26.3.1",
+    "black==26.10.1",
     "flake8==7.0.0",
     "flake8-bugbear==23.12.2",
     "flake8-builtins==2.2.0",
