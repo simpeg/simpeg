@@ -2,11 +2,13 @@ import scipy.sparse as sp
 import numpy as np
 
 from .... import maps, props
+from ....props import _add_deprecated_physical_property_functions
 from ....utils import validate_list_of_types, validate_active_indices
 from .. import resistivity as dc
 from .sources import StreamingCurrents
 
 
+@_add_deprecated_physical_property_functions("q")
 class Simulation3DCellCentered(dc.Simulation3DCellCentered):
     r"""A self potential simulation.
 
@@ -16,12 +18,10 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
     survey : simpeg.electromagnetics.static.self_potential.Survey
     sigma, rho : float or array_like
         The conductivity/resistivity model of the subsurface.
-    q : float, array_like, optional
+    q : float, array_like, simpeg.maps.IdentityMap, optional
         The charge density accumulation rate model (C/(s m^3)), also
-        physically represents the volumetric current density (A/m^3).
-    qMap : simpeg.maps.IdentityMap, optional
-        The mapping used to go from the simulation model to `q`. Set this
-        to invert for `q`.
+        physically represents the volumetric current density (A/m^3). Pass a
+        mapping from the simulation model to `q` to invert for `q`.
     **kwargs
         arguments passed on to :class:`.resistivity.Simulation3DCellCentered`
 
@@ -43,46 +43,47 @@ class Simulation3DCellCentered(dc.Simulation3DCellCentered):
     boundary conditions, check out the resistivity simulations.
     """
 
-    q, qMap, qDeriv = props.Invertible("Charge density accumulation rate (C/(s m^3))")
+    sigma = dc.Simulation3DCellCentered.sigma.set_feature(invertible=False)
+    rho = dc.Simulation3DCellCentered.rho.set_feature(invertible=False)
 
-    def __init__(
-        self, mesh, survey=None, sigma=None, rho=None, q=None, qMap=None, **kwargs
-    ):
+    q = props.PhysicalProperty("Charge density accumulation rate (C/(s m^3))")
+
+    def __init__(self, mesh, survey=None, sigma=None, rho=None, q=None, **kwargs):
         # These below checks can be commented out, correspondingly do
-        # not set sigmaMap and rhoMap to None on the super call, to enable
+        # not set sigma and rho to None on the super call, to enable
         # derivatives with respect to resistivity/conductivity.
         if sigma is None:
             if rho is None:
                 raise ValueError("Must set either conductivity or resistivity.")
-        else:
-            if rho is not None:
-                raise ValueError("Cannot set both conductivity and resistivity.")
+        elif rho is not None:
+            raise ValueError("Cannot set both conductivity and resistivity.")
         super().__init__(
             mesh=mesh,
             survey=survey,
             sigma=sigma,
             rho=rho,
-            sigmaMap=None,
-            rhoMap=None,
             **kwargs,
         )
-        self.q = q
-        self.qMap = qMap
+        self._init_property(q=q)
 
     def getRHS(self):
         return self.Vol @ self.q
 
     def getRHSDeriv(self, source, v, adjoint=False):
         if adjoint:
-            return self.qDeriv.T @ (self.Vol @ v)
-        return self.Vol @ (self.qDeriv @ v)
+            return self._prop_deriv("q").T @ (self.Vol @ v)
+        return self.Vol @ (self._prop_deriv("q") @ v)
 
     @property
     def _delete_on_model_update(self):
         # When enabling resistivity derivatives, uncomment these lines
-        # if self.rhoMap is not None:
+        # if self.is_parametrized("rho"):
         #     return super()._delete_on_model_update
-        if self.storeJ and self.qMap is not None and not self.qMap.is_linear:
+        if (
+            self.storeJ
+            and self.is_parametrized("q")
+            and not self.parametrizations.q.is_linear
+        ):
             return ["_Jmatrix", "_gtgdiag"]
         return []
 

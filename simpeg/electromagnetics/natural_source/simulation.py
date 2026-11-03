@@ -4,6 +4,7 @@ from discretize.utils import Zero
 
 from ...utils import mkvc
 from ... import maps
+from ... import props
 from ..frequency_domain.simulation import BaseFDEMSimulation, Simulation3DElectricField
 from ..frequency_domain.survey import Survey
 from ..utils import omega
@@ -295,6 +296,12 @@ class Simulation2DElectricField(BaseFDEMSimulation):
     A
     """
 
+    # getA below builds `MccMui` (via `with_property_mass_matrices`), which
+    # multiplies `mui`/`mu` elementwise against `mesh.cell_volumes` -- this
+    # only works for a scalar-per-cell (isotropic) property.
+    mu = BaseFDEMSimulation.mu.set_feature(anisotropy=props.AnisotropyLevel.ISOTROPIC)
+    mui = BaseFDEMSimulation.mui.set_feature(anisotropy=props.AnisotropyLevel.ISOTROPIC)
+
     _solutionType = "eSolution"
     _formulation = "EB"
     fieldsPair = Fields2DElectricField
@@ -348,12 +355,12 @@ class Simulation2DElectricField(BaseFDEMSimulation):
 
                 map_l_kwargs = {}
                 map_r_kwargs = {}
-                if self.sigmaMap is not None:
-                    map_l_kwargs["sigmaMap"] = P_l * self.sigmaMap
-                    map_r_kwargs["sigmaMap"] = P_r * self.sigmaMap
-                if self.muiMap is not None:
-                    map_l_kwargs["muiMap"] = P_l * self.muiMap
-                    map_r_kwargs["muiMap"] = P_r * self.muiMap
+                if self.is_parametrized("sigma"):
+                    map_l_kwargs["sigma"] = P_l * self._parametrization_of("sigma")
+                    map_r_kwargs["sigma"] = P_r * self._parametrization_of("sigma")
+                if self.is_parametrized("mui"):
+                    map_l_kwargs["mui"] = P_l * self._parametrization_of("mui")
+                    map_r_kwargs["mui"] = P_r * self._parametrization_of("mui")
 
                 # create a survey with 1 source per frequency (no receivers)
                 frequencies = self.survey.frequencies
@@ -484,12 +491,12 @@ class Simulation2DElectricField(BaseFDEMSimulation):
             if model is None:
                 model = self.model
             sim = self._sim_left
-            if self.muiMap is None:
+            if not self.is_parametrized("mui"):
                 try:
                     sim.mui = self._P_l @ self.mui
                 except Exception:
                     sim.mui = self.mui
-            if self.sigmaMap is None:
+            if not self.is_parametrized("sigma"):
                 try:
                     sim.sigma = self._P_l @ self.sigma
                 except Exception:
@@ -497,12 +504,12 @@ class Simulation2DElectricField(BaseFDEMSimulation):
             f_left = sim.fields(model)
 
             sim = self._sim_right
-            if self.muiMap is None:
+            if not self.is_parametrized("mui"):
                 try:
                     sim.mui = self._P_r @ self.mui
                 except Exception:
                     sim.mui = self.mui
-            if self.sigmaMap is None:
+            if not self.is_parametrized("sigma"):
                 try:
                     sim.sigma = self._P_r @ self.sigma
                 except Exception:
@@ -523,6 +530,14 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
     """
     A
     """
+
+    # getA below builds `MccRho` (via `with_property_mass_matrices`), which
+    # multiplies `rho`/`sigma` elementwise against `mesh.cell_volumes` -- this
+    # only works for a scalar-per-cell (isotropic) property.
+    sigma = BaseFDEMSimulation.sigma.set_feature(
+        anisotropy=props.AnisotropyLevel.ISOTROPIC
+    )
+    rho = BaseFDEMSimulation.rho.set_feature(anisotropy=props.AnisotropyLevel.ISOTROPIC)
 
     _solutionType = "hSolution"
     _formulation = "HJ"
@@ -578,12 +593,12 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
 
                 map_l_kwargs = {}
                 map_r_kwargs = {}
-                if self.rhoMap is not None:
-                    map_l_kwargs["rhoMap"] = P_l * self.rhoMap
-                    map_r_kwargs["rhoMap"] = P_r * self.rhoMap
-                if self.muMap is not None:
-                    map_l_kwargs["muMap"] = P_l * self.muMap
-                    map_r_kwargs["muMap"] = P_r * self.muMap
+                if self.is_parametrized("rho"):
+                    map_l_kwargs["rho"] = P_l * self._parametrization_of("rho")
+                    map_r_kwargs["rho"] = P_r * self._parametrization_of("rho")
+                if self.is_parametrized("mu"):
+                    map_l_kwargs["mu"] = P_l * self._parametrization_of("mu")
+                    map_r_kwargs["mu"] = P_r * self._parametrization_of("mu")
 
                 # create a survey with 1 source per frequency (no receivers)
                 frequencies = self.survey.frequencies
@@ -710,12 +725,12 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
             if model is None:
                 model = self.model
             sim = self._sim_left
-            if self.muMap is None:
+            if not self.is_parametrized("mu"):
                 try:
                     sim.mu = self._P_l @ self.mu
                 except Exception:
                     sim.mu = self.mu
-            if self.rhoMap is None:
+            if not self.is_parametrized("rho"):
                 try:
                     sim.rho = self._P_l @ self.rho
                 except Exception:
@@ -723,12 +738,12 @@ class Simulation2DMagneticField(BaseFDEMSimulation):
             f_left = sim.fields(model)
 
             sim = self._sim_right
-            if self.muMap is None:
+            if not self.is_parametrized("mu"):
                 try:
                     sim.mu = self._P_r @ self.mu
                 except Exception:
                     sim.mu = self.mu
-            if self.rhoMap is None:
+            if not self.is_parametrized("rho"):
                 try:
                     sim.rho = self._P_r @ self.rho
                 except Exception:

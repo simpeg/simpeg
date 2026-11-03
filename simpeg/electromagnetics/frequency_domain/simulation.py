@@ -66,8 +66,17 @@ class BaseFDEMSimulation(BaseEMSimulation):
         Whether to compute and store the sensitivity matrix.
     """
 
+    # setting __doc__ to None will cause it to regenerate when this class is created
+    sigma = BaseEMSimulation.sigma.set_feature(dtype=(float, complex), __doc__=None)
+    rho = BaseEMSimulation.rho.set_feature(dtype=(float, complex), __doc__=None)
+
     fieldsPair = FieldsFDEM
-    permittivity = props.PhysicalProperty("Dielectric permittivity (F/m)")
+    permittivity = props.PhysicalProperty(
+        "Dielectric permittivity (F/m)",
+        default=None,
+        invertible=False,
+        location=props.Location.CELL_CENTERS,
+    )
 
     def __init__(  # noqa D107
         self,
@@ -80,13 +89,17 @@ class BaseFDEMSimulation(BaseEMSimulation):
     ):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.forward_only = forward_only
-        if permittivity is not None:
+        self._init_property(permittivity=permittivity)
+        self.storeJ = storeJ
+
+    @permittivity.setter
+    def permittivity(self, value):
+        if value is not None:
             warnings.warn(
                 "Simulations using permittivity have not yet been thoroughly tested and derivatives are not implemented. Contributions welcome!",
                 stacklevel=2,
             )
-        self.permittivity = permittivity
-        self.storeJ = storeJ
+        type(self).permittivity._fset(self, value)
 
     @property
     def survey(self):
@@ -1507,13 +1520,16 @@ class Simulation3DCurrentDensity(BaseFDEMSimulation):
     _formulation = "HJ"
     fieldsPair = Fields3DCurrentDensity
 
-    permittivity = props.PhysicalProperty("Dielectric permittivity (F/m)")
-
     def __init__(
         self, mesh, survey=None, forward_only=False, permittivity=None, **kwargs
     ):
-        super().__init__(mesh=mesh, survey=survey, forward_only=forward_only, **kwargs)
-        self.permittivity = permittivity
+        super().__init__(
+            mesh=mesh,
+            survey=survey,
+            forward_only=forward_only,
+            permittivity=permittivity,
+            **kwargs,
+        )
 
     def getA(self, freq):
         r"""Get system matrix for the frequency provided.
@@ -2314,12 +2330,12 @@ class Simulation3DHierarchicalElectricField(
     This simulation adopts the hierarchical framework wherein:
 
     * Thick structures are parameterized as conductivities at cell centers. This property
-      and the corresponding mapping are set with `sigma` and `sigmaMap`.
+      and the corresponding mapping are set with `sigma` (pass a mapping to parametrize it).
     * Sheet-like structures can be parameterized as conductances on mesh faces. This property
-      and the corresponding mapping are set with `face_conductance` and `face_conductance_map`.
+      can be a fixed array or a mapping, and is set with `face_conductance`.
     * Wire-like structures can be parameterized as area-integrated conductivities on
-      mesh edges. This property and the corresponding mapping as set with
-      `edge_area_conductance` and `edge_area_conductance_map`.
+      mesh edges. This property can be a fixed array or a mapping, and is set with
+      `edge_area_conductance`.
 
     See the *Notes* section for a comprehensive description of the formulation.
 
@@ -2438,12 +2454,12 @@ class Simulation3DHierarchicalMagneticFluxDensity(
     This simulation adopts the hierarchical framework wherein:
 
     * Thick structures are parameterized as conductivities at cell centers. This property
-      and the corresponding mapping are set with `sigma` and `sigmaMap`.
+      and the corresponding mapping are set with `sigma` (pass a mapping to parametrize it).
     * Sheet-like structures can be parameterized as conductances on mesh faces. This property
-      and the corresponding mapping are set with `face_conductance` and `face_conductance_map`.
+      can be a fixed array or a mapping, and is set with `face_conductance`.
     * Wire-like structures can be parameterized as area-integrated conductivities on
-      mesh edges. This property and the corresponding mapping as set with
-      `edge_area_conductance` and `edge_area_conductance_map`.
+      mesh edges. This property can be a fixed array or a mapping, and is set with
+      `edge_area_conductance`.
 
     See the *Notes* section for a comprehensive description of the formulation.
 

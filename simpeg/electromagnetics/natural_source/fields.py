@@ -79,10 +79,10 @@ class _EField(_1DField):
         return np.squeeze(y) / (1j * om)
 
     def _hDeriv_m(self, src, v, adjoint=False):
-        if self.simulation.muiMap is None:
+        if not self.simulation.is_parametrized("mui"):
             return Zero()
         om = omega(src.frequency)
-        dMui = self.simulation.muiDeriv
+        dMui = self.simulation._prop_deriv("mui")
         e = self[src, "e"]
         if v.ndim == 1:
             v = v[:, None]
@@ -129,9 +129,9 @@ class _HField(_1DField):
         return np.squeeze(y)
 
     def _eDeriv_m(self, src, v, adjoint=False):
-        if self.simulation.rhoMap is None:
+        if not self.simulation.is_parametrized("rho"):
             return Zero()
-        dRho = self.simulation.rhoDeriv
+        dRho = self.simulation._prop_deriv("rho")
         h = self[src, "h"]
         if v.ndim == 1:
             v = v[:, None]

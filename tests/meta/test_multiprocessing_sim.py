@@ -610,3 +610,13 @@ def test_repeat_correctness():
         raise err
     finally:
         parallel_sim.join()
+
+
+def test_getjtjdiag_updates_with_model(linear_sims_factory):
+    meta = MultiprocessingMetaSimulation(*linear_sims_factory(), n_processes=2)
+    first = meta.getJtJdiag(np.zeros(6)).copy()
+    second = meta.getJtJdiag(np.ones(6))
+
+    fresh = MetaSimulation(*linear_sims_factory())
+    assert not np.allclose(first, second)
+    np.testing.assert_allclose(second, fresh.getJtJdiag(np.ones(6)))

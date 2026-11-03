@@ -42,10 +42,11 @@ Models
 
   models.Model
   props.PhysicalProperty
-  props.Derivative
-  props.Invertible
-  props.Reciprocal
   props.HasModel
+  props.ParametrizationList
+  props.NestedModeler
+  props.Location
+  props.AnisotropyLevel
 
 Data
 ----
