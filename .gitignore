@@ -96,3 +96,4 @@ tutorials/13-joint_inversion/cross_gradient_data/*
 
 # setuptools_scm
 simpeg/version.py
+/_version.txt

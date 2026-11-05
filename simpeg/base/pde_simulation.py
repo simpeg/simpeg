@@ -10,15 +10,19 @@ import discretize.base
 from ..simulation import BaseSimulation
 from .. import props
 from scipy.constants import mu_0
-
+from scipy.sparse import spmatrix, diags
 from ..utils import validate_type, get_default_solver, get_logger, PerformanceWarning
 
 
 def _inner_mat_mul_op(M, u, v=None, adjoint=False):
     """Get inner product matrix multiplication."""
     u = np.squeeze(u)
+
     if sp.issparse(M):
         if v is not None:
+            if isinstance(v, spmatrix) and u.ndim == 1:
+                return M.T @ (diags(u) @ v)
+
             if v.ndim > 1:
                 v = np.squeeze(v)
             if u.ndim > 1:
@@ -40,6 +44,7 @@ def _inner_mat_mul_op(M, u, v=None, adjoint=False):
             if u.ndim > 1 and u.shape[1] > 1:
                 return np.squeeze(u[:, None, :] * (M * v)[:, :, None])
             return u * (M * v)
+
         else:
             if u.ndim > 1:
                 UM = sp.vstack([sp.diags(u[:, i]) @ M for i in range(u.shape[1])])

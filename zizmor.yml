@@ -12,3 +12,9 @@ rules:
       policies:
         # Mimic default behaviour: official actions can get pinned by tag.
         actions/*: ref-pin
+        # Allow to use tags to pin reviewdog actions.
+        reviewdog/action-black: ref-pin
+        reviewdog/action-flake8: ref-pin
+        # Allow to use tags to pin MiraGeoscience actions.
+        MiraGeoscience/*: ref-pin
+

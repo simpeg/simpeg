@@ -153,8 +153,8 @@ class BaseRx(survey.BaseRx):
         scipy.sparse.csr_matrix
             P, the interpolation matrix
         """
-        if (mesh, projected_grid) in self._Ps:
-            return self._Ps[(mesh, projected_grid)]
+        if getattr(self, "spatialP", None) is not None:
+            return self.spatialP
 
         P = Zero()
         for strength, comp in zip(self.orientation, ["x", "y", "z"]):
@@ -164,7 +164,7 @@ class BaseRx(survey.BaseRx):
                 )
 
         if self.storeProjections:
-            self._Ps[(mesh, projected_grid)] = P
+            self.spatialP = P
         return P
 
     def eval(self, src, mesh, f):  # noqa: A003

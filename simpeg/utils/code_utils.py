@@ -1218,12 +1218,16 @@ def validate_direction(property_name, obj, dim=3):
         elif obj == "z":
             obj = np.r_[0.0, 0.0, 1.0][:dim]
 
-    obj = validate_ndarray_with_shape(property_name, obj, shape=(dim,), dtype=float)
+    obj = validate_ndarray_with_shape(
+        property_name, obj, shape=[(dim,), ("*", dim)], dtype=float
+    )
 
     # Normalize the orientation
     # do this to make a copy of the input
-    obj = obj / np.linalg.norm(obj)
-    return obj
+    if obj.ndim > 1:
+        return obj / np.linalg.norm(obj, axis=-1)[:, None]
+    else:
+        return obj / np.linalg.norm(obj)
 
 
 def validate_active_indices(property_name, index_arr, n_cells):

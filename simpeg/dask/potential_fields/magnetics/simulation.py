@@ -10,19 +10,21 @@ def dask_getJtJdiag(self, m, W=None, f=None):
 
     self.model = m
 
+    self.model = m
     if W is None:
-        W = np.ones(self.nD)
+        W = np.ones(self.Jmatrix.shape[0])
     else:
         W = W.diagonal()
+
     if getattr(self, "_gtg_diagonal", None) is None:
         if not self.is_amplitude_data:
-            diag = ((W[:, None] * self.G) ** 2).sum(axis=0).compute()
+            diag = np.asarray(np.einsum("i,ij,ij->j", W**2, self.Jmatrix, self.Jmatrix))
         else:
             ampDeriv = self.ampDeriv
             J = (
-                ampDeriv[0, :, None] * self.G[::3]
-                + ampDeriv[1, :, None] * self.G[1::3]
-                + ampDeriv[2, :, None] * self.G[2::3]
+                ampDeriv[0, :, None] * self.Jmatrix[::3]
+                + ampDeriv[1, :, None] * self.Jmatrix[1::3]
+                + ampDeriv[2, :, None] * self.Jmatrix[2::3]
             )
             diag = ((W[:, None] * J) ** 2).sum(axis=0).compute()
         self._gtg_diagonal = diag
@@ -33,3 +35,18 @@ def dask_getJtJdiag(self, m, W=None, f=None):
 
 
 Sim.getJtJdiag = dask_getJtJdiag
+
+
+@property
+def G(self):
+    """
+    Gravity forward operator
+    """
+    if getattr(self, "_G", None) is None:
+        self._G = self.Jmatrix
+
+    return self._G
+
+
+Sim._delete_on_model_update = []
+Sim.G = G

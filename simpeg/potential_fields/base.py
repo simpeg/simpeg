@@ -69,13 +69,6 @@ class BasePFSimulation(LinearSimulation):
         A 3D tensor or tree mesh.
     active_cells : np.ndarray of int or bool
         Indices array denoting the active topography cells.
-    store_sensitivities : {'ram', 'disk', 'forward_only'}
-        Options for storing sensitivities. There are 3 options
-
-        - 'ram': sensitivities are stored in the computer's RAM
-        - 'disk': sensitivities are written to a directory
-        - 'forward_only': you intend only do perform a forward simulation and sensitivities do not need to be stored
-
     n_processes : None or int, optional
         The number of processes to use in the internal multiprocessing pool for forward
         modeling. The default value of 1 will not use multiprocessing. Any other setting
@@ -109,7 +102,6 @@ class BasePFSimulation(LinearSimulation):
         self,
         mesh,
         active_cells=None,
-        store_sensitivities="ram",
         n_processes=1,
         sensitivity_dtype=np.float32,
         engine="geoana",
@@ -124,11 +116,11 @@ class BasePFSimulation(LinearSimulation):
             )
 
         self.mesh = mesh
-        self.store_sensitivities = store_sensitivities
         self.sensitivity_dtype = sensitivity_dtype
         self.engine = engine
         self.numba_parallel = numba_parallel
         super().__init__(**kwargs)
+
         self.n_processes = n_processes
 
         # Check sensitivity_path when engine is "choclo"
@@ -391,6 +383,7 @@ class BasePFSimulation(LinearSimulation):
         #     kernel = np.vstack(kernel)
         # else:
         #     kernel = np.concatenate(kernel)
+
         if self.store_sensitivities == "disk":
             print(f"writing sensitivity to {sens_name}")
             os.makedirs(self.sensitivity_path, exist_ok=True)

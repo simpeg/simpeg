@@ -1,25 +1,33 @@
 [build-system]
-requires = ["setuptools>=64", "setuptools_scm>=8"]
+requires = ["setuptools>=64", "setuptools_scm>=9.2.0,<10.0"]
 build-backend = "setuptools.build_meta"
 
 
 [project]
-name = 'simpeg'
-description = "SimPEG: Simulation and Parameter Estimation in Geophysics"
-readme = 'README.rst'
-requires-python = '>=3.12'
-authors = [{ name = 'SimPEG developers', email = 'rowanc1@gmail.com' }]
-keywords = ['geophysics', 'inverse problem']
+name = "mira-simpeg"
+description = "Mira Geoscience fork of SimPEG: Simulation and Parameter Estimation in Geophysics"
+readme = "README.rst"
+requires-python = ">=3.12,<4.0"
+
+authors = [
+    { name = "SimPEG developers", email = "rowanc1@gmail.com" },
+    { name = "Dominique Fournier", email = "dominiquef@mirageoscience.com" },
+]
+
+keywords = ["geophysics", "inverse problem"]
+
 dependencies = [
-    "numpy>=1.22",
-    "scipy>=1.12",
-    "pymatsolver>=0.3",
-    "matplotlib",
-    "discretize>=0.12",
-    "geoana>=0.8.1",
+    "discretize>=0.11",
+    "geoana>=0.7.0",
+    "geoh5py>=0.13.0b1",
     "libdlf",
+    "matplotlib",
+    "numpy>=1.22",
+    "pymatsolver>=0.3",
+    "scipy>=1.8",
     "typing_extensions; python_version<'3.13'",
 ]
+
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -29,12 +37,14 @@ classifiers = [
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Mathematics",
     "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX",
     "Operating System :: Unix",
     "Operating System :: MacOS",
     "Natural Language :: English",
 ]
+
 dynamic = ["version"]
 
 [project.license]
@@ -43,7 +53,7 @@ file = 'LICENSE'
 [project.urls]
 Homepage = 'https://simpeg.xyz'
 Documentation = 'https://docs.simpeg.xyz'
-Repository = 'http://github.com/simpeg/simpeg.git'
+Repository = "http://github.com/MiraGeoscience/simpeg"
 
 [project.optional-dependencies]
 dask = ["dask", "zarr", "fsspec>=0.3.3"]
@@ -53,7 +63,7 @@ plotting = ["plotly"]
 sklearn = ["scikit-learn>=1.2"]
 pandas = ["pandas"]
 all = [
-    "simpeg[dask,choclo,plotting,reporting,sklearn,pandas]",
+    "simpeg[dask,choclo,plotting,reporting,sklearn,pandas]"
 ] # all optional *runtime* dependencies (not related to development)
 style = [
     "black==26.3.1",
@@ -92,6 +102,7 @@ include = ["simpeg*"]
 
 [tool.setuptools_scm]
 version_file = "simpeg/version.py"
+write_to = "_version.txt"
 local_scheme = "node-and-date"
 
 [tool.coverage.run]
@@ -117,10 +128,8 @@ exclude_also = [
     # Don't complain if non-runnable code isn't run:
     "if 0:",
     "if __name__ == .__main__.:",
-
     # Don't complain about default solver choices:
     'if AvailableSolvers["Pardiso"]:',
-
     # Don't complain about abstract methods, they aren't run:
     "@(abc\\.)?abstractmethod",
 ]
@@ -131,6 +140,7 @@ directory = "coverage_html_report"
 [tool.black]
 required-version = '26.3.1'
 target-version = ["py312", "py313", "py314"]
+
 
 [tool.flake8]
 extend-ignore = [
@@ -268,14 +278,15 @@ select = [
 # Make ruff to check for numpydoc style in our docs
 convention = "numpy"
 
-
 # pyproject.toml
 [tool.pytest.ini_options]
 filterwarnings = [
     "error:You are running a pytest without setting a random seed.*:UserWarning",
+    "error:The `index_dictionary` property has been deprecated:FutureWarning",
     'error:The `simpeg\.directives\.[a-z_]+` submodule has been deprecated',
     'error:Casting complex values to real discards the imaginary part',
     'ignore::simpeg.utils.BreakingChangeWarning',
     "error:The closest_points_index utilty function has been moved to:DeprecationWarning",
 ]
 xfail_strict = true
+

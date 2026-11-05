@@ -6,6 +6,7 @@ from ._base import (
     SphericalSystem,
     SumMap,
     TileMap,
+    TileMapNested,
     Wires,
 )
 from ._clustering import PolynomialPetroClusterMap

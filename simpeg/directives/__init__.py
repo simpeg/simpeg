@@ -117,6 +117,26 @@ from ._directives import (
     ScalingMultipleDataMisfits_ByEig,
     JointScalingSchedule,
     UpdateSensitivityWeights,
+    ScaleMisfitMultipliers,
+)
+
+from ._save_geoh5 import (
+    BaseSaveGeoH5,
+    SaveDataGeoH5,
+    SaveLogFilesGeoH5,
+    SaveLPIterationsGroup,
+    SaveLPModelGroup,
+    SaveModelGroup,
+    SaveModelGeoH5,
+    SavePGIModel,
+    SavePropertyGroup,
+    SaveSensitivityGeoH5,
+)
+
+from ._regularization import UpdateIRLS, SphericalUnitsWeights
+
+from ._vector_models import (
+    VectorInversion,
     ProjectSphericalBounds,
 )
 
@@ -126,14 +146,13 @@ from ._pgi_directives import (
     PGI_AddMrefInSmooth,
 )
 
-from ._regularization import UpdateIRLS, SphericalUnitsWeights
-
 from ._sim_directives import (
     SimilarityMeasureInversionDirective,
     SimilarityMeasureSaveOutputEveryIteration,
     PairedBetaEstimate_ByEig,
     PairedBetaSchedule,
     MovingAndMultiTargetStopping,
+    ScaleMaximumDerivatives,
 )
 
 ### Deprecated class

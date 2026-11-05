@@ -219,7 +219,7 @@ class IterationPrinters(object):
         "title": "f",
         "value": lambda M: M.f,
         "width": 10,
-        "format": lambda v: f"{v:1.2e}",
+        "format": lambda v: f"{v:1.3e}",
     }
     norm_g = {
         "title": "|proj(x-g)-x|",
@@ -227,7 +227,7 @@ class IterationPrinters(object):
             None if M.iter == 0 else norm(M.projection(M.xc - M.g) - M.xc)
         ),
         "width": 15,
-        "format": lambda v: f"{v:1.2e}",
+        "format": lambda v: f"{v:1.3e}",
     }
     totalLS = {
         "title": "LS",
@@ -246,7 +246,7 @@ class IterationPrinters(object):
         "title": "ft",
         "value": lambda M: M._LS_ft,
         "width": 10,
-        "format": lambda v: f"{v:1.2e}",
+        "format": lambda v: f"{v:1.3e}",
     }
     LS_t = {
         "title": "t",
@@ -258,14 +258,14 @@ class IterationPrinters(object):
         "title": "f + alp*g.T*p",
         "value": lambda M: M.f + M.LSreduction * M._LS_descent,
         "width": 16,
-        "format": lambda v: f"{v:1.2e}",
+        "format": lambda v: f"{v:1.3e}",
     }
     LS_WolfeCurvature = {
         "title": "alp*g.T*p",
         "str": "%d :    ft     = %1.4e >= alp*descent     = %1.4e",
         "value": lambda M: M.LScurvature * M._LS_descent,
         "width": 16,
-        "format": lambda v: f"{v:1.2e}",
+        "format": lambda v: f"{v:1.3e}",
     }
 
     itType = {
@@ -297,44 +297,44 @@ class IterationPrinters(object):
         "title": "beta",
         "value": lambda M: M.parent.beta,
         "width": 10,
-        "format": lambda v: f"{v:1.2e}",
+        "format": lambda v: f"{v:1.3e}",
     }
     phi_d = {
         "title": "phi_d",
         "value": lambda M: M.parent.phi_d,
         "width": 10,
-        "format": lambda v: f"{v:1.2e}",
+        "format": lambda v: f"{v:1.3e}",
     }
     phi_m = {
         "title": "phi_m",
         "value": lambda M: M.parent.phi_m,
         "width": 10,
-        "format": lambda v: f"{v:1.2e}",
+        "format": lambda v: f"{v:1.3e}",
     }
 
     phi_s = {
         "title": "phi_s",
         "value": lambda M: M.parent.phi_s,
         "width": 10,
-        "format": lambda v: f"{v:1.2e}",
+        "format": lambda v: f"{v:1.3e}",
     }
     phi_x = {
         "title": "phi_x",
         "value": lambda M: M.parent.phi_x,
         "width": 10,
-        "format": lambda v: f"{v:1.2e}",
+        "format": lambda v: f"{v:1.3e}",
     }
     phi_y = {
         "title": "phi_y",
         "value": lambda M: M.parent.phi_y,
         "width": 10,
-        "format": lambda v: f"{v:1.2e}",
+        "format": lambda v: f"{v:1.3e}",
     }
     phi_z = {
         "title": "phi_z",
         "value": lambda M: M.parent.phi_z,
         "width": 10,
-        "format": lambda v: f"{v:1.2e}",
+        "format": lambda v: f"{v:1.3e}",
     }
 
     iterationCG = {
@@ -348,14 +348,14 @@ class IterationPrinters(object):
         "title": "CG |Ax-b|/|b|",
         "value": lambda M: getattr(M, "cg_rel_resid", None),
         "width": 15,
-        "format": lambda v: f"{v:1.2e}",
+        "format": lambda v: f"{v:1.3e}",
     }
 
     iteration_CG_abs_residual = {
         "title": "CG |Ax-b|",
         "value": lambda M: getattr(M, "cg_abs_resid", None),
         "width": 11,
-        "format": lambda v: f"{v:1.2e}",
+        "format": lambda v: f"{v:1.3e}",
     }
 
 
@@ -396,7 +396,8 @@ class Minimize(object):
 
     def __init__(self, **kwargs):
         set_kwargs(self, **kwargs)
-
+        self.iter = 0
+        self.f0 = None
         self.stoppersLS = [
             StoppingCriteria.armijoGoldstein,
             StoppingCriteria.iterationLS,
@@ -496,13 +497,14 @@ class Minimize(object):
 
         if np.any(np.isnan(x0)):
             raise ValueError("x0 has a nan.")
-        self.f = evalFunction(
-            self.xc, return_g=False, return_H=False
-        )  # will stash the fields objects
-        self.printIter()
+        # self.f = evalFunction(
+        #     self.xc, return_g=False, return_H=False
+        # )  # will stash the fields objects
+        # self.printIter()
         while True:
             self.doStartIteration()
             self.f, self.g, self.H = evalFunction(self.xc, return_g=True, return_H=True)
+            self.printIter()
             if self.stoppingCriteria():
                 break
             self.searchDirection = self.findSearchDirection()
@@ -511,6 +513,7 @@ class Minimize(object):
             )  #: Doing this saves memory, as it is not needed in the rest of the computations.
             p = self.scaleSearchDirection(self.searchDirection)
             xt, passLS = self.modifySearchDirection(p)
+
             if not passLS:
                 if self.require_decrease is True:
                     xt, caught = self.modifySearchDirectionBreak(p)
@@ -518,6 +521,7 @@ class Minimize(object):
                         return self.xc
                 else:
                     print("Linesearch failed. Stepping anyways...")
+
             self.doEndIteration(xt)
             if self.stopNextIteration:
                 break
@@ -542,8 +546,6 @@ class Minimize(object):
         x0 : numpy.ndarray
             initial x
         """
-
-        self.iter = 0
         self.iterLS = 0
         self.stopNextIteration = False
 
@@ -640,7 +642,7 @@ class Minimize(object):
         pass
 
     def stoppingCriteria(self, inLS: bool = False) -> bool:
-        if self.iter == 0:
+        if self.f0 is None:
             self.f0 = self.f
             self.g0 = self.g
         return check_stoppers(self, self.stoppers if not inLS else self.stoppersLS)
@@ -829,7 +831,6 @@ class Minimize(object):
         # the current iterate, `self.xc`, must be set in this function if overridden in a base class
         self.x_last, self.xc = self.xc, xt
         self.iter += 1
-        self.printIter()  # before callbacks (from directives...)
         if self.debug:
             self.printDone()
 
@@ -1517,7 +1518,7 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
         cg_rtol: float = 1e-3,
         cg_atol: float = 0.0,
         step_active_set: bool = True,
-        active_set_grad_scale: float = 1e-2,
+        active_set_grad_scale: float | np.ndarray = 1e-2,
         **kwargs,
     ):
         self.step_active_set = step_active_set
@@ -1575,9 +1576,16 @@ class ProjectedGNCG(Bounded, InexactGaussNewton):
 
     @active_set_grad_scale.setter
     def active_set_grad_scale(self, value: float):
-        self._active_set_grad_scale = validate_float(
-            "active_set_grad_scale", value, min_val=0, inclusive_min=True
-        )
+        try:
+            value = validate_float("active_set_grad_scale", value)
+        except TypeError:
+            value = validate_ndarray_with_shape(
+                "active_set_grad_scale", value, shape=("*",)
+            )
+            if np.any(value < 0.0):
+                raise ValueError("active_set_grad_scale must be >= 0.0")
+
+        self._active_set_grad_scale = value
 
     @timeIt
     def findSearchDirection(self):

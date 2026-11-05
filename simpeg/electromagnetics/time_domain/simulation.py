@@ -913,7 +913,7 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
 
         if adjoint:
             if self._makeASymmetric:
-                v *= MfMui
+                v = MfMui * v
             return self.MeSigmaIDeriv(C.T * (MfMui * u), C.T * v, adjoint)
 
         ADeriv = C * (self.MeSigmaIDeriv(C.T * (MfMui * u), v, adjoint))
@@ -1109,8 +1109,8 @@ class Simulation3DMagneticFluxDensity(BaseTDEMSimulation):
         s_mDeriv, s_eDeriv = src.evalDeriv(self, self.times[tInd], adjoint=adjoint)
 
         if adjoint:
-            if self._makeASymmetric:
-                v *= self.MfMui
+            if self._makeASymmetric is True:
+                v = self.MfMui * v
             if isinstance(s_e, Zero):
                 MeSigmaIDerivT_v = Zero()
             else:

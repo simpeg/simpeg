@@ -1,0 +1,12 @@
+name: WIP status
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+
+jobs:
+  call-workflow-wip-status:
+    uses: MiraGeoscience/CI-tools/.github/workflows/reusable-wip-status.yml@7241532854727d993872b67fc761139b8438615b # v3.12.0
+    permissions:
+      contents: read
+      statuses: write

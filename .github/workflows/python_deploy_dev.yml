@@ -1,0 +1,64 @@
+name: Deploy python package in development
+
+on:
+  push:
+    tags:
+      - 'v*' # Push events to every version tag (eg. v1.0.0)
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  call-workflow-conda-publish:
+    name: Publish development conda package on JFrog Artifactory
+    uses: MiraGeoscience/CI-tools/.github/workflows/reusable-python-publish_rattler_package.yml@b2de1e00a0be160d8cf6e14716825673070bf264 # v3.13.0
+    permissions:
+      contents: write
+    with:
+      package-name: 'mira-simpeg'
+      python-version: '3.12'
+      source-repo-names: '["public-noremote-conda-dev"]'
+      conda-channels: '["conda-forge"]'
+      publish-repo-names: '["public-noremote-conda-dev"]'
+      build-experimental: true
+    secrets:
+      JFROG_ARTIFACTORY_URL: ${{ secrets.JFROG_ARTIFACTORY_URL }}
+      JFROG_ARTIFACTORY_TOKEN: ${{ secrets.JFROG_ARTIFACTORY_TOKEN }}
+  call-workflow-pypi-publish:
+    name: Publish development pypi package (JFrog Artifactory)
+    uses: MiraGeoscience/CI-tools/.github/workflows/reusable-python-publish_pypi_package.yml@b2de1e00a0be160d8cf6e14716825673070bf264 # v3.13.0
+    permissions:
+      contents: write
+    with:
+      package-manager: 'setuptools'
+      package-name: 'mira-simpeg'
+      version-tag: ${{ github.ref_name }}
+      python-version: '3.12'
+      virtual-repo-names: '["public-pypi-dev"]'
+    secrets:
+      JFROG_ARTIFACTORY_URL: ${{ secrets.JFROG_ARTIFACTORY_URL }}
+      JFROG_ARTIFACTORY_TOKEN: ${{ secrets.JFROG_ARTIFACTORY_TOKEN }}
+  publish-pypi-package:
+    name: Publish development Python package to TestPyPI
+    needs: call-workflow-pypi-publish
+    if: ${{ needs.call-workflow-pypi-publish.result == 'success' && needs.call-workflow-pypi-publish.outputs.is-publishable == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: mira-simpeg-pip-package-build
+          path: dist-download
+      # Must be a direct step (not in a reusable workflow or composite action), see
+      # https://docs.pypi.org/trusted-publishers/troubleshooting/#reusable-workflows-on-github
+      - name: Publish package to TestPyPI
+        uses: pypa/gh-action-pypi-publish@ba38be9e461d3875417946c167d0b5f3d385a247 # v1.14.1
+        with:
+          packages-dir: dist-download/
+          repository-url: https://test.pypi.org/legacy/

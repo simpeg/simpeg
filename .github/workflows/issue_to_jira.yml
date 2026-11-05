@@ -1,0 +1,22 @@
+name: Create JIRA issue
+
+on:
+  issues:
+    types: [opened]
+
+permissions: {}
+
+jobs:
+  call-workflow-create-jira-issue:
+    if: startsWith(github.repository, 'MiraGeoscience/')  # run on the Mira repo only
+    uses: MiraGeoscience/CI-tools/.github/workflows/reusable-jira-issue_to_jira.yml@7241532854727d993872b67fc761139b8438615b # v3.12.0
+    permissions:
+      contents: read
+      issues: write
+    with:
+      project-key: 'GEOPY'
+      components: '[{"name": "simpeg"}]'
+    secrets:
+      JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN_WRITE }}
+      JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL_WRITE }}

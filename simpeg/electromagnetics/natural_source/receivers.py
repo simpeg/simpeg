@@ -8,6 +8,7 @@ from ...utils.code_utils import (
 )
 import numpy as np
 from scipy.constants import mu_0
+from scipy.sparse import csr_matrix
 from ...survey import BaseRx
 from simpeg.utils import mkvc
 
@@ -442,10 +443,18 @@ class Impedance(_ElectricAndMagneticReceiver):
             n_d = self.nD
 
             if mesh.dim == 3:
-                ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v[..., None]
-                ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v[..., None]
-                ge_v = np.c_[h[:, 1], -h[:, 0]] * gtop_v[..., None]
-                gh_v = np.c_[-e[:, 1], e[:, 0]] * gtop_v[..., None]
+                ghx_v = np.einsum(
+                    "ij,ik->ijk", gbot_v, np.c_[hy[:, 1], -hy[:, 0]]
+                ).reshape((hy.shape[0], -1))
+                ghy_v = np.einsum(
+                    "ij,ik->ijk", gbot_v, np.c_[-hx[:, 1], hx[:, 0]]
+                ).reshape((hx.shape[0], -1))
+                ge_v = np.einsum(
+                    "ij,ik->ijk", gtop_v, np.c_[h[:, 1], -h[:, 0]]
+                ).reshape((h.shape[0], -1))
+                gh_v = np.einsum(
+                    "ij,ik->ijk", gtop_v, np.c_[-e[:, 1], e[:, 0]]
+                ).reshape((e.shape[0], -1))
 
                 if self.orientation[1] == "x":
                     ghy_v += gh_v
@@ -458,8 +467,8 @@ class Impedance(_ElectricAndMagneticReceiver):
                     ghy_v = ghy_v.reshape((n_d, -1))
                     ge_v = ge_v.reshape((n_d, -1))
 
-                gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v
-                ge_v = Pe.T @ ge_v
+                gh_v = Phx.T @ csr_matrix(ghx_v) + Phy.T @ csr_matrix(ghy_v)
+                ge_v = Pe.T @ csr_matrix(ge_v)
             else:
                 if mesh.dim == 1 and self.orientation != f.field_directions:
                     gbot_v = -gbot_v
@@ -815,15 +824,21 @@ class Tipper(BaseNaturalSourceRx):
                 gh_v = Phx.T @ ghx_v + Phz.T @ ghz_v
 
             else:
-                # Work backwards!
-                gtop_v = (v / bot)[..., None]
-                gbot_v = (-tip * v / bot)[..., None]
+                gtop_v = np.c_[v] / bot[:, None]
+                gbot_v = -tip[:, None] * np.c_[v] / bot[:, None]
 
-                ghx_v = np.c_[hy[:, 1], -hy[:, 0]] * gbot_v
-                ghy_v = np.c_[-hx[:, 1], hx[:, 0]] * gbot_v
-                gho_v = np.c_[-h[:, 1], h[:, 0]] * gtop_v
-                gh_v = np.c_[ho[:, 1], -ho[:, 0]] * gtop_v
-
+                ghx_v = np.einsum(
+                    "ij,ik->ijk", gbot_v, np.c_[hy[:, 1], -hy[:, 0]]
+                ).reshape((hy.shape[0], -1))
+                ghy_v = np.einsum(
+                    "ij,ik->ijk", gbot_v, np.c_[-hx[:, 1], hx[:, 0]]
+                ).reshape((hx.shape[0], -1))
+                gho_v = np.einsum(
+                    "ij,ik->ijk", gtop_v, np.c_[-h[:, 1], h[:, 0]]
+                ).reshape((h.shape[0], -1))
+                gh_v = np.einsum(
+                    "ij,ik->ijk", gtop_v, np.c_[ho[:, 1], -ho[:, 0]]
+                ).reshape((ho.shape[0], -1))
                 if self.orientation[1] == "x":
                     ghy_v -= gh_v
                 else:
@@ -835,7 +850,11 @@ class Tipper(BaseNaturalSourceRx):
                     ghy_v = ghy_v.reshape((n_d, -1))
                     gho_v = gho_v.reshape((n_d, -1))
 
-                gh_v = Phx.T @ ghx_v + Phy.T @ ghy_v + Pho.T @ gho_v
+                gh_v = (
+                    Phx.T @ csr_matrix(ghx_v)
+                    + Phy.T @ csr_matrix(ghy_v)
+                    + Pho.T @ csr_matrix(gho_v)
+                )
 
             return f._hDeriv(src, None, gh_v, adjoint=True)
 
@@ -1554,43 +1573,51 @@ def _eval_cross_product_amplitude_deriv(
 
     # ADJOINT
     if adjoint:
-
-        # J_T * v = d_top_T * a_v + d_bot_T * b
-        a_v = factor * v / bot  # term 1
-        b_v = -factor * top * v / bot**2  # term 2
-
-        a_v = np.repeat(mkvc(a_v, n_dims=2), 2, axis=-1)
-        b_v = np.repeat(mkvc(b_v, n_dims=2), 2, axis=-1)
+        a_v = np.c_[v] / (bot / factor)[:, None]  # term 1
+        b_v = np.c_[v] * (-factor * top / (bot**2))[:, None]  # term 2
 
         # derivatives for det(HH*)
-        px = (
+        px = np.einsum(
+            "ij,ik->ijk",
+            a_v,
             np.c_[
                 det_h12.conjugate() * hy[:, 1] + det_h13.conjugate() * hz[:, 1],
                 -det_h12.conjugate() * hy[:, 0] - det_h13.conjugate() * hz[:, 0],
-            ]
-            * a_v
-        )
-        py = (
+            ],
+        ).reshape((hx.shape[0], -1))
+        py = np.einsum(
+            "ij,ik->ijk",
+            a_v,
             np.c_[
                 -det_h12.conjugate() * hx[:, 1] + det_h23.conjugate() * hz[:, 1],
                 det_h12.conjugate() * hx[:, 0] - det_h23.conjugate() * hz[:, 0],
-            ]
-            * a_v
-        )
-        pz = (
+            ],
+        ).reshape((hy.shape[0], -1))
+        pz = np.einsum(
+            "ij,ik->ijk",
+            a_v,
             np.c_[
                 -det_h13.conjugate() * hx[:, 1] - det_h23.conjugate() * hy[:, 1],
                 det_h13.conjugate() * hx[:, 0] + det_h23.conjugate() * hy[:, 0],
-            ]
-            * a_v
-        )
+            ],
+        ).reshape((hz.shape[0], -1))
 
         # derivatives for det(BB*)
-        qx = np.c_[det_b.conjugate() * by[:, 1], -det_b.conjugate() * by[:, 0]] * b_v
-        qy = np.c_[-det_b.conjugate() * bx[:, 1], det_b.conjugate() * bx[:, 0]] * b_v
+        qx = np.einsum(
+            "ij,ik->ijk",
+            b_v,
+            np.c_[det_b.conjugate() * by[:, 1], -det_b.conjugate() * by[:, 0]],
+        ).reshape((bx.shape[0], -1))
+        qy = np.einsum(
+            "ij,ik->ijk",
+            b_v,
+            np.c_[-det_b.conjugate() * bx[:, 1], det_b.conjugate() * bx[:, 0]],
+        ).reshape((by.shape[0], -1))
 
-        h_v = 2 * (Phx.T @ px + Phy.T @ py + Phz.T @ pz)
-        b_v = 2 * (Pbx.T @ qx + Pby.T @ qy)
+        h_v = 2 * (
+            Phx.T @ csr_matrix(px) + Phy.T @ csr_matrix(py) + Phz.T @ csr_matrix(pz)
+        )
+        b_v = 2 * (Pbx.T @ csr_matrix(qx) + Pby.T @ csr_matrix(qy))
 
         match receiver._base_type:
             case "magnetic":

@@ -89,10 +89,10 @@ class MetaSimulation(BaseSimulation):
     _repeat_sim = False
 
     def __init__(self, simulations, mappings):
-        warnings.warn(
-            "The MetaSimulation class is a work in progress and might change in the future",
-            stacklevel=2,
-        )
+        # warnings.warn(
+        #     "The MetaSimulation class is a work in progress and might change in the future",
+        #     stacklevel=2,
+        # )
         self.simulations = simulations
         self.mappings = mappings
         self.model = None
@@ -216,7 +216,7 @@ class MetaSimulation(BaseSimulation):
             f.append(sim.fields(sim.model))
         return f
 
-    def dpred(self, m=None, f=None):
+    def dpred(self, m=None, f=None, **kwargs):
         if f is None:
             if m is None:
                 m = self.model
@@ -225,7 +225,7 @@ class MetaSimulation(BaseSimulation):
         for mapping, sim, field in zip(self.mappings, self.simulations, f):
             if self._repeat_sim:
                 sim.model = mapping * self.model
-            d_pred.append(sim.dpred(m=sim.model, f=field))
+            d_pred.append(sim.dpred(m=sim.model, f=field, **kwargs))
         return np.concatenate(d_pred)
 
     def Jvec(self, m, v, f=None):
@@ -307,15 +307,13 @@ class MetaSimulation(BaseSimulation):
             # (i.e. projections, multipliers, etc.).
             # It is usually close within a scaling factor for others, whose accuracy is controlled
             # by how diagonally dominant JtJ is.
-            if f is None:
-                f = self.fields(m)
-            for i, (mapping, sim, field) in enumerate(
-                zip(self.mappings, self.simulations, f)
-            ):
+            for i, (mapping, sim) in enumerate(zip(self.mappings, self.simulations)):
                 if self._repeat_sim:
                     sim.model = mapping * self.model
                 sim_w = sp.diags(W[self._data_offsets[i] : self._data_offsets[i + 1]])
-                sim_jtj = sp.diags(np.sqrt(sim.getJtJdiag(sim.model, sim_w, f=field)))
+                sim_jtj = sp.diags(
+                    np.sqrt(np.asarray(sim.getJtJdiag(sim.model, sim_w)))
+                )
                 m_deriv = mapping.deriv(self.model)
                 jtj_diag += np.asarray(
                     (sim_jtj @ m_deriv).power(2).sum(axis=0)

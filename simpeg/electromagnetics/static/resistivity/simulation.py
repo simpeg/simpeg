@@ -216,7 +216,7 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
         (n_param,) numpy.ndarray
             The diagonal of :math:`\mathbf{J^T J}`.
         """
-        if getattr(self, "_gtgdiag", None) is None:
+        if getattr(self, "_jtjdiag", None) is None:
             J = self.getJ(m, f=f)
 
             if W is None:
@@ -228,8 +228,8 @@ class BaseDCSimulation(BaseElectricalPDESimulation):
             for i in range(J.shape[0]):
                 diag += (W[i]) * (J[i] * J[i])
 
-            self._gtgdiag = diag
-        return self._gtgdiag
+            self._jtjdiag = diag
+        return self._jtjdiag
 
     def Jvec(self, m, v, f=None):
         r"""Compute the sensitivity matrix times a vector.
@@ -1070,7 +1070,7 @@ class Simulation3DNodal(BaseDCSimulation):
             # TODO: Implement Zhang et al. (1995)
 
             r_vec = boundary_faces - source_point
-            r = np.linalg.norm(r_vec, axis=-1)
+            r = np.linalg.norm(r_vec, axis=-1) + 1e-12
             r_hat = r_vec / r[:, None]
             r_dot_n = np.einsum("ij,ij->i", r_hat, boundary_normals)
 

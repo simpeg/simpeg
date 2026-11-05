@@ -1,11 +1,13 @@
 import numpy as np
 
 from simpeg.simulation import BaseSimulation
+
 from simpeg.survey import BaseSurvey
 from simpeg.maps import IdentityMap
 from simpeg.utils import validate_list_of_types, validate_type
 from simpeg.props import HasModel
 import itertools
+
 from dask.distributed import Client
 from dask.distributed import Future
 from .simulation import MetaSimulation, SumMetaSimulation
@@ -97,6 +99,7 @@ def _validate_type_or_future_of_type(
         objects = validate_list_of_types(
             property_name, objects, obj_type, ensure_unique=True
         )
+
         if workers is None:
             objects = client.scatter(objects)
         else:
@@ -157,6 +160,7 @@ def _validate_type_or_future_of_type(
                 warnings.warn(
                     f"{property_name} {i} is not on the expected worker.", stacklevel=2
                 )
+            # obj = client.submit(_set_worker, obj, worker)
 
     # Ensure this runs on the expected worker
     futures = []
@@ -199,8 +203,11 @@ class DaskMetaSimulation(MetaSimulation):
         The dask client to use for communication.
     """
 
+    _delete_on_model_update = ["_jtjdiag", "_stashed_fields"]
+
     def __init__(self, simulations, mappings, client):
         self._client = validate_type("client", client, Client, cast=False)
+
         super().__init__(simulations, mappings)
 
     def _make_survey(self):
@@ -228,6 +235,7 @@ class DaskMetaSimulation(MetaSimulation):
     @simulations.setter
     def simulations(self, value):
         client = self.client
+
         simulations, workers = _validate_type_or_future_of_type(
             "simulations", value, BaseSimulation, client, return_workers=True
         )
@@ -371,6 +379,8 @@ class DaskMetaSimulation(MetaSimulation):
         self.model = m
         client = self.client
         m_future = self._m_as_future
+        if getattr(self, "_stashed_fields", None) is not None:
+            return self._stashed_fields
         # The above should pass the model to all the internal simulations.
         f = []
         for mapping, sim, worker in zip(self.mappings, self.simulations, self._workers):
@@ -385,6 +395,7 @@ class DaskMetaSimulation(MetaSimulation):
                     pure=False,
                 )
             )
+        self._stashed_fields = f
         return f
 
     def dpred(self, m=None, f=None):

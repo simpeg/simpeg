@@ -1,0 +1,87 @@
+name: Deploy python package in production
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      publish-conda:
+        description: 'Publish Conda package'
+        required: false
+        type: boolean
+        default: true
+      publish-pypi:
+        description: 'Publish PyPI package'
+        required: false
+        type: boolean
+        default: true
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.release.tag_name || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  # Fail-fast guard, so it fails here rather than in the downstream jobs.
+  validate-release-tag:
+    name: Validate release tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ensure this run was triggered from a tag
+        if: ${{ github.event_name == 'workflow_dispatch' && github.ref_type != 'tag' }}
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          echo "::error::This run was not triggered from a tag (ref_type=$REF_TYPE, ref_name=$REF_NAME). Re-run this workflow selecting the release tag under 'Use workflow from'."
+          exit 1
+  call-workflow-conda-release:
+    name: Publish production Conda package on JFrog Artifactory
+    needs: validate-release-tag
+    if: ${{ github.event_name == 'release' || github.event.inputs.publish-conda == 'true' }}
+    uses: MiraGeoscience/CI-tools/.github/workflows/reusable-python-release_conda_assets.yml@b2de1e00a0be160d8cf6e14716825673070bf264 # v3.13.0
+    permissions:
+      contents: write
+    with:
+      virtual-repo-names: '["public-noremote-conda-prod"]'
+      release-tag: ${{ github.event.release.tag_name || github.ref_name }}
+    secrets:
+      JFROG_ARTIFACTORY_URL: ${{ secrets.JFROG_ARTIFACTORY_URL }}
+      JFROG_ARTIFACTORY_TOKEN: ${{ secrets.JFROG_ARTIFACTORY_TOKEN }}
+  call-workflow-pypi-release:
+    name: Publish production PyPI package (JFrog Artifactory)
+    needs: validate-release-tag
+    if: ${{ github.event_name == 'release' || github.event.inputs.publish-pypi == 'true' }}
+    uses: MiraGeoscience/CI-tools/.github/workflows/reusable-python-release_pypi_assets.yml@b2de1e00a0be160d8cf6e14716825673070bf264 # v3.13.0
+    permissions:
+      contents: write
+    with:
+      package-name: 'mira-simpeg'
+      virtual-repo-names: '["public-pypi-prod"]'
+      release-tag: ${{ github.event.release.tag_name || github.ref_name }}
+    secrets:
+      JFROG_ARTIFACTORY_URL: ${{ secrets.JFROG_ARTIFACTORY_URL }}
+      JFROG_ARTIFACTORY_TOKEN: ${{ secrets.JFROG_ARTIFACTORY_TOKEN }}
+  publish-pypi-release:
+    name: Publish production Python package to PyPI
+    needs: [validate-release-tag, call-workflow-pypi-release]
+    if: ${{ (github.event_name == 'release' || github.event.inputs.publish-pypi == 'true') && needs.call-workflow-pypi-release.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download release assets
+        uses: MiraGeoscience/CI-tools/.github/actions/reusable-python-download_dist_release@b2de1e00a0be160d8cf6e14716825673070bf264 # v3.13.0
+        with:
+          release-tag: ${{ github.event.release.tag_name || github.ref_name }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      # Must be a direct step (not in a reusable workflow or composite action), see
+      # https://docs.pypi.org/trusted-publishers/troubleshooting/#reusable-workflows-on-github
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@ba38be9e461d3875417946c167d0b5f3d385a247 # v1.14.1
+        with:
+          packages-dir: dist-download/
+          repository-url: https://upload.pypi.org/legacy/

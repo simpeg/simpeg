@@ -209,15 +209,16 @@ class Simulation3DIntegral(BasePFSimulation):
         """
         # Need to assign the model, so the rho property can be accessed.
         self.model = m
+
         if self.store_sensitivities == "forward_only":
             # Compute the linear operation without forming the full dense G
             if self.engine == "choclo":
                 fields = self._forward(self.rho)
             else:
-                fields = mkvc(self.linear_operator())
+                fields = self.linear_operator()
         else:
             fields = self.G @ (self.rho).astype(self.sensitivity_dtype, copy=False)
-        return np.asarray(fields)
+        return fields
 
     def getJtJdiag(self, m, W=None, f=None):
         r"""
@@ -383,7 +384,7 @@ class Simulation3DIntegral(BasePFSimulation):
         # model is None, the rhoDeriv is going to be Zero).
         self.model = m
         dmu_dm_v = self.rhoDeriv @ v
-        return self.G @ dmu_dm_v.astype(self.sensitivity_dtype, copy=False)
+        return np.asarray(self.G @ dmu_dm_v.astype(self.sensitivity_dtype, copy=False))
 
     def Jtvec(self, m, v, f=None):
         """

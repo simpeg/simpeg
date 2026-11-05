@@ -172,12 +172,11 @@ class Simulation3DIntegral(BasePFSimulation):
     ):
         self.model_type = model_type
         super().__init__(mesh, engine=engine, numba_parallel=numba_parallel, **kwargs)
+
         self.chi = chi
         self.chiMap = chiMap
-
         self._M = None
         self.is_amplitude_data = is_amplitude_data
-        self.modelMap = self.chiMap
 
         # Warn if n_processes has been passed
         if self.engine == "choclo" and "n_processes" in kwargs:
@@ -239,9 +238,10 @@ class Simulation3DIntegral(BasePFSimulation):
             M = np.asarray(M)
             self._M = M.reshape((self.nC, 3))
 
-    def fields(self, model):
-        self.model = model
-        # model = self.chiMap * model
+    def fields(self, m=None):
+        if m is not None:
+            self.model = m
+
         if self.store_sensitivities == "forward_only":
             if self.engine == "choclo":
                 fields = self._forward(self.chi)
@@ -379,7 +379,6 @@ class Simulation3DIntegral(BasePFSimulation):
         # Need to assign the model, so the chiDeriv can be computed (if the
         # model is None, the chiDeriv is going to be Zero).
         self.model = m
-
         # We should probably check that W is diagonal. Let's assume it for now.
         weights = (
             W.diagonal() ** 2
@@ -530,7 +529,9 @@ class Simulation3DIntegral(BasePFSimulation):
             v = self.ampDeriv * v
             # dask doesn't support and "order" argument to reshape...
             v = v.T.reshape(-1)  # .reshape(-1, order="F")
+
         Jtvec = self.G.T @ v.astype(self.sensitivity_dtype, copy=False)
+
         return np.asarray(self.chiDeriv.T @ Jtvec)
 
     @property
@@ -539,6 +540,7 @@ class Simulation3DIntegral(BasePFSimulation):
             fields = np.asarray(
                 self.G.dot(self.chi).astype(self.sensitivity_dtype, copy=False)
             )
+
             self._ampDeriv = self.normalized_fields(fields)
 
         return self._ampDeriv
@@ -1860,7 +1862,7 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
                 ).diagonal()
             )
 
-        return rhs
+        return rhs.astype(self.solver_dtype)
 
     def _getA(self):
         A = self._Div * self.MfMuiI * self._DivT
@@ -1989,13 +1991,23 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
         if v is None:
             v = np.eye(Q.shape[0])
             divt_solve_q = (
-                self._DivT * (self._Ainv * ((Q * self.MfMuiI * -self._DivT).T * v))
+                self._DivT
+                * (
+                    self._Ainv
+                    * ((Q * self.MfMuiI * -self._DivT).T * v).astype(self.solver_dtype)
+                )
                 + Q.T * v
             )
             del v
         else:
             divt_solve_q = (
-                self._DivT * (self._Ainv * ((-self._Div * (self.MfMuiI.T * (Q.T * v)))))
+                self._DivT
+                * (
+                    self._Ainv
+                    * ((-self._Div * (self.MfMuiI.T * (Q.T * v)))).astype(
+                        self.solver_dtype
+                    )
+                )
                 + Q.T * v
             )
 
@@ -2069,7 +2081,9 @@ class Simulation3DDifferential(BaseMagneticPDESimulation):
                     self.MfMuiI * Mf_r_mui_deriv * v
                 )
 
-        Ainv_Ddm = self._Ainv * (self._Div * (-dCmu_dm + db_dm))
+        Ainv_Ddm = self._Ainv * (self._Div * (-dCmu_dm + db_dm)).astype(
+            self.solver_dtype
+        )
 
         Jv = Q * (C * Ainv_Ddm + (-dCmu_dm + db_dm))
 

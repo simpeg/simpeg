@@ -331,13 +331,15 @@ class WeightedGaussianMixture(GaussianMixture if sklearn else object):
 
         if self.init_params == "kmeans":
             resp = np.zeros((n_samples, self.n_components))
-            label = (
-                KMeans(
-                    n_clusters=self.n_components, n_init=1, random_state=random_state
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                label = (
+                    KMeans(
+                        n_clusters=self.n_components, n_init=1, random_state=random_state
+                    )
+                    .fit(X, sample_weight=self.cell_volumes)
+                    .labels_
                 )
-                .fit(X, sample_weight=self.cell_volumes)
-                .labels_
-            )
             resp[np.arange(n_samples), label] = 1
         elif self.init_params == "random":
             resp = random_state.rand(n_samples, self.n_components)

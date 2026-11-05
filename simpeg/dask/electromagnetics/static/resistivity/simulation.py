@@ -1,128 +1,208 @@
-from .....electromagnetics.static.resistivity.simulation import BaseDCSimulation as Sim
+from .....electromagnetics.static.resistivity.simulation import Simulation3DNodal as Sim
+
+from ....simulation import getJtJdiag, Jvec, Jtvec, Jmatrix
+
 from .....utils import Zero
-
-from ....utils import compute_chunk_sizes
-
-import dask
-import dask.array as da
-import os
 import shutil
+import os
+import dask.array as da
 import numpy as np
+from scipy import sparse as sp
+import zarr
+
+import numcodecs
+
+import warnings
+
+warnings.filterwarnings("ignore", category=FutureWarning)
+
+numcodecs.blosc.use_threads = False
 
 
-def dask_getJ(self, m, f=None):
-    """
-    Generate Full sensitivity matrix
-    """
+def fields(self, m=None, return_Ainv=False):
+    if m is not None:
+        self.model = m
 
-    if getattr(self, "_Jmatrix", None) is not None:
-        return self._Jmatrix
-    if f is None:
-        f = self.fields(m)
+    if getattr(self, "_stashed_fields", None) is not None and not return_Ainv:
+        return self._stashed_fields
 
-    if self.verbose:
-        print("Calculating J and storing")
+    A = self.getA()
+    Ainv = self.solver(A, **self.solver_opts)
+    RHS = self.getRHS()
 
-    if self._mini_survey is not None:
-        # Need to use _Jtvec for this operation currently...
-        J = self._Jtvec(m=m, v=None, f=f).T
-        self._Jmatrix = da.from_array(J)
-        return self._Jmatrix
+    f = self.fieldsPair(self)
+    f[:, self._solutionType] = Ainv * np.asarray(RHS.todense())
 
-    if os.path.exists(self.sensitivity_path):
-        shutil.rmtree(self.sensitivity_path, ignore_errors=True)
+    self._stashed_fields = f
+    if return_Ainv:
+        return f, Ainv
+    return f
 
-        # Wait for the system to clear out the directory
-        while os.path.exists(self.sensitivity_path):
-            pass
 
-    m_size = self.model.size
+def compute_J(self, m, f=None):
+
+    f, Ainv = self.fields(m=m, return_Ainv=True)
+
+    n_cells = m.size
+    row_chunks = int(
+        np.ceil(
+            float(self.survey.nD)
+            / np.ceil(
+                float(n_cells) * self.survey.nD * 8.0 * 1e-6 / self.max_chunk_size
+            )
+        )
+    )
+
+    if self.store_sensitivities == "disk":
+
+        if os.path.exists(self.sensitivity_path):
+            shutil.rmtree(self.sensitivity_path)
+
+        Jmatrix = zarr.open(
+            self.sensitivity_path,
+            mode="w",
+            shape=(self.survey.nD, n_cells),
+            chunks=(row_chunks, n_cells),
+        )
+    else:
+        Jmatrix = np.zeros((self.survey.nD, n_cells), dtype=np.float32)
+
+    blocks = []
     count = 0
     for source in self.survey.source_list:
         u_source = f[source, self._solutionType]
+
         for rx in source.receiver_list:
-            # wrt f, need possibility wrt m
-            PTv = rx.evalDeriv(source, self.mesh, f).toarray().T
 
-            df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
-            df_duT, df_dmT = df_duTFun(source, None, PTv, adjoint=True)
+            if getattr(rx, "orientation", None) is not None:
+                projected_grid = f._GLoc(rx.projField) + rx.orientation
+            else:
+                projected_grid = f._GLoc(rx.projField)
 
-            # Find a block of receivers
-            n_block_col = int(np.ceil(df_duT.size * 8 * 1e-9 / self.max_ram))
+            PTv = rx.getP(self.mesh, projected_grid).toarray().T
 
-            n_col = int(np.ceil(df_duT.shape[1] / n_block_col))
-
-            nrows = int(
-                m_size / np.ceil(m_size * n_col * 8 * 1e-6 / self.max_chunk_size)
-            )
-            ind = 0
-            for _ in range(n_block_col):
-                ATinvdf_duT = da.asarray(
-                    self.Ainv * df_duT[:, ind : ind + n_col]
-                ).rechunk((nrows, n_col))
-
+            for dd in range(int(np.ceil(PTv.shape[1] / row_chunks))):
+                start, end = dd * row_chunks, np.min(
+                    [(dd + 1) * row_chunks, PTv.shape[1]]
+                )
+                df_duTFun = getattr(f, "_{0!s}Deriv".format(rx.projField), None)
+                df_duT, df_dmT = df_duTFun(
+                    source, None, PTv[:, start:end], adjoint=True
+                )
+                ATinvdf_duT = Ainv * df_duT
                 dA_dmT = self.getADeriv(u_source, ATinvdf_duT, adjoint=True)
-
                 dRHS_dmT = self.getRHSDeriv(source, ATinvdf_duT, adjoint=True)
-
-                if n_col > 1:
-                    du_dmT = da.from_delayed(
-                        dask.delayed(-dA_dmT), shape=(m_size, n_col), dtype=float
-                    )
-                else:
-                    du_dmT = da.from_delayed(
-                        dask.delayed(-dA_dmT), shape=(m_size,), dtype=float
-                    )
-
+                du_dmT = -dA_dmT
                 if not isinstance(dRHS_dmT, Zero):
-                    du_dmT += da.from_delayed(
-                        dask.delayed(dRHS_dmT), shape=(m_size, n_col), dtype=float
-                    )
-
+                    du_dmT += dRHS_dmT
                 if not isinstance(df_dmT, Zero):
-                    du_dmT += da.from_delayed(
-                        df_dmT, shape=(m_size, n_col), dtype=float
-                    )
+                    du_dmT += df_dmT
 
-                blockName = self.sensitivity_path + "J" + str(count) + ".zarr"
-                da.to_zarr((du_dmT.T).rechunk("auto"), blockName)
-                del ATinvdf_duT
-                count += 1
+                #
+                du_dmT = du_dmT.T.reshape((-1, n_cells))
 
-                ind += n_col
+                if len(blocks) == 0:
+                    blocks = du_dmT
+                else:
+                    blocks = np.vstack([blocks, du_dmT])
 
-    dask_arrays = []
-    for ii in range(count):
-        blockName = self.sensitivity_path + "J" + str(ii) + ".zarr"
-        J = da.from_zarr(blockName)
-        # Stack all the source blocks in one big zarr
-        dask_arrays.append(J)
+                while blocks.shape[0] >= row_chunks:
 
-    rowChunk, colChunk = compute_chunk_sizes(
-        self.survey.nD, m_size, self.max_chunk_size
-    )
-    self._Jmatrix = da.vstack(dask_arrays).rechunk((rowChunk, colChunk))
-    self.Ainv.clean()
+                    if self.store_sensitivities == "disk":
+                        Jmatrix.set_orthogonal_selection(
+                            (np.arange(count, count + row_chunks), slice(None)),
+                            blocks[:row_chunks, :].astype(np.float32),
+                        )
+                    else:
+                        Jmatrix[count : count + row_chunks, :] = blocks[
+                            :row_chunks, :
+                        ].astype(np.float32)
+
+                    blocks = blocks[row_chunks:, :].astype(np.float32)
+                    count += row_chunks
+
+                del df_duT, ATinvdf_duT, dA_dmT, dRHS_dmT, du_dmT
+
+    if len(blocks) != 0:
+
+        if self.store_sensitivities == "disk":
+            Jmatrix.set_orthogonal_selection(
+                (np.arange(count, self.survey.nD), slice(None)),
+                blocks.astype(np.float32),
+            )
+        else:
+            Jmatrix[count : self.survey.nD, :] = blocks.astype(np.float32)
+
+    Ainv.clean()
+
+    if self.store_sensitivities == "disk":
+        del Jmatrix
+        self._Jmatrix = da.from_zarr(self.sensitivity_path)
+    else:
+        self._Jmatrix = Jmatrix
 
     return self._Jmatrix
 
 
-Sim.getJ = dask_getJ
+def source_eval(simulation, sources, indices):
+    """
+    Evaluate the source term for the given source and index
+    """
+    blocks = []
+    for ind in indices:
+        blocks.append(sources[ind].eval(simulation))
+
+    return sp.csr_matrix(np.vstack(blocks).T)
 
 
-def dask_getJtJdiag(self, m, W=None, f=None):
+def getSourceTerm(self):
     """
-    Return the diagonal of JtJ
+    Evaluates the sources, and puts them in matrix form
+    :rtype: tuple
+    :return: q (nC or nN, nSrc)
     """
-    if getattr(self, "_gtgdiag", None) is None:
-        # Need to check if multiplying weights makes sense
-        if W is None:
-            self._gtgdiag = da.sum(self.getJ(m, f=f) ** 2, axis=0).compute()
+
+    if getattr(self, "_q", None) is None:
+
+        if self._mini_survey is not None:
+            source_list = self._mini_survey.source_list
         else:
-            w = da.from_array(W.diagonal())[:, None]
-            self._gtgdiag = da.sum((w * self.getJ(m, f=f)) ** 2, axis=0).compute()
+            source_list = self.survey.source_list
 
-    return self._gtgdiag
+        indices = np.arange(len(source_list))
+
+        client, worker = self._get_client_worker()
+
+        if client:
+            sim = client.scatter(self, workers=worker)
+            future_list = client.scatter(source_list, workers=worker)
+            indices = np.array_split(
+                indices, self.n_threads(client=client, worker=worker)
+            )
+            blocks = []
+            for ind in indices:
+
+                if len(ind) == 0:
+                    continue
+
+                blocks.append(
+                    client.submit(source_eval, sim, future_list, ind, workers=worker)
+                )
+
+            blocks = sp.hstack(client.gather(blocks))
+        else:
+            blocks = source_eval(self, source_list, indices)
+
+        self._q = blocks
+
+    return self._q
 
 
-Sim.getJtJdiag = dask_getJtJdiag
+Sim.getSourceTerm = getSourceTerm
+Sim.fields = fields
+Sim.compute_J = compute_J
+
+Sim.getJtJdiag = getJtJdiag
+Sim.Jvec = Jvec
+Sim.Jtvec = Jtvec
+Sim.Jmatrix = Jmatrix

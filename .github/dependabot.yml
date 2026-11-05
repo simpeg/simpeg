@@ -5,8 +5,29 @@
 
 version: 2
 updates:
-
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "develop"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 4
+    groups:
+      github-actions:
+        patterns:
+          - actions/*
+      mirageo-ci-tools:
+        patterns:
+          - MiraGeoscience/CI-tools/.github/actions/*
+          - MiraGeoscience/CI-tools/.github/workflows/*
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 4
+    groups:
+      pre-commit-hooks:
+        patterns:
+          - "*"

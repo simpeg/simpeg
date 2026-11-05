@@ -59,7 +59,7 @@ class BaseWaveform:
         self.has_initial_fields = has_initial_fields
         self.off_time = off_time
         self.epsilon = epsilon
-        super().__init__(**kwargs)
+        super().__init__()
 
     @property
     def has_initial_fields(self):
@@ -377,6 +377,8 @@ class RawWaveform(BaseWaveform):
     """
 
     def __init__(self, off_time=0.0, waveform_function=None, **kwargs):
+        self._waveform_function = None
+
         if waveform_function is not None:
             self.waveform_function = waveform_function
         super().__init__(off_time=off_time, **kwargs)
@@ -1528,6 +1530,9 @@ class MagDipole(BaseTDEMSrc):
         numpy.ndarray
             Electric source term on mesh.
         """
+        if np.abs(self.waveform.eval(time)) < 1e-8:
+            return np.zeros(simulation.mesh.nE)
+
         C = simulation.mesh.edge_curl
         b = self._bSrc(simulation)
 

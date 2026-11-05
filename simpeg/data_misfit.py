@@ -36,11 +36,26 @@ class BaseDataMisfit(L2ObjectiveFunction):
         Assign a SimPEG ``Counter`` object to store iterations and run-times.
     """
 
-    def __init__(self, data, simulation, debug=False, counter=None, **kwargs):
+    def __init__(
+        self, data, simulation, model_map=None, debug=False, counter=None, **kwargs
+    ):
         super().__init__(has_fields=True, debug=debug, counter=counter, **kwargs)
 
         self.data = data
         self.simulation = simulation
+
+        self.model_map = model_map
+
+    @property
+    def model_map(self):
+        return getattr(self, "_model_map", None)
+
+    @model_map.setter
+    def model_map(self, value):
+        if value is None:
+            value = Identity()
+        self._model_map = value
+        self._has_fields = True
 
     @property
     def data(self):
@@ -341,3 +356,17 @@ class L2DataMisfit(BaseDataMisfit):
         return 2 * self.simulation.Jtvec_approx(
             m, self.W * (self.W * self.simulation.Jvec_approx(m, v, f=f)), f=f
         )
+
+    def getJtJdiag(self, m):
+        """
+        Evaluate the main diagonal of JtJ
+        """
+        if getattr(self.simulation, "getJtJdiag", None) is None:
+            raise AttributeError(
+                "Simulation does not have a getJtJdiag attribute."
+                + "Cannot form the sensitivity explicitly"
+            )
+
+        jtjdiag = self.simulation.getJtJdiag(m, W=self.W)
+
+        return jtjdiag
