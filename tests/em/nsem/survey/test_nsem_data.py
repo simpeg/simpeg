@@ -76,18 +76,12 @@ class TestNSEMDataToRecArray2D:
         n_loc = len(self.locs)
         assert rec.shape == (n_loc * len(self.freqs),)
         # frequencies repeat per source block
-        np.testing.assert_allclose(
-            rec["freq"], np.repeat(self.freqs, n_loc)
-        )
+        np.testing.assert_allclose(rec["freq"], np.repeat(self.freqs, n_loc))
         # locations are zero-padded to (x, y, z): the two given columns
         # land in y and z, x is zero
         np.testing.assert_allclose(rec["x"], np.zeros(n_loc * len(self.freqs)))
-        np.testing.assert_allclose(
-            rec["y"], np.tile(self.locs[:, 0], len(self.freqs))
-        )
-        np.testing.assert_allclose(
-            rec["z"], np.tile(self.locs[:, 1], len(self.freqs))
-        )
+        np.testing.assert_allclose(rec["y"], np.tile(self.locs[:, 0], len(self.freqs)))
+        np.testing.assert_allclose(rec["z"], np.tile(self.locs[:, 1], len(self.freqs)))
         # impedance values land in the matching real/imaginary columns
         n_per_src = self.survey.nD // len(self.freqs)
         for i in range(len(self.freqs)):
@@ -153,9 +147,7 @@ class TestNSEMDataToRecArray1D:
         # lands in z, x and y are zero
         np.testing.assert_allclose(rec["x"], np.zeros(n_loc * len(self.freqs)))
         np.testing.assert_allclose(rec["y"], np.zeros(n_loc * len(self.freqs)))
-        np.testing.assert_allclose(
-            rec["z"], np.tile(self.locs[:, 0], len(self.freqs))
-        )
+        np.testing.assert_allclose(rec["z"], np.tile(self.locs[:, 0], len(self.freqs)))
         # impedance values land in the matching real/imaginary columns
         n_per_src = self.survey.nD // len(self.freqs)
         for i in range(len(self.freqs)):
