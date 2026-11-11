@@ -107,21 +107,19 @@ def getFDEMProblem(fdemType, comp, SrcList, freq, useMu=False, verbose=False):
 
     if fdemType == "e":
         survey = fdem.Survey(Src)
-        prb = fdem.Simulation3DElectricField(mesh, survey=survey, sigmaMap=mapping)
+        prb = fdem.Simulation3DElectricField(mesh, survey=survey, sigma=mapping)
 
     elif fdemType == "b":
         survey = fdem.Survey(Src)
-        prb = fdem.Simulation3DMagneticFluxDensity(
-            mesh, survey=survey, sigmaMap=mapping
-        )
+        prb = fdem.Simulation3DMagneticFluxDensity(mesh, survey=survey, sigma=mapping)
 
     elif fdemType == "j":
         survey = fdem.Survey(Src)
-        prb = fdem.Simulation3DCurrentDensity(mesh, survey=survey, sigmaMap=mapping)
+        prb = fdem.Simulation3DCurrentDensity(mesh, survey=survey, sigma=mapping)
 
     elif fdemType == "h":
         survey = fdem.Survey(Src)
-        prb = fdem.Simulation3DMagneticField(mesh, survey=survey, sigmaMap=mapping)
+        prb = fdem.Simulation3DMagneticField(mesh, survey=survey, sigma=mapping)
 
     else:
         raise NotImplementedError()
@@ -222,10 +220,10 @@ def get_FDEM_hierarchical_problem(
         prb = fdem.Simulation3DHierarchicalElectricField(
             mesh,
             survey=survey,
-            sigmaMap=sigma_map,
-            face_conductance_map=tau_map,
-            edge_area_conductance_map=kappa_map,
-            muMap=mu_map,
+            sigma=sigma_map,
+            face_conductance=tau_map,
+            edge_area_conductance=kappa_map,
+            mu=mu_map,
         )
 
     elif fdemType == "b":
@@ -233,10 +231,10 @@ def get_FDEM_hierarchical_problem(
         prb = fdem.Simulation3DHierarchicalMagneticFluxDensity(
             mesh,
             survey=survey,
-            sigmaMap=sigma_map,
-            face_conductance_map=tau_map,
-            edge_area_conductance_map=kappa_map,
-            muMap=mu_map,
+            sigma=sigma_map,
+            face_conductance=tau_map,
+            edge_area_conductance=kappa_map,
+            mu=mu_map,
         )
 
     else:

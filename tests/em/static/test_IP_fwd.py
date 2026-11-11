@@ -1,4 +1,5 @@
 import unittest
+import warnings
 
 import numpy as np
 import discretize
@@ -6,6 +7,8 @@ import discretize
 from simpeg import utils, maps
 from simpeg.electromagnetics import resistivity as dc
 from simpeg.electromagnetics import induced_polarization as ip
+from simpeg.electromagnetics import spectral_induced_polarization as sip
+import pytest
 
 
 class IPProblemAnalyticTests(unittest.TestCase):
@@ -217,6 +220,30 @@ class ApparentChargeability3DTest(unittest.TestCase):
             plt.show()
 
         self.assertLess(err, 0.05)
+
+
+@pytest.mark.parametrize("prop", ["sigma", "rho"])
+def test_overrode_is_parametrized(prop):
+    mesh = discretize.TensorMesh([1, 1, 1])
+    ip_sim = ip.simulation.Simulation3DCellCentered(mesh=mesh, sigma=1, eta=0.1)
+    assert ip_sim.is_parametrized(prop)
+
+
+@pytest.mark.parametrize("module", ["ip", "sip"])
+@pytest.mark.parametrize("sim_name", ["Simulation3DNodal", "Simulation3DCellCentered"])
+@pytest.mark.parametrize("prop", ["sigma", "rho"])
+def test_construction_does_not_deprecate_the_dc_property(module, sim_name, prop):
+    # the conductivity is given to the DC part of the simulation, it should not warn
+    # about it being left as None before it is set.
+    mesh = discretize.TensorMesh([2, 2, 2])
+    sim_module = {"ip": ip, "sip": sip}[module]
+    survey = sim_module.Survey([])
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        sim = getattr(sim_module, sim_name)(
+            mesh, survey=survey, eta=maps.IdentityMap(), **{prop: np.ones(8)}
+        )
+    np.testing.assert_allclose(getattr(sim, prop), 1.0)
 
 
 if __name__ == "__main__":

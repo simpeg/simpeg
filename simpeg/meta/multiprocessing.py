@@ -4,7 +4,6 @@ from enum import Enum, auto
 from queue import Empty
 from multiprocessing import Process, Queue, cpu_count
 from simpeg.meta import MetaSimulation, SumMetaSimulation, RepeatedSimulation
-from simpeg.props import HasModel
 import uuid
 import numpy as np
 
@@ -363,6 +362,7 @@ class MultiprocessingMetaSimulation(MetaSimulation):
     _chunk_sim_class = MetaSimulation
 
     def __init__(self, simulations, mappings, n_processes=None):
+        self._sim_processes = []
         super().__init__(simulations, mappings)
 
         if n_processes is None:
@@ -391,7 +391,7 @@ class MultiprocessingMetaSimulation(MetaSimulation):
 
     @MetaSimulation.model.setter
     def model(self, value):
-        updated = HasModel.model.fset(self, value)
+        updated = self._update_model(value)
         # Only send the model to the internal simulations if it was updated.
         if updated:
             # Dispatch to every process before waiting on any of them, so
@@ -589,6 +589,7 @@ class MultiprocessingRepeatedSimulation(
 
     def __init__(self, simulation, mappings, n_processes=None):
         # do this to call the initializer of the Repeated Sim
+        self._sim_processes = []
         super(MultiprocessingMetaSimulation, self).__init__(simulation, mappings)
 
         if n_processes is None:
