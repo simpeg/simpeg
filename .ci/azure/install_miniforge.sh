@@ -14,4 +14,7 @@ echo "${sha256}  ${installer}" | sha256sum --check
 bash "$installer" -b -p "$prefix"
 rm "$installer"
 
+# Turn off tracing first, or the agent also reads the traced echo (with its
+# closing quote) as a logging command and adds a broken path.
+set +x
 echo "##vso[task.prependpath]${prefix}/bin"
