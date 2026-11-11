@@ -142,6 +142,10 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         the `T` of the same factorization. If `store_factors` is False, only the most
         recent factorization is kept (`fields`, `Jvec` and `Jtvec` release it when
         they finish).
+
+        A caller must drop its reference to the returned factor before asking for
+        another time step's. Otherwise, with `store_factors` False, the old factor
+        stays alive while the new one is built, and two are held at once.
         """
         dt = self.time_steps[tInd]
         precision = self._dt_precision
@@ -207,6 +211,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             if sol.ndim == 1:
                 sol.shape = (sol.size, 1)
             f[:, self._fieldType + "Solution", tInd + 1] = sol
+
+            # release it before the next step may build a new factor
+            del Ainv
 
         if self.verbose:
             print("{}\nDone calculating fields(m)\n{}".format("*" * 50, "*" * 50))
@@ -307,6 +314,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                 # step in time and overwrite
                 if tInd != len(self.time_steps + 1):
                     dun_dm_v[:, i] = Adiaginv * (JRHS - Asubdiag * dun_dm_v[:, i])
+
+            # release it before the next step may build a new factor
+            del Adiaginv
 
         Jv = []
         for src in self.survey.source_list:
@@ -461,6 +471,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
                 )
 
                 JTv = JTv + mkvc(-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v)
+
+            # release it before the next step may build a new factor
+            del AdiagTinv
 
         # Treat the initial condition
 
@@ -1383,6 +1396,9 @@ class Simulation3DElectricField(BaseTDEMSimulation):
                 )
 
                 JTv = JTv + mkvc(-dAT_dm_v - dAsubdiagT_dm_v + dRHST_dm_v)
+
+            # release it before the next step may build a new factor
+            del AdiagTinv
 
         # Treating initial condition when a galvanic source is included
         tInd = -1
