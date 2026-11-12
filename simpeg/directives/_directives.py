@@ -453,11 +453,12 @@ class BetaEstimateMaxDerivative(BaseBetaEstimator):
     Notes
     -----
     Let :math:`\phi_d` represent the data misfit, :math:`\phi_m` represent the model
-    objective function and :math:`\mathbf{m_0}` represent the starting model. The first
+    objective function and :math:`\mathbf{m}_0` represent the starting model. The first
     model update is obtained by minimizing the a global objective function of the form:
 
     .. math::
-        \phi (\mathbf{m_0}) = \phi_d (\mathbf{m_0}) + \beta_0 \phi_m (\mathbf{m_0})
+
+        \phi(\mathbf{m}_0) = \phi_d(\mathbf{m}_0) + \beta_0 \phi_m (\mathbf{m}_0)
 
     where :math:`\beta_0` represents the initial trade-off parameter (beta).
 
@@ -466,15 +467,24 @@ class BetaEstimateMaxDerivative(BaseBetaEstimator):
     Here, the initial trade-off parameter is computed according to:
 
     .. math::
-        \beta_0 = \gamma \frac{| \nabla_m \phi_d (\mathbf{m_0}) |_{max}}{| \nabla_m \phi_m (\mathbf{m_0 + \delta m}) |_{max}}
+
+        \beta_0 =
+        \gamma \frac{
+            \max{|\nabla\phi_d(\mathbf{m}_0)|}
+        }{
+            \max{|\nabla\phi_m(\mathbf{m}_0 + \Delta\mathbf{m})|}
+        },
 
     where
 
     .. math::
-        \delta \mathbf{m} = \frac{m_{max}}{\mu_{max}} \boldsymbol{\mu}
 
-    and :math:`\boldsymbol{\mu}` is a set of independent samples from the
-    continuous uniform distribution between 0 and 1.
+        \Delta \mathbf{m} = \lVert \mathbf{m} \rVert \mathbf{\hat{\mu}},
+
+
+    :math:`\mathbf{\hat{\mu}}` is a random unit vector in the model spaced obtained
+    from independent samples from the continuous uniform distribution :math:`U(-1, 1)`,
+    and :math:`\lVert \cdot \rVert` is the L2 vector norm.
 
     """
 
@@ -489,11 +499,16 @@ class BetaEstimateMaxDerivative(BaseBetaEstimator):
         if self.verbose:
             print("Calculating the beta0 parameter.")
 
+        # Get model and its norm
         m = self.invProb.model
+        m_norm = np.linalg.norm(m)
 
-        x0 = rng.random(size=m.shape)
+        # Get random unit vector in the model space
+        x0 = rng.uniform(low=-1.0, high=1.0, size=m.shape)
+        x0 /= np.linalg.norm(x0)
+
         phi_d_deriv = np.abs(self.dmisfit.deriv(m)).max()
-        dm = x0 / x0.max() * m.max()
+        dm = x0 * (m_norm if m_norm != 0 else 1.0)
         phi_m_deriv = np.abs(self.reg.deriv(m + dm)).max()
 
         self.ratio = np.asarray(phi_d_deriv / phi_m_deriv)
