@@ -102,7 +102,7 @@ def from_dc_to_sip_survey(survey_dc, times):
 
     Parameters
     ----------
-    dc_survey : simpeg.electromagnetics.static.resistivity.survey.Survey
+    survey_dc : simpeg.electromagnetics.static.resistivity.survey.Survey
         DC survey object
     times : numpy.ndarray
         Time channels

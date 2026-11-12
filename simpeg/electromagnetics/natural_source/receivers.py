@@ -110,7 +110,7 @@ class BaseNaturalSourceRx(BaseRx):
                 'CCVy', 'cell_centers_y'  -> y-component of vector field defined on cell centers
                 'CCVz', 'cell_centers_z'  -> z-component of vector field defined on cell centers
 
-        locations_id : int
+        location_id : int
             Receiver locations ID. 0 used for roving locations. 1 used for base station locations.
 
         Returns
