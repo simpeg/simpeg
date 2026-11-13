@@ -84,9 +84,6 @@ docs = [
 tests = ["simpeg[all,docs]", "pytest", "pytest-cov"]
 dev = ["simpeg[all,style,docs,tests]"] # the whole kit and caboodle
 
-[tool.setuptools]
-py-modules = ['SimPEG']
-
 [tool.setuptools.packages.find]
 include = ["simpeg*"]
 
