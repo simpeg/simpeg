@@ -975,11 +975,12 @@ class RemovedIndActive:
 class TestParametricPolyMap(RemovedIndActive):
     """Test removed ``actInd`` in ParametricPolyMap."""
 
-    def test_error_argument(self, mesh, active_cells):
-        """Test if error is raised after passing ``actInd`` to the constructor."""
-        msg = "Unsupported keyword argument actInd"
+    @pytest.mark.parametrize("old_name", ("actInd", "indActive"))
+    def test_error_argument(self, mesh, active_cells, old_name):
+        """Test that removed arguments are rejected by the constructor."""
+        msg = f"Unsupported keyword argument {old_name}"
         with pytest.raises(TypeError, match=msg):
-            maps.ParametricPolyMap(mesh, 2, actInd=active_cells)
+            maps.ParametricPolyMap(mesh, 2, **{old_name: active_cells})
 
     def test_error_accessing_property(self, mesh, active_cells):
         """Test error when trying to access the ``actInd`` property."""
@@ -1006,23 +1007,13 @@ class TestMesh2Mesh(RemovedIndActive):
 
     def test_error_argument(self, meshes, active_cells):
         """Test if error is raised after passing ``indActive`` to the constructor."""
-        msg = self.get_message_removed_error("indActive", "active_cells")
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             maps.Mesh2Mesh(meshes, indActive=active_cells)
 
     def test_error_accessing_property(self, meshes, active_cells):
         """Test error when trying to access the ``indActive`` property."""
         mapping = maps.Mesh2Mesh(meshes, active_cells=active_cells)
-        msg = "indActive has been removed, please use active_cells"
-        with pytest.raises(NotImplementedError, match=msg):
-            mapping.indActive
-
-    def test_warning_setter(self, meshes, active_cells):
-        """Test warning when trying to set the ``indActive`` property."""
-        mapping = maps.Mesh2Mesh(meshes, active_cells=active_cells)
-        msg = "indActive has been removed, please use active_cells"
-        with pytest.raises(NotImplementedError, match=msg):
-            mapping.indActive = active_cells
+        assert not hasattr(mapping, "indActive")
 
 
 class TestInjectActiveCells(RemovedIndActive):
@@ -1030,23 +1021,14 @@ class TestInjectActiveCells(RemovedIndActive):
 
     def test_indactive_error_argument(self, mesh, active_cells):
         """Test if error is raised after passing ``indActive`` to the constructor."""
-        msg = self.get_message_removed_error("indActive", "active_cells")
+        msg = "Unsupported keyword argument indActive"
         with pytest.raises(TypeError, match=msg):
             maps.InjectActiveCells(mesh, indActive=active_cells)
 
     def test_indactive_error_accessing_property(self, mesh, active_cells):
         """Test error when trying to access the ``indActive`` property."""
         mapping = maps.InjectActiveCells(mesh, active_cells=active_cells)
-        msg = "indActive has been removed, please use active_cells"
-        with pytest.raises(NotImplementedError, match=msg):
-            mapping.indActive
-
-    def test_indactive_error_setter(self, mesh, active_cells):
-        """Test error when trying to set the ``indActive`` property."""
-        mapping = maps.InjectActiveCells(mesh, active_cells=active_cells)
-        msg = "indActive has been removed, please use active_cells"
-        with pytest.raises(NotImplementedError, match=msg):
-            mapping.indActive = active_cells
+        assert not hasattr(mapping, "indActive")
 
     @pytest.mark.parametrize("value_inactive", (3.14, np.array([1])))
     def test_valinactive_error_argument(self, mesh, active_cells, value_inactive):
@@ -1084,25 +1066,14 @@ class TestParametric(RemovedIndActive):
     @pytest.mark.parametrize("map_class", CLASSES)
     def test_indactive_error_argument(self, mesh, active_cells, map_class):
         """Test if error is raised after passing ``indActive`` to the constructor."""
-        msg = self.get_message_removed_error("indActive", "active_cells")
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             map_class(mesh, indActive=active_cells)
 
     @pytest.mark.parametrize("map_class", CLASSES)
     def test_indactive_error_accessing_property(self, mesh, active_cells, map_class):
         """Test error when trying to access the ``indActive`` property."""
         mapping = map_class(mesh, active_cells=active_cells)
-        msg = "indActive has been removed, please use active_cells"
-        with pytest.raises(NotImplementedError, match=msg):
-            mapping.indActive
-
-    @pytest.mark.parametrize("map_class", CLASSES)
-    def test_indactive_error_setter(self, mesh, active_cells, map_class):
-        """Test error when trying to set the ``indActive`` property."""
-        mapping = map_class(mesh, active_cells=active_cells)
-        msg = "indActive has been removed, please use active_cells"
-        with pytest.raises(NotImplementedError, match=msg):
-            mapping.indActive = active_cells
+        assert not hasattr(mapping, "indActive")
 
 
 class TestParametricDeriv:

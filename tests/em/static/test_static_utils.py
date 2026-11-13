@@ -45,7 +45,7 @@ class TestDeprecatedIndActive:
         """
         Test if error is raised after passing ``ind_active`` as argument.
         """
-        msg = "Unsupported keyword argument ind_active"
+        msg = "unexpected keyword argument 'ind_active'"
         with pytest.raises(TypeError, match=msg):
             drapeTopotoLoc(mesh, points, ind_active=active_cells)
 

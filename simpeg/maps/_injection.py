@@ -25,12 +25,6 @@ class Mesh2Mesh(IdentityMap):
         except TypeError:
             raise TypeError("Couldn't unpack 'meshes' into two meshes.")
 
-        # Deprecate indActive argument
-        if kwargs.pop("indActive", None) is not None:
-            raise TypeError(
-                "'indActive' was removed in SimPEG v0.24.0, please use 'active_cells' instead.",
-            )
-
         super().__init__(mesh=mesh, **kwargs)
 
         self.mesh2 = mesh2
@@ -90,14 +84,6 @@ class Mesh2Mesh(IdentityMap):
         if value is not None:
             value = validate_active_indices("active_cells", value, self.mesh.n_cells)
         self._active_cells = value
-
-    indActive = deprecate_property(
-        active_cells,
-        "indActive",
-        "active_cells",
-        removal_version="0.24.0",
-        error=True,
-    )
 
     @property
     def P(self):
@@ -200,11 +186,6 @@ class InjectActiveCells(IdentityMap):
         self.mesh = mesh
         self.nC = nC or mesh.nC
 
-        # Deprecate indActive argument
-        if kwargs.pop("indActive", None) is not None:
-            raise TypeError(
-                "'indActive' was removed in SimPEG v0.24.0, please use 'active_cells' instead."
-            )
         # Deprecate valInactive argument
         if kwargs.pop("valInactive", None) is not None:
             raise TypeError(
@@ -267,14 +248,6 @@ class InjectActiveCells(IdentityMap):
         if value is not None:
             value = validate_active_indices("active_cells", value, self.nC)
         self._active_cells = value
-
-    indActive = deprecate_property(
-        active_cells,
-        "indActive",
-        "active_cells",
-        removal_version="0.24.0",
-        error=True,
-    )
 
     @property
     def shape(self):

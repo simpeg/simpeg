@@ -524,16 +524,14 @@ class VRM_fwd_tests(unittest.TestCase):
         self.assertTrue(Test)
 
 
-class TestDeprecatedIndActive:
-    """Test deprecated ``indActive`` argument in viscous remanent mag simulations."""
+class TestRemovedIndActive:
+    """Test removed ``indActive`` argument in viscous remanent mag simulations."""
 
     CLASSES = (
         vrm.BaseVRMSimulation,
         vrm.Simulation3DLinear,
         vrm.Simulation3DLogUniform,
     )
-    OLD_NAME = "indActive"
-    NEW_NAME = "active_cells"
 
     @pytest.fixture
     def mesh(self):
@@ -552,11 +550,7 @@ class TestDeprecatedIndActive:
         """
         Test if error is raised after passing ``indActive`` to the constructor.
         """
-        msg = (
-            "'indActive' was removed in SimPEG v0.24.0, "
-            "please use 'active_cells' instead."
-        )
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             simulation(mesh, indActive=active_cells)
 
     @pytest.mark.parametrize("simulation", CLASSES)
@@ -565,22 +559,7 @@ class TestDeprecatedIndActive:
         Test error when trying to access the ``indActive`` property.
         """
         sim = simulation(mesh, active_cells=active_cells)
-        msg = f"{self.OLD_NAME} has been removed, please use {self.NEW_NAME}"
-        with pytest.raises(NotImplementedError, match=msg):
-            sim.indActive
-
-    @pytest.mark.parametrize("simulation", CLASSES)
-    def test_error_setter(self, mesh, active_cells, simulation):
-        """
-        Test error when trying to set the ``indActive`` property.
-        """
-        sim = simulation(mesh, active_cells=active_cells)
-        # Define new active cells to pass to the setter
-        new_active_cells = active_cells.copy()
-        new_active_cells[-4:] = False
-        msg = f"{self.OLD_NAME} has been removed, please use {self.NEW_NAME}"
-        with pytest.raises(NotImplementedError, match=msg):
-            sim.indActive = new_active_cells
+        assert not hasattr(sim, "indActive")
 
 
 if __name__ == "__main__":
