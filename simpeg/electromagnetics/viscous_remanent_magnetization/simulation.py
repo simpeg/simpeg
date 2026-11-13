@@ -15,8 +15,6 @@ from ...utils import (
 from .survey import SurveyVRM
 from .receivers import Point, SquareLoop
 
-from ...utils.code_utils import deprecate_property
-
 ############################################
 # BASE VRM PROBLEM CLASS
 ############################################
@@ -36,11 +34,6 @@ class BaseVRMSimulation(BaseSimulation):
         active_cells=None,
         **kwargs,
     ):
-        # Deprecate indActive argument
-        if kwargs.pop("indActive", None) is not None:
-            raise TypeError(
-                "'indActive' was removed in SimPEG v0.24.0, please use 'active_cells' instead."
-            )
         self.mesh = mesh
         super().__init__(survey=survey, **kwargs)
 
@@ -141,14 +134,6 @@ class BaseVRMSimulation(BaseSimulation):
         self._active_cells = validate_active_indices(
             "active_cells", value, self.mesh.n_cells
         )
-
-    indActive = deprecate_property(
-        active_cells,
-        "indActive",
-        "active_cells",
-        removal_version="0.24.0",
-        error=True,
-    )
 
     def _getH0matrix(self, xyz, pp):
         """
