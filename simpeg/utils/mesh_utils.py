@@ -132,7 +132,7 @@ def get_discrete_topography(mesh, active_cells, topo_cell_cutoff="top"):
 
     Parameters
     ----------
-    mesh : TensorMesh or discretize.TreeMesh
+    mesh : discretize.TensorMesh or discretize.TreeMesh
         A tensor or tree mesh.
     active_cells : numpy.ndarray of bool or int
         Active cells index; i.e. indices of cells below surface

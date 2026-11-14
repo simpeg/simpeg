@@ -295,16 +295,20 @@ def test_tensor_mesh_uneven_widths(shift_horizontal):
 
     A 10 m column (0 < x < 10) sits next to 1 m columns, with the surface at z = 0
     for x < 10 and z = -2 beyond. The location at x = 9.6 is in the 10 m column,
-    but closer to the center of the 1 m column at x = 10.5.
+    but closer to the center of the 1 m column at x = 10.5. The one at x = 15.3 is
+    outside of the vertical extent of the mesh (-5 < z < 5).
     """
     mesh = TensorMesh([np.r_[np.ones(10), 10.0, np.ones(10)], np.ones(10)], [-10, -5])
     x, z = mesh.cell_centers.T
     active_cells = z < np.where(x < 10, 0.0, -2.0)
     pts_shifted = shift_to_discrete_topography(
-        mesh, np.array([[9.6, 5.0]]), active_cells, shift_horizontal=shift_horizontal
+        mesh,
+        np.array([[9.6, 5.0], [15.3, 5.0]]),
+        active_cells,
+        shift_horizontal=shift_horizontal,
     )
     if shift_horizontal:
-        expected = [[10.5, -2.0]]
+        expected = [[10.5, -2.0], [15.5, -2.0]]
     else:
-        expected = [[9.6, 0.0]]
+        expected = [[9.6, 0.0], [15.3, -2.0]]
     np.testing.assert_allclose(pts_shifted, expected)
