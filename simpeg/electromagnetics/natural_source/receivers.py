@@ -2333,8 +2333,8 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
         if locations_h is None:
             locations_h = locations_e
         super().__init__(
-            locations1=locations_e,
-            locations2=locations_h,
+            locations1=locations_h,
+            locations2=locations_e,
             storeProjections=storeProjections,
         )
         self.formula = formula
