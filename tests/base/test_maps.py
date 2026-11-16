@@ -1173,6 +1173,32 @@ class TestParametricDeriv:
         np.testing.assert_allclose(derivative @ v, mapping.deriv(model, v=v))
 
 
+@pytest.mark.parametrize("log_sigma", [False, True])
+def test_parametric_circle_map_values(log_sigma):
+    """
+    Check that ``ParametricCircleMap`` assigns the background value outside the
+    circle and the circle value inside it.
+    """
+    h = 0.5 * np.ones(20)
+    mesh = discretize.TensorMesh([h, h])
+    sigma0, sigma1, x0, y0, radius = 1.0, 10.0, 4.0, 6.0, 2.0
+    if log_sigma:
+        model = np.r_[np.log(sigma0), np.log(sigma1), x0, y0, radius]
+    else:
+        model = np.r_[sigma0, sigma1, x0, y0, radius]
+    mapping = maps.ParametricCircleMap(mesh, logSigma=log_sigma, slope=1e6)
+    values = mapping * model
+
+    distance = np.sqrt(
+        (mesh.cell_centers[:, 0] - x0) ** 2 + (mesh.cell_centers[:, 1] - y0) ** 2
+    )
+    inside = distance < radius - 0.25
+    outside = distance > radius + 0.25
+    assert inside.any() and outside.any()
+    np.testing.assert_allclose(values[inside], sigma1, rtol=1e-3)
+    np.testing.assert_allclose(values[outside], sigma0, rtol=1e-3)
+
+
 def test_deriv_SelfConsistentEffectiveMedium():
     """Test deriv method of ``SelfConsistentEffectiveMedium``."""
     h = 10
