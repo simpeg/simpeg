@@ -210,7 +210,7 @@ class Dipole(BaseSrc):
 
         Parameters
         ----------
-        sim : simpeg.electromagnetics.static.spectral_induced_polarization.simulation.BaseDCSimulation
+        simulation : simpeg.electromagnetics.static.spectral_induced_polarization.simulation.BaseDCSimulation
             A spectral IP simulation
 
         Returns
@@ -254,7 +254,7 @@ class Pole(BaseSrc):
 
         Parameters
         ----------
-        sim : simpeg.electromagnetics.static.resistivity.simulation.BaseDCSimulation
+        simulation : simpeg.electromagnetics.static.resistivity.simulation.BaseDCSimulation
             A DC/IP simulation
 
         Returns
