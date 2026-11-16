@@ -9,16 +9,11 @@ from simpeg import props, maps
 @pytest.fixture(scope="module")
 def mock_model_class():
     class MockModel(props.HasModel):
-        prop, prop_map, _prop_deriv = props.Invertible("test physical property")
-        other, other_map, _other_deriv = props.Invertible("another physical property")
+        prop = props.PhysicalProperty("test physical property")
+        other = props.PhysicalProperty("another physical property")
 
-        def __init__(
-            self, prop=None, prop_map=None, other=None, other_map=None, **kwargs
-        ):
-            self.prop = prop
-            self.prop_map = prop_map
-            self.other = other
-            self.other_map = other_map
+        def __init__(self, prop=None, other=None, **kwargs):
+            self._init_property(prop=prop, other=other)
             super().__init__(**kwargs)
 
         @property
@@ -30,7 +25,7 @@ def mock_model_class():
 
         @property
         def _delete_on_model_update(self):
-            if self.prop_map is not None:
+            if "prop" in self.parametrizations:
                 return ["_prop_dependent_property"]
             return []
 
@@ -39,8 +34,7 @@ def mock_model_class():
 
 @pytest.fixture()
 def modeler(mock_model_class):
-    prop_map = maps.ExpMap()
-    modeler = mock_model_class(prop_map=prop_map)
+    modeler = mock_model_class(prop=maps.ExpMap())
     return modeler
 
 
@@ -80,12 +74,11 @@ def test_no_clear_on_model_reassign(modeler):
 
 def test_map_clearing(modeler):
     modeler.prop = np.ones(10)
-    assert modeler.prop_map is None
+    assert "prop" not in modeler.parametrizations
 
 
 def test_no_clear_without_mapping(modeler):
-    modeler.prop_map = None
-    modeler.other_map = maps.ExpMap()
+    modeler.parametrize(other=maps.ExpMap())
     modeler.prop = np.ones(10)
     item1 = modeler.prop_dependent_property
     assert item1 is not None
@@ -101,7 +94,13 @@ def test_model_needed(modeler):
 
 
 def test_no_model_needed(modeler):
-    modeler.prop_map = None
+    modeler.prop = None
+    assert not modeler.needs_model
+
+    modeler.parametrize(prop=maps.ExpMap())
+    assert modeler.needs_model
+
+    modeler.prop = np.ones(10)
     assert not modeler.needs_model
 
 
@@ -115,3 +114,62 @@ def test_clean_on_model_update_deprecation(modeler):
     msg = "clean_on_model_update has been deprecated due to repeated functionality.*"
     with pytest.warns(FutureWarning, match=msg):
         modeler.clean_on_model_update
+
+
+def test_clear_on_reparametrize(modeler):
+    modeler.model = np.ones(10)
+    item_1 = modeler.prop_dependent_property
+
+    # the same model through a different map is a different value
+    modeler.parametrize(prop=maps.ExpMap() * maps.LinearMap(np.eye(10), np.ones(10)))
+    assert getattr(modeler, "_prop_dependent_property", None) is None
+    npt.assert_allclose(modeler.prop_dependent_property, 2 * np.exp(2 * np.ones(10)))
+    assert modeler.prop_dependent_property is not item_1
+
+
+def test_model_with_constructor_independent_of_init_order():
+    class PropertiesAfterSuper(props.HasModel):
+        prop = props.PhysicalProperty("test physical property")
+
+        def __init__(self, prop=None, **kwargs):
+            super().__init__(**kwargs)
+            self._init_property(prop=prop)
+
+    modeler = PropertiesAfterSuper(prop=maps.ExpMap(), model=np.zeros(4))
+    npt.assert_array_equal(modeler.prop, np.ones(4))
+
+
+def test_bad_constructor_model_raises(mock_model_class):
+    with pytest.raises(AttributeError, match="no parametrized properties"):
+        mock_model_class(prop=np.ones(3), model=np.zeros(4))
+
+
+def test_delete_model(modeler):
+    modeler.model = np.ones(10)
+    del modeler.model
+    assert modeler.model is None
+
+
+def test_set_model_reports_updates(modeler):
+    x = np.ones(10)
+    assert modeler._set_model(x) is True
+    assert modeler._set_model(x.copy()) is False
+    assert modeler._set_model(x + 1) is True
+
+
+def test_model_is_set_after_init_runs():
+    seen = []
+
+    class ReadsModel(props.HasModel):
+        prop = props.PhysicalProperty("test physical property")
+
+        def __init__(self, prop=None, **kwargs):
+            super().__init__(**kwargs)
+            self._init_property(prop=prop)
+            seen.append(self.model)
+
+    modeler = ReadsModel(prop=maps.ExpMap(), model=np.zeros(4))
+
+    # the model is only set once the constructor has finished
+    assert seen == [None]
+    npt.assert_array_equal(modeler.model, np.zeros(4))

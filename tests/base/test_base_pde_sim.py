@@ -3,10 +3,11 @@
 import re
 import pymatsolver
 from simpeg.base import (
-    with_property_mass_matrices,
     with_surface_property_mass_matrices,
     with_line_property_mass_matrices,
     BasePDESimulation,
+    BaseElectricalPDESimulation,
+    BaseMagneticPDESimulation,
     BaseHierarchicalElectricalSimulation,
 )
 from simpeg import props, maps
@@ -14,7 +15,6 @@ from simpeg.utils import PerformanceWarning
 import unittest
 import discretize
 import numpy as np
-from scipy.constants import mu_0
 from discretize.tests import check_derivative
 from discretize.utils import Zero
 import scipy.sparse as sp
@@ -24,56 +24,43 @@ from simpeg.utils import get_default_solver
 
 
 # define a very simple class...
-@with_property_mass_matrices("sigma")
-@with_property_mass_matrices("mu")
 @with_surface_property_mass_matrices("face_conductance")
 @with_line_property_mass_matrices("edge_area_conductance")
-class SimpleSim(BasePDESimulation):
+class SimpleSim(BaseElectricalPDESimulation, BaseMagneticPDESimulation):
     """Base class for simple simulation."""
 
-    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
-    rho, rhoMap, rhoDeriv = props.Invertible("Electrical conductivity (S/m)")
-    props.Reciprocal(sigma, rho)
-    mu, muMap, muDeriv = props.Invertible("Magnetic Permeability")
-    face_conductance, face_conductance_map, face_conductance_deriv = props.Invertible(
-        "Face conductivity, conductance (S)"
+    face_conductance = props.PhysicalProperty(
+        "Face conductivity, conductance (S)",
+        default=None,
+        location=props.Location.FACES,
     )
-    edge_area_conductance, edge_area_conductance_map, edge_area_conductance_deriv = (
-        props.Invertible("Edge conductivity, conductivity times area (Sm)")
+    edge_area_conductance = props.PhysicalProperty(
+        "Edge conductivity, conductivity times area (Sm)",
+        default=None,
+        location=props.Location.EDGES,
     )
 
     def __init__(  # noqa D107
         self,
         mesh,
         survey=None,
-        sigma=None,
-        sigmaMap=None,
-        mu=mu_0,
-        muMap=None,
         face_conductance=None,
-        face_conductance_map=None,
         edge_area_conductance=None,
-        edge_area_conductance_map=None,
+        **kwargs,
     ):
-        super().__init__(mesh=mesh, survey=survey)
-        self.sigma = sigma
-        self.mu = mu
-        self.face_conductance = face_conductance
-        self.edge_area_conductance = edge_area_conductance
-        self.sigmaMap = sigmaMap
-        self.muMap = muMap
-        self.face_conductance_map = face_conductance_map
-        self.edge_area_conductance_map = edge_area_conductance_map
+        super().__init__(mesh=mesh, survey=survey, **kwargs)
+        self._init_property(
+            face_conductance=face_conductance,
+            edge_area_conductance=edge_area_conductance,
+        )
 
     @property
     def _delete_on_model_update(self):
         """Matrices deleted upon conductivity/resistivity model update."""
         toDelete = super()._delete_on_model_update
-        if self.sigmaMap is not None or self.rhoMap is not None:
-            toDelete = toDelete + self._clear_on_sigma_update
-        if self.face_conductance_map is not None:
+        if self.is_parametrized("face_conductance"):
             toDelete = toDelete + self._clear_on_face_conductance_update
-        if self.edge_area_conductance_map is not None:
+        if self.is_parametrized("edge_area_conductance"):
             toDelete = toDelete + self._clear_on_edge_area_conductance_update
         return toDelete
 
@@ -864,7 +851,7 @@ class TestSimSurfaceProperties(unittest.TestCase):
     def setUp(self):
         """Set up function."""
         self.mesh = discretize.TensorMesh([5, 6, 7])
-        self.sim = SimpleSim(self.mesh, face_conductance_map=maps.ExpMap())
+        self.sim = SimpleSim(self.mesh, face_conductance=maps.ExpMap())
         self.start_mod = np.log(1e-2 * np.ones(self.mesh.n_faces)) + np.random.randn(
             self.mesh.n_faces
         )
@@ -1211,7 +1198,7 @@ class TestSimEdgeProperties(unittest.TestCase):
     def setUp(self):
         """Set up function."""
         self.mesh = discretize.TensorMesh([5, 6, 7])
-        self.sim = SimpleSim(self.mesh, edge_area_conductance_map=maps.ExpMap())
+        self.sim = SimpleSim(self.mesh, edge_area_conductance=maps.ExpMap())
         self.start_mod = np.log(1e-2 * np.ones(self.mesh.n_edges)) + np.random.randn(
             self.mesh.n_edges
         )
@@ -1567,3 +1554,50 @@ def test_unstructured_mesh():
     with pytest.raises(NotImplementedError):
         # should error on anything besides a discretize.base.BaseRegularMesh
         sim.MeSigmaI
+
+
+@pytest.mark.parametrize("name", ["face_conductance", "edge_area_conductance"])
+def test_deprecated_conductance_map_arguments(name):
+    """Test the pre-parametrize ``*_map`` names still work, with a warning."""
+    mesh = discretize.TensorMesh([3, 3, 3])
+    with pytest.warns(FutureWarning, match=f"{name}_map"):
+        sim = BaseHierarchicalElectricalSimulation(
+            mesh, sigma=1.0, **{f"{name}_map": maps.ExpMap()}
+        )
+    assert sim.is_parametrized(name)
+    with pytest.warns(FutureWarning, match=f"{name}_map"):
+        assert getattr(sim, f"{name}_map") is sim.parametrizations[name]
+
+
+def test_reparametrize_clears_hierarchical_matrices():
+    mesh = discretize.TensorMesh([[(10.0, 4)]] * 3, "CCC")
+    n_cells = mesh.n_cells
+
+    def make_sim():
+        return BaseHierarchicalElectricalSimulation(
+            mesh,
+            face_conductance=0.1 * np.ones(mesh.n_faces),
+            sigma=maps.ExpMap(),
+        )
+
+    model = np.log(0.01) * np.ones(n_cells)
+    sim = make_sim()
+    sim.model = model
+    sim.MeSigma  # cache it
+
+    sim.parametrize(
+        sigma=maps.ExpMap() * maps.LinearMap(np.eye(n_cells), np.ones(n_cells))
+    )
+
+    expected = make_sim()
+    expected.model = model + 1.0
+    np.testing.assert_allclose(
+        sim.MeSigma.diagonal().sum(), expected.MeSigma.diagonal().sum()
+    )
+
+
+def test_property_arguments_after_the_first_are_keyword_only():
+    mesh = discretize.TensorMesh([3, 3, 3])
+    # the third argument used to be `sigmaMap`, it should not silently become `rho`
+    with pytest.raises(TypeError, match="positional"):
+        BaseElectricalPDESimulation(mesh, None, maps.IdentityMap())

@@ -10,6 +10,7 @@ from discretize import TensorMesh
 from discretize.utils import unpack_widths, sdiag, mkvc
 
 from . import props
+from .props import _add_deprecated_physical_property_functions
 from .typing import RandomSeed
 from .data import SyntheticData
 from .survey import BaseSurvey
@@ -614,6 +615,9 @@ class BaseTimeSimulation(BaseSimulation):
 ##############################################################################
 
 
+@_add_deprecated_physical_property_functions(
+    "linear_model", old_map="model_map", old_deriv="model_deriv"
+)
 class LinearSimulation(BaseSimulation):
     r"""Linear forward simulation class.
 
@@ -640,22 +644,22 @@ class LinearSimulation(BaseSimulation):
 
     Parameters
     ----------
-    model_map : simpeg.maps.BaseMap
-        Mapping from the model parameters to vector that the linear operator acts on.
+    linear_model : (n_param) numpy.ndarray or simpeg.maps.IdentityMap, optional
+        The vector that the linear operator acts on. Pass a mapping to
+        parametrize it from the model parameters.
     G : (n_data, n_param) numpy.ndarray or scipy.sparse.csr_matrx
-        The linear operator. For a ``model_map`` that maps within the same vector space
+        The linear operator. For a ``linear_model`` mapping that maps within the same vector space
         (e.g. the identity map), the dimension ``n_param`` equals the number of model parameters.
         If not, the dimension ``n_param`` of the linear operator will depend on the mapping.
     """
 
-    linear_model, model_map, model_deriv = props.Invertible(
-        "The model for a linear problem"
+    linear_model = props.PhysicalProperty(
+        "The model for a linear problem", default=None
     )
 
-    def __init__(self, linear_model=None, model_map=None, G=None, **kwargs):
+    def __init__(self, linear_model=None, *, G=None, **kwargs):
         super().__init__(**kwargs)
-        self.linear_model = linear_model
-        self.model_map = model_map
+        self._init_property(linear_model=linear_model)
         if G is not None:
             self.G = G
 
@@ -674,7 +678,7 @@ class LinearSimulation(BaseSimulation):
         Returns
         -------
         (n_data, n_param) numpy.ndarray or scipy.sparse.csr_matrix
-            The linear operator. For a :py:attr:`model_map` that maps within the same vector space
+            The linear operator. For a :py:attr:`linear_model` mapping that maps within the same vector space
             (e.g. the identity map), the dimension ``n_param`` equals the number of model parameters.
             If not, the dimension ``n_param`` of the linear operator will depend on the mapping.
         """
@@ -736,22 +740,22 @@ class LinearSimulation(BaseSimulation):
         -------
         J : (n_data, n_param) numpy.ndarray
             :math:`J = G\frac{\partial f}{\partial\mathbf{m}}`.
-            Where :math:`f` is :attr:`model_map`.
+            Where :math:`f` is the mapping parametrizing :attr:`linear_model`.
         """
         self.model = m
-        # self.model_deriv is likely a sparse matrix
+        # the derivative of linear_model is likely a sparse matrix
         # and G is possibly dense, thus we need to do..
-        return (self.model_deriv.T.dot(self.G.T)).T
+        return (self._prop_deriv("linear_model").T.dot(self.G.T)).T
 
     def Jvec(self, m, v, f=None):
         # Docstring inherited from BaseSimulation
         self.model = m
-        return self.G.dot(self.model_deriv * v)
+        return self.G.dot(self._prop_deriv("linear_model") * v)
 
     def Jtvec(self, m, v, f=None):
         # Docstring inherited from BaseSimulation
         self.model = m
-        return self.model_deriv.T * self.G.T.dot(v)
+        return self._prop_deriv("linear_model").T * self.G.T.dot(v)
 
 
 class ExponentialSinusoidSimulation(LinearSimulation):

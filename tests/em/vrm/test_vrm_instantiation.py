@@ -25,3 +25,11 @@ def test_bad_mesh_dim():
         ValueError, match="Simulation3DLinear mesh must be 3D, received a 2D mesh."
     ):
         vrm.Simulation3DLinear(mesh)
+
+
+def test_linear_xi_requires_mapping():
+    import numpy as np
+
+    mesh = discretize.TensorMesh([3, 3, 3])
+    with pytest.raises(TypeError, match="mapping"):
+        vrm.Simulation3DLinear(mesh, xi=np.ones(mesh.n_cells))

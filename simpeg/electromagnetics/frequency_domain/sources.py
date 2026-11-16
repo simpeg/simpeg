@@ -642,19 +642,16 @@ class MagDipole(BaseFDEMSrc):
             return -C.T * (MMui_s * self.bPrimary(simulation))
 
     def s_eDeriv(self, simulation, v, adjoint=False):
-        if not hasattr(simulation, "muMap") or not hasattr(simulation, "muiMap"):
+        if not {"mu", "mui"} <= simulation.physical_properties.keys():
             return Zero()
         else:
             formulation = simulation._formulation
 
             if formulation == "EB":
                 mui_s = simulation.mui - 1.0 / self.mu
-                MMui_sDeriv = (
-                    simulation.mesh.get_face_inner_product_deriv(mui_s)(
-                        self.bPrimary(simulation)
-                    )
-                    * simulation.muiDeriv
-                )
+                MMui_sDeriv = simulation.mesh.get_face_inner_product_deriv(mui_s)(
+                    self.bPrimary(simulation)
+                ) * simulation._prop_deriv("mui")
                 C = simulation.mesh.edge_curl
 
                 if adjoint:
@@ -1036,7 +1033,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
         u_src = mkvc(f[src, self.primarySimulation._solutionType])
 
         if adjoint is True:
-            Jtv = np.zeros(simulation.sigmaMap.nP, dtype=complex)
+            Jtv = np.zeros(len(simulation.model), dtype=complex)
             ATinv = self.primarySimulation.solver(
                 A.T, **self.primarySimulation.solver_opts
             )

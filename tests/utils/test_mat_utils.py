@@ -43,7 +43,7 @@ class TestEigenvalues(unittest.TestCase):
 
         # Create a simpeg simulation
         model_map = IdentityMap(mesh)
-        sim = simulation.LinearSimulation(mesh, G=G, model_map=model_map)
+        sim = simulation.LinearSimulation(G=G, model_map=model_map)
 
         # Create a simpeg data object
         relative_error = 0.1

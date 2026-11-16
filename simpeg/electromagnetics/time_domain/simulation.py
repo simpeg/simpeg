@@ -64,7 +64,7 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
         super().__init__(mesh=mesh, survey=survey, **kwargs)
         self.dt_threshold = dt_threshold
         self.store_factors = store_factors
-        if self.muMap is not None:
+        if self.is_parametrized("mu"):
             raise NotImplementedError(
                 "Time domain EM simulations do not support magnetic permeability "
                 "inversion, yet."
@@ -655,9 +655,9 @@ class BaseTDEMSimulation(BaseTimeSimulation, BaseEMSimulation):
             List of the model-dependent attributes to clean upon model update.
         """
         items = super()._delete_on_model_update + ["_stored_factors"]
-        if self.sigmaMap is not None:
+        if self.is_parametrized("sigma"):
             items = items + ["_Adcinv"]  #: clear DC matrix factors on any model updates
-            # if there is a sigmaMap
+            # if sigma is parametrized
         return items
 
 
@@ -2851,12 +2851,12 @@ class Simulation3DHierarchicalElectricField(
     This simulation adopts the hierarchical framework wherein:
 
     * Thick structures are parameterized as conductivities at cell centers. This property
-      and the corresponding mapping are set with `sigma` and `sigmaMap`.
+      and the corresponding mapping are set with `sigma` (pass a mapping to parametrize it).
     * Sheet-like structures can be parameterized as conductances on mesh faces. This property
-      and the corresponding mapping are set with `face_conductance` and `face_conductance_map`.
+      can be a fixed array or a mapping, and is set with `face_conductance`.
     * Wire-like structures can be parameterized as area-integrated conductivities on
-      mesh edges. This property and the corresponding mapping as set with
-      `edge_area_conductance` and `edge_area_conductance_map`.
+      mesh edges. This property can be a fixed array or a mapping, and is set with
+      `edge_area_conductance`.
 
     See the *Notes* section for a comprehensive description of the formulation.
 
@@ -3013,10 +3013,9 @@ class Simulation3DHierarchicalElectricField(
             List of the model-dependent attributes to clean upon model update.
         """
         items = super()._delete_on_model_update
-        if (
-            (self.sigmaMap is not None)
-            | (self.face_conductance_map is not None)
-            | (self.edge_area_conductance_map is not None)
+        if any(
+            self.is_parametrized(name)
+            for name in ("sigma", "face_conductance", "edge_area_conductance")
         ):
             items = items + ["_Adcinv"]  # clear DC matrix factors on any model updates
 
@@ -3035,12 +3034,12 @@ class Simulation3DHierarchicalMagneticFluxDensity(
     This simulation adopts the hierarchical framework wherein:
 
     * Thick structures are parameterized as conductivities at cell centers. This property
-      and the corresponding mapping are set with `sigma` and `sigmaMap`.
+      and the corresponding mapping are set with `sigma` (pass a mapping to parametrize it).
     * Sheet-like structures can be parameterized as conductances on mesh faces. This property
-      and the corresponding mapping are set with `face_conductance` and `face_conductance_map`.
+      can be a fixed array or a mapping, and is set with `face_conductance`.
     * Wire-like structures can be parameterized as area-integrated conductivities on
-      mesh edges. This property and the corresponding mapping as set with
-      `edge_area_conductance` and `edge_area_conductance_map`.
+      mesh edges. This property can be a fixed array or a mapping, and is set with
+      `edge_area_conductance`.
 
     See the *Notes* section for a comprehensive description of the formulation.
 

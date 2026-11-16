@@ -276,6 +276,16 @@ filterwarnings = [
     'error:The `simpeg\.directives\.[a-z_]+` submodule has been deprecated',
     'error:Casting complex values to real discards the imaginary part',
     'ignore::simpeg.utils.BreakingChangeWarning',
+    # Tests may still exercise the deprecated `xMap`/`xDeriv` interface, but simpeg itself
+    # must not use it (these warnings are attributed to the module that triggered them).
+    '''ignore:Getting `[^.]+\.([^`]+)` directly is deprecated\. If this is still necessary use `[^.]+\.parametrizations\.([^`]+)` instead:FutureWarning''',
+    '''ignore:Passing mapping argument [^ ]+ to [^ ]+ is deprecated\. Instead you can now use the [^ ]+ argument\.:FutureWarning''',
+    '''ignore:Setting `[^.]+\.[^`]+` directly is deprecated\.:FutureWarning''',
+    '''ignore:Getting `[^.]+\.[^`]+` is deprecated, use `[^.]+\.parametrizations\.[^.]+\.deriv\(model\)` instead\.:FutureWarning''',
+    '''error:Getting `[^.]+\.([^`]+)` directly is deprecated\. If this is still necessary use `[^.]+\.parametrizations\.([^`]+)` instead:FutureWarning:simpeg\..*''',
+    '''error:Passing mapping argument [^ ]+ to [^ ]+ is deprecated\. Instead you can now use the [^ ]+ argument\.:FutureWarning:simpeg\..*''',
+    '''error:Setting `[^.]+\.[^`]+` directly is deprecated\.:FutureWarning:simpeg\..*''',
+    '''error:Getting `[^.]+\.[^`]+` is deprecated, use `[^.]+\.parametrizations\.[^.]+\.deriv\(model\)` instead\.:FutureWarning:simpeg\..*''',
     "error:The closest_points_index utilty function has been moved to:DeprecationWarning",
 ]
 xfail_strict = true

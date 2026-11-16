@@ -3,6 +3,7 @@
 import numpy as np
 from scipy.constants import mu_0
 
+from ...props import _add_deprecated_physical_property_functions
 from ...simulation import BaseSimulation
 from ... import props
 from ...utils import validate_type
@@ -11,6 +12,9 @@ from .sources import Planewave
 from .receivers import Impedance
 
 
+@_add_deprecated_physical_property_functions("sigma")
+@_add_deprecated_physical_property_functions("rho")
+@_add_deprecated_physical_property_functions("thicknesses")
 class Simulation1DRecursive(BaseSimulation):
     r"""
     Simulation class for the 1D MT problem using recursive solution.
@@ -39,36 +43,40 @@ class Simulation1DRecursive(BaseSimulation):
 
     """
 
-    sigma, sigmaMap, sigmaDeriv = props.Invertible("Electrical conductivity (S/m)")
-    rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
-    props.Reciprocal(sigma, rho)
+    sigma = props.PhysicalProperty(
+        "Electrical conductivity (S/m)",
+        reciprocal="rho",
+        shape=("*",),
+        dtype=(float, complex),
+    )
+    rho = props.PhysicalProperty(
+        "Electrical resistivity (Ohm m)",
+        reciprocal="sigma",
+        shape=("*",),
+        dtype=(float, complex),
+    )
 
     # Add layer thickness as invertible property
-    thicknesses, thicknessesMap, thicknessesDeriv = props.Invertible(
-        "thicknesses of the layers starting from the bottom of the mesh"
+    thicknesses = props.PhysicalProperty(
+        "thicknesses of the layers starting from the bottom of the mesh",
+        shape=("*",),
     )
 
     def __init__(
         self,
         survey=None,
         sigma=None,
-        sigmaMap=None,
+        *,
         rho=None,
-        rhoMap=None,
         thicknesses=None,
-        thicknessesMap=None,
         fix_Jmatrix=False,
         **kwargs,
     ):
         super().__init__(survey=survey, **kwargs)
 
         self.fix_Jmatrix = fix_Jmatrix
-        self.sigma = sigma
-        self.rho = rho
-        self.thicknesses = thicknesses
-        self.sigmaMap = sigmaMap
-        self.rhoMap = rhoMap
-        self.thicknessesMap = thicknessesMap
+        self._init_recip_properties(sigma=sigma, rho=rho)
+        self._init_property(thicknesses=thicknesses)
 
     @property
     def survey(self):
@@ -304,9 +312,9 @@ class Simulation1DRecursive(BaseSimulation):
             self.survey.frequencies, self.thicknesses, self.sigma
         )
         Js = []
-        if self.sigmaMap is not None:
+        if self.is_parametrized("sigma"):
             Js.append(Z_dsigma)
-        if self.thicknessesMap is not None:
+        if self.is_parametrized("thicknesses"):
             Js.append(Z_dthick)
         Js = np.hstack(Js)
 
@@ -353,11 +361,11 @@ class Simulation1DRecursive(BaseSimulation):
                 start = end
         self._Jmatrix = {}
         start = 0
-        if self.sigmaMap is not None:
+        if self.is_parametrized("sigma"):
             end = start + Z_dsigma.shape[1]
             self._Jmatrix["sigma"] = J[:, start:end]
             start = end
-        if self.thicknessesMap is not None:
+        if self.is_parametrized("thicknesses"):
             end = start + Z_dthick.shape[1]
             self._Jmatrix["thick"] = J[:, start:end]
         return self._Jmatrix
@@ -371,11 +379,11 @@ class Simulation1DRecursive(BaseSimulation):
                 W = W.diagonal() ** 2
 
             gtgdiag = 0
-            if self.sigmaMap is not None:
-                J = Js["sigma"] @ self.sigmaDeriv
+            if self.is_parametrized("sigma"):
+                J = Js["sigma"] @ self._prop_deriv("sigma")
                 gtgdiag += np.einsum("i,ij,ij->j", W, J, J)
-            if self.thicknessesMap is not None:
-                J = Js["thick"] @ self.thicknessesDeriv
+            if self.is_parametrized("thicknesses"):
+                J = Js["thick"] @ self._prop_deriv("thicknesses")
                 gtgdiag += np.einsum("i,ij,ij->j", W, J, J)
             self._gtgdiag = gtgdiag
         return self._gtgdiag
@@ -383,19 +391,19 @@ class Simulation1DRecursive(BaseSimulation):
     def Jvec(self, m, v, f=None):
         J = self.getJ(m, f=None)
         Jvec = 0
-        if self.sigmaMap is not None:
-            Jvec += J["sigma"] @ (self.sigmaDeriv * v)
-        if self.thicknessesMap is not None:
-            Jvec += J["thick"] @ (self.thicknessesDeriv * v)
+        if self.is_parametrized("sigma"):
+            Jvec += J["sigma"] @ (self._prop_deriv("sigma") * v)
+        if self.is_parametrized("thicknesses"):
+            Jvec += J["thick"] @ (self._prop_deriv("thicknesses") * v)
         return Jvec
 
     def Jtvec(self, m, v, f=None):
         J = self.getJ(m, f=None)
         JTvec = 0
-        if self.sigmaMap is not None:
-            JTvec += self.sigmaDeriv.T @ (J["sigma"].T @ v)
-        if self.thicknessesMap is not None:
-            JTvec += self.thicknessesDeriv.T @ (J["thick"].T @ v)
+        if self.is_parametrized("sigma"):
+            JTvec += self._prop_deriv("sigma").T @ (J["sigma"].T @ v)
+        if self.is_parametrized("thicknesses"):
+            JTvec += self._prop_deriv("thicknesses").T @ (J["thick"].T @ v)
         return JTvec
 
     @property
