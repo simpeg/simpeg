@@ -577,6 +577,27 @@ class TestBetaEstimatorArguments:
         assert directive.beta0_ratio == beta0_ratio
         assert directive.random_seed == random_seed
 
+    @pytest.mark.parametrize("m0_value", [0.0, 1.0, -2.0])
+    def test_beta_estimate_max_derivative_starting_model(self, m0_value):
+        """BetaEstimateMaxDerivative gives a finite beta, also for a zero starting model."""
+        mesh = discretize.TensorMesh([10])
+        rng = np.random.default_rng(1)
+        sim = simulation.LinearSimulation(
+            mesh, G=rng.normal(size=(6, mesh.n_cells)), model_map=maps.IdentityMap(mesh)
+        )
+        data = sim.make_synthetic_data(
+            rng.normal(size=mesh.n_cells), relative_error=0.05, random_seed=1
+        )
+        dmis = L2DataMisfit(data, sim)
+        reg = regularization.WeightedLeastSquares(mesh)
+        opt = optimization.InexactGaussNewton(maxIter=1)
+        inv_prob = inverse_problem.BaseInvProblem(dmis, reg, opt)
+        directive = directives.BetaEstimateMaxDerivative(random_seed=3)
+        inv = inversion.BaseInversion(inv_prob, directiveList=[directive])
+        inv.run(np.full(mesh.n_cells, m0_value))
+        assert np.isfinite(directive.beta0)
+        assert directive.beta0 > 0
+
 
 class TestRemovedSeedProperty:
     """
