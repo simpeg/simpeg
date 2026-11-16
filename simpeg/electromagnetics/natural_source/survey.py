@@ -88,9 +88,9 @@ class Data(BaseData, DataNSEMPlotMethods):
             # Assume the same locs for all RX
             locs = src.receiver_list[0].locations_e
             if locs.shape[1] == 1:
-                locs = np.hstack((np.array([[0.0, 0.0]]), locs))
+                locs = np.hstack((np.zeros((locs.shape[0], 2)), locs))
             elif locs.shape[1] == 2:
-                locs = np.hstack((np.array([[0.0]]), locs))
+                locs = np.hstack((np.zeros((locs.shape[0], 1)), locs))
             tArrRec = np.concatenate(
                 (
                     src.frequency * np.ones((locs.shape[0], 1)),
