@@ -97,8 +97,8 @@ Pull Requests
 =============
 
 ..
-
     paste list of PRs that were copied to `notes.rst`
+
 ```
 
 </details>
@@ -151,6 +151,8 @@ If this releases drops support of an old Python version:
 
 ## Extra tasks
 
+### Check deployments
+
 After publishing the release, Azure will automatically push the new version to PyPI, and build and deploy the docs. You can check the progress of these tasks in: https://dev.azure.com/simpeg/simpeg/_build .
 
 After they finish:
@@ -158,15 +160,38 @@ After they finish:
 - [ ] Check the new version is available in PyPI: https://pypi.org/project/simpeg
 - [ ] Check the new documentation is online: https://docs.simpeg.xyz
 
+
+### Conda-forge
+
 For the new version to be available in conda-forge, we need to update the [conda-forge/simpeg-feedstock](https://github.com/conda-forge/simpeg-feedstock) repository. Within the same day of the release a new PR will be automatically open in that repository. So:
 
 - [ ] Follow the steps provided in the checklist in that PR and merge it.
 - [ ] Make sure the new version is available through conda-forge: https://anaconda.org/conda-forge/simpeg
 
+
+### Advertise it in social media
+
+Post about the last release on Mattermost and Social Media (LinkedIn, etc.). Feel free to use the following template and add any other information you want:
+
+> 🚀🎉 We are glad to announce that SimPEG vX.Y.Z has been released! 🎉🚀
+>
+> * It's available for install in PyPI with pip: https://pypi.org/project/simpeg/
+> * And through conda-forge: https://anaconda.org/channels/conda-forge/packages/simpeg/overview
+> * The documentation pages for this new version are up and running: https://docs.simpeg.xyz/vX.Y.Z/
+> * Check out the changelog to see what changed: https://docs.simpeg.xyz/latest/content/release/X.Y.Z-notes.html
+
+ [!IMPORTANT]
+> Make sure to update the version numbers in the description and links!
+> **Check the links** before publishing.
+
+
+### Update User Tutorials
+
 Lastly, we would need to update the SimPEG version used in [`simpeg/user-tutorials`](https://github.com/simpeg/user-tutorials) and rerun its notebooks:
 
 - [ ] Open issue in [`simpeg/user-tutorials`](https://github.com/simpeg/user-tutorials) for rerunning the notebooks using the new released version of SimPEG.
 
-Finally:
+
+### Finally
 
 - [ ] Close this issue.
