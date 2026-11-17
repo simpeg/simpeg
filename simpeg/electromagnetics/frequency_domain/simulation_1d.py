@@ -229,6 +229,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
                     frequencies, unique_lambs, sig, mu, self.thicknesses
                 )
                 if self.sigmaMap is not None:
+                    dsigma_dsigma_inf = sig / self.sigma[:, None]
+                    rTE_ds *= dsigma_dsigma_inf[:, :, None]
                     rTE_ds = rTE_ds[:, i_freq]
                     rTE_ds = np.take_along_axis(rTE_ds, inv_lambs[None, ...], axis=-1)
                     v_ds = (

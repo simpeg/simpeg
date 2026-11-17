@@ -105,3 +105,22 @@ def test_getJ():
 
     # The two J matrices should not be equal
     assert not np.allclose(*jacobians, atol=0.0)
+
+
+def test_getJ_with_induced_polarization():
+    simulation, model = create_simulation_and_conductivities(True)
+    simulation.eta = np.array([0.2, 0.4, 0.1])
+    simulation.tau = np.array([0.001, 0.002, 0.003])
+    simulation.c = np.array([0.5, 0.7, 0.6])
+    jacobian = simulation.getJ(model)
+    step = 1e-4
+    for i in range(model.size):
+        perturbation = np.zeros_like(model)
+        perturbation[i] = step
+        finite_difference = (
+            simulation.dpred(model + perturbation)
+            - simulation.dpred(model - perturbation)
+        ) / (2 * step)
+        np.testing.assert_allclose(
+            jacobian[:, i], finite_difference, rtol=1e-4, atol=1e-5
+        )
