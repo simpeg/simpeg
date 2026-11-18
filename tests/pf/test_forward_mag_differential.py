@@ -3,7 +3,7 @@ import pytest
 import discretize
 import simpeg.potential_fields as PF
 from simpeg import utils, maps
-from discretize.utils import mkvc, refine_tree_xyz
+from discretize.utils import mkvc
 import numpy as np
 from tests.utils.ellipsoid import ProlateEllipsoid
 
@@ -22,15 +22,9 @@ def mesh():
     hz = dhz * np.ones(nbcz)
     _mesh = discretize.TreeMesh([hx, hy, hz], x0="CCC")
 
-    xp, yp, zp = np.meshgrid([-1400.0, 1400.0], [-1400.0, 1400.0], [-1000.0, 200.0])
-    xy = np.c_[mkvc(xp), mkvc(yp), mkvc(zp)]
-    _mesh = refine_tree_xyz(
-        _mesh,
-        xy,
-        method="box",
-        finalize=False,
-        octree_levels=[1, 1, 1, 1],
-    )
+    x0 = np.array([-1400.0, -1400.0, -1000.0])
+    x1 = np.array([1400.0, 1400.0, 200.0])
+    _mesh.refine_box(x0, x1, levels=-1, finalize=False)
     _mesh.finalize()
 
     return _mesh
@@ -343,7 +337,6 @@ def test_invalid_solver_dtype(mesh):
     ids=["bx", "by", "bz", "tmi", "b_field"],
 )
 class TestGetJ:
-
     @pytest.fixture
     def mesh_small(self):
         """

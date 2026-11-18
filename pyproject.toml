@@ -276,5 +276,6 @@ filterwarnings = [
     'error:The `simpeg\.directives\.[a-z_]+` submodule has been deprecated',
     'error:Casting complex values to real discards the imaginary part',
     'ignore::simpeg.utils.BreakingChangeWarning',
+    "error:The closest_points_index utilty function has been moved to:DeprecationWarning",
 ]
 xfail_strict = true
