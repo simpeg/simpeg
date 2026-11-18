@@ -77,7 +77,7 @@ def surface_layer_index(mesh, topo, index=0):
 
 
 def depth_weighting(
-    mesh, reference_locs, active_cells=None, exponent=2.0, threshold=None, **kwargs
+    mesh, reference_locs, active_cells=None, exponent=2.0, threshold=None
 ):
     r"""
     Construct diagonal elements of a depth weighting matrix
@@ -137,11 +137,6 @@ def depth_weighting(
     The depth weights array is finally normalized by dividing for its maximum
     value.
     """
-
-    if (key := "indActive") in kwargs:
-        raise TypeError(
-            f"'{key}' argument has been removed. " "Please use 'active_cells' instead."
-        )
 
     # Default threshold value
     if threshold is None:

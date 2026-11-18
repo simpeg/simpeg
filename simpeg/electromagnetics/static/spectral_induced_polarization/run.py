@@ -19,32 +19,23 @@ def spectral_ip_mappings(
     is_log_eta=True,
     is_log_tau=True,
     is_log_c=True,
-    **kwargs,
 ):
     """
     Generates Mappings for Spectral Induced Polarization Simulation.
     Three parameters are required to be input:
     Chargeability (eta), Time constant (tau), and Frequency dependency (c).
-    If there is no topography (indActive is None),
+    If there is no topography (active_cells is None),
     model (m) can be either set to
 
     m = np.r_[log(eta), log(tau), log(c)] or m = np.r_[eta, tau, c]
 
-    When indActive is not None, m is
+    When active_cells is not None, m is
 
-    m = np.r_[log(eta[indAcitve]), log(tau[indAcitve]), log(c[indAcitve])] or
-    m = np.r_[eta[indAcitve], tau[indAcitve], c[indAcitve]] or
+    m = np.r_[log(eta[active_cells]), log(tau[active_cells]), log(c[active_cells])] or
+    m = np.r_[eta[active_cells], tau[active_cells], c[active_cells]] or
 
     TODO: Illustrate input and output variables
     """
-
-    # Deprecate indActive argument
-    if kwargs.pop("indActive", None) is not None:
-        raise TypeError(
-            "'indActive' was removed in SimPEG v0.24.0, please use 'active_cells' instead."
-        )
-    if kwargs:  # TODO Remove this when removing kwargs argument.
-        raise TypeError("Unsupported keyword argument " + kwargs.popitem()[0])
 
     if active_cells is None:
         active_cells = np.ones(mesh.nC, dtype=bool)

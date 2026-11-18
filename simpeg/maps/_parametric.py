@@ -407,11 +407,6 @@ class ParametricPolyMap(IdentityMap):
         self.normal = normal
         self.slope = slope
 
-        # Deprecate indActive argument
-        if kwargs.pop("indActive", None) is not None:
-            raise TypeError(
-                "'indActive' was removed in SimPEG v0.24.0, please use 'active_cells' instead."
-            )
         if kwargs:  # TODO Remove this when removing kwargs argument.
             raise TypeError("Unsupported keyword argument " + kwargs.popitem()[0])
 
@@ -1102,12 +1097,6 @@ class BaseParametric(IdentityMap):
         active_cells=None,
         **kwargs,
     ):
-        # Deprecate indActive argument
-        if kwargs.pop("indActive", None) is not None:
-            raise TypeError(
-                "'indActive' was removed in SimPEG v0.24.0, please use 'active_cells' instead."
-            )
-
         super(BaseParametric, self).__init__(mesh, **kwargs)
 
         self.active_cells = active_cells
@@ -1153,14 +1142,6 @@ class BaseParametric(IdentityMap):
         if value is not None:
             value = validate_active_indices("active_cells", value, self.mesh.n_cells)
         self._active_cells = value
-
-    indActive = deprecate_property(
-        active_cells,
-        "indActive",
-        "active_cells",
-        removal_version="0.24.0",
-        error=True,
-    )
 
     @property
     def x(self):

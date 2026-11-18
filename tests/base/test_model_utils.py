@@ -192,6 +192,6 @@ def test_removed_indactive(mesh):
     Test if error is raised after passing removed indActive argument
     """
     active_cells = np.ones(mesh.nC, dtype=bool)
-    msg = "'indActive' argument has been removed. " "Please use 'active_cells' instead."
+    msg = "unexpected keyword argument 'indActive'"
     with pytest.raises(TypeError, match=msg):
         utils.depth_weighting(mesh, 0, indActive=active_cells)

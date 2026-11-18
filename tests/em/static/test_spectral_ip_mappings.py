@@ -11,11 +11,8 @@ from simpeg.electromagnetics.static.spectral_induced_polarization import (
 )
 
 
-class TestDeprecatedIndActive:
-    """Test deprecated ``indActive`` argument ``spectral_ip_mappings``."""
-
-    OLD_NAME = "indActive"
-    NEW_NAME = "active_cells"
+class TestRemovedIndActive:
+    """Test removed ``indActive`` argument ``spectral_ip_mappings``."""
 
     @pytest.fixture
     def mesh(self):
@@ -33,9 +30,6 @@ class TestDeprecatedIndActive:
         """
         Test if error is raised after passing ``indActive`` as argument.
         """
-        msg = (
-            "'indActive' was removed in SimPEG v0.24.0, "
-            "please use 'active_cells' instead."
-        )
+        msg = "unexpected keyword argument 'indActive'"
         with pytest.raises(TypeError, match=msg):
             spectral_ip_mappings(mesh, indActive=active_cells)

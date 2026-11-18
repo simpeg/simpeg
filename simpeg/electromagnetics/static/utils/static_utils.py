@@ -1614,7 +1614,7 @@ def gettopoCC(mesh, ind_active, option="top"):
     "simpeg.utils",
     category=FutureWarning,
 )
-def drapeTopotoLoc(mesh, pts, active_cells=None, option="top", topo=None, **kwargs):
+def drapeTopotoLoc(mesh, pts, active_cells=None, option="top", topo=None):
     """Drape locations right below discretized surface topography.
 
     This function projects the set of locations provided to the discrete
@@ -1648,14 +1648,6 @@ def drapeTopotoLoc(mesh, pts, active_cells=None, option="top", topo=None, **kwar
     (n, dim) numpy.ndarray
         The discrete topography locations.
     """
-    # Deprecate indActive argument
-    if kwargs.pop("indActive", None) is not None:
-        raise TypeError(
-            "'indActive' was removed in SimPEG v0.24.0, please use 'active_cells' instead."
-        )
-    if kwargs:  # TODO Remove this when removing kwargs argument.
-        raise TypeError("Unsupported keyword argument " + kwargs.popitem()[0])
-
     if isinstance(mesh, discretize.CurvilinearMesh):
         raise ValueError("Curvilinear mesh is not supported.")
 
