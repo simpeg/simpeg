@@ -369,10 +369,8 @@ class BaseSIPSimulation(BaseIPSimulation):
             if f is None:
                 f = self.fields(m)
 
-            Jt = np.zeros(
-                (self._P.shape[1], int(self.survey.nD / self.survey.unique_times.size)),
-                order="F",
-            )
+            n_cells = self._P.shape[1] if self.storeJ else self.mesh.n_cells
+            Jt = np.zeros((n_cells, self.survey.n_locations), order="F")
             istrt = int(0)
             iend = int(0)
 
@@ -382,8 +380,11 @@ class BaseSIPSimulation(BaseIPSimulation):
                     sys.stdout.flush()
                 u_src = f[src, self._solutionType]
                 for rx in src.receiver_list:
-                    P = rx.getP(self.mesh, rx.projGLoc(f)).toarray()
-                    ATinvdf_duT = self.Ainv * (P.T)
+                    projected_grid = f._GLoc(rx.projField)
+                    if rx.orientation is not None:
+                        projected_grid += rx.orientation
+                    P = rx.getP(self.mesh, projected_grid).toarray()
+                    ATinvdf_duT = self.Ainv * P.T
                     dA_dmT = self.getADeriv(u_src, ATinvdf_duT, adjoint=True)
                     iend = istrt + rx.nD
                     if rx.nD == 1:
