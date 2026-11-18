@@ -512,6 +512,7 @@ class Fields3DElectricField(FieldsFDEM):
             if not isinstance(s_m, Zero) and s_m.ndim == 1:
                 s_m = s_m[:, None]
             b[:, i:ii] = b[:, i:ii] + 1.0 / (1j * omega(src.frequency)) * s_m
+            i = ii
         return b
 
     def _bDeriv_u(self, src, du_dm_v, adjoint=False):

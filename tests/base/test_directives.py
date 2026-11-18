@@ -841,13 +841,10 @@ class TestSaveEveryIteration:
         time_name = directive._time_file_name.name
         assert directive._time_iter_file_name.name == time_name + "_###"
 
-    def test_deprecated_fileName(self):
+    def test_removed_fileName(self):
         directive = DummySaveEveryIteration(name="dummy")
-
-        with pytest.warns(FutureWarning, match=r"'fileName' has been deprecated .*"):
-            f_name = directive.fileName
-
-        assert f_name == "dummy"
+        with pytest.raises(AttributeError, match=r"'fileName' has been removed.*"):
+            directive.fileName
 
 
 class TestSaveModelEveryIteration:
@@ -1167,11 +1164,11 @@ class TestSaveOutputDictEveryIteration(BaseTestOutputDirective):
             files = list(directory.iterdir())
             assert len(files) == len(directive.outDict)
 
-    def test_deprecated(self):
-        with pytest.warns(FutureWarning, match=".*saveOnDisk has been deprecated.*"):
-            directive = directives.SaveOutputDictEveryIteration(saveOnDisk=True)
-
-        assert directive.on_disk
+    def test_removed(self):
+        with pytest.raises(
+            NotImplementedError, match=".*saveOnDisk has been removed.*"
+        ):
+            directives.SaveOutputDictEveryIteration(saveOnDisk=True)
 
     @pytest.mark.parametrize("on_disk", [True, False], ids=["on_disk", "not_on_disk"])
     def test_file_abs_path_optional(self, on_disk):

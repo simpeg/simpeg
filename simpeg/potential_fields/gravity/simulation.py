@@ -16,7 +16,6 @@ from ..base import BaseEquivalentSourceLayerSimulation, BasePFSimulation
 
 from ._numba import choclo, NUMBA_FUNCTIONS_3D, NUMBA_FUNCTIONS_2D
 
-
 if choclo is not None:
     from numba import jit
 

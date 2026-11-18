@@ -383,6 +383,10 @@ def line_through_faces(
     ----------
     mesh : discretize.TreeMesh
         The OctTreeMesh (3D) for the system.
+    locations : (n, 3) numpy.ndarray
+        The locations of the nodes of the wire path. The current flows from
+        ``locations[0]`` towards ``locations[-1]``. Locations are moved to the
+        closest cell centers.
     normalize_by_area : bool, default: ``True``
         If ``True``, normalize by face area
     check_divergence : bool, default: ``True``
@@ -402,11 +406,11 @@ def line_through_faces(
         raise NotImplementedError(
             "With the current implementation, the line between points "
             "must align with the axes of the mesh. The points "
-            f"{locations[i, :]} and {locations[i+1, :]} do not."
+            f"{locations[i, :]} and {locations[i + 1, :]} do not."
         )
 
     # pre-processing step: find closest cell centers
-    cell_centers = discretize.utils.closest_points_index(mesh, locations, "CC")
+    cell_centers = mesh.closest_points_index(locations, "CC")
     locations = mesh.gridCC[cell_centers, :]
 
     # next step: find segments between lines
@@ -415,7 +419,7 @@ def line_through_faces(
         if len(dimension) > 1:
             not_aligned_error(i)
         dimension = dimension[0]
-        direction = np.sign(locations[i, dimension] - locations[i + 1, dimension])
+        direction = np.sign(locations[i + 1, dimension] - locations[i, dimension])
 
         if dimension == 0:
             grid_loc = "x"
@@ -430,12 +434,8 @@ def line_through_faces(
             current_inds = slice(start, start + mesh.n_faces_z)
 
         # interpolate to closest face
-        loca = discretize.utils.closest_points_index(
-            mesh, locations[i, :], f"F{grid_loc}"
-        )
-        locb = discretize.utils.closest_points_index(
-            mesh, locations[i + 1, :], f"F{grid_loc}"
-        )
+        loca = mesh.closest_points_index(locations[i, :], f"F{grid_loc}")
+        locb = mesh.closest_points_index(locations[i + 1, :], f"F{grid_loc}")
 
         if len(loca) > 1 or len(locb) > 1:
             raise Exception(

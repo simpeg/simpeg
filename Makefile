@@ -1,7 +1,7 @@
 STYLE_CHECK_FILES = simpeg examples tutorials tests
 GITHUB_ACTIONS=.github/workflows
 
-.PHONY: help docs clean check black flake flake-all check-actions
+.PHONY: help docs clean check black flake flake-all ruff check-actions
 
 help:
 	@echo "Commands:"
@@ -10,6 +10,7 @@ help:
 	@echo "  black         checks code style with black"
 	@echo "  flake         checks code style with flake8"
 	@echo "  flake-all     checks code style with flake8 (full set of rules)"
+	@echo "  ruff          checks code style with ruff"
 	@echo "  check-actions lint GitHub Actions workflows (with zizmor)"
 	@echo ""
 
@@ -20,7 +21,7 @@ clean:
 	cd docs;make clean
 	find . -name "*.pyc" | xargs -I {} rm -v "{}"
 
-check: black flake
+check: black flake ruff check-actions
 
 black:
 	black --version
@@ -33,6 +34,9 @@ flake:
 flake-all:
 	flake8 --version
 	flake8 ${FLAKE8_OPTS} --ignore "" ${STYLE_CHECK_FILES}
+
+ruff:
+	ruff check ${STYLE_CHECK_FILES}
 
 check-actions:
 	zizmor ${GITHUB_ACTIONS}

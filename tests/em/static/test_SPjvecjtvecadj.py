@@ -7,7 +7,6 @@ from simpeg import utils
 from simpeg import maps
 from discretize.tests import check_derivative, assert_isadjoint
 
-
 # setup simulation
 mesh = discretize.TensorMesh([10, 11, 12], "CCN")
 conductivity = 0.01

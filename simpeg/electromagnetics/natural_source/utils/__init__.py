@@ -1,4 +1,4 @@
-""" module simpeg.EM.NSEM.Utils
+"""module simpeg.EM.NSEM.Utils
 
 Collection of utilities that are usefull for the NSEM problem
 

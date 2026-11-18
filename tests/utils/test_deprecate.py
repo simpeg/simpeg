@@ -3,7 +3,6 @@ import numpy as np
 from importlib import import_module
 from discretize import TensorMesh
 
-
 mesh = TensorMesh([2, 2, 2])
 locs = np.array([[1.0, 2.0, 3.0]])
 

@@ -7,7 +7,6 @@ from ..frequency_domain.fields import FieldsFDEM
 from ...utils import spzeros, Identity, Zero
 from ..utils import omega
 
-
 # ##############
 # #   Fields   #
 # ##############
@@ -55,24 +54,24 @@ class _EField(_1DField):
     def _eDeriv_m(self, src, v, adjoint=False):
         return Zero()
 
+    def _mui(self):
+        mui = self.simulation.mui
+        if np.ndim(mui) > 0:
+            # one value per cell, broadcast along the columns of the fields
+            mui = mui[:, None]
+        return mui
+
     def _h(self, eSolution, source_list):
         omegas = np.array([omega(src.frequency) for src in source_list])
         e = self._e(eSolution, source_list)
-        if self.simulation.muiMap is not None:
-            mui = self.simulation.mui[:, None]
-        else:
-            mui = self.simulation.mui
-        v = mui * (self._C * e)
+        v = self._mui() * (self._C * e)
         return v / (1j * omegas)
 
     def _hDeriv_u(self, src, du_dm_v, adjoint=False):
         if du_dm_v.ndim == 1:
             du_dm_v = du_dm_v[:, None]
         om = omega(src.frequency)
-        if self.simulation.muiMap is not None:
-            mui = self.simulation.mui[:, None]
-        else:
-            mui = self.simulation.mui
+        mui = self._mui()
         if adjoint:
             y = self._eDeriv_u(src, self._C.T * (mui * du_dm_v), adjoint=adjoint)
             return np.squeeze(y) / (1j * om)
@@ -109,22 +108,24 @@ class _HField(_1DField):
     def _hDeriv_m(self, src, v, adjoint=False):
         return Zero()
 
+    def _rho(self):
+        rho = self.simulation.rho
+        if np.ndim(rho) > 0:
+            # one value per cell, broadcast along the columns of the fields
+            rho = rho[:, None]
+        return rho
+
     def _e(self, hSolution, source_list):
-        return self.simulation.rho[:, None] * (
-            self._C * self._h(hSolution, source_list)
-        )
+        return self._rho() * (self._C * self._h(hSolution, source_list))
 
     def _eDeriv_u(self, src, du_dm_v, adjoint=False):
         if du_dm_v.ndim == 1:
             du_dm_v = du_dm_v[:, None]
+        rho = self._rho()
         if adjoint:
-            y = self._hDeriv_u(
-                src, self._C.T * (self.simulation.rho[:, None] * du_dm_v), adjoint=True
-            )
+            y = self._hDeriv_u(src, self._C.T * (rho * du_dm_v), adjoint=True)
             return np.squeeze(y)
-        y = self.simulation.rho[:, None] * (
-            self._C @ (self._hDeriv_u(src, du_dm_v, adjoint=False))
-        )
+        y = rho * (self._C @ (self._hDeriv_u(src, du_dm_v, adjoint=False)))
         return np.squeeze(y)
 
     def _eDeriv_m(self, src, v, adjoint=False):

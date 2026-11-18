@@ -1,3 +1,5 @@
+import re
+import pytest
 import unittest
 
 import numpy as np
@@ -7,6 +9,8 @@ from simpeg import (
     maps,
     regularization,
 )
+
+from simpeg.regularization.cross_gradient import _cross_product_2d
 
 
 class CrossGradientTensor2D(unittest.TestCase):
@@ -308,6 +312,98 @@ class CrossGradientTree3D(unittest.TestCase):
         W = cross_grad.deriv2(m)
         Wv = cross_grad.deriv2(m, v)
         np.testing.assert_allclose(Wv, W @ v)
+
+
+class TestCrossProduct2D:
+    """
+    Test the ``_cross_product_2d`` private function.
+
+    .. important::
+
+        This function was added after Numpy dropped support for 2D vectors in the
+        :func:`numpy.cross` function.
+    """
+
+    def test_single_vectors(self):
+        a = np.array([1.0, 2.0])
+        b = np.array([3.0, 4.0])
+        result = _cross_product_2d(a, b)
+
+        a = np.array([1.0, 2.0, 0.0])
+        b = np.array([3.0, 4.0, 0.0])
+        _, _, expected = np.cross(a, b)
+
+        assert result.ndim == 1
+        np.testing.assert_allclose(result, expected)
+
+    @pytest.mark.parametrize("a_x_b", [True, False], ids=["a x b", "b x a"])
+    def test_single_and_multiple_vectors(self, a_x_b):
+        a = np.array([1.0, 2.0])
+        b = np.array([[3.0, 4.0], [5.0, 6.0]])
+        result = _cross_product_2d(a, b) if a_x_b else _cross_product_2d(b, a)
+
+        a = np.array([1.0, 2.0, 0.0])
+        b = np.array([[3.0, 4.0, 0.0], [5.0, 6.0, 0.0]])
+        cross = np.cross(a, b) if a_x_b else np.cross(b, a)
+        expected = cross[:, -1]
+
+        assert result.ndim == 1
+        np.testing.assert_allclose(result, expected)
+
+    def test_multiple_vectors(self):
+        a = np.array([[1.0, 2.0], [8.0, 9.0]])
+        b = np.array([[3.0, 4.0], [5.0, 6.0]])
+        result = _cross_product_2d(a, b)
+
+        a = np.array([[1.0, 2.0, 0.0], [8.0, 9.0, 0.0]])
+        b = np.array([[3.0, 4.0, 0.0], [5.0, 6.0, 0.0]])
+        expected = np.cross(a, b)[:, -1]
+
+        assert result.ndim == 1
+        np.testing.assert_allclose(result, expected)
+
+    @pytest.mark.parametrize("a_x_b", [True, False], ids=["a x b", "b x a"])
+    @pytest.mark.parametrize(
+        "a",
+        [
+            np.array([1.0]),
+            np.array([1.0, 2.0, 3.0]),
+            np.array([[1.0]]),
+            np.array([[1.0], [2.0]]),
+            np.array([[1.0, 2.0, 3.0]]),
+            np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]),
+        ],
+    )
+    def test_invalid_elements(self, a, a_x_b):
+        b = np.array([1.0, 2.0])
+        msg = re.escape(
+            f"Invalid array '{'a' if a_x_b else 'b'}' containing vectors with"
+        )
+        if a_x_b:
+            with pytest.raises(ValueError, match=msg):
+                _cross_product_2d(a, b)
+        else:
+            with pytest.raises(ValueError, match=msg):
+                _cross_product_2d(b, a)
+
+    @pytest.mark.parametrize("a_x_b", [True, False], ids=["a x b", "b x a"])
+    @pytest.mark.parametrize(
+        "a",
+        [np.array(1.0), np.arange(6).reshape(3, 2, 1)],
+    )
+    def test_invalid_dimensions(self, a, a_x_b):
+        b = np.array([1.0, 2.0])
+        msg = (
+            re.escape(f"Invalid array '{'a' if a_x_b else 'b'}' with '")
+            + "[0-9]+"
+            + re.escape("' dimensions")
+        )
+        if a_x_b:
+            with pytest.raises(ValueError, match=msg):
+                _cross_product_2d(a, b)
+        else:
+            with pytest.raises(ValueError, match=msg):
+                _cross_product_2d(b, a)
 
 
 if __name__ == "__main__":

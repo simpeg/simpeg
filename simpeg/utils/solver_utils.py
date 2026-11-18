@@ -12,8 +12,6 @@ from pymatsolver import (
 )
 from pymatsolver.solvers import Base
 from .code_utils import deprecate_function
-import warnings
-from typing import Type
 
 __all__ = [
     "Solver",
@@ -44,34 +42,18 @@ else:
     _DEFAULT_SOLVER = SolverLU
 
 
-def get_default_solver(warn=False) -> Type[Base]:
+def get_default_solver() -> type[Base]:
     """Return the default solver used by simpeg.
-
-    Parameters
-    ----------
-    warn : bool, optional
-
-        .. deprecated:: 0.25.0
-
-           Argument ``warn`` is deprecated and will be removed in
-           SimPEG v0.26.0.
 
     Returns
     -------
     solver
         The default solver class used by simpeg's simulations.
     """
-    if warn:
-        warnings.warn(
-            "The `warn` argument has been deprecated and will be "
-            "removed in SimPEG v0.26.0.",
-            FutureWarning,
-            stacklevel=2,
-        )
     return _DEFAULT_SOLVER
 
 
-def set_default_solver(solver_class: Type[Base]):
+def set_default_solver(solver_class: type[Base]):
     """Set the default solver used by simpeg.
 
     Parameters

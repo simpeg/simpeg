@@ -35,7 +35,6 @@ import scipy as sp
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 # sphinx_gallery_thumbnail_number = 3
 
 ###############################################################################

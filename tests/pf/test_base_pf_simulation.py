@@ -331,3 +331,42 @@ class TestRemovedIndActive:
         msg = "ind_active has been removed, please use active_cells."
         with pytest.raises(NotImplementedError, match=msg):
             simulation.ind_active
+
+
+class _NoRowsGravitySimulation(gravity.Simulation3DIntegral):
+    """Defined at module level so spawned worker processes can unpickle it."""
+
+    def evaluate_integral(self, receiver_location, components):
+        # Return fewer rows than there are components.
+        return super().evaluate_integral(receiver_location, components)[:0]
+
+
+class TestMultiprocessedKernel:
+    """Test the shared-memory, multiprocessed kernel build."""
+
+    @pytest.fixture
+    def sim_args(self):
+        mesh = TensorMesh([4, 4, 4], origin="CCN")
+        rx_locs = np.mgrid[-0.5:0.5:3j, -0.5:0.5:3j, 1:2:1j].reshape(3, -1).T
+        receivers = gravity.Point(rx_locs, components=["gz", "gx"])
+        survey = gravity.Survey(gravity.SourceField([receivers]))
+        return dict(
+            mesh=mesh,
+            survey=survey,
+            rhoMap=simpeg.maps.IdentityMap(nP=mesh.n_cells),
+            engine="geoana",
+            store_sensitivities="ram",
+            sensitivity_dtype=np.float64,
+        )
+
+    def test_matches_serial(self, sim_args):
+        mesh = sim_args.pop("mesh")
+        serial = gravity.Simulation3DIntegral(mesh, n_processes=1, **sim_args)
+        parallel = gravity.Simulation3DIntegral(mesh, n_processes=2, **sim_args)
+        np.testing.assert_allclose(parallel.linear_operator(), serial.linear_operator())
+
+    def test_row_count_mismatch_raises(self, sim_args):
+        mesh = sim_args.pop("mesh")
+        sim = _NoRowsGravitySimulation(mesh, n_processes=2, **sim_args)
+        with pytest.raises(RuntimeError, match="different number of rows"):
+            sim.linear_operator()

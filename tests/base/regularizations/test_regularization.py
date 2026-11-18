@@ -17,7 +17,6 @@ from simpeg.regularization import (
 )
 from simpeg.objective_function import ComboObjectiveFunction
 
-
 TOL = 1e-7
 testReg = True
 testRegMesh = True

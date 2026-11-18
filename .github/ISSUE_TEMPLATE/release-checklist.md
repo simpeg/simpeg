@@ -97,6 +97,7 @@ Pull Requests
 =============
 
 ..
+
     paste list of PRs that were copied to `notes.rst`
 ```
 
@@ -115,6 +116,24 @@ Edit the `docs/_static/versions.json` file and:
 - [ ] Run `cat docs/_static/versions.json | python -m json.tool > /dev/null` to check if the syntax of the JSON file is correct. If no errors are prompted, then your file is OK.
 - [ ] Double-check the changes.
 - [ ] Commit the changes to the same branch.
+
+### Optionally: Python version compatibility
+
+If this releases drops support of an old Python version:
+
+- [ ] Open the `docs/content/user-guide/getting-started/version-compatibility.rst` file and go to the `Supported Python versions` section.
+- [ ] Make sure that the current latest version is listed there along with the corresponding Python version that this release will drop support for.
+
+> [!TIP]
+> For example, if the latest release to the date is `v0.25.2`, we are about to release `v0.26.0`, and we are dropping support for Python 3.11, then we need to identify `v0.25.0` as the last version to support Python 3.11:
+>
+> ```rst
+>   * - **Python version**
+>     - **Last compatible release**
+>   ...
+>   * - 3.11
+>     - 0.25.2
+> ```
 
 ### Create a PR and merge it
 

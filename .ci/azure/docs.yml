@@ -5,7 +5,7 @@ jobs:
     pool:
       vmImage: ubuntu-latest
     variables:
-      python.version: "3.11"
+      python.version: "3.12"
     timeoutInMinutes: 240
     steps:
       # Checkout simpeg repo.
@@ -15,8 +15,8 @@ jobs:
         fetchTags: true
         displayName: Checkout repository (including tags)
 
-      - bash: echo "##vso[task.prependpath]$CONDA/bin"
-        displayName: Add conda to PATH
+      - bash: .ci/azure/install_miniforge.sh
+        displayName: Install Miniforge
 
       - bash: .ci/azure/setup_env.sh
         displayName: Setup SimPEG environment

@@ -5,14 +5,14 @@ Test deprecation of public directives submodules.
 import pytest
 import importlib
 
-REGEX = r"The `simpeg\.directives\.[a-z_]+` submodule has been deprecated, "
+REGEX = r"No module named 'simpeg\.directives\.[a-z_]+'"
 DEPRECATED_SUBMODULES = ("directives", "pgi_directives", "sim_directives")
 
 
 @pytest.mark.parametrize("submodule", DEPRECATED_SUBMODULES)
-def test_deprecations(submodule):
+def test_removals(submodule):
     """
-    Test FutureWarning when trying to import the deprecated modules.
+    Test if error is raised when trying to import the removed modules.
     """
-    with pytest.warns(FutureWarning, match=REGEX):
+    with pytest.raises(ModuleNotFoundError, match=REGEX):
         importlib.import_module(f"simpeg.directives.{submodule}")

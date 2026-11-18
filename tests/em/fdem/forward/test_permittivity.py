@@ -7,7 +7,6 @@ import geoana
 import discretize
 from simpeg.electromagnetics import frequency_domain as fdem
 
-
 # set up the mesh
 hx = 1
 hz = 1
@@ -148,7 +147,7 @@ def test_mag_dipole(epsilon, frequency, simulation):
 def test_e_dipole(epsilon, frequency, simulation):
     sources = [
         fdem.sources.LineCurrent(
-            [], frequency, location=np.array([[0, 0, 1], [0, 0, -1]]), current=1 / 2
+            [], frequency, location=np.array([[0, 0, -1], [0, 0, 1]]), current=1 / 2
         )
     ]
     survey = fdem.Survey(sources)
@@ -207,7 +206,7 @@ def test_cross_check_e_dipole(epsilon_r, frequency):
     # J-Formulation
     sources_j_target = [
         fdem.sources.LineCurrent(
-            [], freq, location=np.array([[0, 0, 1], [0, 0, -1]]), current=1 / 2
+            [], freq, location=np.array([[0, 0, -1], [0, 0, 1]]), current=1 / 2
         )
         for freq in frequencies
     ]
@@ -223,7 +222,7 @@ def test_cross_check_e_dipole(epsilon_r, frequency):
     # H-formulation
     sources_h_target = [
         fdem.sources.LineCurrent(
-            [], freq, location=np.array([[0, 0, 1], [0, 0, -1]]), current=1 / 2
+            [], freq, location=np.array([[0, 0, -1], [0, 0, 1]]), current=1 / 2
         )
         for freq in frequencies
     ]
