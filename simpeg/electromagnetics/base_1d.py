@@ -53,9 +53,13 @@ class BaseEM1DSimulation(BaseSimulation):
     rho, rhoMap, rhoDeriv = props.Invertible("Electrical resistivity (Ohm m)")
     props.Reciprocal(sigma, rho)
 
-    eta = props.PhysicalProperty("Intrinsic chargeability (V/V), 0 <= eta < 1")
-    tau = props.PhysicalProperty("Time constant for Cole-Cole model (s)")
-    c = props.PhysicalProperty("Frequency Dependency for Cole-Cole model, 0 < c < 1")
+    eta, etaMap, etaDeriv = props.Invertible(
+        "Intrinsic chargeability (V/V), 0 <= eta < 1"
+    )
+    tau, tauMap, tauDeriv = props.Invertible("Time constant for Cole-Cole model (s)")
+    c, cMap, cDeriv = props.Invertible(
+        "Frequency Dependency for Cole-Cole model, 0 < c < 1"
+    )
 
     # Properties for magnetic susceptibility
     mu, muMap, muDeriv = props.Invertible(
@@ -100,6 +104,9 @@ class BaseEM1DSimulation(BaseSimulation):
         fix_Jmatrix=False,
         topo=None,
         n_points_per_path=3,
+        etaMap=None,
+        tauMap=None,
+        cMap=None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -118,6 +125,9 @@ class BaseEM1DSimulation(BaseSimulation):
         self.eta = eta
         self.tau = tau
         self.c = c
+        self.etaMap = etaMap
+        self.tauMap = tauMap
+        self.cMap = cMap
         self.dchi = dchi
         self.tau1 = tau1
         self.tau2 = tau2
@@ -286,14 +296,9 @@ class BaseEM1DSimulation(BaseSimulation):
 
         # IP effect
         else:
-            if np.isscalar(self.eta):
-                eta = self.eta
-                tau = self.tau
-                c = self.c
-            else:
-                eta = np.tile(self.eta.reshape([-1, 1]), (1, n_frequency))
-                tau = np.tile(self.tau.reshape([-1, 1]), (1, n_frequency))
-                c = np.tile(self.c.reshape([-1, 1]), (1, n_frequency))
+            eta, tau, c = (
+                np.asarray(p).reshape(-1, 1) for p in (self.eta, self.tau, self.c)
+            )
 
             w = np.tile(2 * np.pi * frequencies, (n_layer, 1))
 
@@ -305,6 +310,30 @@ class BaseEM1DSimulation(BaseSimulation):
             )
 
             return sigma_complex
+
+    def _complex_sigma_derivatives(self, frequencies):
+        """Derivatives of complex conductivity with respect to layer properties."""
+        eta, tau, c = (
+            np.asarray(p).reshape(-1, 1) for p in (self.eta, self.tau, self.c)
+        )
+        sigma = np.asarray(self.sigma).reshape(-1, 1)
+        z = 1j * 2 * np.pi * np.asarray(frequencies)[None, :] * tau
+        q = z**c
+        denominator = 1 + (1 - eta) * q
+        common = sigma * eta * (1 - eta) * q / denominator**2
+        # q * log(z) tends to zero at zero frequency for positive c.
+        log_z = np.zeros_like(z, dtype=complex)
+        np.log(z, out=log_z, where=z != 0)
+        dtau = np.divide(
+            common * c, tau, out=np.full_like(common, np.nan), where=tau != 0
+        )
+        dtau = np.where(eta == 0, 0, dtau)
+        return {
+            "ds": 1 - eta / denominator,
+            "deta": -sigma * (1 + q) / denominator**2,
+            "dtau": dtau,
+            "dc": common * log_z,
+        }
 
     def compute_complex_mu(self, frequencies):
         r"""
@@ -377,6 +406,13 @@ class BaseEM1DSimulation(BaseSimulation):
             out = out + Js["dh"] @ (self.hDeriv @ v)
         if self.sigmaMap is not None:
             out = out + Js["ds"] @ (self.sigmaDeriv @ v)
+        for key, mapping, deriv in (
+            ("deta", self.etaMap, self.etaDeriv),
+            ("dtau", self.tauMap, self.tauDeriv),
+            ("dc", self.cMap, self.cDeriv),
+        ):
+            if mapping is not None:
+                out = out + Js[key] @ (deriv @ v)
         if self.muMap is not None:
             out = out + Js["dmu"] @ (self.muDeriv @ v)
         if self.thicknessesMap is not None:
@@ -390,6 +426,13 @@ class BaseEM1DSimulation(BaseSimulation):
             out = out + self.hDeriv.T @ (Js["dh"].T @ v)
         if self.sigmaMap is not None:
             out = out + self.sigmaDeriv.T @ (Js["ds"].T @ v)
+        for key, mapping, deriv in (
+            ("deta", self.etaMap, self.etaDeriv),
+            ("dtau", self.tauMap, self.tauDeriv),
+            ("dc", self.cMap, self.cDeriv),
+        ):
+            if mapping is not None:
+                out = out + deriv.T @ (Js[key].T @ v)
         if self.muMap is not None:
             out = out + self.muDeriv.T @ (Js["dmu"].T @ v)
         if self.thicknessesMap is not None:
@@ -637,24 +680,30 @@ class BaseEM1DSimulation(BaseSimulation):
         return delta
 
     def getJtJdiag(self, m, W=None, f=None):
+        """Calculate the weighted Jacobian diagonal for non-overlapping maps.
+
+        Each model parameter must affect at most one physical property. Cross
+        terms between different property blocks are not included.
+        """
+        # Changing W does not invalidate this cache; clear _gtgdiag when W changes.
         if getattr(self, "_gtgdiag", None) is None:
             Js = self._getJ(m, f=f)
             if W is None:
-                W = np.ones(self.survey.nD)
+                weights = np.ones(self.survey.nD)
             else:
-                W = W.diagonal() ** 2
+                weights = W.diagonal() ** 2
+            param_and_derivs = {
+                "dh": self.hDeriv,
+                "ds": self.sigmaDeriv,
+                "deta": self.etaDeriv,
+                "dtau": self.tauDeriv,
+                "dc": self.cDeriv,
+                "dmu": self.muDeriv,
+                "dthick": self.thicknessesDeriv,
+            }
             out = 0.0
-            if self.hMap is not None:
-                J = Js["dh"] @ self.hDeriv
-                out = out + np.einsum("i,ij,ij->j", W, J, J)
-            if self.sigmaMap is not None:
-                J = Js["ds"] @ self.sigmaDeriv
-                out = out + np.einsum("i,ij,ij->j", W, J, J)
-            if self.muMap is not None:
-                J = Js["dmu"] @ self.muDeriv
-                out = out + np.einsum("i,ij,ij->j", W, J, J)
-            if self.thicknessesMap is not None:
-                J = Js["dthick"] @ self.thicknessesDeriv
-                out = out + np.einsum("i,ij,ij->j", W, J, J)
+            for key, block in Js.items():
+                J_block = block @ param_and_derivs[key]
+                out = out + np.einsum("i,ij,ij->j", weights, J_block, J_block)
             self._gtgdiag = out
         return self._gtgdiag
