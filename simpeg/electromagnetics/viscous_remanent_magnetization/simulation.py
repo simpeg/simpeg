@@ -854,7 +854,7 @@ class Simulation3DLinear(BaseVRMSimulation):
 
         if self._AisSet is False:
             if self.survey is None:
-                AssertionError("A survey must be set to generate A matrix")
+                raise AssertionError("A survey must be set to generate A matrix")
 
             # Remove any previously stored A matrix
             if self._A is not None:
@@ -881,7 +881,7 @@ class Simulation3DLinear(BaseVRMSimulation):
 
         if self._TisSet is False:
             if self.survey is None:
-                AssertionError("A survey must be set to generate A matrix")
+                raise AssertionError("A survey must be set to generate A matrix")
 
             # Remove any previously stored T matrix
             if self._T is not None:
@@ -920,7 +920,7 @@ class Simulation3DLinear(BaseVRMSimulation):
         """Computes the fields d = T*A*m"""
 
         if self.survey is None:
-            AssertionError("A survey must be set to generate A matrix")
+            raise AssertionError("A survey must be set to generate A matrix")
 
         self.model = m  # Initiates/updates model and initiates mapping
 
@@ -934,7 +934,7 @@ class Simulation3DLinear(BaseVRMSimulation):
         """Compute Pd*T*A*dxidm*v"""
 
         if self.survey is None:
-            AssertionError("A survey must be set to generate A matrix")
+            raise AssertionError("A survey must be set to generate A matrix")
 
         # Jacobian of xi wrt model
         dxidm = self.xiMap.deriv(m)
@@ -955,7 +955,7 @@ class Simulation3DLinear(BaseVRMSimulation):
         """Compute (Pd*T*A*dxidm)^T * v"""
 
         if self.survey is None:
-            AssertionError("A survey must be set to generate A matrix")
+            raise AssertionError("A survey must be set to generate A matrix")
 
         # Define v as a column vector
         v = np.atleast_2d(v).T
@@ -1006,7 +1006,7 @@ class Simulation3DLogUniform(BaseVRMSimulation):
 
         if self._AisSet is False:
             if self.survey is None:
-                AssertionError("A survey must be set to generate A matrix")
+                raise AssertionError("A survey must be set to generate A matrix")
 
             # Remove any previously stored A matrix
             if self._A is not None:
@@ -1027,7 +1027,7 @@ class Simulation3DLogUniform(BaseVRMSimulation):
         """Computes the fields at every time d(t) = G*M(t)"""
 
         if self.survey is None:
-            AssertionError("A survey must be set to generate A matrix")
+            raise AssertionError("A survey must be set to generate A matrix")
 
         # Fields from each source
         source_list = self.survey.source_list

@@ -26,7 +26,7 @@ class BaseSrcVRM(BaseSrc):
 
     def __init__(self, receiver_list, location=None, waveform=None, **kwargs):
         if not isinstance(waveform, BaseVRMWaveform):
-            AttributeError(
+            raise AttributeError(
                 "Waveform must be an instance of a VRM waveform class: StepOff, SquarePulse or Arbitrary"
             )
 

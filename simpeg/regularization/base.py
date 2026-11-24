@@ -1742,7 +1742,7 @@ class WeightedLeastSquares(ComboObjectiveFunction):
             mesh = RegularizationMesh(mesh)
 
         if not isinstance(mesh, RegularizationMesh):
-            TypeError(
+            raise TypeError(
                 f"'regularization_mesh' must be of type {RegularizationMesh} or {BaseMesh}. "
                 f"Value of type {type(mesh)} provided."
             )
@@ -2406,7 +2406,7 @@ class BaseSimilarityMeasure(BaseRegularization):
         try:
             m1, m2 = wires.maps  # Assume a map has been passed for each model.
         except ValueError:
-            ValueError("Wire map must have two model mappings")
+            raise ValueError("Wire map must have two model mappings")
 
         if m1[1].shape[0] != m2[1].shape[0]:
             raise ValueError(
