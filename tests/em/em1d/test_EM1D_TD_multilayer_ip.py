@@ -11,7 +11,7 @@ scheme, Geophysics, vol 84, no 2, doi 10.1190/geo2018-0102.1
 import numpy as np
 import unittest
 
-from simpeg import maps
+from simpeg import maps, tests
 import simpeg.electromagnetics.time_domain as tdem
 
 # Survey config (Lin et al 2019)
@@ -208,6 +208,53 @@ class EM1D_TD_IP_test(unittest.TestCase):
             np.allclose(dbdt_hom_ip, dbdt_heter_ip),
             "Hom/heter-ogeneous chargeabilities results should not match",
         )
+
+    def test_heter_ip_Jvec(self):
+        """Check the conductivity Jacobian with nonzero IP parameters."""
+        simulation = self.simulation_heter_ip
+
+        model = self.resistivities_inf_heter
+
+        direction = model * np.array([0.1, -0.2, 0.15])
+
+        def derivative_check(m):
+            return [simulation.dpred(m), lambda v: simulation.Jvec(m, v)]
+
+        passed = tests.check_derivative(
+            derivative_check,
+            model,
+            num=4,
+            dx=direction,
+            plotIt=False,
+            random_seed=42,
+        )
+
+        self.assertTrue(passed)
+
+    def test_heter_ip_Jtvec(self):
+        """Check the transpose Jacobian with nonzero IP parameters."""
+        simulation = self.simulation_heter_ip
+
+        model = self.resistivities_inf_heter
+
+        weights = simulation.dpred(model)
+
+        direction = np.array([0.0, 0.1 * model[1], 0.0])
+
+        def weighted_response(m):
+            return weights @ simulation.dpred(m), simulation.Jtvec(m, weights)
+
+        passed = tests.check_derivative(
+            weighted_response,
+            model,
+            num=4,
+            dx=direction,
+            plotIt=False,
+            eps=1e-20,
+            random_seed=42,
+        )
+
+        self.assertTrue(passed)
 
 
 if __name__ == "__main__":
