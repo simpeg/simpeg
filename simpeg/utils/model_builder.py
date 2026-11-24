@@ -567,11 +567,13 @@ def get_indices_polygon(mesh, pts):
 
     """
     if mesh.dim == 1:
-        assert "Only works for a mesh greater than 1-dimension"
+        raise ValueError("Only works for a mesh greater than 1-dimension")
     elif mesh.dim == 2:
-        assert ~(pts.shape[1] != 2), "Please input (*,2) array"
+        if pts.shape[1] != 2:
+            raise ValueError("Please input (*,2) array")
     elif mesh.dim == 3:
-        assert ~(pts.shape[1] != 3), "Please input (*,3) array"
+        if pts.shape[1] != 3:
+            raise ValueError("Please input (*,3) array")
     hull = Delaunay(pts)
     inds = hull.find_simplex(mesh.cell_centers) >= 0
     return inds
