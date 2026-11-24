@@ -228,6 +228,13 @@ class Simulation1DLayered(BaseEM1DSimulation):
                 rTE_ds, rTE_dh, rTE_dmu = rTE_gradient(
                     frequencies, unique_lambs, sig, mu, self.thicknesses
                 )
+                # rTE_gradient differentiates with respect to the complex,
+                # frequency-dependent conductivity sigma(omega), while the
+                # model parameter is the conductivity at infinite frequency.
+                # Apply the chain-rule factor F(omega) = sigma(omega) /
+                # sigma_inf for each layer and frequency.
+                sigma_factor = self.compute_complex_sigma_factor(frequencies)
+                rTE_ds = rTE_ds * sigma_factor[:, :, None]
                 if self.sigmaMap is not None:
                     rTE_ds = rTE_ds[:, i_freq]
                     rTE_ds = np.take_along_axis(rTE_ds, inv_lambs[None, ...], axis=-1)

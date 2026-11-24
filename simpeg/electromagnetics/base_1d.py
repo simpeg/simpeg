@@ -306,6 +306,62 @@ class BaseEM1DSimulation(BaseSimulation):
 
             return sigma_complex
 
+    def compute_complex_sigma_factor(self, frequencies):
+        r"""
+        Compute the frequency-dependent factor relating the complex
+        conductivity to the conductivity at infinite frequency.
+
+        Parameters
+        ----------
+        frequencies : (n_frequencies,) array
+            Array with frequencies.
+
+        Returns
+        -------
+        out : (n_layers, n_frequencies) array
+            A 2D array with the factor :math:`F(\omega)` for all layers,
+            defined such that
+            :math:`\sigma(\omega) = \sigma_{\infty} F(\omega)`.
+
+        Notes
+        -----
+        Following Pelton's Cole-Cole model (see
+        :meth:`compute_complex_sigma`),
+
+        .. math ::
+
+            F(\omega) = 1 - \frac{\eta}{1 + (1-\eta ) (i\omega \tau)^c}
+
+        where :math:`\eta`, :math:`\tau` and :math:`c` are the model
+        chargeability (V/V), relaxation time (s) and frequency exponent (-).
+
+        The factor is computed directly from the Cole-Cole parameters
+        rather than as a ratio of conductivities, so it remains defined
+        when a layer conductivity is zero.
+        """
+        n_layer = self.n_layer
+        n_frequency = len(frequencies)
+
+        # No IP effect
+        if np.all(self.eta == 0.0):
+            return np.ones((n_layer, n_frequency))
+
+        # IP effect
+        # Normalize each Cole-Cole parameter independently so that mixed
+        # scalar/array combinations are handled as well.
+        def _tile(value):
+            if np.isscalar(value):
+                return value
+            return np.tile(np.asarray(value).reshape([-1, 1]), (1, n_frequency))
+
+        eta = _tile(self.eta)
+        tau = _tile(self.tau)
+        c = _tile(self.c)
+
+        w = np.tile(2 * np.pi * frequencies, (n_layer, 1))
+
+        return 1 - eta / (1 + (1 - eta) * (1j * w * tau) ** c)
+
     def compute_complex_mu(self, frequencies):
         r"""
         Computes the complex magnetic permeability matrix assuming a log-uniform
