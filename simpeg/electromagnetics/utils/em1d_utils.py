@@ -52,7 +52,7 @@ def get_vertical_discretization_frequency(
     Parameters
     ----------
     frequency : numpy.ndarray
-        The frequencies needed to represent.
+        The frequencies in Hz needed to represent.
     sigma_background : float, optional
         The background conductivity
     n_layer : int, optional

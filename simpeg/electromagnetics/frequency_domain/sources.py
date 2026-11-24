@@ -28,7 +28,7 @@ class BaseFDEMSrc(BaseEMSrc):
     receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         A list of FDEM receivers
     frequency : float
-        Source frequency
+        Source frequency in Hz
     location : (dim) numpy.ndarray, default: ``None``
         Source location.
     """
@@ -44,12 +44,12 @@ class BaseFDEMSrc(BaseEMSrc):
 
     @property
     def frequency(self):
-        """Source frequency
+        """Source frequency in Hz
 
         Returns
         -------
         float
-            Source frequency
+            Source frequency in Hz
         """
         return self._frequency
 
@@ -211,7 +211,7 @@ class RawVec_e(BaseFDEMSrc):
     receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         A list of FDEM receivers
     frequency : float
-        Source frequency
+        Source frequency in Hz
     s_e: numpy.ndarray
         Electric source term
     integrate : bool, default: ``False``
@@ -249,7 +249,7 @@ class RawVec_m(BaseFDEMSrc):
     receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         A list of FDEM receivers
     frequency : float
-        Source frequency
+        Source frequency in Hz
     s_m: numpy.ndarray
         Magnetic source term
     integrate : bool, default: ``False``
@@ -286,7 +286,7 @@ class RawVec(RawVec_e, RawVec_m):
     receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         A list of FDEM receivers
     frequency : float
-        Source frequency
+        Source frequency in Hz
     s_m: numpy.ndarray
         Magnetic source term
     s_e: numpy.ndarray
@@ -372,7 +372,7 @@ class MagDipole(BaseFDEMSrc):
     receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         A list of FDEM receivers
     frequency : float
-        Source frequency
+        Source frequency in Hz
     location : (dim) numpy.ndarray, default: numpy.r_[0., 0., 0.]
         Source location.
     moment : float
@@ -688,7 +688,7 @@ class MagDipole_Bfield(MagDipole):
     receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         A list of FDEM receivers
     frequency : float
-        Source frequency
+        Source frequency in Hz
     location : (dim) numpy.ndarray, default: np.r_[0., 0., 0.]
         Source location.
     moment : float
@@ -771,7 +771,7 @@ class CircularLoop(MagDipole):
     receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         A list of FDEM receivers
     frequency : float
-        Source frequency
+        Source frequency in Hz
     location : (dim) np.ndarray, default: np.r_[0., 0., 0.]
         Source location.
     moment : float
@@ -940,7 +940,7 @@ class PrimSecMappedSigma(BaseFDEMSrc):
     receiver_list : list of simpeg.electromagnetics.frequency_domain.receiver.BaseRx
         List of FDEM receivers
     frequency : float
-        Frequency
+        Frequency in Hz
     primarySimulation : BaseFDEMSimulation
         Base simulation
     primarySurvey : BaseEMSimulation
@@ -1238,7 +1238,7 @@ class LineCurrent(BaseFDEMSrc):
     receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         List of FDEM receivers
     frequency : float
-        Source frequency
+        Source frequency in Hz
     location : (n,3) numpy.ndarray
         Array defining the node locations for the wire path. For inductive sources,
         you must close the loop.

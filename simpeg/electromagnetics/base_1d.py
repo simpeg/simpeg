@@ -240,7 +240,7 @@ class BaseEM1DSimulation(BaseSimulation):
         Parameters
         ----------
         frequencies : (n_frequencies,) array
-            Array with frequencies.
+            Array with frequencies in Hz.
 
             .. important::
 
@@ -314,7 +314,7 @@ class BaseEM1DSimulation(BaseSimulation):
         Parameters
         ----------
         frequencies : (n_frequencies,) array
-            Array with frequencies.
+            Array with frequencies in Hz.
 
         Returns
         -------

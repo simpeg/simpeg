@@ -25,7 +25,7 @@ class Planewave(BaseFDEMSrc):
     receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         A list of NSEM receivers
     frequency : float
-        Source frequency
+        Source frequency in Hz
     """
 
     # This class is only provided to have a uniquely identifiable "Planewave" class
@@ -44,7 +44,7 @@ class PlanewaveXYPrimary(Planewave):
     receiver_list : list of simpeg.electromagnetics.frequency_domain.receivers.BaseRx
         A list of NSEM receivers
     frequency : float
-        Source frequency
+        Source frequency in Hz
     sigma_primary : float, default: ``None``
         Wholespace conductivity for primary field
     """

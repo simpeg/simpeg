@@ -43,12 +43,12 @@ class Survey(BaseSurvey):
 
     @property
     def frequencies(self):
-        """Frequencies in the survey
+        """Frequencies in the survey, in Hz
 
         Returns
         -------
-        int
-            Frequencies used in the survey
+        list of float
+            Frequencies used in the survey, in Hz
         """
         return self._frequencies
 
@@ -86,7 +86,7 @@ class Survey(BaseSurvey):
         Parameters
         ----------
         frequency : float
-            Frequency
+            Frequency in Hz
 
         Returns
         -------
