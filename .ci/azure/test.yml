@@ -36,8 +36,8 @@ jobs:
             fetchTags: true
             displayName: Checkout repository (including tags)
 
-          - bash: echo "##vso[task.prependpath]$CONDA/bin"
-            displayName: Add conda to PATH
+          - bash: .ci/azure/install_miniforge.sh
+            displayName: Install Miniforge
 
           - bash: .ci/azure/setup_env.sh
             displayName: Setup SimPEG environment
