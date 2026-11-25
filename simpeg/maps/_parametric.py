@@ -20,6 +20,7 @@ from ..utils import (
 )
 from ._base import IdentityMap
 from ..utils.code_utils import deprecate_property
+from ._utils import columns_dot_vector
 
 
 class ParametricCircleMap(IdentityMap):
@@ -242,9 +243,10 @@ class ParametricCircleMap(IdentityMap):
             / (np.pi * (a**2 * (-r + np.sqrt((X - x) ** 2 + (Y - y) ** 2)) ** 2 + 1))
         )
 
+        columns = [g1, g2, g3, g4, g5]
         if v is not None:
-            return sp.csr_matrix(np.c_[g1, g2, g3, g4, g5]) * v
-        return sp.csr_matrix(np.c_[g1, g2, g3, g4, g5])
+            return columns_dot_vector(columns, v)
+        return sp.csr_matrix(np.c_[*columns])
 
     @property
     def is_linear(self):
@@ -679,9 +681,10 @@ class ParametricPolyMap(IdentityMap):
 
         g3 = sdiag(alpha * (sig2 - sig1) / (1.0 + (alpha * f) ** 2) / np.pi) * V
 
+        columns = [g1, g2, g3]
         if v is not None:
-            return sp.csr_matrix(np.c_[g1, g2, g3]) * v
-        return sp.csr_matrix(np.c_[g1, g2, g3])
+            return columns_dot_vector(columns, v)
+        return sp.csr_matrix(np.c_[*columns])
 
     @property
     def is_linear(self):
@@ -1062,9 +1065,10 @@ class ParametricSplineMap(IdentityMap):
         else:
             raise (Exception("Not Implemented for Y and Z, your turn :)"))
 
+        columns = [g1, g2, g3]
         if v is not None:
-            return sp.csr_matrix(np.c_[g1, g2, g3]) * v
-        return sp.csr_matrix(np.c_[g1, g2, g3])
+            return columns_dot_vector(columns, v)
+        return sp.csr_matrix(np.c_[*columns])
 
     @property
     def is_linear(self):
@@ -1472,19 +1476,20 @@ class ParametricLayer(BaseParametric):
             the vector *v*.
         """
         mDict = self.mDict(m)
-        derivative = sp.csr_matrix(
-            np.vstack(
-                [
-                    self._deriv_val_background(mDict),
-                    self._deriv_val_layer(mDict),
-                    self._deriv_layer_center(mDict),
-                    self._deriv_layer_thickness(mDict),
-                ]
-            ).T
+        # Define a generator with the columns of the derivative matrix.
+        # The generator allows to avoid storing all columns in memory.
+        columns = (
+            method(mDict)
+            for method in (
+                self._deriv_val_background,
+                self._deriv_val_layer,
+                self._deriv_layer_center,
+                self._deriv_layer_thickness,
+            )
         )
         if v is not None:
-            return derivative @ v
-        return derivative
+            return columns_dot_vector(columns, v)
+        return sp.csr_matrix(np.vstack(list(columns)).T)
 
 
 class ParametricBlock(BaseParametric):
@@ -1828,16 +1833,14 @@ class ParametricBlock(BaseParametric):
             input argument *v* is not ``None``, the method returns the derivative times
             the vector *v*.
         """
-        derivative = sp.csr_matrix(
-            getattr(self, "_deriv{}D".format(self.mesh.dim))(self.mDict(m))
-        )
+        derivative = getattr(self, "_deriv{}D".format(self.mesh.dim))(self.mDict(m))
         if v is not None:
             return derivative @ v
-        return derivative
+        return sp.csr_matrix(derivative)
 
 
 class ParametricEllipsoid(ParametricBlock):
-    r"""Mapping for a rectangular block within a wholespace.
+    r"""Mapping for an ellipsoid within a wholespace.
 
     This mapping is used when the cells lying below the Earth's surface can
     be parameterized by an ellipsoid within a homogeneous medium.
@@ -2225,25 +2228,26 @@ class ParametricCasingAndLayer(ParametricLayer):
 
     def deriv(self, m, v=None):
         mDict = self.mDict(m)
-        derivative = sp.csr_matrix(
-            np.vstack(
-                [
-                    self._deriv_val_background(mDict),
-                    self._deriv_val_layer(mDict),
-                    self._deriv_val_casing(mDict),
-                    self._deriv_val_insideCasing(mDict),
-                    self._deriv_layer_center(mDict),
-                    self._deriv_layer_thickness(mDict),
-                    self._deriv_casing_radius(mDict),
-                    self._deriv_casing_thickness(mDict),
-                    self._deriv_casing_bottom(mDict),
-                    self._deriv_casing_top(mDict),
-                ]
-            ).T
+        # Define a generator with the columns of the derivative matrix.
+        # The generator allows to avoid storing all columns in memory.
+        columns = (
+            method(mDict)
+            for method in (
+                self._deriv_val_background,
+                self._deriv_val_layer,
+                self._deriv_val_casing,
+                self._deriv_val_insideCasing,
+                self._deriv_layer_center,
+                self._deriv_layer_thickness,
+                self._deriv_casing_radius,
+                self._deriv_casing_thickness,
+                self._deriv_casing_bottom,
+                self._deriv_casing_top,
+            )
         )
         if v is not None:
-            return derivative @ v
-        return derivative
+            return columns_dot_vector(columns, v)
+        return sp.csr_matrix(np.vstack(list(columns)).T)
 
 
 class ParametricBlockInLayer(ParametricLayer):
@@ -2682,11 +2686,7 @@ class ParametricBlockInLayer(ParametricLayer):
             return self._transform3d(m)
 
     def deriv(self, m, v=None):
-        derivative = (
-            sp.csr_matrix(self._deriv2d(m))
-            if self.mesh.dim == 2
-            else sp.csr_matrix(self._deriv3d(m))
-        )
+        derivative = self._deriv2d(m) if self.mesh.dim == 2 else (self._deriv3d(m))
         if v is not None:
             return derivative @ v
-        return derivative
+        return sp.csr_matrix(derivative)

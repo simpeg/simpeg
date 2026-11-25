@@ -21,7 +21,7 @@ from simpeg import (
     directives,
     inversion,
 )
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
+from discretize.utils import mesh_builder_xyz, active_from_xyz
 
 from simpeg import utils
 
@@ -61,7 +61,6 @@ rxLoc = np.c_[utils.mkvc(X.T), utils.mkvc(Y.T), utils.mkvc(Z.T) + 0.1]
 # Mesh parameters
 h = [5, 5, 5]
 padDist = np.ones((3, 2)) * 100
-octree_levels = [8, 4]
 
 # Create tiles
 local_indices = [rxLoc[:, 0] <= 0, rxLoc[:, 0] > 0]
@@ -76,11 +75,10 @@ for local_index in local_indices:
     local_mesh = mesh_builder_xyz(
         topo, h, padding_distance=padDist, depth_core=100, mesh_type="tree"
     )
-    local_mesh = refine_tree_xyz(
-        local_mesh,
+    local_mesh.refine_surface(
         local_survey.receiver_locations,
-        method="surface",
-        octree_levels=octree_levels,
+        level=-1,
+        padding_cells_by_level=3,
         finalize=True,
     )
 
@@ -197,7 +195,7 @@ for ii, local_misfit in enumerate(local_misfits):
         inject_local * (local_map * model), normal="Y", ax=ax, grid=True
     )
     ax.set_aspect("equal")
-    ax.set_title(f"Mesh {ii+1}. Active cells {local_map.local_active.sum()}")
+    ax.set_title(f"Mesh {ii + 1}. Active cells {local_map.local_active.sum()}")
 
 
 # Create active map to go from reduce set to full
@@ -242,7 +240,7 @@ update_IRLS = directives.UpdateIRLS(
     irls_cooling_factor=1.5,
     misfit_tolerance=1e-2,
 )
-saveDict = directives.SaveOutputEveryIteration(save_txt=False)
+saveDict = directives.SaveOutputEveryIteration(on_disk=False)
 update_Jacobi = directives.UpdatePreconditioner()
 sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)
 inv = inversion.BaseInversion(

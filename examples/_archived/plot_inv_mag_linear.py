@@ -129,7 +129,7 @@ def run(plotIt=True):
     # Use pick a threshold parameter empirically based on the distribution of
     #  model parameters
     IRLS = directives.UpdateIRLS(f_min_change=1e-3, max_irls_iterations=40)
-    saveDict = directives.SaveOutputEveryIteration(save_txt=False)
+    saveDict = directives.SaveOutputEveryIteration(on_disk=False)
     update_Jacobi = directives.UpdatePreconditioner()
     # Add sensitivity weights
     sensitivity_weights = directives.UpdateSensitivityWeights(every_iteration=False)

@@ -34,7 +34,7 @@ from simpeg import (
 from simpeg.potential_fields import magnetics
 from simpeg import utils
 from simpeg.utils import mkvc
-from discretize.utils import mesh_builder_xyz, refine_tree_xyz, active_from_xyz
+from discretize.utils import mesh_builder_xyz, active_from_xyz
 
 # sphinx_gallery_thumbnail_number = 4
 
@@ -111,9 +111,7 @@ padDist = np.ones((3, 2)) * 100
 mesh = mesh_builder_xyz(
     rxLoc, h, padding_distance=padDist, depth_core=100, mesh_type="tree"
 )
-mesh = refine_tree_xyz(
-    mesh, topo, method="surface", octree_levels=[4, 4], finalize=True
-)
+mesh.refine_surface(topo, level=-1, padding_cells_by_level=[3, 2], finalize=True)
 
 # Define the active cells from topo
 actv = active_from_xyz(mesh, topo)

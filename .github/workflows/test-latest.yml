@@ -10,7 +10,7 @@ on:
       python:
         description: "Python version"
         required: true
-        default: "3.14"
+        default: "3.15"
         type: string
 
   schedule:
@@ -48,7 +48,7 @@ jobs:
     env:
       # Define the Python version conditionally:
       # if it was manually triggered, use the inputs.python variable, else use a default value.
-      PYTHON: ${{ inputs.python || '3.14' }}
+      PYTHON: ${{ inputs.python || '3.15' }}
       ENVIRONMENT: .ci/environment_test.yml
 
     steps:

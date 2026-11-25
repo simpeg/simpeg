@@ -337,7 +337,7 @@ starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 beta_schedule = directives.BetaSchedule(coolingFactor=3, coolingRate=2)
 
 # Options for outputting recovered models and predicted data for each beta.
-save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
+save_iteration = directives.SaveOutputEveryIteration(on_disk=False)
 
 # Setting a stopping criteria for the inversion.
 target_misfit = directives.TargetMisfit(chifact=1)
@@ -558,7 +558,7 @@ ip_inverse_problem = inverse_problem.BaseInvProblem(
 update_sensitivity_weighting = directives.UpdateSensitivityWeights(threshold_value=1e-3)
 starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 beta_schedule = directives.BetaSchedule(coolingFactor=2, coolingRate=1)
-save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
+save_iteration = directives.SaveOutputEveryIteration(on_disk=False)
 target_misfit = directives.TargetMisfit(chifact=1.0)
 update_jacobi = directives.UpdatePreconditioner()
 

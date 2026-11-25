@@ -267,7 +267,7 @@ starting_beta = directives.BetaEstimate_ByEig(beta0_ratio=1e1)
 update_Jacobi = directives.UpdatePreconditioner()
 
 # Options for outputting recovered models and predicted data for each beta.
-save_iteration = directives.SaveOutputEveryIteration(save_txt=False)
+save_iteration = directives.SaveOutputEveryIteration(on_disk=False)
 
 # Directive for the IRLS
 update_IRLS = directives.UpdateIRLS(max_irls_iterations=30, irls_cooling_factor=1.5)

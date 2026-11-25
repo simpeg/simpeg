@@ -12,7 +12,6 @@ from pymatsolver import (
 )
 from pymatsolver.solvers import Base
 from .code_utils import deprecate_function
-from typing import Type
 
 __all__ = [
     "Solver",
@@ -43,7 +42,7 @@ else:
     _DEFAULT_SOLVER = SolverLU
 
 
-def get_default_solver() -> Type[Base]:
+def get_default_solver() -> type[Base]:
     """Return the default solver used by simpeg.
 
     Returns
@@ -54,7 +53,7 @@ def get_default_solver() -> Type[Base]:
     return _DEFAULT_SOLVER
 
 
-def set_default_solver(solver_class: Type[Base]):
+def set_default_solver(solver_class: type[Base]):
     """Set the default solver used by simpeg.
 
     Parameters
