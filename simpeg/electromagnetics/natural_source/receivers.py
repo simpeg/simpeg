@@ -2320,6 +2320,7 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
         Whether to cache to internal projection matrices.
     """
 
+    _loc_names = ("Magnetic field", "Electric field")
     _base_type = "electric"
     _component = "amp"
 
@@ -2333,8 +2334,8 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
         if locations_h is None:
             locations_h = locations_e
         super().__init__(
-            locations1=locations_e,
-            locations2=locations_h,
+            locations1=locations_h,
+            locations2=locations_e,
             storeProjections=storeProjections,
         )
         self.formula = formula
@@ -2399,6 +2400,28 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
                 self, src, mesh, f, du_dm_v=du_dm_v, v=v, adjoint=adjoint, scale=scale
             )
         raise ValueError()  # pragma: nocover
+
+    @property
+    def locations_e(self):
+        """Electric field measurement locations
+
+        Returns
+        -------
+        numpy.ndarray
+            Location where the electric field is measured for all receiver data
+        """
+        return self._locations[1]
+
+    @property
+    def locations_h(self):
+        """Magnetic field measurement locations
+
+        Returns
+        -------
+        numpy.ndarray
+            Location where the magnetic field is measured for all receiver data
+        """
+        return self._locations[0]
 
 
 @deprecate_class(removal_version="0.24.0", error=True, replace_docstring=False)
