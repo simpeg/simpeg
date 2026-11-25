@@ -1,36 +1,25 @@
-from simpeg.electromagnetics.natural_source.receivers import ApparentConductivity
-from discretize import TensorMesh
 import numpy as np
-import random
+from discretize import TensorMesh
+
+from simpeg.electromagnetics.natural_source.receivers import ApparentConductivity
 
 
 def test_locations_order():
-    # Generate a simple 3D tensor mesh
+    """Magnetic fields project from location 0, electric fields from location 1."""
     mesh = TensorMesh([np.full(10, 1.0)] * 3, origin=(-10, -10, -10))
 
-    # Random locations between -10 and 10
-    locations_e = random.sample(range(mesh.nC), 10)
+    rng = np.random.default_rng(0)
+    locations_e = mesh.cell_centers[rng.choice(mesh.n_cells, 10, replace=False)]
+    locations_h = mesh.cell_centers[rng.choice(mesh.n_cells, 10, replace=False)]
 
-    # Random locations between -10 and 10
-    locations_h = random.sample(range(mesh.nC), 10)
-    receivers = ApparentConductivity(
-        locations_e=mesh.cell_centers[locations_e],
-        locations_h=mesh.cell_centers[locations_h],
-    )
+    rx = ApparentConductivity(locations_e=locations_e, locations_h=locations_h)
 
-    # Check the 0 projections refer to the expected locations
-    proj_h = receivers.getP(mesh, "cell_centers", 0)
-    active_inds = proj_h.data == 1
+    # interpolating the cell center coordinates recovers the projected locations
+    P_h = rx.getP(mesh, "cell_centers", 0)
+    np.testing.assert_allclose(P_h @ mesh.cell_centers, locations_h)
 
-    np.testing.assert_allclose(proj_h.indices[active_inds], locations_h)
+    P_e = rx.getP(mesh, "cell_centers", 1)
+    np.testing.assert_allclose(P_e @ mesh.cell_centers, locations_e)
 
-    # Check the 1 projections refer to the expected locations
-    proj_e = receivers.getP(mesh, "cell_centers", 1)
-    active_inds = proj_e.data == 1
-
-    np.testing.assert_allclose(proj_e.indices[active_inds], locations_e)
-
-    # Check that ratios are computed correctly
-    ratio = receivers.locations_e / receivers.locations_h
-    expected_ratio = mesh.cell_centers[locations_e] / mesh.cell_centers[locations_h]
-    np.testing.assert_allclose(ratio, expected_ratio)
+    np.testing.assert_array_equal(rx.locations_e, locations_e)
+    np.testing.assert_array_equal(rx.locations_h, locations_h)

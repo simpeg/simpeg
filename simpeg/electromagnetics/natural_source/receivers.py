@@ -2320,6 +2320,7 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
         Whether to cache to internal projection matrices.
     """
 
+    _loc_names = ("Magnetic field", "Electric field")
     _base_type = "electric"
     _component = "amp"
 
