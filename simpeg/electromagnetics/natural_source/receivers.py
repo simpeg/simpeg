@@ -2400,6 +2400,28 @@ class ApparentConductivity(_ElectricAndMagneticReceiver):
             )
         raise ValueError()  # pragma: nocover
 
+    @property
+    def locations_e(self):
+        """Electric field measurement locations
+
+        Returns
+        -------
+        numpy.ndarray
+            Location where the electric field is measured for all receiver data
+        """
+        return self._locations[1]
+
+    @property
+    def locations_h(self):
+        """Magnetic field measurement locations
+
+        Returns
+        -------
+        numpy.ndarray
+            Location where the magnetic field is measured for all receiver data
+        """
+        return self._locations[0]
+
 
 @deprecate_class(removal_version="0.24.0", error=True, replace_docstring=False)
 class PointNaturalSource(Impedance):

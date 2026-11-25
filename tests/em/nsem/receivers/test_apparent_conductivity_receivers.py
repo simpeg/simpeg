@@ -29,3 +29,8 @@ def test_locations_order():
     active_inds = proj_e.data == 1
 
     np.testing.assert_allclose(proj_e.indices[active_inds], locations_e)
+
+    # Check that ratios are computed correctly
+    ratio = receivers.locations_e / receivers.locations_h
+    expected_ratio = mesh.cell_centers[locations_e] / mesh.cell_centers[locations_h]
+    np.testing.assert_allclose(ratio, expected_ratio)
