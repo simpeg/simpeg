@@ -39,11 +39,6 @@ See https://github.com/simpeg/simpeg/pull/1661 for more details.
 The number of padding cells that get added during 1D MT simulations are now estimated based on a certain number of skin depths. This makes the 1D MT simulations more robust for any type of mesh.
 See more details in https://github.com/simpeg/simpeg/pull/1769.
 
-Add new NSEM receivers used to predict different rotation invariant transfer functions such as Root Gram Determinant, Cross Product Amplitude, Horizontal Determinant.
-The apparent conductivity
-:class:`~simpeg.electromagnetics.natural_source.receivers.ApparentConductivity`
-receiver can be configured to generate the apparent conductivity datum through different transfer functions.
-
 Add new natural source receiver classes
 :class:`~simpeg.electromagnetics.natural_source.receivers.RootGramDeterminant`,
 :class:`~simpeg.electromagnetics.natural_source.receivers.CrossProductAmplitude`,
