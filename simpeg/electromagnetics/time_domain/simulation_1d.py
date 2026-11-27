@@ -253,8 +253,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
         """Build Jacobian matrix by blocks.
 
         This method builds the Jacobian matrix by blocks, each block for a particular
-        invertible property (receiver height, conductivity, permeability, layer
-        thickness). Each block of the Jacobian matrix is stored within a dictionary.
+        invertible property (receiver height, conductivity, IP parameters,
+        permeability, layer thickness). Each block is stored in a dictionary.
 
         Parameters
         ----------
@@ -267,8 +267,8 @@ class Simulation1DLayered(BaseEM1DSimulation):
         -------
         dict
             Dictionary containing the blocks of the Jacobian matrix for the invertible
-            properties. The keys of the dictionary can be `"dh"`, `"ds"`, `"dmu"`, and
-            `"dthick"`.
+            properties. Keys can be `"dh"`, `"ds"`, `"deta"`, `"dtau"`, `"dc"`,
+            `"dmu"`, and `"dthick"`.
         """
         self.model = m
         if getattr(self, "_J", None) is None:
@@ -328,22 +328,34 @@ class Simulation1DLayered(BaseEM1DSimulation):
 
             if (
                 self.sigmaMap is not None
+                or self.etaMap is not None
+                or self.tauMap is not None
+                or self.cMap is not None
                 or self.muMap is not None
                 or self.thicknessesMap is not None
             ):
                 rTE_ds, rTE_dh, rTE_dmu = rTE_gradient(
                     frequencies, unique_lambs, sig, mu, self.thicknesses
                 )
-                if self.sigmaMap is not None:
-                    rTE_ds = rTE_ds[..., inv_lambs]
+                sigma_derivs = self._complex_sigma_derivatives(frequencies)
+                for key, mapping in (
+                    ("ds", self.sigmaMap),
+                    ("deta", self.etaMap),
+                    ("dtau", self.tauMap),
+                    ("dc", self.cMap),
+                ):
+                    if mapping is None:
+                        continue
+                    gradient = rTE_ds * sigma_derivs[key][:, :, None]
+                    gradient = gradient[..., inv_lambs]
                     v_ds = (
                         (
-                            (C0s * rTE_ds) @ self._fhtfilt.j0
-                            + (C1s * rTE_ds) @ self._fhtfilt.j1
+                            (C0s * gradient) @ self._fhtfilt.j0
+                            + (C1s * gradient) @ self._fhtfilt.j1
                         )
                         @ W.T
                     ).T
-                    self._J["ds"] = self._project_to_data(v_ds)
+                    self._J[key] = self._project_to_data(v_ds)
                 if self.muMap is not None:
                     rTE_dmu = rTE_dmu[..., inv_lambs]
                     v_dmu = (
@@ -396,6 +408,9 @@ class Simulation1DLayered(BaseEM1DSimulation):
         param_and_derivs = {
             "dh": self.hDeriv,
             "ds": self.sigmaDeriv,
+            "deta": self.etaDeriv,
+            "dtau": self.tauDeriv,
+            "dc": self.cDeriv,
             "dmu": self.muDeriv,
             "dthick": self.thicknessesDeriv,
         }
