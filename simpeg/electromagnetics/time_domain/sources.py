@@ -1059,8 +1059,8 @@ class BaseTDEMSrc(BaseEMSrc):
         Source locations
     waveform : BaseWaveform, default=StepOffWaveform
         A SimPEG waveform object
-    source_type : {'inductive','galvanic'}
-        Implement as an inductive or galvanic source
+    srcType : {'inductive', 'galvanic'}, optional
+        Implement as an inductive or galvanic source.
     """
 
     def __init__(
@@ -1242,8 +1242,8 @@ class MagDipole(BaseTDEMSrc):
         Orientation of the magnetic dipole.
     mu : float
         Background magnetic permeability
-    source_type : {'inductive', 'galvanic'}
-        Implement as an inductive or galvanic source
+    srcType : {'inductive', 'galvanic'}, default = 'inductive'
+        Implement as an inductive or galvanic source.
     """
 
     def __init__(
