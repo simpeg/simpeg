@@ -25,7 +25,7 @@ def _lengthInCell(O, D, xyz, plotIt=False):
     direction = D / maxD
 
     enter = 0.0
-    exit = maxD
+    t_exit = maxD
     for axis, (lower, upper) in enumerate(bounds):
         lower, upper = sorted((lower, upper))
         if direction[axis] == 0.0:
@@ -38,13 +38,13 @@ def _lengthInCell(O, D, xyz, plotIt=False):
         if t0 > t1:
             t0, t1 = t1, t0
         enter = max(enter, t0)
-        exit = min(exit, t1)
-        if exit <= enter:
+        t_exit = min(t_exit, t1)
+        if t_exit <= enter:
             return None
 
     if plotIt:
         start = O + enter * direction
-        end = O + exit * direction
+        end = O + t_exit * direction
         if O.size == 2:
             x, y = bounds
             plt.plot(
@@ -67,7 +67,7 @@ def _lengthInCell(O, D, xyz, plotIt=False):
                 lw=2,
             )
 
-    return exit - enter
+    return t_exit - enter
 
 
 def _lineintegral(M, Tx, Rx):
