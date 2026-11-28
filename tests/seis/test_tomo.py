@@ -2,6 +2,7 @@ import re
 import unittest
 
 import discretize
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
@@ -67,6 +68,62 @@ def test_length_in_cell_rejects_zero_length_ray():
     assert _lengthInCell([0.5, 0.5], [0.0, 0.0], [[0.0, 1.0], [0.0, 1.0]]) is None
 
 
+@pytest.mark.parametrize(
+    "origin, direction, bounds, message",
+    [
+        ([0.0, 0.0], [1.0], [[0.0, 1.0], [0.0, 1.0]], "one-dimensional"),
+        ([0.0, 0.0], [1.0, 0.0], [[0.0, 1.0]], "shape"),
+    ],
+)
+def test_length_in_cell_rejects_invalid_input_shapes(
+    origin, direction, bounds, message
+):
+    with pytest.raises(ValueError, match=message):
+        _lengthInCell(origin, direction, bounds)
+
+
+def test_length_in_cell_plotting_2d_and_3d():
+    plt.close("all")
+    assert _lengthInCell(
+        [0.25, 0.5], [1.5, 0.0], [[0.0, 1.0], [0.0, 1.0]], plotIt=True
+    ) == pytest.approx(0.75)
+    plt.close("all")
+
+    # With no current 3D axes, the helper creates one for the debug plot.
+    assert _lengthInCell(
+        [0.25, 0.5, 0.5],
+        [1.5, 0.0, 0.0],
+        [[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]],
+        plotIt=True,
+    ) == pytest.approx(0.75)
+    plt.close("all")
+
+    # It should also draw into an already active 3D axes.
+    fig = plt.figure()
+    fig.add_subplot(111, projection="3d")
+    assert _lengthInCell(
+        [0.25, 0.5, 0.5],
+        [1.5, 0.0, 0.0],
+        [[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]],
+        plotIt=True,
+    ) == pytest.approx(0.75)
+    plt.close(fig)
+
+
+def test_lineintegral_rejects_unsupported_mesh_dimension():
+    mesh = discretize.TensorMesh([[1.0, 1.0]])
+    with pytest.raises(ValueError, match="requires a 2D or 3D mesh, got 1D"):
+        _lineintegral(mesh, [0.0], [1.0])
+
+
+def test_lineintegral_returns_empty_for_ray_outside_mesh():
+    mesh = discretize.TensorMesh([[1.0], [1.0]])
+    inds, lengths = _lineintegral(mesh, [0.0, 2.0], [1.0, 2.0])
+
+    assert inds.size == 0
+    assert lengths.size == 0
+
+
 def test_lineintegral_and_simulation_support_3d_mesh():
     mesh = discretize.TensorMesh([[1.0, 1.0], [1.0], [1.0]])
     inds, lengths = _lineintegral(mesh, [0.0, 0.5, 0.5], [2.0, 0.5, 0.5])
@@ -75,9 +132,16 @@ def test_lineintegral_and_simulation_support_3d_mesh():
     np.testing.assert_allclose(lengths, [1.0, 1.0])
     receiver = tomo.Rx(locations=np.array([[2.0, 0.5, 0.5]]))
     source = tomo.Src(location=np.array([0.0, 0.5, 0.5]), receiver_list=[receiver])
-    simulation = SimulationIntegral(mesh, survey=tomo.Survey([source]))
+    simulation = SimulationIntegral(
+        mesh,
+        survey=tomo.Survey([source]),
+        slownessMap=maps.IdentityMap(mesh),
+    )
     assert simulation.mesh is mesh
     np.testing.assert_allclose(simulation.A.toarray(), [[1.0, 1.0]])
+    np.testing.assert_allclose(
+        simulation.Jtvec(np.ones(mesh.nC), np.ones(1)), [1.0, 1.0]
+    )
 
 
 def test_required_mesh_arg():
