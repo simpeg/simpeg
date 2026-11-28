@@ -12,6 +12,7 @@ Simulations
   :toctree: generated/
 
   Simulation
+  SimulationIntegral
 
 
 Survey, Sources and Receivers
@@ -26,6 +27,7 @@ Survey, Sources and Receivers
 """
 
 from .simulation import Simulation2DIntegral as Simulation
+from .simulation import SimulationIntegral
 from .survey import StraightRaySurvey as Survey
 from ...survey import BaseSrc as Src
 from ...survey import BaseRx as Rx
